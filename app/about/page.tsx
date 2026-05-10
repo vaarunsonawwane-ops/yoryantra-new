@@ -24,16 +24,17 @@ export default function AboutPage() {
           what you are looking for; from legacy encoding transformations to niche infrastructure configurations. 
           In a subtle way, we might show a minimal ads just for our survival and to keep this project running, 
           but never at the cost of your experience. 
-          
-          The name <strong>"Yoryantra"</strong> came to me while I was thinking about the <em>Shrimad Bhagwat Geeta</em>. 
-          Being a spiritual person, I was looking for a name connected to my Sanatani roots with a meaning relevant in today's digital world. 
-          
-          <strong>Yor (Your) + Yantra (Machine/Tool).</strong> Yantra is a Sanskrit word, and quite literally, this is <strong>Your Machine</strong>.
-        
-          I am <strong>Vaarun Sonawwane</strong>, an IT professional with 8 years of experience. I passionately want to give back to society and help whoever I can in this universe through <strong>Yoryantra</strong>.
- 
-        </p>
 
+        </p>
+        <p>
+          The name <strong>"Yoryantra"</strong> came to me while I was thinking about the <strong><em>Shrimad Bhagwat Geeta</em></strong>. 
+          Being a spiritual person, I was looking for a name connected to my Sanatani roots with a meaning relevant in today's digital world. 
+              
+          <strong>Yor (Your) + Yantra (Machine/Tool).</strong> Yantra is a Sanskrit word, and quite literally, this is your machine or tool.
+        </p>
+        <p>
+          I am <strong>Vaarun Sonawwane</strong>, an IT professional with 8 years of experience. I passionately want to give back to society and help whoever I can in this universe through <strong>Yoryantra</strong>.
+        </p>
         <p>
           You can find my specific details on the <Link href="/contact" className="text-blue-600 underline hover:text-blue-800">Contact Us</Link> page.
         </p>
