@@ -12,38 +12,26 @@ export default function AboutPage() {
         </p>
 
         <p>
-          Too often, you can't find these tools easily, or there is simply no modern solution available—be it 
+          Too often, you can't find these tools easily, or there is simply no modern solution available; be it 
           technical utilities, converters, or simple calculation tools. And if you do find one, it’s usually 
-          loaded with ads. Trust me, I have faced a similar problem. It feels like wasting time just closing 
+          loaded with too many ads. Trust me, I have faced a similar problems. It feels like wasting time just closing 
           pop-ups before you can even use the tool you came for.
         </p>
 
         <p>
           I deeply felt there should be a platform that doesn't waste your time. At Yoryantra, we don't do 
           generic converters, and we won’t make you hunt for the "X" to close a popup. We give you exactly 
-          what you are looking for—from legacy encoding transformations to niche infrastructure configurations. 
-          In a subtle way, we might show a minimal ad just for our survival and to keep this project running, 
-          but never at the cost of your experience.
-        </p>
-
-        <div className="my-12 p-8 bg-slate-50 border-l-4 border-orange-500 rounded-r-2xl">
-          <h2 className="text-2xl font-bold mb-4 text-slate-900">The Roots of Yoryantra</h2>
-          <p className="mb-4">
-            The name <strong>"Yoryantra"</strong> came to me while I was thinking of the <em>Shrimad Bhagwat Geeta</em>. 
-            Being a spiritual person, I was looking for a name connected to my Sanatani roots with a meaning 
-            relevant in today's digital world. 
-          </p>
-          <p className="font-medium text-slate-700">
-            <strong>Yor (Your) + Yantra (Machine/Tool).</strong> 
-          </p>
-          <p className="mt-2">
-            Yantra is a Sanskrit word, and quite literally, this is <strong>Your Machine</strong>.
-          </p>
-        </div>
-
-        <p>
-          I am <strong>Vaarun Sonawwane</strong>, an IT professional with 8 years of experience. I have a 
-          passion for giving back to society and helping whoever I can in this universe through technology. 
+          what you are looking for; from legacy encoding transformations to niche infrastructure configurations. 
+          In a subtle way, we might show a minimal ads just for our survival and to keep this project running, 
+          but never at the cost of your experience. 
+          
+          The name <strong>"Yoryantra"</strong> came to me while I was thinking about the <em>Shrimad Bhagwat Geeta</em>. 
+          Being a spiritual person, I was looking for a name connected to my Sanatani roots with a meaning relevant in today's digital world. 
+          
+          <strong>Yor (Your) + Yantra (Machine/Tool).</strong> Yantra is a Sanskrit word, and quite literally, this is <strong>Your Machine</strong>.
+        
+          I am <strong>Vaarun Sonawwane</strong>, an IT professional with 8 years of experience. I passionately want to give back to society and help whoever I can in this universe through <strong>Yoryantra</strong>.
+ 
         </p>
 
         <p>
