@@ -29,7 +29,7 @@ export default function AboutPage() {
         <p>
           The name "Yoryantra" came to me while I was thinking about the <strong><em>Shrimad Bhagwat Geeta</em></strong>. 
           Being a spiritual person, I was looking for a name connected to my Sanatani roots with a meaning relevant in today's digital world. 
-          <strong>Yor (Your) + Yantra (Machine/Tool)</strong>strong> Yantra is a Sanskrit word and quite literally it means machine or tool.
+          <strong>Yor (Your) + Yantra (Machine/Tool)</strong> Yantra is a Sanskrit word and quite literally it means machine or tool.
         </p>
         <p>
           I am <strong>Vaarun Sonawwane</strong>, an IT professional with 9 years of experience. I passionately want to give back to society and help whoever I can in this universe through <strong>Yoryantra</strong>.
