@@ -1,23 +1,57 @@
+import Link from 'next/link';
+
 export default function AboutPage() {
   return (
-    <main className="max-w-4xl mx-auto p-8 md:p-16 text-slate-800">
-      <h1 className="text-4xl font-extrabold mb-6">About Yoryantra</h1>
-      <p className="text-lg mb-6 leading-relaxed">
-        Yoryantra is a professional-grade platform dedicated to providing <strong>uncommon technical utilities</strong> 
-        and regional converters for the global developer community. 
-      </p>
-      <h2 className="text-2xl font-bold mt-10 mb-4">Our Mission</h2>
-      <p className="mb-6">
-        Most tool websites focus on common tasks like JSON formatting. We focus on the <strong>Long Tail</strong>: 
-        the specific, difficult, and regional technical challenges that developers face daily but find no modern 
-        solutions for. From legacy encoding transformations to niche infrastructure configurations, 
-        Yoryantra is built for precision.
-      </p>
-      <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
-        <h3 className="font-bold text-blue-800 mb-2">Technical Excellence</h3>
-        <p className="text-blue-900 text-sm">
-          Built using Next.js and deployed on Cloudflare's Edge Network, our tools are designed to be 
-          serverless, secure, and lightning-fast. Your data never leaves your browser.
+    <main className="max-w-4xl mx-auto p-8 md:p-16 text-slate-800 font-sans">
+      <h1 className="text-4xl font-black mb-8 tracking-tight text-slate-900">About Yoryantra</h1>
+      
+      <div className="space-y-6 text-lg leading-relaxed">
+        <p>
+          <strong>Yoryantra</strong> is your very own friendly platform dedicated to helping you with those 
+          common or uncommon tools which you, as a developer, need on a daily basis. 
+        </p>
+
+        <p>
+          Too often, you can't find these tools easily, or there is simply no modern solution available—be it 
+          technical utilities, converters, or simple calculation tools. And if you do find one, it’s usually 
+          loaded with ads. Trust me, I have faced a similar problem. It feels like wasting time just closing 
+          pop-ups before you can even use the tool you came for.
+        </p>
+
+        <p>
+          I deeply felt there should be a platform that doesn't waste your time. At Yoryantra, we don't do 
+          generic converters, and we won’t make you hunt for the "X" to close a popup. We give you exactly 
+          what you are looking for—from legacy encoding transformations to niche infrastructure configurations. 
+          In a subtle way, we might show a minimal ad just for our survival and to keep this project running, 
+          but never at the cost of your experience.
+        </p>
+
+        <div className="my-12 p-8 bg-slate-50 border-l-4 border-orange-500 rounded-r-2xl">
+          <h2 className="text-2xl font-bold mb-4 text-slate-900">The Roots of Yoryantra</h2>
+          <p className="mb-4">
+            The name <strong>"Yoryantra"</strong> came to me while I was thinking of the <em>Shrimad Bhagwat Geeta</em>. 
+            Being a spiritual person, I was looking for a name connected to my Sanatani roots with a meaning 
+            relevant in today's digital world. 
+          </p>
+          <p className="font-medium text-slate-700">
+            <strong>Yor (Your) + Yantra (Machine/Tool).</strong> 
+          </p>
+          <p className="mt-2">
+            Yantra is a Sanskrit word, and quite literally, this is <strong>Your Machine</strong>.
+          </p>
+        </div>
+
+        <p>
+          I am <strong>Vaarun Sonawwane</strong>, an IT professional with 8 years of experience. I have a 
+          passion for giving back to society and helping whoever I can in this universe through technology. 
+        </p>
+
+        <p>
+          You can find my specific details on the <Link href="/contact" className="text-blue-600 underline hover:text-blue-800">Contact Us</Link> page.
+        </p>
+
+        <p className="text-xl font-semibold pt-8">
+          Thank you, and Gratitude!!
         </p>
       </div>
     </main>
