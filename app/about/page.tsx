@@ -22,18 +22,17 @@ export default function AboutPage() {
           I deeply felt there should be a platform that doesn't waste your time. At Yoryantra, we don't do 
           generic converters, and we won’t make you hunt for the "X" to close a popup. We give you exactly 
           what you are looking for; from legacy encoding transformations to niche infrastructure configurations. 
-          In a subtle way, we might show a minimal ads just for our survival and to keep this project running, 
+          In a subtle way, we might show minimal ads just for our survival and to keep this project running, 
           but never at the cost of your experience. 
 
         </p>
         <p>
-          The name <strong>"Yoryantra"</strong> came to me while I was thinking about the <strong><em>Shrimad Bhagwat Geeta</em></strong>. 
+          The name "Yoryantra" came to me while I was thinking about the <strong><em>Shrimad Bhagwat Geeta</em></strong>. 
           Being a spiritual person, I was looking for a name connected to my Sanatani roots with a meaning relevant in today's digital world. 
-              
-          <strong>Yor (Your) + Yantra (Machine/Tool).</strong> Yantra is a Sanskrit word, and quite literally, this is your machine or tool.
+          Yor (Your) + Yantra (Machine/Tool) Yantra is a Sanskrit word and quite literally it means machine or tool.
         </p>
         <p>
-          I am <strong>Vaarun Sonawwane</strong>, an IT professional with 8 years of experience. I passionately want to give back to society and help whoever I can in this universe through <strong>Yoryantra</strong>.
+          I am <strong>Vaarun Sonawwane</strong>, an IT professional with 9 years of experience. I passionately want to give back to society and help whoever I can in this universe through <strong>Yoryantra</strong>.
         </p>
         <p>
           You can find my specific details on the <Link href="/contact" className="text-blue-600 underline hover:text-blue-800">Contact Us</Link> page.
