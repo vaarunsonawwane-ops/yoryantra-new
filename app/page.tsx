@@ -26,10 +26,7 @@ export default function HomePage() {
               className="w-[140px] md:w-[180px] h-auto"
             />
 
-            <div
-              className="h-[8px] mt-4 rounded-sm"
-              style={{ backgroundColor: "var(--gold)" }}
-            ></div>
+            
           </div>
 
           {/* MENU */}
