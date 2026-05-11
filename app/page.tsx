@@ -23,7 +23,7 @@ export default function HomePage() {
             <img
               src="/YoryantraLogo.png"
               alt="YORYANTRA"
-              className="w-[220px] md:w-[280px] h-auto"
+              className="w-[140px] md:w-[180px] h-auto""
             />
 
             <div
