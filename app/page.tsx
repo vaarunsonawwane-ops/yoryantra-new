@@ -15,7 +15,7 @@ export default function HomePage() {
       `}</style>
 
       {/* NAVBAR */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
+      <header className="bg-white sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           
           {/* LOGO */}
