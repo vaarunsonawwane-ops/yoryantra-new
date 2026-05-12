@@ -35,7 +35,7 @@ export default function HomePage() {
               Home
             </a>
 
-            <a href="#about" className="hover:text-[var(--green)]">
+            <a href="/about" className="hover:text-[var(--green)]">
               About
             </a>
 
