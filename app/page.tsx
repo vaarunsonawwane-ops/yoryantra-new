@@ -114,19 +114,19 @@ export default function HomePage() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                icon: "📦",
-                title: "Productivity Utilities",
-                desc: "Smart tools to simplify tasks, save time, and improve everyday productivity.",
+                icon: "🔄",
+                title: "Converters & Transformers",
+                desc: "Base64, JSON, text, encoding, decoding, and format conversion tools people search daily.",
               },
               {
-                icon: "📄",
-                title: "Structured Work Utilities",
-                desc: "Utilities designed for formatting, organizing, and simplifying professional workflows.",
+                icon: "⚡",
+                title: "Quick Utility Tools",
+                desc: "Fast tools for timestamps, UUIDs, word counters, slug generators, and everyday tasks.",
               },
               {
-                icon: "↻",
-                title: "Smart Converters",
-                desc: "Practical converters focused on workflow, formatting, and modern business use cases.",
+                icon: "🧠",
+                title: "Text & Data Utilities",
+                desc: "Regex tester, case converter, diff checker, CSV tools, and smart text processors.",
               },
             ].map((item) => (
               <div
