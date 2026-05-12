@@ -29,8 +29,8 @@ export default function HomePage() {
           </div>
 
           <h2 className="text-5xl md:text-6xl font-bold leading-tight text-[var(--dark)]">
-            Everyday tools you actually need, without the noise.
-            <span className="text-[var(--green)]"> actually save time.</span>
+            Practical everyday tools that are
+            <span className="text-[var(--green)]"> fast, clean, and built to save time.</span>
           </h2>
 
           <p className="mt-8 text-xl text-gray-600 leading-relaxed max-w-2xl">
