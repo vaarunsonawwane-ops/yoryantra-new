@@ -1,3 +1,3 @@
-export default function Terms-and-conditions() {
+export default function TermsAndConditionsPage() {
   return <div>Page Content</div>;
 }
