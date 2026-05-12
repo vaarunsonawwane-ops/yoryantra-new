@@ -14,8 +14,6 @@ export default function HomePage() {
         }
       `}</style>
 
-      </header>
-
       {/* HERO */}
       <section
         id="home"
