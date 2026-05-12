@@ -25,31 +25,30 @@ export default function HomePage() {
             className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-yellow-50 text-sm font-medium mb-8"
             style={{ color: "#946c00" }}
           >
-            ✦ Built with Gratitude
+            ✦ Built for Developers
           </div>
 
           <h2 className="text-5xl md:text-6xl font-bold leading-tight text-[var(--dark)]">
-            Smart utilities for{" "}
-            <span className="text-[var(--green)]">
-              structured workflows
-            </span>
-            , productivity, and modern work.
+            Developer utilities that
+            <span className="text-[var(--green)]"> actually save time.</span>
           </h2>
 
           <p className="mt-8 text-xl text-gray-600 leading-relaxed max-w-2xl">
-            YORYANTRA creates thoughtful tools designed to simplify professional
-            tasks, improve structure, and help people work more efficiently.
+            Modern tools, smart converters, encoding utilities, formatting helpers,
+            and niche developer utilities without too much ads chaos and unnecessary clutter.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-5">
-            <button
-              className="px-8 py-4 rounded-xl text-white font-medium transition hover:opacity-90"
+            <a
+			  href="/tools"
+			  className="px-8 py-4 rounded-xl text-white font-medium transition hover:opacity-90"
               style={{ backgroundColor: "var(--gold)" }}
             >
               Explore Tools →
-            </button>
+            </a
 
-            <button
+            <a
+			  href="/categories"
               className="px-8 py-4 rounded-xl border font-medium transition hover:bg-green-50"
               style={{
                 borderColor: "var(--green)",
@@ -57,7 +56,7 @@ export default function HomePage() {
               }}
             >
               View Categories
-            </button>
+            </a>
           </div>
         </div>
 
