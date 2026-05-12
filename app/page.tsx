@@ -35,19 +35,19 @@ export default function HomePage() {
               Home
             </a>
 
-            <a href="/about" className="hover:text-[var(--green)]">
+            <a href="/about" className="hover:text-[var(--gold)]">
               About
             </a>
 
-            <a href="/categories" className="hover:text-[var(--green)]">
+            <a href="/categories" className="hover:text-[var(--gold)]">
               Categories
             </a>
 
-            <a href="/tools" className="hover:text-[var(--green)]">
+            <a href="/tools" className="hover:text-[var(--gold)]">
               Tools
             </a>
 
-            <a href="/contact" className="hover:text-[var(--green)]">
+            <a href="/contact" className="hover:text-[var(--gold)]">
               Contact
             </a>
           </nav>
