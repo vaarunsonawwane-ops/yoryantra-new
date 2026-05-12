@@ -31,7 +31,7 @@ export default function HomePage() {
 
           {/* MENU */}
           <nav className="hidden md:flex items-center gap-10 text-sm font-medium">
-            <a href="#home" className="text-[var(--green)]">
+            <a href="/home" className="text-[var(--green)]">
               Home
             </a>
 
