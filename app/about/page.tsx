@@ -1,4 +1,3 @@
-```tsx
 export default function AboutPage() {
   return (
     <main className="bg-white text-[#222]">
@@ -107,4 +106,3 @@ export default function AboutPage() {
     </main>
   );
 }
-```
