@@ -2,6 +2,13 @@ export default function AboutPage() {
   return (
     <main className="bg-white text-[#222]">
       <div className="max-w-[900px] mx-auto px-6 py-[70px] leading-[1.9]">
+	  
+		<a
+			href="/"
+			className="inline-flex items-center text-[#c89b3c] font-semibold hover:underline mb-10"
+		>
+			← Back to Home
+		</a>
 
         <h1 className="text-[34px] md:text-[42px] font-bold text-[#111] mb-[45px]">
           About Yoryantra
