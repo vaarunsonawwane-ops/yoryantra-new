@@ -29,7 +29,7 @@ export default function HomePage() {
           </div>
 
           <h2 className="text-5xl md:text-6xl font-bold leading-tight text-[var(--dark)]">
-            Developer utilities that
+            Everyday tools you actually need, without the noise.
             <span className="text-[var(--green)]"> actually save time.</span>
           </h2>
 
