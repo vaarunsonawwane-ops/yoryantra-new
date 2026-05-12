@@ -1,6 +1,3 @@
-export default function Tools() {
-  return <div>Page Content</div>;
-}
 import Link from "next/link";
 
 export default function ToolsPage() {
@@ -13,7 +10,6 @@ export default function ToolsPage() {
       </p>
 
       <div className="grid md:grid-cols-2 gap-6">
-
         <Link href="/tools/json-formatter">
           <div className="p-6 border rounded-xl hover:shadow-md transition">
             <h2 className="text-xl font-semibold text-[var(--green)]">
@@ -24,7 +20,6 @@ export default function ToolsPage() {
             </p>
           </div>
         </Link>
-
       </div>
     </div>
   );
