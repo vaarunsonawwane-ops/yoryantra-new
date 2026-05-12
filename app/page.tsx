@@ -25,7 +25,7 @@ export default function HomePage() {
             className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-yellow-50 text-sm font-medium mb-8"
             style={{ color: "#946c00" }}
           >
-            ✦ Built for Developers
+            ✦ Built for You
           </div>
 
           <h2 className="text-5xl md:text-6xl font-bold leading-tight text-[var(--dark)]">
