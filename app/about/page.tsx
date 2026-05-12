@@ -7,7 +7,6 @@ export default function AboutPage() {
 			href="/"
 			className="inline-flex items-center text-[#c89b3c] font-semibold hover:underline mb-10"
 		>
-			← Back to Home
 		</a>
 
         <h1 className="text-[34px] md:text-[42px] font-bold text-[#111] mb-[45px]">

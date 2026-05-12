@@ -14,44 +14,6 @@ export default function HomePage() {
         }
       `}</style>
 
-      {/* NAVBAR */}
-      <header className="bg-white sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          
-          {/* LOGO */}
-          <div>
-            <img
-              src="/YoryantraLogo.png"
-              alt="YORYANTRA"
-              className="w-[140px] md:w-[180px] h-auto"
-            />
-
-            
-          </div>
-
-          {/* MENU */}
-          <nav className="hidden md:flex items-center gap-10 text-sm font-medium">
-            <a href="/" className="text-[var(--green)]">
-              Home
-            </a>
-
-            <a href="/about" className="hover:text-[var(--gold)]">
-              About
-            </a>
-
-            <a href="/categories" className="hover:text-[var(--gold)]">
-              Categories
-            </a>
-
-            <a href="/tools" className="hover:text-[var(--gold)]">
-              Tools
-            </a>
-
-            <a href="/contact" className="hover:text-[var(--gold)]">
-              Contact
-            </a>
-          </nav>
-        </div>
       </header>
 
       {/* HERO */}
