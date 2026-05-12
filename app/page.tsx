@@ -45,7 +45,7 @@ export default function HomePage() {
               style={{ backgroundColor: "var(--gold)" }}
             >
               Explore Tools →
-            </a
+            </a>
 
             <a
 			  href="/categories"
