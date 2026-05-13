@@ -50,22 +50,24 @@ export default function JsonFormatter() {
       )}
 
       {output && (
-        <div className="mt-6">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold">Output</h3>
+		<div className="mt-6">
+		  <div className="flex justify-between items-center mb-2">
+			<h3 className="font-semibold">Output</h3>
 
-            <button
-              onClick={copyOutput}
-              className="text-sm px-3 py-1 border rounded hover:bg-gray-100"
-            >
-              Copy
-            </button>
-          </div>
+			{output && (
+			  <button
+				onClick={() => navigator.clipboard.writeText(output)}
+				className="text-sm px-3 py-1 border rounded hover:bg-gray-100"
+			  >
+				Copy
+			  </button>
+			)}
+		  </div>
 
-          <pre className="p-4 bg-gray-50 border rounded-lg overflow-auto text-sm">
-            {output}
-          </pre>
-        </div>
+		  <pre className="p-4 bg-gray-50 border rounded-lg overflow-auto text-sm min-h-[150px]">
+			{output || "Output will appear here..."}
+		  </pre>
+		</div>
       )}
     </ToolShell>
   );
