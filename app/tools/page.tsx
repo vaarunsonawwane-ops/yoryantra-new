@@ -20,10 +20,17 @@ const tools = [
   },
 
   {
+  title: "Text Case Converter",
+  description: "Convert text into uppercase, lowercase and title case.",
+  href: "/tools/text-case-converter",
+  },
+
+  {
     title: "Base64 Encoder",
     description: "Encode and decode Base64 text quickly.",
     href: "/tools/base64-encoder",
   },
+  
 ];
 
 export default function ToolsPage() {
