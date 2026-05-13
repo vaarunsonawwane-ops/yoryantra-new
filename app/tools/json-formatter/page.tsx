@@ -26,22 +26,22 @@ export default function JsonFormatter() {
     alert("Copied to clipboard!");
   };
 
-  return (
+  return return (
   <>
-	<a
-	   href="/tools"
-	   className="inline-block mb-6 text-sm text-[var(--green)] hover:underline"
-	>
-	   ← Back to Tools
-	</a>
-	
+    <a
+      href="/tools"
+      className="inline-block mb-6 text-sm text-[var(--green)] hover:underline"
+    >
+      ← Back to Tools
+    </a>
+
     <ToolShell
       title="JSON Formatter"
       description="Format, validate and beautify JSON instantly."
     >
       <textarea
         className="w-full h-60 border p-4 rounded-lg"
-        placeholder='Paste JSON here...'
+        placeholder="Paste JSON here..."
         value={input}
         onChange={(e) => setInput(e.target.value)}
       />
@@ -56,24 +56,25 @@ export default function JsonFormatter() {
       {error && (
         <p className="mt-4 text-red-500 font-medium">{error}</p>
       )}
-		<div className="mt-6">
-		  <div className="flex justify-between items-center mb-2">
-			<h3 className="font-semibold">Output</h3>
 
-			{output && (
-			  <button
-				onClick={() => navigator.clipboard.writeText(output)}
-				className="text-sm px-3 py-1 border rounded hover:bg-gray-100"
-			  >
-				Copy
-			  </button>
-			)}
-		  </div>
+      <div className="mt-6">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-semibold">Output</h3>
 
-		  <pre className="p-4 bg-gray-50 border rounded-lg overflow-auto text-sm min-h-[150px]">
-			{output || "Output will appear here..."}
-		  </pre>
-		</div>
+          {output && (
+            <button
+              onClick={() => navigator.clipboard.writeText(output)}
+              className="text-sm px-3 py-1 border rounded hover:bg-gray-100"
+            >
+              Copy
+            </button>
+          )}
+        </div>
+
+        <pre className="p-4 bg-gray-50 border rounded-lg overflow-auto text-sm min-h-[150px]">
+          {output || "Output will appear here..."}
+        </pre>
+      </div>
     </ToolShell>
-  );
-}
+  </>
+);
