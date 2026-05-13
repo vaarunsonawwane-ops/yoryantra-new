@@ -10,18 +10,18 @@ export default function ToolShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
+	  <div className="max-w-5xl mx-auto px-6 py-12">
 
-      <Link
-        href="/tools"
-        className="inline-block mb-6 text-sm text-[var(--green)] hover:underline"
-      >
-        ← Back to Tools
-      </Link>
+		<Link
+		  href="/tools"
+		  className="inline-block mb-6 text-sm text-[var(--green)] hover:underline"
+		>
+		  ← Back to Tools
+		</Link>
 
-      <h1 className="text-3xl font-bold text-[var(--dark)]">
-        {title}
-      </h1>
+		<h1 className="text-3xl font-bold text-gray-900">
+		  {title}
+		</h1>
 
       {description && (
         <p className="text-gray-600 mt-3 mb-8">
