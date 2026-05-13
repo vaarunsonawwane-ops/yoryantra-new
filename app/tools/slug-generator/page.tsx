@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import ToolShell from "@/app/components/ToolShell";
+
 export const metadata = {
   title: "Slug Generator | Yoryantra",
   description:
@@ -5,21 +10,56 @@ export const metadata = {
 };
 
 export default function SlugGeneratorPage() {
+  const [input, setInput] = useState("");
+  const [output, setOutput] = useState("");
+
+  function generateSlug() {
+    const slug = input
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-");
+
+    setOutput(slug);
+  }
+
   return (
-    <div className="max-w-4xl mx-auto px-6 py-16">
-      <h1 className="text-4xl font-bold text-[var(--dark)]">
-        Slug Generator
-      </h1>
+    <ToolShell
+      title="Slug Generator"
+      description="Convert text into SEO-friendly URL slugs instantly."
+    >
+      <textarea
+        className="w-full h-40 border p-4 rounded-lg"
+        placeholder="Enter text here..."
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+      />
 
-      <p className="mt-4 text-gray-600">
-        Convert titles and text into SEO-friendly URL slugs.
-      </p>
+      <button
+        onClick={generateSlug}
+        className="mt-4 px-6 py-2 bg-[var(--green)] text-white rounded-lg"
+      >
+        Generate Slug
+      </button>
 
-      <div className="mt-10 p-8 border rounded-2xl bg-white">
-        <p className="text-gray-500">
-          Slug Generator tool UI coming next.
-        </p>
+      <div className="mt-6">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-semibold">Output</h3>
+
+          {output && (
+            <button
+              onClick={() => navigator.clipboard.writeText(output)}
+              className="text-sm px-3 py-1 border rounded hover:bg-gray-100"
+            >
+              Copy
+            </button>
+          )}
+        </div>
+
+        <pre className="p-4 bg-gray-50 border rounded-lg overflow-auto text-sm min-h-[100px]">
+          {output || "Generated slug will appear here..."}
+        </pre>
       </div>
-    </div>
+    </ToolShell>
   );
 }
