@@ -31,6 +31,12 @@ const tools = [
     href: "/tools/base64-encoder",
   },
   
+  {
+  title: "URL Encoder Decoder",
+  description: "Encode and decode URLs instantly.",
+  href: "/tools/url-encoder",
+  },
+    
 ];
 
 export default function ToolsPage() {
