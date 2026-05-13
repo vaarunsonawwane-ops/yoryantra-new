@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --green: #2f6f4e;
+  --light-gold: #faf7f0;
+}
+
 .yoryantra-output {
   background-color: #faf7f0;
   border: 1px solid rgba(245, 217, 128, 0.45);
