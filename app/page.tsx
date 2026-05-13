@@ -137,7 +137,7 @@ export default function HomePage() {
                   {item.icon}
                 </div>
 
-                <h4 className="mt-8 text-2xl font-semibold text-[var(--green)]">
+                <h4 className="mt-8 text-2xl font-semibold text-gray-900">
                   {item.title}
                 </h4>
 
@@ -147,7 +147,7 @@ export default function HomePage() {
 
                 <a
                   href="#"
-                  className="inline-block mt-8 font-medium text-[var(--green)]"
+                  className="inline-block mt-8 font-medium text-gray-900"
                 >
                   Explore →
                 </a>
