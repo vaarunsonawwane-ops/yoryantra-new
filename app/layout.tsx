@@ -34,7 +34,7 @@ export default function RootLayout({
       {/* MENU */}
       <nav className="hidden md:flex items-center gap-10 text-sm font-medium">
 
-        <a href="/" className="text-[var(--green)]">
+        <a href="/" className="text-gray-900">
           Home
         </a>
 
