@@ -30,7 +30,7 @@ export default function HomePage() {
 
           <h2 className="text-5xl md:text-6xl font-bold leading-tight text-[var(--dark)]">
             Practical everyday tools that are
-            <span className="text-[var(--green)]"> fast, clean, and built to save time.</span>
+            <span className="font-semibold"> fast, clean, and built to save time.</span>
           </h2>
 
           <p className="mt-8 text-xl text-gray-600 leading-relaxed max-w-2xl">
