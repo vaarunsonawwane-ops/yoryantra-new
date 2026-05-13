@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 .yoryantra-output {
-  background-color: rgba(245, 217, 128, 0.18);
+  background-color: #faf7f0;
   border: 1px solid rgba(245, 217, 128, 0.45);
   border-radius: 12px;
 }
