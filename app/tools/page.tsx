@@ -1,25 +1,51 @@
-import Link from "next/link";
+import ToolCard from "@/app/components/ToolCard";
+
+const tools = [
+  {
+    title: "JSON Formatter",
+    description: "Format, validate and beautify JSON instantly.",
+    href: "/tools/json-formatter",
+  },
+
+  {
+    title: "Slug Generator",
+    description: "Convert text into SEO-friendly URL slugs.",
+    href: "/tools/slug-generator",
+  },
+
+  {
+    title: "URL Encoder",
+    description: "Encode and decode URLs instantly.",
+    href: "/tools/url-encoder",
+  },
+
+  {
+    title: "Base64 Encoder",
+    description: "Encode and decode Base64 text quickly.",
+    href: "/tools/base64-encoder",
+  },
+];
 
 export default function ToolsPage() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold mb-6">Tools</h1>
+      <h1 className="text-4xl font-bold text-[var(--dark)]">
+        Yoryantra Tools
+      </h1>
 
-      <p className="text-gray-600 mb-10">
-        All Yoryantra utilities in one place.
+      <p className="mt-4 text-gray-600">
+        Everyday tools you actually need, without the noise.
       </p>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Link href="/tools/json-formatter">
-          <div className="p-6 border rounded-xl hover:shadow-md transition">
-            <h2 className="text-xl font-semibold text-[var(--green)]">
-              JSON Formatter
-            </h2>
-            <p className="text-gray-600 mt-2">
-              Format, validate and minify JSON instantly.
-            </p>
-          </div>
-        </Link>
+      <div className="grid md:grid-cols-2 gap-6 mt-10">
+        {tools.map((tool) => (
+          <ToolCard
+            key={tool.title}
+            title={tool.title}
+            description={tool.description}
+            href={tool.href}
+          />
+        ))}
       </div>
     </div>
   );
