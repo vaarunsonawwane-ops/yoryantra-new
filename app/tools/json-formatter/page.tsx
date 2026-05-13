@@ -26,7 +26,7 @@ export default function JsonFormatter() {
     alert("Copied to clipboard!");
   };
 
-  return return (
+  return (
   <>
     <a
       href="/tools"
