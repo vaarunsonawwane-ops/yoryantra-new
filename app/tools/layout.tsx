@@ -5,13 +5,16 @@ export default function ToolsLayout({
 }) {
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
+
       {/* breadcrumb / back */}
       <div className="mb-6 text-sm text-gray-500">
-        <a href="/" className="hover:text-[var(--green)]">
+        <a href="/" className="hover:text-[var(--light-gold)] transition-colors">
           Home
-        </a>{" "}
-        /{" "}
-        <a href="/tools" className="hover:text-[var(--green)]">
+        </a>
+
+        <span className="mx-1">/</span>
+
+        <a href="/tools" className="hover:text-[var(--light-gold)] transition-colors">
           Tools
         </a>
       </div>
