@@ -48,8 +48,6 @@ export default function JsonFormatter() {
       {error && (
         <p className="mt-4 text-red-500 font-medium">{error}</p>
       )}
-
-      {output && (
 		<div className="mt-6">
 		  <div className="flex justify-between items-center mb-2">
 			<h3 className="font-semibold">Output</h3>
@@ -68,7 +66,6 @@ export default function JsonFormatter() {
 			{output || "Output will appear here..."}
 		  </pre>
 		</div>
-      )}
     </ToolShell>
   );
 }
