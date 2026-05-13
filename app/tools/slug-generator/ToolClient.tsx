@@ -7,24 +7,25 @@ export default function ToolClient() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
 
-  function generateSlug() {
+  const generateSlug = () => {
     const slug = input
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-");
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
 
     setOutput(slug);
-  }
+  };
 
   return (
     <ToolShell
       title="Slug Generator"
-      description="Convert text into SEO-friendly URL slugs instantly."
+      description="Convert text into clean SEO-friendly URLs instantly."
     >
       <textarea
-        className="w-full h-40 border p-4 rounded-lg"
-        placeholder="Enter text here..."
+        className="w-full h-52 border p-4 rounded-lg"
+        placeholder="Enter title or text..."
         value={input}
         onChange={(e) => setInput(e.target.value)}
       />
@@ -50,7 +51,7 @@ export default function ToolClient() {
           )}
         </div>
 
-        <pre className="p-4 bg-gray-50 border rounded-lg overflow-auto text-sm min-h-[100px]">
+        <pre className="p-4 bg-gray-50 border rounded-lg overflow-auto text-sm min-h-[120px]">
           {output || "Generated slug will appear here..."}
         </pre>
       </div>
