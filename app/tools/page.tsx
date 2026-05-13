@@ -14,7 +14,7 @@ const tools = [
   },
 
   {
-    title: "URL Encoder",
+    title: "URL Encoder Decoder",
     description: "Encode and decode URLs instantly.",
     href: "/tools/url-encoder",
   },
@@ -30,13 +30,7 @@ const tools = [
     description: "Encode and decode Base64 text quickly.",
     href: "/tools/base64-encoder",
   },
-  
-  {
-  title: "URL Encoder Decoder",
-  description: "Encode and decode URLs instantly.",
-  href: "/tools/url-encoder",
-  },
-  
+    
   {
   title: "Word Counter",
   description: "Count words, characters and reading time instantly.",

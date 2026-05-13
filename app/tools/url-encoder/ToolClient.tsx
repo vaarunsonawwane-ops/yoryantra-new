@@ -41,7 +41,7 @@ export default function ToolClient() {
       <div className="flex gap-3 mt-4">
         <button
           onClick={encodeURL}
-          className="px-5 yoryantra-btn""
+          className="yoryantra-btn"
         >
           Encode
         </button>
