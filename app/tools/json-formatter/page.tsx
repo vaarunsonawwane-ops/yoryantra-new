@@ -76,5 +76,6 @@ export default function JsonFormatter() {
         </pre>
       </div>
     </ToolShell>
-  </>
-)
+   </>
+);
+}
