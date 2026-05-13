@@ -42,7 +42,7 @@ export default function ToolClient() {
       <div className="flex gap-3 mt-4">
         <button
           onClick={convertTimestamp}
-          className="px-5 py-2 bg-[var(--green)] text-white rounded-lg"
+          className="yoryantra-btn"
         >
           Convert
         </button>

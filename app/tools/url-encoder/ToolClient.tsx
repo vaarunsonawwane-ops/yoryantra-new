@@ -41,14 +41,14 @@ export default function ToolClient() {
       <div className="flex gap-3 mt-4">
         <button
           onClick={encodeURL}
-          className="px-5 py-2 bg-[var(--green)] text-white rounded-lg"
+          className="px-5 yoryantra-btn""
         >
           Encode
         </button>
 
         <button
           onClick={decodeURL}
-          className="px-5 py-2 bg-[var(--green)] text-white rounded-lg"
+          className="yoryantra-btn"
         >
           Decode
         </button>

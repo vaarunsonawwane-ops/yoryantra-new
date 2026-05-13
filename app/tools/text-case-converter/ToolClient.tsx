@@ -49,28 +49,28 @@ export default function ToolClient() {
       <div className="flex flex-wrap gap-3 mt-4">
         <button
           onClick={toUpperCase}
-          className="px-4 py-2 bg-[var(--green)] text-white rounded-lg"
+          className="yoryantra-btn"
         >
           UPPERCASE
         </button>
 
         <button
           onClick={toLowerCase}
-          className="px-4 py-2 bg-[var(--green)] text-white rounded-lg"
+          className="yoryantra-btn"
         >
           lowercase
         </button>
 
         <button
           onClick={toTitleCase}
-          className="px-4 py-2 bg-[var(--green)] text-white rounded-lg"
+          className="yoryantra-btn"
         >
           Title Case
         </button>
 
         <button
           onClick={toSentenceCase}
-          className="px-4 py-2 bg-[var(--green)] text-white rounded-lg"
+          className="yoryantra-btn"
         >
           Sentence case
         </button>

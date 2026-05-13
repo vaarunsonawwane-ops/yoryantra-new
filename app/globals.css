@@ -9,3 +9,25 @@
   border: 1px solid rgba(245, 217, 128, 0.45);
   border-radius: 12px;
 }
+/* PRIMARY TOOL BUTTON */
+.yoryantra-btn {
+  background-color: var(--green);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.yoryantra-btn:hover {
+  opacity: 0.9;
+}
+
+/* SECONDARY BUTTON (for decode, reset, etc.) */
+.yoryantra-btn-outline {
+  border: 1px solid var(--green);
+  color: var(--green);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 500;
+}

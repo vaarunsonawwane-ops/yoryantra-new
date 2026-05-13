@@ -46,7 +46,7 @@ export default function ToolClient() {
 
       <button
         onClick={testRegex}
-        className="mt-4 px-5 py-2 bg-[var(--green)] text-white rounded-lg"
+        className="mt-4 yoryantra-btn"
       >
         Test Regex
       </button>
