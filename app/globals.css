@@ -3,3 +3,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.yoryantra-output {
+  background-color: #fff9e8;
+  border: 1px solid #f4e3a3;
+  border-radius: 12px;
+}

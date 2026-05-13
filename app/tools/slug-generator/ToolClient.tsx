@@ -51,7 +51,7 @@ export default function ToolClient() {
           )}
         </div>
 
-        <pre className="p-4 bg-gray-50 border rounded-lg overflow-auto text-sm min-h-[120px]">
+        <pre className="p-4 yoryantra-output overflow-auto text-sm min-h-[120px]">
           {output || "Generated slug will appear here..."}
         </pre>
       </div>
