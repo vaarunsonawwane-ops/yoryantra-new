@@ -12,13 +12,15 @@ export default function ToolCard({
   return (
     <Link href={href}>
       <div className="p-6 border rounded-2xl hover:shadow-md transition bg-white">
-        <h2 className="text-xl font-semibold text-[var(--green)]">
+
+        <h2 className="text-xl font-semibold text-gray-900">
           {title}
         </h2>
 
         <p className="text-gray-600 mt-3 leading-relaxed">
           {description}
         </p>
+
       </div>
     </Link>
   );
