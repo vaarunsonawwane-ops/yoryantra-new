@@ -36,7 +36,19 @@ const tools = [
   description: "Encode and decode URLs instantly.",
   href: "/tools/url-encoder",
   },
-    
+  
+  {
+  title: "Word Counter",
+  description: "Count words, characters and reading time instantly.",
+  href: "/tools/word-counter",
+  },
+  
+  {
+  title: "Timestamp Converter",
+  description: "Convert Unix timestamps into readable dates instantly.",
+  href: "/tools/timestamp-converter",
+  },
+  
 ];
 
 export default function ToolsPage() {
