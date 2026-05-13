@@ -23,14 +23,6 @@ export default function ToolClient() {
   };
 
   return (
-    <>
-      <a
-        href="/tools"
-        className="inline-block mb-6 text-sm text-[var(--green)] hover:underline"
-      >
-        ← Back to Tools
-      </a>
-
       <ToolShell
         title="JSON Formatter"
         description="Format, validate and beautify JSON instantly."
@@ -72,6 +64,5 @@ export default function ToolClient() {
           </pre>
         </div>
       </ToolShell>
-    </>
-  );
+);
 }
