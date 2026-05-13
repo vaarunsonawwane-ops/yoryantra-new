@@ -49,6 +49,24 @@ const tools = [
   href: "/tools/timestamp-converter",
   },
   
+  {
+  title: "JWT Decoder",
+  description: "Decode JWT tokens instantly.",
+  href: "/tools/jwt-decoder",
+  },
+
+  {
+  title: "Regex Tester",
+  description: "Test regular expressions instantly.",
+  href: "/tools/regex-tester",
+  },
+
+  {
+  title: "SQL Formatter",
+  description: "Format and beautify SQL queries instantly.",
+  href: "/tools/sql-formatter",
+  },
+  
 ];
 
 export default function ToolsPage() {
