@@ -49,14 +49,11 @@ export default function HomePage() {
 
             <a
 			  href="/categories"
-              className="px-8 py-4 rounded-xl border font-medium transition hover:bg-green-50"
-              style={{
-                borderColor: "var(--green)",
-                color: "var(--green)",
-              }}
-            >
-              View Categories
-            </a>
+			  className="px-8 py-4 rounded-xl text-white font-medium transition hover:opacity-90"
+			  style={{ backgroundColor: "var(--gold)" }}
+			>
+			  View Categories
+			</a>
           </div>
         </div>
 
@@ -182,56 +179,22 @@ export default function HomePage() {
       {/* CONTACT */}
       <section
         id="contact"
-        className="py-24 text-white"
-        style={{ backgroundColor: "var(--green)" }}
+        className="bg-white py-24 border-t border-gray-200"
       >
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h3 className="text-4xl font-bold">
+          <h3 className="text-4xl font-bold text-[var(--dark)]">
             Contact
           </h3>
 
-          <p className="mt-6 text-lg text-green-100">
+          <p className="mt-6 text-lg text-gray-600">
             Questions, ideas, or collaborations.
           </p>
 
-          <p className="mt-8 text-2xl font-medium">
+          <p className="mt-8 text-2xl font-medium text-gray-900">
             contact@yoryantra.com
           </p>
         </div>
       </section>
-
-      {/* FOOTER */}
-      <footer className="border-t border-gray-200 py-12">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-
-          <div className="inline-block">
-            <h4 className="text-3xl font-light tracking-wide text-[var(--dark)]">
-              Yoryantra
-            </h4>
-
-            <div
-              className="h-[6px] rounded-sm mt-4 w-full"
-              style={{ backgroundColor: "var(--gold)" }}
-            ></div>
-          </div>
-
-          <p className="mt-5 italic text-gray-500">
-            Built with Gratitude
-          </p>
-
-          <p className="mt-6 text-gray-600">
-            Smart utilities for structured workflows, productivity, and modern
-            work.
-          </p>
-
-          <div className="mt-10 flex flex-wrap justify-center gap-8 text-sm text-gray-500">
-            <a href="#">About</a>
-            <a href="#">Contact</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms</a>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }

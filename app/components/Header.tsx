@@ -5,12 +5,16 @@ export default function Header() {
     <header className="border-b bg-white">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
 
-        {/* LOGO (PNG - NO STYLING CHANGE) */}
-        <Link href="/" className="flex items-center">
-          <img src="/logo.png" alt="Yoryantra" className="h-8 w-auto" />
+        {/* LOGO */}
+        <Link href="/" className="flex items-center shrink-0">
+          <img
+            src="/logo.png"
+            alt="Yoryantra"
+            className="h-8 w-auto"
+          />
         </Link>
 
-        {/* NAV */}
+        {/* NAVIGATION */}
         <nav className="flex items-center gap-8 text-sm font-medium">
 
           <Link
@@ -40,14 +44,6 @@ export default function Header() {
           >
             Contact
           </Link>
-
-          {/* OPTIONAL ACTION BUTTON (if you want CTA later) */}
-          {/* <Link
-            href="/tools"
-            className="bg-[var(--green)] text-white px-4 py-2 rounded-lg hover:opacity-90 transition"
-          >
-            Get Started
-          </Link> */}
 
         </nav>
       </div>
