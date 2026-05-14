@@ -76,6 +76,21 @@ export default function Footer() {
               >
                 Terms
               </Link>
+			  
+			  <Link
+				href="/disclaimer"
+				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				Disclaimer
+			  </Link> 
+			  
+			    <Link
+				href="/sitemap"
+				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				Sitemap
+			  </Link>
+
             </div>
 
           </div>
