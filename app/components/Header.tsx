@@ -13,12 +13,12 @@ export default function Header() {
           <img
             src="/logo.png"
             alt="Yoryantra"
-            className="h-8 w-auto"
+            className="h-7 md:h-8 w-auto"
           />
         </Link>
 
         {/* NAVIGATION */}
-        <nav className="flex items-center gap-8 text-sm font-medium">
+        <nav className="flex items-center gap-5 md:gap-8 text-sm font-medium">
 
           <Link
             href="/"
