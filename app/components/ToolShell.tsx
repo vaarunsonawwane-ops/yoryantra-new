@@ -12,30 +12,31 @@ export default function ToolShell({
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
 
-      {/* Back to Tools */}
+      {/* BACK LINK */}
       <Link
         href="/tools"
-        className="inline-block mb-6 text-sm text-gray-500 hover:!text-[var(--light-gold)] transition-colors"
+        className="inline-flex items-center mb-6 text-sm text-gray-500 hover:!text-[var(--light-gold)] transition-colors duration-200"
       >
         ← Back to Tools
       </Link>
 
-      {/* Title */}
-      <h1 className="text-3xl font-bold text-gray-900">
+      {/* TITLE */}
+      <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900">
         {title}
       </h1>
 
-      {/* Description */}
+      {/* DESCRIPTION */}
       {description && (
-        <p className="text-gray-600 mt-3 mb-8">
+        <p className="mt-4 mb-10 text-gray-600 leading-relaxed">
           {description}
         </p>
       )}
 
-      {/* Tool Content Box */}
-      <div className="border rounded-2xl p-6 bg-white shadow-sm">
+      {/* TOOL CONTENT */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
         {children}
       </div>
+
     </div>
   );
 }

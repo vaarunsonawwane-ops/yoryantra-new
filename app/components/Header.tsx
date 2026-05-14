@@ -2,11 +2,14 @@ import Link from "next/link";
 
 export default function Header() {
   return (
-    <header className="border-b bg-white">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
 
         {/* LOGO */}
-        <Link href="/" className="flex items-center shrink-0">
+        <Link
+          href="/"
+          className="flex items-center shrink-0"
+        >
           <img
             src="/logo.png"
             alt="Yoryantra"

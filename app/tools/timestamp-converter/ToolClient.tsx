@@ -6,40 +6,66 @@ import ToolShell from "@/app/components/ToolShell";
 export default function ToolClient() {
   const [timestamp, setTimestamp] = useState("");
   const [output, setOutput] = useState("");
+  const [error, setError] = useState("");
 
   const convertTimestamp = () => {
     try {
       const date = new Date(Number(timestamp) * 1000);
 
       if (isNaN(date.getTime())) {
-        setOutput("Invalid timestamp");
+        setError("Invalid Unix timestamp.");
+        setOutput("");
         return;
       }
 
       setOutput(date.toUTCString());
+      setError("");
     } catch {
-      setOutput("Invalid timestamp");
+      setError("Invalid Unix timestamp.");
+      setOutput("");
     }
   };
 
   const currentTimestamp = () => {
-    setTimestamp(Math.floor(Date.now() / 1000).toString());
+    setTimestamp(
+      Math.floor(Date.now() / 1000).toString()
+    );
+
+    setError("");
+  };
+
+  const resetAll = () => {
+    setTimestamp("");
+    setOutput("");
+    setError("");
   };
 
   return (
     <ToolShell
       title="Timestamp Converter"
-      description="Convert Unix timestamps into readable dates instantly."
+      description="Convert Unix timestamps into readable dates instantly with this free online Unix Timestamp Converter."
     >
-      <input
-        type="text"
-        value={timestamp}
-        onChange={(e) => setTimestamp(e.target.value)}
-        placeholder="Enter Unix timestamp..."
-        className="w-full border p-4 rounded-lg"
-      />
 
-      <div className="flex gap-3 mt-4">
+      {/* INPUT */}
+      <div>
+
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          Unix Timestamp
+        </label>
+
+        <input
+          type="text"
+          value={timestamp}
+          onChange={(e) => setTimestamp(e.target.value)}
+          placeholder="Enter Unix timestamp..."
+          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+        />
+
+      </div>
+
+      {/* ACTIONS */}
+      <div className="mt-5 flex flex-wrap gap-3">
+
         <button
           onClick={convertTimestamp}
           className="yoryantra-btn"
@@ -49,21 +75,71 @@ export default function ToolClient() {
 
         <button
           onClick={currentTimestamp}
-          className="px-5 py-2 border rounded-lg"
+          className="yoryantra-btn-outline"
         >
           Current Timestamp
         </button>
+
+        <button
+          onClick={resetAll}
+          className="yoryantra-btn-outline"
+        >
+          Reset
+        </button>
+
       </div>
 
-      <div className="mt-6">
-        <h3 className="font-semibold mb-2">
-          Output
-        </h3>
+      {/* ERROR */}
+      {error && (
+        <p className="mt-4 text-sm font-medium text-red-500">
+          {error}
+        </p>
+      )}
 
-        <div className="yoryantra-output p-4 rounded-lg border min-h-[100px]">
-          {output || "Converted date will appear here..."}
+      {/* OUTPUT */}
+      <div className="mt-8">
+
+        <div className="flex items-center justify-between mb-3">
+
+          <h3 className="text-lg font-semibold text-gray-900">
+            Converted Date
+          </h3>
+
+          {output && (
+            <button
+              onClick={() =>
+                navigator.clipboard.writeText(output)
+              }
+              className="yoryantra-btn-outline text-sm"
+            >
+              Copy
+            </button>
+          )}
+
         </div>
+
+        <div className="yoryantra-output min-h-[140px] flex items-center text-sm break-words">
+          {output || "Converted date and time will appear here..."}
+        </div>
+
       </div>
+
+      {/* SEO CONTENT */}
+      <div className="mt-10 border-t border-gray-200 pt-8">
+
+        <h2 className="text-2xl font-semibold text-gray-900">
+          About This Timestamp Converter
+        </h2>
+
+        <p className="mt-4 text-gray-600 leading-relaxed">
+          This free online Unix Timestamp Converter helps you quickly
+          transform epoch timestamps into readable UTC date and time
+          formats. Useful for APIs, databases, server logs, debugging,
+          and development workflows involving Unix time values.
+        </p>
+
+      </div>
+
     </ToolShell>
   );
 }

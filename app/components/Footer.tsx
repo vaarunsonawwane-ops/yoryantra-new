@@ -2,8 +2,8 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="border-t bg-white mt-16">
-      <div className="max-w-6xl mx-auto px-6 py-10">
+    <footer className="border-t border-gray-100 bg-white mt-20">
+      <div className="max-w-7xl mx-auto px-6 py-12">
 
         {/* TOP SECTION */}
         <div className="flex flex-col md:flex-row justify-between gap-12">
@@ -14,7 +14,7 @@ export default function Footer() {
               Yoryantra
             </h2>
 
-            <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+            <p className="mt-3 text-sm leading-relaxed text-gray-600">
               Simple, fast, and focused utilities — without unnecessary clutter.
             </p>
           </div>
@@ -23,7 +23,7 @@ export default function Footer() {
           <div className="flex flex-wrap gap-12 text-sm">
 
             {/* TOOLS */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <p className="font-semibold text-gray-900">
                 Tools
               </p>
@@ -37,7 +37,7 @@ export default function Footer() {
             </div>
 
             {/* COMPANY */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <p className="font-semibold text-gray-900">
                 Company
               </p>
@@ -58,7 +58,7 @@ export default function Footer() {
             </div>
 
             {/* LEGAL */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <p className="font-semibold text-gray-900">
                 Legal
               </p>
@@ -82,7 +82,7 @@ export default function Footer() {
         </div>
 
         {/* BOTTOM BAR */}
-        <div className="border-t mt-8 pt-6 flex flex-col md:flex-row justify-between gap-3 text-sm text-gray-500">
+        <div className="border-t border-gray-100 mt-10 pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-sm text-gray-500">
 
           <p>
             © {new Date().getFullYear()} Yoryantra. All rights reserved.

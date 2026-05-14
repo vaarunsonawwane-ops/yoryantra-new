@@ -10,14 +10,16 @@ export default function ToolCard({
   href: string;
 }) {
   return (
-    <Link href={href}>
-      <div className="p-6 border rounded-2xl hover:shadow-md transition bg-white">
+    <Link href={href} className="block group">
+      <div className="h-full p-6 bg-white border border-gray-200 rounded-2xl transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
 
-        <h2 className="text-xl font-semibold text-gray-900">
+        {/* TITLE */}
+        <h2 className="text-xl font-semibold text-gray-900 group-hover:text-[var(--light-gold)] transition-colors duration-200">
           {title}
         </h2>
 
-        <p className="text-gray-600 mt-3 leading-relaxed">
+        {/* DESCRIPTION */}
+        <p className="mt-3 text-gray-600 leading-relaxed">
           {description}
         </p>
 

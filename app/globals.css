@@ -4,36 +4,80 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================
+   DESIGN SYSTEM
+========================================= */
+
 :root {
   --green: #2f6f4e;
-  --light-gold: #faf7f0;
+  --light-gold: #c89b3c;
   --dark: #1f2937;
+  --light-bg: #faf7f0;
 }
 
-.yoryantra-output {
-  background-color: #faf7f0;
-  border: 1px solid rgba(245, 217, 128, 0.45);
-  border-radius: 12px;
+/* =========================================
+   GLOBAL STYLES
+========================================= */
+
+html {
+  scroll-behavior: smooth;
 }
-/* PRIMARY TOOL BUTTON */
+
+body {
+  background: white;
+  color: var(--dark);
+}
+
+/* =========================================
+   OUTPUT BOX
+========================================= */
+
+.yoryantra-output {
+  background-color: var(--light-bg);
+  border: 1px solid rgba(200, 155, 60, 0.18);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+/* =========================================
+   PRIMARY BUTTON
+========================================= */
+
 .yoryantra-btn {
   background-color: var(--green);
   color: white;
-  padding: 10px 16px;
-  border-radius: 10px;
+  padding: 10px 18px;
+  border-radius: 12px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .yoryantra-btn:hover {
-  opacity: 0.9;
+  opacity: 0.95;
+  transform: translateY(-1px);
 }
 
-/* SECONDARY BUTTON (for decode, reset, etc.) */
+/* =========================================
+   SECONDARY BUTTON
+========================================= */
+
 .yoryantra-btn-outline {
   border: 1px solid var(--green);
   color: var(--green);
-  padding: 10px 16px;
-  border-radius: 10px;
+  background: white;
+  padding: 10px 18px;
+  border-radius: 12px;
   font-weight: 500;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.yoryantra-btn-outline:hover {
+  background-color: rgba(47, 111, 78, 0.06);
+  transform: translateY(-1px);
 }
