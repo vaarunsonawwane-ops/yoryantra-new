@@ -18,7 +18,7 @@ export default function Header() {
         </Link>
 
         {/* NAVIGATION */}
-        <nav className="flex items-center gap-5 md:gap-8 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
 
           <Link
             href="/"
