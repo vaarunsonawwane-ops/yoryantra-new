@@ -1,3 +1,36 @@
+export const metadata = {
+  title: "Yoryantra | Practical Everyday Tools",
+
+  description:
+    "Simple, fast, and focused utilities for developers, productivity, formatting, encoding, and structured workflows.",
+
+  alternates: {
+    canonical: "https://yoryantra.com",
+  },
+
+  openGraph: {
+    title: "Yoryantra | Practical Everyday Tools",
+
+    description:
+      "Simple, fast, and focused utilities without unnecessary clutter.",
+
+    url: "https://yoryantra.com",
+
+    siteName: "Yoryantra",
+
+    type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+
+    title: "Yoryantra | Practical Everyday Tools",
+
+    description:
+      "Simple, fast, and focused utilities without unnecessary clutter.",
+  },
+};
+
 export default function HomePage() {
   return (
     <main className="bg-white text-gray-900">

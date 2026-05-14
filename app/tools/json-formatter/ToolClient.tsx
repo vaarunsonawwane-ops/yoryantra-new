@@ -97,17 +97,141 @@ export default function ToolClient() {
       </div>
 
       {/* SEO CONTENT */}
-      <div className="mt-10 border-t border-gray-200 pt-8">
+		<div className="mt-10 border-t border-gray-200 pt-8 space-y-10">
 
-        <h2 className="text-2xl font-semibold text-gray-900">
-          About This JSON Formatter
-        </h2>
+	  {/* ABOUT */}
+	  <section>
 
-        <p className="mt-4 text-gray-600 leading-relaxed">
-          This free online JSON formatter helps you validate, beautify,
-          and structure JSON data instantly. It is useful for developers,
-          APIs, configuration files, debugging, and data formatting workflows.
-        </p>
+		<h2 className="text-2xl font-semibold text-gray-900">
+		  About JSON Formatter
+		</h2>
+
+		<p className="mt-4 text-gray-600 leading-relaxed">
+		  JSON Formatter is a tool that helps clean, validate, and organize
+		  cluttered JSON data into a readable format for debugging, APIs,
+		  configuration files, and everyday development workflows.
+		  It is useful for developers working with structured data,
+		  API responses, and formatted JSON output.
+		</p>
+
+	  </section>
+
+	  {/* HOW TO USE */}
+	  <section>
+
+		<h2 className="text-2xl font-semibold text-gray-900">
+		  How to Use JSON Formatter
+		</h2>
+
+		<div className="mt-4 space-y-3 text-gray-600 leading-relaxed">
+
+		  <p>
+			1. Paste your JSON data into the input box.
+		  </p>
+
+		  <p>
+			2. Click the Format JSON button.
+		  </p>
+
+		  <p>
+			3. If the JSON is valid, the formatted output will appear below.
+		  </p>
+
+		  <p>
+			4. Use Copy to quickly copy the formatted JSON output.
+		  </p>
+
+		</div>
+
+	  </section>
+
+	  {/* USE CASES */}
+	  <section>
+
+		<h2 className="text-2xl font-semibold text-gray-900">
+		  Common Use Cases
+		</h2>
+
+		<ul className="mt-4 space-y-3 text-gray-600 leading-relaxed list-disc pl-6">
+
+		  <li>
+			Beautifying API responses for easier reading.
+		  </li>
+
+		  <li>
+			Checking whether JSON data is valid or broken.
+		  </li>
+
+		  <li>
+			Formatting configuration files before editing.
+		  </li>
+
+		  <li>
+			Debugging structured data used in web applications.
+		  </li>
+
+		  <li>
+			Cleaning cluttered JSON data copied from logs, APIs,
+			or developer tools.
+		  </li>
+
+		</ul>
+
+	  </section>
+
+	  {/* FAQ */}
+	  <section>
+
+		<h2 className="text-2xl font-semibold text-gray-900">
+		  Frequently Asked Questions
+		</h2>
+
+		<div className="mt-5 space-y-6">
+
+		  <div>
+
+			<h3 className="font-semibold text-gray-900">
+			  What is a JSON Formatter?
+			</h3>
+
+			<p className="mt-2 text-gray-600 leading-relaxed">
+			  A JSON Formatter converts compact or unorganized JSON
+			  into a clean, readable, and properly indented structure.
+			</p>
+
+		  </div>
+
+		  <div>
+
+			<h3 className="font-semibold text-gray-900">
+			  Does this tool validate JSON?
+			</h3>
+
+			<p className="mt-2 text-gray-600 leading-relaxed">
+			  Yes. If your JSON contains syntax errors or invalid formatting,
+			  the tool will show an error instead of formatting the output.
+			</p>
+
+		  </div>
+
+		  <div>
+
+			<h3 className="font-semibold text-gray-900">
+			  Is my JSON data uploaded to a server?
+			</h3>
+
+			<p className="mt-2 text-gray-600 leading-relaxed">
+			  No. All JSON formatting and validation happens directly
+			  inside your browser. Your data is not uploaded or stored anywhere.
+			</p>
+
+		  </div>
+
+    </div>
+
+  </section>
+
+</div>
 
       </div>
 
