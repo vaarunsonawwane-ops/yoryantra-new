@@ -30,7 +30,7 @@ export default function Footer() {
 
               <Link
                 href="/tools"
-                className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
               >
                 All Tools
               </Link>
@@ -44,14 +44,14 @@ export default function Footer() {
 
               <Link
                 href="/about"
-                className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
               >
                 About
               </Link>
 
               <Link
                 href="/contact"
-                className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
               >
                 Contact
               </Link>
@@ -65,14 +65,14 @@ export default function Footer() {
 
               <Link
                 href="/privacy-policy"
-                className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
               >
                 Privacy Policy
               </Link>
 
               <Link
                 href="/terms"
-                className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
               >
                 Terms
               </Link>

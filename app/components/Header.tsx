@@ -19,28 +19,28 @@ export default function Header() {
 
           <Link
             href="/"
-            className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
+            className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
           >
             Home
           </Link>
 
           <Link
             href="/tools"
-            className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
+            className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
           >
             Tools
           </Link>
 
           <Link
             href="/about"
-            className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
+            className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
           >
             About
           </Link>
 
           <Link
             href="/contact"
-            className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
+            className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
           >
             Contact
           </Link>
