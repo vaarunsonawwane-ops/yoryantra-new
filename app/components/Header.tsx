@@ -41,6 +41,13 @@ export default function Header() {
             About
           </Link>
 
+		  <Link
+		   href="/categories"
+		   className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
+		  >
+			Categories
+		  </Link>
+		  
           <Link
             href="/contact"
             className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"

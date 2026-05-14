@@ -89,7 +89,7 @@ export default function Footer() {
           </p>
 
           <p>
-            Built with simplicity and focus.
+            Built with Gratitude 🙏
           </p>
 
         </div>
