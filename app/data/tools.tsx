@@ -167,4 +167,11 @@ export const tools = [
   href: "/tools/cron-expression-generator",
   },
 
+  {
+  title: "JWT Expiration Checker",
+  description: "Check JWT token expiration, issued time, and validity instantly.",
+  href: "/tools/jwt-expiration-checker",
+  },
+
+
 ];
