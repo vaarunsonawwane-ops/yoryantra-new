@@ -22,7 +22,8 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "Cron Expression Generator Online Free | Yoryantra",
+    title:
+      "Cron Expression Generator Online Free | Yoryantra",
 
     description:
       "Generate cron expressions instantly for scheduled tasks and automation workflows.",

@@ -16,21 +16,30 @@ export const metadata = {
   ],
 
   alternates: {
-    canonical: "https://yoryantra.com/tools/api-key-generator",
+    canonical:
+      "https://yoryantra.com/tools/api-key-generator",
   },
 
   openGraph: {
     title: "API Key Generator Online Free | Yoryantra",
+
     description:
       "Generate random API keys and secure tokens instantly with this free online tool.",
-    url: "https://yoryantra.com/tools/api-key-generator",
+
+    url:
+      "https://yoryantra.com/tools/api-key-generator",
+
     siteName: "Yoryantra",
+
     type: "website",
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "API Key Generator Online Free | Yoryantra",
+
+    title:
+      "API Key Generator Online Free | Yoryantra",
+
     description:
       "Generate secure API keys and random tokens instantly.",
   },
