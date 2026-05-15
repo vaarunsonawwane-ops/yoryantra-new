@@ -89,4 +89,10 @@ export const tools = [
   href: "/tools/qr-code-generator",
   },
   
+  {
+  title: "JSON Minifier",
+  description: "Minify and compress JSON data instantly.",
+  href: "/tools/json-minifier",
+  },
+  
 ];
