@@ -227,5 +227,10 @@ export const tools = [
   href: "/tools/yaml-to-json-converter",
   },
 
+  {
+  title: "JSON to YAML Converter",
+  description: "Convert JSON to YAML instantly.",
+  href: "/tools/json-to-yaml-converter",
+  },
 
 ];
