@@ -26,9 +26,9 @@ const tools = [
   },
 
   {
-    title: "Base64 Encoder",
-    description: "Encode and decode Base64 text quickly.",
-    href: "/tools/base64-encoder",
+  title: "Base64 Encoder Decoder",
+  description: "Encode and decode Base64 text quickly.",
+  href: "/tools/base64-encoder-decoder",
   },
     
   {
