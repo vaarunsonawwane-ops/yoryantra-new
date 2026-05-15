@@ -17,10 +17,9 @@ export default function ToolClient() {
     ? text.split(/[.!?]+/).filter(Boolean).length
     : 0;
 
-  const readingTime = Math.max(
-    1,
-    Math.ceil(words / 200)
-  );
+  const readingTime = words > 0
+  ? Math.ceil(words / 200)
+  : 0;
 
   const resetAll = () => {
     setText("");
