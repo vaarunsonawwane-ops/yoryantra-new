@@ -197,4 +197,11 @@ export const tools = [
   href: "/tools/json-escape-unescape",
   },
 
+  {
+  title: "RSA Key Generator",
+  description: "Generate RSA public and private key pairs instantly.",
+  href: "/tools/rsa-key-generator",
+  },
+
+
 ];
