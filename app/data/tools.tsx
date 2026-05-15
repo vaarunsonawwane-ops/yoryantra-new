@@ -263,4 +263,12 @@ export const tools = [
   href: "/tools/redirect-checker",
   },
 
+  {
+  title: "UTM Builder",
+  description: "Generate UTM tracking URLs instantly.",
+  href: "/tools/utm-builder",
+  },
+
+
+
 ];
