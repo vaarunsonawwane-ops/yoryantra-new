@@ -106,5 +106,11 @@ export const tools = [
   description: "Convert CSV data into JSON format instantly.",
   href: "/tools/csv-to-json",
   },
-    
+  
+  {
+  title: "XML Formatter",
+  description: "Format and beautify XML instantly.",
+  href: "/tools/xml-formatter",
+  },
+
 ];
