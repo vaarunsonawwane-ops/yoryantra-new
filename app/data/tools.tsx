@@ -77,4 +77,10 @@ export const tools = [
   href: "/tools/password-generator",
   },
   
+  {
+  title: "HTML Encoder Decoder",
+  description: "Encode and decode HTML entities instantly.",
+  href: "/tools/html-encoder-decoder",
+  },
+  
 ];
