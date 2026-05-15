@@ -64,4 +64,12 @@ export const tools = [
     description: "Generate random UUID v4 values instantly.",
     href: "/tools/uuid-generator",
   },
+  
+  {
+  title: "Hash Generator",
+  description: "Generate MD5, SHA-1, SHA-256, and SHA-512 hashes instantly.",
+  href: "/tools/hash-generator",
+  },
+  
+  
 ];
