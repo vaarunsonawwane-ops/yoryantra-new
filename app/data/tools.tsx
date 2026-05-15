@@ -251,6 +251,10 @@ export const tools = [
   href: "/tools/canonical-url-checker",
  },
 
-
+  {
+  title: "HTTP Headers Parser",
+  description: "Parse and format HTTP headers instantly.",
+  href: "/tools/http-headers-parser",
+  },
 
 ];
