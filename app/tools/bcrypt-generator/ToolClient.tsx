@@ -12,13 +12,9 @@ export default function ToolClient() {
 
   const generateHash = async () => {
     if (!password.trim()) return;
+
     const result = await bcrypt.hash(password, rounds);
     setHash(result);
-  };
-
-  const copyHash = async () => {
-    if (!hash) return;
-    await navigator.clipboard.writeText(hash);
   };
 
   const resetAll = () => {
@@ -32,226 +28,219 @@ export default function ToolClient() {
       title="bcrypt Generator"
       description="Generate secure bcrypt password hashes instantly online."
     >
-      <div className="space-y-10">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <div className="grid gap-5">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-800">
-                Password
-              </label>
+      {/* INPUT */}
+      <div>
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          Password
+        </label>
 
-              <textarea
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                className="min-h-[120px] w-full rounded-xl border border-gray-200 p-4 text-sm outline-none focus:border-gray-400"
-              />
-            </div>
+        <textarea
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter password..."
+          className="w-full min-h-[120px] rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+        />
+      </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-800">
-                Salt Rounds
-              </label>
+      <div className="mt-5">
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          Salt Rounds
+        </label>
 
-              <select
-                value={rounds}
-                onChange={(e) => setRounds(Number(e.target.value))}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
-              >
-                <option value={8}>8</option>
-                <option value={10}>10 Recommended</option>
-                <option value={12}>12 Stronger</option>
-                <option value={14}>14 High Security</option>
-              </select>
-            </div>
+        <select
+          value={rounds}
+          onChange={(e) => setRounds(Number(e.target.value))}
+          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition bg-white"
+        >
+          <option value={8}>8</option>
+          <option value={10}>10 Recommended</option>
+          <option value={12}>12 Stronger</option>
+          <option value={14}>14 High Security</option>
+        </select>
+      </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={generateHash}
-                className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-gray-800"
-              >
-                Generate Hash
-              </button>
+      {/* ACTIONS */}
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button onClick={generateHash} className="yoryantra-btn">
+          Generate Hash
+        </button>
 
-              <button
-                onClick={resetAll}
-                className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Reset
-              </button>
-            </div>
+        <button onClick={resetAll} className="yoryantra-btn-outline">
+          Reset
+        </button>
+      </div>
 
-            {hash && (
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-gray-900">
-                    Generated bcrypt Hash
-                  </p>
+      {/* OUTPUT */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Generated bcrypt Hash
+          </h3>
 
-                  <button
-                    onClick={copyHash}
-                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100"
-                  >
-                    Copy
-                  </button>
-                </div>
+          {hash && (
+            <button
+              onClick={() => navigator.clipboard.writeText(hash)}
+              className="yoryantra-btn-outline text-sm"
+            >
+              Copy
+            </button>
+          )}
+        </div>
 
-                <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl bg-white p-4 text-sm text-gray-800">
-                  {hash}
-                </pre>
-              </div>
-            )}
+        <div className="yoryantra-output min-h-[140px] flex items-center text-sm break-words">
+          {hash || "Generated bcrypt hash will appear here..."}
+        </div>
+      </div>
+
+      {/* SEO CONTENT */}
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            About This bcrypt Generator
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This bcrypt Generator lets you create secure bcrypt password hashes
+            directly in your browser. It is useful for developers who need to
+            hash passwords for testing, backend authentication, user login
+            systems, or password storage workflows.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            bcrypt is designed for password hashing and includes automatic
+            salting. This makes it much safer for password storage than simple
+            hashing methods such as MD5 or SHA-based hashes.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            How to Use the bcrypt Generator
+          </h2>
+
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Enter the password you want to hash.</li>
+            <li>Select the bcrypt salt rounds.</li>
+            <li>Click <strong>Generate Hash</strong>.</li>
+            <li>Copy the generated bcrypt hash and use it where needed.</li>
+          </ol>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Use Cases
+          </h2>
+
+          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Creating test password hashes for backend projects.</li>
+            <li>Testing login and authentication systems.</li>
+            <li>Generating sample hashes for documentation.</li>
+            <li>Learning how bcrypt password hashing works.</li>
+            <li>Checking how salt rounds affect generated hashes.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Example
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <p className="font-medium text-gray-900">
+              Password:
+            </p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+              mySecurePassword123
+            </pre>
+
+            <p className="mt-4 font-medium text-gray-900">
+              bcrypt hash:
+            </p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+              $2a$10$examplebcryptpasswordhashvalue
+            </pre>
           </div>
         </div>
 
-        <section className="space-y-8 text-sm leading-7 text-gray-700">
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              About This bcrypt Generator
-            </h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Frequently Asked Questions
+          </h2>
 
-            <p>
-              This bcrypt Generator lets you create secure bcrypt password hashes
-              directly in your browser. It is useful for developers who need to
-              hash passwords for testing, backend authentication, user login
-              systems, or password storage workflows.
-            </p>
+          <div className="mt-5 space-y-6">
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What is bcrypt?
+              </h3>
 
-            <p className="mt-3">
-              bcrypt is designed for password hashing and includes automatic
-              salting. This makes it much safer for password storage than simple
-              hashing methods such as MD5 or SHA-based hashes.
-            </p>
-          </div>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                bcrypt is a password hashing algorithm used to store passwords
+                securely. It adds a salt and uses a configurable work factor to
+                make brute-force attacks harder.
+              </p>
+            </div>
 
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              bcrypt Features
-            </h2>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What are salt rounds?
+              </h3>
 
-            <ul className="list-disc space-y-2 pl-5">
-              <li>Generate bcrypt hashes instantly.</li>
-              <li>Choose salt rounds based on your security needs.</li>
-              <li>Copy generated hashes with one click.</li>
-              <li>Useful for authentication testing and backend development.</li>
-              <li>Runs in your browser for quick developer workflows.</li>
-            </ul>
-          </div>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Salt rounds control how much work bcrypt performs while
+                generating a hash. Higher rounds are stronger but slower.
+              </p>
+            </div>
 
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              How to Use the bcrypt Generator
-            </h2>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Can bcrypt hashes be decrypted?
+              </h3>
 
-            <ol className="list-decimal space-y-2 pl-5">
-              <li>Enter the password you want to hash.</li>
-              <li>Select the bcrypt salt rounds.</li>
-              <li>Click Generate Hash.</li>
-              <li>Copy the generated bcrypt hash and use it where needed.</li>
-            </ol>
-          </div>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. bcrypt is a one-way hashing algorithm. The original password
+                cannot be directly recovered from the hash.
+              </p>
+            </div>
 
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              Common Use Cases
-            </h2>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is this bcrypt Generator secure?
+              </h3>
 
-            <ul className="list-disc space-y-2 pl-5">
-              <li>Creating test password hashes for backend projects.</li>
-              <li>Testing login and authentication systems.</li>
-              <li>Generating sample hashes for documentation.</li>
-              <li>Learning how bcrypt password hashing works.</li>
-              <li>Checking how salt rounds affect generated hashes.</li>
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              Frequently Asked Questions
-            </h2>
-
-            <div className="space-y-5">
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  What is bcrypt?
-                </h3>
-                <p>
-                  bcrypt is a password hashing algorithm used to store passwords
-                  securely. It adds a salt and uses a configurable work factor to
-                  make brute-force attacks harder.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  What are salt rounds?
-                </h3>
-                <p>
-                  Salt rounds control how much work bcrypt performs while
-                  generating a hash. Higher rounds are stronger but slower.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  Can bcrypt hashes be decrypted?
-                </h3>
-                <p>
-                  No. bcrypt is a one-way hashing algorithm. The original
-                  password cannot be directly recovered from the hash.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  Is bcrypt good for password storage?
-                </h3>
-                <p>
-                  Yes. bcrypt is commonly used for password storage in web
-                  applications because it is slow, salted, and designed for
-                  password hashing.
-                </p>
-              </div>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. The hash is generated directly in your browser. Your input
+                is not uploaded to any server.
+              </p>
             </div>
           </div>
+        </div>
 
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              Related Tools
-            </h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/tools/api-key-generator"
-                className="rounded-lg border border-emerald-700 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-              >
-                API Key Generator
-              </Link>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/tools/api-key-generator" className="yoryantra-btn-outline">
+              API Key Generator
+            </Link>
 
-              <Link
-                href="/tools/jwt-decoder"
-                className="rounded-lg border border-emerald-700 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-              >
-                JWT Decoder
-              </Link>
+            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
+              JWT Decoder
+            </Link>
 
-              <Link
-                href="/tools/password-generator"
-                className="rounded-lg border border-emerald-700 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-              >
-                Password Generator
-              </Link>
+            <Link href="/tools/password-generator" className="yoryantra-btn-outline">
+              Password Generator
+            </Link>
 
-              <Link
-                href="/tools/api-tester"
-                className="rounded-lg border border-emerald-700 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-              >
-                API Tester
-              </Link>
-            </div>
+            <Link href="/tools/hmac-generator" className="yoryantra-btn-outline">
+              HMAC Generator
+            </Link>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </ToolShell>
   );
 }
