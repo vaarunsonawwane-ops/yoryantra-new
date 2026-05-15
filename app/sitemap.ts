@@ -93,5 +93,11 @@ export default function sitemap() {
       url: "https://yoryantra.com/tools/word-counter",
       lastModified: new Date(),
     },
+	
+	{
+      url: "https://yoryantra.com/tools/uuid-generator",
+      lastModified: new Date(),
+    },
+		
   ];
 }

@@ -61,6 +61,12 @@ const tools = [
   href: "/tools/sql-formatter",
   },
   
+  {
+  title: "UUID Generator",
+  description: "Generate random UUID v4 values instantly.",
+  href: "/tools/uuid-generator",
+  }
+  
 ];
 
 export default function ToolsPage() {
