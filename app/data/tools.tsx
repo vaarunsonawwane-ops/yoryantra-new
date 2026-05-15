@@ -83,4 +83,10 @@ export const tools = [
   href: "/tools/html-encoder-decoder",
   },
   
+  {
+  title: "QR Code Generator",
+  description: "Generate QR codes instantly from text, URLs, and more.",
+  href: "/tools/qr-code-generator",
+  },
+  
 ];
