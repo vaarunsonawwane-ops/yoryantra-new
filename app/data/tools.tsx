@@ -185,6 +185,12 @@ export const tools = [
   href: "/tools/sha256-generator",
   },
 
+  {
+  title: "JSON Validator",
+  description: "Validate JSON syntax and find errors instantly.",
+  href: "/tools/json-validator",
+  },
+
 
 
 ];
