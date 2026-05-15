@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { tools } from "@/app/data/tools";
 
 export const metadata = {
   title: "Sitemap | Yoryantra",
@@ -52,45 +53,15 @@ export default function SitemapPage() {
 
           <div className="flex flex-col gap-3 text-gray-700">
 
-            <Link href="/tools/json-formatter" className="hover:text-[var(--light-gold)] transition-colors">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/base64-encoder-decoder" className="hover:text-[var(--light-gold)] transition-colors">
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link href="/tools/jwt-decoder" className="hover:text-[var(--light-gold)] transition-colors">
-              JWT Decoder
-            </Link>
-
-            <Link href="/tools/regex-tester" className="hover:text-[var(--light-gold)] transition-colors">
-              Regex Tester
-            </Link>
-
-            <Link href="/tools/timestamp-converter" className="hover:text-[var(--light-gold)] transition-colors">
-              Timestamp Converter
-            </Link>
-
-            <Link href="/tools/sql-formatter" className="hover:text-[var(--light-gold)] transition-colors">
-              SQL Formatter
-            </Link>
-
-            <Link href="/tools/url-encoder-decoder" className="hover:text-[var(--light-gold)] transition-colors">
-              URL Encoder Decoder
-            </Link>
-
-            <Link href="/tools/slug-generator" className="hover:text-[var(--light-gold)] transition-colors">
-              Slug Generator
-            </Link>
-
-            <Link href="/tools/text-case-converter" className="hover:text-[var(--light-gold)] transition-colors">
-              Text Case Converter
-            </Link>
-
-            <Link href="/tools/word-counter" className="hover:text-[var(--light-gold)] transition-colors">
-              Word Counter
-            </Link>
+            {tools.map((tool) => (
+              <Link
+                key={tool.href}
+                href={tool.href}
+                className="hover:text-[var(--light-gold)] transition-colors"
+              >
+                {tool.title}
+              </Link>
+            ))}
 
           </div>
         </div>
