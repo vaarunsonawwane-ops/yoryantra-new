@@ -101,4 +101,10 @@ export const tools = [
   href: "/tools/json-to-csv",
   },
   
+  {
+  title: "CSV to JSON Converter",
+  description: "Convert CSV data into JSON format instantly.",
+  href: "/tools/csv-to-json",
+  },
+    
 ];
