@@ -245,16 +245,22 @@ export const tools = [
   href: "/tools/robots-txt-tester",
   },
 
- {
+  {
   title: "Canonical URL Checker",
   description: "Check and validate canonical URLs instantly.",
   href: "/tools/canonical-url-checker",
- },
+  },
 
   {
   title: "HTTP Headers Parser",
   description: "Parse and format HTTP headers instantly.",
   href: "/tools/http-headers-parser",
+  },
+
+  {
+  title: "Redirect Checker",
+  description: "Check URL redirects and HTTP redirect status instantly.",
+  href: "/tools/redirect-checker",
   },
 
 ];
