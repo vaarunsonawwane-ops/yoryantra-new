@@ -13,10 +13,6 @@ export default function ToolClient() {
 
   const expression = `${minute} ${hour} ${dayOfMonth} ${month} ${dayOfWeek}`;
 
-  const copyExpression = async () => {
-    await navigator.clipboard.writeText(expression);
-  };
-
   const resetAll = () => {
     setMinute("*");
     setHour("*");
@@ -30,271 +26,271 @@ export default function ToolClient() {
       title="Cron Expression Generator"
       description="Generate cron expressions online for scheduled jobs, automation workflows, and recurring tasks."
     >
-      <div className="space-y-10">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <div className="grid gap-5">
+      {/* INPUTS */}
+      <div>
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          Minute
+        </label>
+
+        <input
+          type="text"
+          value={minute}
+          onChange={(e) => setMinute(e.target.value)}
+          placeholder="*"
+          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+        />
+      </div>
+
+      <div className="mt-5">
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          Hour
+        </label>
+
+        <input
+          type="text"
+          value={hour}
+          onChange={(e) => setHour(e.target.value)}
+          placeholder="*"
+          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+        />
+      </div>
+
+      <div className="mt-5">
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          Day of Month
+        </label>
+
+        <input
+          type="text"
+          value={dayOfMonth}
+          onChange={(e) => setDayOfMonth(e.target.value)}
+          placeholder="*"
+          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+        />
+      </div>
+
+      <div className="mt-5">
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          Month
+        </label>
+
+        <input
+          type="text"
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+          placeholder="*"
+          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+        />
+      </div>
+
+      <div className="mt-5">
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          Day of Week
+        </label>
+
+        <input
+          type="text"
+          value={dayOfWeek}
+          onChange={(e) => setDayOfWeek(e.target.value)}
+          placeholder="*"
+          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+        />
+      </div>
+
+      {/* ACTIONS */}
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button
+          onClick={() => navigator.clipboard.writeText(expression)}
+          className="yoryantra-btn"
+        >
+          Copy Expression
+        </button>
+
+        <button onClick={resetAll} className="yoryantra-btn-outline">
+          Reset
+        </button>
+      </div>
+
+      {/* OUTPUT */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Generated Cron Expression
+          </h3>
+        </div>
+
+        <div className="yoryantra-output min-h-[140px] flex items-center text-sm break-words">
+          {expression}
+        </div>
+      </div>
+
+      {/* SEO CONTENT */}
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            About This Cron Expression Generator
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This Cron Expression Generator helps you create cron expressions for
+            scheduled jobs, recurring scripts, automation workflows, Linux cron
+            jobs, CI/CD pipelines, backend services, and server-side task
+            scheduling.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Cron expressions are commonly used to run commands or scripts at
+            fixed times, dates, or intervals. This tool lets you enter each cron
+            field manually and copy the final expression instantly.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            How to Use the Cron Expression Generator
+          </h2>
+
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Enter the minute value.</li>
+            <li>Enter the hour value.</li>
+            <li>Enter the day of month value.</li>
+            <li>Enter the month value.</li>
+            <li>Enter the day of week value.</li>
+            <li>Copy the generated cron expression.</li>
+          </ol>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Use Cases
+          </h2>
+
+          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Scheduling backend jobs and server scripts.</li>
+            <li>Running automated backups at fixed intervals.</li>
+            <li>Creating recurring CI/CD or deployment tasks.</li>
+            <li>Scheduling email, report, or notification jobs.</li>
+            <li>Testing cron syntax for automation workflows.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Cron Examples
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <p className="font-medium text-gray-900">
+              Every minute:
+            </p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+              * * * * *
+            </pre>
+
+            <p className="mt-4 font-medium text-gray-900">
+              Every hour:
+            </p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+              0 * * * *
+            </pre>
+
+            <p className="mt-4 font-medium text-gray-900">
+              Every day at midnight:
+            </p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+              0 0 * * *
+            </pre>
+
+            <p className="mt-4 font-medium text-gray-900">
+              Every Monday at 9 AM:
+            </p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+              0 9 * * 1
+            </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Frequently Asked Questions
+          </h2>
+
+          <div className="mt-5 space-y-6">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-800">
-                Minute
-              </label>
+              <h3 className="font-semibold text-gray-900">
+                What is a cron expression?
+              </h3>
 
-              <input
-                value={minute}
-                onChange={(e) => setMinute(e.target.value)}
-                placeholder="*"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-gray-400"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-800">
-                Hour
-              </label>
-
-              <input
-                value={hour}
-                onChange={(e) => setHour(e.target.value)}
-                placeholder="*"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-gray-400"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-800">
-                Day of Month
-              </label>
-
-              <input
-                value={dayOfMonth}
-                onChange={(e) => setDayOfMonth(e.target.value)}
-                placeholder="*"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-gray-400"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-800">
-                Month
-              </label>
-
-              <input
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                placeholder="*"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-gray-400"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-800">
-                Day of Week
-              </label>
-
-              <input
-                value={dayOfWeek}
-                onChange={(e) => setDayOfWeek(e.target.value)}
-                placeholder="*"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-gray-400"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={copyExpression}
-                className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-gray-800"
-              >
-                Copy Expression
-              </button>
-
-              <button
-                onClick={resetAll}
-                className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Reset
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="mb-3 text-sm font-semibold text-gray-900">
-                Generated Cron Expression
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                A cron expression is a scheduling format used to run automated
+                tasks at specific times or intervals, commonly on Linux and Unix
+                systems.
               </p>
+            </div>
 
-              <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl bg-white p-4 text-sm text-gray-800">
-                {expression}
-              </pre>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What does the asterisk mean in cron?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                The asterisk (*) means every possible value for that field. For
+                example, an asterisk in the minute field means every minute.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What is the standard cron format?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                The standard cron format has five fields: minute, hour, day of
+                month, month, and day of week.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Can I use this cron expression on Linux servers?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. This tool generates standard five-field cron expressions
+                used by most Linux and Unix cron systems.
+              </p>
             </div>
           </div>
         </div>
 
-        <section className="space-y-8 text-sm leading-7 text-gray-700">
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              About This Cron Expression Generator
-            </h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-            <p>
-              This Cron Expression Generator helps developers create cron
-              expressions for scheduled jobs, recurring scripts, automation
-              workflows, Linux cron jobs, CI/CD pipelines, and backend task
-              scheduling.
-            </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/tools/api-key-generator" className="yoryantra-btn-outline">
+              API Key Generator
+            </Link>
 
-            <p className="mt-3">
-              Enter values for minute, hour, day of month, month, and weekday to
-              instantly generate a valid cron expression that can be used in
-              Linux servers, cloud platforms, and automation systems.
-            </p>
+            <Link href="/tools/bcrypt-generator" className="yoryantra-btn-outline">
+              bcrypt Generator
+            </Link>
+
+            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
+              JWT Decoder
+            </Link>
+
+            <Link href="/tools/hmac-generator" className="yoryantra-btn-outline">
+              HMAC Generator
+            </Link>
           </div>
-
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              Cron Expression Features
-            </h2>
-
-            <ul className="list-disc space-y-2 pl-5">
-              <li>Generate standard cron expressions instantly.</li>
-              <li>Useful for Linux cron jobs and task scheduling.</li>
-              <li>Copy cron expressions with one click.</li>
-              <li>Supports standard five-field cron syntax.</li>
-              <li>Helpful for developers, DevOps, and backend workflows.</li>
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              How to Use the Cron Generator
-            </h2>
-
-            <ol className="list-decimal space-y-2 pl-5">
-              <li>Enter the minute value.</li>
-              <li>Enter the hour value.</li>
-              <li>Enter the day of month value.</li>
-              <li>Enter the month value.</li>
-              <li>Enter the weekday value.</li>
-              <li>Copy the generated cron expression.</li>
-            </ol>
-          </div>
-
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              Common Cron Expression Examples
-            </h2>
-
-            <ul className="list-disc space-y-2 pl-5">
-              <li>
-                <code>* * * * *</code> → Every minute
-              </li>
-
-              <li>
-                <code>0 * * * *</code> → Every hour
-              </li>
-
-              <li>
-                <code>0 0 * * *</code> → Every day at midnight
-              </li>
-
-              <li>
-                <code>*/5 * * * *</code> → Every 5 minutes
-              </li>
-
-              <li>
-                <code>0 9 * * 1</code> → Every Monday at 9 AM
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              Frequently Asked Questions
-            </h2>
-
-            <div className="space-y-5">
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  What is a cron expression?
-                </h3>
-
-                <p>
-                  A cron expression is a scheduling format used to run automated
-                  tasks at specific intervals or times on Linux and Unix systems.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  What does the asterisk symbol mean?
-                </h3>
-
-                <p>
-                  The asterisk (*) means every possible value for that field.
-                  For example, an asterisk in the minute field means every
-                  minute.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  Can I use this cron expression on Linux servers?
-                </h3>
-
-                <p>
-                  Yes. The generated format follows standard cron syntax used by
-                  most Linux and Unix systems.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  Does every platform support the same cron syntax?
-                </h3>
-
-                <p>
-                  Most systems support the standard five-field format, but some
-                  platforms also use a seconds field or additional syntax.
-                  Always check your platform documentation before production
-                  use.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-900">
-              Related Tools
-            </h2>
-
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/tools/api-key-generator"
-                className="rounded-lg border border-emerald-700 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-              >
-                API Key Generator
-              </Link>
-
-              <Link
-                href="/tools/bcrypt-generator"
-                className="rounded-lg border border-emerald-700 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-              >
-                bcrypt Generator
-              </Link>
-
-              <Link
-                href="/tools/jwt-decoder"
-                className="rounded-lg border border-emerald-700 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-              >
-                JWT Decoder
-              </Link>
-
-              <Link
-                href="/tools/hmac-generator"
-                className="rounded-lg border border-emerald-700 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-              >
-                HMAC Generator
-              </Link>
-            </div>
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </ToolShell>
   );
 }
