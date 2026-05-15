@@ -209,6 +209,10 @@ export const tools = [
   href: "/tools/base64url-encoder-decoder",
   },
 
-
+  {
+  title: "PEM Formatter",
+  description: "Format PEM public keys, private keys, and certificates instantly.",
+  href: "/tools/pem-formatter",
+  },
 
 ];
