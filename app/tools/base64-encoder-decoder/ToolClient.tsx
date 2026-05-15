@@ -113,21 +113,140 @@ export default function ToolClient() {
 
       </div>
 
-      {/* SEO CONTENT */}
-      <div className="mt-10 border-t border-gray-200 pt-8">
+ {/* SEO CONTENT */}
+<div className="mt-10 border-t border-gray-200 pt-8 space-y-10">
 
-        <h2 className="text-2xl font-semibold text-gray-900">
-          About This Base64 Encoder Decoder
-        </h2>
+  {/* ABOUT */}
+  <section>
 
-        <p className="mt-4 text-gray-600 leading-relaxed">
-          This free online Base64 encoder and decoder helps you quickly
-          convert plain text into Base64 format and decode Base64 strings
-          back into readable text. Useful for developers, APIs, authentication
-          workflows, data transfer, and debugging encoded content.
+    <h2 className="text-2xl font-semibold text-gray-900">
+      About Base64 Encoder Decoder
+    </h2>
+
+    <p className="mt-4 text-gray-600 leading-relaxed">
+      Base64 Encoder Decoder is a tool that helps encode plain text
+      into Base64 format and decode Base64 strings back into readable text.
+      It is useful for developers working with APIs, authentication,
+      encoded data transfer, debugging workflows, and web applications.
+    </p>
+
+  </section>
+
+  {/* HOW TO USE */}
+  <section>
+
+    <h2 className="text-2xl font-semibold text-gray-900">
+      How to Use Base64 Encoder Decoder
+    </h2>
+
+    <div className="mt-4 space-y-3 text-gray-600 leading-relaxed">
+
+      <p>
+        1. Paste your plain text or Base64 string into the input box.
+      </p>
+
+      <p>
+        2. Click Encode to convert text into Base64 format.
+      </p>
+
+      <p>
+        3. Click Decode to convert Base64 back into readable text.
+      </p>
+
+      <p>
+        4. Use Copy to quickly copy the output.
+      </p>
+
+    </div>
+
+  </section>
+
+  {/* USE CASES */}
+  <section>
+
+    <h2 className="text-2xl font-semibold text-gray-900">
+      Common Use Cases
+    </h2>
+
+    <ul className="mt-4 space-y-3 text-gray-600 leading-relaxed list-disc pl-6">
+
+      <li>
+        Encoding text for APIs and data transfer.
+      </li>
+
+      <li>
+        Decoding Base64 strings during debugging.
+      </li>
+
+      <li>
+        Working with encoded authentication data.
+      </li>
+
+      <li>
+        Testing encoded content in web applications.
+      </li>
+
+      <li>
+        Quickly converting readable text into Base64 format.
+      </li>
+
+    </ul>
+
+  </section>
+
+  {/* FAQ */}
+  <section>
+
+    <h2 className="text-2xl font-semibold text-gray-900">
+      Frequently Asked Questions
+    </h2>
+
+    <div className="mt-5 space-y-6">
+
+      <div>
+
+        <h3 className="font-semibold text-gray-900">
+          What is Base64 encoding?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          Base64 encoding converts text or binary data into a text-based
+          encoded format that can be safely transferred across systems.
         </p>
 
       </div>
+
+      <div>
+
+        <h3 className="font-semibold text-gray-900">
+          Can this tool decode Base64 strings?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          Yes. The decoder converts Base64 encoded content back into
+          readable plain text instantly.
+        </p>
+
+      </div>
+
+      <div>
+
+        <h3 className="font-semibold text-gray-900">
+          Is my data stored anywhere?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          No. All encoding and decoding happens directly inside your browser.
+          Your data is not uploaded or stored.
+        </p>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</div>
 
     </ToolShell>
   );
