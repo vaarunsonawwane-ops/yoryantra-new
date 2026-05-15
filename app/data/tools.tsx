@@ -191,6 +191,10 @@ export const tools = [
   href: "/tools/json-validator",
   },
 
-
+  {
+  title: "JSON Escape Unescape",
+  description: "Escape and unescape JSON strings instantly.",
+  href: "/tools/json-escape-unescape",
+  },
 
 ];
