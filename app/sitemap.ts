@@ -1,5 +1,7 @@
 import { tools } from "@/app/data/tools";
 
+export const dynamic = "force-static";
+
 export default function sitemap() {
   const baseUrl = "https://yoryantra.com";
 
