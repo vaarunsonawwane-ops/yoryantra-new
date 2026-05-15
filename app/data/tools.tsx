@@ -233,4 +233,11 @@ export const tools = [
   href: "/tools/json-to-yaml-converter",
   },
 
+  {
+  title: "XML to JSON Converter",
+  description: "Convert XML to JSON instantly.",
+  href: "/tools/xml-to-json-converter",
+  },
+
+
 ];
