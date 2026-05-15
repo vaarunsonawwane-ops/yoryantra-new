@@ -245,5 +245,12 @@ export const tools = [
   href: "/tools/robots-txt-tester",
   },
 
+ {
+  title: "Canonical URL Checker",
+  description: "Check and validate canonical URLs instantly.",
+  href: "/tools/canonical-url-checker",
+ },
+
+
 
 ];
