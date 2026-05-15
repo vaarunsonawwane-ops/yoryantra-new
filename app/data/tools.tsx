@@ -215,4 +215,11 @@ export const tools = [
   href: "/tools/pem-formatter",
   },
 
+  {
+  title: "JSON Diff Checker",
+  description: "Compare two JSON objects and find differences instantly.",
+  href: "/tools/json-diff-checker",
+  },
+
+
 ];
