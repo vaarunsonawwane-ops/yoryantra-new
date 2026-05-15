@@ -221,5 +221,11 @@ export const tools = [
   href: "/tools/json-diff-checker",
   },
 
+  {
+  title: "YAML to JSON Converter",
+  description: "Convert YAML to JSON instantly.",
+  href: "/tools/yaml-to-json-converter",
+  },
+
 
 ];
