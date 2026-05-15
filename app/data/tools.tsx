@@ -113,4 +113,11 @@ export const tools = [
   href: "/tools/xml-formatter",
   },
 
+  {
+  title: "YAML Formatter",
+  description: "Format and beautify YAML instantly.",
+  href: "/tools/yaml-formatter",
+  },
+
+
 ];
