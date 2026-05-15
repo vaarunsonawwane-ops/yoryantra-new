@@ -203,5 +203,12 @@ export const tools = [
   href: "/tools/rsa-key-generator",
   },
 
+  {
+  title: "Base64URL Encoder Decoder",
+  description: "Encode and decode Base64URL strings instantly.",
+  href: "/tools/base64url-encoder-decoder",
+  },
+
+
 
 ];
