@@ -239,5 +239,11 @@ export const tools = [
   href: "/tools/xml-to-json-converter",
   },
 
+  {
+  title: "Robots.txt Tester",
+  description: "Test robots.txt rules against URLs and user agents instantly.",
+  href: "/tools/robots-txt-tester",
+  },
+
 
 ];
