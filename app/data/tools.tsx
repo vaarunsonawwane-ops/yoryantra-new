@@ -173,5 +173,11 @@ export const tools = [
   href: "/tools/jwt-expiration-checker",
   },
 
+  {
+  title: "Random Token Generator",
+  description: "Generate random tokens, secret strings, and secure identifiers instantly.",
+  href: "/tools/random-token-generator",
+  },
+
 
 ];
