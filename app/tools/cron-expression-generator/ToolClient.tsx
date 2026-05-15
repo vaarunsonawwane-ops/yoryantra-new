@@ -117,6 +117,13 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">
             Generated Cron Expression
           </h3>
+
+          <button
+            onClick={() => navigator.clipboard.writeText(expression)}
+            className="yoryantra-btn-outline text-sm"
+          >
+            Copy
+          </button>
         </div>
 
         <div className="yoryantra-output min-h-[140px] flex items-center text-sm break-words">
