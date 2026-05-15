@@ -179,5 +179,12 @@ export const tools = [
   href: "/tools/random-token-generator",
   },
 
+  {
+  title: "SHA256 Generator",
+  description: "Generate SHA256 hashes from text instantly.",
+  href: "/tools/sha256-generator",
+  },
+
+
 
 ];
