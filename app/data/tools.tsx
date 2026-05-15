@@ -71,5 +71,10 @@ export const tools = [
   href: "/tools/hash-generator",
   },
   
+  {
+  title: "Password Generator",
+  description: "Generate strong random passwords instantly.",
+  href: "/tools/password-generator",
+  },
   
 ];
