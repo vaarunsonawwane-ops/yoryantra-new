@@ -118,6 +118,29 @@ export const tools = [
   description: "Format and beautify YAML instantly.",
   href: "/tools/yaml-formatter",
   },
-
+  
+  {
+  title: "Meta Tag Generator",
+  description: "Generate SEO meta tags for websites instantly.",
+  href: "/tools/meta-tag-generator",
+  },
+  
+  {
+  title: "Robots.txt Generator",
+  description: "Generate robots.txt files for websites instantly.",
+  href: "/tools/robots-txt-generator",
+  },
+  
+  {
+  title: "Sitemap Generator",
+  description: "Generate XML sitemaps for websites instantly.",
+  href: "/tools/sitemap-generator",
+  },
+  
+  {
+  title: "Open Graph Generator",
+  description: "Generate Open Graph meta tags for social sharing.",
+  href: "/tools/open-graph-generator",
+  },
 
 ];
