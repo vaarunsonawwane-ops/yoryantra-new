@@ -142,5 +142,29 @@ export const tools = [
   description: "Generate Open Graph meta tags for social sharing.",
   href: "/tools/open-graph-generator",
   },
+  
+  {
+  title: "HMAC Generator",
+  description: "Generate HMAC signatures using SHA algorithms instantly.",
+  href: "/tools/hmac-generator",
+  },
+  
+  {
+  title: "bcrypt Generator",
+  description: "Generate bcrypt password hashes instantly.",
+  href: "/tools/bcrypt-generator",
+  },
+  
+  {
+  title: "API Key Generator",
+  description: "Generate random API keys and secret tokens instantly.",
+  href: "/tools/api-key-generator",
+  },
+  
+  {
+  title: "Cron Expression Generator",
+  description: "Generate cron expressions for scheduled tasks.",
+  href: "/tools/cron-expression-generator",
+  },
 
 ];
