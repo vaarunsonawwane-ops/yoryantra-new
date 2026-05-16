@@ -48,6 +48,7 @@ export default function ToolClient() {
       title="IP Address Inspector"
       description="Inspect IPv4 and IPv6 address format instantly with this free online IP Address Inspector."
     >
+      {/* INPUT */}
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
           IP Address
@@ -61,6 +62,7 @@ export default function ToolClient() {
         />
       </div>
 
+      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
         <button onClick={inspectIP} className="yoryantra-btn">
           Inspect IP
@@ -71,6 +73,7 @@ export default function ToolClient() {
         </button>
       </div>
 
+      {/* OUTPUT */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -92,199 +95,236 @@ export default function ToolClient() {
         </div>
       </div>
 
+      {/* SEO CONTENT */}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
-  {/* ABOUT */}
-  <div>
-    <h2 className="text-2xl font-semibold text-gray-900">
-      Understanding IP Address Inspection
-    </h2>
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Working With IP Addresses During Debugging
+          </h2>
 
-    <p className="mt-4 text-gray-600 leading-relaxed">
-      This IP Address Inspector helps you validate and inspect IPv4 and
-      IPv6 addresses instantly. It is useful for debugging network
-      configurations, API allowlists, server access rules, firewall
-      settings, proxies, cloud deployments, and infrastructure
-      troubleshooting.
-    </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            IP addresses are used to identify devices, servers, applications,
+            APIs, databases, proxies, and services connected to a network. When
+            a request fails, a firewall blocks traffic, or an allowlist does not
+            behave as expected, checking the IP address format is often a simple
+            first step.
+          </p>
 
-    <p className="mt-4 text-gray-600 leading-relaxed">
-      IP addresses are used to identify devices, servers, applications,
-      and services connected to networks. During development and server
-      administration workflows, validating IP formats quickly can help
-      avoid configuration mistakes and connectivity issues.
-    </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This IP Address Inspector helps you validate IPv4 and IPv6 address
+            formats and check whether an IPv4 address belongs to a private
+            network range. It is useful for server configuration, API allowlists,
+            VPN testing, proxy debugging, firewall rules, and cloud deployment
+            checks.
+          </p>
 
-    <p className="mt-4 text-gray-600 leading-relaxed">
-      This tool checks whether an IP address is valid, identifies whether
-      it is IPv4 or IPv6, and helps inspect private network ranges
-      directly inside your browser.
-    </p>
-  </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool runs directly inside your browser, so you can quickly check
+            an IP address without sending it anywhere.
+          </p>
+        </div>
 
-  {/* HOW TO USE */}
-  <div>
-    <h2 className="text-xl font-semibold text-gray-900">
-      How to Use the IP Address Inspector
-    </h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            How to Use the IP Address Inspector
+          </h2>
 
-    <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-      <li>Enter an IPv4 or IPv6 address into the input field.</li>
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Enter an IPv4 or IPv6 address into the input field.</li>
 
-      <li>
-        Click <strong>Inspect IP</strong>.
-      </li>
+            <li>
+              Click <strong>Inspect IP</strong>.
+            </li>
 
-      <li>
-        Review the detected IP version and validation result.
-      </li>
+            <li>
+              Review whether the IP address format is valid.
+            </li>
 
-      <li>
-        Check whether the IP belongs to a private network range.
-      </li>
-    </ol>
-  </div>
+            <li>
+              Check the detected IP version and private range result.
+            </li>
+          </ol>
+        </div>
 
-  {/* COMMON USE CASES */}
-  <div>
-    <h2 className="text-xl font-semibold text-gray-900">
-      Common Use Cases
-    </h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Use Cases
+          </h2>
 
-    <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-      <li>Checking valid IPv4 and IPv6 address formats.</li>
+          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Checking valid IPv4 and IPv6 address formats.</li>
 
-      <li>Debugging API allowlists and firewall rules.</li>
+            <li>Debugging API allowlists and firewall rules.</li>
 
-      <li>Inspecting private and public network addresses.</li>
+            <li>Inspecting private and public network addresses.</li>
 
-      <li>Reviewing proxy and VPN configuration values.</li>
+            <li>Reviewing proxy, VPN, and server configuration values.</li>
 
-      <li>Testing cloud deployment networking settings.</li>
+            <li>Testing cloud deployment networking settings.</li>
 
-      <li>Validating server configuration inputs.</li>
+            <li>Validating IP inputs before saving configuration.</li>
 
-      <li>Debugging infrastructure and networking issues.</li>
-    </ul>
-  </div>
+            <li>Debugging infrastructure and network access issues.</li>
+          </ul>
+        </div>
 
-  {/* EXAMPLE */}
-  <div>
-    <h2 className="text-xl font-semibold text-gray-900">
-      Example IP Addresses
-    </h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Example IP Addresses
+          </h2>
 
-    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-      <pre className="whitespace-pre-wrap break-words">
-{`192.168.1.1
-10.0.0.5
-172.16.0.10
-2001:db8::1`}
-      </pre>
-    </div>
-  </div>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">
+{`192.168.1.1 → private IPv4 address
+10.0.0.5 → private IPv4 address
+8.8.8.8 → public IPv4 address
+2001:db8::1 → IPv6 address`}
+            </pre>
+          </div>
+        </div>
 
-  {/* FAQ */}
-  <div>
-    <h2 className="text-xl font-semibold text-gray-900">
-      Frequently Asked Questions
-    </h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Private IP Address Ranges
+          </h2>
 
-    <div className="mt-5 space-y-6">
-      <div>
-        <h3 className="font-semibold text-gray-900">
-          What is an IP address?
-        </h3>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>10.0.0.0/8</strong> is commonly used in private
+                internal networks.
+              </li>
 
-        <p className="mt-2 text-gray-600 leading-relaxed">
-          An IP address is a unique identifier assigned to devices and
-          servers connected to a network. IP addresses allow systems to
-          communicate with each other over local networks and the
-          internet.
-        </p>
-      </div>
+              <li>
+                <strong>172.16.0.0/12</strong> covers private addresses from
+                172.16.x.x to 172.31.x.x.
+              </li>
 
-      <div>
-        <h3 className="font-semibold text-gray-900">
-          What is the difference between IPv4 and IPv6?
-        </h3>
+              <li>
+                <strong>192.168.0.0/16</strong> is often used by home routers,
+                local devices, and small networks.
+              </li>
+            </ul>
+          </div>
+        </div>
 
-        <p className="mt-2 text-gray-600 leading-relaxed">
-          IPv4 uses shorter numeric addresses such as 192.168.1.1, while
-          IPv6 uses longer hexadecimal addresses designed to support a
-          much larger number of devices and internet connections.
-        </p>
-      </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Frequently Asked Questions
+          </h2>
 
-      <div>
-        <h3 className="font-semibold text-gray-900">
-          What are private IP addresses?
-        </h3>
+          <div className="mt-5 space-y-6">
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What is an IP address?
+              </h3>
 
-        <p className="mt-2 text-gray-600 leading-relaxed">
-          Private IP addresses are reserved for local networks and are
-          not directly accessible from the public internet. Common
-          private ranges include 192.168.x.x, 10.x.x.x, and
-          172.16.x.x–172.31.x.x.
-        </p>
-      </div>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                An IP address is a unique network identifier assigned to
+                devices, servers, and services so they can communicate over
+                local networks or the internet.
+              </p>
+            </div>
 
-      <div>
-        <h3 className="font-semibold text-gray-900">
-          Is IP inspection processed on the server?
-        </h3>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What is the difference between IPv4 and IPv6?
+              </h3>
 
-        <p className="mt-2 text-gray-600 leading-relaxed">
-          No. IP validation and inspection happen directly inside your
-          browser.
-        </p>
-      </div>
-    </div>
-  </div>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                IPv4 uses shorter numeric addresses such as 192.168.1.1, while
+                IPv6 uses longer hexadecimal addresses designed to support many
+                more devices and internet connections.
+              </p>
+            </div>
 
-  {/* RELATED TOOLS */}
-  <div>
-    <h2 className="text-xl font-semibold text-gray-900">
-      Related Tools
-    </h2>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What are private IP addresses?
+              </h3>
 
-    <div className="mt-4 flex flex-wrap gap-3">
-      <Link
-        href="/tools/http-headers-parser"
-        className="yoryantra-btn-outline"
-      >
-        HTTP Headers Parser
-      </Link>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Private IP addresses are reserved for local networks and are not
+                directly reachable from the public internet. Common private
+                ranges include 10.x.x.x, 172.16.x.x–172.31.x.x, and
+                192.168.x.x.
+              </p>
+            </div>
 
-      <Link
-        href="/tools/user-agent-parser"
-        className="yoryantra-btn-outline"
-      >
-        User Agent Parser
-      </Link>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Why inspect IP addresses during debugging?
+              </h3>
 
-      <Link
-        href="/tools/cors-header-checker"
-        className="yoryantra-btn-outline"
-      >
-        CORS Header Checker
-      </Link>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Inspecting IP addresses helps catch invalid formats, private
+                range mistakes, firewall issues, allowlist problems, and
+                network configuration errors.
+              </p>
+            </div>
 
-      <Link
-        href="/tools/curl-command-builder"
-        className="yoryantra-btn-outline"
-      >
-        CURL Command Builder
-      </Link>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is IP inspection processed on the server?
+              </h3>
 
-      <Link
-        href="/tools/http-status-code-explorer"
-        className="yoryantra-btn-outline"
-      >
-        HTTP Status Code Explorer
-      </Link>
-    </div>
-  </div>
-</section>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. IP validation and inspection happen directly inside your
+                browser.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            IP address debugging often connects with HTTP headers, user agents,
+            CORS settings, API requests, status codes, and network
+            troubleshooting workflows.
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href="/tools/http-headers-parser"
+              className="yoryantra-btn-outline"
+            >
+              HTTP Headers Parser
+            </Link>
+
+            <Link
+              href="/tools/user-agent-parser"
+              className="yoryantra-btn-outline"
+            >
+              User Agent Parser
+            </Link>
+
+            <Link
+              href="/tools/cors-header-checker"
+              className="yoryantra-btn-outline"
+            >
+              CORS Header Checker
+            </Link>
+
+            <Link
+              href="/tools/curl-command-builder"
+              className="yoryantra-btn-outline"
+            >
+              CURL Command Builder
+            </Link>
+
+            <Link
+              href="/tools/http-status-code-explorer"
+              className="yoryantra-btn-outline"
+            >
+              HTTP Status Code Explorer
+            </Link>
+          </div>
+        </div>
+      </section>
     </ToolShell>
   );
 }
