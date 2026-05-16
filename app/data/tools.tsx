@@ -269,6 +269,10 @@ export const tools = [
   href: "/tools/utm-builder",
   },
 
-
+  {
+  title: "CSP Generator",
+  description: "Generate Content Security Policy headers instantly.",
+  href: "/tools/csp-generator",
+  },
 
 ];
