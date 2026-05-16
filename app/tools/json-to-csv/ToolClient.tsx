@@ -136,11 +136,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This JSON to CSV Converter
+            What is JSON to CSV Converter?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON to CSV Converter helps you convert JSON data into CSV
+            JSON to CSV Converter helps you convert JSON data into CSV
             format instantly. It is useful when you need to move data from APIs,
             applications, or JSON files into spreadsheets, reports, databases,
             or data analysis tools.
