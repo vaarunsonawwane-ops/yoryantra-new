@@ -293,5 +293,11 @@ export const tools = [
   href: "/tools/json-schema-validator",
   },
 
+  {
+  title: "CURL Command Builder",
+  description: "Build CURL commands for API requests instantly.",
+  href: "/tools/curl-command-builder",
+  },
+
 
 ];
