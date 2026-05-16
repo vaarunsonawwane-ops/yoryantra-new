@@ -106,11 +106,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This HTML Encoder Decoder
+            What is HTML Encoder Decoder?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This HTML Encoder Decoder helps you safely encode and decode
+            HTML Encoder Decoder helps you safely encode and decode
             HTML entities directly in your browser. It is useful for
             developers, content editors, security testing, and handling
             HTML text safely in web applications.
