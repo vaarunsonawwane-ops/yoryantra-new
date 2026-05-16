@@ -100,11 +100,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This PEM Formatter
+            What is PEM Formatter?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This PEM Formatter helps you properly format PEM public keys,
+            PEM Formatter helps you properly format PEM public keys,
             private keys, certificates, and cryptographic files instantly.
             PEM formatting is commonly used in SSL certificates, JWT signing,
             RSA keys, SSH workflows, APIs, and authentication systems.
