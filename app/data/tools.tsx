@@ -317,4 +317,25 @@ export const tools = [
   href: "/tools/kubernetes-yaml-validator",
   },
 
+  {
+  title: ".env File Parser",
+  description: "Parse and format .env files instantly.",
+  href: "/tools/env-file-parser",
+  },
+
+  {
+  title: "Cookie Parser",
+  description: "Parse HTTP cookies into readable key-value pairs instantly.",
+  href: "/tools/cookie-parser",
+  },
+
+  {
+  title: "URL Query Params Parser",
+  description: "Parse URL query parameters instantly.",
+  href: "/tools/url-query-params-parser",
+  },
+
+
+
+
 ];
