@@ -117,11 +117,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Timestamp Converter
+            What is Timestamp Converter?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Timestamp Converter helps you convert Unix timestamps into
+            Timestamp Converter helps you convert Unix timestamps into
             readable UTC dates and time values. It is useful when working with
             APIs, databases, server logs, authentication systems, analytics
             platforms, and development tools that use Unix time.
