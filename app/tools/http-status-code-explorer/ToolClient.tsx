@@ -93,62 +93,196 @@ export default function ToolClient() {
         </div>
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            About This HTTP Status Code Explorer
-          </h2>
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+  {/* ABOUT */}
+  <div>
+    <h2 className="text-2xl font-semibold text-gray-900">
+      Understanding HTTP Status Codes
+    </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This HTTP Status Code Explorer helps you quickly understand common
-            HTTP response codes. It is useful for developers, API testing,
-            debugging web requests, server troubleshooting, and SEO audits.
-          </p>
+    <p className="mt-4 text-gray-600 leading-relaxed">
+      This HTTP Status Code Explorer helps you quickly understand common
+      HTTP response codes used by websites, APIs, browsers, servers, CDNs,
+      and web applications. It is useful for debugging API requests,
+      troubleshooting server issues, analyzing redirects, and improving
+      website behavior.
+    </p>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            HTTP status codes tell clients whether a request succeeded, failed,
-            redirected, or encountered a server-side issue.
-          </p>
-        </div>
+    <p className="mt-4 text-gray-600 leading-relaxed">
+      HTTP status codes tell browsers and applications whether a request
+      succeeded, failed, redirected, or encountered a server-side issue.
+      Understanding these response codes is important for frontend
+      development, backend systems, SEO audits, API debugging, and
+      infrastructure troubleshooting.
+    </p>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
+    <p className="mt-4 text-gray-600 leading-relaxed">
+      This tool helps you search and understand commonly used HTTP
+      response codes directly inside your browser.
+    </p>
+  </div>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Debugging API responses.</li>
-            <li>Understanding server errors.</li>
-            <li>Checking redirect and SEO issues.</li>
-            <li>Learning common HTTP status codes.</li>
-            <li>Troubleshooting web application requests.</li>
-          </ul>
-        </div>
+  {/* HOW TO USE */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-900">
+      How to Use the HTTP Status Code Explorer
+    </h2>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+    <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+      <li>Enter an HTTP status code into the input field.</li>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/http-headers-parser" className="yoryantra-btn-outline">
-              HTTP Headers Parser
-            </Link>
+      <li>
+        Click <strong>Find Status Code</strong>.
+      </li>
 
-            <Link href="/tools/redirect-checker" className="yoryantra-btn-outline">
-              Redirect Checker
-            </Link>
+      <li>
+        Review the meaning and explanation for the response code.
+      </li>
 
-            <Link href="/tools/curl-command-builder" className="yoryantra-btn-outline">
-              CURL Command Builder
-            </Link>
+      <li>
+        Copy the result for debugging or troubleshooting workflows.
+      </li>
+    </ol>
+  </div>
 
-            <Link href="/tools/cors-header-checker" className="yoryantra-btn-outline">
-              CORS Header Checker
-            </Link>
-          </div>
-        </div>
-      </section>
+  {/* COMMON USE CASES */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-900">
+      Common Use Cases
+    </h2>
+
+    <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+      <li>Debugging REST API responses.</li>
+
+      <li>Understanding server-side errors.</li>
+
+      <li>Analyzing redirect behavior and SEO issues.</li>
+
+      <li>Learning common HTTP response codes.</li>
+
+      <li>Inspecting CDN and proxy responses.</li>
+
+      <li>Troubleshooting authentication failures.</li>
+
+      <li>Reviewing rate limiting and API restrictions.</li>
+    </ul>
+  </div>
+
+  {/* EXAMPLE */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-900">
+      Common HTTP Status Codes
+    </h2>
+
+    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+      <pre className="whitespace-pre-wrap break-words">
+{`200 → OK
+301 → Moved Permanently
+404 → Not Found
+429 → Too Many Requests
+500 → Internal Server Error`}
+      </pre>
+    </div>
+  </div>
+
+  {/* FAQ */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-900">
+      Frequently Asked Questions
+    </h2>
+
+    <div className="mt-5 space-y-6">
+      <div>
+        <h3 className="font-semibold text-gray-900">
+          What are HTTP status codes?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          HTTP status codes are standard response codes returned by
+          servers to indicate whether a request succeeded, failed,
+          redirected, or encountered an issue.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-900">
+          What does a 404 status code mean?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          A 404 Not Found response means the requested page or resource
+          could not be located on the server.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-900">
+          Why are HTTP status codes important?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          Status codes help developers debug applications, troubleshoot
+          API requests, analyze redirects, monitor server behavior, and
+          improve website reliability.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-900">
+          Is HTTP status code lookup processed on the server?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          No. Status code lookup happens directly inside your browser.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* RELATED TOOLS */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-900">
+      Related Tools
+    </h2>
+
+    <div className="mt-4 flex flex-wrap gap-3">
+      <Link
+        href="/tools/http-headers-parser"
+        className="yoryantra-btn-outline"
+      >
+        HTTP Headers Parser
+      </Link>
+
+      <Link
+        href="/tools/curl-command-builder"
+        className="yoryantra-btn-outline"
+      >
+        CURL Command Builder
+      </Link>
+
+      <Link
+        href="/tools/cors-header-checker"
+        className="yoryantra-btn-outline"
+      >
+        CORS Header Checker
+      </Link>
+
+      <Link
+        href="/tools/ip-address-inspector"
+        className="yoryantra-btn-outline"
+      >
+        IP Address Inspector
+      </Link>
+
+      <Link
+        href="/tools/user-agent-parser"
+        className="yoryantra-btn-outline"
+      >
+        User Agent Parser
+      </Link>
+    </div>
+  </div>
+</section>
     </ToolShell>
   );
 }
