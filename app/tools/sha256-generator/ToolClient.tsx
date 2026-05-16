@@ -95,11 +95,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This SHA256 Generator
+            What is SHA256 Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This SHA256 Generator helps you create SHA256 hashes from text
+            SHA256 Generator helps you create SHA256 hashes from text
             instantly. SHA256 is a widely used cryptographic hashing algorithm
             commonly used for data integrity verification, authentication,
             digital signatures, blockchain systems, and security workflows.
