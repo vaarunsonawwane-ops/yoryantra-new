@@ -287,5 +287,11 @@ export const tools = [
   href: "/tools/cors-header-checker",
   },
 
+  {
+  title: "JSON Schema Validator",
+  description: "Validate JSON data against a JSON schema instantly.",
+  href: "/tools/json-schema-validator",
+  },
+
 
 ];
