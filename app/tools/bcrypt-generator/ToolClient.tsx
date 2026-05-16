@@ -96,11 +96,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This bcrypt Generator
+            What is bcrypt Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This bcrypt Generator lets you create secure bcrypt password hashes
+            bcrypt Generator lets you create secure bcrypt password hashes
             directly in your browser. It is useful for developers who need to
             hash passwords for testing, backend authentication, user login
             systems, or password storage workflows.
