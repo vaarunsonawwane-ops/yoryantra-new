@@ -163,11 +163,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This User Agent Parser
+            What is User Agent Parser?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This User Agent Parser helps you analyze browser user agent strings
+            User Agent Parser helps you analyze browser user agent strings
             instantly. It is useful for developers, analytics workflows,
             debugging browser compatibility issues, device detection, SEO
             testing, and traffic analysis.
