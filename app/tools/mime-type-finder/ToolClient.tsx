@@ -99,11 +99,11 @@ export default function ToolClient() {
   {/* ABOUT */}
   <div>
     <h2 className="text-2xl font-semibold text-gray-900">
-      About This MIME Type Finder
+      What is MIME Type Finder?
     </h2>
 
     <p className="mt-4 text-gray-600 leading-relaxed">
-      This MIME Type Finder helps developers quickly identify MIME types
+      MIME Type Finder helps developers quickly identify MIME types
       from file extensions. It is useful for HTTP response headers, file
       uploads, APIs, CDN configuration, browser file handling, backend
       development, and content delivery workflows.
