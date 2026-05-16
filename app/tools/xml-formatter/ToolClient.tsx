@@ -144,11 +144,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This XML Formatter
+            What is XML Formatter?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This XML Formatter helps you beautify and organize XML data
+            XML Formatter helps you beautify and organize XML data
             into a clean and readable structure. Properly formatted XML
             makes debugging, editing, and reviewing structured data much
             easier during development workflows.
