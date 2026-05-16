@@ -89,11 +89,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This JSON Minifier
+            What is JSON Minifier?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON Minifier helps you compress JSON data by removing
+            JSON Minifier helps you compress JSON data by removing
             unnecessary spaces, line breaks, and indentation. Minified JSON is
             useful when sending data through APIs, storing configuration files,
             reducing payload size, or preparing JSON for production use.
