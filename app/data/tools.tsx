@@ -275,4 +275,11 @@ export const tools = [
   href: "/tools/csp-generator",
   },
 
+  {
+  title: "JWT Signature Verifier",
+  description: "Verify JWT signatures using a secret key instantly.",
+  href: "/tools/jwt-signature-verifier",
+  },
+
+
 ];
