@@ -281,5 +281,11 @@ export const tools = [
   href: "/tools/jwt-signature-verifier",
   },
 
+  {
+  title: "CORS Header Checker",
+  description: "Analyze and validate CORS headers instantly.",
+  href: "/tools/cors-header-checker",
+  },
+
 
 ];
