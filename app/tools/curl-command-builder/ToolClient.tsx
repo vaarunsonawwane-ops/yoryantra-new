@@ -157,11 +157,11 @@ Content-Type: application/json`}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This CURL Command Builder
+            What is CURL Command Builder?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This CURL Command Builder helps you generate CURL commands for API
+            CURL Command Builder helps you generate CURL commands for API
             requests instantly. It is useful for developers, backend engineers,
             API testing, debugging authentication flows, and command-line HTTP
             workflows.
