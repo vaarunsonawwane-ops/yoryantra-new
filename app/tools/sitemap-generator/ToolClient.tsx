@@ -99,11 +99,11 @@ https://example.com/contact`}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Sitemap Generator
+            What is Sitemap Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Sitemap Generator helps you create XML sitemap files for
+            Sitemap Generator helps you create XML sitemap files for
             websites instantly. XML sitemaps help search engines discover,
             crawl, and index important pages more efficiently.
           </p>
