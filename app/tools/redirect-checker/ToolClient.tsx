@@ -109,11 +109,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Redirect Checker
+            What is Redirect Checker?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Redirect Checker helps you validate
+            Redirect Checker helps you validate
             URLs and inspect redirect-ready links for
             SEO, website migrations, canonicalization,
             and technical audits.
