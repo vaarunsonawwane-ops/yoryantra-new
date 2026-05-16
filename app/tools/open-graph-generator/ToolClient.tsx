@@ -156,43 +156,65 @@ export default function ToolClient() {
         </div>
 
         <pre className="yoryantra-output overflow-auto text-sm min-h-[240px] whitespace-pre-wrap break-words">
-          {output || "Generated Open Graph tags will appear here..."}
+          {output ||
+            "Generated Open Graph tags will appear here..."}
         </pre>
       </div>
 
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is Open Graph Generator?
+            Making Open Graph Tags Look Right When Links Are Shared
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Open Graph Generator helps you create Open Graph meta tags
-            for websites instantly. Open Graph tags control how webpages
-            appear when shared on social media platforms like Facebook,
-            LinkedIn, Discord, and messaging apps.
+            Open Graph tags help websites control how links appear when shared
+            on social media platforms, messaging apps, collaboration tools, and
+            community websites. Platforms such as Facebook, LinkedIn, Discord,
+            Slack, and WhatsApp use Open Graph metadata to generate preview
+            cards automatically.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Proper Open Graph tags improve social previews, click-through
-            rates, and overall sharing experience across platforms.
+            During SEO and social sharing optimization, missing or incorrect
+            Open Graph tags can create broken previews, missing images, weak
+            branding, poor click-through rates, and inconsistent link previews.
+            This Open Graph Generator helps create clean OG tags quickly without
+            manually writing metadata.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool is useful for blogs, landing pages, product pages,
+            portfolios, frontend applications, ecommerce stores, and marketing
+            workflows directly inside your browser.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            What Open Graph Tags Are Included?
+            How to Use the Open Graph Generator
           </h2>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>og:title</li>
-            <li>og:description</li>
-            <li>og:url</li>
-            <li>og:image</li>
-            <li>og:site_name</li>
-            <li>og:type</li>
-          </ul>
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Enter the page title and description.</li>
+
+            <li>
+              Add the page URL and preview image URL.
+            </li>
+
+            <li>
+              Enter your website or brand name.
+            </li>
+
+            <li>
+              Click <strong>Generate Open Graph Tags</strong>.
+            </li>
+
+            <li>
+              Copy the generated tags into your website HTML or framework.
+            </li>
+          </ol>
         </div>
 
         <div>
@@ -201,26 +223,76 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Improving social media sharing previews.</li>
-            <li>Creating better Facebook and LinkedIn cards.</li>
-            <li>Optimizing website click-through rates.</li>
-            <li>Generating Open Graph metadata quickly.</li>
-            <li>Adding social preview support to websites.</li>
+            <li>Improving social media link previews.</li>
+
+            <li>Generating Open Graph metadata for websites.</li>
+
+            <li>Creating Facebook and LinkedIn preview cards.</li>
+
+            <li>Improving social sharing click-through rates.</li>
+
+            <li>Adding preview image support to webpages.</li>
+
+            <li>Optimizing blog posts and landing pages.</li>
+
+            <li>Preparing metadata for Next.js and React websites.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example Open Graph Tags
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">
+{`<meta property="og:title" content="Yoryantra Tools" />
+
+<meta
+  property="og:description"
+  content="Free online developer and SEO tools."
+/>
+
+<meta
+  property="og:url"
+  content="https://yoryantra.com"
+/>
+
+<meta
+  property="og:image"
+  content="https://example.com/preview.jpg"
+/>`}
+            </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why Open Graph Tags Matter
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <pre className="whitespace-pre-wrap break-words">
-{`<meta property="og:title" content="Yoryantra Tools" />
-<meta property="og:description" content="Free developer utilities" />
-<meta property="og:url" content="https://yoryantra.com" />
-<meta property="og:image" content="https://example.com/image.jpg" />`}
-            </pre>
+            <ul className="space-y-3">
+              <li>
+                <strong>Better previews:</strong> Open Graph tags improve how
+                links appear on social platforms.
+              </li>
+
+              <li>
+                <strong>Higher engagement:</strong> Better previews can improve
+                click-through rates and sharing performance.
+              </li>
+
+              <li>
+                <strong>Consistent branding:</strong> Preview titles, images,
+                and descriptions stay controlled across platforms.
+              </li>
+
+              <li>
+                <strong>Improved sharing experience:</strong> Users see richer
+                previews instead of incomplete metadata.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -236,41 +308,52 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Open Graph tags are metadata used by social platforms to
-                display webpage previews when links are shared.
+                Open Graph tags are metadata used by social media platforms and
+                messaging apps to generate webpage preview cards.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Which platforms use Open Graph tags?
+                Which platforms use Open Graph metadata?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Facebook, LinkedIn, Discord, WhatsApp, Slack, and many
-                other platforms use Open Graph metadata.
+                Facebook, LinkedIn, Discord, Slack, WhatsApp, and many other
+                platforms use Open Graph tags.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is Open Graph important for SEO?
+                Do Open Graph tags affect SEO rankings?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Open Graph tags do not directly improve rankings, but they
-                can improve social sharing visibility and click-through rates.
+                Open Graph tags do not directly affect rankings, but they can
+                improve social visibility, engagement, and click-through rates.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is this Open Graph Generator secure?
+                Can I use Open Graph tags in Next.js?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Everything runs directly in your browser and no data is
-                uploaded to any server.
+                Yes. The generated tags can be adapted for Next.js, React, HTML
+                websites, and most modern web frameworks.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is Open Graph generation processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. Open Graph tag generation happens directly inside your
+                browser.
               </p>
             </div>
           </div>
@@ -281,21 +364,45 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Open Graph optimization often connects with meta tags, canonical
+            URLs, sitemaps, redirects, and technical SEO workflows.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/meta-tag-generator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/meta-tag-generator"
+              className="yoryantra-btn-outline"
+            >
               Meta Tag Generator
             </Link>
 
-            <Link href="/tools/sitemap-generator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/canonical-url-checker"
+              className="yoryantra-btn-outline"
+            >
+              Canonical URL Checker
+            </Link>
+
+            <Link
+              href="/tools/sitemap-generator"
+              className="yoryantra-btn-outline"
+            >
               Sitemap Generator
             </Link>
 
-            <Link href="/tools/robots-txt-generator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/robots-txt-generator"
+              className="yoryantra-btn-outline"
+            >
               Robots.txt Generator
             </Link>
 
-            <Link href="/tools/slug-generator" className="yoryantra-btn-outline">
-              Slug Generator
+            <Link
+              href="/tools/redirect-checker"
+              className="yoryantra-btn-outline"
+            >
+              Redirect Checker
             </Link>
           </div>
         </div>
