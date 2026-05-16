@@ -117,11 +117,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Hash Generator
+            What is Hash Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Hash Generator helps you create SHA hashes instantly
+            Hash Generator helps you create SHA hashes instantly
             from text input directly in your browser. Hashes are commonly
             used in security systems, password storage, APIs, digital
             signatures, integrity checks, and software development.

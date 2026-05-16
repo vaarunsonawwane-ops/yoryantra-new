@@ -127,11 +127,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Base64URL Encoder Decoder
+            What is Base64URL Encoder Decoder?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Base64URL Encoder Decoder helps you encode and decode Base64URL
+            Base64URL Encoder Decoder helps you encode and decode Base64URL
             strings instantly. Base64URL is a URL-safe variation of standard
             Base64 encoding commonly used in JWT tokens, OAuth systems, APIs,
             URL parameters, and web authentication workflows.

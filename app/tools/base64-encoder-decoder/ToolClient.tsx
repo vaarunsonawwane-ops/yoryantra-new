@@ -117,7 +117,7 @@ export default function ToolClient() {
         <section>
 
           <h2 className="text-2xl font-semibold text-gray-900">
-            About Base64 Encoder Decoder
+            What is Base64 Encoder Decoder?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">

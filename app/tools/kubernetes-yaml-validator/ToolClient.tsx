@@ -139,11 +139,11 @@ metadata:
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Kubernetes YAML Validator
+            What is Kubernetes YAML Validator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Kubernetes YAML Validator helps you validate Kubernetes manifests instantly. It is useful for DevOps engineers, cloud infrastructure teams, backend developers, and Kubernetes deployment workflows.
+            Kubernetes YAML Validator helps you validate Kubernetes manifests instantly. It is useful for DevOps engineers, cloud infrastructure teams, backend developers, and Kubernetes deployment workflows.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">

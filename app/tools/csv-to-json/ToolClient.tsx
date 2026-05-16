@@ -122,11 +122,11 @@ Ravi,Designer`}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This CSV to JSON Converter
+            What is CSV to JSON Converter?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This CSV to JSON Converter helps you transform CSV data into
+            CSV to JSON Converter helps you transform CSV data into
             structured JSON format instantly. It is useful for APIs,
             applications, databases, spreadsheets, and data migration
             workflows.

@@ -103,11 +103,11 @@ export default function ToolClient() {
   {/* ABOUT */}
   <div>
     <h2 className="text-2xl font-semibold text-gray-900">
-      About This Cookie Parser
+      What is Cookie Parser?
     </h2>
 
     <p className="mt-4 text-gray-600 leading-relaxed">
-      This Cookie Parser helps developers parse HTTP cookie headers into
+      Cookie Parser helps developers parse HTTP cookie headers into
       readable JSON instantly. It is useful for debugging authentication
       sessions, browser cookies, tracking systems, API requests, login
       workflows, and web application storage mechanisms.

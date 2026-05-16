@@ -89,11 +89,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This API Key Generator
+            What is API Key Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This API Key Generator helps you create random API keys, secret
+            API Key Generator helps you create random API keys, secret
             tokens, access keys, and secure strings instantly. It is useful for
             developers working on APIs, authentication systems, dashboards,
             webhooks, testing environments, and internal tools.

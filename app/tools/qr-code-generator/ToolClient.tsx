@@ -97,11 +97,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This QR Code Generator
+            What is QR Code Generator
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This QR Code Generator helps you instantly create QR codes
+            QR Code Generator helps you instantly create QR codes
             from URLs, text, contact details, or other information directly
             in your browser. QR codes are widely used for websites,
             payments, marketing, sharing links, authentication, and more.

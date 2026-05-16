@@ -154,11 +154,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This JWT Expiration Checker
+            What is JWT Expiration Checker?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This JWT Expiration Checker helps you inspect a JSON Web Token and
+            JWT Expiration Checker helps you inspect a JSON Web Token and
             quickly understand whether the token is expired, still valid, or
             missing an expiration claim. It is useful for debugging login
             systems, APIs, authentication flows, and bearer tokens.

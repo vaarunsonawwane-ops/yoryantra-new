@@ -145,11 +145,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This HMAC Generator
+            What is HMAC Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This HMAC Generator helps you create HMAC signatures from a message
+            HMAC Generator helps you create HMAC signatures from a message
             and secret key directly in your browser. HMAC signatures are widely
             used in APIs, webhooks, authentication systems, and secure request
             verification.

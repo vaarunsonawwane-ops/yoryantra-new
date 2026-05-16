@@ -160,11 +160,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Meta Tag Generator
+            What is Meta Tag Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Meta Tag Generator helps you create SEO-friendly meta tags
+            Meta Tag Generator helps you create SEO-friendly meta tags
             for websites instantly. Meta tags improve how webpages appear
             in search engines and social media previews.
           </p>

@@ -164,11 +164,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Open Graph Generator
+            What is Open Graph Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Open Graph Generator helps you create Open Graph meta tags
+            Open Graph Generator helps you create Open Graph meta tags
             for websites instantly. Open Graph tags control how webpages
             appear when shared on social media platforms like Facebook,
             LinkedIn, Discord, and messaging apps.

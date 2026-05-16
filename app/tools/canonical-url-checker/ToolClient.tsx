@@ -146,11 +146,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Canonical URL Checker
+            What is Canonical URL Checker?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Canonical URL Checker helps you
+            Canonical URL Checker helps you
             validate canonical URLs instantly. It is
             useful for SEO professionals, bloggers,
             developers, marketers, and website

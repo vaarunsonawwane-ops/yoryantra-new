@@ -142,11 +142,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This JSON Diff Checker
+            About JSON Diff Checker
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON Diff Checker helps you compare two JSON objects and find
+            JSON Diff Checker helps you compare two JSON objects and find
             differences instantly. It is useful for developers working with API
             responses, configuration files, webhook payloads, application state,
             and structured data workflows.
