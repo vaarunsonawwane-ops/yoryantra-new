@@ -109,7 +109,7 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Following Redirects Without Guesswork
+            Why URL Redirects Matter for SEO
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
