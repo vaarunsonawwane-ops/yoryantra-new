@@ -17,9 +17,10 @@ export default function ToolClient() {
     ? text.split(/[.!?]+/).filter(Boolean).length
     : 0;
 
-  const readingTime = words > 0
-  ? Math.ceil(words / 200)
-  : 0;
+  const readingTime =
+    words > 0
+      ? Math.ceil(words / 200)
+      : 0;
 
   const resetAll = () => {
     setText("");
@@ -98,23 +99,32 @@ export default function ToolClient() {
       </div>
 
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is Word Counter?
+            Checking Word Count Before Publishing Content
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Word Counter helps you instantly calculate word count,
-            character count, sentence count, and estimated reading time.
-            It is useful for writers, bloggers, students, SEO professionals,
-            marketers, and anyone working with written content.
+            Word count helps writers, bloggers, marketers, students, and SEO
+            professionals measure content length quickly while writing or
+            editing. Content length can affect readability, search optimization,
+            reading experience, assignment requirements, and publishing
+            guidelines across websites and platforms.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Instead of manually counting text statistics, you can quickly
-            analyze content length and readability in real time while typing
-            or editing text.
+            During content creation workflows, manually counting words,
+            characters, and sentences wastes time and increases editing
+            friction. This Word Counter automatically calculates text statistics
+            in real time while you type or paste content into the editor.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool also estimates reading time, making it useful for blog
+            posts, landing pages, newsletters, essays, SEO articles, social
+            content, documentation, and publishing workflows directly inside
+            your browser.
           </p>
         </div>
 
@@ -124,23 +134,45 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste or type your content into the text area.</li>
-            <li>View the word, character, and sentence counts instantly.</li>
-            <li>Check the estimated reading time automatically.</li>
-            <li>Use the statistics while editing or optimizing content.</li>
+            <li>Paste or type text into the editor.</li>
+
+            <li>
+              View the live word count instantly.
+            </li>
+
+            <li>
+              Check character count, sentence count, and reading time.
+            </li>
+
+            <li>
+              Use the statistics while editing or optimizing content.
+            </li>
           </ol>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            What This Tool Counts
+            What This Word Counter Measures
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>Words</strong> — total number of words in the text.</li>
-            <li><strong>Characters</strong> — total number of characters including spaces.</li>
-            <li><strong>Sentences</strong> — estimated number of sentences.</li>
-            <li><strong>Reading Time</strong> — estimated reading duration based on average reading speed.</li>
+            <li>
+              <strong>Words:</strong> Total number of detected words.
+            </li>
+
+            <li>
+              <strong>Characters:</strong> Character count including spaces.
+            </li>
+
+            <li>
+              <strong>Sentences:</strong> Estimated sentence count based on
+              punctuation.
+            </li>
+
+            <li>
+              <strong>Reading Time:</strong> Estimated reading duration using an
+              average reading speed.
+            </li>
           </ul>
         </div>
 
@@ -150,17 +182,25 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking article and blog post length.</li>
-            <li>Monitoring SEO content word count.</li>
-            <li>Tracking assignment or essay length.</li>
+            <li>Checking SEO article word count.</li>
+
+            <li>Tracking blog post and landing page length.</li>
+
             <li>Estimating reading time for content pages.</li>
+
+            <li>Monitoring essay and assignment length.</li>
+
             <li>Improving content readability and structure.</li>
+
+            <li>Checking social media and newsletter content size.</li>
+
+            <li>Editing documentation and technical content.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example Content Statistics
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
@@ -169,7 +209,7 @@ export default function ToolClient() {
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              Welcome to Yoryantra. This is a simple word counter example.
+Welcome to Yoryantra. This is a simple word counter example.
             </pre>
 
             <p className="mt-4 font-medium text-gray-900">
@@ -187,6 +227,36 @@ Reading Time: 1 min`}
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
+            Why Word Count Matters for Content
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Content planning:</strong> Word count helps organize
+                article structure and publishing goals.
+              </li>
+
+              <li>
+                <strong>SEO workflows:</strong> Content length often matters
+                during search optimization.
+              </li>
+
+              <li>
+                <strong>Readability:</strong> Sentence count and reading time
+                help improve user experience.
+              </li>
+
+              <li>
+                <strong>Publishing limits:</strong> Many platforms and
+                assignments have content length requirements.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
             Frequently Asked Questions
           </h2>
 
@@ -197,8 +267,9 @@ Reading Time: 1 min`}
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                A word counter is a tool that calculates the number of words,
-                characters, sentences, and other text statistics automatically.
+                A word counter automatically calculates text statistics such as
+                word count, character count, sentence count, and estimated
+                reading time.
               </p>
             </div>
 
@@ -209,13 +280,13 @@ Reading Time: 1 min`}
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Reading time is estimated using an average reading speed of
-                around 200 words per minute.
+                approximately 200 words per minute.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this tool count spaces as characters?
+                Does character count include spaces?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -225,12 +296,22 @@ Reading Time: 1 min`}
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is this Word Counter secure?
+                Is this Word Counter useful for SEO writing?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Everything runs directly in your browser. Your text is not
-                uploaded to any server.
+                Yes. SEO writers often use word count and readability statistics
+                while planning articles and optimizing content structure.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is word counting processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. All calculations happen directly inside your browser.
               </p>
             </div>
           </div>
@@ -241,21 +322,45 @@ Reading Time: 1 min`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/text-case-converter" className="yoryantra-btn-outline">
-              Text Case Converter
-            </Link>
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Word counting often connects with slug generation, text formatting,
+            SEO optimization, content editing, and publishing workflows.
+          </p>
 
-            <Link href="/tools/slug-generator" className="yoryantra-btn-outline">
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href="/tools/slug-generator"
+              className="yoryantra-btn-outline"
+            >
               Slug Generator
             </Link>
 
-            <Link href="/tools/regex-tester" className="yoryantra-btn-outline">
-              Regex Tester
+            <Link
+              href="/tools/meta-tag-generator"
+              className="yoryantra-btn-outline"
+            >
+              Meta Tag Generator
             </Link>
 
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
+            <Link
+              href="/tools/text-case-converter"
+              className="yoryantra-btn-outline"
+            >
+              Text Case Converter
+            </Link>
+
+            <Link
+              href="/tools/url-encoder"
+              className="yoryantra-btn-outline"
+            >
+              URL Encoder Decoder
+            </Link>
+
+            <Link
+              href="/tools/open-graph-generator"
+              className="yoryantra-btn-outline"
+            >
+              Open Graph Generator
             </Link>
           </div>
         </div>
