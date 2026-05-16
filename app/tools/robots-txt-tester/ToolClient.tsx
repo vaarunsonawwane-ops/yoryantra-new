@@ -226,11 +226,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Robots.txt Tester
+            What is Robots.txt Tester?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Robots.txt Tester helps you test
+            Robots.txt Tester helps you test
             robots.txt rules against specific URL
             paths and user agents instantly. It is
             useful for SEO professionals, developers,
