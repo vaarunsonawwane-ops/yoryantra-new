@@ -99,63 +99,196 @@ export default function ToolClient() {
         </div>
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            About This URL Query Params Parser
-          </h2>
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+  {/* ABOUT */}
+  <div>
+    <h2 className="text-2xl font-semibold text-gray-900">
+      About This URL Query Params Parser
+    </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This URL Query Params Parser helps you extract query parameters from
-            URLs and convert them into readable JSON. It is useful for debugging
-            tracking links, API requests, UTM URLs, search URLs, and web
-            application routes.
-          </p>
+    <p className="mt-4 text-gray-600 leading-relaxed">
+      This URL Query Params Parser helps developers extract and analyze
+      URL query parameters instantly. It is useful for debugging API
+      requests, UTM tracking links, search URLs, redirects, analytics
+      parameters, frontend routing, and marketing campaign URLs.
+    </p>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Query parameters are commonly used to pass data in URLs. This tool
-            makes long URLs easier to inspect and debug.
-          </p>
-        </div>
+    <p className="mt-4 text-gray-600 leading-relaxed">
+      Query parameters are commonly used to pass dynamic values inside
+      URLs. These values may include search filters, pagination data,
+      authentication tokens, campaign tracking parameters, or API request
+      inputs.
+    </p>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
+    <p className="mt-4 text-gray-600 leading-relaxed">
+      This tool converts long query strings into readable JSON format for
+      easier inspection, debugging, and development workflows directly in
+      your browser.
+    </p>
+  </div>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Parsing UTM tracking links.</li>
-            <li>Debugging API query strings.</li>
-            <li>Inspecting search URL parameters.</li>
-            <li>Converting query strings into JSON.</li>
-            <li>Checking marketing campaign links.</li>
-          </ul>
-        </div>
+  {/* HOW TO USE */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-900">
+      How to Use the URL Query Params Parser
+    </h2>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+    <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+      <li>Paste a full URL or query string into the input box.</li>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/utm-builder" className="yoryantra-btn-outline">
-              UTM Builder
-            </Link>
+      <li>
+        Click <strong>Parse Query Params</strong>.
+      </li>
 
-            <Link href="/tools/url-encoder" className="yoryantra-btn-outline">
-              URL Encoder Decoder
-            </Link>
+      <li>
+        Review the extracted query parameters in JSON format.
+      </li>
 
-            <Link href="/tools/curl-command-builder" className="yoryantra-btn-outline">
-              CURL Command Builder
-            </Link>
+      <li>
+        Copy the parsed output for debugging or development workflows.
+      </li>
+    </ol>
+  </div>
 
-            <Link href="/tools/http-headers-parser" className="yoryantra-btn-outline">
-              HTTP Headers Parser
-            </Link>
-          </div>
-        </div>
-      </section>
+  {/* COMMON USE CASES */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-900">
+      Common Use Cases
+    </h2>
+
+    <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+      <li>Parsing UTM marketing campaign links.</li>
+
+      <li>Debugging frontend routing parameters.</li>
+
+      <li>Inspecting API request query strings.</li>
+
+      <li>Reviewing search and filter URLs.</li>
+
+      <li>Converting query parameters into JSON.</li>
+
+      <li>Analyzing redirect and tracking links.</li>
+
+      <li>Inspecting authentication or callback URLs.</li>
+    </ul>
+  </div>
+
+  {/* EXAMPLE */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-900">
+      Example Query String
+    </h2>
+
+    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+      <pre className="whitespace-pre-wrap break-words">
+{`https://example.com/products?
+utm_source=google&
+utm_campaign=summer_sale&
+page=2&
+sort=price`}
+      </pre>
+    </div>
+  </div>
+
+  {/* FAQ */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-900">
+      Frequently Asked Questions
+    </h2>
+
+    <div className="mt-5 space-y-6">
+      <div>
+        <h3 className="font-semibold text-gray-900">
+          What are URL query parameters?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          URL query parameters are key-value pairs appended to URLs after
+          the question mark symbol. They are commonly used to pass data,
+          filters, tracking information, and dynamic request values.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-900">
+          Why parse query strings?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          Long URLs can become difficult to inspect manually. Parsing
+          query strings makes debugging and analyzing URL parameters much
+          easier.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-900">
+          Can this tool parse full URLs?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          Yes. You can paste either a full URL or only the query string.
+          The parser automatically extracts the query parameters.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-900">
+          Is query parameter parsing processed on the server?
+        </h3>
+
+        <p className="mt-2 text-gray-600 leading-relaxed">
+          No. All parsing happens directly inside your browser. Your URLs
+          and query parameters are never uploaded to a server.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* RELATED TOOLS */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-900">
+      Related Tools
+    </h2>
+
+    <div className="mt-4 flex flex-wrap gap-3">
+      <Link
+        href="/tools/url-encoder-decoder"
+        className="yoryantra-btn-outline"
+      >
+        URL Encoder Decoder
+      </Link>
+
+      <Link
+        href="/tools/http-headers-parser"
+        className="yoryantra-btn-outline"
+      >
+        HTTP Headers Parser
+      </Link>
+
+      <Link
+        href="/tools/curl-command-builder"
+        className="yoryantra-btn-outline"
+      >
+        CURL Command Builder
+      </Link>
+
+      <Link
+        href="/tools/cookie-parser"
+        className="yoryantra-btn-outline"
+      >
+        Cookie Parser
+      </Link>
+
+      <Link
+        href="/tools/cors-header-checker"
+        className="yoryantra-btn-outline"
+      >
+        CORS Header Checker
+      </Link>
+    </div>
+  </div>
+</section>
     </ToolShell>
   );
 }
