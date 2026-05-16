@@ -135,11 +135,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Cron Expression Generator
+            What is Cron Expression Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Cron Expression Generator helps you create cron expressions for
+            Cron Expression Generator helps you create cron expressions for
             scheduled jobs, recurring scripts, automation workflows, Linux cron
             jobs, CI/CD pipelines, backend services, and server-side task
             scheduling.
