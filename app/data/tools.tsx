@@ -335,7 +335,23 @@ export const tools = [
   href: "/tools/url-query-params-parser",
   },
 
+  {
+  title: "MIME Type Finder",
+  description: "Find MIME types by file extension instantly.",
+  href: "/tools/mime-type-finder",
+  },
 
+  {
+  title: "IP Address Inspector",
+  description: "Inspect IPv4 and IPv6 address format instantly.",
+  href: "/tools/ip-address-inspector",
+  },
+
+  {
+  title: "HTTP Status Code Explorer",
+  description: "Search and understand HTTP status codes instantly.",
+  href: "/tools/http-status-code-explorer",
+  },
 
 
 ];
