@@ -149,11 +149,11 @@ Access-Control-Allow-Headers: Content-Type, Authorization`}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This CORS Header Checker
+            What is CORS Header Checker?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This CORS Header Checker helps you analyze Cross-Origin Resource
+            CORS Header Checker helps you analyze Cross-Origin Resource
             Sharing headers from HTTP responses. It is useful for developers
             debugging API access issues, frontend requests, browser security
             errors, authentication flows, and cross-origin integrations.
