@@ -101,11 +101,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This JSON Validator
+            What is JSON Validator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON Validator helps you validate JSON syntax instantly and
+            JSON Validator helps you validate JSON syntax instantly and
             detect formatting errors quickly. It is useful for developers
             working with APIs, configuration files, JSON payloads, webhooks,
             databases, and structured data workflows.
