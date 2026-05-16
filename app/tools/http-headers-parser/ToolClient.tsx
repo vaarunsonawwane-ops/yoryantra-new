@@ -128,11 +128,11 @@ Authorization: Bearer token`}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This HTTP Headers Parser
+            What is HTTP Headers Parser?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This HTTP Headers Parser helps you parse
+            HTTP Headers Parser helps you parse
             and format HTTP headers instantly. It is
             useful for developers, API testing,
             debugging requests, security analysis,
