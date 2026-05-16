@@ -113,11 +113,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This JSON Escape Unescape Tool
+            What is JSON Escape Unescape Tool?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON Escape Unescape tool helps you quickly escape or unescape
+            JSON Escape Unescape tool helps you quickly escape or unescape
             JSON strings for APIs, logs, configuration files, payloads, and
             development workflows. It is useful when dealing with quotes,
             backslashes, newline characters, and encoded JSON content.
