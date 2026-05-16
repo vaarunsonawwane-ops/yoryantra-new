@@ -176,11 +176,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This JSON Schema Validator
+            What is JSON Schema Validator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON Schema Validator helps you validate JSON data against a
+            JSON Schema Validator helps you validate JSON data against a
             schema instantly. It is useful for API testing, backend validation,
             configuration validation, structured data workflows, and developer
             debugging.
