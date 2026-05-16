@@ -86,11 +86,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This SQL Formatter
+            What is SQL Formatter?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This SQL Formatter helps you format messy SQL queries into a
+            SQL Formatter helps you format messy SQL queries into a
             cleaner and more readable structure. It is useful when working with
             SELECT statements, WHERE clauses, JOIN queries, GROUP BY, ORDER BY,
             and LIMIT clauses.
