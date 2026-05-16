@@ -31,13 +31,8 @@ export default function ToolClient() {
           return;
         }
 
-        const key = line
-          .slice(0, separatorIndex)
-          .trim();
-
-        const value = line
-          .slice(separatorIndex + 1)
-          .trim();
+        const key = line.slice(0, separatorIndex).trim();
+        const value = line.slice(separatorIndex + 1).trim();
 
         headers[key] = value;
       });
@@ -78,17 +73,11 @@ Authorization: Bearer token`}
 
       {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={parseHeaders}
-          className="yoryantra-btn"
-        >
+        <button onClick={parseHeaders} className="yoryantra-btn">
           Parse Headers
         </button>
 
-        <button
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
+        <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
@@ -109,9 +98,7 @@ Authorization: Bearer token`}
 
           {output && (
             <button
-              onClick={() =>
-                navigator.clipboard.writeText(output)
-              }
+              onClick={() => navigator.clipboard.writeText(output)}
               className="yoryantra-btn-outline text-sm"
             >
               Copy
@@ -125,24 +112,24 @@ Authorization: Bearer token`}
       </div>
 
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is HTTP Headers Parser?
+            Understanding HTTP Headers
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            HTTP Headers Parser helps you parse
-            and format HTTP headers instantly. It is
-            useful for developers, API testing,
-            debugging requests, security analysis,
-            networking workflows, and SEO audits.
+            HTTP headers carry important information between browsers, servers,
+            APIs, CDNs, proxies, and web applications. They help describe how a
+            request or response should be handled, including content type,
+            authentication, caching, compression, cookies, CORS rules, and more.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool converts raw HTTP header text
-            into structured JSON format for easier
-            readability and debugging.
+            When debugging APIs or web requests, raw headers can become difficult
+            to inspect manually. This parser converts plain HTTP header text into
+            structured JSON so the values are easier to read, copy, compare, and
+            use during development.
           </p>
         </div>
 
@@ -152,12 +139,12 @@ Authorization: Bearer token`}
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste raw HTTP headers.</li>
+            <li>Paste raw HTTP request or response headers.</li>
             <li>
               Click <strong>Parse Headers</strong>.
             </li>
             <li>View the structured JSON output.</li>
-            <li>Copy the parsed result if needed.</li>
+            <li>Copy the parsed result for debugging or documentation.</li>
           </ol>
         </div>
 
@@ -167,37 +154,37 @@ Authorization: Bearer token`}
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Parsing API request headers.</li>
-            <li>Debugging HTTP responses.</li>
-            <li>Analyzing authorization headers.</li>
-            <li>Formatting raw networking data.</li>
-            <li>Inspecting SEO-related headers.</li>
+            <li>Parsing API request and response headers.</li>
+            <li>Checking caching, CORS, authentication, and content-type headers.</li>
+            <li>Debugging Authorization, Cookie, and Set-Cookie values.</li>
+            <li>Formatting raw networking data into readable JSON.</li>
+            <li>Inspecting headers copied from browser DevTools or API clients.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example HTTP Headers
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>
-              Raw headers:
-            </p>
+            <p>Raw headers:</p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
 {`Content-Type: application/json
-Authorization: Bearer token`}
+Authorization: Bearer eyJhbGciOi...
+Cache-Control: no-cache
+X-Forwarded-For: 192.168.1.10`}
             </pre>
 
-            <p className="mt-4">
-              Parsed output:
-            </p>
+            <p className="mt-4">Parsed output:</p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
 {`{
   "Content-Type": "application/json",
-  "Authorization": "Bearer token"
+  "Authorization": "Bearer eyJhbGciOi...",
+  "Cache-Control": "no-cache",
+  "X-Forwarded-For": "192.168.1.10"
 }`}
             </pre>
           </div>
@@ -215,44 +202,43 @@ Authorization: Bearer token`}
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                HTTP headers contain metadata about
-                requests and responses exchanged
-                between browsers, servers, and APIs.
+                HTTP headers are key-value pairs sent with web requests and
+                responses. They describe information such as content type,
+                authentication, caching, cookies, compression, and browser
+                behavior.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Why parse HTTP headers?
+                Why do developers inspect HTTP headers?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Parsing headers helps developers
-                inspect authentication, content type,
-                caching, and networking behavior.
+                Developers inspect headers to debug API requests, authentication
+                issues, CORS problems, caching behavior, redirects, cookies, and
+                server responses.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this tool validate headers?
+                Can this tool parse headers copied from DevTools?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                The tool parses structured header
-                lines into JSON format for easier
-                analysis.
+                Yes. You can paste raw request or response headers copied from
+                browser DevTools, API clients, server logs, or debugging tools.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is parsing done on the server?
+                Is header parsing processed on the server?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. HTTP header parsing happens
-                directly in your browser.
+                No. HTTP header parsing happens directly inside your browser.
               </p>
             </div>
           </div>
@@ -263,33 +249,46 @@ Authorization: Bearer token`}
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Working with HTTP headers often also involves checking response
+            codes, cookies, CORS configuration, browser requests, and API
+            debugging workflows.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
-              href="/tools/json-formatter"
+              href="/tools/http-status-code-explorer"
               className="yoryantra-btn-outline"
             >
-              JSON Formatter
+              HTTP Status Code Explorer
             </Link>
 
             <Link
-              href="/tools/base64url-encoder-decoder"
+              href="/tools/cors-header-checker"
               className="yoryantra-btn-outline"
             >
-              Base64URL Encoder Decoder
+              CORS Header Checker
             </Link>
 
             <Link
-              href="/tools/jwt-decoder"
+              href="/tools/cookie-parser"
               className="yoryantra-btn-outline"
             >
-              JWT Decoder
+              Cookie Parser
             </Link>
 
             <Link
-              href="/tools/api-key-generator"
+              href="/tools/user-agent-parser"
               className="yoryantra-btn-outline"
             >
-              API Key Generator
+              User Agent Parser
+            </Link>
+
+            <Link
+              href="/tools/curl-command-builder"
+              className="yoryantra-btn-outline"
+            >
+              CURL Command Builder
             </Link>
           </div>
         </div>
