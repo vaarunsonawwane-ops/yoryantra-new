@@ -177,11 +177,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This JWT Signature Verifier
+            What is JWT Signature Verifier?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This JWT Signature Verifier helps you
+            JWT Signature Verifier helps you
             verify JWT token signatures instantly
             using a secret key. It is useful for API
             authentication, debugging JWT tokens,
