@@ -90,11 +90,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Random Token Generator
+            What is Random Token Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Random Token Generator helps you create random tokens, secure
+            Random Token Generator helps you create random tokens, secure
             identifiers, access strings, temporary secrets, and unique values
             instantly. It is useful for developers building APIs,
             authentication systems, sessions, webhooks, and testing workflows.
