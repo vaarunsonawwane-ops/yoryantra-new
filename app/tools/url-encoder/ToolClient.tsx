@@ -102,11 +102,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This URL Encoder Decoder
+            What is URL Encoder Decoder?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This URL Encoder Decoder helps you convert normal text into a
+            URL Encoder Decoder helps you convert normal text into a
             URL-safe format and decode encoded URLs back into readable text.
             It is useful when working with links, query parameters, APIs,
             redirects, tracking URLs, and web forms.

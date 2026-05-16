@@ -103,11 +103,11 @@ export default function ToolClient() {
   {/* ABOUT */}
   <div>
     <h2 className="text-2xl font-semibold text-gray-900">
-      About This URL Query Params Parser
+      What is URL Query Params Parser?
     </h2>
 
     <p className="mt-4 text-gray-600 leading-relaxed">
-      This URL Query Params Parser helps developers extract and analyze
+      URL Query Params Parser helps developers extract and analyze
       URL query parameters instantly. It is useful for debugging API
       requests, UTM tracking links, search URLs, redirects, analytics
       parameters, frontend routing, and marketing campaign URLs.

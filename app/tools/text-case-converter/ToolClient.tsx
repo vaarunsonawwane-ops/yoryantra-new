@@ -125,11 +125,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Text Case Converter
+            What is Text Case Converter?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Text Case Converter helps you quickly transform text into
+            Text Case Converter helps you quickly transform text into
             uppercase, lowercase, title case, and sentence case formats.
             It is useful for editing documents, formatting headings,
             improving readability, writing content, and managing text for

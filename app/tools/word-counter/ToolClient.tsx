@@ -101,11 +101,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Word Counter
+            What is Word Counter?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Word Counter helps you instantly calculate word count,
+            Word Counter helps you instantly calculate word count,
             character count, sentence count, and estimated reading time.
             It is useful for writers, bloggers, students, SEO professionals,
             marketers, and anyone working with written content.

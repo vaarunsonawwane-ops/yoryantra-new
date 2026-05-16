@@ -214,11 +214,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This UTM Builder
+            What is UTM Builder?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This UTM Builder helps you generate UTM
+            UTM Builder helps you generate UTM
             tracking URLs instantly for marketing,
             SEO, analytics, social media campaigns,
             newsletters, paid ads, and affiliate

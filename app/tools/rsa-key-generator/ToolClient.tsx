@@ -167,11 +167,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This RSA Key Generator
+            What is RSA Key Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This RSA Key Generator helps you generate RSA public and private key
+            RSA Key Generator helps you generate RSA public and private key
             pairs instantly in your browser. RSA keys are commonly used for
             encryption, authentication, digital signatures, SSH access, JWT
             signing, SSL certificates, and secure communication workflows.

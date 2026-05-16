@@ -88,11 +88,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Slug Generator
+            What is Slug Generator?
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Slug Generator helps you convert titles and text into
+            Slug Generator helps you convert titles and text into
             clean, readable, and SEO-friendly URL slugs. Slugs are commonly
             used in blog URLs, article links, product pages, and content
             management systems to create better-looking web addresses.
