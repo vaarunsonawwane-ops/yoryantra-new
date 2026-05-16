@@ -42,6 +42,7 @@ export default function ToolClient() {
       title="Robots.txt Generator"
       description="Generate robots.txt files instantly with this free online Robots.txt Generator."
     >
+      {/* USER AGENT */}
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
           User Agent
@@ -55,6 +56,7 @@ export default function ToolClient() {
         />
       </div>
 
+      {/* ALLOW */}
       <div className="mt-6">
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Allow Path
@@ -68,6 +70,7 @@ export default function ToolClient() {
         />
       </div>
 
+      {/* DISALLOW */}
       <div className="mt-6">
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Disallow Path
@@ -81,6 +84,7 @@ export default function ToolClient() {
         />
       </div>
 
+      {/* SITEMAP */}
       <div className="mt-6">
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Sitemap URL
@@ -94,16 +98,24 @@ export default function ToolClient() {
         />
       </div>
 
+      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generateRobotsTxt} className="yoryantra-btn">
+        <button
+          onClick={generateRobotsTxt}
+          className="yoryantra-btn"
+        >
           Generate Robots.txt
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button
+          onClick={resetAll}
+          className="yoryantra-btn-outline"
+        >
           Reset
         </button>
       </div>
 
+      {/* OUTPUT */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -112,7 +124,9 @@ export default function ToolClient() {
 
           {output && (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              onClick={() =>
+                navigator.clipboard.writeText(output)
+              }
               className="yoryantra-btn-outline text-sm"
             >
               Copy
@@ -121,26 +135,37 @@ export default function ToolClient() {
         </div>
 
         <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
-          {output || "Generated robots.txt output will appear here..."}
+          {output ||
+            "Generated robots.txt output will appear here..."}
         </pre>
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      {/* SEO CONTENT */}
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            About This Robots.txt Generator
+            Creating Robots.txt Files Without Blocking the Wrong Pages
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Robots.txt Generator helps you create a robots.txt file for
-            your website. A robots.txt file tells search engine crawlers which
-            parts of your site they can or should not crawl.
+            Robots.txt files help websites control how search engines and bots
+            crawl pages, directories, media files, APIs, and dynamic URLs.
+            Search engines check robots.txt instructions before crawling a
+            website to determine which sections should be allowed or blocked.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            It is commonly used to block admin pages, private paths, duplicate
-            sections, or low-value URLs while still allowing search engines to
-            access important public pages.
+            During technical SEO setup, incorrect robots.txt rules can
+            accidentally block important pages, reduce indexing, hide assets,
+            break crawl paths, or prevent search engines from discovering
+            valuable content. This Robots.txt Generator helps create clean crawl
+            rules quickly without writing everything manually.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool is useful for blogs, ecommerce stores, SaaS dashboards,
+            frontend applications, staging environments, static websites, and
+            technical SEO workflows directly inside your browser.
           </p>
         </div>
 
@@ -150,10 +175,26 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter the user agent, usually <strong>*</strong> for all bots.</li>
-            <li>Add allowed and blocked paths.</li>
-            <li>Add your sitemap URL if available.</li>
-            <li>Copy the generated robots.txt file and upload it to your website root.</li>
+            <li>
+              Enter the user agent, usually <strong>*</strong> for all bots.
+            </li>
+
+            <li>
+              Add allowed and blocked paths.
+            </li>
+
+            <li>
+              Add your sitemap URL if available.
+            </li>
+
+            <li>
+              Click <strong>Generate Robots.txt</strong>.
+            </li>
+
+            <li>
+              Copy the generated robots.txt file and upload it to your website
+              root.
+            </li>
           </ol>
         </div>
 
@@ -163,17 +204,25 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Creating a robots.txt file for a new website.</li>
-            <li>Blocking admin or private website sections.</li>
-            <li>Adding sitemap location for search engines.</li>
-            <li>Managing crawler access for SEO.</li>
-            <li>Preparing crawl rules for blogs, tools, and business websites.</li>
+            <li>Creating robots.txt files for new websites.</li>
+
+            <li>Blocking admin panels and private sections.</li>
+
+            <li>Managing crawler access for SEO optimization.</li>
+
+            <li>Adding sitemap.xml locations for search engines.</li>
+
+            <li>Preparing crawl rules before deployment.</li>
+
+            <li>Configuring crawl access for ecommerce stores.</li>
+
+            <li>Improving technical SEO and crawl efficiency.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example Robots.txt File
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
@@ -184,6 +233,36 @@ Disallow: /admin
 
 Sitemap: https://example.com/sitemap.xml`}
             </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Robots.txt Directives
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>User-agent:</strong> Specifies which crawler the rules
+                apply to.
+              </li>
+
+              <li>
+                <strong>Allow:</strong> Permits crawlers to access specific
+                paths or sections.
+              </li>
+
+              <li>
+                <strong>Disallow:</strong> Blocks crawlers from specific URLs or
+                directories.
+              </li>
+
+              <li>
+                <strong>Sitemap:</strong> Helps search engines locate XML
+                sitemap files faster.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -200,7 +279,7 @@ Sitemap: https://example.com/sitemap.xml`}
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Robots.txt is a text file placed at the root of a website to
-                give crawling instructions to search engines and bots.
+                provide crawl instructions for search engines and bots.
               </p>
             </div>
 
@@ -210,30 +289,40 @@ Sitemap: https://example.com/sitemap.xml`}
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                It should be placed at the root of your domain, for example
-                example.com/robots.txt.
+                The robots.txt file is usually uploaded to the root of the
+                domain, such as example.com/robots.txt.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does robots.txt guarantee privacy?
+                Can robots.txt block pages from Google?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Robots.txt is only a crawling instruction. It should not be
-                used to protect sensitive or private data.
+                Yes. Incorrect robots.txt rules can prevent search engines from
+                crawling important pages and assets.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is this Robots.txt Generator secure?
+                Does robots.txt protect private content?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Everything runs directly in your browser and no data is
-                uploaded to a server.
+                No. Robots.txt is only a crawler instruction and should not be
+                used to secure sensitive or private information.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is robots.txt generation processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. Robots.txt generation happens directly inside your browser.
               </p>
             </div>
           </div>
@@ -244,21 +333,46 @@ Sitemap: https://example.com/sitemap.xml`}
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Robots.txt generation often connects with sitemap creation,
+            canonical URLs, redirects, crawl optimization, and technical SEO
+            workflows.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/meta-tag-generator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/robots-txt-tester"
+              className="yoryantra-btn-outline"
+            >
+              Robots.txt Tester
+            </Link>
+
+            <Link
+              href="/tools/sitemap-generator"
+              className="yoryantra-btn-outline"
+            >
+              Sitemap Generator
+            </Link>
+
+            <Link
+              href="/tools/canonical-url-checker"
+              className="yoryantra-btn-outline"
+            >
+              Canonical URL Checker
+            </Link>
+
+            <Link
+              href="/tools/redirect-checker"
+              className="yoryantra-btn-outline"
+            >
+              Redirect Checker
+            </Link>
+
+            <Link
+              href="/tools/meta-tag-generator"
+              className="yoryantra-btn-outline"
+            >
               Meta Tag Generator
-            </Link>
-
-            <Link href="/tools/slug-generator" className="yoryantra-btn-outline">
-              Slug Generator
-            </Link>
-
-            <Link href="/tools/word-counter" className="yoryantra-btn-outline">
-              Word Counter
-            </Link>
-
-            <Link href="/tools/url-encoder" className="yoryantra-btn-outline">
-              URL Encoder Decoder
             </Link>
           </div>
         </div>
