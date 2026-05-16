@@ -93,7 +93,7 @@ export default function ToolClient() {
           onChange={(e) =>
             setHeaders(e.target.value)
           }
-          placeholder={`Authorization: Bearer token
+          placeholder={`Authorization: Bearer eyJhbGciOi...
 Content-Type: application/json`}
           className="w-full min-h-[140px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
@@ -111,7 +111,8 @@ Content-Type: application/json`}
             setBody(e.target.value)
           }
           placeholder={`{
-  "name": "Yoryantra"
+  "name": "Yoryantra",
+  "role": "developer"
 }`}
           className="w-full min-h-[180px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
@@ -154,23 +155,31 @@ Content-Type: application/json`}
       </div>
 
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is CURL Command Builder?
+            Working With CURL Commands
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            CURL Command Builder helps you generate CURL commands for API
-            requests instantly. It is useful for developers, backend engineers,
-            API testing, debugging authentication flows, and command-line HTTP
-            workflows.
+            CURL is one of the most widely used command-line tools for making
+            HTTP requests and testing APIs. Developers often use CURL while
+            debugging authentication systems, testing REST APIs, checking
+            response headers, troubleshooting servers, and reproducing browser
+            requests directly from the terminal.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            CURL is one of the most widely used command-line tools for making
-            HTTP requests. This tool helps you quickly generate properly
-            formatted CURL commands with methods, headers, and request bodies.
+            Writing CURL commands manually can become repetitive when request
+            headers, JSON payloads, authentication tokens, cookies, and custom
+            methods are involved. This builder helps generate properly formatted
+            CURL commands instantly.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool is useful for API testing, backend development, debugging
+            frontend requests, automation workflows, server troubleshooting, and
+            sharing reproducible API examples.
           </p>
         </div>
 
@@ -181,10 +190,22 @@ Content-Type: application/json`}
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Select the HTTP request method.</li>
-            <li>Enter the API or request URL.</li>
-            <li>Add request headers if needed.</li>
-            <li>Paste the request body for POST or PUT requests.</li>
-            <li>Copy the generated CURL command.</li>
+
+            <li>
+              Enter the API or request URL.
+            </li>
+
+            <li>
+              Add request headers such as Authorization or Content-Type.
+            </li>
+
+            <li>
+              Paste the request body for POST, PUT, or PATCH requests.
+            </li>
+
+            <li>
+              Copy the generated CURL command for terminal usage.
+            </li>
           </ol>
         </div>
 
@@ -194,11 +215,19 @@ Content-Type: application/json`}
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Testing REST APIs from the terminal.</li>
-            <li>Debugging API authentication requests.</li>
-            <li>Generating reusable CURL commands.</li>
-            <li>Working with JSON API payloads.</li>
-            <li>Sharing API request examples with teams.</li>
+            <li>Testing REST APIs directly from the terminal.</li>
+
+            <li>Debugging authentication and bearer token requests.</li>
+
+            <li>Reproducing browser API requests manually.</li>
+
+            <li>Generating reusable API request examples.</li>
+
+            <li>Working with JSON payloads and custom headers.</li>
+
+            <li>Debugging CORS, cookies, and server responses.</li>
+
+            <li>Sharing API examples during development workflows.</li>
           </ul>
         </div>
 
@@ -208,12 +237,44 @@ Content-Type: application/json`}
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
+            <p>Generated command:</p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
 {`curl -X POST "https://api.example.com/users" \\
-  -H "Authorization: Bearer token" \\
+  -H "Authorization: Bearer eyJhbGciOi..." \\
   -H "Content-Type: application/json" \\
-  -d '{"name":"Yoryantra"}'`}
+  -d '{"name":"Yoryantra","role":"developer"}'`}
             </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common CURL Request Parts
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>-X</strong> defines the HTTP method such as GET, POST,
+                PUT, PATCH, or DELETE.
+              </li>
+
+              <li>
+                <strong>-H</strong> adds request headers such as Authorization
+                or Content-Type.
+              </li>
+
+              <li>
+                <strong>-d</strong> sends request body data, commonly used with
+                JSON APIs.
+              </li>
+
+              <li>
+                <strong>URL</strong> specifies the API endpoint or resource
+                being requested.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -229,30 +290,42 @@ Content-Type: application/json`}
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                CURL is a command-line tool used for transferring data and
-                making HTTP requests to APIs and servers.
+                CURL is a command-line tool used to transfer data and make HTTP
+                requests to APIs, servers, and web services.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Why use CURL commands?
+                Why use CURL commands for APIs?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                CURL commands are useful for API testing, automation, debugging,
-                and backend development workflows.
+                CURL commands help developers test APIs, debug authentication
+                flows, automate requests, reproduce browser traffic, and inspect
+                server responses directly from the terminal.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this support request headers?
+                Does this support custom headers?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Yes. You can include custom request headers such as
-                Authorization and Content-Type.
+                Authorization, Content-Type, Cookie, Accept, and many others.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Can I generate POST requests with JSON data?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. You can include JSON request bodies and generate POST,
+                PUT, or PATCH CURL commands.
               </p>
             </div>
 
@@ -262,7 +335,7 @@ Content-Type: application/json`}
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. CURL command generation happens directly in your browser.
+                No. CURL command generation happens entirely inside your browser.
               </p>
             </div>
           </div>
@@ -273,6 +346,12 @@ Content-Type: application/json`}
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            CURL workflows often connect with HTTP headers, API debugging,
+            cookies, status codes, CORS configuration, and request parameter
+            inspection.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
               href="/tools/http-headers-parser"
@@ -282,24 +361,31 @@ Content-Type: application/json`}
             </Link>
 
             <Link
-              href="/tools/json-formatter"
+              href="/tools/cors-header-checker"
               className="yoryantra-btn-outline"
             >
-              JSON Formatter
+              CORS Header Checker
             </Link>
 
             <Link
-              href="/tools/api-key-generator"
+              href="/tools/http-status-code-explorer"
               className="yoryantra-btn-outline"
             >
-              API Key Generator
+              HTTP Status Code Explorer
             </Link>
 
             <Link
-              href="/tools/jwt-signature-verifier"
+              href="/tools/url-query-params-parser"
               className="yoryantra-btn-outline"
             >
-              JWT Signature Verifier
+              URL Query Params Parser
+            </Link>
+
+            <Link
+              href="/tools/cookie-parser"
+              className="yoryantra-btn-outline"
+            >
+              Cookie Parser
             </Link>
           </div>
         </div>
