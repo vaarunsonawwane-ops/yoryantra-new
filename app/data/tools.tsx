@@ -299,5 +299,22 @@ export const tools = [
   href: "/tools/curl-command-builder",
   },
 
+  {
+  title: "User Agent Parser",
+  description: "Parse browser and device user agents instantly.",
+  href: "/tools/user-agent-parser",
+  },
+
+  {
+  title: "Docker Compose Validator",
+  description: "Validate Docker Compose YAML files instantly.",
+  href: "/tools/docker-compose-validator",
+  },
+
+  {
+  title: "Kubernetes YAML Validator",
+  description: "Validate Kubernetes YAML manifests instantly.",
+  href: "/tools/kubernetes-yaml-validator",
+  },
 
 ];
