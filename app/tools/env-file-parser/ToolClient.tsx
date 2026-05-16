@@ -108,11 +108,11 @@ API_KEY=your_secret_key`}
   {/* ABOUT */}
   <div>
     <h2 className="text-2xl font-semibold text-gray-900">
-      About This .env File Parser
+      What is .env File Parser?
     </h2>
 
     <p className="mt-4 text-gray-600 leading-relaxed">
-      This .env File Parser helps developers parse environment variable
+      The .env File Parser helps developers parse environment variable
       files into structured JSON instantly. It is useful for backend
       development, cloud deployments, Docker containers, local
       development setups, CI/CD workflows, and debugging application
