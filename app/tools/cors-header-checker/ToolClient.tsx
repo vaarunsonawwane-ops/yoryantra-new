@@ -98,9 +98,10 @@ export default function ToolClient() {
         <textarea
           value={headersInput}
           onChange={(e) => setHeadersInput(e.target.value)}
-          placeholder={`Access-Control-Allow-Origin: *
+          placeholder={`Access-Control-Allow-Origin: https://example.com
 Access-Control-Allow-Methods: GET, POST, OPTIONS
-Access-Control-Allow-Headers: Content-Type, Authorization`}
+Access-Control-Allow-Headers: Content-Type, Authorization
+Access-Control-Allow-Credentials: true`}
           className="w-full min-h-[240px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
@@ -146,24 +147,32 @@ Access-Control-Allow-Headers: Content-Type, Authorization`}
       </div>
 
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is CORS Header Checker?
+            Understanding CORS Headers
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            CORS Header Checker helps you analyze Cross-Origin Resource
-            Sharing headers from HTTP responses. It is useful for developers
-            debugging API access issues, frontend requests, browser security
-            errors, authentication flows, and cross-origin integrations.
+            CORS headers control how browsers allow websites to request
+            resources from another domain. When an API works in Postman or CURL
+            but fails in the browser, CORS configuration is often one of the
+            first things to check.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            CORS headers control which origins, methods, and request headers are
-            allowed when a browser makes cross-origin requests. Incorrect CORS
-            settings can cause failed API calls, blocked frontend requests, or
-            security misconfigurations.
+            This checker helps you inspect response headers such as
+            Access-Control-Allow-Origin, Access-Control-Allow-Methods,
+            Access-Control-Allow-Headers, and Access-Control-Allow-Credentials.
+            It is useful when debugging frontend API calls, login requests,
+            token-based authentication, browser errors, and cross-origin
+            integrations.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The analysis happens directly in your browser. Paste the response
+            headers copied from DevTools, server logs, API clients, or debugging
+            tools and quickly see which CORS headers are present or missing.
           </p>
         </div>
 
@@ -173,10 +182,13 @@ Access-Control-Allow-Headers: Content-Type, Authorization`}
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your HTTP response headers into the input box.</li>
-            <li>Click <strong>Analyze CORS Headers</strong>.</li>
-            <li>Review detected CORS headers and missing values.</li>
-            <li>Fix your server or API configuration if needed.</li>
+            <li>Copy the HTTP response headers from your API response.</li>
+            <li>Paste the headers into the input box.</li>
+            <li>
+              Click <strong>Analyze CORS Headers</strong>.
+            </li>
+            <li>Review the detected headers, missing values, and warnings.</li>
+            <li>Update your API or server configuration if needed.</li>
           </ol>
         </div>
 
@@ -186,12 +198,40 @@ Access-Control-Allow-Headers: Content-Type, Authorization`}
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Debugging browser CORS errors.</li>
-            <li>Checking API response headers.</li>
-            <li>Validating frontend and backend integrations.</li>
-            <li>Testing allowed origins and methods.</li>
-            <li>Reviewing security header configuration.</li>
+            <li>Debugging browser CORS errors during frontend development.</li>
+            <li>Checking API response headers copied from DevTools.</li>
+            <li>Testing allowed origins, methods, and request headers.</li>
+            <li>Reviewing credential-based requests using cookies or tokens.</li>
+            <li>Finding unsafe wildcard origin settings with credentials.</li>
+            <li>Debugging login, OAuth, webhook, and REST API integrations.</li>
+            <li>Checking CORS behavior before deploying frontend changes.</li>
           </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Example CORS Response Headers
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <p>Response headers:</p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+{`Access-Control-Allow-Origin: https://app.example.com
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Authorization
+Access-Control-Allow-Credentials: true`}
+            </pre>
+
+            <p className="mt-4">Possible analysis:</p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+{`Access-Control-Allow-Origin: https://app.example.com
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Authorization
+Access-Control-Allow-Credentials: true`}
+            </pre>
+          </div>
         </div>
 
         <div>
@@ -202,20 +242,25 @@ Access-Control-Allow-Headers: Content-Type, Authorization`}
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <ul className="space-y-3">
               <li>
-                <strong>Access-Control-Allow-Origin:</strong> Defines allowed
-                origins.
+                <strong>Access-Control-Allow-Origin:</strong> Defines which
+                origin is allowed to access the response.
               </li>
+
               <li>
-                <strong>Access-Control-Allow-Methods:</strong> Defines allowed
-                HTTP methods.
+                <strong>Access-Control-Allow-Methods:</strong> Defines which
+                HTTP methods are allowed for cross-origin requests.
               </li>
+
               <li>
-                <strong>Access-Control-Allow-Headers:</strong> Defines allowed
-                request headers.
+                <strong>Access-Control-Allow-Headers:</strong> Defines which
+                request headers are allowed, such as Content-Type or
+                Authorization.
               </li>
+
               <li>
                 <strong>Access-Control-Allow-Credentials:</strong> Controls
-                whether credentials are allowed.
+                whether cookies, authorization headers, or credentials can be
+                included in cross-origin requests.
               </li>
             </ul>
           </div>
@@ -234,42 +279,58 @@ Access-Control-Allow-Headers: Content-Type, Authorization`}
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 CORS stands for Cross-Origin Resource Sharing. It is a browser
-                security mechanism that controls how websites can request
-                resources from different origins.
+                security mechanism that controls whether a website can request
+                resources from another origin, such as a different domain,
+                subdomain, port, or protocol.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Why do CORS errors happen?
+                Why does my API work in Postman but not in the browser?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                CORS errors usually happen when an API response does not include
-                the required headers for the requesting origin, method, or
-                request headers.
+                Tools like Postman and CURL are not restricted by the same
+                browser CORS rules. A browser request can fail if the API
+                response does not include the required CORS headers.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is wildcard origin safe?
+                Is wildcard origin safe for CORS?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                A wildcard origin can be acceptable for public APIs, but it
-                should not be used with credentials or sensitive authenticated
-                requests.
+                A wildcard origin can be fine for public APIs, but it should not
+                be used with credential-based requests. Browsers do not allow
+                Access-Control-Allow-Origin: * together with
+                Access-Control-Allow-Credentials: true.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is this analysis done on the server?
+                Which CORS headers are most important to check?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. CORS header analysis happens directly in your browser.
+                The most common headers to inspect are
+                Access-Control-Allow-Origin, Access-Control-Allow-Methods,
+                Access-Control-Allow-Headers, and
+                Access-Control-Allow-Credentials.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is CORS header analysis processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. CORS header analysis happens directly inside your browser.
+                The headers you paste are not uploaded to a server.
               </p>
             </div>
           </div>
@@ -280,21 +341,45 @@ Access-Control-Allow-Headers: Content-Type, Authorization`}
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            CORS debugging usually connects with HTTP headers, cookies, status
+            codes, browser requests, and command-line API testing.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/http-headers-parser" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/http-headers-parser"
+              className="yoryantra-btn-outline"
+            >
               HTTP Headers Parser
             </Link>
 
-            <Link href="/tools/csp-generator" className="yoryantra-btn-outline">
-              CSP Generator
+            <Link
+              href="/tools/curl-command-builder"
+              className="yoryantra-btn-outline"
+            >
+              CURL Command Builder
             </Link>
 
-            <Link href="/tools/api-key-generator" className="yoryantra-btn-outline">
-              API Key Generator
+            <Link
+              href="/tools/cookie-parser"
+              className="yoryantra-btn-outline"
+            >
+              Cookie Parser
             </Link>
 
-            <Link href="/tools/jwt-signature-verifier" className="yoryantra-btn-outline">
-              JWT Signature Verifier
+            <Link
+              href="/tools/http-status-code-explorer"
+              className="yoryantra-btn-outline"
+            >
+              HTTP Status Code Explorer
+            </Link>
+
+            <Link
+              href="/tools/user-agent-parser"
+              className="yoryantra-btn-outline"
+            >
+              User Agent Parser
             </Link>
           </div>
         </div>
