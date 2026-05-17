@@ -14,7 +14,11 @@ export default function ToolClient() {
     try {
       const parsed = yaml.load(input);
 
-      const formatted = JSON.stringify(parsed, null, 2);
+      const formatted = JSON.stringify(
+        parsed,
+        null,
+        2
+      );
 
       setOutput(formatted);
       setError("");
@@ -38,7 +42,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="YAML to JSON Converter"
-      description="Convert YAML to JSON instantly with this free online YAML to JSON Converter."
+      description="Convert YAML configuration files into JSON instantly with this free online YAML to JSON Converter."
     >
       {/* INPUT */}
       <div>
@@ -48,7 +52,9 @@ export default function ToolClient() {
 
         <textarea
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) =>
+            setInput(e.target.value)
+          }
           placeholder="Paste YAML here..."
           className="w-full min-h-[240px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
@@ -73,7 +79,7 @@ export default function ToolClient() {
 
       {/* ERROR */}
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
           {error}
         </div>
       )}
@@ -87,7 +93,11 @@ export default function ToolClient() {
 
           {output && (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              onClick={() =>
+                navigator.clipboard.writeText(
+                  output
+                )
+              }
               className="yoryantra-btn-outline text-sm"
             >
               Copy
@@ -95,29 +105,50 @@ export default function ToolClient() {
           )}
         </div>
 
-        <div className="yoryantra-output min-h-[220px] text-sm whitespace-pre-wrap break-words overflow-auto">
-          {output || "Converted JSON output will appear here..."}
-        </div>
+        <pre className="yoryantra-output min-h-[220px] text-sm whitespace-pre-wrap break-words overflow-auto">
+          {output ||
+            "Converted JSON output will appear here..."}
+        </pre>
+      </div>
+
+      {/* PRIVACY NOTE */}
+      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Privacy Note
+        </h3>
+
+        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
+          YAML conversion happens locally inside your browser. Your YAML data is
+          not uploaded, stored, or processed on any server.
+        </p>
       </div>
 
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is YAML to JSON Converter?
+            Converting YAML Config Files Into JSON
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            YAML to JSON Converter helps you convert YAML data into JSON
-            instantly. It is useful for developers working with APIs,
-            Kubernetes, DevOps workflows, configuration files, CI/CD pipelines,
-            and structured data transformations.
+            YAML to JSON conversion helps transform human-readable configuration
+            files into structured JSON data used by APIs, applications,
+            databases, automation systems, cloud infrastructure, and frontend
+            development workflows.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            YAML is commonly used for human-readable configuration files, while
-            JSON is widely used for APIs and structured application data. This
-            tool helps you quickly transform YAML into valid JSON format.
+            YAML is commonly used in Kubernetes manifests, Docker Compose files,
+            CI/CD pipelines, infrastructure configuration, and DevOps
+            environments because it is easier for humans to read and edit.
+            JSON, however, is more commonly used by APIs and structured data
+            systems.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This YAML to JSON Converter helps quickly transform YAML structures
+            into valid formatted JSON while also validating the YAML syntax
+            before generating output directly inside your browser.
           </p>
         </div>
 
@@ -127,10 +158,21 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your YAML content into the input field.</li>
-            <li>Click <strong>Convert to JSON</strong>.</li>
-            <li>View the generated JSON output.</li>
-            <li>Copy the JSON result if needed.</li>
+            <li>
+              Paste YAML content into the editor.
+            </li>
+
+            <li>
+              Click <strong>Convert to JSON</strong>.
+            </li>
+
+            <li>
+              Review the generated JSON structure.
+            </li>
+
+            <li>
+              Copy the formatted JSON output instantly.
+            </li>
           </ol>
         </div>
 
@@ -140,27 +182,50 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Converting Kubernetes YAML manifests into JSON.</li>
-            <li>Transforming configuration files for APIs.</li>
-            <li>Working with DevOps and CI/CD workflows.</li>
-            <li>Converting structured YAML data into JSON payloads.</li>
-            <li>Testing YAML and JSON interoperability.</li>
+            <li>
+              Converting Kubernetes YAML manifests into JSON.
+            </li>
+
+            <li>
+              Transforming CI/CD configuration files for APIs.
+            </li>
+
+            <li>
+              Working with Docker Compose and infrastructure files.
+            </li>
+
+            <li>
+              Converting structured YAML into machine-readable JSON.
+            </li>
+
+            <li>
+              Debugging DevOps configuration workflows.
+            </li>
+
+            <li>
+              Preparing YAML data for application imports.
+            </li>
+
+            <li>
+              Testing YAML and JSON interoperability.
+            </li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example YAML to JSON Conversion
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <p className="font-medium text-gray-900">
               YAML input:
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
 {`name: Yoryantra
-type: Developer Utility`}
+type: Developer Utility
+active: true`}
             </pre>
 
             <p className="mt-4 font-medium text-gray-900">
@@ -170,9 +235,40 @@ type: Developer Utility`}
             <pre className="mt-2 whitespace-pre-wrap break-words">
 {`{
   "name": "Yoryantra",
-  "type": "Developer Utility"
+  "type": "Developer Utility",
+  "active": true
 }`}
             </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why YAML Conversion Matters
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>API compatibility:</strong> JSON is widely used in APIs
+                and structured application workflows.
+              </li>
+
+              <li>
+                <strong>Readable configuration:</strong> YAML simplifies editing
+                infrastructure and DevOps files.
+              </li>
+
+              <li>
+                <strong>Better interoperability:</strong> Conversion helps move
+                data between systems more easily.
+              </li>
+
+              <li>
+                <strong>Cleaner debugging:</strong> Structured JSON simplifies
+                inspection and validation workflows.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -189,7 +285,8 @@ type: Developer Utility`}
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 YAML is a human-readable structured data format commonly used
-                for configuration files and DevOps workflows.
+                for configuration files, DevOps workflows, and infrastructure
+                systems.
               </p>
             </div>
 
@@ -199,29 +296,40 @@ type: Developer Utility`}
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                JSON is widely used in APIs, applications, and structured data
-                systems, while YAML is often preferred for readability.
+                JSON is widely used in APIs and applications, while YAML is
+                commonly used for configuration and infrastructure management.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this tool validate YAML?
+                Does this tool validate YAML syntax?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Invalid YAML input will show an error message during
-                conversion.
+                Yes. Invalid YAML structures will display an error instead of
+                generating JSON output.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is the conversion done on the server?
+                Is this converter useful for Kubernetes and DevOps?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. YAML conversion happens directly in your browser.
+                Yes. Developers commonly convert Kubernetes manifests and DevOps
+                configuration files between YAML and JSON formats.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is YAML conversion processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. YAML conversion happens locally inside your browser.
               </p>
             </div>
           </div>
@@ -232,21 +340,46 @@ type: Developer Utility`}
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            YAML conversion often connects with DevOps workflows, APIs,
+            configuration management, JSON formatting, and structured data
+            debugging.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/yaml-formatter" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/yaml-formatter"
+              className="yoryantra-btn-outline"
+            >
               YAML Formatter
             </Link>
 
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/json-formatter"
+              className="yoryantra-btn-outline"
+            >
               JSON Formatter
             </Link>
 
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/json-validator"
+              className="yoryantra-btn-outline"
+            >
               JSON Validator
             </Link>
 
-            <Link href="/tools/json-minifier" className="yoryantra-btn-outline">
-              JSON Minifier
+            <Link
+              href="/tools/xml-formatter"
+              className="yoryantra-btn-outline"
+            >
+              XML Formatter
+            </Link>
+
+            <Link
+              href="/tools/sql-formatter"
+              className="yoryantra-btn-outline"
+            >
+              SQL Formatter
             </Link>
           </div>
         </div>
