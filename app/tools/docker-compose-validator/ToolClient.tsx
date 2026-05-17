@@ -6,48 +6,59 @@ import yaml from "js-yaml";
 import ToolShell from "@/app/components/ToolShell";
 
 export default function ToolClient() {
-  const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
-  const [error, setError] = useState("");
+  const [input, setInput] =
+    useState("");
 
-  const validateCompose = () => {
-    try {
-      if (!input.trim()) {
-        setError("Please enter Docker Compose YAML.");
-        setOutput("");
-        return;
-      }
+  const [output, setOutput] =
+    useState("");
 
-      const parsed = yaml.load(input) as any;
+  const [error, setError] =
+    useState("");
 
-      if (!parsed.services) {
+  const validateCompose =
+    () => {
+      try {
+        if (!input.trim()) {
+          setError(
+            "Please enter Docker Compose YAML."
+          );
+
+          setOutput("");
+          return;
+        }
+
+        const parsed =
+          yaml.load(input) as any;
+
+        if (!parsed.services) {
+          setOutput(
+            "Invalid Docker Compose file. Missing 'services' section."
+          );
+
+          setError("");
+          return;
+        }
+
+        const serviceNames =
+          Object.keys(
+            parsed.services
+          );
+
         setOutput(
-          "Invalid Docker Compose file. Missing 'services' section."
+          `Docker Compose validation passed.\n\nDetected services:\n- ${serviceNames.join(
+            "\n- "
+          )}`
         );
 
         setError("");
-        return;
+      } catch {
+        setError(
+          "Invalid Docker Compose YAML."
+        );
+
+        setOutput("");
       }
-
-      const serviceNames = Object.keys(
-        parsed.services
-      );
-
-      setOutput(
-        `Docker Compose validation passed.\n\nDetected services:\n- ${serviceNames.join(
-          "\n- "
-        )}`
-      );
-
-      setError("");
-    } catch {
-      setError(
-        "Invalid Docker Compose YAML."
-      );
-
-      setOutput("");
-    }
-  };
+    };
 
   const resetAll = () => {
     setInput("");
@@ -69,7 +80,9 @@ export default function ToolClient() {
         <textarea
           value={input}
           onChange={(e) =>
-            setInput(e.target.value)
+            setInput(
+              e.target.value
+            )
           }
           placeholder={`version: "3"
 
@@ -83,7 +96,9 @@ services:
       {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
         <button
-          onClick={validateCompose}
+          onClick={
+            validateCompose
+          }
           className="yoryantra-btn"
         >
           Validate Docker Compose
@@ -99,7 +114,7 @@ services:
 
       {/* ERROR */}
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
           {error}
         </div>
       )}
@@ -114,7 +129,9 @@ services:
           {output && (
             <button
               onClick={() =>
-                navigator.clipboard.writeText(output)
+                navigator.clipboard.writeText(
+                  output
+                )
               }
               className="yoryantra-btn-outline text-sm"
             >
@@ -129,20 +146,104 @@ services:
         </div>
       </div>
 
+      {/* PRIVACY */}
+      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Privacy Note
+        </h3>
+
+        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
+          Docker Compose validation happens locally inside your browser. Your
+          container configuration files are not uploaded, stored, or processed
+          on any external server.
+        </p>
+      </div>
+
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is Docker Compose Validator?
+            Checking Docker Compose Files Before Containers Fail
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Docker Compose Validator helps you validate Docker Compose YAML files instantly. It is useful for DevOps engineers, backend developers, containerized application workflows, and deployment debugging.
+            Docker Compose validation helps developers and DevOps teams verify
+            multi-container application configuration before running services,
+            deployments, databases, reverse proxies, worker containers, and
+            local development environments.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Docker Compose files define multi-container application setups using YAML configuration. This tool helps identify formatting issues and missing service definitions before deployment.
+            Docker Compose files define container relationships, ports,
+            networks, environment variables, volumes, and startup behavior using
+            YAML configuration. Even small YAML mistakes can break container
+            orchestration workflows or prevent services from starting properly.
           </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This Docker Compose Validator checks YAML structure and validates
+            required Docker Compose sections directly inside your browser without
+            requiring Docker CLI commands or external APIs.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            How to Use the Docker Compose Validator
+          </h2>
+
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>
+              Paste your Docker Compose YAML into the editor.
+            </li>
+
+            <li>
+              Click <strong>Validate Docker Compose</strong>.
+            </li>
+
+            <li>
+              Review validation messages instantly.
+            </li>
+
+            <li>
+              Fix missing services or YAML formatting issues if needed.
+            </li>
+          </ol>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Docker Compose Services
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-2">
+              <li>
+                <strong>Web applications</strong> — Frontend and backend
+                containers.
+              </li>
+
+              <li>
+                <strong>Databases</strong> — PostgreSQL, MySQL, MongoDB, Redis,
+                and similar services.
+              </li>
+
+              <li>
+                <strong>Reverse proxies</strong> — Nginx, Traefik, and load
+                balancing containers.
+              </li>
+
+              <li>
+                <strong>Worker services</strong> — Queue processors and
+                background jobs.
+              </li>
+
+              <li>
+                <strong>Development environments</strong> — Local full-stack
+                containerized setups.
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div>
@@ -151,12 +252,82 @@ services:
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking Docker Compose syntax.</li>
-            <li>Validating container service definitions.</li>
-            <li>Debugging deployment configuration files.</li>
-            <li>Reviewing YAML before production deployment.</li>
-            <li>Testing containerized application setups.</li>
+            <li>
+              Validating Docker Compose syntax before deployment.
+            </li>
+
+            <li>
+              Reviewing container service definitions.
+            </li>
+
+            <li>
+              Debugging multi-container configuration issues.
+            </li>
+
+            <li>
+              Testing Docker YAML locally before production releases.
+            </li>
+
+            <li>
+              Verifying infrastructure configuration during CI/CD workflows.
+            </li>
+
+            <li>
+              Checking required service sections quickly.
+            </li>
+
+            <li>
+              Preparing containerized applications for deployment.
+            </li>
           </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Example Docker Compose File
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">
+{`version: "3"
+
+services:
+  app:
+    image: nginx
+    ports:
+      - "80:80"`}
+            </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why Docker Compose Validation Matters
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Fewer deployment issues:</strong> Detect missing
+                services and YAML mistakes early.
+              </li>
+
+              <li>
+                <strong>Cleaner container workflows:</strong> Validate
+                multi-container setups before deployment.
+              </li>
+
+              <li>
+                <strong>Safer infrastructure changes:</strong> Reduce broken
+                configuration risks.
+              </li>
+
+              <li>
+                <strong>Faster debugging:</strong> Identify Compose file issues
+                during development and testing.
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div>
@@ -171,7 +342,9 @@ services:
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Docker Compose is a tool used to define and run multi-container Docker applications using YAML configuration files.
+                Docker Compose is a tool used to define and manage
+                multi-container Docker applications using YAML configuration
+                files.
               </p>
             </div>
 
@@ -181,7 +354,31 @@ services:
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Validation helps prevent deployment errors caused by invalid YAML formatting or missing configuration sections.
+                Validation helps prevent deployment errors caused by invalid
+                YAML formatting, missing services, or incorrect configuration
+                sections.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Does this validator check required services?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. The validator checks for the required services section in
+                Docker Compose files.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is this useful for local development environments?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. Docker Compose validation is commonly used before running
+                local containerized application stacks.
               </p>
             </div>
 
@@ -191,7 +388,8 @@ services:
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Docker Compose validation happens directly in your browser.
+                No. Docker Compose validation happens entirely inside your
+                browser.
               </p>
             </div>
           </div>
@@ -201,6 +399,12 @@ services:
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
+
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Docker Compose validation often connects with Kubernetes workflows,
+            YAML configuration management, DevOps automation, containerized
+            infrastructure, and cloud deployment systems.
+          </p>
 
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
@@ -229,6 +433,13 @@ services:
               className="yoryantra-btn-outline"
             >
               YAML to JSON Converter
+            </Link>
+
+            <Link
+              href="/tools/json-to-yaml-converter"
+              className="yoryantra-btn-outline"
+            >
+              JSON to YAML Converter
             </Link>
           </div>
         </div>
