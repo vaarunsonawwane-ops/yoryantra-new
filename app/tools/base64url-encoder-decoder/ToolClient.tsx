@@ -5,42 +5,75 @@ import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
 
 export default function ToolClient() {
-  const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
-  const [error, setError] = useState("");
+  const [input, setInput] =
+    useState("");
 
-  const toBase64Url = (str: string) => {
-    return btoa(unescape(encodeURIComponent(str)))
+  const [output, setOutput] =
+    useState("");
+
+  const [error, setError] =
+    useState("");
+
+  const toBase64Url = (
+    str: string
+  ) => {
+    return btoa(
+      unescape(
+        encodeURIComponent(str)
+      )
+    )
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
       .replace(/=+$/, "");
   };
 
-  const fromBase64Url = (str: string) => {
+  const fromBase64Url = (
+    str: string
+  ) => {
     const base64 = str
       .replace(/-/g, "+")
       .replace(/_/g, "/")
-      .padEnd(str.length + ((4 - (str.length % 4)) % 4), "=");
+      .padEnd(
+        str.length +
+          ((4 -
+            (str.length % 4)) %
+            4),
+        "="
+      );
 
-    return decodeURIComponent(escape(atob(base64)));
+    return decodeURIComponent(
+      escape(atob(base64))
+    );
   };
 
   const encodeValue = () => {
     try {
-      setOutput(toBase64Url(input));
+      setOutput(
+        toBase64Url(input)
+      );
+
       setError("");
     } catch {
-      setError("Unable to encode Base64URL value.");
+      setError(
+        "Unable to encode Base64URL value."
+      );
+
       setOutput("");
     }
   };
 
   const decodeValue = () => {
     try {
-      setOutput(fromBase64Url(input));
+      setOutput(
+        fromBase64Url(input)
+      );
+
       setError("");
     } catch {
-      setError("Invalid Base64URL input.");
+      setError(
+        "Invalid Base64URL input."
+      );
+
       setOutput("");
     }
   };
@@ -64,7 +97,11 @@ export default function ToolClient() {
 
         <textarea
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) =>
+            setInput(
+              e.target.value
+            )
+          }
           placeholder="Paste Base64URL or plain text here..."
           className="w-full min-h-[220px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
@@ -96,7 +133,7 @@ export default function ToolClient() {
 
       {/* ERROR */}
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
           {error}
         </div>
       )}
@@ -110,7 +147,11 @@ export default function ToolClient() {
 
           {output && (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              onClick={() =>
+                navigator.clipboard.writeText(
+                  output
+                )
+              }
               className="yoryantra-btn-outline text-sm"
             >
               Copy
@@ -119,29 +160,49 @@ export default function ToolClient() {
         </div>
 
         <div className="yoryantra-output min-h-[180px] text-sm break-words whitespace-pre-wrap overflow-auto">
-          {output || "Encoded or decoded Base64URL output will appear here..."}
+          {output ||
+            "Encoded or decoded Base64URL output will appear here..."}
         </div>
       </div>
 
+      {/* PRIVACY */}
+      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Privacy Note
+        </h3>
+
+        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
+          Base64URL encoding and decoding happens locally inside your browser.
+          Your JWT payloads, API values, authentication data, and encoded
+          strings are not uploaded, stored, or processed on any external server.
+        </p>
+      </div>
+
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is Base64URL Encoder Decoder?
+            Encoding Base64URL Strings for JWTs and URLs
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Base64URL Encoder Decoder helps you encode and decode Base64URL
-            strings instantly. Base64URL is a URL-safe variation of standard
-            Base64 encoding commonly used in JWT tokens, OAuth systems, APIs,
-            URL parameters, and web authentication workflows.
+            Base64URL encoding and decoding helps developers safely handle JWT
+            tokens, OAuth payloads, authentication systems, API data, webhook
+            payloads, URL parameters, and encoded values used inside modern web
+            applications.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Unlike regular Base64 encoding, Base64URL replaces special
-            characters such as <code>+</code> and <code>/</code> with URL-safe
-            alternatives. This makes the encoded value safe for URLs and web
-            requests.
+            Base64URL is a URL-safe variation of Base64 encoding. It replaces
+            special characters such as <code>+</code> and <code>/</code> with
+            URL-safe alternatives like <code>-</code> and <code>_</code> so
+            encoded values can safely travel through URLs and HTTP systems.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This Base64URL Encoder Decoder transforms encoded values directly
+            inside your browser without requiring backend processing or external
+            APIs.
           </p>
         </div>
 
@@ -151,10 +212,22 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your plain text or Base64URL value.</li>
-            <li>Click <strong>Encode Base64URL</strong> or <strong>Decode Base64URL</strong>.</li>
-            <li>View the transformed output instantly.</li>
-            <li>Copy the result if needed.</li>
+            <li>
+              Paste your plain text or Base64URL value into the editor.
+            </li>
+
+            <li>
+              Click <strong>Encode Base64URL</strong> or{" "}
+              <strong>Decode Base64URL</strong>.
+            </li>
+
+            <li>
+              Review the transformed result instantly.
+            </li>
+
+            <li>
+              Copy the processed value if needed.
+            </li>
           </ol>
         </div>
 
@@ -164,26 +237,48 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Decoding JWT token payloads.</li>
-            <li>Encoding URL-safe authentication data.</li>
-            <li>Working with OAuth tokens and APIs.</li>
-            <li>Encoding data safely inside URLs.</li>
-            <li>Testing Base64URL workflows during development.</li>
+            <li>
+              Decoding JWT token payloads.
+            </li>
+
+            <li>
+              Encoding URL-safe authentication data.
+            </li>
+
+            <li>
+              Working with OAuth tokens and APIs.
+            </li>
+
+            <li>
+              Safely embedding encoded values inside URLs.
+            </li>
+
+            <li>
+              Testing Base64URL workflows during development.
+            </li>
+
+            <li>
+              Debugging encoded API responses.
+            </li>
+
+            <li>
+              Converting Base64URL values into readable text.
+            </li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example Base64URL Encoding
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <p className="font-medium text-gray-900">
               Plain text:
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              Yoryantra
+{`Yoryantra`}
             </pre>
 
             <p className="mt-4 font-medium text-gray-900">
@@ -191,8 +286,38 @@ export default function ToolClient() {
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              WW9yeWFudHJh
+{`WW9yeWFudHJh`}
             </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why Base64URL Encoding Matters
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>URL safety:</strong> Prevent unsafe characters from
+                breaking URLs and HTTP requests.
+              </li>
+
+              <li>
+                <strong>JWT compatibility:</strong> JWT authentication systems
+                rely heavily on Base64URL encoding.
+              </li>
+
+              <li>
+                <strong>Cleaner APIs:</strong> Safely transport encoded values
+                across applications and services.
+              </li>
+
+              <li>
+                <strong>Improved interoperability:</strong> Standardize encoded
+                values for web authentication workflows.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -209,7 +334,8 @@ export default function ToolClient() {
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Base64URL is a URL-safe variation of Base64 encoding commonly
-                used in JWT tokens, OAuth systems, and web APIs.
+                used in JWT tokens, OAuth systems, APIs, and authentication
+                workflows.
               </p>
             </div>
 
@@ -230,18 +356,30 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                JWT tokens are transmitted in URLs and HTTP headers, so they use
+                JWT tokens travel through URLs and HTTP headers, so they use
                 Base64URL encoding to avoid unsafe URL characters.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is this tool privacy-friendly?
+                Is this useful for API debugging?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Encoding and decoding happen directly in your browser.
+                Yes. Base64URL decoding is commonly used while debugging JWT
+                payloads, OAuth tokens, APIs, and authentication systems.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is processing done on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. Base64URL encoding and decoding happens entirely inside your
+                browser.
               </p>
             </div>
           </div>
@@ -252,20 +390,45 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Base64URL encoding often connects with JWT authentication, API
+            debugging, OAuth workflows, security systems, and backend
+            development.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/jwt-decoder"
+              className="yoryantra-btn-outline"
+            >
               JWT Decoder
             </Link>
 
-            <Link href="/tools/jwt-expiration-checker" className="yoryantra-btn-outline">
-              JWT Expiration Checker
+            <Link
+              href="/tools/jwt-signature-verifier"
+              className="yoryantra-btn-outline"
+            >
+              JWT Signature Verifier
             </Link>
 
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/base64-encoder-decoder"
+              className="yoryantra-btn-outline"
+            >
               Base64 Encoder Decoder
             </Link>
 
-            <Link href="/tools/api-key-generator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/hmac-generator"
+              className="yoryantra-btn-outline"
+            >
+              HMAC Generator
+            </Link>
+
+            <Link
+              href="/tools/api-key-generator"
+              className="yoryantra-btn-outline"
+            >
               API Key Generator
             </Link>
           </div>
