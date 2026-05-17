@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
 
 export default function ToolClient() {
@@ -37,9 +38,9 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Base64 Encoder Decoder"
-      description="Encode and decode Base64 text instantly with this free online Base64 utility."
+      description="Encode and decode Base64 text instantly with this free online Base64 Encoder Decoder."
     >
-
+      {/* INPUT */}
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Input
@@ -53,8 +54,8 @@ export default function ToolClient() {
         />
       </div>
 
+      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-
         <button
           onClick={encodeText}
           className="yoryantra-btn"
@@ -75,19 +76,18 @@ export default function ToolClient() {
         >
           Reset
         </button>
-
       </div>
 
+      {/* ERROR */}
       {error && (
-        <p className="mt-4 text-sm font-medium text-red-500">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
-        </p>
+        </div>
       )}
 
+      {/* OUTPUT */}
       <div className="mt-8">
-
         <div className="flex items-center justify-between mb-3">
-
           <h3 className="text-lg font-semibold text-gray-900">
             Output
           </h3>
@@ -102,148 +102,259 @@ export default function ToolClient() {
               Copy
             </button>
           )}
-
         </div>
 
         <pre className="yoryantra-output overflow-auto text-sm min-h-[180px] whitespace-pre-wrap break-words">
-          {output || "Encoded or decoded output will appear here..."}
+          {output ||
+            "Encoded or decoded output will appear here..."}
         </pre>
-
       </div>
 
       {/* SEO CONTENT */}
-      <div className="mt-10 border-t border-gray-200 pt-8 space-y-10">
-
-        <section>
-
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+        <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is Base64 Encoder Decoder?
+            Encoding and Decoding Base64 Text Safely
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Base64 Encoder Decoder is a tool that helps encode plain text
-            into Base64 format and decode Base64 strings back into readable
-            text. It is useful for developers working with APIs,
-            authentication, encoded data transfer, debugging workflows,
-            and web applications.
+            Base64 encoding converts text and binary data into a text-safe
+            format that can travel through browsers, APIs, email systems,
+            authentication headers, JSON payloads, and web applications more
+            reliably. Base64 decoding converts encoded values back into readable
+            text.
           </p>
 
-        </section>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            During development and debugging workflows, Base64 data often
+            appears inside JWT tokens, API payloads, authentication systems,
+            configuration values, encoded files, and browser requests. This
+            Base64 Encoder Decoder helps quickly convert readable text into
+            Base64 format and decode encoded values back into plain text.
+          </p>
 
-        <section>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool is useful for API testing, frontend debugging,
+            authentication workflows, encoded configuration values, JSON
+            payloads, and developer troubleshooting directly inside your
+            browser.
+          </p>
+        </div>
 
-          <h2 className="text-2xl font-semibold text-gray-900">
-            How to Use Base64 Encoder Decoder
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            How to Use the Base64 Encoder Decoder
           </h2>
 
-          <div className="mt-4 space-y-3 text-gray-600 leading-relaxed">
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>
+              Paste your plain text or Base64 content into the editor.
+            </li>
 
-            <p>
-              1. Paste your plain text or Base64 string into the input box.
-            </p>
+            <li>
+              Click <strong>Encode</strong> to convert text into Base64 format.
+            </li>
 
-            <p>
-              2. Click Encode to convert text into Base64 format.
-            </p>
+            <li>
+              Click <strong>Decode</strong> to convert Base64 back into readable
+              text.
+            </li>
 
-            <p>
-              3. Click Decode to convert Base64 back into readable text.
-            </p>
+            <li>
+              Copy the final output for use in applications, APIs, or debugging
+              workflows.
+            </li>
+          </ol>
+        </div>
 
-            <p>
-              4. Use Copy to quickly copy the output.
-            </p>
-
-          </div>
-
-        </section>
-
-        <section>
-
-          <h2 className="text-2xl font-semibold text-gray-900">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
             Common Use Cases
           </h2>
 
-          <ul className="mt-4 space-y-3 text-gray-600 leading-relaxed list-disc pl-6">
+          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Encoding text for APIs and data transfer.</li>
 
-            <li>
-              Encoding text for APIs and data transfer.
-            </li>
+            <li>Decoding Base64 strings during debugging.</li>
 
-            <li>
-              Decoding Base64 strings during debugging.
-            </li>
+            <li>Working with encoded authentication values.</li>
 
-            <li>
-              Working with encoded authentication data.
-            </li>
+            <li>Inspecting JWT token payloads.</li>
 
-            <li>
-              Testing encoded content in web applications.
-            </li>
+            <li>Testing encoded content in web applications.</li>
 
-            <li>
-              Quickly converting readable text into Base64 format.
-            </li>
+            <li>Converting readable text into Base64 format.</li>
 
+            <li>Debugging browser requests and JSON payloads.</li>
           </ul>
+        </div>
 
-        </section>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Example Base64 Encoding
+          </h2>
 
-        <section>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <p className="font-medium text-gray-900">
+              Original text:
+            </p>
 
-          <h2 className="text-2xl font-semibold text-gray-900">
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+Hello Yoryantra
+            </pre>
+
+            <p className="mt-4 font-medium text-gray-900">
+              Encoded Base64:
+            </p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+SGVsbG8gWW9yeWFudHJh
+            </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why Base64 Encoding Is Used
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Safe text transport:</strong> Base64 helps move binary
+                or special data safely through text-based systems.
+              </li>
+
+              <li>
+                <strong>API compatibility:</strong> APIs often use Base64 for
+                encoded payloads and authentication values.
+              </li>
+
+              <li>
+                <strong>Reliable encoding:</strong> Encoded values avoid issues
+                with unsupported characters.
+              </li>
+
+              <li>
+                <strong>Debugging support:</strong> Developers can inspect and
+                decode encoded data more easily.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
             Frequently Asked Questions
           </h2>
 
           <div className="mt-5 space-y-6">
-
             <div>
-
               <h3 className="font-semibold text-gray-900">
                 What is Base64 encoding?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Base64 encoding converts text or binary data into a
-                text-based encoded format that can be safely transferred
-                across systems.
+                Base64 encoding converts text or binary data into a text-based
+                format that can safely travel through browsers, APIs, and web
+                systems.
               </p>
-
             </div>
 
             <div>
-
               <h3 className="font-semibold text-gray-900">
                 Can this tool decode Base64 strings?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The decoder converts Base64 encoded content back
-                into readable plain text instantly.
+                Yes. The decoder converts Base64 encoded values back into
+                readable plain text instantly.
               </p>
-
             </div>
 
             <div>
-
               <h3 className="font-semibold text-gray-900">
-                Is my data stored anywhere?
+                Is Base64 encryption?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. All encoding and decoding happens directly inside
-                your browser. Your data is not uploaded or stored.
+                No. Base64 is an encoding method, not encryption. Encoded data
+                can usually be decoded easily.
               </p>
-
             </div>
 
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Why is Base64 used in APIs and JWT tokens?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Base64 helps safely transport structured data inside tokens,
+                headers, and API payloads.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is Base64 processing handled on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. All Base64 encoding and decoding happen directly inside your
+                browser.
+              </p>
+            </div>
           </div>
+        </div>
 
-        </section>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-      </div>
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Base64 encoding often connects with JWT tokens, APIs, JSON payloads,
+            URL encoding, and developer debugging workflows.
+          </p>
 
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href="/tools/jwt-decoder"
+              className="yoryantra-btn-outline"
+            >
+              JWT Decoder
+            </Link>
+
+            <Link
+              href="/tools/url-encoder"
+              className="yoryantra-btn-outline"
+            >
+              URL Encoder Decoder
+            </Link>
+
+            <Link
+              href="/tools/json-formatter"
+              className="yoryantra-btn-outline"
+            >
+              JSON Formatter
+            </Link>
+
+            <Link
+              href="/tools/curl-command-builder"
+              className="yoryantra-btn-outline"
+            >
+              CURL Command Builder
+            </Link>
+
+            <Link
+              href="/tools/http-headers-parser"
+              className="yoryantra-btn-outline"
+            >
+              HTTP Headers Parser
+            </Link>
+          </div>
+        </div>
+      </section>
     </ToolShell>
   );
 }
