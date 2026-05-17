@@ -6,54 +6,63 @@ import yaml from "js-yaml";
 import ToolShell from "@/app/components/ToolShell";
 
 export default function ToolClient() {
-  const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
-  const [error, setError] = useState("");
+  const [input, setInput] =
+    useState("");
 
-  const validateKubernetesYaml = () => {
-    try {
-      if (!input.trim()) {
+  const [output, setOutput] =
+    useState("");
+
+  const [error, setError] =
+    useState("");
+
+  const validateKubernetesYaml =
+    () => {
+      try {
+        if (!input.trim()) {
+          setError(
+            "Please enter Kubernetes YAML."
+          );
+
+          setOutput("");
+          return;
+        }
+
+        const parsed =
+          yaml.load(input) as any;
+
+        if (!parsed.kind) {
+          setOutput(
+            "Invalid Kubernetes manifest. Missing 'kind' field."
+          );
+
+          setError("");
+          return;
+        }
+
+        if (
+          !parsed.metadata?.name
+        ) {
+          setOutput(
+            "Invalid Kubernetes manifest. Missing metadata.name field."
+          );
+
+          setError("");
+          return;
+        }
+
+        setOutput(
+          `Kubernetes YAML validation passed.\n\nKind: ${parsed.kind}\nName: ${parsed.metadata.name}`
+        );
+
+        setError("");
+      } catch {
         setError(
-          "Please enter Kubernetes YAML."
+          "Invalid Kubernetes YAML."
         );
 
         setOutput("");
-        return;
       }
-
-      const parsed = yaml.load(input) as any;
-
-      if (!parsed.kind) {
-        setOutput(
-          "Invalid Kubernetes manifest. Missing 'kind' field."
-        );
-
-        setError("");
-        return;
-      }
-
-      if (!parsed.metadata?.name) {
-        setOutput(
-          "Invalid Kubernetes manifest. Missing metadata.name field."
-        );
-
-        setError("");
-        return;
-      }
-
-      setOutput(
-        `Kubernetes YAML validation passed.\n\nKind: ${parsed.kind}\nName: ${parsed.metadata.name}`
-      );
-
-      setError("");
-    } catch {
-      setError(
-        "Invalid Kubernetes YAML."
-      );
-
-      setOutput("");
-    }
-  };
+    };
 
   const resetAll = () => {
     setInput("");
@@ -75,7 +84,9 @@ export default function ToolClient() {
         <textarea
           value={input}
           onChange={(e) =>
-            setInput(e.target.value)
+            setInput(
+              e.target.value
+            )
           }
           placeholder={`apiVersion: apps/v1
 kind: Deployment
@@ -89,7 +100,9 @@ metadata:
       {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
         <button
-          onClick={validateKubernetesYaml}
+          onClick={
+            validateKubernetesYaml
+          }
           className="yoryantra-btn"
         >
           Validate Kubernetes YAML
@@ -105,7 +118,7 @@ metadata:
 
       {/* ERROR */}
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
           {error}
         </div>
       )}
@@ -120,7 +133,9 @@ metadata:
           {output && (
             <button
               onClick={() =>
-                navigator.clipboard.writeText(output)
+                navigator.clipboard.writeText(
+                  output
+                )
               }
               className="yoryantra-btn-outline text-sm"
             >
@@ -135,20 +150,107 @@ metadata:
         </div>
       </div>
 
+      {/* PRIVACY */}
+      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Privacy Note
+        </h3>
+
+        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
+          Kubernetes YAML validation happens locally inside your browser. Your
+          manifests and infrastructure configuration are not uploaded, stored,
+          or processed on any external server.
+        </p>
+      </div>
+
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is Kubernetes YAML Validator?
+            Checking Kubernetes YAML Before Deployment
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Kubernetes YAML Validator helps you validate Kubernetes manifests instantly. It is useful for DevOps engineers, cloud infrastructure teams, backend developers, and Kubernetes deployment workflows.
+            Kubernetes YAML validation helps developers and DevOps teams verify
+            deployment manifests, services, pods, ingress resources, config
+            maps, secrets, and infrastructure configuration before deploying
+            workloads into Kubernetes clusters.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Kubernetes manifests define deployments, services, pods, ingress resources, and infrastructure configuration using YAML files. This tool helps detect missing fields and invalid manifest structures before deployment.
+            Even small YAML mistakes or missing manifest fields can cause failed
+            deployments, broken services, invalid resource definitions, or
+            unexpected cluster behavior. Validating manifests early helps reduce
+            deployment issues during CI/CD workflows and production releases.
           </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This Kubernetes YAML Validator checks YAML structure and validates
+            important Kubernetes manifest fields directly inside your browser
+            without requiring kubectl or external APIs.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            How to Use the Kubernetes YAML Validator
+          </h2>
+
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>
+              Paste your Kubernetes YAML manifest into the editor.
+            </li>
+
+            <li>
+              Click <strong>Validate Kubernetes YAML</strong>.
+            </li>
+
+            <li>
+              Review validation messages instantly.
+            </li>
+
+            <li>
+              Fix missing fields or YAML formatting issues if needed.
+            </li>
+          </ol>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Kubernetes Resources
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-2">
+              <li>
+                <strong>Deployment</strong> — Manages replicated application
+                workloads.
+              </li>
+
+              <li>
+                <strong>Service</strong> — Exposes applications inside or
+                outside the cluster.
+              </li>
+
+              <li>
+                <strong>Pod</strong> — Smallest deployable Kubernetes unit.
+              </li>
+
+              <li>
+                <strong>Ingress</strong> — Handles external HTTP and HTTPS
+                routing.
+              </li>
+
+              <li>
+                <strong>ConfigMap</strong> — Stores non-sensitive configuration
+                values.
+              </li>
+
+              <li>
+                <strong>Secret</strong> — Stores sensitive credentials and keys.
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div>
@@ -157,12 +259,83 @@ metadata:
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking Kubernetes YAML syntax.</li>
-            <li>Validating deployment manifests.</li>
-            <li>Debugging infrastructure configuration.</li>
-            <li>Reviewing manifests before cluster deployment.</li>
-            <li>Testing Kubernetes resources locally.</li>
+            <li>
+              Validating Kubernetes deployment manifests.
+            </li>
+
+            <li>
+              Reviewing YAML before cluster deployment.
+            </li>
+
+            <li>
+              Debugging infrastructure configuration issues.
+            </li>
+
+            <li>
+              Testing Kubernetes resources locally.
+            </li>
+
+            <li>
+              Verifying YAML structure during CI/CD workflows.
+            </li>
+
+            <li>
+              Checking required manifest fields quickly.
+            </li>
+
+            <li>
+              Preparing Kubernetes configuration for production releases.
+            </li>
           </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Example Kubernetes Manifest
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">
+{`apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: my-app
+
+spec:
+  replicas: 2`}
+            </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why Kubernetes Validation Matters
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Fewer deployment failures:</strong> Detect missing
+                fields and YAML mistakes before deployment.
+              </li>
+
+              <li>
+                <strong>Cleaner DevOps workflows:</strong> Validate manifests
+                during CI/CD automation.
+              </li>
+
+              <li>
+                <strong>Safer infrastructure updates:</strong> Reduce cluster
+                configuration errors.
+              </li>
+
+              <li>
+                <strong>Faster debugging:</strong> Identify manifest problems
+                quickly during development.
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div>
@@ -177,7 +350,9 @@ metadata:
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Kubernetes YAML files define cluster resources such as deployments, services, config maps, pods, and ingress configuration.
+                Kubernetes YAML files define cluster resources such as
+                deployments, services, pods, ingress rules, and infrastructure
+                configuration.
               </p>
             </div>
 
@@ -187,17 +362,31 @@ metadata:
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Validation helps prevent deployment failures caused by missing fields, invalid YAML formatting, or incorrect resource definitions.
+                Validation helps prevent deployment failures caused by missing
+                fields, invalid YAML formatting, or incorrect resource
+                definitions.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this validate required fields?
+                Does this tool validate required fields?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The validator checks for required fields such as kind and metadata.name.
+                Yes. The validator checks for important fields such as kind and
+                metadata.name.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is this useful for Kubernetes CI/CD workflows?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. Kubernetes YAML validation is commonly used before
+                deployments and infrastructure automation workflows.
               </p>
             </div>
 
@@ -207,7 +396,8 @@ metadata:
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Kubernetes YAML validation happens directly in your browser.
+                No. Kubernetes YAML validation happens entirely inside your
+                browser.
               </p>
             </div>
           </div>
@@ -217,6 +407,12 @@ metadata:
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
+
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Kubernetes YAML validation often connects with DevOps workflows,
+            cloud infrastructure management, Docker deployments, structured data
+            formatting, and automation systems.
+          </p>
 
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
@@ -245,6 +441,13 @@ metadata:
               className="yoryantra-btn-outline"
             >
               JSON Schema Validator
+            </Link>
+
+            <Link
+              href="/tools/json-to-yaml-converter"
+              className="yoryantra-btn-outline"
+            >
+              JSON to YAML Converter
             </Link>
           </div>
         </div>
