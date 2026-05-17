@@ -5,11 +5,20 @@ import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
 
 export default function ToolClient() {
-  const [minute, setMinute] = useState("*");
-  const [hour, setHour] = useState("*");
-  const [dayOfMonth, setDayOfMonth] = useState("*");
-  const [month, setMonth] = useState("*");
-  const [dayOfWeek, setDayOfWeek] = useState("*");
+  const [minute, setMinute] =
+    useState("*");
+
+  const [hour, setHour] =
+    useState("*");
+
+  const [dayOfMonth, setDayOfMonth] =
+    useState("*");
+
+  const [month, setMonth] =
+    useState("*");
+
+  const [dayOfWeek, setDayOfWeek] =
+    useState("*");
 
   const expression = `${minute} ${hour} ${dayOfMonth} ${month} ${dayOfWeek}`;
 
@@ -24,9 +33,9 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Cron Expression Generator"
-      description="Generate cron expressions online for scheduled jobs, automation workflows, and recurring tasks."
+      description="Generate cron expressions instantly for scheduled jobs, Linux cron tasks, automation workflows, and recurring backend processes."
     >
-      {/* INPUTS */}
+      {/* MINUTE */}
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Minute
@@ -35,12 +44,17 @@ export default function ToolClient() {
         <input
           type="text"
           value={minute}
-          onChange={(e) => setMinute(e.target.value)}
+          onChange={(e) =>
+            setMinute(
+              e.target.value
+            )
+          }
           placeholder="*"
           className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
 
+      {/* HOUR */}
       <div className="mt-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Hour
@@ -49,12 +63,17 @@ export default function ToolClient() {
         <input
           type="text"
           value={hour}
-          onChange={(e) => setHour(e.target.value)}
+          onChange={(e) =>
+            setHour(
+              e.target.value
+            )
+          }
           placeholder="*"
           className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
 
+      {/* DAY OF MONTH */}
       <div className="mt-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Day of Month
@@ -63,12 +82,17 @@ export default function ToolClient() {
         <input
           type="text"
           value={dayOfMonth}
-          onChange={(e) => setDayOfMonth(e.target.value)}
+          onChange={(e) =>
+            setDayOfMonth(
+              e.target.value
+            )
+          }
           placeholder="*"
           className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
 
+      {/* MONTH */}
       <div className="mt-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Month
@@ -77,12 +101,17 @@ export default function ToolClient() {
         <input
           type="text"
           value={month}
-          onChange={(e) => setMonth(e.target.value)}
+          onChange={(e) =>
+            setMonth(
+              e.target.value
+            )
+          }
           placeholder="*"
           className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
 
+      {/* DAY OF WEEK */}
       <div className="mt-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Day of Week
@@ -91,7 +120,11 @@ export default function ToolClient() {
         <input
           type="text"
           value={dayOfWeek}
-          onChange={(e) => setDayOfWeek(e.target.value)}
+          onChange={(e) =>
+            setDayOfWeek(
+              e.target.value
+            )
+          }
           placeholder="*"
           className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
@@ -100,13 +133,20 @@ export default function ToolClient() {
       {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
         <button
-          onClick={() => navigator.clipboard.writeText(expression)}
+          onClick={() =>
+            navigator.clipboard.writeText(
+              expression
+            )
+          }
           className="yoryantra-btn"
         >
           Copy Expression
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button
+          onClick={resetAll}
+          className="yoryantra-btn-outline"
+        >
           Reset
         </button>
       </div>
@@ -119,7 +159,11 @@ export default function ToolClient() {
           </h3>
 
           <button
-            onClick={() => navigator.clipboard.writeText(expression)}
+            onClick={() =>
+              navigator.clipboard.writeText(
+                expression
+              )
+            }
             className="yoryantra-btn-outline text-sm"
           >
             Copy
@@ -131,24 +175,43 @@ export default function ToolClient() {
         </div>
       </div>
 
+      {/* PRIVACY */}
+      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Privacy Note
+        </h3>
+
+        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
+          Cron expression generation happens locally inside your browser. No
+          scheduling data or cron values are uploaded or stored on any server.
+        </p>
+      </div>
+
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is Cron Expression Generator?
+            Building Cron Expressions for Scheduled Jobs
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Cron Expression Generator helps you create cron expressions for
-            scheduled jobs, recurring scripts, automation workflows, Linux cron
-            jobs, CI/CD pipelines, backend services, and server-side task
-            scheduling.
+            Cron expressions help developers schedule recurring jobs, backend
+            scripts, Linux cron tasks, server automation, database maintenance,
+            CI/CD workflows, notifications, backups, and recurring background
+            processes.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Cron expressions are commonly used to run commands or scripts at
-            fixed times, dates, or intervals. This tool lets you enter each cron
-            field manually and copy the final expression instantly.
+            Cron syntax is widely used across Linux servers, cloud platforms,
+            DevOps systems, automation tools, Kubernetes jobs, and backend
+            frameworks. Even small syntax mistakes can cause tasks to run at the
+            wrong time or fail entirely.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This Cron Expression Generator helps create valid five-field cron
+            expressions instantly while making scheduling syntax easier to
+            understand and copy into production workflows.
           </p>
         </div>
 
@@ -158,32 +221,35 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter the minute value.</li>
-            <li>Enter the hour value.</li>
-            <li>Enter the day of month value.</li>
-            <li>Enter the month value.</li>
-            <li>Enter the day of week value.</li>
-            <li>Copy the generated cron expression.</li>
+            <li>
+              Enter the minute value.
+            </li>
+
+            <li>
+              Enter the hour value.
+            </li>
+
+            <li>
+              Enter the day of month value.
+            </li>
+
+            <li>
+              Enter the month value.
+            </li>
+
+            <li>
+              Enter the day of week value.
+            </li>
+
+            <li>
+              Copy the generated cron expression instantly.
+            </li>
           </ol>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Scheduling backend jobs and server scripts.</li>
-            <li>Running automated backups at fixed intervals.</li>
-            <li>Creating recurring CI/CD or deployment tasks.</li>
-            <li>Scheduling email, report, or notification jobs.</li>
-            <li>Testing cron syntax for automation workflows.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Cron Examples
+            Common Cron Scheduling Examples
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
@@ -192,7 +258,7 @@ export default function ToolClient() {
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              * * * * *
+{`* * * * *`}
             </pre>
 
             <p className="mt-4 font-medium text-gray-900">
@@ -200,7 +266,7 @@ export default function ToolClient() {
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              0 * * * *
+{`0 * * * *`}
             </pre>
 
             <p className="mt-4 font-medium text-gray-900">
@@ -208,7 +274,7 @@ export default function ToolClient() {
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              0 0 * * *
+{`0 0 * * *`}
             </pre>
 
             <p className="mt-4 font-medium text-gray-900">
@@ -216,8 +282,83 @@ export default function ToolClient() {
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              0 9 * * 1
+{`0 9 * * 1`}
             </pre>
+
+            <p className="mt-4 font-medium text-gray-900">
+              Every 15 minutes:
+            </p>
+
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+{`*/15 * * * *`}
+            </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Use Cases
+          </h2>
+
+          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>
+              Scheduling backend scripts and recurring jobs.
+            </li>
+
+            <li>
+              Running automated backups and maintenance tasks.
+            </li>
+
+            <li>
+              Creating CI/CD automation workflows.
+            </li>
+
+            <li>
+              Scheduling database cleanup and reporting jobs.
+            </li>
+
+            <li>
+              Running recurring notifications and email systems.
+            </li>
+
+            <li>
+              Building server-side automation workflows.
+            </li>
+
+            <li>
+              Testing cron syntax before deployment.
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Understanding Cron Syntax
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>*</strong> means every possible value.
+              </li>
+
+              <li>
+                <strong>*/5</strong> means every 5 intervals.
+              </li>
+
+              <li>
+                <strong>1,2,3</strong> means multiple specific values.
+              </li>
+
+              <li>
+                <strong>1-5</strong> means a value range.
+              </li>
+
+              <li>
+                Standard cron format uses five fields:
+                minute, hour, day of month, month, and day of week.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -233,42 +374,51 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                A cron expression is a scheduling format used to run automated
-                tasks at specific times or intervals, commonly on Linux and Unix
-                systems.
+                A cron expression is a scheduling format used to automate tasks
+                at specific times or recurring intervals.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                What does the asterisk mean in cron?
+                Where are cron expressions used?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                The asterisk (*) means every possible value for that field. For
-                example, an asterisk in the minute field means every minute.
+                Cron expressions are commonly used in Linux servers, cloud
+                systems, backend frameworks, DevOps pipelines, and automation
+                workflows.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                What is the standard cron format?
+                What does the asterisk (*) mean in cron?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                The standard cron format has five fields: minute, hour, day of
-                month, month, and day of week.
+                The asterisk means every possible value for that field.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Can I use this cron expression on Linux servers?
+                Is this compatible with Linux cron jobs?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Yes. This tool generates standard five-field cron expressions
-                used by most Linux and Unix cron systems.
+                commonly used in Linux and Unix systems.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is cron expression generation processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. Cron expressions are generated entirely inside your browser.
               </p>
             </div>
           </div>
@@ -279,21 +429,45 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Cron scheduling often connects with DevOps workflows, backend
+            automation, APIs, Linux servers, and infrastructure management.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/api-key-generator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/api-key-generator"
+              className="yoryantra-btn-outline"
+            >
               API Key Generator
             </Link>
 
-            <Link href="/tools/bcrypt-generator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/bcrypt-generator"
+              className="yoryantra-btn-outline"
+            >
               bcrypt Generator
             </Link>
 
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/jwt-decoder"
+              className="yoryantra-btn-outline"
+            >
               JWT Decoder
             </Link>
 
-            <Link href="/tools/hmac-generator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/hmac-generator"
+              className="yoryantra-btn-outline"
+            >
               HMAC Generator
+            </Link>
+
+            <Link
+              href="/tools/yaml-formatter"
+              className="yoryantra-btn-outline"
+            >
+              YAML Formatter
             </Link>
           </div>
         </div>
