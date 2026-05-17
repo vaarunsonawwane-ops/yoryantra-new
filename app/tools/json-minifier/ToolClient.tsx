@@ -12,10 +12,17 @@ export default function ToolClient() {
   const minifyJSON = () => {
     try {
       const parsed = JSON.parse(input);
-      setOutput(JSON.stringify(parsed));
+
+      setOutput(
+        JSON.stringify(parsed)
+      );
+
       setError("");
     } catch {
-      setError("Invalid JSON. Please check your input and try again.");
+      setError(
+        "Invalid JSON. Please check your input and try again."
+      );
+
       setOutput("");
     }
   };
@@ -38,29 +45,37 @@ export default function ToolClient() {
         </label>
 
         <textarea
-          className="w-full h-64 rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="w-full h-64 rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
           placeholder="Paste JSON here..."
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) =>
+            setInput(e.target.value)
+          }
         />
       </div>
 
       {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={minifyJSON} className="yoryantra-btn">
+        <button
+          onClick={minifyJSON}
+          className="yoryantra-btn"
+        >
           Minify JSON
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button
+          onClick={resetAll}
+          className="yoryantra-btn-outline"
+        >
           Reset
         </button>
       </div>
 
       {/* ERROR */}
       {error && (
-        <p className="mt-4 text-sm font-medium text-red-500">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
           {error}
-        </p>
+        </div>
       )}
 
       {/* OUTPUT */}
@@ -72,7 +87,11 @@ export default function ToolClient() {
 
           {output && (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              onClick={() =>
+                navigator.clipboard.writeText(
+                  output
+                )
+              }
               className="yoryantra-btn-outline text-sm"
             >
               Copy
@@ -81,28 +100,50 @@ export default function ToolClient() {
         </div>
 
         <pre className="yoryantra-output overflow-auto text-sm min-h-[180px] whitespace-pre-wrap break-words">
-          {output || "Minified JSON output will appear here..."}
+          {output ||
+            "Minified JSON output will appear here..."}
         </pre>
       </div>
 
+      {/* PRIVACY NOTE */}
+      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Privacy Note
+        </h3>
+
+        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
+          JSON minification happens locally inside your browser. Your JSON data
+          is not uploaded, stored, or processed on any server.
+        </p>
+      </div>
+
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is JSON Minifier?
+            Minifying JSON Before Sending It Through APIs
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Minifier helps you compress JSON data by removing
-            unnecessary spaces, line breaks, and indentation. Minified JSON is
-            useful when sending data through APIs, storing configuration files,
-            reducing payload size, or preparing JSON for production use.
+            JSON minification helps reduce payload size by removing unnecessary
+            spaces, line breaks, indentation, and formatting while keeping the
+            actual JSON structure unchanged. Minified JSON is commonly used in
+            APIs, frontend applications, configuration files, cloud systems,
+            server responses, and production deployments.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool also validates your JSON before minifying it. If the input
-            contains syntax errors, you will see an error message instead of an
-            incorrect output.
+            Large formatted JSON responses can increase transfer size and make
+            payloads heavier than necessary during API communication. This JSON
+            Minifier helps compress structured JSON data instantly while also
+            validating the syntax before generating output.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool is useful for optimizing API payloads, preparing production
+            configuration files, reducing bandwidth usage, debugging JSON
+            structures, and cleaning copied structured data directly inside your
+            browser.
           </p>
         </div>
 
@@ -112,10 +153,22 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your JSON data into the input box.</li>
-            <li>Click <strong>Minify JSON</strong>.</li>
-            <li>Review the compressed JSON output.</li>
-            <li>Copy the minified JSON for use in your project.</li>
+            <li>
+              Paste your JSON data into the editor.
+            </li>
+
+            <li>
+              Click <strong>Minify JSON</strong>.
+            </li>
+
+            <li>
+              Review the compressed JSON output instantly.
+            </li>
+
+            <li>
+              Copy the minified JSON for use in APIs, applications, or
+              configuration files.
+            </li>
           </ol>
         </div>
 
@@ -126,19 +179,27 @@ export default function ToolClient() {
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Reducing JSON size for API requests and responses.</li>
-            <li>Preparing JSON files for production deployment.</li>
-            <li>Compressing configuration data.</li>
-            <li>Removing formatting from copied JSON data.</li>
-            <li>Validating JSON before using it in code.</li>
+
+            <li>Preparing configuration files for production deployment.</li>
+
+            <li>Compressing structured JSON payloads.</li>
+
+            <li>Optimizing frontend and backend data transfer.</li>
+
+            <li>Cleaning formatted JSON copied from logs.</li>
+
+            <li>Reducing bandwidth usage during API communication.</li>
+
+            <li>Validating JSON before deployment or integration.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example JSON Minification
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <p className="font-medium text-gray-900">
               Before minifying:
             </p>
@@ -163,6 +224,36 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
+            Why JSON Minification Matters
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Smaller payloads:</strong> Minified JSON reduces API
+                transfer size and bandwidth usage.
+              </li>
+
+              <li>
+                <strong>Faster responses:</strong> Smaller JSON payloads can
+                improve transfer performance.
+              </li>
+
+              <li>
+                <strong>Production optimization:</strong> Minified JSON is
+                commonly used in production systems and deployments.
+              </li>
+
+              <li>
+                <strong>Cleaner transfers:</strong> Removes unnecessary
+                formatting while preserving the actual data structure.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
             Frequently Asked Questions
           </h2>
 
@@ -173,30 +264,19 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Minifying JSON means removing unnecessary whitespace, line
-                breaks, and indentation while keeping the actual data unchanged.
+                JSON minification removes unnecessary whitespace, indentation,
+                and line breaks while keeping the actual data unchanged.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does minifying JSON change the data?
+                Does JSON minification change the data?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. JSON minification only changes the formatting. The keys,
-                values, arrays, and objects remain the same.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this JSON Minifier secure?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The minification runs directly in your browser. Your JSON
-                data is not uploaded to a server.
+                No. JSON minification changes formatting only and preserves all
+                keys, values, arrays, and objects.
               </p>
             </div>
 
@@ -206,8 +286,29 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. If your JSON has a syntax error, the tool will show an
-                invalid JSON message instead of generating output.
+                Yes. Invalid JSON structures will display an error instead of
+                generating minified output.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Why is JSON minification useful for APIs?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Smaller payloads can reduce transfer size and improve API
+                communication efficiency.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is JSON minification processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. JSON minification happens locally inside your browser.
               </p>
             </div>
           </div>
@@ -218,21 +319,45 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            JSON minification often connects with APIs, formatting, validation,
+            JWT debugging, and structured data workflows.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/json-formatter"
+              className="yoryantra-btn-outline"
+            >
               JSON Formatter
             </Link>
 
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/json-validator"
+              className="yoryantra-btn-outline"
+            >
+              JSON Validator
+            </Link>
+
+            <Link
+              href="/tools/base64-encoder-decoder"
+              className="yoryantra-btn-outline"
+            >
               Base64 Encoder Decoder
             </Link>
 
-            <Link href="/tools/url-encoder" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/url-encoder"
+              className="yoryantra-btn-outline"
+            >
               URL Encoder Decoder
             </Link>
 
-            <Link href="/tools/html-encoder-decoder" className="yoryantra-btn-outline">
-              HTML Encoder Decoder
+            <Link
+              href="/tools/http-headers-parser"
+              className="yoryantra-btn-outline"
+            >
+              HTTP Headers Parser
             </Link>
           </div>
         </div>
