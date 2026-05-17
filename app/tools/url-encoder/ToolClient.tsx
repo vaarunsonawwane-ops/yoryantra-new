@@ -56,24 +56,33 @@ export default function ToolClient() {
 
       {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={encodeURL} className="yoryantra-btn">
+        <button
+          onClick={encodeURL}
+          className="yoryantra-btn"
+        >
           Encode URL
         </button>
 
-        <button onClick={decodeURL} className="yoryantra-btn-outline">
+        <button
+          onClick={decodeURL}
+          className="yoryantra-btn-outline"
+        >
           Decode URL
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button
+          onClick={resetAll}
+          className="yoryantra-btn-outline"
+        >
           Reset
         </button>
       </div>
 
       {/* ERROR */}
       {error && (
-        <p className="mt-4 text-sm font-medium text-red-500">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
-        </p>
+        </div>
       )}
 
       {/* OUTPUT */}
@@ -85,7 +94,9 @@ export default function ToolClient() {
 
           {output && (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              onClick={() =>
+                navigator.clipboard.writeText(output)
+              }
               className="yoryantra-btn-outline text-sm"
             >
               Copy
@@ -94,29 +105,38 @@ export default function ToolClient() {
         </div>
 
         <pre className="yoryantra-output overflow-auto text-sm min-h-[180px] whitespace-pre-wrap break-words">
-          {output || "Encoded or decoded URL output will appear here..."}
+          {output ||
+            "Encoded or decoded URL output will appear here..."}
         </pre>
       </div>
 
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is URL Encoder Decoder?
+            Encoding and Decoding URLs Without Breaking Links
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            URL Encoder Decoder helps you convert normal text into a
-            URL-safe format and decode encoded URLs back into readable text.
-            It is useful when working with links, query parameters, APIs,
-            redirects, tracking URLs, and web forms.
+            URL encoding helps browsers, APIs, servers, and web applications
+            safely process links that contain spaces, special characters,
+            symbols, Unicode text, query parameters, and reserved URL values.
+            URL decoding converts encoded text back into a human-readable
+            format.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            URL encoding replaces special characters such as spaces, symbols,
-            and reserved characters with encoded values. For example, a space
-            is commonly converted into <code>%20</code>. This makes URLs safer
-            to send through browsers, servers, and web applications.
+            During development and SEO workflows, unencoded URLs can break API
+            requests, redirect logic, tracking links, search parameters, and
+            browser routing. This URL Encoder Decoder helps quickly transform
+            URLs into safe encoded formats and decode encoded values back into
+            readable text.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool is useful for API testing, query parameter debugging,
+            redirect URLs, campaign tracking links, frontend applications,
+            search URLs, and technical debugging directly inside your browser.
           </p>
         </div>
 
@@ -126,10 +146,23 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your URL, text, or query string into the input box.</li>
-            <li>Click <strong>Encode URL</strong> to make the text URL-safe.</li>
-            <li>Click <strong>Decode URL</strong> to convert encoded text back to readable text.</li>
-            <li>Use the copy button to copy the final result.</li>
+            <li>
+              Paste your URL, query string, or text into the editor.
+            </li>
+
+            <li>
+              Click <strong>Encode URL</strong> to convert the text into a
+              URL-safe format.
+            </li>
+
+            <li>
+              Click <strong>Decode URL</strong> to convert encoded text back
+              into readable text.
+            </li>
+
+            <li>
+              Copy the final output for use in applications, APIs, or websites.
+            </li>
           </ol>
         </div>
 
@@ -140,28 +173,72 @@ export default function ToolClient() {
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Encoding query parameters for APIs.</li>
+
             <li>Decoding copied browser URLs.</li>
+
             <li>Fixing links with spaces or special characters.</li>
-            <li>Preparing redirect URLs for web apps.</li>
-            <li>Debugging tracking links and campaign URLs.</li>
+
+            <li>Preparing redirect URLs for web applications.</li>
+
+            <li>Debugging campaign tracking URLs.</li>
+
+            <li>Working with encoded search parameters.</li>
+
+            <li>Testing frontend routing and URL handling.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example URL Encoding
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p className="font-medium text-gray-900">Original text:</p>
+            <p className="font-medium text-gray-900">
+              Original URL:
+            </p>
+
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              https://example.com/search?q=hello world
+https://example.com/search?q=hello world
             </pre>
 
-            <p className="mt-4 font-medium text-gray-900">Encoded output:</p>
+            <p className="mt-4 font-medium text-gray-900">
+              Encoded URL:
+            </p>
+
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              https%3A%2F%2Fexample.com%2Fsearch%3Fq%3Dhello%20world
+https%3A%2F%2Fexample.com%2Fsearch%3Fq%3Dhello%20world
             </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why URL Encoding Matters
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Safe URL handling:</strong> Encoded URLs prevent broken
+                links caused by unsupported characters.
+              </li>
+
+              <li>
+                <strong>Better API compatibility:</strong> APIs often require
+                encoded query parameters and request URLs.
+              </li>
+
+              <li>
+                <strong>Reliable redirects:</strong> Encoding helps preserve
+                tracking parameters and redirect paths correctly.
+              </li>
+
+              <li>
+                <strong>Improved debugging:</strong> Decoding helps developers
+                inspect encoded URLs more easily.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -175,9 +252,11 @@ export default function ToolClient() {
               <h3 className="font-semibold text-gray-900">
                 What is URL encoding?
               </h3>
+
               <p className="mt-2 text-gray-600 leading-relaxed">
-                URL encoding converts unsafe or reserved characters into a
-                format that can be safely used inside a URL.
+                URL encoding converts special or reserved characters into a
+                format that can safely travel through browsers, servers, and web
+                applications.
               </p>
             </div>
 
@@ -185,29 +264,43 @@ export default function ToolClient() {
               <h3 className="font-semibold text-gray-900">
                 What is URL decoding?
               </h3>
+
               <p className="mt-2 text-gray-600 leading-relaxed">
-                URL decoding converts encoded URL text back into its original,
-                readable format.
+                URL decoding converts encoded values back into normal readable
+                text.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is this URL Encoder Decoder secure?
+                Why do URLs use %20 for spaces?
               </h3>
+
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The tool runs directly in your browser. Your input is not
-                uploaded to a server.
+                Spaces are not valid inside URLs, so they are commonly encoded
+                as <code>%20</code>.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                When should I encode a URL?
+                Is URL encoding useful for APIs?
               </h3>
+
               <p className="mt-2 text-gray-600 leading-relaxed">
-                You should encode a URL when it contains spaces, special
-                symbols, query values, or characters that may break a web link.
+                Yes. API requests often require encoded query strings and
+                parameters to avoid broken requests.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is URL encoding processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. URL encoding and decoding happen directly inside your
+                browser.
               </p>
             </div>
           </div>
@@ -218,21 +311,45 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            URL encoding often connects with query parameters, redirects, API
+            debugging, slug generation, and frontend routing workflows.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">
-              Base64 Encoder Decoder
+            <Link
+              href="/tools/url-query-params-parser"
+              className="yoryantra-btn-outline"
+            >
+              URL Query Params Parser
             </Link>
 
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
-              JWT Decoder
-            </Link>
-
-            <Link href="/tools/slug-generator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/slug-generator"
+              className="yoryantra-btn-outline"
+            >
               Slug Generator
+            </Link>
+
+            <Link
+              href="/tools/redirect-checker"
+              className="yoryantra-btn-outline"
+            >
+              Redirect Checker
+            </Link>
+
+            <Link
+              href="/tools/curl-command-builder"
+              className="yoryantra-btn-outline"
+            >
+              CURL Command Builder
+            </Link>
+
+            <Link
+              href="/tools/base64-encoder-decoder"
+              className="yoryantra-btn-outline"
+            >
+              Base64 Encoder Decoder
             </Link>
           </div>
         </div>
