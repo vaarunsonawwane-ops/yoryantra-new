@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
 
 export default function ToolClient() {
@@ -12,7 +13,11 @@ export default function ToolClient() {
     try {
       const parsed = JSON.parse(input);
 
-      const formatted = JSON.stringify(parsed, null, 2);
+      const formatted = JSON.stringify(
+        parsed,
+        null,
+        2
+      );
 
       setOutput(formatted);
       setError("");
@@ -22,12 +27,32 @@ export default function ToolClient() {
     }
   };
 
+  const minifyJSON = () => {
+    try {
+      const parsed = JSON.parse(input);
+
+      const minified =
+        JSON.stringify(parsed);
+
+      setOutput(minified);
+      setError("");
+    } catch {
+      setError("Invalid JSON format.");
+      setOutput("");
+    }
+  };
+
+  const resetAll = () => {
+    setInput("");
+    setOutput("");
+    setError("");
+  };
+
   return (
     <ToolShell
       title="JSON Formatter"
-      description="Format, validate, beautify, and organize JSON instantly with this free online JSON formatter."
+      description="Format, validate, beautify, and minify JSON instantly with this free online JSON Formatter."
     >
-
       {/* INPUT */}
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -35,16 +60,17 @@ export default function ToolClient() {
         </label>
 
         <textarea
-          className="w-full h-64 rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="w-full h-64 rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
           placeholder="Paste JSON here..."
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) =>
+            setInput(e.target.value)
+          }
         />
       </div>
 
       {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-
         <button
           onClick={formatJSON}
           className="yoryantra-btn"
@@ -53,28 +79,29 @@ export default function ToolClient() {
         </button>
 
         <button
-          onClick={() => {
-            setInput("");
-            setOutput("");
-            setError("");
-          }}
+          onClick={minifyJSON}
+          className="yoryantra-btn-outline"
+        >
+          Minify JSON
+        </button>
+
+        <button
+          onClick={resetAll}
           className="yoryantra-btn-outline"
         >
           Reset
         </button>
-
       </div>
 
       {/* ERROR */}
       {error && (
-        <p className="mt-4 text-sm font-medium text-red-500">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
-        </p>
+        </div>
       )}
 
       {/* OUTPUT */}
       <div className="mt-8">
-
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
             Formatted Output
@@ -82,7 +109,11 @@ export default function ToolClient() {
 
           {output && (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              onClick={() =>
+                navigator.clipboard.writeText(
+                  output
+                )
+              }
               className="yoryantra-btn-outline text-sm"
             >
               Copy
@@ -90,149 +121,262 @@ export default function ToolClient() {
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[180px] whitespace-pre-wrap break-words">
-          {output || "Formatted JSON output will appear here..."}
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
+          {output ||
+            "Formatted JSON output will appear here..."}
         </pre>
-
       </div>
 
-{/* SEO CONTENT */}
-<div className="mt-10 border-t border-gray-200 pt-8 space-y-10">
-
-  {/* ABOUT */}
-  <section>
-
-    <h2 className="text-2xl font-semibold text-gray-900">
-      About JSON Formatter
-    </h2>
-
-    <p className="mt-4 text-gray-600 leading-relaxed">
-      JSON Formatter is a tool that helps clean, validate, and organize
-      cluttered JSON data into a readable format for debugging, APIs,
-      configuration files, and everyday development workflows.
-      It is useful for developers working with structured data,
-      API responses, and formatted JSON output.
-    </p>
-
-  </section>
-
-  {/* HOW TO USE */}
-  <section>
-
-    <h2 className="text-2xl font-semibold text-gray-900">
-      How to Use JSON Formatter
-    </h2>
-
-    <div className="mt-4 space-y-3 text-gray-600 leading-relaxed">
-
-      <p>
-        1. Paste your JSON data into the input box.
-      </p>
-
-      <p>
-        2. Click the Format JSON button.
-      </p>
-
-      <p>
-        3. If the JSON is valid, the formatted output will appear below.
-      </p>
-
-      <p>
-        4. Use Copy to quickly copy the formatted JSON output.
-      </p>
-
-    </div>
-
-  </section>
-
-  {/* USE CASES */}
-  <section>
-
-    <h2 className="text-2xl font-semibold text-gray-900">
-      Common Use Cases
-    </h2>
-
-    <ul className="mt-4 space-y-3 text-gray-600 leading-relaxed list-disc pl-6">
-
-      <li>
-        Beautifying API responses for easier reading.
-      </li>
-
-      <li>
-        Checking whether JSON data is valid or broken.
-      </li>
-
-      <li>
-        Formatting configuration files before editing.
-      </li>
-
-      <li>
-        Debugging structured data used in web applications.
-      </li>
-
-      <li>
-        Cleaning cluttered JSON data copied from logs, APIs,
-        or developer tools.
-      </li>
-
-    </ul>
-
-  </section>
-
-  {/* FAQ */}
-  <section>
-
-    <h2 className="text-2xl font-semibold text-gray-900">
-      Frequently Asked Questions
-    </h2>
-
-    <div className="mt-5 space-y-6">
-
-      <div>
-
-        <h3 className="font-semibold text-gray-900">
-          What is a JSON Formatter?
+      {/* SECURITY NOTE */}
+      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Privacy Note
         </h3>
 
-        <p className="mt-2 text-gray-600 leading-relaxed">
-          A JSON Formatter converts compact or unorganized JSON
-          into a clean, readable, and properly indented structure.
+        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
+          JSON formatting and validation happen locally inside your browser.
+          Your JSON data is not uploaded or stored on any server.
         </p>
-
       </div>
 
-      <div>
+      {/* SEO CONTENT */}
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Formatting JSON So It Is Easier to Read
+          </h2>
 
-        <h3 className="font-semibold text-gray-900">
-          Does this tool validate JSON?
-        </h3>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            JSON formatting helps developers organize, validate, and inspect
+            structured data more easily during development and debugging
+            workflows. JSON is widely used in APIs, configuration files,
+            databases, frontend applications, cloud systems, authentication
+            payloads, and modern web development.
+          </p>
 
-        <p className="mt-2 text-gray-600 leading-relaxed">
-          Yes. If your JSON contains syntax errors or invalid formatting,
-          the tool will show an error instead of formatting the output.
-        </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Raw JSON copied from APIs or logs is often difficult to read because
+            it appears compressed into a single line. This JSON Formatter helps
+            beautify messy JSON into properly indented readable structures while
+            also validating whether the JSON syntax is correct.
+          </p>
 
-      </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool is useful for API testing, frontend debugging, server
+            responses, JWT inspection, configuration management, and structured
+            data analysis directly inside your browser.
+          </p>
+        </div>
 
-      <div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            How to Use the JSON Formatter
+          </h2>
 
-        <h3 className="font-semibold text-gray-900">
-          Is my JSON data uploaded to a server?
-        </h3>
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>
+              Paste your JSON data into the input editor.
+            </li>
 
-        <p className="mt-2 text-gray-600 leading-relaxed">
-          No. All JSON formatting and validation happens directly
-          inside your browser. Your data is not uploaded or stored anywhere.
-        </p>
+            <li>
+              Click <strong>Format JSON</strong> to beautify and organize the
+              structure.
+            </li>
 
-      </div>
+            <li>
+              Click <strong>Minify JSON</strong> to compress the JSON into a
+              single line.
+            </li>
 
-    </div>
+            <li>
+              Review and copy the formatted output instantly.
+            </li>
+          </ol>
+        </div>
 
-  </section>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Use Cases
+          </h2>
 
-</div>
+          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Beautifying API responses for debugging.</li>
 
+            <li>Validating JSON syntax before deployment.</li>
+
+            <li>Formatting configuration files for readability.</li>
+
+            <li>Inspecting authentication payloads and JWT data.</li>
+
+            <li>Cleaning JSON copied from logs and databases.</li>
+
+            <li>Preparing structured data for frontend applications.</li>
+
+            <li>Minifying JSON for optimized transfer and storage.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Example Formatted JSON
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">
+{`{
+  "name": "Yoryantra",
+  "type": "Developer Tools",
+  "active": true,
+  "tools": [
+    "JSON Formatter",
+    "JWT Decoder"
+  ]
+}`}
+            </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why JSON Formatting Matters
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Better readability:</strong> Proper indentation makes
+                structured data easier to inspect.
+              </li>
+
+              <li>
+                <strong>Faster debugging:</strong> Developers can identify
+                missing brackets, invalid syntax, and broken structures quickly.
+              </li>
+
+              <li>
+                <strong>Improved collaboration:</strong> Clean JSON is easier to
+                review and edit across teams.
+              </li>
+
+              <li>
+                <strong>Cleaner APIs:</strong> Formatted responses simplify API
+                testing and development workflows.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Frequently Asked Questions
+          </h2>
+
+          <div className="mt-5 space-y-6">
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What is a JSON Formatter?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                A JSON Formatter converts compressed or unorganized JSON into a
+                clean readable structure using indentation and spacing.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Does this tool validate JSON syntax?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. Invalid JSON structures and syntax errors will display an
+                error instead of formatted output.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What is JSON minification?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                JSON minification removes unnecessary spaces and line breaks to
+                reduce file size and improve transfer efficiency.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is this JSON Formatter useful for APIs?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. API developers commonly use JSON formatting while testing
+                endpoints and inspecting server responses.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is JSON processing handled on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. JSON formatting and validation happen locally inside your
+                browser.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            JSON formatting often connects with APIs, JWT tokens, Base64
+            encoding, HTTP debugging, and structured data workflows.
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href="/tools/jwt-decoder"
+              className="yoryantra-btn-outline"
+            >
+              JWT Decoder
+            </Link>
+
+            <Link
+              href="/tools/base64-encoder-decoder"
+              className="yoryantra-btn-outline"
+            >
+              Base64 Encoder Decoder
+            </Link>
+
+            <Link
+              href="/tools/http-headers-parser"
+              className="yoryantra-btn-outline"
+            >
+              HTTP Headers Parser
+            </Link>
+
+            <Link
+              href="/tools/url-encoder"
+              className="yoryantra-btn-outline"
+            >
+              URL Encoder Decoder
+            </Link>
+
+            <Link
+              href="/tools/regex-tester"
+              className="yoryantra-btn-outline"
+            >
+              Regex Tester
+            </Link>
+          </div>
+        </div>
+      </section>
     </ToolShell>
   );
 }
