@@ -89,7 +89,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JWT Signature Verifier"
-      description="Verify JWT signatures using a secret key instantly with this free online JWT Signature Verifier."
+      description="Verify JWT signatures instantly using HS256 secret keys with this free online JWT Signature Verifier."
     >
       {/* TOKEN */}
       <div>
@@ -173,26 +173,45 @@ export default function ToolClient() {
         </div>
       </div>
 
+      {/* SECURITY NOTE */}
+      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Security Note
+        </h3>
+
+        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
+          JWT verification happens locally inside your browser. Tokens and
+          secret keys are not uploaded or stored on any server.
+        </p>
+      </div>
+
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is JWT Signature Verifier?
+            Verifying JWT Signatures Before Trusting Tokens
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JWT Signature Verifier helps you
-            verify JWT token signatures instantly
-            using a secret key. It is useful for API
-            authentication, debugging JWT tokens,
-            security testing, backend development,
-            and authentication workflows.
+            JWT signature verification helps confirm whether a JSON Web Token
+            was signed using the expected secret key and whether the token
+            contents may have been modified. JWT verification is commonly used
+            in authentication systems, APIs, session handling, OAuth flows, and
+            secure backend applications.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool validates whether a JWT token
-            signature matches the provided secret
-            using HMAC SHA-256 verification.
+            During authentication debugging and API testing, developers often
+            need to validate whether a token signature matches the expected
+            secret. This JWT Signature Verifier helps verify HS256-signed JWT
+            tokens directly inside your browser without manually calculating
+            HMAC signatures.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool is useful for backend development, API debugging, session
+            inspection, authentication troubleshooting, token validation, and
+            security-focused development workflows.
           </p>
         </div>
 
@@ -202,12 +221,21 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your JWT token.</li>
-            <li>Enter the secret key.</li>
+            <li>
+              Paste your JWT token into the editor.
+            </li>
+
+            <li>
+              Enter the secret key used to sign the token.
+            </li>
+
             <li>
               Click <strong>Verify JWT Signature</strong>.
             </li>
-            <li>Review the verification result.</li>
+
+            <li>
+              Review the verification result instantly.
+            </li>
           </ol>
         </div>
 
@@ -217,12 +245,65 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Debugging authentication systems.</li>
-            <li>Testing JWT token validity.</li>
-            <li>Verifying API authentication flows.</li>
-            <li>Inspecting signed JWT tokens.</li>
-            <li>Security and backend development.</li>
+            <li>Testing JWT authentication systems.</li>
+
+            <li>Debugging invalid token signature errors.</li>
+
+            <li>Inspecting HS256-signed JWT tokens.</li>
+
+            <li>Verifying API authentication workflows.</li>
+
+            <li>Checking token integrity during development.</li>
+
+            <li>Testing session and authorization systems.</li>
+
+            <li>Debugging OAuth and backend authentication flows.</li>
           </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Understanding JWT Signature Verification
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Header:</strong> Contains token metadata and signing
+                algorithm details.
+              </li>
+
+              <li>
+                <strong>Payload:</strong> Contains claims, permissions, and
+                token information.
+              </li>
+
+              <li>
+                <strong>Signature:</strong> Confirms whether the token was
+                signed using the correct secret key.
+              </li>
+
+              <li>
+                <strong>Verification:</strong> Helps detect modified or invalid
+                tokens during authentication workflows.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Example Verification Workflow
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <pre className="whitespace-pre-wrap break-words">
+{`1. Paste JWT token
+2. Enter secret key
+3. Verify signature
+4. Confirm token authenticity`}
+            </pre>
+          </div>
         </div>
 
         <div>
@@ -233,46 +314,58 @@ export default function ToolClient() {
           <div className="mt-5 space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What is JWT?
+                What is JWT signature verification?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                JWT stands for JSON Web Token, a
-                secure format used for authentication
-                and authorization.
+                JWT signature verification checks whether the token signature
+                matches the expected secret key and whether the token content
+                may have been modified.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                What does JWT signature verification do?
+                Which JWT algorithm does this tool support?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks whether the token signature
-                matches the provided secret key.
+                This verifier currently supports HS256 JWT signature
+                verification using HMAC SHA-256.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this tool support HS256?
+                Does this tool decode JWT payloads?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. This verifier currently supports
-                HMAC SHA-256 signed JWT tokens.
+                This tool focuses on signature verification. You can use the
+                JWT Decoder tool to inspect payload data separately.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is verification processed on the server?
+                Are JWT secrets uploaded anywhere?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. JWT verification happens directly
-                in your browser.
+                No. Verification happens locally inside your browser and secrets
+                are not uploaded or stored.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Why would JWT verification fail?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Verification can fail because of invalid signatures, incorrect
+                secrets, modified payloads, unsupported algorithms, or malformed
+                tokens.
               </p>
             </div>
           </div>
@@ -283,6 +376,12 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            JWT verification often connects with token decoding, Base64
+            encoding, API authentication, cookies, and HTTP debugging
+            workflows.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
               href="/tools/jwt-decoder"
@@ -292,24 +391,31 @@ export default function ToolClient() {
             </Link>
 
             <Link
-              href="/tools/jwt-expiration-checker"
+              href="/tools/base64-encoder-decoder"
               className="yoryantra-btn-outline"
             >
-              JWT Expiration Checker
+              Base64 Encoder Decoder
             </Link>
 
             <Link
-              href="/tools/hmac-generator"
+              href="/tools/http-headers-parser"
               className="yoryantra-btn-outline"
             >
-              HMAC Generator
+              HTTP Headers Parser
             </Link>
 
             <Link
-              href="/tools/base64url-encoder-decoder"
+              href="/tools/cookie-parser"
               className="yoryantra-btn-outline"
             >
-              Base64URL Encoder Decoder
+              Cookie Parser
+            </Link>
+
+            <Link
+              href="/tools/curl-command-builder"
+              className="yoryantra-btn-outline"
+            >
+              CURL Command Builder
             </Link>
           </div>
         </div>
