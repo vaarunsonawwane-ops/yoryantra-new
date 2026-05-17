@@ -11,7 +11,14 @@ export default function ToolClient() {
 
   const convertTimestamp = () => {
     try {
-      const date = new Date(Number(timestamp) * 1000);
+      const cleanInput = timestamp.trim();
+
+      const unix =
+        cleanInput.length > 10
+          ? Number(cleanInput) / 1000
+          : Number(cleanInput);
+
+      const date = new Date(unix * 1000);
 
       if (isNaN(date.getTime())) {
         setError("Invalid Unix timestamp.");
@@ -19,7 +26,16 @@ export default function ToolClient() {
         return;
       }
 
-      setOutput(date.toUTCString());
+      setOutput(
+`${date.toUTCString()}
+
+Local Time:
+${date.toString()}
+
+ISO Format:
+${date.toISOString()}`
+      );
+
       setError("");
     } catch {
       setError("Invalid Unix timestamp.");
@@ -28,7 +44,10 @@ export default function ToolClient() {
   };
 
   const currentTimestamp = () => {
-    setTimestamp(Math.floor(Date.now() / 1000).toString());
+    setTimestamp(
+      Math.floor(Date.now() / 1000).toString()
+    );
+
     setError("");
   };
 
@@ -41,7 +60,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Timestamp Converter"
-      description="Convert Unix timestamps into readable dates instantly with this free online Unix Timestamp Converter."
+      description="Convert Unix timestamps into readable UTC dates instantly with this free online Timestamp Converter."
     >
       {/* INPUT */}
       <div>
@@ -52,9 +71,11 @@ export default function ToolClient() {
         <input
           type="text"
           value={timestamp}
-          onChange={(e) => setTimestamp(e.target.value)}
+          onChange={(e) =>
+            setTimestamp(e.target.value)
+          }
           placeholder="Enter Unix timestamp..."
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
 
@@ -64,7 +85,7 @@ export default function ToolClient() {
           onClick={convertTimestamp}
           className="yoryantra-btn"
         >
-          Convert
+          Convert Timestamp
         </button>
 
         <button
@@ -84,9 +105,9 @@ export default function ToolClient() {
 
       {/* ERROR */}
       {error && (
-        <p className="mt-4 text-sm font-medium text-red-500">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
-        </p>
+        </div>
       )}
 
       {/* OUTPUT */}
@@ -99,7 +120,9 @@ export default function ToolClient() {
           {output && (
             <button
               onClick={() =>
-                navigator.clipboard.writeText(output)
+                navigator.clipboard.writeText(
+                  output
+                )
               }
               className="yoryantra-btn-outline text-sm"
             >
@@ -108,30 +131,38 @@ export default function ToolClient() {
           )}
         </div>
 
-        <div className="yoryantra-output min-h-[140px] flex items-center text-sm break-words">
-          {output || "Converted date and time will appear here..."}
-        </div>
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[180px] whitespace-pre-wrap break-words">
+          {output ||
+            "Readable UTC date and time will appear here..."}
+        </pre>
       </div>
 
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is Timestamp Converter?
+            Converting Unix Timestamps Into Readable Dates
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Timestamp Converter helps you convert Unix timestamps into
-            readable UTC dates and time values. It is useful when working with
-            APIs, databases, server logs, authentication systems, analytics
-            platforms, and development tools that use Unix time.
+            Unix timestamps are commonly used in APIs, databases, authentication
+            systems, analytics platforms, server logs, backend applications, and
+            cloud infrastructure. A Unix timestamp represents the number of
+            seconds passed since January 1, 1970 UTC, also known as Unix Epoch
+            time.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Unix timestamps, also called epoch timestamps, represent the number
-            of seconds passed since January 1, 1970 UTC. Converting timestamps
-            into human-readable dates makes debugging and data analysis much
-            easier.
+            During debugging and development workflows, raw timestamps are
+            difficult to read manually. This Timestamp Converter helps instantly
+            convert Unix timestamps into readable UTC dates, local time values,
+            and ISO date formats directly inside your browser.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool supports both seconds-based and milliseconds-based
+            timestamps, making it useful for JWT debugging, API inspection,
+            server monitoring, automation systems, and event tracking workflows.
           </p>
         </div>
 
@@ -141,10 +172,22 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter a Unix timestamp in the input field.</li>
-            <li>Click <strong>Convert</strong> to view the readable UTC date.</li>
-            <li>Use <strong>Current Timestamp</strong> to generate the current Unix timestamp.</li>
-            <li>Copy the converted result if needed.</li>
+            <li>
+              Enter a Unix timestamp into the input field.
+            </li>
+
+            <li>
+              Click <strong>Convert Timestamp</strong>.
+            </li>
+
+            <li>
+              Review the readable UTC, local, and ISO date formats.
+            </li>
+
+            <li>
+              Use <strong>Current Timestamp</strong> to generate the current
+              Unix time instantly.
+            </li>
           </ol>
         </div>
 
@@ -155,16 +198,24 @@ export default function ToolClient() {
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Converting API timestamps into readable dates.</li>
-            <li>Reading server logs and event records.</li>
-            <li>Debugging authentication token expiration times.</li>
-            <li>Working with Unix timestamps in databases.</li>
-            <li>Checking time values in analytics or automation workflows.</li>
+
+            <li>Debugging JWT expiration timestamps.</li>
+
+            <li>Reading server logs and analytics events.</li>
+
+            <li>Inspecting Unix timestamps in databases.</li>
+
+            <li>Working with cloud monitoring systems.</li>
+
+            <li>Testing automation workflows and schedulers.</li>
+
+            <li>Converting milliseconds-based timestamps.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example Unix Timestamp Conversion
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
@@ -173,16 +224,45 @@ export default function ToolClient() {
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              1715788800
+1715788800
             </pre>
 
             <p className="mt-4 font-medium text-gray-900">
-              Converted date:
+              Converted UTC date:
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              Wed, 15 May 2024 00:00:00 GMT
+Wed, 15 May 2024 00:00:00 GMT
             </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Understanding Unix Epoch Time
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Unix Timestamp:</strong> Counts seconds from January 1,
+                1970 UTC.
+              </li>
+
+              <li>
+                <strong>Epoch Time:</strong> Another name for Unix time.
+              </li>
+
+              <li>
+                <strong>Milliseconds:</strong> Some systems store timestamps in
+                milliseconds instead of seconds.
+              </li>
+
+              <li>
+                <strong>UTC:</strong> Unix timestamps are usually based on
+                Coordinated Universal Time.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -198,8 +278,8 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                A Unix timestamp is the number of seconds that have passed since
-                January 1, 1970 UTC, commonly known as Unix Epoch time.
+                A Unix timestamp represents the number of seconds passed since
+                January 1, 1970 UTC.
               </p>
             </div>
 
@@ -209,30 +289,41 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Epoch time is another name for Unix time and represents time as
-                a continuously increasing number of seconds.
+                Epoch time is another name for Unix time and is commonly used in
+                APIs, databases, and backend systems.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this converter support UTC time?
+                Does this converter support milliseconds?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. This tool converts timestamps into readable UTC date and
-                time values.
+                Yes. The tool automatically detects milliseconds-based Unix
+                timestamps.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is this Timestamp Converter secure?
+                Why are timestamps used in APIs?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The conversion happens directly in your browser. Your data
-                is not uploaded to any server.
+                Timestamps provide a standardized way to track dates and time
+                across systems and programming languages.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is timestamp conversion processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. All timestamp conversion happens locally inside your
+                browser.
               </p>
             </div>
           </div>
@@ -243,20 +334,44 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Timestamp conversion often connects with JWT debugging, APIs,
+            authentication systems, logs, and backend development workflows.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/jwt-expiration-checker"
+              className="yoryantra-btn-outline"
+            >
+              JWT Expiration Checker
+            </Link>
+
+            <Link
+              href="/tools/jwt-decoder"
+              className="yoryantra-btn-outline"
+            >
               JWT Decoder
             </Link>
 
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/json-formatter"
+              className="yoryantra-btn-outline"
+            >
               JSON Formatter
             </Link>
 
-            <Link href="/tools/regex-tester" className="yoryantra-btn-outline">
-              Regex Tester
+            <Link
+              href="/tools/http-headers-parser"
+              className="yoryantra-btn-outline"
+            >
+              HTTP Headers Parser
             </Link>
 
-            <Link href="/tools/url-encoder" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/url-encoder"
+              className="yoryantra-btn-outline"
+            >
               URL Encoder Decoder
             </Link>
           </div>
