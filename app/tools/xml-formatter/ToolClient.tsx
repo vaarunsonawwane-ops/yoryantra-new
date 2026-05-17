@@ -12,57 +12,87 @@ export default function ToolClient() {
   const formatXML = () => {
     try {
       const parser = new DOMParser();
-      const xml = parser.parseFromString(input, "application/xml");
+
+      const xml = parser.parseFromString(
+        input,
+        "application/xml"
+      );
 
       const parserError =
-        xml.getElementsByTagName("parsererror");
+        xml.getElementsByTagName(
+          "parsererror"
+        );
 
       if (parserError.length > 0) {
-        setError("Invalid XML. Please check your input.");
+        setError(
+          "Invalid XML. Please check your input."
+        );
+
         setOutput("");
         return;
       }
 
-      const formatted = formatXMLString(input);
+      const formatted =
+        formatXMLString(input);
 
       setOutput(formatted);
       setError("");
     } catch {
-      setError("Unable to format XML.");
+      setError(
+        "Unable to format XML."
+      );
+
       setOutput("");
     }
   };
 
-  const formatXMLString = (xml: string) => {
+  const formatXMLString = (
+    xml: string
+  ) => {
     const reg = /(>)(<)(\/*)/g;
 
     let formatted = "";
     let pad = 0;
 
-    xml = xml.replace(reg, "$1\r\n$2$3");
+    xml = xml.replace(
+      reg,
+      "$1\r\n$2$3"
+    );
 
-    xml.split("\r\n").forEach((node) => {
-      let indent = 0;
+    xml
+      .split("\r\n")
+      .forEach((node) => {
+        let indent = 0;
 
-      if (node.match(/^<\/\w/)) {
-        if (pad > 0) {
-          pad -= 1;
+        if (
+          node.match(/^<\/\w/)
+        ) {
+          if (pad > 0) {
+            pad -= 1;
+          }
         }
-      }
 
-      for (let i = 0; i < pad; i++) {
-        indent += 2;
-      }
+        for (
+          let i = 0;
+          i < pad;
+          i++
+        ) {
+          indent += 2;
+        }
 
-      formatted +=
-        " ".repeat(indent) + node + "\r\n";
+        formatted +=
+          " ".repeat(indent) +
+          node +
+          "\r\n";
 
-      if (
-        node.match(/^<\w([^>]*[^/])?>.*$/)
-      ) {
-        pad += 1;
-      }
-    });
+        if (
+          node.match(
+            /^<\w([^>]*[^/])?>.*$/
+          )
+        ) {
+          pad += 1;
+        }
+      });
 
     return formatted.trim();
   };
@@ -85,10 +115,12 @@ export default function ToolClient() {
         </label>
 
         <textarea
-          className="w-full h-64 rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="w-full h-64 rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
           placeholder="Paste XML here..."
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) =>
+            setInput(e.target.value)
+          }
         />
       </div>
 
@@ -111,9 +143,9 @@ export default function ToolClient() {
 
       {/* ERROR */}
       {error && (
-        <p className="mt-4 text-sm font-medium text-red-500">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
           {error}
-        </p>
+        </div>
       )}
 
       {/* OUTPUT */}
@@ -126,7 +158,9 @@ export default function ToolClient() {
           {output && (
             <button
               onClick={() =>
-                navigator.clipboard.writeText(output)
+                navigator.clipboard.writeText(
+                  output
+                )
               }
               className="yoryantra-btn-outline text-sm"
             >
@@ -135,28 +169,49 @@ export default function ToolClient() {
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[180px] whitespace-pre-wrap break-words">
-          {output || "Formatted XML will appear here..."}
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
+          {output ||
+            "Formatted XML will appear here..."}
         </pre>
       </div>
 
+      {/* PRIVACY NOTE */}
+      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Privacy Note
+        </h3>
+
+        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
+          XML formatting and validation happen locally inside your browser.
+          Your XML data is not uploaded, stored, or processed on any server.
+        </p>
+      </div>
+
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is XML Formatter?
+            Formatting XML So Nested Tags Are Easier to Read
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            XML Formatter helps you beautify and organize XML data
-            into a clean and readable structure. Properly formatted XML
-            makes debugging, editing, and reviewing structured data much
-            easier during development workflows.
+            XML formatting helps organize messy XML documents into a clean,
+            properly indented structure that is easier to inspect, debug,
+            validate, and maintain during development workflows.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool also validates XML structure before formatting and
-            displays an error if invalid XML is detected.
+            XML is still widely used in APIs, RSS feeds, SOAP services,
+            configuration files, sitemaps, enterprise systems, integrations,
+            Android manifests, and structured data workflows. Raw XML copied
+            from APIs or applications often appears compressed into a single
+            unreadable line.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This XML Formatter helps beautify nested tags instantly while also
+            checking whether the XML structure is valid before formatting the
+            output directly inside your browser.
           </p>
         </div>
 
@@ -166,10 +221,21 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste XML data into the input box.</li>
-            <li>Click <strong>Format XML</strong>.</li>
-            <li>Review the beautified XML output.</li>
-            <li>Copy the formatted XML for your project.</li>
+            <li>
+              Paste XML data into the editor.
+            </li>
+
+            <li>
+              Click <strong>Format XML</strong>.
+            </li>
+
+            <li>
+              Review the beautified XML structure instantly.
+            </li>
+
+            <li>
+              Copy the formatted XML output for your project or workflow.
+            </li>
           </ol>
         </div>
 
@@ -179,20 +245,42 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Beautifying XML API responses.</li>
-            <li>Formatting XML configuration files.</li>
-            <li>Improving XML readability for debugging.</li>
-            <li>Reviewing structured XML documents.</li>
-            <li>Validating XML syntax before use.</li>
+            <li>
+              Beautifying XML API responses for debugging.
+            </li>
+
+            <li>
+              Formatting sitemap and RSS feed XML files.
+            </li>
+
+            <li>
+              Organizing SOAP request and response data.
+            </li>
+
+            <li>
+              Validating XML before deployment or integration.
+            </li>
+
+            <li>
+              Improving readability for configuration files.
+            </li>
+
+            <li>
+              Inspecting nested XML structures more easily.
+            </li>
+
+            <li>
+              Debugging structured data workflows.
+            </li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example XML Formatting
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <p className="font-medium text-gray-900">
               Before formatting:
             </p>
@@ -217,6 +305,36 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
+            Why XML Formatting Matters
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Better readability:</strong> Proper indentation makes
+                nested XML structures easier to inspect.
+              </li>
+
+              <li>
+                <strong>Faster debugging:</strong> Structured XML helps identify
+                broken tags and invalid nesting quickly.
+              </li>
+
+              <li>
+                <strong>Cleaner integrations:</strong> Formatted XML simplifies
+                API and system integration workflows.
+              </li>
+
+              <li>
+                <strong>Improved maintenance:</strong> Readable XML documents are
+                easier to update later.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
             Frequently Asked Questions
           </h2>
 
@@ -227,30 +345,51 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                An XML Formatter organizes XML data into properly indented
-                and readable structure for easier editing and debugging.
+                An XML Formatter organizes XML data into a properly indented and
+                readable structure.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does formatting change XML data?
+                Does formatting change XML content?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Formatting only changes whitespace and indentation.
-                The XML content itself remains unchanged.
+                No. XML formatting changes whitespace and indentation only while
+                preserving the actual XML structure and data.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is this XML Formatter secure?
+                Can this tool detect invalid XML?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Formatting happens directly in your browser.
-                Your XML data is not uploaded anywhere.
+                Yes. The formatter validates XML structure before generating
+                formatted output.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is XML still used in APIs?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. XML is still widely used in SOAP APIs, RSS feeds,
+                enterprise systems, sitemaps, and configuration files.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is XML formatting processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. XML formatting happens locally inside your browser.
               </p>
             </div>
           </div>
@@ -261,20 +400,44 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            XML formatting often connects with APIs, JSON workflows, structured
+            data debugging, sitemap management, and backend integrations.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/json-formatter"
+              className="yoryantra-btn-outline"
+            >
               JSON Formatter
             </Link>
 
-            <Link href="/tools/json-minifier" className="yoryantra-btn-outline">
-              JSON Minifier
+            <Link
+              href="/tools/json-validator"
+              className="yoryantra-btn-outline"
+            >
+              JSON Validator
             </Link>
 
-            <Link href="/tools/sql-formatter" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/html-encoder-decoder"
+              className="yoryantra-btn-outline"
+            >
+              HTML Encoder Decoder
+            </Link>
+
+            <Link
+              href="/tools/sql-formatter"
+              className="yoryantra-btn-outline"
+            >
               SQL Formatter
             </Link>
 
-            <Link href="/tools/regex-tester" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/regex-tester"
+              className="yoryantra-btn-outline"
+            >
               Regex Tester
             </Link>
           </div>
