@@ -5,74 +5,102 @@ import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
 
 export default function ToolClient() {
-  const [jsonInput, setJsonInput] = useState("");
-  const [schemaInput, setSchemaInput] = useState("");
-  const [output, setOutput] = useState("");
-  const [error, setError] = useState("");
+  const [jsonInput, setJsonInput] =
+    useState("");
 
-  const validateSchema = () => {
-    try {
-      if (!jsonInput.trim()) {
-        setError("Please enter JSON data.");
-        setOutput("");
-        return;
-      }
+  const [schemaInput, setSchemaInput] =
+    useState("");
 
-      if (!schemaInput.trim()) {
-        setError("Please enter a JSON schema.");
-        setOutput("");
-        return;
-      }
+  const [output, setOutput] =
+    useState("");
 
-      const jsonData = JSON.parse(jsonInput);
-      const schema = JSON.parse(schemaInput);
+  const [error, setError] =
+    useState("");
 
-      if (
-        schema.type &&
-        typeof jsonData !== schema.type
-      ) {
-        setOutput(
-          `Validation failed. Expected type "${schema.type}".`
-        );
+  const validateSchema =
+    () => {
+      try {
+        if (!jsonInput.trim()) {
+          setError(
+            "Please enter JSON data."
+          );
 
-        setError("");
-        return;
-      }
+          setOutput("");
+          return;
+        }
 
-      if (
-        schema.required &&
-        Array.isArray(schema.required)
-      ) {
-        const missingFields = schema.required.filter(
-          (field: string) =>
-            !(field in jsonData)
-        );
+        if (!schemaInput.trim()) {
+          setError(
+            "Please enter a JSON schema."
+          );
 
-        if (missingFields.length > 0) {
+          setOutput("");
+          return;
+        }
+
+        const jsonData =
+          JSON.parse(jsonInput);
+
+        const schema =
+          JSON.parse(schemaInput);
+
+        if (
+          schema.type &&
+          typeof jsonData !==
+            schema.type
+        ) {
           setOutput(
-            `Validation failed. Missing required fields: ${missingFields.join(
-              ", "
-            )}`
+            `Validation failed. Expected type "${schema.type}".`
           );
 
           setError("");
           return;
         }
+
+        if (
+          schema.required &&
+          Array.isArray(
+            schema.required
+          )
+        ) {
+          const missingFields =
+            schema.required.filter(
+              (
+                field: string
+              ) =>
+                !(
+                  field in jsonData
+                )
+            );
+
+          if (
+            missingFields.length >
+            0
+          ) {
+            setOutput(
+              `Validation failed. Missing required fields: ${missingFields.join(
+                ", "
+              )}`
+            );
+
+            setError("");
+            return;
+          }
+        }
+
+        setOutput(
+          "JSON validation passed against the provided schema."
+        );
+
+        setError("");
+      } catch {
+        setError(
+          "Invalid JSON data or schema."
+        );
+
+        setOutput("");
       }
-
-      setOutput(
-        "JSON validation passed against the provided schema."
-      );
-
-      setError("");
-    } catch {
-      setError(
-        "Invalid JSON data or schema."
-      );
-
-      setOutput("");
-    }
-  };
+    };
 
   const resetAll = () => {
     setJsonInput("");
@@ -95,7 +123,9 @@ export default function ToolClient() {
         <textarea
           value={jsonInput}
           onChange={(e) =>
-            setJsonInput(e.target.value)
+            setJsonInput(
+              e.target.value
+            )
           }
           placeholder={`{
   "name": "Yoryantra"
@@ -113,7 +143,9 @@ export default function ToolClient() {
         <textarea
           value={schemaInput}
           onChange={(e) =>
-            setSchemaInput(e.target.value)
+            setSchemaInput(
+              e.target.value
+            )
           }
           placeholder={`{
   "type": "object",
@@ -126,7 +158,9 @@ export default function ToolClient() {
       {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
         <button
-          onClick={validateSchema}
+          onClick={
+            validateSchema
+          }
           className="yoryantra-btn"
         >
           Validate JSON Schema
@@ -142,7 +176,7 @@ export default function ToolClient() {
 
       {/* ERROR */}
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
           {error}
         </div>
       )}
@@ -157,7 +191,9 @@ export default function ToolClient() {
           {output && (
             <button
               onClick={() =>
-                navigator.clipboard.writeText(output)
+                navigator.clipboard.writeText(
+                  output
+                )
               }
               className="yoryantra-btn-outline text-sm"
             >
@@ -166,30 +202,49 @@ export default function ToolClient() {
           )}
         </div>
 
-        <div className="yoryantra-output min-h-[160px] text-sm whitespace-pre-wrap break-words overflow-auto">
+        <div className="yoryantra-output min-h-[180px] text-sm whitespace-pre-wrap break-words overflow-auto">
           {output ||
             "JSON schema validation result will appear here..."}
         </div>
       </div>
 
+      {/* PRIVACY */}
+      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Privacy Note
+        </h3>
+
+        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
+          JSON schema validation happens locally inside your browser. Your JSON
+          data and schemas are not uploaded, stored, or processed on any
+          external server.
+        </p>
+      </div>
+
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is JSON Schema Validator?
+            Validating JSON Data Against a Schema Before APIs Break
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Schema Validator helps you validate JSON data against a
-            schema instantly. It is useful for API testing, backend validation,
-            configuration validation, structured data workflows, and developer
-            debugging.
+            JSON schema validation helps developers verify API payloads,
+            configuration files, webhook data, backend responses, structured
+            objects, automation workflows, and application configuration against
+            predefined validation rules.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Schema defines the structure, required fields, and validation
-            rules for JSON data. This tool helps ensure your JSON payloads match
-            the expected format before they are used in applications or APIs.
+            JSON Schema defines expected data structure, required fields,
+            validation rules, object types, and property requirements. Invalid
+            payloads can break APIs, backend services, frontend rendering, or
+            automation systems.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This JSON Schema Validator validates JSON data directly inside your
+            browser without requiring backend processing or external APIs.
           </p>
         </div>
 
@@ -199,10 +254,21 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your JSON data into the first input box.</li>
-            <li>Paste your JSON schema into the schema box.</li>
-            <li>Click <strong>Validate JSON Schema</strong>.</li>
-            <li>Review the validation result and fix errors if needed.</li>
+            <li>
+              Paste your JSON data into the first editor.
+            </li>
+
+            <li>
+              Paste your JSON schema into the schema editor.
+            </li>
+
+            <li>
+              Click <strong>Validate JSON Schema</strong>.
+            </li>
+
+            <li>
+              Review validation results and fix schema issues if needed.
+            </li>
           </ol>
         </div>
 
@@ -212,11 +278,33 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Validating API request payloads.</li>
-            <li>Testing backend data validation.</li>
-            <li>Checking structured configuration files.</li>
-            <li>Debugging JSON formatting issues.</li>
-            <li>Improving schema-driven development workflows.</li>
+            <li>
+              Validating API request payloads.
+            </li>
+
+            <li>
+              Testing backend schema validation workflows.
+            </li>
+
+            <li>
+              Verifying structured configuration files.
+            </li>
+
+            <li>
+              Debugging invalid JSON objects.
+            </li>
+
+            <li>
+              Improving schema-driven development workflows.
+            </li>
+
+            <li>
+              Validating webhook payload structures.
+            </li>
+
+            <li>
+              Testing automation and integration systems.
+            </li>
           </ul>
         </div>
 
@@ -225,13 +313,43 @@ export default function ToolClient() {
             Example JSON Schema
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <pre className="whitespace-pre-wrap break-words">
 {`{
   "type": "object",
   "required": ["name", "email"]
 }`}
             </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why JSON Schema Validation Matters
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Safer APIs:</strong> Prevent invalid payloads from
+                reaching backend systems.
+              </li>
+
+              <li>
+                <strong>Cleaner debugging:</strong> Detect missing fields and
+                incorrect data types quickly.
+              </li>
+
+              <li>
+                <strong>Better automation:</strong> Validate structured data
+                before workflows execute.
+              </li>
+
+              <li>
+                <strong>Improved reliability:</strong> Reduce schema mismatch
+                issues across applications.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -247,8 +365,9 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                JSON Schema is a specification used to define the structure,
-                rules, and validation requirements for JSON data.
+                JSON Schema is a specification used to define structure,
+                validation rules, required fields, and expected formats for JSON
+                data.
               </p>
             </div>
 
@@ -259,18 +378,30 @@ export default function ToolClient() {
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Schema validation helps ensure APIs and applications receive
-                properly structured and valid JSON data.
+                correctly structured and valid JSON data.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this support required field validation?
+                Does this validator support required fields?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The validator checks for missing required fields defined in
-                the schema.
+                Yes. The validator checks for required fields defined inside the
+                schema.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is this useful for API development?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. JSON schema validation is commonly used in backend APIs,
+                webhooks, integrations, automation systems, and structured data
+                workflows.
               </p>
             </div>
 
@@ -280,7 +411,7 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. JSON schema validation happens directly in your browser.
+                No. JSON schema validation happens entirely inside your browser.
               </p>
             </div>
           </div>
@@ -290,6 +421,12 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
+
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            JSON schema validation often connects with API debugging, structured
+            data workflows, backend validation, DevOps automation, and
+            configuration management systems.
+          </p>
 
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
@@ -318,6 +455,13 @@ export default function ToolClient() {
               className="yoryantra-btn-outline"
             >
               YAML to JSON Converter
+            </Link>
+
+            <Link
+              href="/tools/json-to-yaml-converter"
+              className="yoryantra-btn-outline"
+            >
+              JSON to YAML Converter
             </Link>
           </div>
         </div>
