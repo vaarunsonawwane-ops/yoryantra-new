@@ -122,23 +122,32 @@ export default function ToolClient() {
       </div>
 
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is Text Case Converter?
+            Changing Text Case Without Rewriting Everything
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Text Case Converter helps you quickly transform text into
-            uppercase, lowercase, title case, and sentence case formats.
-            It is useful for editing documents, formatting headings,
-            improving readability, writing content, and managing text for
-            websites or social media.
+            Text case conversion helps writers, marketers, students,
+            developers, and editors quickly format content without manually
+            retyping everything. Different case formats are commonly used for
+            headings, blog titles, documentation, social media captions,
+            product names, SEO content, and publishing workflows.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Instead of manually retyping text, you can instantly convert
-            large blocks of text into the format you need with a single click.
+            During content editing, inconsistent capitalization can reduce
+            readability and create formatting issues across websites, articles,
+            presentations, and UI content. This Text Case Converter helps
+            instantly transform text into uppercase, lowercase, title case, and
+            sentence case formats.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool works directly inside your browser and helps simplify text
+            formatting while editing blogs, metadata, documentation, landing
+            pages, and marketing content.
           </p>
         </div>
 
@@ -148,23 +157,47 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste or type your text into the input area.</li>
-            <li>Select the case format you want to apply.</li>
-            <li>Review the converted output instantly.</li>
-            <li>Copy the result for use anywhere.</li>
+            <li>Paste or type your text into the editor.</li>
+
+            <li>
+              Select the text case format you want to apply.
+            </li>
+
+            <li>
+              Review the converted output instantly.
+            </li>
+
+            <li>
+              Copy the formatted text for use anywhere.
+            </li>
           </ol>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Available Text Formats
+            Available Text Case Formats
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>UPPERCASE</strong> converts all letters into capital letters.</li>
-            <li><strong>lowercase</strong> converts all letters into small letters.</li>
-            <li><strong>Title Case</strong> capitalizes the first letter of every word.</li>
-            <li><strong>Sentence case</strong> capitalizes only the beginning of the sentence.</li>
+            <li>
+              <strong>UPPERCASE</strong> converts all letters into capital
+              letters.
+            </li>
+
+            <li>
+              <strong>lowercase</strong> converts all letters into small
+              letters.
+            </li>
+
+            <li>
+              <strong>Title Case</strong> capitalizes the first letter of every
+              word.
+            </li>
+
+            <li>
+              <strong>Sentence case</strong> capitalizes the beginning of the
+              sentence while keeping remaining text lowercase.
+            </li>
           </ul>
         </div>
 
@@ -175,16 +208,24 @@ export default function ToolClient() {
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Formatting blog titles and headings.</li>
+
             <li>Converting copied text into readable formats.</li>
-            <li>Preparing social media captions.</li>
+
+            <li>Preparing social media captions and posts.</li>
+
             <li>Editing documentation and articles.</li>
-            <li>Improving consistency in written content.</li>
+
+            <li>Improving content formatting consistency.</li>
+
+            <li>Creating properly formatted SEO metadata.</li>
+
+            <li>Formatting UI text and landing page content.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example
+            Example Text Case Conversion
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
@@ -193,7 +234,7 @@ export default function ToolClient() {
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              welcome to yoryantra tools
+welcome to yoryantra tools
             </pre>
 
             <p className="mt-4 font-medium text-gray-900">
@@ -201,8 +242,38 @@ export default function ToolClient() {
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-              Welcome To Yoryantra Tools
+Welcome To Yoryantra Tools
             </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why Text Formatting Matters
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li>
+                <strong>Better readability:</strong> Proper capitalization makes
+                content easier to scan and understand.
+              </li>
+
+              <li>
+                <strong>Improved consistency:</strong> Matching formatting
+                styles creates cleaner content presentation.
+              </li>
+
+              <li>
+                <strong>Professional appearance:</strong> Structured formatting
+                improves content quality across websites and documents.
+              </li>
+
+              <li>
+                <strong>Faster editing:</strong> Bulk case conversion saves time
+                during content workflows.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -218,8 +289,8 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                A text case converter is a tool that changes text formatting
-                between uppercase, lowercase, title case, and sentence case.
+                A text case converter changes text formatting between
+                uppercase, lowercase, title case, and sentence case styles.
               </p>
             </div>
 
@@ -229,8 +300,8 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Title case capitalizes the first letter of each word, commonly
-                used for headings and titles.
+                Title case capitalizes the first letter of each word and is
+                commonly used for headings and titles.
               </p>
             </div>
 
@@ -240,19 +311,29 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Sentence case capitalizes only the first letter of the sentence
-                while keeping the remaining text lowercase.
+                Sentence case capitalizes only the beginning of a sentence while
+                keeping the remaining text lowercase.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is this Text Case Converter secure?
+                Is this Text Case Converter useful for content writing?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Everything runs directly in your browser. Your text is not
-                uploaded to any server.
+                Yes. Writers, marketers, bloggers, and SEO professionals often
+                use text case conversion while editing content and metadata.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is text conversion processed on the server?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. Text formatting happens directly inside your browser.
               </p>
             </div>
           </div>
@@ -263,21 +344,45 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Text formatting often connects with slug generation, content
+            editing, SEO optimization, word counting, and publishing workflows.
+          </p>
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/slug-generator" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/slug-generator"
+              className="yoryantra-btn-outline"
+            >
               Slug Generator
             </Link>
 
-            <Link href="/tools/word-counter" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/word-counter"
+              className="yoryantra-btn-outline"
+            >
               Word Counter
             </Link>
 
-            <Link href="/tools/regex-tester" className="yoryantra-btn-outline">
-              Regex Tester
+            <Link
+              href="/tools/meta-tag-generator"
+              className="yoryantra-btn-outline"
+            >
+              Meta Tag Generator
             </Link>
 
-            <Link href="/tools/url-encoder" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/url-encoder"
+              className="yoryantra-btn-outline"
+            >
               URL Encoder Decoder
+            </Link>
+
+            <Link
+              href="/tools/open-graph-generator"
+              className="yoryantra-btn-outline"
+            >
+              Open Graph Generator
             </Link>
           </div>
         </div>
