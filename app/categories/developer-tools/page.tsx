@@ -121,6 +121,18 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
+	  
+	  <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500">
+  <Link href="/" className="transition hover:text-[var(--gold)]">
+    Home
+  </Link>
+  <span>/</span>
+  <Link href="/categories" className="transition hover:text-[var(--gold)]">
+    Categories
+  </Link>
+  <span>/</span>
+  <span className="text-gray-900">Developer Utilities</span>
+</nav>
 
         {/* HERO */}
         <div className="max-w-3xl">
