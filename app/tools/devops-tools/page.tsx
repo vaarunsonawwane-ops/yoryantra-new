@@ -102,6 +102,7 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
+        {/* HERO */}
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-wide text-[var(--green)]">
             DevOps Tools
@@ -118,6 +119,7 @@ export default function Page() {
           </p>
         </div>
 
+        {/* INTRO */}
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <h2 className="text-lg font-semibold text-gray-900">
@@ -153,6 +155,7 @@ export default function Page() {
           </div>
         </div>
 
+        {/* FEATURED TOOLS */}
         <section className="mt-16">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
@@ -188,6 +191,7 @@ export default function Page() {
           </div>
         </section>
 
+        {/* ALL TOOLS */}
         <section className="mt-16">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
@@ -219,6 +223,7 @@ export default function Page() {
           </div>
         </section>
 
+        {/* USE CASES */}
         <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
           <h2 className="text-2xl font-semibold text-gray-900">
             Where These DevOps Tools Help
@@ -245,6 +250,7 @@ export default function Page() {
           </div>
         </section>
 
+        {/* WHY MATTERS */}
         <section className="mt-16">
           <h2 className="text-2xl font-semibold text-gray-900">
             Why DevOps Utilities Matter
@@ -266,6 +272,7 @@ export default function Page() {
           </div>
         </section>
 
+        {/* FAQ */}
         <section className="mt-16">
           <h2 className="text-2xl font-semibold text-gray-900">
             Frequently Asked Questions
@@ -320,29 +327,45 @@ export default function Page() {
           </div>
         </section>
 
+        {/* RELATED CATEGORIES */}
         <section className="mt-16 border-t border-gray-200 pt-10">
           <h2 className="text-2xl font-semibold text-gray-900">
             Related Tool Categories
           </h2>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/tools/developer-tools" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/developer-tools"
+              className="yoryantra-btn-outline"
+            >
               Developer Utilities
             </Link>
 
-            <Link href="/tools/json-tools" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/json-tools"
+              className="yoryantra-btn-outline"
+            >
               JSON & Data Tools
             </Link>
 
-            <Link href="/tools/security-tools" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/security-tools"
+              className="yoryantra-btn-outline"
+            >
               Security Tools
             </Link>
 
-            <Link href="/tools/encoding-tools" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/encoding-tools"
+              className="yoryantra-btn-outline"
+            >
               Encoding Tools
             </Link>
 
-            <Link href="/tools/seo-tools" className="yoryantra-btn-outline">
+            <Link
+              href="/tools/seo-tools"
+              className="yoryantra-btn-outline"
+            >
               SEO Tools
             </Link>
           </div>
