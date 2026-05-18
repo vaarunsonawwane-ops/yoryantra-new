@@ -219,7 +219,7 @@ export default function Page() {
                 href={tool.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--green)]">
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
                   {tool.title}
                 </h3>
 
