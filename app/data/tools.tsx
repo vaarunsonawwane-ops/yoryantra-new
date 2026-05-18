@@ -353,5 +353,12 @@ export const tools = [
   href: "/tools/http-status-code-explorer",
   },
 
+  {
+  title: "Hreflang Tag Generator",
+  description:
+    "Generate hreflang tags for multilingual and international SEO pages.",
+  href: "/tools/hreflang-tag-generator",
+  category: "SEO Tools",
+  }
 
 ];
