@@ -131,7 +131,7 @@ export default function Page() {
             <Link
               key={category.href}
               href={category.href}
-              className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-[var(--light-gold)] hover:shadow-md"
+              className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
             >
               <h2 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
                 {category.title}
