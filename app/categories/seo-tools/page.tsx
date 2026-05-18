@@ -145,10 +145,6 @@ export default function Page() {
 	  
         {/* HERO */}
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--green)]">
-            SEO Tools
-          </p>
-
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
             Technical SEO Tools for Metadata, Indexing, and Site Audits
           </h1>
