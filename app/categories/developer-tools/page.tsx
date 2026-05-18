@@ -151,10 +151,6 @@ export default function Page() {
 
         {/* HERO */}
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--green)]">
-            Developer Utilities
-          </p>
-
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
             Developer Tools for Debugging, Formatting, and Everyday Workflows
           </h1>
@@ -231,7 +227,7 @@ export default function Page() {
                   {tool.description}
                 </p>
 
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--green)]">
+                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
                   Open tool →
                 </span>
               </Link>
@@ -255,11 +251,11 @@ export default function Page() {
           <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {developerTools.map((tool) => (
               <Link
-                key={tool.href}
-                href={tool.href}
-                className="rounded-2xl border border-gray-200 bg-gray-50 p-6 transition hover:border-[var(--green)] hover:bg-white"
-              >
-                <h3 className="text-lg font-semibold text-gray-900">
+				key={tool.href}
+				href={tool.href}
+				className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
+			  >
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
                   {tool.title}
                 </h3>
 
