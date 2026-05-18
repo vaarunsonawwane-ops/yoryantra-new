@@ -1,141 +1,241 @@
 import Link from "next/link";
 
-export const metadata = {
-  title: "Tool Categories | Yoryantra",
-
-  description:
-    "Explore Yoryantra tool categories including formatters, encoders, developer utilities, text tools, and productivity utilities.",
-};
-
 const categories = [
   {
-    title: "Formatters",
+    title: "SEO Tools",
     description:
-      "Clean, beautify, and structure JSON, SQL, and other formatted content instantly.",
+      "Metadata, indexing, redirects, hreflang, sitemaps, and technical SEO utilities.",
+    href: "/categories/seo-tools",
     tools: [
-      {
-        name: "JSON Formatter",
-        href: "/tools/json-formatter",
-      },
-      {
-        name: "SQL Formatter",
-        href: "/tools/sql-formatter",
-      },
+      "Meta Tag Generator",
+      "Hreflang Tag Generator",
+      "robots.txt Generator",
     ],
   },
 
   {
-    title: "Encoders & Decoders",
+    title: "Security Tools",
     description:
-      "Encode and decode Base64, URLs, JWT tokens, and other web-friendly formats.",
+      "JWTs, hashes, tokens, API signing, CSP headers, and authentication workflows.",
+    href: "/categories/security-tools",
     tools: [
-      {
-        name: "Base64 Encoder Decoder",
-        href: "/tools/base64-encoder-decoder",
-      },
-      {
-        name: "URL Encoder Decoder",
-        href: "/tools/url-encoder-decoder",
-      },
-      {
-        name: "JWT Decoder",
-        href: "/tools/jwt-decoder",
-      },
+      "JWT Decoder",
+      "SHA256 Generator",
+      "RSA Key Generator",
     ],
   },
 
   {
-    title: "Text Utilities",
+    title: "JSON & Data Tools",
     description:
-      "Useful tools for writing, formatting, counting, transforming, and cleaning text.",
+      "JSON formatting, validation, conversion, schema checks, and structured data utilities.",
+    href: "/categories/json-tools",
     tools: [
-      {
-        name: "Text Case Converter",
-        href: "/tools/text-case-converter",
-      },
-      {
-        name: "Slug Generator",
-        href: "/tools/slug-generator",
-      },
-      {
-        name: "Word Counter",
-        href: "/tools/word-counter",
-      },
+      "JSON Formatter",
+      "JSON Validator",
+      "JSON Diff Checker",
+    ],
+  },
+
+  {
+    title: "DevOps Tools",
+    description:
+      "Docker, Kubernetes, YAML, cron expressions, and infrastructure workflows.",
+    href: "/categories/devops-tools",
+    tools: [
+      "Docker Compose Validator",
+      "Kubernetes YAML Validator",
+      ".env File Parser",
+    ],
+  },
+
+  {
+    title: "Encoding Tools",
+    description:
+      "Base64, URL encoding, HTML entities, JSON escaping, and text transformation.",
+    href: "/categories/encoding-tools",
+    tools: [
+      "Base64 Encoder Decoder",
+      "URL Encoder Decoder",
+      "HTML Encoder Decoder",
     ],
   },
 
   {
     title: "Developer Utilities",
     description:
-      "Practical utilities for developers, debugging workflows, and everyday coding tasks.",
+      "Regex testing, timestamps, debugging, UUIDs, and development workflows.",
+    href: "/categories/developer-tools",
     tools: [
-      {
-        name: "Regex Tester",
-        href: "/tools/regex-tester",
-      },
-      {
-        name: "Timestamp Converter",
-        href: "/tools/timestamp-converter",
-      },
+      "Regex Tester",
+      "UUID Generator",
+      "Timestamp Converter",
     ],
   },
 ];
 
-export default function CategoriesPage() {
+export const metadata = {
+  title: "Tool Categories | Yoryantra",
+
+  description:
+    "Browse organized categories of developer, SEO, security, encoding, JSON, and DevOps tools on Yoryantra.",
+
+  alternates: {
+    canonical: "https://yoryantra.com/categories",
+  },
+
+  openGraph: {
+    title: "Tool Categories | Yoryantra",
+
+    description:
+      "Browse organized categories of developer, SEO, security, encoding, JSON, and DevOps tools.",
+
+    url: "https://yoryantra.com/categories",
+
+    siteName: "Yoryantra",
+
+    type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+
+    title: "Tool Categories | Yoryantra",
+
+    description:
+      "Explore developer, SEO, security, JSON, encoding, and DevOps utility categories.",
+  },
+};
+
+export default function Page() {
   return (
-    <div className="max-w-6xl mx-auto px-6 py-20">
+    <main className="min-h-screen bg-white">
+      <section className="mx-auto max-w-7xl px-6 py-16">
 
-      {/* HEADER */}
-      <div className="max-w-3xl">
+        {/* HERO */}
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--green)]">
+            Categories
+          </p>
 
-        <h1 className="text-4xl font-bold text-gray-900">
-          Tool Categories
-        </h1>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
+            Explore Utility Categories Across SEO, Security, JSON, and Development
+          </h1>
 
-        <p className="mt-5 text-lg text-gray-600 leading-relaxed">
-          Explore thoughtfully organized utility categories across
-          formatting, encoding, productivity, development,
-          and text-processing workflows.
-        </p>
+          <p className="mt-5 text-lg leading-relaxed text-gray-600">
+            Browse organized utility categories built for developers, SEO
+            workflows, structured data handling, encoding, security testing,
+            debugging, and infrastructure-related tasks.
+          </p>
+        </div>
 
-      </div>
+        {/* CATEGORY GRID */}
+        <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {categories.map((category) => (
+            <Link
+              key={category.href}
+              href={category.href}
+              className="group rounded-2xl border border-gray-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+            >
+              <h2 className="text-2xl font-semibold text-gray-900 group-hover:text-[var(--green)]">
+                {category.title}
+              </h2>
 
-      {/* CATEGORY GRID */}
-      <div className="grid md:grid-cols-2 gap-8 mt-14">
+              <p className="mt-4 text-sm leading-relaxed text-gray-600">
+                {category.description}
+              </p>
 
-        {categories.map((category) => (
-          <div
-            key={category.title}
-            className="border border-gray-200 rounded-3xl p-8 bg-white"
-          >
+              <div className="mt-6 space-y-2">
+                {category.tools.map((tool) => (
+                  <div
+                    key={tool}
+                    className="text-sm text-gray-700"
+                  >
+                    → {tool}
+                  </div>
+                ))}
+              </div>
 
-            <h2 className="text-2xl font-semibold text-gray-900">
-              {category.title}
-            </h2>
+              <span className="mt-6 inline-flex text-sm font-semibold text-[var(--green)]">
+                Explore category →
+              </span>
+            </Link>
+          ))}
+        </div>
 
-            <p className="mt-4 text-gray-600 leading-relaxed">
-              {category.description}
+        {/* WHY CATEGORIES */}
+        <section className="mt-20 rounded-2xl border border-gray-200 bg-gray-50 p-8">
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Why These Utility Categories Matter
+          </h2>
+
+          <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
+            <p>
+              Developers, SEO professionals, backend engineers, DevOps teams,
+              and technical marketers often need fast utilities for debugging,
+              formatting, validation, metadata generation, and secure data
+              handling.
             </p>
 
-            <div className="mt-6 flex flex-col gap-3">
-
-              {category.tools.map((tool) => (
-                <Link
-                  key={tool.name}
-                  href={tool.href}
-                  className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
-                >
-                  → {tool.name}
-                </Link>
-              ))}
-
-            </div>
-
+            <p>
+              Organizing tools into focused categories makes it easier to
+              discover related workflows, improve productivity, and navigate
+              technical tasks without jumping between unrelated utilities.
+            </p>
           </div>
-        ))}
+        </section>
 
-      </div>
+        {/* RELATED */}
+        <section className="mt-16 border-t border-gray-200 pt-10">
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Popular Tool Areas
+          </h2>
 
-    </div>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/categories/seo-tools"
+              className="yoryantra-btn-outline"
+            >
+              SEO Tools
+            </Link>
+
+            <Link
+              href="/categories/security-tools"
+              className="yoryantra-btn-outline"
+            >
+              Security Tools
+            </Link>
+
+            <Link
+              href="/categories/json-tools"
+              className="yoryantra-btn-outline"
+            >
+              JSON & Data Tools
+            </Link>
+
+            <Link
+              href="/categories/devops-tools"
+              className="yoryantra-btn-outline"
+            >
+              DevOps Tools
+            </Link>
+
+            <Link
+              href="/categories/encoding-tools"
+              className="yoryantra-btn-outline"
+            >
+              Encoding Tools
+            </Link>
+
+            <Link
+              href="/categories/developer-tools"
+              className="yoryantra-btn-outline"
+            >
+              Developer Utilities
+            </Link>
+          </div>
+        </section>
+      </section>
+    </main>
   );
 }
