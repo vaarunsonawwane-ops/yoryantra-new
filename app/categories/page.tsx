@@ -115,7 +115,7 @@ export default function Page() {
         {/* HERO */}
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-wide text-[var(--green)]">
-            Categories
+            Categories1
           </p>
 
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
