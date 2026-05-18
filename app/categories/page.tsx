@@ -133,7 +133,7 @@ export default function Page() {
               href={category.href}
               className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-[var(--light-gold)] hover:shadow-md"
             >
-              <h2 className="text-xl font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
+              <h2 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
                 {category.title}
               </h2>
 
@@ -141,18 +141,7 @@ export default function Page() {
                 {category.description}
               </p>
 
-              <div className="mt-6 space-y-2">
-                {category.tools.map((tool) => (
-                  <div
-                    key={tool}
-                    className="text-sm text-gray-700"
-                  >
-                    → {tool}
-                  </div>
-                ))}
-              </div>
-
-              <span className="mt-6 inline-flex text-sm font-semibold text-[var(--green)]">
+              <span className="mt-6 inline-flex text-sm font-semibold text-[var(--light-gold)]">
                 Explore category →
               </span>
             </Link>
