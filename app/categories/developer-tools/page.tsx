@@ -88,7 +88,7 @@ export const metadata = {
 
   alternates: {
     canonical:
-      "https://yoryantra.com/tools/developer-tools",
+      "https://yoryantra.com/categories/developer-tools",
   },
 
   openGraph: {
@@ -99,7 +99,7 @@ export const metadata = {
       "Free online developer utilities for debugging, encoding, JSON formatting, JWT inspection, timestamps, and regex testing.",
 
     url:
-      "https://yoryantra.com/tools/developer-tools",
+      "https://yoryantra.com/categories/developer-tools",
 
     siteName: "Yoryantra",
 
@@ -354,35 +354,35 @@ export default function Page() {
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              href="/tools/json-tools"
+              href="/categories/json-tools"
               className="yoryantra-btn-outline"
             >
               JSON & Data Tools
             </Link>
 
             <Link
-              href="/tools/security-tools"
+              href="/categories/security-tools"
               className="yoryantra-btn-outline"
             >
               Security Tools
             </Link>
 
             <Link
-              href="/tools/devops-tools"
+              href="/categories/devops-tools"
               className="yoryantra-btn-outline"
             >
               DevOps Tools
             </Link>
 
             <Link
-              href="/tools/encoding-tools"
+              href="/categories/encoding-tools"
               className="yoryantra-btn-outline"
             >
               Encoding Tools
             </Link>
 
             <Link
-              href="/tools/seo-tools"
+              href="/categories/seo-tools"
               className="yoryantra-btn-outline"
             >
               SEO Tools

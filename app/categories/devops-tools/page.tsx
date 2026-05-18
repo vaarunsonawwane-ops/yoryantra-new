@@ -72,7 +72,7 @@ export const metadata = {
   ],
 
   alternates: {
-    canonical: "https://yoryantra.com/tools/devops-tools",
+    canonical: "https://yoryantra.com/categories/devops-tools",
   },
 
   openGraph: {
@@ -81,7 +81,7 @@ export const metadata = {
     description:
       "Free online DevOps utilities for Docker, Kubernetes, YAML, .env files, cron expressions, and infrastructure configuration.",
 
-    url: "https://yoryantra.com/tools/devops-tools",
+    url: "https://yoryantra.com/categories/devops-tools",
 
     siteName: "Yoryantra",
 
@@ -335,35 +335,35 @@ export default function Page() {
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              href="/tools/developer-tools"
+              href="/categories/developer-tools"
               className="yoryantra-btn-outline"
             >
               Developer Utilities
             </Link>
 
             <Link
-              href="/tools/json-tools"
+              href="/categories/json-tools"
               className="yoryantra-btn-outline"
             >
               JSON & Data Tools
             </Link>
 
             <Link
-              href="/tools/security-tools"
+              href="/categories/security-tools"
               className="yoryantra-btn-outline"
             >
               Security Tools
             </Link>
 
             <Link
-              href="/tools/encoding-tools"
+              href="/categories/encoding-tools"
               className="yoryantra-btn-outline"
             >
               Encoding Tools
             </Link>
 
             <Link
-              href="/tools/seo-tools"
+              href="/categories/seo-tools"
               className="yoryantra-btn-outline"
             >
               SEO Tools
