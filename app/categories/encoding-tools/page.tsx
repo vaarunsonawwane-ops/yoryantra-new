@@ -104,17 +104,32 @@ export default function Page() {
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
 	  
-	  <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500">
-  <Link href="/" className="transition hover:text-[var(--gold)]">
+{/* BREADCRUMB */}
+<div className="mb-8 flex items-center text-sm text-gray-500">
+
+  <Link
+    href="/"
+    className="hover:!text-[var(--light-gold)] transition-colors duration-200"
+  >
     Home
   </Link>
-  <span>/</span>
-  <Link href="/categories" className="transition hover:text-[var(--gold)]">
+
+  <span className="mx-2">/</span>
+
+  <Link
+    href="/categories"
+    className="hover:!text-[var(--light-gold)] transition-colors duration-200"
+  >
     Categories
   </Link>
-  <span>/</span>
-  <span className="text-gray-900">Encoding Tools</span>
-</nav>
+
+  <span className="mx-2">/</span>
+
+  <span className="text-gray-900">
+    Encoding Tools
+  </span>
+
+</div>
 	  
         {/* HERO */}
         <div className="max-w-3xl">
