@@ -55,7 +55,15 @@ export default function Footer() {
 			  >
 			   JSON Guides
 			  </Link>
-			  			  
+			  
+
+			  <Link
+				href="/devops-resources"
+				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				DevOps Resources
+			  </Link>
+			  
 			  <Link
 				href="/categories"
 				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
