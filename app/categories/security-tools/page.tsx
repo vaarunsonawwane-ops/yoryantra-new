@@ -67,6 +67,14 @@ const securityTools = [
       "Build Content Security Policy headers for frontend protection.",
     href: "/tools/csp-generator",
   },
+  
+  {
+  title: "Security Headers Scanner",
+  description:
+    "Scan website security headers including CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP, COEP, and related headers.",
+  href: "/tools/security-headers-scanner",
+  },
+  
   {
     title: "Base64URL Encoder Decoder",
     description:
