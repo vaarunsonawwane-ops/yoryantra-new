@@ -117,18 +117,18 @@ export default function Page() {
 		  <span className="mx-2">/</span>
 
 		  <Link
-			href="/categories"
-			className="hover:!text-[var(--light-gold)] transition-colors duration-200"
+		   href="/categories"
+		   className="hover:!text-[var(--light-gold)] transition-colors duration-200"
 		  >
-			Categories
-		  </Link>
+		   Categories
+		   </Link>
 
 		  <span className="mx-2">/</span>
 
 		  <span className="text-gray-900">
-			Encoding Tools
+		  Encoding Tools
 		  </span>
-		className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
+
 		</div>
 	  
         {/* HERO */}
