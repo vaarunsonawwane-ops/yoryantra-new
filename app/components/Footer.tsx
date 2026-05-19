@@ -65,6 +65,14 @@ export default function Footer() {
 			  </Link>
 			  
 			  <Link
+				href="/encoding-guides"
+				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				Encoding Guides
+			  </Link>			  
+			  
+			  
+			  <Link
 				href="/categories"
 				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
 			  >
