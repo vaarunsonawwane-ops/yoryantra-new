@@ -19,108 +19,110 @@ export default function Footer() {
             </p>
           </div>
 
-		 {/* LINKS */}
-		<div className="flex flex-wrap gap-12 text-sm">
+          {/* LINKS */}
+          <div className="flex flex-wrap gap-12 text-sm">
 
-		  {/* RESOURCES */}
-		  <div className="flex flex-col gap-3">
-			<p className="font-semibold text-gray-900">
-			  Resources
-			</p>
+			{/* RESOURCES */}
+			<div className="flex flex-col gap-3">
+			  <p className="font-semibold text-gray-900">
+				Resources
+			  </p>
 
-			<Link
-			  href="/developers"
-			  className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			>
-			  Developers
-			</Link>
+			  <Link
+				href="/developers"
+				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				Developers
+			  </Link>
 
-			<Link
-			  href="/categories"
-			  className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			>
-			  Categories
-			</Link>
+			  <Link
+				href="/categories"
+				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				Categories
+			  </Link>
 
-			<Link
-			  href="/tools"
-			  className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			>
-			  Tools
-			</Link>
+			  <Link
+				href="/tools"
+				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				Tools
+			  </Link>
 
-			<Link
-			  href="/sitemap"
-			  className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			>
-			  Sitemap
-			</Link>
-		  </div>
+			  <Link
+				href="/sitemap"
+				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				Sitemap
+			  </Link>
+			</div>
 
-		  {/* TOOLS */}
-		  <div className="flex flex-col gap-3">
-			<p className="font-semibold text-gray-900">
-			  Tools
-			</p>
+            {/* TOOLS */}
+            <div className="flex flex-col gap-3">
+              <p className="font-semibold text-gray-900">
+                Tools
+              </p>
 
-			<Link
-			  href="/tools"
-			  className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			>
-			  All Tools
-			</Link>
-		  </div>
+              <Link
+                href="/tools"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+              >
+                All Tools
+              </Link>
+            </div>
 
-		  {/* COMPANY */}
-		  <div className="flex flex-col gap-3">
-			<p className="font-semibold text-gray-900">
-			  Company
-			</p>
+            {/* COMPANY */}
+            <div className="flex flex-col gap-3">
+              <p className="font-semibold text-gray-900">
+                Company
+              </p>
 
-			<Link
-			  href="/about"
-			  className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			>
-			  About
-			</Link>
+              <Link
+                href="/about"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+              >
+                About
+              </Link>
 
-			<Link
-			  href="/contact"
-			  className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			>
-			  Contact
-			</Link>
-		  </div>
+              <Link
+                href="/contact"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+              >
+                Contact
+              </Link>
+            </div>
 
-		  {/* LEGAL */}
-		  <div className="flex flex-col gap-3">
-			<p className="font-semibold text-gray-900">
-			  Legal
-			</p>
+            {/* LEGAL */}
+            <div className="flex flex-col gap-3">
+              <p className="font-semibold text-gray-900">
+                Legal
+              </p>
 
-			<Link
-			  href="/privacy-policy"
-			  className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			>
-			  Privacy Policy
-			</Link>
+              <Link
+                href="/privacy-policy"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+              >
+                Privacy Policy
+              </Link>
 
-			<Link
-			  href="/terms"
-			  className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			>
-			  Terms
-			</Link>
+              <Link
+                href="/terms"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+              >
+                Terms
+              </Link>
+			  
+			  <Link
+				href="/disclaimer"
+				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				Disclaimer
+			  </Link> 
+			  
+			   </div>
 
-			<Link
-			  href="/disclaimer"
-			  className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			>
-			  Disclaimer
-			</Link>
-		  </div>
-
-		</div>
+          </div>
+        </div>
 
         {/* BOTTOM BAR */}
         <div className="border-t border-gray-100 mt-10 pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-sm text-gray-500">
