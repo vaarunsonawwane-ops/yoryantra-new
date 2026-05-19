@@ -105,31 +105,31 @@ export default function Page() {
       <section className="mx-auto max-w-7xl px-6 py-16">
 	  
 {/* BREADCRUMB */}
-<div className="mb-8 flex items-center text-sm text-gray-500">
+		<div className="mb-8 flex items-center text-sm text-gray-500">
 
-  <Link
-    href="/"
-    className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-  >
-    Home
-  </Link>
+		  <Link
+			href="/"
+			className="hover:!text-[var(--light-gold)] transition-colors duration-200"
+		  >
+			Home
+		  </Link>
 
-  <span className="mx-2">/</span>
+		  <span className="mx-2">/</span>
 
-  <Link
-    href="/categories"
-    className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-  >
-    Categories
-  </Link>
+		  <Link
+			href="/categories"
+			className="hover:!text-[var(--light-gold)] transition-colors duration-200"
+		  >
+			Categories
+		  </Link>
 
-  <span className="mx-2">/</span>
+		  <span className="mx-2">/</span>
 
-  <span className="text-gray-900">
-    Encoding Tools
-  </span>
-
-</div>
+		  <span className="text-gray-900">
+			Encoding Tools
+		  </span>
+		className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
+		</div>
 	  
         {/* HERO */}
         <div className="max-w-3xl">
@@ -200,7 +200,7 @@ export default function Page() {
                 href={tool.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--green)]">
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
                   {tool.title}
                 </h3>
 
@@ -208,7 +208,7 @@ export default function Page() {
                   {tool.description}
                 </p>
 
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--green)]">
+                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
                   Open tool →
                 </span>
               </Link>
@@ -236,7 +236,7 @@ export default function Page() {
                 href={tool.href}
                 className="rounded-2xl border border-gray-200 bg-gray-50 p-6 transition hover:border-[var(--green)] hover:bg-white"
               >
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
                   {tool.title}
                 </h3>
 
