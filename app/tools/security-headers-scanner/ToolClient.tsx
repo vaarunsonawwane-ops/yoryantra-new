@@ -146,13 +146,13 @@ export default function ToolClient() {
         redirect: "follow",
       });
 
-      const scannedResults = securityHeaderRules.map((rule) => {
+      const scannedResults: HeaderResult[] = securityHeaderRules.map((rule) => {
         const value = response.headers.get(rule.name);
 
         return {
           ...rule,
           value,
-          status: value ? "found" : "missing",
+          status: value ? "found" as const : "missing" as const,
         };
       });
 
