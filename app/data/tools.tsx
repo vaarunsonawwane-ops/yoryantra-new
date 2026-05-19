@@ -359,7 +359,7 @@ export const tools = [
     "Generate hreflang tags for multilingual and international SEO pages.",
   href: "/tools/hreflang-tag-generator",
   category: "SEO Tools",
-  }
+  },
 
   {
   title: "HTTP Headers Checker",
