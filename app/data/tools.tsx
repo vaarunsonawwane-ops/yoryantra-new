@@ -361,4 +361,13 @@ export const tools = [
   category: "SEO Tools",
   }
 
+  {
+  title: "HTTP Headers Checker",
+  description:
+    "Check HTTP response headers, status codes, redirects, cache headers, and security headers.",
+  href: "/tools/http-headers-checker",
+  category: "SEO Tools",
+  },
+
+
 ];
