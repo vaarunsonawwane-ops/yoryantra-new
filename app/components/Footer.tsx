@@ -34,6 +34,14 @@ export default function Footer() {
 			  >
 				Developers
 			  </Link>
+			  
+			  <Link
+			    href="/seo-resources"
+			    className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				SEO Resources
+			  </Link>
+			  
 
 			  <Link
 				href="/categories"
