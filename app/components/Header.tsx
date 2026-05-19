@@ -34,13 +34,6 @@ export default function Header() {
             Tools
           </Link>
 
-          <Link
-            href="/about"
-            className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-          >
-            About
-          </Link>
-
 		  <Link
 		   href="/categories"
 		   className="text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200"
@@ -48,6 +41,20 @@ export default function Header() {
 			Categories
 		  </Link>
 		  
+		  <Link
+		   href="/developers"
+		   className="hover:!text-[var(--light-gold)] transition-colors duration-200"
+		  >
+			Developers
+		  </Link>
+		  
+		  <Link
+            href="/about"
+            className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+          >
+            About
+          </Link>
+		  		  
           <Link
             href="/contact"
             className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
