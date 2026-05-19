@@ -199,7 +199,7 @@ export default function Page() {
                 href={tool.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--green)]">
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
                   {tool.title}
                 </h3>
 
@@ -207,7 +207,7 @@ export default function Page() {
                   {tool.description}
                 </p>
 
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--green)]">
+                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
                   Open tool →
                 </span>
               </Link>
@@ -233,9 +233,9 @@ export default function Page() {
               <Link
                 key={tool.href}
                 href={tool.href}
-                className="rounded-2xl border border-gray-200 bg-gray-50 p-6 transition hover:border-[var(--green)] hover:bg-white"
+                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
                   {tool.title}
                 </h3>
 
