@@ -369,5 +369,15 @@ export const tools = [
   category: "SEO Tools",
   },
 
+  {
+  title: "Security Headers Scanner",
+  description:
+    "Scan website security headers including CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP, COEP, and related headers.",
+  href: "/tools/security-headers-scanner",
+  category: "Security Tools",
+  },
+
+
+
 
 ];
