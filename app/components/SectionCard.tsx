@@ -4,8 +4,8 @@ export default function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-[#f1dfb5] bg-[#fffaf0] p-8">
+    <section className="mt-20 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
       {children}
-    </div>
+    </section>
   );
 }
