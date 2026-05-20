@@ -1,87 +1,9 @@
 import Link from "next/link";
+import { tools } from "@/app/data/tools";
 
-const securityTools = [
-  {
-    title: "JWT Decoder",
-    description:
-      "Decode JWT tokens and inspect header, payload, and claims safely.",
-    href: "/tools/jwt-decoder",
-  },
-  {
-    title: "JWT Signature Verifier",
-    description:
-      "Verify JWT signatures against a secret during authentication testing.",
-    href: "/tools/jwt-signature-verifier",
-  },
-  {
-    title: "HMAC Generator",
-    description:
-      "Generate HMAC signatures for API security and webhook verification.",
-    href: "/tools/hmac-generator",
-  },
-  {
-    title: "SHA256 Generator",
-    description:
-      "Generate SHA256 hashes for text, APIs, and verification workflows.",
-    href: "/tools/sha256-generator",
-  },
-  {
-    title: "Hash Generator",
-    description:
-      "Create common hash values for text and development workflows.",
-    href: "/tools/hash-generator",
-  },
-  {
-    title: "bcrypt Generator",
-    description:
-      "Generate bcrypt password hashes for authentication testing.",
-    href: "/tools/bcrypt-generator",
-  },
-  {
-    title: "RSA Key Generator",
-    description:
-      "Generate RSA public and private key pairs in PEM format.",
-    href: "/tools/rsa-key-generator",
-  },
-  {
-    title: "PEM Formatter",
-    description:
-      "Format PEM certificates, public keys, and private keys cleanly.",
-    href: "/tools/pem-formatter",
-  },
-  {
-    title: "Random Token Generator",
-    description:
-      "Generate secure random tokens for APIs, sessions, and testing.",
-    href: "/tools/random-token-generator",
-  },
-  {
-    title: "API Key Generator",
-    description:
-      "Generate API keys and secret strings for development workflows.",
-    href: "/tools/api-key-generator",
-  },
-  {
-    title: "CSP Generator",
-    description:
-      "Build Content Security Policy headers for frontend protection.",
-    href: "/tools/csp-generator",
-  },
-  
-  {
-  title: "Security Headers Scanner",
-  description:
-    "Scan website security headers including CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP, COEP, and related headers.",
-  href: "/tools/security-headers-scanner",
-  },
-  
-  {
-    title: "Base64URL Encoder Decoder",
-    description:
-      "Encode and decode Base64URL strings for JWTs, APIs, and URLs.",
-    href: "/tools/base64url-encoder-decoder",
-  },
-];
+const securityTools = tools.filter(
+  (tool) => tool.category === "Security Tools"
+);
 
 const featuredTools = securityTools.slice(0, 6);
 

@@ -1,67 +1,9 @@
 import Link from "next/link";
+import { tools } from "@/app/data/tools";
 
-const jsonTools = [
-  {
-    title: "JSON Formatter",
-    description:
-      "Format and beautify JSON for easier reading and debugging.",
-    href: "/tools/json-formatter",
-  },
-  {
-    title: "JSON Validator",
-    description:
-      "Validate JSON structure and detect syntax errors quickly.",
-    href: "/tools/json-validator",
-  },
-  {
-    title: "JSON Minifier",
-    description:
-      "Minify JSON data by removing whitespace and extra formatting.",
-    href: "/tools/json-minifier",
-  },
-  {
-    title: "JSON Diff Checker",
-    description:
-      "Compare two JSON objects and inspect line-by-line differences.",
-    href: "/tools/json-diff-checker",
-  },
-  {
-    title: "JSON Schema Validator",
-    description:
-      "Validate JSON data against a schema for API and backend workflows.",
-    href: "/tools/json-schema-validator",
-  },
-  {
-    title: "JSON Escape Unescape",
-    description:
-      "Escape and unescape JSON strings for APIs, logs, and payloads.",
-    href: "/tools/json-escape-unescape",
-  },
-  {
-    title: "JSON to YAML Converter",
-    description:
-      "Convert JSON data into readable YAML configuration.",
-    href: "/tools/json-to-yaml-converter",
-  },
-  {
-    title: "YAML to JSON Converter",
-    description:
-      "Convert YAML configuration into structured JSON output.",
-    href: "/tools/yaml-to-json-converter",
-  },
-  {
-    title: "XML to JSON Converter",
-    description:
-      "Convert XML responses and structured data into readable JSON.",
-    href: "/tools/xml-to-json-converter",
-  },
-  {
-    title: "YAML Formatter",
-    description:
-      "Format YAML files used in configuration and DevOps workflows.",
-    href: "/tools/yaml-formatter",
-  },
-];
+const securityTools = tools.filter(
+  (tool) => tool.category === "JSON & Data Tools"
+);
 
 const featuredTools = jsonTools.slice(0, 6);
 

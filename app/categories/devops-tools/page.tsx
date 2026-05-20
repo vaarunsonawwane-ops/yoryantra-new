@@ -1,55 +1,9 @@
 import Link from "next/link";
+import { tools } from "@/app/data/tools";
 
-const devopsTools = [
-  {
-    title: "Docker Compose Validator",
-    description:
-      "Validate Docker Compose YAML files before running container stacks.",
-    href: "/tools/docker-compose-validator",
-  },
-  {
-    title: "Kubernetes YAML Validator",
-    description:
-      "Check Kubernetes manifests for required fields and YAML issues.",
-    href: "/tools/kubernetes-yaml-validator",
-  },
-  {
-    title: ".env File Parser",
-    description:
-      "Parse environment variables into readable JSON for debugging.",
-    href: "/tools/env-file-parser",
-  },
-  {
-    title: "YAML Formatter",
-    description:
-      "Format YAML files for configuration, DevOps, and infrastructure work.",
-    href: "/tools/yaml-formatter",
-  },
-  {
-    title: "JSON to YAML Converter",
-    description:
-      "Convert JSON data into readable YAML configuration.",
-    href: "/tools/json-to-yaml-converter",
-  },
-  {
-    title: "YAML to JSON Converter",
-    description:
-      "Convert YAML configuration into structured JSON output.",
-    href: "/tools/yaml-to-json-converter",
-  },
-  {
-    title: "Cron Expression Generator",
-    description:
-      "Build cron expressions for scheduled jobs and automation.",
-    href: "/tools/cron-expression-generator",
-  },
-  {
-    title: "Cron Expression Parser",
-    description:
-      "Read cron expressions and understand recurring schedules.",
-    href: "/tools/cron-expression-parser",
-  },
-];
+const securityTools = tools.filter(
+  (tool) => tool.category === "DevOps Tools"
+);
 
 const featuredTools = devopsTools.slice(0, 6);
 

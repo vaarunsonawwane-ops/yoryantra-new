@@ -1,67 +1,9 @@
 import Link from "next/link";
+import { tools } from "@/app/data/tools";
 
-const seoTools = [
-  {
-    title: "Meta Tag Generator",
-    description:
-      "Create SEO meta titles, descriptions, and basic metadata for webpages.",
-    href: "/tools/meta-tag-generator",
-  },
-  {
-    title: "Open Graph Generator",
-    description:
-      "Generate Open Graph tags for better social sharing previews.",
-    href: "/tools/open-graph-generator",
-  },
-  {
-    title: "Hreflang Tag Generator",
-    description:
-      "Generate hreflang tags for multilingual and international SEO pages.",
-    href: "/tools/hreflang-tag-generator",
-  },
-  {
-    title: "robots.txt Generator",
-    description:
-      "Create robots.txt rules to guide search engine crawlers.",
-    href: "/tools/robots-txt-generator",
-  },
-  {
-    title: "Sitemap Generator",
-    description:
-      "Generate XML sitemap structure for search engine discovery.",
-    href: "/tools/sitemap-generator",
-  },
-  {
-    title: "Canonical URL Checker",
-    description:
-      "Check canonical URLs and avoid duplicate page confusion.",
-    href: "/tools/canonical-url-checker",
-  },
-  {
-    title: "Redirect Checker",
-    description:
-      "Inspect redirects, status codes, and final destination URLs.",
-    href: "/tools/redirect-checker",
-  },
-  {
-    title: "UTM Builder",
-    description:
-      "Build campaign tracking URLs for analytics and marketing reports.",
-    href: "/tools/utm-builder",
-  },
-  {
-    title: "URL Query Params Parser",
-    description:
-      "Read and inspect tracking tags, query strings, and URL parameters.",
-    href: "/tools/url-query-params-parser",
-  },
-  {
-    title: "QR Code Generator",
-    description:
-      "Generate QR codes for links, campaigns, and quick mobile sharing.",
-    href: "/tools/qr-code-generator",
-  },
-];
+const securityTools = tools.filter(
+  (tool) => tool.category === "SEO Tools"
+);
 
 const featuredTools = seoTools.slice(0, 6);
 

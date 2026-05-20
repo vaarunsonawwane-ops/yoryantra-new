@@ -1,55 +1,9 @@
 import Link from "next/link";
+import { tools } from "@/app/data/tools";
 
-const encodingTools = [
-  {
-    title: "Base64 Encoder Decoder",
-    description:
-      "Encode and decode Base64 strings for data, APIs, and debugging.",
-    href: "/tools/base64-encoder-decoder",
-  },
-  {
-    title: "Base64URL Encoder Decoder",
-    description:
-      "Encode and decode URL-safe Base64URL strings for JWTs and APIs.",
-    href: "/tools/base64url-encoder-decoder",
-  },
-  {
-    title: "URL Encoder Decoder",
-    description:
-      "Encode and decode URLs, query strings, and special characters.",
-    href: "/tools/url-encoder-decoder",
-  },
-  {
-    title: "HTML Encoder Decoder",
-    description:
-      "Encode and decode HTML entities for safe webpage rendering.",
-    href: "/tools/html-encoder-decoder",
-  },
-  {
-    title: "JSON Escape Unescape",
-    description:
-      "Escape and unescape JSON strings for API payloads and logs.",
-    href: "/tools/json-escape-unescape",
-  },
-  {
-    title: "Text Case Converter",
-    description:
-      "Convert text between uppercase, lowercase, title case, and more.",
-    href: "/tools/text-case-converter",
-  },
-  {
-    title: "Slug Generator",
-    description:
-      "Create clean URL slugs for blog posts, pages, and SEO workflows.",
-    href: "/tools/slug-generator",
-  },
-  {
-    title: "QR Code Generator",
-    description:
-      "Generate QR codes for links, text, campaigns, and quick sharing.",
-    href: "/tools/qr-code-generator",
-  },
-];
+const securityTools = tools.filter(
+  (tool) => tool.category === "Encoding Tools"
+);
 
 const featuredTools = encodingTools.slice(0, 6);
 

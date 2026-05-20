@@ -1,67 +1,9 @@
 import Link from "next/link";
+import { tools } from "@/app/data/tools";
 
-const developerTools = [
-  {
-    title: "Regex Tester",
-    description:
-      "Test and debug regular expressions with live matching output.",
-    href: "/tools/regex-tester",
-  },
-  {
-    title: "JWT Decoder",
-    description:
-      "Decode JWT tokens and inspect payload data instantly.",
-    href: "/tools/jwt-decoder",
-  },
-  {
-    title: "Base64 Encoder Decoder",
-    description:
-      "Encode and decode Base64 strings directly in your browser.",
-    href: "/tools/base64-encoder-decoder",
-  },
-  {
-    title: "URL Encoder Decoder",
-    description:
-      "Encode and decode URLs for query strings and web requests.",
-    href: "/tools/url-encoder-decoder",
-  },
-  {
-    title: "HTML Encoder Decoder",
-    description:
-      "Convert HTML entities into encoded or decoded text.",
-    href: "/tools/html-encoder-decoder",
-  },
-  {
-    title: "JSON Formatter",
-    description:
-      "Format and beautify JSON for debugging and development.",
-    href: "/tools/json-formatter",
-  },
-  {
-    title: "JSON Validator",
-    description:
-      "Validate JSON structure and detect formatting errors.",
-    href: "/tools/json-validator",
-  },
-  {
-    title: "Timestamp Converter",
-    description:
-      "Convert Unix timestamps into readable date and time values.",
-    href: "/tools/timestamp-converter",
-  },
-  {
-    title: "UUID Generator",
-    description:
-      "Generate UUIDs for APIs, databases, and application workflows.",
-    href: "/tools/uuid-generator",
-  },
-  {
-    title: "Cron Expression Parser",
-    description:
-      "Read and understand cron schedules and timing expressions.",
-    href: "/tools/cron-expression-parser",
-  },
-];
+const securityTools = tools.filter(
+  (tool) => tool.category === "Developer Tools"
+);
 
 const featuredTools =
   developerTools.slice(0, 6);
