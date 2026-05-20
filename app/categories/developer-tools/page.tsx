@@ -191,32 +191,38 @@ export default function Page() {
           </div>
         </section>
 
-        {/* USE CASES */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Common Development Tasks These Tools Support
-          </h2>
+		{/* USE CASES */}
+		<SectionCard>
+		  <h2 className="text-2xl font-semibold text-gray-900">
+			Small Development Tasks These Tools Make Easier
+		  </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              "Debugging API responses and JWT tokens.",
-              "Formatting and validating JSON payloads.",
-              "Testing regex expressions during development.",
-              "Converting timestamps into readable values.",
-              "Generating UUIDs for systems and databases.",
-              "Handling Base64 and encoded strings.",
-              "Inspecting URL parameters and query strings.",
-              "Testing data formatting before deployment.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+			Development often slows down because of tiny repetitive tasks — checking a
+			JWT payload, cleaning JSON, debugging encoded values, comparing responses,
+			or quickly testing a regex before shipping code. These utilities are built
+			for those everyday moments.
+		  </p>
+
+		  <div className="mt-8 grid gap-4 md:grid-cols-2">
+			{[
+			  "Quickly inspect API responses when something looks wrong.",
+			  "Format messy JSON payloads before debugging or sharing them.",
+			  "Check JWT tokens and encoded values during authentication work.",
+			  "Test regex patterns before adding them to production logic.",
+			  "Convert timestamps when logs or backend values are hard to read.",
+			  "Generate UUIDs and identifiers during testing or development.",
+			  "Inspect URL parameters and query strings while debugging requests.",
+			  "Validate or clean structured data before deployment or release.",
+			].map((item) => (
+			  <SectionMiniCard key={item}>
+				<p className="text-sm leading-relaxed text-gray-700">
+				  {item}
+				</p>
+			  </SectionMiniCard>
+			))}
+		  </div>
+		</SectionCard>
 
         {/* WHY MATTERS */}
         <section className="mt-16">

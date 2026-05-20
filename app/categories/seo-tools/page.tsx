@@ -185,32 +185,38 @@ export default function Page() {
           </div>
         </section>
 
-        {/* USE CASES */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Where These SEO Tools Help
-          </h2>
+		{/* USE CASES */}
+		<SectionCard>
+		  <h2 className="text-2xl font-semibold text-gray-900">
+			Small Technical SEO Tasks These Tools Help Simplify
+		  </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              "Creating meta titles and descriptions for pages.",
-              "Generating Open Graph tags for social previews.",
-              "Preparing hreflang tags for international SEO.",
-              "Checking redirects and final destination URLs.",
-              "Creating robots.txt and sitemap-related SEO files.",
-              "Building UTM links for analytics and campaign tracking.",
-              "Reviewing canonical URLs and duplicate page signals.",
-              "Inspecting query parameters used in tracking URLs.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+			Technical SEO is often about small details that quietly affect visibility —
+			redirects, metadata, canonical signals, tracking links, crawl rules, and
+			structured page information. These tools help make those everyday checks
+			faster and easier to manage.
+		  </p>
+
+		  <div className="mt-8 grid gap-4 md:grid-cols-2">
+			{[
+			  "Create titles and meta descriptions while preparing pages for search.",
+			  "Generate Open Graph tags so links look cleaner when shared socially.",
+			  "Prepare hreflang tags for multilingual or international websites.",
+			  "Check redirects when pages move or URLs stop behaving as expected.",
+			  "Generate sitemap and robots-related files during SEO setup.",
+			  "Build UTM links for campaign tracking and analytics reporting.",
+			  "Review canonical URLs when duplicate page signals become confusing.",
+			  "Inspect tracking parameters and messy URLs during debugging.",
+			].map((item) => (
+			  <SectionMiniCard key={item}>
+				<p className="text-sm leading-relaxed text-gray-700">
+				  {item}
+				</p>
+			  </SectionMiniCard>
+			))}
+		  </div>
+		</SectionCard>
 
         {/* WHY MATTERS */}
         <section className="mt-16">

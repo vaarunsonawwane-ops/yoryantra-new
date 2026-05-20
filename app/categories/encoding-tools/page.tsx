@@ -185,32 +185,38 @@ export default function Page() {
           </div>
         </section>
 
-        {/* USE CASES */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Where These Encoding Tools Help
-          </h2>
+		{/* USE CASES */}
+		<SectionCard>
+		  <h2 className="text-2xl font-semibold text-gray-900">
+			Everyday Situations Where Encoding Tools Save Time
+		  </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              "Encoding and decoding Base64 strings during development.",
-              "Handling Base64URL values used in JWT and API workflows.",
-              "Encoding URLs and query strings safely.",
-              "Escaping HTML entities before displaying raw content.",
-              "Preparing JSON-safe strings for logs, scripts, and payloads.",
-              "Creating clean URL slugs for pages and posts.",
-              "Converting text case for content and development workflows.",
-              "Generating QR codes for encoded links and campaign URLs.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+			Encoded values show up everywhere — URLs, APIs, authentication flows,
+			browser debugging, tracking links, escaped text, and structured payloads.
+			These tools help make unreadable or messy values easier to work with during
+			everyday development and troubleshooting.
+		  </p>
+
+		  <div className="mt-8 grid gap-4 md:grid-cols-2">
+			{[
+			  "Decode Base64 values when logs or payloads are hard to understand.",
+			  "Work with Base64URL strings used in JWTs and authentication flows.",
+			  "Encode URLs safely before sharing links or building requests.",
+			  "Escape HTML entities before rendering user-generated content.",
+			  "Prepare JSON-safe values for logs, scripts, or API payloads.",
+			  "Generate cleaner URL slugs for pages, blogs, and landing pages.",
+			  "Convert text formatting when content needs quick cleanup.",
+			  "Create QR codes for links, campaigns, forms, or shared resources.",
+			].map((item) => (
+			  <SectionMiniCard key={item}>
+				<p className="text-sm leading-relaxed text-gray-700">
+				  {item}
+				</p>
+			  </SectionMiniCard>
+			))}
+		  </div>
+		</SectionCard>
 
         {/* WHY MATTERS */}
         <section className="mt-16">

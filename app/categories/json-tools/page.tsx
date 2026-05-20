@@ -185,32 +185,38 @@ export default function Page() {
           </div>
         </section>
 
-        {/* USE CASES */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Where These JSON Tools Help
-          </h2>
+		{/* USE CASES */}
+		<SectionCard>
+		  <h2 className="text-2xl font-semibold text-gray-900">
+			Everyday Data Problems These JSON Tools Help Solve
+		  </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              "Formatting API responses for easier debugging.",
-              "Validating JSON before sending payloads to APIs.",
-              "Comparing two JSON objects during testing.",
-              "Checking JSON data against schema rules.",
-              "Escaping JSON strings for logs, scripts, and payloads.",
-              "Converting JSON into YAML configuration files.",
-              "Transforming XML responses into JSON for modern APIs.",
-              "Minifying JSON before storage or transmission.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+			API payloads, structured data, configuration files, and large JSON
+			responses can become difficult to read quickly. These tools help clean,
+			validate, compare, transform, and troubleshoot structured data during
+			development and testing.
+		  </p>
+
+		  <div className="mt-8 grid gap-4 md:grid-cols-2">
+			{[
+			  "Format API responses when payloads are messy or difficult to read.",
+			  "Validate JSON before sending requests to APIs or systems.",
+			  "Compare two JSON objects while debugging application behavior.",
+			  "Check structured data against schema rules during testing.",
+			  "Escape JSON strings before logs, scripts, or automation workflows.",
+			  "Convert JSON into YAML for configuration or infrastructure work.",
+			  "Transform XML responses into JSON for modern API handling.",
+			  "Minify JSON before storage, transport, or performance-sensitive workflows.",
+			].map((item) => (
+			  <SectionMiniCard key={item}>
+				<p className="text-sm leading-relaxed text-gray-700">
+				  {item}
+				</p>
+			  </SectionMiniCard>
+			))}
+		  </div>
+		</SectionCard>
 
         {/* WHY MATTERS */}
         <section className="mt-16">

@@ -184,32 +184,38 @@ export default function Page() {
           </div>
         </section>
 
-        {/* USE CASES */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Where These DevOps Tools Help
-          </h2>
+		{/* USE CASES */}
+		<SectionCard>
+		  <h2 className="text-2xl font-semibold text-gray-900">
+			Everyday Infrastructure Tasks These Tools Help Simplify
+		  </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              "Validating Docker Compose configuration before deployment.",
-              "Checking Kubernetes YAML manifests during setup.",
-              "Parsing .env files and reviewing environment variables.",
-              "Formatting YAML used in infrastructure workflows.",
-              "Converting JSON and YAML configuration formats.",
-              "Creating cron expressions for automation jobs.",
-              "Reviewing container and service configuration.",
-              "Reducing simple deployment mistakes early.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+			A lot of deployment issues begin with small configuration mistakes —
+			invalid YAML, incorrect environment variables, broken manifests, or tiny
+			formatting problems that are easy to miss. These tools are designed for the
+			quick checks teams often do before shipping changes.
+		  </p>
+
+		  <div className="mt-8 grid gap-4 md:grid-cols-2">
+			{[
+			  "Review Docker Compose files before containers fail to start.",
+			  "Validate Kubernetes manifests during setup or troubleshooting.",
+			  "Check environment variables when configuration feels off.",
+			  "Clean or format YAML before deployment and infrastructure changes.",
+			  "Move between JSON and YAML formats during integrations or setup.",
+			  "Generate cron expressions for scheduled jobs and automation.",
+			  "Inspect service and infrastructure configuration more quickly.",
+			  "Catch small deployment mistakes before they become production issues.",
+			].map((item) => (
+			  <SectionMiniCard key={item}>
+				<p className="text-sm leading-relaxed text-gray-700">
+				  {item}
+				</p>
+			  </SectionMiniCard>
+			))}
+		  </div>
+		</SectionCard>
 
         {/* WHY MATTERS */}
         <section className="mt-16">

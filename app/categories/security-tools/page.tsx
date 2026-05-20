@@ -188,32 +188,38 @@ export default function Page() {
           </div>
         </section>
 
-        {/* USE CASES */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Where These Security Tools Help
-          </h2>
+		{/* USE CASES */}
+		<SectionCard>
+		  <h2 className="text-2xl font-semibold text-gray-900">
+			Everyday Security Tasks These Tools Make Easier
+		  </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              "Decoding JWT tokens during authentication debugging.",
-              "Generating HMAC signatures for API and webhook testing.",
-              "Creating SHA256 hashes for verification workflows.",
-              "Generating bcrypt hashes for password storage tests.",
-              "Formatting PEM keys and certificates before using them.",
-              "Creating RSA key pairs for signing and verification workflows.",
-              "Generating random tokens and API keys for development.",
-              "Building CSP headers to reduce frontend security risks.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+			Authentication, tokens, hashes, API secrets, certificates, and security
+			headers often create small debugging moments during development. These
+			tools help inspect, generate, validate, and troubleshoot common
+			security-related values without unnecessary setup.
+		  </p>
+
+		  <div className="mt-8 grid gap-4 md:grid-cols-2">
+			{[
+			  "Inspect JWT tokens when authentication suddenly stops working.",
+			  "Generate HMAC signatures while testing APIs or webhook integrations.",
+			  "Create SHA256 hashes for verification, comparison, or debugging.",
+			  "Generate bcrypt hashes during password or login-related testing.",
+			  "Format PEM certificates and keys before configuration or deployment.",
+			  "Create RSA key pairs for signing, encryption, or verification workflows.",
+			  "Generate random tokens and API keys during development or testing.",
+			  "Build Content Security Policy rules to reduce common frontend risks.",
+			].map((item) => (
+			  <SectionMiniCard key={item}>
+				<p className="text-sm leading-relaxed text-gray-700">
+				  {item}
+				</p>
+			  </SectionMiniCard>
+			))}
+		  </div>
+		</SectionCard>
 
         {/* WHY MATTERS */}
         <section className="mt-16">
