@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
+import InfoCard from "@/app/components/InfoCard";
 
 const jsonTools = tools.filter(
   (tool) => tool.category === "JSON & Data Tools"
@@ -98,42 +99,23 @@ export default function Page() {
           </p>
         </div>
 
-        {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Built for API Debugging
-            </h2>
+		{/* INTRO */}
+		<div className="mt-12 grid gap-6 md:grid-cols-3">
+		  <InfoCard
+			title="Built for API Debugging"
+			description="Format responses, validate payloads, compare JSON objects, and inspect structured data while working with APIs and backend systems."
+		  />
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Format responses, validate payloads, compare JSON objects, and
-              inspect structured data while working with APIs and backend
-              systems.
-            </p>
-          </div>
+		  <InfoCard
+			title="Useful for Structured Data Workflows"
+			description="Convert between JSON, YAML, and XML formats for configuration files, integrations, automation, and application data handling."
+		  />
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Useful for Structured Data Workflows
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Convert between JSON, YAML, and XML formats for configuration
-              files, integrations, automation, and application data handling.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Fast Browser-Based Utilities
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Most tools run directly inside your browser, making it easier to
-              inspect, clean, and transform data without uploading content.
-            </p>
-          </div>
-        </div>
+		  <InfoCard
+			title="Fast Browser-Based Utilities"
+			description="Most tools run directly inside your browser, making it easier to inspect, clean, and transform data without uploading content."
+		  />
+		</div>
 
         {/* FEATURED TOOLS */}
         <section className="mt-16">

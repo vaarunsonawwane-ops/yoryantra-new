@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
+import InfoCard from "@/app/components/InfoCard";
 
 const seoTools = tools.filter(
   (tool) => tool.category === "SEO Tools"
@@ -98,43 +99,23 @@ export default function Page() {
           </p>
         </div>
 
-        {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Built for Technical SEO Workflows
-            </h2>
+		{/* INTRO */}
+		<div className="mt-12 grid gap-6 md:grid-cols-3">
+		  <InfoCard
+			title="Built for Technical SEO Workflows"
+			description="These tools help with everyday SEO tasks such as metadata creation, crawl control, redirects, canonical checks, and structured URL handling."
+		  />
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              These tools help with everyday SEO tasks such as metadata
-              creation, crawl control, redirects, canonical checks, and
-              structured URL handling.
-            </p>
-          </div>
+		  <InfoCard
+			title="Useful for Developers and SEO Teams"
+			description="Yoryantra keeps SEO utilities simple enough for marketers and practical enough for developers working on websites, apps, and landing pages."
+		  />
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Useful for Developers and SEO Teams
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Yoryantra keeps SEO utilities simple enough for marketers and
-              practical enough for developers working on websites, apps, and
-              landing pages.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Fast Browser-Based Utilities
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Most tools run directly in your browser, making them quick to use
-              while keeping your inputs private and easy to copy.
-            </p>
-          </div>
-        </div>
+		  <InfoCard
+			title="Fast Browser-Based Utilities"
+			description="Most tools run directly in your browser, making them quick to use while keeping your inputs private and easy to copy."
+		  />
+		</div>
 
         {/* FEATURED TOOLS */}
         <section className="mt-16">

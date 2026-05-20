@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
+import InfoCard from "@/app/components/InfoCard";
 
 const securityTools = tools.filter(
   (tool) => tool.category === "Security Tools"
@@ -101,42 +102,23 @@ export default function Page() {
           </p>
         </div>
 
-        {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Built for Authentication Testing
-            </h2>
+		{/* INTRO */}
+		<div className="mt-12 grid gap-6 md:grid-cols-3">
+		  <InfoCard
+			title="Built for Authentication Testing"
+			description="Inspect JWT payloads, verify signatures, generate tokens, and prepare secure values for login systems, APIs, and backend authentication flows."
+		  />
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Inspect JWT payloads, verify signatures, generate tokens, and
-              prepare secure values for login systems, APIs, and backend
-              authentication flows.
-            </p>
-          </div>
+		  <InfoCard
+			title="Useful for Hashing and Signatures"
+			description="Create SHA256 hashes, HMAC signatures, bcrypt password hashes, and other cryptographic values used in verification and testing."
+		  />
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Useful for Hashing and Signatures
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Create SHA256 hashes, HMAC signatures, bcrypt password hashes, and
-              other cryptographic values used in verification and testing.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Simple Browser-Based Security Utilities
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Most tools run directly inside your browser, helping you work
-              quickly while keeping sensitive inputs private during local checks.
-            </p>
-          </div>
-        </div>
+		  <InfoCard
+			title="Simple Browser-Based Security Utilities"
+			description="Most tools run directly inside your browser, helping you work quickly while keeping sensitive inputs private during local checks."
+		  />
+		</div>
 
         {/* FEATURED TOOLS */}
         <section className="mt-16">

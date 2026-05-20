@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
+import InfoCard from "@/app/components/InfoCard";
 
 const devopsTools = tools.filter(
   (tool) => tool.category === "DevOps Tools"
@@ -97,41 +98,23 @@ export default function Page() {
           </p>
         </div>
 
-        {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Built for Configuration Checks
-            </h2>
+		{/* INTRO */}
+		<div className="mt-12 grid gap-6 md:grid-cols-3">
+		  <InfoCard
+			title="Built for Configuration Checks"
+			description="Review YAML, Docker Compose, Kubernetes manifests, and environment variables before they create deployment problems."
+		  />
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Review YAML, Docker Compose, Kubernetes manifests, and environment
-              variables before they create deployment problems.
-            </p>
-          </div>
+		  <InfoCard
+			title="Useful Before Deployment"
+			description="These tools help catch simple formatting and configuration issues during local development and release preparation."
+		  />
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Useful Before Deployment
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              These tools help catch simple formatting and configuration issues
-              during local development and release preparation.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Fast Browser-Based Utilities
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Most utilities run directly in your browser, making them quick to
-              use while keeping configuration values private.
-            </p>
-          </div>
-        </div>
+		  <InfoCard
+			title="Fast Browser-Based Utilities"
+			description="Most utilities run directly in your browser, making them quick to use while keeping configuration values private."
+		  />
+		</div>
 
         {/* FEATURED TOOLS */}
         <section className="mt-16">

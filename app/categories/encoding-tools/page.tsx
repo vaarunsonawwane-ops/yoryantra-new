@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
+import InfoCard from "@/app/components/InfoCard";
 
 const encodingTools = tools.filter(
   (tool) => tool.category === "Encoding Tools"
@@ -98,41 +99,23 @@ export default function Page() {
           </p>
         </div>
 
-        {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Built for Web Development
-            </h2>
+		{/* INTRO */}
+		<div className="mt-12 grid gap-6 md:grid-cols-3">
+		  <InfoCard
+			title="Built for Web Development"
+			description="Encode and decode common web formats used in URLs, HTML, JavaScript, API payloads, JWTs, and frontend debugging workflows."
+		  />
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Encode and decode common web formats used in URLs, HTML,
-              JavaScript, API payloads, JWTs, and frontend debugging workflows.
-            </p>
-          </div>
+		  <InfoCard
+			title="Useful for API and Data Handling"
+			description="Work with encoded strings, JSON-safe values, Base64 data, and URL-safe formats during API testing and backend development."
+		  />
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Useful for API and Data Handling
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Work with encoded strings, JSON-safe values, Base64 data, and
-              URL-safe formats during API testing and backend development.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Fast Browser-Based Utilities
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Most encoding tools run directly inside your browser, making them
-              quick to use while keeping inputs private and easy to copy.
-            </p>
-          </div>
-        </div>
+		  <InfoCard
+			title="Fast Browser-Based Utilities"
+			description="Most encoding tools run directly inside your browser, making them quick to use while keeping inputs private and easy to copy."
+		  />
+		</div>
 
         {/* FEATURED TOOLS */}
         <section className="mt-16">

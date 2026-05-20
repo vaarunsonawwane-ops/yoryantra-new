@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
+import InfoCard from "@/app/components/InfoCard";
 
 const developerTools = tools.filter(
   (tool) => tool.category === "Developer Tools"
@@ -104,42 +105,23 @@ export default function Page() {
           </p>
         </div>
 
-        {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Useful for Everyday Development
-            </h2>
+		{/* INTRO */}
+		<div className="mt-12 grid gap-6 md:grid-cols-3">
+		  <InfoCard
+			title="Useful for Everyday Development"
+			description="These tools help simplify common development tasks such as debugging payloads, validating data, formatting outputs, and inspecting encoded values."
+		  />
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              These tools help simplify common development tasks such as
-              debugging payloads, validating data, formatting outputs, and
-              inspecting encoded values.
-            </p>
-          </div>
+		  <InfoCard
+			title="Built for Fast Browser-Based Usage"
+			description="Most utilities work directly in your browser without requiring installations, accounts, or external processing."
+		  />
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Built for Fast Browser-Based Usage
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Most utilities work directly in your browser without requiring
-              installations, accounts, or external processing.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Helpful Across Multiple Workflows
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Developers, QA teams, DevOps engineers, API testers, and frontend
-              developers can use these tools during daily debugging and testing.
-            </p>
-          </div>
-        </div>
+		  <InfoCard
+			title="Helpful Across Multiple Workflows"
+			description="Developers, QA teams, DevOps engineers, API testers, and frontend developers can use these tools during daily debugging and testing."
+		  />
+		</div>
 
         {/* FEATURED TOOLS */}
         <section className="mt-16">
