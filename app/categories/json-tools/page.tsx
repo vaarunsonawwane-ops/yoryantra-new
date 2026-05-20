@@ -101,20 +101,20 @@ export default function Page() {
 
 		{/* INTRO */}
 		<div className="mt-12 grid gap-6 md:grid-cols-3">
-		  <InfoCard
-			title="Built for API Debugging"
-			description="Format responses, validate payloads, compare JSON objects, and inspect structured data while working with APIs and backend systems."
-		  />
+		<InfoCard
+		  title="Made for API Responses and Structured Data"
+		  description="When APIs return messy payloads or large responses, quickly format, validate, inspect, and understand structured data without wasting time scrolling through unreadable text."
+		/>
 
-		  <InfoCard
-			title="Useful for Structured Data Workflows"
-			description="Convert between JSON, YAML, and XML formats for configuration files, integrations, automation, and application data handling."
-		  />
+		<InfoCard
+		  title="Helpful for Conversions, Validation, and Cleanup"
+		  description="Move between JSON, YAML, XML, and other structured formats while checking syntax, cleaning formatting issues, and preparing data for integrations or debugging."
+		/>
 
-		  <InfoCard
-			title="Fast Browser-Based Utilities"
-			description="Most tools run directly inside your browser, making it easier to inspect, clean, and transform data without uploading content."
-		  />
+		<InfoCard
+		  title="Useful During Development, Testing, and Integrations"
+		  description="Whether you are testing APIs, configuring systems, debugging payloads, or preparing structured data for automation, these tools help simplify repetitive work."
+		/>
 		</div>
 
         {/* FEATURED TOOLS */}

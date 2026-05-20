@@ -104,20 +104,20 @@ export default function Page() {
 
 		{/* INTRO */}
 		<div className="mt-12 grid gap-6 md:grid-cols-3">
-		  <InfoCard
-			title="Built for Authentication Testing"
-			description="Inspect JWT payloads, verify signatures, generate tokens, and prepare secure values for login systems, APIs, and backend authentication flows."
-		  />
+		<InfoCard
+		  title="Useful for Authentication, Tokens, and Verification"
+		  description="JWTs, API secrets, hashes, signatures, and encrypted values often appear during authentication and backend workflows. These tools help inspect, generate, and verify them quickly."
+		/>
 
-		  <InfoCard
-			title="Useful for Hashing and Signatures"
-			description="Create SHA256 hashes, HMAC signatures, bcrypt password hashes, and other cryptographic values used in verification and testing."
-		  />
+		<InfoCard
+		  title="Built for Everyday Security-Related Checks"
+		  description="Whether you are validating a token, checking a signature, generating a hash, or testing secure values during development, these utilities reduce repetitive debugging effort."
+		/>
 
-		  <InfoCard
-			title="Simple Browser-Based Security Utilities"
-			description="Most tools run directly inside your browser, helping you work quickly while keeping sensitive inputs private during local checks."
-		  />
+		<InfoCard
+		  title="Fast Local Checks Without Extra Setup"
+		  description="Most tools work directly in your browser so you can inspect sensitive values, compare outputs, and run quick security-related checks without extra software."
+		/>
 		</div>
 
         {/* FEATURED TOOLS */}

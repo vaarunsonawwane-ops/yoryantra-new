@@ -107,20 +107,20 @@ export default function Page() {
 
 		{/* INTRO */}
 		<div className="mt-12 grid gap-6 md:grid-cols-3">
-		  <InfoCard
-			title="Useful for Everyday Development"
-			description="These tools help simplify common development tasks such as debugging payloads, validating data, formatting outputs, and inspecting encoded values."
-		  />
+		<InfoCard
+		  title="Small Tasks Developers Repeat Every Day"
+		  description="From debugging payloads to formatting data and decoding values, these tools help reduce repetitive development friction during everyday work."
+		/>
 
-		  <InfoCard
-			title="Built for Fast Browser-Based Usage"
-			description="Most utilities work directly in your browser without requiring installations, accounts, or external processing."
-		  />
+		<InfoCard
+		  title="Built for Quick Checks, Not Complexity"
+		  description="Sometimes you just want to inspect a JWT, format JSON, compare data, or validate an output without opening another tool or writing extra code."
+		/>
 
-		  <InfoCard
-			title="Helpful Across Multiple Workflows"
-			description="Developers, QA teams, DevOps engineers, API testers, and frontend developers can use these tools during daily debugging and testing."
-		  />
+		<InfoCard
+		  title="Useful Across Frontend, Backend, and APIs"
+		  description="Whether you work with APIs, authentication, testing, payloads, debugging, or browser logic, these utilities are designed to save time during development."
+		/>
 		</div>
 
         {/* FEATURED TOOLS */}

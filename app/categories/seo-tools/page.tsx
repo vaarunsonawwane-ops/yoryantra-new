@@ -101,20 +101,20 @@ export default function Page() {
 
 		{/* INTRO */}
 		<div className="mt-12 grid gap-6 md:grid-cols-3">
-		  <InfoCard
-			title="Built for Technical SEO Workflows"
-			description="These tools help with everyday SEO tasks such as metadata creation, crawl control, redirects, canonical checks, and structured URL handling."
-		  />
+		<InfoCard
+		  title="Fix Small Technical SEO Issues Before They Grow"
+		  description="Metadata, redirects, canonicals, robots rules, structured URLs, and crawl settings can quietly affect visibility. These tools help surface and simplify those technical details."
+		/>
 
-		  <InfoCard
-			title="Useful for Developers and SEO Teams"
-			description="Yoryantra keeps SEO utilities simple enough for marketers and practical enough for developers working on websites, apps, and landing pages."
-		  />
+		<InfoCard
+		  title="Useful for Marketers, Developers, and Site Owners"
+		  description="Whether you manage landing pages, content sites, applications, or technical SEO tasks, these utilities are designed to make everyday checks faster and easier."
+		/>
 
-		  <InfoCard
-			title="Fast Browser-Based Utilities"
-			description="Most tools run directly in your browser, making them quick to use while keeping your inputs private and easy to copy."
-		  />
+		<InfoCard
+		  title="Quick Checks Without Complex SEO Software"
+		  description="Generate, inspect, validate, and troubleshoot common SEO elements directly in your browser without jumping between multiple dashboards or tools."
+		/>
 		</div>
 
         {/* FEATURED TOOLS */}

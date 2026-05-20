@@ -100,20 +100,20 @@ export default function Page() {
 
 		{/* INTRO */}
 		<div className="mt-12 grid gap-6 md:grid-cols-3">
-		  <InfoCard
-			title="Built for Configuration Checks"
-			description="Review YAML, Docker Compose, Kubernetes manifests, and environment variables before they create deployment problems."
-		  />
+		<InfoCard
+		  title="Catch Configuration Problems Before Deployment"
+		  description="Small mistakes inside YAML, Docker Compose files, manifests, environment variables, or infrastructure settings can create frustrating deployment issues later."
+		/>
 
-		  <InfoCard
-			title="Useful Before Deployment"
-			description="These tools help catch simple formatting and configuration issues during local development and release preparation."
-		  />
+		<InfoCard
+		  title="Built for Fast Infrastructure Checks"
+		  description="Instead of digging through logs or switching between tools, quickly validate, inspect, and troubleshoot common DevOps-related formats and configurations."
+		/>
 
-		  <InfoCard
-			title="Fast Browser-Based Utilities"
-			description="Most utilities run directly in your browser, making them quick to use while keeping configuration values private."
-		  />
+		<InfoCard
+		  title="Useful During Setup, Debugging, and Releases"
+		  description="Whether you are configuring containers, APIs, CI/CD workflows, infrastructure, or deployments, these tools help reduce avoidable mistakes before production."
+		/>
 		</div>
 
         {/* FEATURED TOOLS */}

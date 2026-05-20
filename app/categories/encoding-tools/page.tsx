@@ -101,20 +101,20 @@ export default function Page() {
 
 		{/* INTRO */}
 		<div className="mt-12 grid gap-6 md:grid-cols-3">
-		  <InfoCard
-			title="Built for Web Development"
-			description="Encode and decode common web formats used in URLs, HTML, JavaScript, API payloads, JWTs, and frontend debugging workflows."
-		  />
+		<InfoCard
+		  title="Made for Everyday Web and API Work"
+		  description="URLs, Base64 values, HTML entities, encoded strings, and request payloads appear constantly in frontend, backend, and API workflows. These tools make them easier to inspect and transform."
+		/>
 
-		  <InfoCard
-			title="Useful for API and Data Handling"
-			description="Work with encoded strings, JSON-safe values, Base64 data, and URL-safe formats during API testing and backend development."
-		  />
+		<InfoCard
+		  title="Useful When Data Looks Broken or Unreadable"
+		  description="Sometimes values arrive encoded, escaped, or difficult to interpret. Quickly decode, clean, convert, or re-encode data without opening extra software or writing helper scripts."
+		/>
 
-		  <InfoCard
-			title="Fast Browser-Based Utilities"
-			description="Most encoding tools run directly inside your browser, making them quick to use while keeping inputs private and easy to copy."
-		  />
+		<InfoCard
+		  title="Fast Utilities for Debugging and Data Handling"
+		  description="Whether you are testing APIs, debugging URLs, handling JWT-related formats, or cleaning browser-safe values, these tools are designed for quick everyday use."
+		/>
 		</div>
 
         {/* FEATURED TOOLS */}
