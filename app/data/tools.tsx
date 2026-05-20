@@ -435,7 +435,13 @@ export const tools = [
   category: "Security Tools",
   },
 
-
+  {
+  title: "Redirect Chain Checker",
+  description:
+    "Analyze redirect chains, redirect hops, status codes, loops, and final destination URLs for technical SEO debugging.",
+  href: "/tools/redirect-chain-checker",
+  category: "SEO Tools",
+  },
 
 
 ];
