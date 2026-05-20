@@ -199,7 +199,7 @@ export default function Page() {
 			Small Development Tasks These Tools Make Easier
 		  </h2>
 
-		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+		  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
 			Development often slows down because of tiny repetitive tasks — checking a
 			JWT payload, cleaning JSON, debugging encoded values, comparing responses,
 			or quickly testing a regex before shipping code. These utilities are built

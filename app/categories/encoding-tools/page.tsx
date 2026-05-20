@@ -193,7 +193,7 @@ export default function Page() {
 			Everyday Situations Where Encoding Tools Save Time
 		  </h2>
 
-		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+		  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
 			Encoded values show up everywhere — URLs, APIs, authentication flows,
 			browser debugging, tracking links, escaped text, and structured payloads.
 			These tools help make unreadable or messy values easier to work with during

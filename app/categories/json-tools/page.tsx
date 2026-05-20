@@ -193,7 +193,7 @@ export default function Page() {
 			Everyday Data Problems These JSON Tools Help Solve
 		  </h2>
 
-		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+		  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
 			API payloads, structured data, configuration files, and large JSON
 			responses can become difficult to read quickly. These tools help clean,
 			validate, compare, transform, and troubleshoot structured data during

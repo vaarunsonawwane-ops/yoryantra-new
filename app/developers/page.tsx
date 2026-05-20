@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { tools } from "@/app/data/tools";
+import InfoCard from "@/app/components/InfoCard";
+import SectionCard from "@/app/components/SectionCard";
+import SectionMiniCard from "@/app/components/SectionMiniCard";
 
 const featuredCategories = [
   {

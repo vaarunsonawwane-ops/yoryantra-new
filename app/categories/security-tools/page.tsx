@@ -196,7 +196,7 @@ export default function Page() {
 			Everyday Security Tasks These Tools Make Easier
 		  </h2>
 
-		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+		  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
 			Authentication, tokens, hashes, API secrets, certificates, and security
 			headers often create small debugging moments during development. These
 			tools help inspect, generate, validate, and troubleshoot common

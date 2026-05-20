@@ -192,7 +192,7 @@ export default function Page() {
 			Everyday Infrastructure Tasks These Tools Help Simplify
 		  </h2>
 
-		  <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+		  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
 			A lot of deployment issues begin with small configuration mistakes —
 			invalid YAML, incorrect environment variables, broken manifests, or tiny
 			formatting problems that are easy to miss. These tools are designed for the
