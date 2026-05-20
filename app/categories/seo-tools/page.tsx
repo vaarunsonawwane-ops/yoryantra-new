@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
 
-const securityTools = tools.filter(
+const seoTools = tools.filter(
   (tool) => tool.category === "SEO Tools"
 );
 

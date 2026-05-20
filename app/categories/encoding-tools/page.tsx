@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
 
-const securityTools = tools.filter(
+const encodingTools = tools.filter(
   (tool) => tool.category === "Encoding Tools"
 );
 

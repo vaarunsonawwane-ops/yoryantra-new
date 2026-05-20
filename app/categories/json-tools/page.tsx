@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
 
-const securityTools = tools.filter(
+const jsonTools = tools.filter(
   (tool) => tool.category === "JSON & Data Tools"
 );
 
