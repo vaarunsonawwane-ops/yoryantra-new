@@ -451,13 +451,5 @@ export const tools = [
   category: "DevOps Tools",
   },
 
-  {
-  title: "DNS Records Checker",
-  description:
-    "Check DNS records including A, AAAA, CNAME, MX, TXT, NS, SOA, CAA, and domain configuration details.",
-  href: "/tools/dns-records-checker",
-  category: "DevOps Tools",
-  },
-
 
 ];
