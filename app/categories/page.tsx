@@ -148,27 +148,34 @@ export default function Page() {
           ))}
         </div>
 
-        {/* WHY CATEGORIES */}
-        <section className="mt-20 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Why These Utility Categories Matter
-          </h2>
+		{/* WHY CATEGORIES */}
+		<SectionCard>
+		  <h2 className="text-2xl font-semibold text-gray-900">
+			Why Utility Categories Exist on Yoryantra
+		  </h2>
 
-          <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
-            <p>
-              Developers, SEO professionals, backend engineers, DevOps teams,
-              and technical marketers often need fast utilities for debugging,
-              formatting, validation, metadata generation, and secure data
-              handling.
-            </p>
+		  <div className="mt-5 space-y-5 text-gray-600 leading-relaxed">
+			<p>
+			  Most technical work is filled with tiny repetitive tasks — formatting
+			  payloads, checking redirects, validating configuration files, decoding
+			  values, debugging APIs, or generating metadata before release. The goal
+			  is usually simple: solve a small problem quickly and move on.
+			</p>
 
-            <p>
-              Organizing tools into focused categories makes it easier to
-              discover related workflows, improve productivity, and navigate
-              technical tasks without jumping between unrelated utilities.
-            </p>
-          </div>
-        </section>
+			<p>
+			  Grouping tools into focused categories makes those workflows easier to
+			  navigate. Instead of searching through unrelated utilities, developers,
+			  SEO teams, DevOps engineers, marketers, and technical users can quickly
+			  find tools that naturally belong together.
+			</p>
+
+			<p>
+			  Yoryantra is designed around practical workflows rather than random tool
+			  collections — helping you spend less time switching context and more time
+			  actually solving problems.
+			</p>
+		  </div>
+		</SectionCard>
 
         {/* RELATED */}
         <section className="mt-16 border-t border-gray-200 pt-10">
