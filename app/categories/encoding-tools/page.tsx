@@ -173,13 +173,13 @@ export default function Page() {
               <Link
                 key={tool.href}
                 href={tool.href}
-                className="rounded-2xl border border-gray-200 bg-gray-50 p-6 transition hover:border-[var(--green)] hover:bg-white"
+                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
+                <h3 className="text-lg font-semibold text-gray-900 transition-colors duration-200 group-hover:text-[var(--light-gold)]">
                   {tool.title}
                 </h3>
 
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                <p className="mt-4 text-sm leading-relaxed text-gray-600">
                   {tool.description}
                 </p>
               </Link>
