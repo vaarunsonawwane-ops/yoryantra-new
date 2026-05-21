@@ -459,4 +459,14 @@ export const tools = [
   category: "Encoding Tools",
   },
 
+  {
+  title: "Hex Encoder Decoder",
+  description:
+    "Encode text to hexadecimal and decode hex values back into readable text for debugging and encoding workflows.",
+  href: "/tools/hex-encoder-decoder",
+  category: "Encoding Tools",
+  },
+
+
+
 ];
