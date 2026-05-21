@@ -467,6 +467,15 @@ export const tools = [
   category: "Encoding Tools",
   },
 
+  {
+  title: "HTML Escape Unescape",
+  description:
+    "Escape and unescape HTML entities for safe text rendering, frontend debugging, APIs, and web development workflows.",
+  href: "/tools/html-escape-unescape",
+  category: "Encoding Tools",
+  },
+
+
 
 
 ];
