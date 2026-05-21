@@ -483,6 +483,15 @@ export const tools = [
   category: "Encoding Tools",
   },
 
+  {
+  title: "CSV Escape Formatter",
+  description:
+    "Escape and format CSV values for spreadsheets, exports, logs, data cleanup, and API workflows.",
+  href: "/tools/csv-escape-formatter",
+  category: "Encoding Tools",
+  },
+
+
 
 
 
