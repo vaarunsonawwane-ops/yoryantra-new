@@ -164,15 +164,13 @@ export default function Page() {
 
         {/* INTRO */}
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-[var(--light-gold)] bg-[var(--cream)] p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
+          <div className="rounded-2xl border border-[var(--light-gold)] bg-[var(--cream)] p-7 md:p-8">
+            <h2 className="text-lg font-semibold leading-tight text-gray-900">
               Built for Quick Debugging
             </h2>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Use lightweight utilities for checking payloads, tokens, encoded
-              strings, timestamps, identifiers, and structured data while
-              building or testing applications.
+              Check payloads, tokens, timestamps, identifiers, and structured data during development and debugging.
             </p>
           </div>
 
@@ -182,9 +180,7 @@ export default function Page() {
             </h2>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              These tools support API development, frontend debugging, backend
-              validation, authentication testing, QA workflows, and daily
-              developer tasks.
+              Helpful for frontend work, APIs, authentication testing, backend checks, and day-to-day debugging.
             </p>
           </div>
 
@@ -194,8 +190,7 @@ export default function Page() {
             </h2>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Most Yoryantra tools run directly inside your browser, keeping
-              common developer checks fast, private, and easy to copy.
+              Most tools run directly in your browser for quick checks, clean outputs, and fast debugging.
             </p>
           </div>
         </div>
