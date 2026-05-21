@@ -14,10 +14,11 @@ export const metadata = {
     "text to hex",
     "hex to text",
     "hex converter",
-    "ascii to hex",
     "hexadecimal decoder",
+    "hexadecimal encoder",
+    "ascii to hex",
+    "decode hex string",
     "encoding tools",
-    "developer tools",
   ],
 
   alternates: {

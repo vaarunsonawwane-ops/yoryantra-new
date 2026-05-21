@@ -58,7 +58,6 @@ export default function ToolClient() {
 
   const copyOutput = async () => {
     if (!output) return;
-
     await navigator.clipboard.writeText(output);
   };
 
@@ -163,26 +162,45 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Why HTML Escaping Matters in Web Development
+            Escaping HTML Text for Safe Display
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            HTML escaping converts characters like angle brackets, quotes, and
-            ampersands into safe HTML entities. This helps text appear as text
-            instead of being interpreted as actual markup by the browser.
+            HTML escaping turns characters like angle brackets, quotes, and
+            ampersands into entities so browsers show them as text instead of
+            reading them as markup. It is useful when you need to display code
+            snippets, user-entered text, CMS content, or raw HTML safely.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This HTML Escape Unescape tool helps you quickly prepare raw text for
-            safe display, decode entity-heavy content, and debug frontend or API
-            values that contain HTML entities.
+            This tool also works in reverse, helping you decode entity-heavy
+            text copied from templates, feeds, APIs, databases, CMS fields, or
+            logs.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common HTML Entity Examples
+            How to Use the HTML Escape Unescape Tool
           </h2>
+
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Paste text, HTML, or entity-encoded content into the input box.</li>
+            <li>Use <strong>Escape HTML</strong> when markup should be displayed as text.</li>
+            <li>Use <strong>Unescape HTML</strong> when entities should become readable characters.</li>
+            <li>Copy the output for frontend code, CMS content, API debugging, or documentation.</li>
+          </ol>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            HTML Characters Commonly Escaped
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            These characters often need escaping because browsers may otherwise
+            interpret them as markup, attributes, or entity syntax.
+          </p>
 
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
             <ul className="space-y-3">
@@ -201,44 +219,35 @@ export default function ToolClient() {
               <li>
                 <strong>&amp;quot;</strong> → &quot;
               </li>
+
+              <li>
+                <strong>&amp;#39;</strong> → apostrophe
+              </li>
             </ul>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use This Tool
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste plain text, HTML, or entity-encoded content into the input box.</li>
-            <li>Click <strong>Escape HTML</strong> to convert unsafe characters into entities.</li>
-            <li>Click <strong>Unescape HTML</strong> to decode entities back into readable text.</li>
-            <li>Copy the output for frontend code, content systems, APIs, or debugging.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Everyday Situations Where This Helps
+            Where HTML Entity Decoding Helps
           </h2>
 
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
             <ul className="space-y-3">
               <li>
-                Show raw HTML snippets on a page without rendering them.
+                Showing raw HTML snippets on a page without letting the browser render them.
               </li>
 
               <li>
-                Decode entity-filled text copied from templates, feeds, or APIs.
+                Reading entity-encoded text copied from CMS fields, templates, or feeds.
               </li>
 
               <li>
-                Prepare user-facing text before inserting it into HTML output.
+                Cleaning API values that contain encoded quotes, ampersands, or tags.
               </li>
 
               <li>
-                Debug content where quotes, ampersands, or tags look broken.
+                Debugging content that looks broken because entities are mixed with normal text.
               </li>
             </ul>
           </div>
@@ -258,7 +267,7 @@ export default function ToolClient() {
               <p className="mt-2 text-gray-600 leading-relaxed">
                 HTML escaping converts special characters such as &lt;, &gt;,
                 &, quotes, and apostrophes into HTML entities so they can be
-                displayed safely as text.
+                safely displayed as text.
               </p>
             </div>
 
@@ -268,9 +277,21 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Unescape HTML when you need to read or inspect entity-encoded
-                text, such as values copied from APIs, templates, databases, or
-                content systems.
+                Use unescape when you need to read or inspect entity-encoded
+                content from APIs, templates, databases, CMS output, or copied
+                HTML snippets.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is escaping the same as sanitizing HTML?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. Escaping converts special characters into entities.
+                Sanitizing is a broader security process that removes or limits
+                unsafe markup. This tool is for escaping and decoding text.
               </p>
             </div>
 
@@ -316,13 +337,6 @@ export default function ToolClient() {
               className="yoryantra-btn-outline"
             >
               JSON Escape Unescape
-            </Link>
-
-            <Link
-              href="/tools/html-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              HTML Encoder Decoder
             </Link>
 
             <Link

@@ -21,7 +21,9 @@ export default function ToolClient() {
         .map((char) => {
           const codePoint = char.codePointAt(0);
 
-          if (!codePoint) return "";
+          if (!codePoint) {
+            return "";
+          }
 
           if (codePoint <= 0xffff) {
             return `\\u${codePoint.toString(16).padStart(4, "0")}`;
@@ -58,14 +60,13 @@ export default function ToolClient() {
       setOutput(decoded);
       setError("");
     } catch {
-      setError("Unable to decode Unicode text. Please check the format.");
+      setError("Unable to decode this Unicode text. Please check the escape format.");
       setOutput("");
     }
   };
 
   const copyOutput = async () => {
     if (!output) return;
-
     await navigator.clipboard.writeText(output);
   };
 
@@ -79,7 +80,6 @@ export default function ToolClient() {
     setInput(
       "Hello \\u0059\\u006f\\u0072\\u0079\\u0061\\u006e\\u0074\\u0072\\u0061 \\u2764"
     );
-
     setOutput("");
     setError("");
   };
@@ -99,7 +99,7 @@ export default function ToolClient() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           rows={7}
-          placeholder="Example: Hello \u0059\u006f\u0072\u0079\u0061\u006e\u0074\u0072\u0061"
+          placeholder="Example: Hello \\u0059\\u006f\\u0072\\u0079\\u0061\\u006e\\u0074\\u0072\\u0061"
           className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
       </div>
@@ -173,40 +173,60 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Why Unicode Encoding Appears in Development
+            Working With Unicode Escapes in APIs, JSON, and Text
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Unicode escape sequences often appear inside JavaScript strings,
-            JSON payloads, APIs, logs, encoded text, and debugging workflows.
-            They make text safer to store and transfer, but quickly become hard
-            to read when you are troubleshooting real data.
+            Unicode escapes are common in API responses, JavaScript strings,
+            logs, translation files, JSON payloads, and stored content. They
+            help systems represent characters safely, but they can make real
+            text harder to understand when you are debugging.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Unicode Encoder Decoder helps convert readable text into
-            Unicode escapes or turn escaped values back into normal text when
-            debugging or inspecting payloads.
+            This Unicode Encoder Decoder keeps the workflow simple: paste the
+            escaped value, decode it into readable text, or turn normal text
+            into escape sequences when you need a safer representation.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Unicode Examples
+            How to Use the Unicode Encoder Decoder
           </h2>
+
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Paste plain text or Unicode escape sequences into the input box.</li>
+            <li>Use <strong>Decode Unicode</strong> when escaped values need to become readable.</li>
+            <li>Use <strong>Encode Unicode</strong> when normal text needs Unicode escape formatting.</li>
+            <li>Copy the output for scripts, APIs, JSON, logs, documentation, or debugging notes.</li>
+          </ol>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Unicode Escape Formats You May See
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Different systems may represent characters in slightly different
+            Unicode escape styles. This tool supports the formats developers
+            commonly meet while reading logs, JSON, JavaScript, and copied
+            payloads.
+          </p>
 
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
             <ul className="space-y-3">
               <li>
-                <strong>\u0048\u0065\u006c\u006c\u006f</strong> → Hello
+                <strong>\\u0048\\u0065\\u006c\\u006c\\u006f</strong> → Hello
               </li>
 
               <li>
-                <strong>\u2764</strong> → ❤
+                <strong>\\u2764</strong> → ❤
               </li>
 
               <li>
-                <strong>\u&#123;1f600&#125;</strong> → 😀
+                <strong>\\u&#123;1f600&#125;</strong> → 😀
               </li>
             </ul>
           </div>
@@ -214,38 +234,25 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use This Tool
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste text or Unicode escape sequences into the input box.</li>
-            <li>Click <strong>Decode Unicode</strong> to read escaped text.</li>
-            <li>Click <strong>Encode Unicode</strong> to convert normal text.</li>
-            <li>Copy the output for APIs, logs, JSON, scripts, or debugging.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Everyday Situations Where This Helps
+            Where Unicode Decoding Helps During Debugging
           </h2>
 
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
             <ul className="space-y-3">
               <li>
-                Decode unreadable Unicode inside API responses or logs.
+                Reading escaped text inside API responses, logs, or stored JSON.
               </li>
 
               <li>
-                Inspect encoded multilingual text, symbols, or emojis.
+                Checking multilingual strings, accented characters, symbols, or emojis.
               </li>
 
               <li>
-                Prepare Unicode-safe text for scripts and development work.
+                Cleaning encoded values before sharing them with a teammate.
               </li>
 
               <li>
-                Understand escaped values returned by JSON or JavaScript.
+                Understanding strings copied from JavaScript, translation files, or backend output.
               </li>
             </ul>
           </div>
@@ -264,8 +271,8 @@ export default function ToolClient() {
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 A Unicode escape sequence represents a character using a code
-                value such as \u0041. These are commonly used in JavaScript,
-                JSON, APIs, and encoded text.
+                value, such as \\u0041 for the letter A. These values often
+                appear in JavaScript, JSON, logs, APIs, and encoded text.
               </p>
             </div>
 
@@ -275,8 +282,21 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. This tool supports extended Unicode formats such as
-                \u&#123;1f600&#125; for emojis and other modern characters.
+                Yes. The tool supports extended Unicode code point notation
+                such as \\u&#123;1f600&#125;, which is commonly used for emojis and
+                other modern characters.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is this useful for JSON debugging?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes. Unicode escapes often appear inside JSON strings, API
+                responses, stored values, and logs. Decoding them makes the data
+                easier to inspect.
               </p>
             </div>
 
@@ -286,7 +306,7 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Everything runs directly in your browser.
+                No. Encoding and decoding run directly in your browser.
               </p>
             </div>
           </div>

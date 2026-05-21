@@ -17,6 +17,7 @@ export const metadata = {
     "html encoder decoder",
     "encode html entities",
     "decode html entities",
+    "html escape tool",
     "encoding tools",
   ],
 

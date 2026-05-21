@@ -13,10 +13,11 @@ export const metadata = {
     "unicode encoder",
     "unicode escape decoder",
     "unicode escape encoder",
-    "javascript unicode decoder",
-    "json unicode decoder",
     "unicode converter",
     "unicode escape sequence",
+    "javascript unicode decoder",
+    "json unicode decoder",
+    "decode unicode text",
     "encoding tools",
   ],
 

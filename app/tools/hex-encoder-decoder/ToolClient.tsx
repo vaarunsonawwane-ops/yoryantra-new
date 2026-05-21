@@ -33,7 +33,7 @@ export default function ToolClient() {
     const cleaned = input
       .trim()
       .replace(/^0x/i, "")
-      .replace(/\\s+/g, "")
+      .replace(/\s+/g, "")
       .replace(/:/g, "")
       .replace(/-/g, "");
 
@@ -72,7 +72,6 @@ export default function ToolClient() {
 
   const copyOutput = async () => {
     if (!output) return;
-
     await navigator.clipboard.writeText(output);
   };
 
@@ -177,27 +176,46 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Why Hex Encoding Shows Up in Development
+            Reading Hex Values in Logs, Payloads, and Debug Output
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Hexadecimal values often appear when developers work with binary
-            data, encoded text, logs, hashes, colors, buffers, network data,
-            and low-level debugging. Hex is compact, readable, and useful when
-            raw bytes need to be inspected or copied safely.
+            Hexadecimal values appear in logs, buffers, hashes, copied byte
+            output, debugging tools, and low-level data formats. Hex keeps byte
+            values compact and precise, but it is not always easy to understand
+            without converting it back to readable text.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Hex Encoder Decoder helps convert normal text into hex values
-            and decode hex back into readable text when you are debugging,
-            testing, or inspecting encoded data.
+            This Hex Encoder Decoder helps you move between normal text and
+            hexadecimal values when inspecting data, testing examples, or
+            cleaning up copied debug output.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Hex Examples
+            How to Use the Hex Encoder Decoder
           </h2>
+
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Paste readable text or hex values into the input box.</li>
+            <li>Use <strong>Decode Hex</strong> when hex should become readable text.</li>
+            <li>Use <strong>Encode to Hex</strong> when text should become byte-style hex output.</li>
+            <li>Copy the result for logs, scripts, API debugging, documentation, or test data.</li>
+          </ol>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Hex Formats This Tool Accepts
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Hex is often copied from different tools in different formats. The
+            decoder accepts common pasted forms and cleans separators before
+            converting the value.
+          </p>
 
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
             <ul className="space-y-3">
@@ -206,11 +224,15 @@ export default function ToolClient() {
               </li>
 
               <li>
-                <strong>59 6f 72 79 61 6e 74 72 61</strong> → Yoryantra
+                <strong>48:65:6c:6c:6f</strong> → Hello
               </li>
 
               <li>
-                <strong>e2 9c 93</strong> → ✓
+                <strong>48-65-6c-6c-6f</strong> → Hello
+              </li>
+
+              <li>
+                <strong>596f7279616e747261</strong> → Yoryantra
               </li>
             </ul>
           </div>
@@ -218,38 +240,25 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use This Tool
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste normal text or hex values into the input box.</li>
-            <li>Click <strong>Decode Hex</strong> to convert hex into readable text.</li>
-            <li>Click <strong>Encode to Hex</strong> to convert text into hexadecimal values.</li>
-            <li>Copy the output for debugging, logs, scripts, APIs, or documentation.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Everyday Situations Where This Helps
+            Where Hex Conversion Helps
           </h2>
 
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
             <ul className="space-y-3">
               <li>
-                Decode hex values found in logs, buffers, or debugging output.
+                Decoding byte values copied from logs, buffers, or debugging output.
               </li>
 
               <li>
-                Convert readable text into byte-friendly hexadecimal form.
+                Checking whether encoded payload fragments contain readable text.
               </li>
 
               <li>
-                Inspect encoded values when API data or payloads look unclear.
+                Converting short examples into hex for testing or documentation.
               </li>
 
               <li>
-                Work with low-level strings, binary-safe values, or copied byte output.
+                Cleaning pasted hex values that include spaces, dashes, or colons.
               </li>
             </ul>
           </div>
@@ -263,24 +272,35 @@ export default function ToolClient() {
           <div className="mt-5 space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What is hexadecimal encoding?
+                What is hex encoding?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Hexadecimal encoding represents bytes using base-16 values.
-                Each byte is commonly written as two characters, such as 48 for
+                Hex encoding represents bytes using base-16 values. A single
+                byte is commonly written as two hex characters, such as 48 for
                 the letter H.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Can this decode spaced hex values?
+                Can this decode spaced or separated hex?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The decoder accepts common formats with spaces, dashes, or
-                colons, then cleans them before decoding.
+                Yes. The decoder accepts plain hex, spaced hex, colon-separated
+                hex, and dash-separated hex.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Why does the input need an even number of characters?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Hex text is decoded in byte pairs. Each byte needs two hex
+                characters, so an odd-length value is incomplete.
               </p>
             </div>
 
@@ -302,8 +322,8 @@ export default function ToolClient() {
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Hex encoding often appears alongside Unicode, Base64, URL encoding,
-            JSON debugging, and text transformation workflows.
+            Hex conversion often appears alongside Unicode, Base64, URL
+            encoding, JSON debugging, and text transformation workflows.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
