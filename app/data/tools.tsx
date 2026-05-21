@@ -23,7 +23,7 @@ export const tools = [
   {
     title: "URL Encoder Decoder",
     description: "Encode and decode URLs for safe web usage.",
-    href: "/tools/url-encoder",
+    href: "/tools/url-encoder-decoder",
 	category: "Encoding Tools",
   },
 
