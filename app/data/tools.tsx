@@ -475,6 +475,14 @@ export const tools = [
   category: "Encoding Tools",
   },
 
+  {
+  title: "ASCII Converter",
+  description:
+    "Convert text to ASCII codes and decode ASCII values back into readable text for debugging and encoding workflows.",
+  href: "/tools/ascii-converter",
+  category: "Encoding Tools",
+  },
+
 
 
 
