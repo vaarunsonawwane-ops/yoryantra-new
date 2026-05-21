@@ -274,21 +274,19 @@ export default function Page() {
 			  </h2>
 
 			  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
-				These utilities are useful during small but frequent development tasks —
-				checking payloads, decoding values, testing patterns, comparing data, and
-				preparing values before they go into APIs, logs, or applications.
+				Small development tasks happen constantly — checking payloads, decoding values, testing patterns, comparing responses, and preparing data before it goes into APIs or applications.
 			  </p>
 
 			  <div className="mt-8 grid gap-4 md:grid-cols-2">
 				{[
-				  "Format and validate JSON before sending API payloads.",
-				  "Decode JWT tokens while checking authentication issues.",
-				  "Test regex patterns before adding them to application logic.",
-				  "Encode or decode Base64 and URL-safe values during debugging.",
-				  "Generate UUIDs for databases, mocks, and test records.",
-				  "Convert timestamps while reading logs, events, or backend data.",
-				  "Compare structured data during API response testing.",
-				  "Prepare secure tokens, keys, and signatures during development.",
+				  "Clean up and validate JSON before sending it to APIs.",
+				  "Check JWT tokens when login or authentication starts behaving oddly.",
+				  "Try regex patterns before using them in real code.",
+				  "Decode Base64 or URL-safe values while debugging requests and responses.",
+				  "Generate UUIDs for databases, test data, or quick mock setups.",
+				  "Read timestamps while checking logs, events, or backend activity.",
+				  "Compare API responses and structured data side by side.",
+				  "Prepare tokens, keys, and signatures during development and testing.",
 				].map((item) => (
 				  <SectionMiniCard key={item}>
 					<p className="text-sm leading-relaxed text-gray-700">
