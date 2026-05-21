@@ -164,7 +164,7 @@ export default function Page() {
 
         {/* INTRO */}
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+          <div className="rounded-2xl border border-[var(--light-gold)] bg-[var(--cream)] p-6">
             <h2 className="text-lg font-semibold text-gray-900">
               Built for Quick Debugging
             </h2>
@@ -176,7 +176,7 @@ export default function Page() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+          <div className="rounded-2xl border border-[var(--light-gold)] bg-[var(--cream)] p-6">
             <h2 className="text-lg font-semibold text-gray-900">
               Useful Across Frontend and Backend Work
             </h2>
@@ -188,7 +188,7 @@ export default function Page() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+          <div className="rounded-2xl border border-[var(--light-gold)] bg-[var(--cream)] p-6">
             <h2 className="text-lg font-semibold text-gray-900">
               Simple Browser-Based Utilities
             </h2>
@@ -272,32 +272,37 @@ export default function Page() {
           </div>
         </section>
 
-        {/* USE CASES */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Common Developer Workflows
-          </h2>
+			{/* COMMON WORKFLOWS */}
+			<SectionCard>
+			  <h2 className="text-2xl font-semibold text-gray-900">
+				Common Developer Workflows
+			  </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              "Formatting and validating JSON before sending API payloads.",
-              "Decoding JWT tokens during authentication debugging.",
-              "Testing regex patterns before using them in code.",
-              "Encoding and decoding Base64 or URL-safe values.",
-              "Generating UUIDs for databases, mocks, and testing.",
-              "Converting timestamps while debugging logs and events.",
-              "Comparing structured data during API response testing.",
-              "Preparing secure tokens, keys, and signatures during development.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+			  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
+				These utilities are useful during small but frequent development tasks —
+				checking payloads, decoding values, testing patterns, comparing data, and
+				preparing values before they go into APIs, logs, or applications.
+			  </p>
+
+			  <div className="mt-8 grid gap-4 md:grid-cols-2">
+				{[
+				  "Format and validate JSON before sending API payloads.",
+				  "Decode JWT tokens while checking authentication issues.",
+				  "Test regex patterns before adding them to application logic.",
+				  "Encode or decode Base64 and URL-safe values during debugging.",
+				  "Generate UUIDs for databases, mocks, and test records.",
+				  "Convert timestamps while reading logs, events, or backend data.",
+				  "Compare structured data during API response testing.",
+				  "Prepare secure tokens, keys, and signatures during development.",
+				].map((item) => (
+				  <SectionMiniCard key={item}>
+					<p className="text-sm leading-relaxed text-gray-700">
+					  {item}
+					</p>
+				  </SectionMiniCard>
+				))}
+			  </div>
+			</SectionCard>
 
         {/* WHY MATTERS */}
         <section className="mt-16">
