@@ -500,6 +500,14 @@ export const tools = [
   },
 
 
+  {
+  title: "NATO Phonetic Alphabet Converter",
+  description:
+    "Convert text into NATO phonetic alphabet words for clearer spelling, calls, support, and communication workflows.",
+  href: "/tools/nato-phonetic-converter",
+  category: "Encoding Tools",
+  },
+
 
 
 
