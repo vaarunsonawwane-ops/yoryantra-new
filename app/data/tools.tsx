@@ -491,6 +491,14 @@ export const tools = [
   category: "Encoding Tools",
   },
 
+  {
+  title: "Morse Code Translator",
+  description:
+    "Translate text to Morse code and decode Morse code back into readable text for messages, learning, and encoded text checks.",
+  href: "/tools/morse-code-translator",
+  category: "Encoding Tools",
+  },
+
 
 
 
