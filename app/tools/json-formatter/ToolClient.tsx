@@ -3,6 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import {
+  ToolContent,
+  ToolExampleCard,
+  ToolInsightBox,
+} from "@/app/components/ToolContent";
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -140,7 +145,7 @@ export default function ToolClient() {
       </div>
 
       {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <ToolContent>
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             Formatting JSON So It Is Easier to Read
@@ -376,7 +381,7 @@ export default function ToolClient() {
             </Link>
           </div>
         </div>
-      </section>
+      </ToolContent>
     </ToolShell>
   );
 }
