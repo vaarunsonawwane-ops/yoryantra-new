@@ -451,5 +451,12 @@ export const tools = [
   category: "DevOps Tools",
   },
 
+  {
+  title: "Unicode Encoder Decoder",
+  description:
+    "Encode and decode Unicode escape sequences for JavaScript, JSON, HTML, APIs, and text debugging.",
+  href: "/tools/unicode-encoder-decoder",
+  category: "Encoding Tools",
+  },
 
 ];
