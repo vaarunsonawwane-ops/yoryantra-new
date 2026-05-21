@@ -516,5 +516,14 @@ export const tools = [
   category: "Encoding Tools",
   },
 
+  {
+  title: "ROT13 Encoder Decoder",
+  description:
+    "Encode and decode ROT13 text for simple letter substitution, puzzles, examples, and text transformation workflows.",
+  href: "/tools/rot13-encoder-decoder",
+  category: "Encoding Tools",
+  },
+
+
 
 ];
