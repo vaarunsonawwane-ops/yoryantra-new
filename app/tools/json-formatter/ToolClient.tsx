@@ -226,8 +226,8 @@ export default function ToolClient() {
             Example Formatted JSON
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
+          <ToolExampleCard>
+            <pre className="whitespace-pre-wrap break-words text-[14px] leading-7 text-gray-700">
 {`{
   "name": "Yoryantra",
   "type": "Developer Tools",
@@ -238,7 +238,7 @@ export default function ToolClient() {
   ]
 }`}
             </pre>
-          </div>
+          </ToolExampleCard>
         </div>
 
         <div>
@@ -246,7 +246,7 @@ export default function ToolClient() {
             Why JSON Formatting Matters
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <ToolInsightBox>
             <ul className="space-y-3">
               <li>
                 <strong>Better readability:</strong> Proper indentation makes
@@ -268,7 +268,7 @@ export default function ToolClient() {
                 testing and development workflows.
               </li>
             </ul>
-          </div>
+          </ToolInsightBox>
         </div>
 
         <div>
