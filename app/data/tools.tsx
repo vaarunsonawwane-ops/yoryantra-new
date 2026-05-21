@@ -508,7 +508,13 @@ export const tools = [
   category: "Encoding Tools",
   },
 
-
+  {
+  title: "Binary Encoder Decoder",
+  description:
+    "Encode text to binary and decode binary values back into readable text for debugging, learning, and encoding workflows.",
+  href: "/tools/binary-encoder-decoder",
+  category: "Encoding Tools",
+  },
 
 
 ];
