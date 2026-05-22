@@ -229,92 +229,95 @@ export default function ToolClient() {
         </div>
       )}
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold text-gray-900">
-          DNS Lookup Results
-        </h3>
+{/* OUTPUT */}
+<div className="mt-8">
+  <div className="flex items-center justify-between mb-3">
+    <h3 className="text-lg font-semibold text-gray-900">
+      DNS Lookup Results
+    </h3>
+  </div>
 
-        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          {hasResults ? (
-            <div className="space-y-4">
-              {results.map((result) => (
-                <div
-                  key={result.recordType}
-                  className="rounded-xl border border-gray-200 bg-white p-5"
-                >
-                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <h4 className="font-semibold text-gray-900">
-                      {result.recordType} Records
-                    </h4>
+  <div className="yoryantra-output">
+    {hasResults ? (
+      <div className="space-y-4">
+        {results.map((result) => (
+          <div
+            key={result.recordType}
+            className="rounded-xl border border-gray-200 bg-white p-5"
+          >
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <h4 className="font-semibold text-gray-900">
+                {result.recordType} Records
+              </h4>
 
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                      {result.answers.length} found
-                    </span>
-                  </div>
-
-                  {result.error && (
-                    <p className="mt-3 text-sm text-red-600">
-                      {result.error}
-                    </p>
-                  )}
-
-                  {result.answers.length > 0 ? (
-                    <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
-                      <table className="w-full min-w-[640px] text-left text-sm">
-                        <thead className="border-b border-gray-200 bg-gray-50 text-gray-700">
-                          <tr>
-                            <th className="px-4 py-3 font-semibold">
-                              Type
-                            </th>
-
-                            <th className="px-4 py-3 font-semibold">
-                              TTL
-                            </th>
-
-                            <th className="px-4 py-3 font-semibold">
-                              Value
-                            </th>
-                          </tr>
-                        </thead>
-
-                        <tbody>
-                          {result.answers.map((answer, index) => (
-                            <tr
-                              key={`${result.recordType}-${index}`}
-                              className="border-b border-gray-100 last:border-0"
-                            >
-                              <td className="px-4 py-3 font-medium text-gray-900">
-                                {typeLabels[answer.type] || result.recordType}
-                              </td>
-
-                              <td className="px-4 py-3 text-gray-600">
-                                {answer.TTL}
-                              </td>
-
-                              <td className="px-4 py-3 break-words text-gray-600">
-                                {answer.data}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-sm text-gray-500">
-                      No {result.recordType} records found for this domain.
-                    </p>
-                  )}
-                </div>
-              ))}
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                {result.answers.length} found
+              </span>
             </div>
-          ) : (
-            <p className="text-sm text-gray-500">
-              DNS records will appear here after checking a domain.
-            </p>
-          )}
-        </div>
+
+            {result.error && (
+              <p className="mt-3 text-sm text-red-600">
+                {result.error}
+              </p>
+            )}
+
+            {result.answers.length > 0 ? (
+              <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
+                <table className="w-full min-w-[640px] text-left text-sm">
+                  <thead className="border-b border-gray-200 bg-gray-50 text-gray-700">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">
+                        Type
+                      </th>
+
+                      <th className="px-4 py-3 font-semibold">
+                        TTL
+                      </th>
+
+                      <th className="px-4 py-3 font-semibold">
+                        Value
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {result.answers.map((answer, index) => (
+                      <tr
+                        key={`${result.recordType}-${index}`}
+                        className="border-b border-gray-100 last:border-0"
+                      >
+                        <td className="px-4 py-3 font-medium text-gray-900">
+                          {typeLabels[answer.type] ||
+                            result.recordType}
+                        </td>
+
+                        <td className="px-4 py-3 text-gray-600">
+                          {answer.TTL}
+                        </td>
+
+                        <td className="px-4 py-3 break-words text-gray-600">
+                          {answer.data}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-gray-500">
+                No {result.recordType} records found for this domain.
+              </p>
+            )}
+          </div>
+        ))}
       </div>
+    ) : (
+      <p className="text-sm text-gray-500">
+        DNS records will appear here after checking a domain.
+      </p>
+    )}
+  </div>
+</div>
 
       {/* NOTE */}
       <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
