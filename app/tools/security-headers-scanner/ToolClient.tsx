@@ -266,112 +266,114 @@ export default function ToolClient() {
         </div>
       )}
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Security Header Results
-        </h3>
+		{/* OUTPUT */}
+		<div className="mt-8">
+		  <div className="flex items-center justify-between mb-3">
+			<h3 className="text-lg font-semibold text-gray-900">
+			  Security Header Results
+			</h3>
+		  </div>
 
-        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          {hasResults ? (
-            <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Status Code
-                  </p>
+		  {hasResults ? (
+			<div className="yoryantra-output">
+			  <div className="space-y-6">
+				<div className="grid gap-4 md:grid-cols-3">
+				  <div className="rounded-xl border border-gray-200 bg-white p-4">
+					<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+					  Status Code
+					</p>
 
-                  <p className="mt-2 text-lg font-semibold text-gray-900">
-                    {statusCode}
-                  </p>
-                </div>
+					<p className="mt-2 text-lg font-semibold text-gray-900">
+					  {statusCode}
+					</p>
+				  </div>
 
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Found
-                  </p>
+				  <div className="rounded-xl border border-gray-200 bg-white p-4">
+					<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+					  Found
+					</p>
 
-                  <p className="mt-2 text-lg font-semibold text-gray-900">
-                    {summary.found} / {summary.total}
-                  </p>
-                </div>
+					<p className="mt-2 text-lg font-semibold text-gray-900">
+					  {summary.found} / {summary.total}
+					</p>
+				  </div>
 
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Missing
-                  </p>
+				  <div className="rounded-xl border border-gray-200 bg-white p-4">
+					<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+					  Missing
+					</p>
 
-                  <p className="mt-2 text-lg font-semibold text-gray-900">
-                    {summary.missing}
-                  </p>
-                </div>
-              </div>
+					<p className="mt-2 text-lg font-semibold text-gray-900">
+					  {summary.missing}
+					</p>
+				  </div>
+				</div>
 
-              <div className="rounded-xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Final URL
-                </p>
+				<div className="rounded-xl border border-gray-200 bg-white p-4">
+				  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+					Final URL
+				  </p>
 
-                <p className="mt-2 break-words text-sm text-gray-700">
-                  {finalUrl || "Not available"}
-                </p>
-              </div>
+				  <p className="mt-2 break-words text-sm text-gray-700">
+					{finalUrl || "Not available"}
+				  </p>
+				</div>
 
-              <div className="grid gap-4">
-                {results.map((result) => (
-                  <div
-                    key={result.name}
-                    className="rounded-xl border border-gray-200 bg-white p-5"
-                  >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">
-                          {result.label}
-                        </h4>
+				<div className="grid gap-4">
+				  {results.map((result) => (
+					<div
+					  key={result.name}
+					  className="rounded-xl border border-gray-200 bg-white p-5"
+					>
+					  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+						<div>
+						  <h4 className="font-semibold text-gray-900">
+							{result.label}
+						  </h4>
 
-                        <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                          {result.purpose}
-                        </p>
-                      </div>
+						  <p className="mt-2 text-sm leading-relaxed text-gray-600">
+							{result.purpose}
+						  </p>
+						</div>
 
-                      <div className="flex flex-wrap gap-2">
-                        <span
-                          className={
-                            result.status === "found"
-                              ? "rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700"
-                              : "rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
-                          }
-                        >
-                          {result.status === "found" ? "Found" : "Missing"}
-                        </span>
+						<div className="flex flex-wrap gap-2">
+						  <span
+							className={
+							  result.status === "found"
+								? "rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700"
+								: "rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
+							}
+						  >
+							{result.status === "found" ? "Found" : "Missing"}
+						  </span>
 
-                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                          {result.severity}
-                        </span>
-                      </div>
-                    </div>
+						  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+							{result.severity}
+						  </span>
+						</div>
+					  </div>
 
-                    {result.value && (
-                      <pre className="mt-4 overflow-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-700 whitespace-pre-wrap break-words">
-                        {result.value}
-                      </pre>
-                    )}
+					  {result.value && (
+						<pre className="mt-4 overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs leading-relaxed text-gray-700 whitespace-pre-wrap break-words">
+						  {result.value}
+						</pre>
+					  )}
 
-                    <p className="mt-4 text-sm leading-relaxed text-gray-600">
-                      <strong className="text-gray-900">Suggestion:</strong>{" "}
-                      {result.suggestion}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">
-              Security header results will appear here after scanning a URL.
-            </p>
-          )}
-        </div>
-      </div>
+					  <p className="mt-4 text-sm leading-relaxed text-gray-600">
+						<strong className="text-gray-900">Suggestion:</strong>{" "}
+						{result.suggestion}
+					  </p>
+					</div>
+				  ))}
+				</div>
+			  </div>
+			</div>
+		  ) : (
+			<pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
+			  Security header results will appear here after scanning a URL.
+			</pre>
+		  )}
+		</div>
 
       {/* IMPORTANT NOTE */}
       <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
