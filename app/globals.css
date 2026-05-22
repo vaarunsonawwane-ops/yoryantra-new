@@ -33,10 +33,21 @@ body {
 ========================================= */
 
 .yoryantra-output {
-  background-color: var(--light-bg);
-  border: 1px solid rgba(200, 155, 60, 0.18);
+  background-color: #f9fafb; /* gray-50 */
+  border: 1px solid #e5e7eb; /* gray-200 */
   border-radius: 14px;
   padding: 16px;
+
+  color: #1f2937; /* gray-800 */
+  line-height: 1.7;
+
+  min-height: 220px;
+
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  display: block;
 }
 
 /* =========================================
