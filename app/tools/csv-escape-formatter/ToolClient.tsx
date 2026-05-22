@@ -173,32 +173,42 @@ export default function ToolClient() {
         </div>
       )}
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Escaped Output
-          </h3>
+		{/* OUTPUT */}
+		<div className="mt-8">
+		  <div className="flex items-center justify-between mb-3">
+			<div>
+			  <h3 className="text-lg font-semibold text-gray-900">
+				Escaped Output
+			  </h3>
 
-          <p className="text-sm text-gray-500">
-            {summary.escapedLines > 0
-              ? `${summary.escapedLines} formatted line${summary.escapedLines === 1 ? "" : "s"}`
-              : "Output will appear below"}
-          </p>
-        </div>
+			  <p className="text-sm text-gray-500 mt-1">
+				{summary.escapedLines > 0
+				  ? `${summary.escapedLines} formatted line${
+					  summary.escapedLines === 1 ? "" : "s"
+					}`
+				  : "Output will appear below"}
+			  </p>
+			</div>
 
-        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          {output ? (
-            <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-800">
-              {output}
-            </pre>
-          ) : (
-            <p className="text-sm text-gray-500">
-              Escaped CSV values will appear here.
-            </p>
-          )}
-        </div>
-      </div>
+			{output && (
+			  <button
+				onClick={() =>
+				  navigator.clipboard.writeText(
+					output
+				  )
+				}
+				className="yoryantra-btn-outline text-sm"
+			  >
+				Copy
+			  </button>
+			)}
+		  </div>
+
+		  <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
+			{output ||
+			  "Escaped CSV values will appear here."}
+		  </pre>
+		</div>
 
       {/* SEO CONTENT */}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
