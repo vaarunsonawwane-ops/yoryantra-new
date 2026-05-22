@@ -153,72 +153,79 @@ export default function ToolClient() {
         </div>
       )}
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Header Results
-        </h3>
+{/* OUTPUT */}
+<div className="mt-8">
+  <div className="flex items-center justify-between mb-3">
+    <h3 className="text-lg font-semibold text-gray-900">
+      Header Results
+    </h3>
+  </div>
 
-        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          {hasResults ? (
-            <div className="space-y-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Status Code
-                  </p>
-
-                  <p className="mt-2 text-lg font-semibold text-gray-900">
-                    {statusCode}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Final URL
-                  </p>
-
-                  <p className="mt-2 break-words text-sm text-gray-700">
-                    {finalUrl || "Not available"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="overflow-auto rounded-xl border border-gray-200 bg-white">
-                <table className="w-full min-w-[640px] text-left text-sm">
-                  <thead className="border-b border-gray-200 bg-gray-50 text-gray-700">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">Header</th>
-                      <th className="px-4 py-3 font-semibold">Value</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {headers.map((header) => (
-                      <tr
-                        key={header.name}
-                        className="border-b border-gray-100 last:border-0"
-                      >
-                        <td className="px-4 py-3 font-medium text-gray-900">
-                          {header.name}
-                        </td>
-
-                        <td className="px-4 py-3 break-words text-gray-600">
-                          {header.value}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">
-              HTTP response headers will appear here after checking a URL.
+  {hasResults ? (
+    <div className="yoryantra-output">
+      <div className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Status Code
             </p>
-          )}
+
+            <p className="mt-2 text-lg font-semibold text-gray-900">
+              {statusCode}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Final URL
+            </p>
+
+            <p className="mt-2 break-words text-sm text-gray-700">
+              {finalUrl || "Not available"}
+            </p>
+          </div>
+        </div>
+
+        <div className="overflow-auto rounded-xl border border-gray-200 bg-white">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="border-b border-gray-200 bg-gray-50 text-gray-700">
+              <tr>
+                <th className="px-4 py-3 font-semibold">
+                  Header
+                </th>
+
+                <th className="px-4 py-3 font-semibold">
+                  Value
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {headers.map((header) => (
+                <tr
+                  key={header.name}
+                  className="border-b border-gray-100 last:border-0"
+                >
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {header.name}
+                  </td>
+
+                  <td className="px-4 py-3 break-words text-gray-600">
+                    {header.value}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
+    </div>
+  ) : (
+    <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
+      HTTP response headers will appear here after checking a URL.
+    </pre>
+  )}
+</div>
 
       {/* IMPORTANT NOTE */}
       <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
