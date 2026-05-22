@@ -166,85 +166,87 @@ export default function ToolClient() {
         </div>
       )}
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Redirect Chain Results
-        </h3>
+		{/* OUTPUT */}
+		<div className="mt-8">
+		  <div className="flex items-center justify-between mb-3">
+			<h3 className="text-lg font-semibold text-gray-900">
+			  Redirect Chain Results
+			</h3>
+		  </div>
 
-        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          {hasResults ? (
-            <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Redirect Hops
-                  </p>
+		  {hasResults ? (
+			<div className="yoryantra-output">
+			  <div className="space-y-6">
+				<div className="grid gap-4 md:grid-cols-3">
+				  <div className="rounded-xl border border-gray-200 bg-white p-4">
+					<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+					  Redirect Hops
+					</p>
 
-                  <p className="mt-2 text-lg font-semibold text-gray-900">
-                    {summary.hops}
-                  </p>
-                </div>
+					<p className="mt-2 text-lg font-semibold text-gray-900">
+					  {summary.hops}
+					</p>
+				  </div>
 
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Final Status
-                  </p>
+				  <div className="rounded-xl border border-gray-200 bg-white p-4">
+					<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+					  Final Status
+					</p>
 
-                  <p className="mt-2 text-lg font-semibold text-gray-900">
-                    {summary.finalStatus}
-                  </p>
-                </div>
+					<p className="mt-2 text-lg font-semibold text-gray-900">
+					  {summary.finalStatus}
+					</p>
+				  </div>
 
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Final URL
-                  </p>
+				  <div className="rounded-xl border border-gray-200 bg-white p-4">
+					<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+					  Final URL
+					</p>
 
-                  <p className="mt-2 break-words text-sm text-gray-700">
-                    {finalUrl}
-                  </p>
-                </div>
-              </div>
+					<p className="mt-2 break-words text-sm text-gray-700">
+					  {finalUrl}
+					</p>
+				  </div>
+				</div>
 
-              <div className="space-y-4">
-                {redirects.map((step, index) => (
-                  <div
-                    key={`${step.url}-${index}`}
-                    className="rounded-xl border border-gray-200 bg-white p-5"
-                  >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          Step {index + 1}
-                        </p>
+				<div className="space-y-4">
+				  {redirects.map((step, index) => (
+					<div
+					  key={`${step.url}-${index}`}
+					  className="rounded-xl border border-gray-200 bg-white p-5"
+					>
+					  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+						<div>
+						  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+							Step {index + 1}
+						  </p>
 
-                        <p className="mt-2 break-words text-sm text-gray-700">
-                          {step.url}
-                        </p>
-                      </div>
+						  <p className="mt-2 break-words text-sm text-gray-700">
+							{step.url}
+						  </p>
+						</div>
 
-                      <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                          {step.status}
-                        </span>
+						<div className="flex flex-wrap gap-2">
+						  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+							{step.status}
+						  </span>
 
-                        <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-                          {step.type}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">
-              Redirect chain results will appear here after checking a URL.
-            </p>
-          )}
-        </div>
-      </div>
+						  <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+							{step.type}
+						  </span>
+						</div>
+					  </div>
+					</div>
+				  ))}
+				</div>
+			  </div>
+			</div>
+		  ) : (
+			<pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
+			  Redirect chain results will appear here after checking a URL.
+			</pre>
+		  )}
+		</div>
 
       {/* NOTE */}
       <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
