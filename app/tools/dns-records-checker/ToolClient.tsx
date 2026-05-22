@@ -237,8 +237,8 @@ export default function ToolClient() {
     </h3>
   </div>
 
-  <div className="yoryantra-output">
-    {hasResults ? (
+  {hasResults ? (
+    <div className="yoryantra-output">
       <div className="space-y-4">
         {results.map((result) => (
           <div
@@ -311,12 +311,12 @@ export default function ToolClient() {
           </div>
         ))}
       </div>
-    ) : (
-      <pre className="yoryantra-output text-sm text-gray-500">
-        DNS records will appear here after checking a domain.
-      </pre>
-    )}
-  </div>
+    </div>
+  ) : (
+    <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
+      DNS records will appear here after checking a domain.
+    </pre>
+  )}
 </div>
 
       {/* NOTE */}
