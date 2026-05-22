@@ -48,6 +48,10 @@ body {
   word-break: break-word;
 
   display: block;
+
+  /* FONT CONSISTENCY */
+  font-family: inherit;
+  font-size: 14px;
 }
 
 /* =========================================

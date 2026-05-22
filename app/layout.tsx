@@ -1,10 +1,17 @@
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
-export const metadata = {
-metadataBase: new URL("https://yoryantra.com"),
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  metadataBase: new URL("https://yoryantra.com"),
   title: "YORYANTRA",
   description:
     "Smart utilities for structured workflows, productivity, and modern work.",
@@ -20,19 +27,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-white text-gray-900">
-
-        {/* GLOBAL HEADER */}
+      <body className={`${inter.className} bg-white text-gray-900`}>
         <Header />
 
-        {/* PAGE CONTENT */}
-        <main>
-          {children}
-        </main>
+        <main>{children}</main>
 
-        {/* GLOBAL FOOTER */}
         <Footer />
-
       </body>
     </html>
   );
