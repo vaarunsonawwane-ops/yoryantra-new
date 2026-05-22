@@ -312,9 +312,9 @@ export default function ToolClient() {
         ))}
       </div>
     ) : (
-      <p className="text-sm text-gray-500">
+      <pre className="yoryantra-output text-sm text-gray-500">
         DNS records will appear here after checking a domain.
-      </p>
+      </pre>
     )}
   </div>
 </div>
