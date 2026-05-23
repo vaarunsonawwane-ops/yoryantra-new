@@ -89,7 +89,7 @@ export default function AboutPage() {
           </h1>
 
           <p className="mt-[40px] text-[17px] md:text-[18px] text-[#444] mb-[26px]">
-            I am <strong>Vaarun Sonawwane</strong>, an IT professional with 7 years of experience in IT Industry, I passionately want to give back to the society and helping whoever I can in this universe. Even if it starts with something small like saving someone's time through useful tools
+            I am <strong>Varon Sonawwane</strong>, an IT professional with 7 years of experience in IT Industry, I passionately want to give back to the society and helping whoever I can in this universe. Even if it starts with something small like saving someone's time through useful tools
           </p>
 
           <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
