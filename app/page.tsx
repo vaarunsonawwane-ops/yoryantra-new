@@ -78,9 +78,9 @@ export default function HomePage() {
       {/* HERO */}
       <section className="mx-auto max-w-7xl px-6 py-20 md:py-24">
         <div className="max-w-4xl">
-          <p className="inline-flex rounded-full border border-[var(--light-gold)] bg-[var(--light-bg)] px-4 py-2 text-sm font-medium text-gray-800">
-            ✦ Built for you
-          </p>
+		  <p className="text-sm font-medium text-[var(--light-gold)]">
+		    ✦ Built for you
+		  </p>
 
           <h1 className="mt-8 text-4xl font-semibold tracking-tight text-gray-950 md:text-6xl md:leading-tight">
             Practical tools for everyday work — clean, fast, and easy to use.
