@@ -162,7 +162,7 @@ export default function Footer() {
         </div>
 
         {/* BOTTOM BAR */}
-        <div className="border-t border-gray-100 mt-8 pt-5 flex flex-col md:flex-row items-start md:items-center justify-start gap-2 text-sm text-gray-500">
+        <div className="border-t border-gray-100 mt-8 pt-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 text-sm text-gray-500">
 
           <p>
             © {new Date().getFullYear()} Yoryantra. All rights reserved.
