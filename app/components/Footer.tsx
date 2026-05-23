@@ -6,7 +6,7 @@ export default function Footer() {
 	  <div className="max-w-7xl mx-auto px-6 py-10">
 
         {/* TOP SECTION */}
-        <div className="flex flex-col md:flex-row items-start justify-start gap-8">
+        <div className="flex flex-col md:flex-row items-start justify-between gap-10">
 
           {/* BRAND */}
           <div className="max-w-sm">
