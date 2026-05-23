@@ -1,18 +1,20 @@
+import Link from "next/link";
+
 export const metadata = {
-  title: "Yoryantra | Practical Everyday Tools",
+  title: "Yoryantra | Small Browser Tools for Technical Work",
 
   description:
-    "Simple, fast, and focused utilities for developers, productivity, formatting, encoding, and structured workflows.",
+    "A growing collection of simple browser tools for developers, SEO work, security checks, data formatting, encoding, debugging, and everyday technical tasks.",
 
   alternates: {
     canonical: "https://yoryantra.com",
   },
 
   openGraph: {
-    title: "Yoryantra | Practical Everyday Tools",
+    title: "Yoryantra | Small Browser Tools for Technical Work",
 
     description:
-      "Simple, fast, and focused utilities without unnecessary clutter.",
+      "Simple browser tools for developers, SEO work, security checks, data formatting, encoding, debugging, and everyday technical tasks.",
 
     url: "https://yoryantra.com",
 
@@ -24,208 +26,178 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "Yoryantra | Practical Everyday Tools",
+    title: "Yoryantra | Small Browser Tools for Technical Work",
 
     description:
-      "Simple, fast, and focused utilities without unnecessary clutter.",
+      "Simple browser tools for developers, SEO work, security checks, data formatting, encoding, debugging, and everyday technical tasks.",
   },
 };
+
+const categories = [
+  {
+    title: "Developer Tools",
+    description:
+      "Small utilities for JSON, regex, UUIDs, timestamps, tokens, debugging, and everyday development checks.",
+    href: "/categories/developer-tools",
+  },
+  {
+    title: "Encoding Tools",
+    description:
+      "Encode, decode, escape, translate, and clean text values used in URLs, APIs, payloads, logs, and browser workflows.",
+    href: "/categories/encoding-tools",
+  },
+  {
+    title: "JSON & Data Tools",
+    description:
+      "Format, validate, compare, convert, and inspect structured data while working with APIs, files, and integrations.",
+    href: "/categories/json-tools",
+  },
+  {
+    title: "Security Tools",
+    description:
+      "Check headers, inspect tokens, generate hashes, review signatures, and prepare safer values during development.",
+    href: "/categories/security-tools",
+  },
+  {
+    title: "SEO Tools",
+    description:
+      "Create metadata, check redirects, prepare social previews, review URL signals, and handle technical SEO tasks.",
+    href: "/categories/seo-tools",
+  },
+  {
+    title: "DevOps Tools",
+    description:
+      "Work with environment files, YAML, cron expressions, configuration values, and deployment-related text formats.",
+    href: "/categories/devops-tools",
+  },
+];
+
+const notes = [
+  "Runs in the browser wherever possible.",
+  "Built for small technical tasks that come up often.",
+  "Kept simple so the tool stays more important than the page.",
+];
 
 export default function HomePage() {
   return (
     <main className="bg-white text-gray-900">
-      <style>{`
-        :root {
-          --gold: #d4a514;
-          --green: #256b45;
-          --dark: #2f3a45;
-          --light: #f8f8f6;
-        }
-
-        html {
-          scroll-behavior: smooth;
-        }
-      `}</style>
-
       {/* HERO */}
-      <section
-        id="home"
-        className="max-w-7xl mx-auto px-6 py-24 grid lg:grid-cols-2 gap-16 items-center"
-      >
-        {/* LEFT */}
-        <div>
-          <div
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-yellow-50 text-sm font-medium mb-8"
-            style={{ color: "#946c00" }}
-          >
-            ✦ Built for You
-          </div>
-
-          <h2 className="text-5xl md:text-6xl font-bold leading-tight text-[var(--dark)]">
-            Practical everyday tools that are
-            <span className="font-semibold"> fast, clean, and built to save time.</span>
-          </h2>
-
-          <p className="mt-8 text-xl text-gray-600 leading-relaxed max-w-2xl">
-            Modern tools, smart converters, encoding utilities, formatting helpers,
-            and niche developer utilities without too much ads chaos and unnecessary clutter.
+      <section className="mx-auto max-w-7xl px-6 py-20 md:py-24">
+        <div className="max-w-4xl">
+          <p className="inline-flex rounded-full border border-[var(--light-gold)] bg-[var(--light-bg)] px-4 py-2 text-sm font-medium text-gray-800">
+            Built with gratitude, kept simple.
           </p>
 
-          <div className="mt-10 flex flex-wrap gap-5">
-            <a
-			  href="/tools"
-			  className="px-8 py-4 rounded-xl text-white font-medium transition hover:opacity-90"
-              style={{ backgroundColor: "var(--gold)" }}
-            >
-              Explore Tools →
-            </a>
+          <h1 className="mt-8 text-4xl font-semibold tracking-tight text-gray-950 md:text-6xl md:leading-tight">
+            Small browser tools for people building, debugging, and cleaning up technical work.
+          </h1>
 
-            <a
-			  href="/categories"
-			  className="px-8 py-4 rounded-xl text-white font-medium transition hover:opacity-90"
-			  style={{ backgroundColor: "var(--gold)" }}
-			>
-			  View Categories
-			</a>
+          <p className="mt-6 max-w-3xl text-lg leading-relaxed text-gray-600">
+            Yoryantra is a growing set of practical utilities for developers,
+            SEO work, security checks, data formatting, encoding, debugging,
+            and structured workflows. The aim is simple: open a tool, solve the
+            small problem, and move on with your work.
+          </p>
+
+          <div className="mt-9 flex flex-wrap gap-4">
+            <Link
+              href="/tools"
+              className="rounded-xl bg-[var(--green)] px-6 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:opacity-95"
+            >
+              Explore tools
+            </Link>
+
+            <Link
+              href="/categories"
+              className="rounded-xl border border-[var(--green)] bg-white px-6 py-3 text-sm font-medium text-[var(--green)] transition hover:-translate-y-0.5 hover:bg-green-50"
+            >
+              Browse categories
+            </Link>
           </div>
         </div>
 
-        {/* RIGHT */}
-        <div className="relative">
-          <div
-            className="absolute top-10 right-10 w-72 h-72 rounded-full opacity-20"
-            style={{ backgroundColor: "#f5d980" }}
-          ></div>
-
-          <div className="relative bg-white rounded-[2rem] border border-gray-200 shadow-xl p-10">
-            <div className="flex gap-3 mb-8">
-              <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-              <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-              <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+        <div className="mt-14 grid gap-4 md:grid-cols-3">
+          {notes.map((note) => (
+            <div
+              key={note}
+              className="rounded-2xl border border-[var(--light-gold)] bg-[var(--light-bg)] p-5"
+            >
+              <p className="text-sm leading-relaxed text-gray-700">
+                {note}
+              </p>
             </div>
-
-            <div className="space-y-5">
-              <div className="h-5 rounded-full bg-gray-100 w-3/4"></div>
-
-              <div className="h-5 rounded-full bg-gray-100 w-2/3"></div>
-
-              <div className="grid grid-cols-3 gap-4 mt-10">
-                <div className="rounded-2xl p-5 bg-green-50 flex items-center justify-center">
-                  📄
-                </div>
-
-                <div className="rounded-2xl p-5 bg-yellow-50 flex items-center justify-center">
-                  ✓
-                </div>
-
-                <div className="rounded-2xl p-5 bg-gray-100 flex items-center justify-center">
-                  ↻
-                </div>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
       {/* CATEGORIES */}
-      <section id="categories" className="bg-[var(--light)] py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h3 className="text-4xl font-bold text-[var(--dark)]">
-              Explore by Categories
-            </h3>
+      <section className="border-y border-gray-100 bg-gray-50 py-20">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="max-w-3xl">
+            <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
+              Browse tools by the kind of work you are doing
+            </h2>
 
-            <div
-              className="w-20 h-[4px] rounded-full mx-auto mt-5"
-              style={{ backgroundColor: "var(--gold)" }}
-            ></div>
+            <p className="mt-4 text-gray-600 leading-relaxed">
+              The categories are grouped around real tasks: transforming data,
+              checking technical details, preparing values, and inspecting
+              things before they go into websites, APIs, logs, or systems.
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: "🔄",
-                title: "Converters & Transformers",
-                desc: "Base64, JSON, text, encoding, decoding, and format conversion tools people search daily.",
-              },
-              {
-                icon: "⚡",
-                title: "Quick Utility Tools",
-                desc: "Fast tools for timestamps, UUIDs, word counters, slug generators, and everyday tasks.",
-              },
-              {
-                icon: "🧠",
-                title: "Text & Data Utilities",
-                desc: "Regex tester, case converter, diff checker, CSV tools, and smart text processors.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="bg-white border border-gray-200 rounded-3xl p-10 hover:shadow-xl transition"
+          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {categories.map((category) => (
+              <Link
+                key={category.href}
+                href={category.href}
+                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
-                <div className="w-20 h-20 rounded-2xl bg-green-50 flex items-center justify-center text-3xl">
-                  {item.icon}
-                </div>
+                <h3 className="text-lg font-semibold text-gray-900 transition-colors duration-200 group-hover:text-[var(--light-gold)]">
+                  {category.title}
+                </h3>
 
-                <h4 className="mt-8 text-2xl font-semibold text-gray-900">
-                  {item.title}
-                </h4>
-
-                <p className="mt-5 text-gray-600 leading-relaxed">
-                  {item.desc}
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                  {category.description}
                 </p>
 
-                <a
-                  href="#"
-                  className="inline-block mt-8 font-medium text-gray-900"
-                >
-                  Explore →
-                </a>
-              </div>
+                <p className="mt-5 text-sm font-medium text-[var(--green)]">
+                  Explore category →
+                </p>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
       {/* ABOUT */}
-      <section id="about" className="bg-white py-24">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h3 className="text-4xl font-bold text-[var(--dark)]">
-            About YORYANTRA
-          </h3>
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-start">
+          <div>
+            <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
+              Why Yoryantra exists
+            </h2>
+          </div>
 
-          <div
-            className="w-20 h-[4px] rounded-full mx-auto mt-5"
-            style={{ backgroundColor: "var(--gold)" }}
-          ></div>
+          <div className="space-y-5 text-gray-600 leading-relaxed">
+            <p>
+              Many technical tasks are small, but they interrupt the flow:
+              decoding a value, formatting JSON, checking headers, preparing a
+              slug, reading a timestamp, or testing a redirect. Yoryantra is
+              made for those moments.
+            </p>
 
-          <p className="mt-10 text-xl text-gray-600 leading-relaxed">
-            YORYANTRA is a growing platform focused on creating thoughtful digital
-            utilities for modern workflows, productivity, and structured work.
-            Built with Gratitude reflects the intention behind the platform —
-            creating practical tools that genuinely help people work better and
-            simplify everyday professional tasks.
-          </p>
-        </div>
-      </section>
+            <p>
+              It is not meant to feel like a heavy platform. It is a practical
+              workshop of browser tools that help people build, validate,
+              transform, debug, inspect, and operate systems with less friction.
+            </p>
 
-      {/* CONTACT */}
-      <section
-        id="contact"
-        className="bg-white py-24 border-t border-gray-200"
-      >
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h3 className="text-4xl font-bold text-[var(--dark)]">
-            Contact
-          </h3>
-
-          <p className="mt-6 text-lg text-gray-600">
-            Questions, ideas, or collaborations.
-          </p>
-
-          <p className="mt-8 text-2xl font-medium text-gray-900">
-            contact@yoryantra.com
-          </p>
+            <p>
+              The site will keep growing carefully, with useful tools,
+              readable examples, and a simple interface that respects the work
+              you came here to finish.
+            </p>
+          </div>
         </div>
       </section>
     </main>
