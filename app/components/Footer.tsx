@@ -2,11 +2,11 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-	<footer className="border-t border-gray-100 bg-white mt-16">
+	<footer className="border-t border-gray-100 bg-white mt-12">
 	  <div className="max-w-7xl mx-auto px-6 py-10">
 
         {/* TOP SECTION */}
-        <div className="flex flex-col md:flex-row items-start justify-between gap-8">
+        <div className="flex flex-col md:flex-row items-start justify-start gap-8">
 
           {/* BRAND */}
           <div className="max-w-sm">
@@ -20,7 +20,7 @@ export default function Footer() {
           </div>
 
           {/* LINKS */}
-          <div className="flex flex-wrap gap-12 text-sm">
+          <div className="flex flex-wrap gap-10 text-sm">
 
 			{/* RESOURCES */}
 			<div className="flex flex-col gap-2">
@@ -162,7 +162,7 @@ export default function Footer() {
         </div>
 
         {/* BOTTOM BAR */}
-        <div className="border-t border-gray-100 mt-8 pt-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 text-sm text-gray-500">
+        <div className="border-t border-gray-100 mt-8 pt-5 flex flex-col md:flex-row items-start md:items-center justify-start gap-2 text-sm text-gray-500">
 
           <p>
             © {new Date().getFullYear()} Yoryantra. All rights reserved.
