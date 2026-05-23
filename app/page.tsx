@@ -151,7 +151,7 @@ export default function HomePage() {
                   {category.description}
                 </p>
 
-                <p className="mt-5 text-sm font-medium text-[var(--green)]">
+                <p className="mt-5 text-sm font-medium text-[var(--light-gold)]">
                   Explore category →
                 </p>
               </Link>

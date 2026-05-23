@@ -168,9 +168,9 @@ export default function Footer() {
             © {new Date().getFullYear()} Yoryantra. All rights reserved.
           </p>
 
-          <p>
-            Built with Gratitude 🙏
-          </p>
+		  <p className="text-sm font-medium text-[var(--light-gold)]">
+		    Built with Gratitude 🙏
+		  </p>
 
         </div>
 
