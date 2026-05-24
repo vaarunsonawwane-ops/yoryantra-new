@@ -228,17 +228,14 @@ export default function Page() {
 
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              JSON is used across APIs, databases, configuration files, logs,
-              frontend applications, backend services, and automation systems.
-              Small formatting or validation issues can break integrations and
-              slow down debugging.
+              JSON is commonly used when working with APIs, configuration files, 
+			  logs, and application data.
             </p>
 
             <p>
-              Browser-based JSON utilities make common data tasks faster. They
-              help developers inspect payloads, fix syntax errors, compare
-              responses, validate schemas, and convert data formats during daily
-              development work.
+              Small formatting or validation mistakes can cause errors or make 
+			  debugging harder. JSON tools help format, validate, compare, and 
+			  check JSON data more easily.
             </p>
           </div>
         </section>

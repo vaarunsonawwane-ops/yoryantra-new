@@ -228,16 +228,14 @@ export default function Page() {
 
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              Technical SEO is not only about keywords. Search engines also
-              need clear metadata, clean URLs, crawlable pages, correct
-              redirects, canonical signals, and language targeting information.
+              Technical SEO includes things like redirects, metadata, canonical tags, 
+			  robots.txt, sitemaps, URLs, and page signals used by search engines.
             </p>
 
             <p>
-              Small mistakes in redirects, metadata, robots.txt, canonical
-              tags, or hreflang markup can reduce search visibility or confuse
-              crawlers. These tools make common checks faster before pages go
-              live.
+              Small mistakes can affect how pages are crawled, understood, or 
+			  indexed. SEO tools help make these checks easier before publishing 
+			  changes.
             </p>
           </div>
         </section>

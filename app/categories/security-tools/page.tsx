@@ -231,17 +231,14 @@ export default function Page() {
 
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              Security work often involves small but important values such as
-              tokens, signatures, hashes, keys, certificates, and HTTP security
-              headers. A small formatting mistake can break authentication,
-              webhook verification, or API access.
+              Security-related work often includes checking tokens, hashes, 
+			  headers, signatures, certificates, or encoded values.
             </p>
 
             <p>
-              Browser-based security utilities make common checks faster during
-              development. They help developers inspect encoded values, test
-              signing workflows, verify hashes, and prepare secure configuration
-              before moving changes into production.
+              Small mistakes can create access issues, failed verification, 
+			  or authentication errors. Security tools help make quick checks 
+			  easier while testing or preparing secure values.
             </p>
           </div>
         </section>

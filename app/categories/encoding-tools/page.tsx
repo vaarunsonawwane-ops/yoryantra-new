@@ -228,15 +228,14 @@ export default function Page() {
 
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              Web development often requires text to be encoded, decoded,
-              escaped, or transformed before it can safely move through URLs,
-              APIs, HTML pages, logs, scripts, and authentication systems.
+              Sometimes text needs to be encoded, decoded, escaped, or 
+			  converted before it works properly in URLs, APIs, HTML, scripts, logs, 
+			  or authentication systems.
             </p>
 
             <p>
-              Encoding mistakes can break query strings, damage payloads, create
-              rendering issues, or make debugging harder. Browser-based tools
-              make these transformations faster during everyday work.
+              Small encoding mistakes can change values, break links, or create wrong results. 
+			  Encoding tools help make these quick checks easier.
             </p>
           </div>
         </section>

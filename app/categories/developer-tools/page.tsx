@@ -234,15 +234,14 @@ export default function Page() {
 
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              Developers frequently need quick utilities while testing APIs,
-              debugging payloads, inspecting tokens, formatting data, or working
-              with encoded content.
+			  When building something, developers often need to quickly format data, 
+			  check values, test APIs, decode tokens, inspect payloads, or 
+			  validate small things before continuing.
             </p>
 
             <p>
-              Lightweight browser-based tools reduce context switching and help
-              speed up development workflows without needing heavy software or
-              external platforms.
+			  Developer tools help make these quick checks easier without needing 
+			  to install software or leave the browser.
             </p>
           </div>
         </section>

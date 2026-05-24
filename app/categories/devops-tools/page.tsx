@@ -227,16 +227,13 @@ export default function Page() {
 
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              DevOps work often depends on small configuration files that control
-              containers, services, environments, deployment jobs, and
-              infrastructure behavior.
+              DevOps work often includes checking configuration files, environment values, 
+			  schedules, services, deployment settings, or infrastructure-related information.
             </p>
 
             <p>
-              Simple YAML mistakes, missing services, broken environment
-              variables, or incorrect schedules can slow down deployments.
-              Browser-based utilities make quick checks easier during daily
-              development.
+              Small mistakes in configuration can create errors or slow things down. 
+			  DevOps tools help make quick checks easier during setup, testing, or deployment.
             </p>
           </div>
         </section>
