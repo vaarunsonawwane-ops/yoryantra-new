@@ -86,7 +86,7 @@ export default function HomePage() {
             Practical tools for everyday work — clean, fast, and easy to use.
           </h1>
 
-			<div className="mt-8 max-w-3xl space-y-5 text-lg leading-relaxed text-gray-600">
+			<div className="mt-8 max-w-4xl space-y-5 text-lg leading-relaxed text-gray-600">
 			  <p>
 				Yoryantra is a growing collection of browser-based tools created
 				to help you find what you are looking for quickly and save your time.
