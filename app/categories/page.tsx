@@ -160,23 +160,22 @@ export default function Page() {
 
 		  <div className="mt-5 space-y-5 text-gray-600 leading-relaxed">
 			<p>
-			  Most technical work is filled with tiny repetitive tasks — formatting
-			  payloads, checking redirects, validating configuration files, decoding
-			  values, debugging APIs, or generating metadata before release. The goal
-			  is usually simple: solve a small problem quickly and move on.
+			  When you are working on a project, there are often small steps you
+			  need to handle quickly — formatting text, checking redirects,
+			  validating files, decoding values, cleaning data, or preparing
+			  information before using it.
 			</p>
 
 			<p>
-			  Grouping tools into focused categories makes those workflows easier to
-			  navigate. Instead of searching through unrelated utilities, developers,
-			  SEO teams, DevOps engineers, marketers, and technical users can quickly
-			  find tools that naturally belong together.
+			  Keeping tools grouped into focused categories makes them easier to
+			  find. Instead of going through unrelated pages, you can quickly
+			  browse tools that naturally belong together.
 			</p>
 
 			<p>
-			  Yoryantra is designed around practical workflows rather than random tool
-			  collections — helping you spend less time switching context and more time
-			  actually solving problems.
+			  Yoryantra is organized to help you find what you are looking for
+			  faster and save time, without turning the site into a random
+			  collection of utilities.
 			</p>
 		  </div>
 		</SectionCard>

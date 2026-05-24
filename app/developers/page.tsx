@@ -305,16 +305,21 @@ export default function Page() {
 
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              Development work often includes small but repeated tasks such as
-              formatting data, checking encoded strings, testing regex, decoding
-              tokens, reviewing timestamps, and preparing request values.
+			  When you are building something, there are often small things you
+			  need to check, format, validate, clean, decode, or prepare quickly.
             </p>
 
             <p>
-              Fast browser-based utilities reduce context switching and help
-              developers keep momentum while debugging, testing, and preparing
-              application data across frontend, backend, API, and DevOps
-              workflows.
+			  Developer tools on Yoryantra are grouped to make those small steps
+			  easier to find — whether it is formatting JSON, checking values,
+			  testing something quickly, or preparing data before moving ahead.
+			</p> 
+			  
+			<p>
+			  The idea is simple: keep useful tools in one place so you can find
+			  what you need quickly and continue with your work.
+			</p>
+			  
             </p>
           </div>
         </section>

@@ -93,9 +93,9 @@ export default function HomePage() {
 			  </p>
 
 			  <p>
-				Whether it is formatting, converting, checking, cleaning,
-				validating, encoding, decoding or preparing something quickly —
-				everything is built to be quick and easy to use.
+				Whether it is formatting, converting, checking, cleaning, validating,
+				encoding, decoding, or preparing something quickly — everything is
+				built to be clean, fast, and easy to use.
 			  </p>
 
 			  <p>
