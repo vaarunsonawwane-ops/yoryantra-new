@@ -169,13 +169,14 @@ export default function HomePage() {
 
 			<div className="mt-6 space-y-5 text-gray-600 leading-relaxed">
 			  <p>
-				Yoryantra was created because many utility websites are filled with
-				unnecessary clutter around simple things..
+			    Yoryantra was created because many utility websites make small things
+			    feel harder than they need to be.
 			  </p>
 
 			  <p>
-				Here, the tool stays at the center. The page is kept clean so you
-				can use what you came for and continue with your work.
+			    Sometimes you just need to quickly format something, check a value,
+			    convert text, test something small, or get one thing done without
+			    extra noise around it.
 			  </p>
 			</div>
 
