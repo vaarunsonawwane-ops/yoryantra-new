@@ -117,12 +117,12 @@ export default function Page() {
       <section className="mx-auto max-w-7xl px-6 py-16">
 
         {/* HERO */}
-        <div className="max-w-3xl">
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
+        <div className="max-w-4xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-gray-950 md:text-6xl md:leading-tight">
             Explore Utility Categories Across SEO, Security, JSON, and Development
           </h1>
 
-          <p className="mt-5 text-lg leading-relaxed text-gray-600">
+          <p className="mt-6 text-lg leading-relaxed text-gray-600">
             Browse organized utility categories built for developers, SEO
             workflows, structured data handling, encoding, security testing,
             debugging, and infrastructure-related tasks.

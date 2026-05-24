@@ -3,6 +3,10 @@ export const metadata = {
 
   description:
     "Contact Yoryantra for feedback, suggestions, bugs, or general questions.",
+
+  alternates: {
+    canonical: "https://yoryantra.com/contact",
+  },
 };
 
 export default function ContactPage() {

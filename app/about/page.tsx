@@ -1,3 +1,15 @@
+export const metadata = {
+  title: "About | Yoryantra",
+
+  description:
+    "Learn why Yoryantra was created and the idea behind building practical browser tools that save time.",
+
+  alternates: {
+    canonical: "https://yoryantra.com/about",
+  },
+};
+
+
 export default function AboutPage() {
   return (
     <main className="bg-white text-[#222]">

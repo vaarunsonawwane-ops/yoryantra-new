@@ -1,6 +1,17 @@
 import ToolCard from "@/app/components/ToolCard";
 import { tools } from "@/app/data/tools";
 
+export const metadata = {
+  title: "All Tools | Yoryantra",
+
+  description:
+    "Browse practical browser tools for formatting, encoding, debugging, validation, SEO, security, JSON, DevOps, and everyday work.",
+
+  alternates: {
+    canonical: "https://yoryantra.com/tools",
+  },
+};
+
 export default function ToolsPage() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">

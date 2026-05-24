@@ -83,10 +83,10 @@ const popularTools = [
 ];
 
 export const metadata = {
-  title: "Developer Utilities Online Free | Yoryantra",
+  title: "Developer Tools | Yoryantra",
 
   description:
-    "Explore free online developer utilities for JSON formatting, JWT decoding, regex testing, Base64 encoding, timestamps, UUIDs, API debugging, and everyday development workflows.",
+    "Developer tools for debugging, APIs, JSON, encoding, timestamps, UUIDs, JWTs, and everyday workflows.",
 
   keywords: [
     "developer utilities",
@@ -149,12 +149,12 @@ export default function Page() {
         </div>
 
         {/* HERO */}
-        <div className="max-w-3xl">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
+        <div className="max-w-4xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-gray-950 md:text-6xl md:leading-tight">
             Developer Utilities for Debugging, APIs, and Daily Workflows
           </h1>
 
-          <p className="mt-5 text-lg leading-relaxed text-gray-600">
+          <p className="mt-6 text-lg leading-relaxed text-gray-600">
             Explore practical developer utilities for formatting JSON, decoding
             JWT tokens, testing regex patterns, converting timestamps, generating
             UUIDs, encoding data, and debugging API workflows without switching
