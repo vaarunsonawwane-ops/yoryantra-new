@@ -179,14 +179,6 @@ export default function HomePage() {
 			  </p>
 			</div>
 
-          <div className="mt-8">
-            <Link
-              href="/about"
-              className="inline-flex rounded-xl border border-[var(--green)] bg-white px-5 py-3 text-sm font-medium text-[var(--green)] transition hover:-translate-y-0.5 hover:bg-green-50"
-            >
-              Read About Yoryantra
-            </Link>
-          </div>
         </div>
       </section>
     </main>
