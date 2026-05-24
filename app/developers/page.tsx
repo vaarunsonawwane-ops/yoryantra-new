@@ -318,8 +318,6 @@ export default function Page() {
 			<p>
 			  The idea is simple: keep useful tools in one place so you can find
 			  what you need quickly and continue with your work.
-			</p>
-			  
             </p>
           </div>
         </section>
