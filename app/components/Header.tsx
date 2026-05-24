@@ -13,7 +13,7 @@ export default function Header() {
           <img
             src="/logo.png"
             alt="Yoryantra"
-            className="h-7 md:h-8 w-auto"
+            className="h-9 md:h-10 w-auto"
           />
         </Link>
 
