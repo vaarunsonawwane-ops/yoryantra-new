@@ -29,8 +29,8 @@ export default function ContactPage() {
           Email
         </p>
 
-        <p className="mt-2 text-gray-700">
-          contact@yoryantra.com
+        <p className="mt-2 text-gray-700 break-all">
+          varonsonawwane@gmail.com
         </p>
       </div>
     </div>
