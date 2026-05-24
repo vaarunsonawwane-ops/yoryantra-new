@@ -29,9 +29,12 @@ export default function ContactPage() {
           Email
         </p>
 
-        <p className="mt-2 text-gray-700 break-all">
-          varonsonawwane@gmail.com
-        </p>
+		<a
+		  href="mailto:contactyoryantra@gmail.com"
+		  className="mt-2 inline-block text-gray-700 hover:text-[var(--light-gold)] transition-colors duration-200 break-all"
+		>
+		  contactyoryantra@gmail.com
+		</a>
       </div>
     </div>
   );
