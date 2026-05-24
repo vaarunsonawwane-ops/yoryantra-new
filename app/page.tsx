@@ -9,7 +9,6 @@ export const metadata = {
   alternates: {
     canonical: "https://yoryantra.com",
   },
-};
 
   openGraph: {
     title: "Yoryantra | Practical Tools for Everyday Work",
