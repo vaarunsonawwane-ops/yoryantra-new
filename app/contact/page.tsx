@@ -30,8 +30,12 @@ export default function ContactPage() {
 
       <div className="mt-10 rounded-2xl border border-gray-200 bg-[var(--light-bg)] p-6">
         <p className="text-sm font-semibold text-gray-900">
-          Email
+          Contact
         </p>
+		
+		<p className="mt-2 text-gray-700">
+		  Varon Sonawwane
+		</p>
 
 		<a
 		  href="mailto:contactyoryantra@gmail.com"
