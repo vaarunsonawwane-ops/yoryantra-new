@@ -56,9 +56,9 @@ export default function ToolClient() {
       </div>
 
 	{/* STATS */}
-	<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+	<div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
 
-	  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
+	  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center">
 		<h3 className="text-sm font-medium text-gray-600">
 		  Words
 		</h3>
