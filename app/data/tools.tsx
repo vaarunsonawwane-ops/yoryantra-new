@@ -31,7 +31,7 @@ export const tools = [
     title: "SQL Formatter",
     description: "Beautify and format SQL queries instantly.",
     href: "/tools/sql-formatter",
-	category: "Developer Tools",
+	category: "JSON & Data Tools",
   },
 
   {
