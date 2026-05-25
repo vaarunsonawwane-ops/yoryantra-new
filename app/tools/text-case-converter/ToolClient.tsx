@@ -135,23 +135,28 @@ export default function ToolClient() {
       </div>
 
       {/* OUTPUT */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Converted Output
-        </h3>
+	<div className="mt-8">
+	   <div className="flex items-center justify-between mb-3">
+		 <h3 className="text-lg font-semibold text-gray-900">
+		   Converted Output
+		 </h3>
 
-        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          {output ? (
-            <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-800">
-              {output}
-            </pre>
-          ) : (
-            <p className="text-sm text-gray-500">
-              Converted text will appear here.
-            </p>
-          )}
-        </div>
-      </div>
+		 {output && (
+		   <button
+			 onClick={() =>
+			   navigator.clipboard.writeText(output)
+			 }
+			 className="yoryantra-btn-outline text-sm"
+		   >
+			 Copy
+		   </button>
+		)}
+	  </div>
+
+	  <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
+		{output || "Converted text will appear here."}
+	  </pre>
+	</div>
 
       {/* SEO CONTENT */}
       <ToolContent>

@@ -55,48 +55,50 @@ export default function ToolClient() {
         </button>
       </div>
 
-      {/* STATS */}
-      <div className="grid md:grid-cols-4 gap-4 mt-8">
-        <div className="yoryantra-output p-5 text-center">
-          <h3 className="text-sm font-medium text-gray-600">
-            Words
-          </h3>
+	{/* STATS */}
+	<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
 
-          <p className="mt-2 text-3xl font-bold text-gray-900">
-            {words}
-          </p>
-        </div>
+	  <div className="yoryantra-output p-4 text-center">
+		<h3 className="text-sm font-medium text-gray-600">
+		  Words
+		</h3>
 
-        <div className="yoryantra-output p-5 text-center">
-          <h3 className="text-sm font-medium text-gray-600">
-            Characters
-          </h3>
+		<p className="mt-2 text-2xl font-semibold text-gray-900">
+		  {words}
+		</p>
+	  </div>
 
-          <p className="mt-2 text-3xl font-bold text-gray-900">
-            {characters}
-          </p>
-        </div>
+	  <div className="yoryantra-output p-4 text-center">
+		<h3 className="text-sm font-medium text-gray-600">
+		  Characters
+		</h3>
 
-        <div className="yoryantra-output p-5 text-center">
-          <h3 className="text-sm font-medium text-gray-600">
-            Sentences
-          </h3>
+		<p className="mt-2 text-2xl font-semibold text-gray-900">
+		  {characters}
+		</p>
+	  </div>
 
-          <p className="mt-2 text-3xl font-bold text-gray-900">
-            {sentences}
-          </p>
-        </div>
+	  <div className="yoryantra-output p-4 text-center">
+		<h3 className="text-sm font-medium text-gray-600">
+		  Sentences
+		</h3>
 
-        <div className="yoryantra-output p-5 text-center">
-          <h3 className="text-sm font-medium text-gray-600">
-            Reading Time
-          </h3>
+		<p className="mt-2 text-2xl font-semibold text-gray-900">
+		  {sentences}
+		</p>
+	  </div>
 
-          <p className="mt-2 text-3xl font-bold text-gray-900">
-            {readingTime} min
-          </p>
-        </div>
-      </div>
+	  <div className="yoryantra-output p-4 text-center">
+		<h3 className="text-sm font-medium text-gray-600">
+		  Reading Time
+		</h3>
+
+		<p className="mt-2 text-2xl font-semibold text-gray-900">
+		  {readingTime} min
+		</p>
+	  </div>
+
+	</div>
 
       {/* SEO CONTENT */}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
