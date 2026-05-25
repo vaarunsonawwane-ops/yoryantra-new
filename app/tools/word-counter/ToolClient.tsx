@@ -58,7 +58,7 @@ export default function ToolClient() {
 	{/* STATS */}
 	<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
 
-	  <div className="yoryantra-output p-4 text-center">
+	  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
 		<h3 className="text-sm font-medium text-gray-600">
 		  Words
 		</h3>
@@ -68,7 +68,7 @@ export default function ToolClient() {
 		</p>
 	  </div>
 
-	  <div className="yoryantra-output p-4 text-center">
+	  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
 		<h3 className="text-sm font-medium text-gray-600">
 		  Characters
 		</h3>
@@ -78,7 +78,7 @@ export default function ToolClient() {
 		</p>
 	  </div>
 
-	  <div className="yoryantra-output p-4 text-center">
+	  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
 		<h3 className="text-sm font-medium text-gray-600">
 		  Sentences
 		</h3>
@@ -88,7 +88,7 @@ export default function ToolClient() {
 		</p>
 	  </div>
 
-	  <div className="yoryantra-output p-4 text-center">
+	  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
 		<h3 className="text-sm font-medium text-gray-600">
 		  Reading Time
 		</h3>
@@ -99,7 +99,7 @@ export default function ToolClient() {
 	  </div>
 
 	</div>
-
+	
       {/* SEO CONTENT */}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
