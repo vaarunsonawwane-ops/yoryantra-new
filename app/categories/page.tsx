@@ -20,7 +20,7 @@ const categories = [
   {
     title: "Security Tools",
     description:
-      "JWTs, hashes, tokens, API signing, CSP headers, and authentication workflows.",
+      "JWTs, hashes, tokens, API signing, CSP headers, and authentication checks.",
     href: "/categories/security-tools",
     tools: [
       "JWT Decoder",
@@ -44,7 +44,7 @@ const categories = [
   {
     title: "DevOps Tools",
     description:
-      "Docker, Kubernetes, YAML, cron expressions, and infrastructure workflows.",
+      "Docker, Kubernetes, YAML, cron expressions, and infrastructure tasks.",
     href: "/categories/devops-tools",
     tools: [
       "Docker Compose Validator",
@@ -68,7 +68,7 @@ const categories = [
   {
     title: "Developer Utilities",
     description:
-      "Regex testing, timestamps, debugging, UUIDs, and development workflows.",
+      "Regex testing, timestamps, debugging, UUIDs, and development tasks.",
     href: "/categories/developer-tools",
     tools: [
       "Regex Tester",
@@ -123,9 +123,8 @@ export default function Page() {
           </h1>
 
           <p className="mt-6 text-lg leading-relaxed text-gray-600">
-            Browse organized utility categories built for developers, SEO
-            workflows, structured data handling, encoding, security testing,
-            debugging, and infrastructure-related tasks.
+            Browse useful tool categories for SEO, security, JSON, encoding,
+            development, DevOps, and everyday browser-based tasks.
           </p>
         </div>
 
