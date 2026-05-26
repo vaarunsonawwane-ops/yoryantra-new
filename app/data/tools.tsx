@@ -564,4 +564,17 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "Unix Timestamp Generator",
+  description:
+    "Generate Unix timestamps, convert dates to epoch time, and convert timestamps back to readable dates.",
+  href: "/tools/unix-timestamp-generator",
+  category: "Developer Tools",
+},
+
+
+
+
+
+
 ];
