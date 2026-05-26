@@ -580,6 +580,15 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "HTTP Request Formatter",
+  description:
+    "Format raw HTTP requests and inspect methods, headers, query parameters, and body data.",
+  href: "/tools/http-request-formatter",
+  category: "Developer Tools",
+},
+
+
 
 
 
