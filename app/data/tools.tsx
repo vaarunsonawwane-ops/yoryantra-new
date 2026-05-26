@@ -527,10 +527,10 @@ export const tools = [
 {
   title: "YAML Validator",
   description:
-    "Validate YAML syntax, detect formatting issues, and check YAML content instantly in your browser.",
+    "Validate YAML syntax, check formatting errors, and find indentation issues instantly.",
   href: "/tools/yaml-validator",
   category: "devops-tools",
-}
+},
 
 
 
