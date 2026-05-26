@@ -532,7 +532,13 @@ export const tools = [
   category: "DevOps Tools",
 },
 
-
+{
+  title: "Cron Expression Parser",
+  description:
+    "Parse cron expressions instantly and understand cron schedules in simple human-readable format.",
+  href: "/tools/cron-expression-parser",
+  category: "DevOps Tools",
+}
 
 
 ];

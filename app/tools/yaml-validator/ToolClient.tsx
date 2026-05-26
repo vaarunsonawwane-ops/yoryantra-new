@@ -20,7 +20,7 @@ export default function ToolClient() {
       parseYAML(input);
 
       setOutput(
-        "Valid YAML\n\nYour YAML content looks valid and can be parsed successfully."
+        "Valid YAML\n\nYour YAML syntax looks valid. The content can be parsed successfully."
       );
 
       setError("");
@@ -44,7 +44,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="YAML Validator"
-      description="Validate YAML syntax, check formatting issues, and quickly find common YAML errors directly in your browser."
+      description="Validate YAML syntax, check indentation, and find YAML formatting errors directly in your browser."
     >
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -54,12 +54,13 @@ export default function ToolClient() {
         <textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder={`name: Yoryantra
-type: DevOps Tool
-features:
-  - validate YAML
-  - check syntax
-  - find formatting errors`}
+          placeholder={`app:
+  name: Yoryantra
+  environment: production
+  features:
+    - yaml-validator
+    - devops-tools
+    - configuration-checks`}
           className="w-full min-h-[240px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
@@ -106,25 +107,27 @@ features:
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What is YAML Validator?
+            Checking YAML Files for Syntax and Formatting Errors
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            YAML Validator helps you check YAML syntax and find formatting
-            errors before using YAML content in configuration files, DevOps
-            tools, deployment settings, CI/CD files, or application data.
+            YAML files are commonly used in configuration files, DevOps tools,
+            deployment settings, CI/CD pipelines, containers, and infrastructure
+            configuration. Small indentation problems, missing colons, broken
+            lists, or YAML syntax errors can stop a file from working correctly.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            YAML is easy to read, but small spacing mistakes, missing colons,
-            wrong indentation, or broken lists can cause errors. This tool helps
-            you quickly check whether your YAML content can be parsed properly.
+            This YAML Validator helps you validate YAML syntax, check YAML
+            formatting issues, and quickly identify indentation problems before
+            using YAML content in configuration, deployment, or DevOps-related
+            work.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the YAML Validator
+            Validating YAML Content in the Browser
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -132,28 +135,28 @@ features:
             <li>
               Click <strong>Validate YAML</strong>.
             </li>
-            <li>Check whether the YAML is valid or needs correction.</li>
-            <li>Use the error message to find common syntax issues.</li>
+            <li>Check whether the YAML syntax is valid.</li>
+            <li>Use the error message to review formatting or indentation issues.</li>
           </ol>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
+            Common YAML Validation Use Cases
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Checking YAML syntax before using configuration files.</li>
             <li>Validating CI/CD YAML files before committing changes.</li>
             <li>Finding indentation issues in YAML content.</li>
-            <li>Checking DevOps configuration values quickly.</li>
+            <li>Checking deployment settings and DevOps configuration values.</li>
             <li>Reviewing YAML data before converting it to JSON.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example YAML
+            Example YAML to Validate
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
@@ -177,13 +180,13 @@ features:
           <div className="mt-5 space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What does a YAML validator check?
+                What does this YAML Validator check?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                A YAML validator checks whether YAML content follows valid YAML
-                syntax. It can help identify issues such as indentation errors,
-                missing colons, invalid lists, or broken key-value structure.
+                It checks whether YAML content follows valid YAML syntax. It can
+                help identify indentation errors, missing colons, invalid lists,
+                unmatched quotes, and broken key-value structure.
               </p>
             </div>
 
@@ -193,32 +196,32 @@ features:
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                YAML depends heavily on spacing and indentation. If a list item,
-                nested value, or key is placed at the wrong indentation level,
-                the YAML file may fail to parse correctly.
+                YAML depends heavily on spacing and indentation. If a nested
+                value, list item, or key is placed at the wrong indentation
+                level, the YAML file may fail to parse correctly.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Can I validate DevOps YAML files here?
+                Can I check DevOps YAML files here?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Yes. You can paste YAML used in configuration files, CI/CD
-                files, deployment settings, Kubernetes snippets, or other
-                DevOps-related content to check the basic YAML syntax.
+                files, deployment settings, Kubernetes snippets, Docker-related
+                files, or other DevOps content to check basic YAML syntax.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is YAML validation processed on the server?
+                Does this tool upload my YAML content?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This YAML Validator works in your browser. Your YAML content
-                is not uploaded to a server for validation.
+                No. The YAML check happens in your browser. Your YAML content is
+                not uploaded to a server for validation.
               </p>
             </div>
           </div>
@@ -231,6 +234,13 @@ features:
 
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
+              href="/tools/yaml-formatter"
+              className="yoryantra-btn-outline"
+            >
+              YAML Formatter
+            </Link>
+
+            <Link
               href="/tools/yaml-to-json-converter"
               className="yoryantra-btn-outline"
             >
@@ -242,13 +252,6 @@ features:
               className="yoryantra-btn-outline"
             >
               JSON to YAML Converter
-            </Link>
-
-            <Link
-              href="/tools/yaml-formatter"
-              className="yoryantra-btn-outline"
-            >
-              YAML Formatter
             </Link>
 
             <Link
