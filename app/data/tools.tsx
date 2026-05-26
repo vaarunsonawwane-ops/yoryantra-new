@@ -597,7 +597,22 @@ export const tools = [
   category: "SEO Tools",
 },
 
+{
+  title: "HTTP Response Formatter",
+  description:
+    "Format raw HTTP responses and inspect status codes, headers, cookies, redirects, and body data.",
+  href: "/tools/http-response-formatter",
+  category: "Developer Tools",
+},
 
+
+{
+  title: "Structured Data Validator",
+  description:
+    "Validate JSON-LD structured data, inspect schema types, and find common schema markup issues.",
+  href: "/tools/structured-data-validator",
+  category: "SEO Tools",
+},
 
 
 ];
