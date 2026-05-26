@@ -614,5 +614,14 @@ export const tools = [
   category: "SEO Tools",
 },
 
+{
+  title: "Nginx Config Validator",
+  description:
+    "Check Nginx configuration snippets for common syntax issues, missing braces, server blocks, and proxy settings.",
+  href: "/tools/nginx-config-validator",
+  category: "DevOps Tools",
+},
+
+
 
 ];
