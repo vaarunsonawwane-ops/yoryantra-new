@@ -127,35 +127,35 @@ export default function ToolClient() {
       description="Generate Unix timestamps, convert dates to epoch time, and convert timestamps back to readable date and time."
     >
       <div className="flex flex-wrap gap-3">
-        <button
-		  onClick={() => {
-			setMode("date-to-timestamp");
-			setOutput("");
-			setError("");
-		  }}
-		  className={`rounded-xl border px-5 py-2.5 text-sm font-medium transition ${
-			mode === "date-to-timestamp"
-			  ? "border-[var(--green)] bg-[var(--green)] text-white"
-			  : "border-gray-300 bg-white text-gray-700 hover:border-[var(--green)]"
-		  }`}
-		>
-		  Date to Timestamp
-		</button>
+	  <button
+		onClick={() => {
+		  setMode("date-to-timestamp");
+		  setOutput("");
+		  setError("");
+		}}
+		className={`rounded-xl px-5 py-2.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 ${
+		  mode === "date-to-timestamp"
+			? "bg-[var(--green)] text-white border border-[var(--green)] shadow-sm"
+			: "border border-[var(--green)] bg-white text-[var(--green)] hover:bg-[var(--light-bg)]"
+		}`}
+	  >
+		Date to Timestamp
+	  </button>
 
-		<button
-		  onClick={() => {
-			setMode("timestamp-to-date");
-			setOutput("");
-			setError("");
-		  }}
-		  className={`rounded-xl border px-5 py-2.5 text-sm font-medium transition ${
-			mode === "timestamp-to-date"
-			  ? "border-[var(--green)] bg-[var(--green)] text-white"
-			  : "border-gray-300 bg-white text-gray-700 hover:border-[var(--green)]"
-		  }`}
-		>
-		  Timestamp to Date
-		</button>
+	  <button
+		onClick={() => {
+		  setMode("timestamp-to-date");
+		  setOutput("");
+		  setError("");
+		}}
+		className={`rounded-xl px-5 py-2.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 ${
+		  mode === "timestamp-to-date"
+			? "bg-[var(--green)] text-white border border-[var(--green)] shadow-sm"
+			: "border border-[var(--green)] bg-white text-[var(--green)] hover:bg-[var(--light-bg)]"
+		}`}
+	  >
+		Timestamp to Date
+	  </button>
       </div>
 
       <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
