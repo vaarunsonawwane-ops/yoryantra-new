@@ -524,6 +524,15 @@ export const tools = [
   category: "Encoding Tools",
   },
 
+{
+  title: "YAML Validator",
+  description:
+    "Validate YAML syntax, detect formatting issues, and check YAML content instantly in your browser.",
+  href: "/tools/yaml-validator",
+  category: "devops-tools",
+}
+
+
 
 
 ];
