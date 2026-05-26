@@ -623,5 +623,13 @@ export const tools = [
 },
 
 
+{
+  title: "Open Graph Preview Checker",
+  description:
+    "Check Open Graph tags, preview social sharing details, and inspect Twitter card metadata.",
+  href: "/tools/open-graph-preview-checker",
+  category: "SEO Tools",
+},
+
 
 ];
