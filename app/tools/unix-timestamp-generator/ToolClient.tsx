@@ -126,36 +126,36 @@ export default function ToolClient() {
       title="Unix Timestamp Generator"
       description="Generate Unix timestamps, convert dates to epoch time, and convert timestamps back to readable date and time."
     >
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="flex flex-wrap gap-3">
         <button
-          onClick={() => {
-            setMode("date-to-timestamp");
-            setOutput("");
-            setError("");
-          }}
-          className={
-            mode === "date-to-timestamp"
-              ? "yoryantra-btn"
-              : "yoryantra-btn-outline"
-          }
-        >
-          Date to Timestamp
-        </button>
+		  onClick={() => {
+			setMode("date-to-timestamp");
+			setOutput("");
+			setError("");
+		  }}
+		  className={`rounded-xl border px-5 py-2.5 text-sm font-medium transition ${
+			mode === "date-to-timestamp"
+			  ? "border-[var(--green)] bg-[var(--green)] text-white"
+			  : "border-gray-300 bg-white text-gray-700 hover:border-[var(--green)]"
+		  }`}
+		>
+		  Date to Timestamp
+		</button>
 
-        <button
-          onClick={() => {
-            setMode("timestamp-to-date");
-            setOutput("");
-            setError("");
-          }}
-          className={
-            mode === "timestamp-to-date"
-              ? "yoryantra-btn"
-              : "yoryantra-btn-outline"
-          }
-        >
-          Timestamp to Date
-        </button>
+		<button
+		  onClick={() => {
+			setMode("timestamp-to-date");
+			setOutput("");
+			setError("");
+		  }}
+		  className={`rounded-xl border px-5 py-2.5 text-sm font-medium transition ${
+			mode === "timestamp-to-date"
+			  ? "border-[var(--green)] bg-[var(--green)] text-white"
+			  : "border-gray-300 bg-white text-gray-700 hover:border-[var(--green)]"
+		  }`}
+		>
+		  Timestamp to Date
+		</button>
       </div>
 
       <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
