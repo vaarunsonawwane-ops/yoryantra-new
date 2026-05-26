@@ -589,6 +589,14 @@ export const tools = [
 },
 
 
+{
+  title: "Meta Tags Checker",
+  description:
+    "Check title tags, meta descriptions, canonical links, Open Graph tags, and Twitter card tags.",
+  href: "/tools/meta-tags-checker",
+  category: "SEO Tools",
+},
+
 
 
 
