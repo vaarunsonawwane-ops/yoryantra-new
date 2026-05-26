@@ -529,7 +529,7 @@ export const tools = [
   description:
     "Validate YAML syntax, check formatting errors, and find indentation issues instantly.",
   href: "/tools/yaml-validator",
-  category: "devops-tools",
+  category: "DevOps Tools",
 },
 
 
