@@ -631,5 +631,15 @@ export const tools = [
   category: "SEO Tools",
 },
 
+{
+  title: "CSP Analyzer",
+  description:
+    "Analyze Content Security Policy headers, inspect CSP directives, and find common unsafe values or missing protections.",
+  href: "/tools/csp-analyzer",
+  category: "Security Tools",
+},
+
+
+
 
 ];
