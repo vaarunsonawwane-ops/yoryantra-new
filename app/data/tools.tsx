@@ -556,6 +556,12 @@ export const tools = [
   category: "DevOps Tools",
 },
 
-
+{
+  title: "UUID Validator",
+  description:
+    "Validate UUID values, check UUID format, and detect UUID versions directly in your browser.",
+  href: "/tools/uuid-validator",
+  category: "Developer Tools",
+},
 
 ];
