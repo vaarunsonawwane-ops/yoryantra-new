@@ -548,6 +548,14 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "Kubernetes Secret Decoder",
+  description:
+    "Decode Kubernetes Secret YAML values and inspect base64 encoded secret data in your browser.",
+  href: "/tools/kubernetes-secret-decoder",
+  category: "DevOps Tools",
+},
+
 
 
 ];
