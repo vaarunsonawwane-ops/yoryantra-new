@@ -538,7 +538,16 @@ export const tools = [
     "Parse cron expressions instantly and understand cron schedules in simple human-readable format.",
   href: "/tools/cron-expression-parser",
   category: "DevOps Tools",
-}
+},
+
+{
+  title: "Dockerfile Linter",
+  description:
+    "Check Dockerfile content for common issues, risky patterns, and basic Dockerfile best practices.",
+  href: "/tools/dockerfile-linter",
+  category: "DevOps Tools",
+},
+
 
 
 ];
