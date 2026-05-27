@@ -682,7 +682,13 @@ export const tools = [
   category: "Developer Tools",
 },
 
-
+{
+  title: "API Request Header Builder",
+  description:
+    "Build API request headers, prepare Authorization, Content-Type, Accept, and custom HTTP header blocks.",
+  href: "/tools/api-request-header-builder",
+  category: "Developer Tools",
+},
 
 
 
