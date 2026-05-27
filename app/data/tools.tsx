@@ -658,6 +658,23 @@ export const tools = [
 },
 
 
+{
+  title: "Security Header Generator",
+  description:
+    "Generate HTTP security headers, review recommended values, and prepare website security header snippets.",
+  href: "/tools/security-header-generator",
+  category: "Security Tools",
+},
+
+{
+  title: "PEM Certificate Viewer",
+  description:
+    "Inspect PEM certificate blocks, decode readable certificate content, and review certificate details in your browser.",
+  href: "/tools/pem-certificate-viewer",
+  category: "Security Tools",
+},
+
+
 
 
 
