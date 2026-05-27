@@ -335,7 +335,7 @@ function parseHeaders(source: string): HeaderMap {
     .filter(Boolean);
 
   lines.forEach((line) => {
-    if (/^HTTP\\/\\d(?:\\.\\d)?\\s+\\d{3}/i.test(line)) {
+    if (/^HTTP\/\d(?:\.\d)?\s+\d{3}/i.test(line)) {
       return;
     }
 
