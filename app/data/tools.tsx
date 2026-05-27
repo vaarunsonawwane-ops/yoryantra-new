@@ -690,6 +690,14 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "Cron Expression Validator",
+  description:
+    "Validate cron expressions, check cron syntax, preview schedule meaning, and find common cron timing issues.",
+  href: "/tools/cron-expression-validator",
+  category: "DevOps Tools",
+},
+
 
 
 
