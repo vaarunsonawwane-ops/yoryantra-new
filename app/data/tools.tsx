@@ -674,6 +674,15 @@ export const tools = [
   category: "Security Tools",
 },
 
+{
+  title: "HTTP Header Diff Checker",
+  description:
+    "Compare two sets of HTTP headers and find added, removed, changed, or unchanged header values.",
+  href: "/tools/http-header-diff-checker",
+  category: "Developer Tools",
+},
+
+
 
 
 
