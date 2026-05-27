@@ -76,7 +76,7 @@ export default function HomePage() {
   return (
     <main className="bg-white text-gray-900">
       {/* HERO */}
-      <section className="mx-auto max-w-7xl px-6 pt-10 pb-20 md:pt-14 md:pb-24">
+      <section className="mx-auto max-w-7xl px-6 pt-4 pb-20 md:pt-8 md:pb-24">
         <div className="max-w-4xl">
 		  <p className="text-sm font-medium text-[var(--light-gold)]">
 		    ✦ Built for you
