@@ -640,6 +640,15 @@ export const tools = [
 },
 
 
+{
+  title: "JSON Path Tester",
+  description:
+    "Test JSON paths against JSON data, inspect matched values, and check nested objects or arrays.",
+  href: "/tools/json-path-tester",
+  category: "JSON & Data Tools",
+},
+
+
 
 
 ];
