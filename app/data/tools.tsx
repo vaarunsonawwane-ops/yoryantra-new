@@ -708,5 +708,14 @@ export const tools = [
 },
 
 
+{
+  title: "Canonical Tag Generator",
+  description:
+    "Generate canonical link tags, check canonical URL format, and prepare SEO canonical markup.",
+  href: "/tools/canonical-tag-generator",
+  category: "SEO Tools",
+},
+
+
 
 ];
