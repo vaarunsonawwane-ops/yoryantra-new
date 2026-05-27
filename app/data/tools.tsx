@@ -699,6 +699,14 @@ export const tools = [
 },
 
 
+{
+  title: "Robots.txt Validator",
+  description:
+    "Validate robots.txt syntax, check crawler rules, review sitemap lines, and find common robots.txt issues.",
+  href: "/tools/robots-txt-validator",
+  category: "SEO Tools",
+},
+
 
 
 ];
