@@ -716,6 +716,16 @@ export const tools = [
   category: "SEO Tools",
 },
 
+{
+  title: "Sitemap Validator",
+  description:
+    "Validate XML sitemap syntax, inspect sitemap URLs, and find common sitemap issues before submission.",
+  href: "/tools/sitemap-validator",
+  category: "SEO Tools",
+},
+
+
+
 
 
 ];
