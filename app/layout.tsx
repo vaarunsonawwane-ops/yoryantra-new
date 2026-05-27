@@ -20,9 +20,9 @@ export const metadata: Metadata = {
     "Smart utilities for structured workflows, productivity, and modern work.",
 
 icons: {
-  icon: "/YoryantraFavicon.ico",
-  shortcut: "/YoryantraFavicon.ico",
-  apple: "/YoryantraFavicon.ico",
+  icon: "/favicon.ico",
+  shortcut: "/favicon.ico",
+  apple: "/favicon.ico",
 },
 
 };
