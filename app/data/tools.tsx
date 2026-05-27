@@ -649,6 +649,16 @@ export const tools = [
 },
 
 
+{
+  title: "XML Validator",
+  description:
+    "Validate XML syntax, check XML structure, and find parsing errors directly in your browser.",
+  href: "/tools/xml-validator",
+  category: "JSON & Data Tools",
+},
+
+
+
 
 
 ];
