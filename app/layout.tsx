@@ -19,9 +19,12 @@ export const metadata: Metadata = {
   description:
     "Smart utilities for structured workflows, productivity, and modern work.",
 
-  icons: {
-    icon: "/YoryantraFavicon.png",
-  },
+icons: {
+  icon: "/YoryantraFavicon.ico",
+  shortcut: "/YoryantraFavicon.ico",
+  apple: "/YoryantraFavicon.ico",
+},
+
 };
 
 export default function RootLayout({
@@ -32,6 +35,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-white text-gray-900`}>
+        <Header />
+
+        <main>{children}</main>
+
+        <Footer />
+
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-V1ZXR0B4FM"
@@ -47,12 +56,6 @@ export default function RootLayout({
             gtag('config', 'G-V1ZXR0B4FM');
           `}
         </Script>
-
-        <Header />
-
-        <main>{children}</main>
-
-        <Footer />
       </body>
     </html>
   );
