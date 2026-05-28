@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 import ToolShell from "@/app/components/ToolShell";
 
 type DNSRecordType = "A" | "AAAA" | "CNAME" | "MX" | "TXT" | "NS" | "SOA" | "CAA";
@@ -141,25 +142,19 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div>
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Record Type
-          </label>
-
-          <select
-            value={recordType}
-            onChange={(event) =>
-              setRecordType(event.target.value as DNSRecordType)
-            }
-            className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-          >
-            {recordTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
+			<div>
+			  <YoryantraSelect
+				label="Record Type"
+				value={recordType}
+				onChange={(value) =>
+				  setRecordType(value as DNSRecordType)
+				}
+				options={recordTypes.map((type) => ({
+				  label: type,
+				  value: type,
+				}))}
+			  />
+			</div>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
