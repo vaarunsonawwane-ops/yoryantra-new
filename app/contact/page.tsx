@@ -34,7 +34,7 @@ export default function ContactPage() {
         </p>
 		
 		<p className="mt-2 text-gray-700">
-		  Varon Sonawwane
+		  Varoun Sonawane
 		</p>
 
 		<a
