@@ -59,6 +59,7 @@ export const tools = [
     title: "Text Case Converter",
     description: "Convert text into uppercase, lowercase, and title case.",
     href: "/tools/text-case-converter",
+	category: "Encoding Tools",
   },
 
   {
