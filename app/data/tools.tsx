@@ -743,6 +743,13 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "JSON Flatten / Unflatten Tool",
+  description:
+    "Flatten nested JSON into dot notation paths or rebuild flattened key paths into nested JSON.",
+  href: "/tools/json-flatten-unflatten-tool",
+  category: "JSON & Data Tools",
+},
 
 
 
