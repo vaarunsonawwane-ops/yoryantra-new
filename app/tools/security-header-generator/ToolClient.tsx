@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 import ToolShell from "@/app/components/ToolShell";
 
 type HeaderOptions = {
@@ -190,60 +191,48 @@ export default function ToolClient() {
           </div>
 
           <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700">
-              X-Frame-Options
-            </label>
-
-            <select
+            <YoryantraSelect
+              label="X-Frame-Options"
               value={options.frameOptions}
-              onChange={(event) =>
-                updateOption("frameOptions", event.target.value)
-              }
-              className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-            >
-              <option value="DENY">DENY</option>
-              <option value="SAMEORIGIN">SAMEORIGIN</option>
-              <option value="">Do not include</option>
-            </select>
+              onChange={(value) => updateOption("frameOptions", value)}
+              options={[
+                { label: "DENY", value: "DENY" },
+                { label: "SAMEORIGIN", value: "SAMEORIGIN" },
+                { label: "Do not include", value: "" },
+              ]}
+            />
           </div>
 
           <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700">
-              Referrer-Policy
-            </label>
-
-            <select
+            <YoryantraSelect
+              label="Referrer-Policy"
               value={options.referrerPolicy}
-              onChange={(event) =>
-                updateOption("referrerPolicy", event.target.value)
-              }
-              className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-            >
-              <option value="strict-origin-when-cross-origin">
-                strict-origin-when-cross-origin
-              </option>
-              <option value="no-referrer">no-referrer</option>
-              <option value="same-origin">same-origin</option>
-              <option value="strict-origin">strict-origin</option>
-              <option value="">Do not include</option>
-            </select>
+              onChange={(value) => updateOption("referrerPolicy", value)}
+              options={[
+                {
+                  label: "strict-origin-when-cross-origin",
+                  value: "strict-origin-when-cross-origin",
+                },
+                { label: "no-referrer", value: "no-referrer" },
+                { label: "same-origin", value: "same-origin" },
+                { label: "strict-origin", value: "strict-origin" },
+                { label: "Do not include", value: "" },
+              ]}
+            />
           </div>
 
           <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700">
-              CSP mode
-            </label>
-
-            <select
+            <YoryantraSelect
+              label="CSP mode"
               value={options.cspMode}
-              onChange={(event) =>
-                updateOption("cspMode", event.target.value as "basic" | "strict")
+              onChange={(value) =>
+                updateOption("cspMode", value as "basic" | "strict")
               }
-              className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-            >
-              <option value="basic">Basic website starter</option>
-              <option value="strict">Stricter starter</option>
-            </select>
+              options={[
+                { label: "Basic website starter", value: "basic" },
+                { label: "Stricter starter", value: "strict" },
+              ]}
+            />
           </div>
         </div>
       </div>
