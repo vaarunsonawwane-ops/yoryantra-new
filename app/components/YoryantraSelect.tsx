@@ -58,7 +58,7 @@ export default function YoryantraSelect({
       >
         {selected?.label || "Select option"}
 
-        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+        <span className="pointer-events-none absolute right-4 bottom-1/2 translate-y-1/2 text-gray-500">
           ▾
         </span>
       </button>
