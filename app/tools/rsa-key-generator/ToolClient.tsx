@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 export default function ToolClient() {
   const [keySize, setKeySize] =
@@ -122,29 +123,28 @@ export default function ToolClient() {
           RSA Key Size
         </label>
 
-        <select
-          value={keySize}
-          onChange={(e) =>
+        <YoryantraSelect
+          value={String(keySize)}
+          onChange={(value) =>
             setKeySize(
-              Number(
-                e.target.value
-              )
+              Number(value)
             )
           }
-          className="w-full rounded-xl border border-gray-300 bg-white p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-        >
-          <option value={1024}>
-            1024
-          </option>
-
-          <option value={2048}>
-            2048 Recommended
-          </option>
-
-          <option value={4096}>
-            4096 High Security
-          </option>
-        </select>
+          options={[
+            {
+              label: "1024",
+              value: "1024",
+            },
+            {
+              label: "2048 Recommended",
+              value: "2048",
+            },
+            {
+              label: "4096 High Security",
+              value: "4096",
+            },
+          ]}
+        />
       </div>
 
       {/* ACTIONS */}
