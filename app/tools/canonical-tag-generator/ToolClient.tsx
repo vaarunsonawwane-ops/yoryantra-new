@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type CanonicalIssue = {
   level: "Warning" | "Suggestion";
@@ -86,19 +87,19 @@ export default function ToolClient() {
           Output Format
         </label>
 
-        <select
+        <YoryantraSelect
           value={outputMode}
-          onChange={(event) => {
-            setOutputMode(event.target.value as OutputMode);
+          onChange={(value) => {
+            setOutputMode(value as OutputMode);
             setOutput("");
             setError("");
           }}
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-        >
-          <option value="html">HTML link tag</option>
-          <option value="nextjs">Next.js metadata alternates</option>
-          <option value="json">JSON summary</option>
-        </select>
+          options={[
+            { label: "HTML link tag", value: "html" },
+            { label: "Next.js metadata alternates", value: "nextjs" },
+            { label: "JSON summary", value: "json" },
+          ]}
+        />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
