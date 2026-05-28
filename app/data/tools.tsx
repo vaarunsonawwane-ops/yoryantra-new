@@ -735,6 +735,15 @@ export const tools = [
 },
 
 
+{
+  title: "CIDR Calculator",
+  description:
+    "Calculate subnet masks, usable IP ranges, wildcard masks, and broadcast addresses instantly.",
+  href: "/tools/cidr-calculator",
+  category: "DevOps Tools",
+},
+
+
 
 
 
