@@ -13,7 +13,7 @@ type CIDRResult = {
   lastUsable: string;
   totalHosts: number;
   usableHosts: number;
-  cidr: string;
+  cidr: number;
 };
 
 export default function ToolClient() {
