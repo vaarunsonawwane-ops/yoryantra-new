@@ -5,92 +5,155 @@ export const metadata = {
   title: "Sitemap | Yoryantra",
 
   description:
-    "Browse all important pages and tools available on Yoryantra.",
+    "Browse all pages, categories, and tools available on Yoryantra.",
+
+  alternates: {
+    canonical: "https://yoryantra.com/sitemap",
+  },
 };
 
+const categoryOrder = [
+  "Developer Tools",
+  "DevOps Tools",
+  "Encoding Tools",
+  "JSON & Data Tools",
+  "Security Tools",
+  "SEO Tools",
+];
+
+const categoryLinks = [
+  {
+    title: "Developer Tools",
+    href: "/categories/developer-tools",
+  },
+  {
+    title: "DevOps Tools",
+    href: "/categories/devops-tools",
+  },
+  {
+    title: "Encoding Tools",
+    href: "/categories/encoding-tools",
+  },
+  {
+    title: "JSON & Data Tools",
+    href: "/categories/json-tools",
+  },
+  {
+    title: "Security Tools",
+    href: "/categories/security-tools",
+  },
+  {
+    title: "SEO Tools",
+    href: "/categories/seo-tools",
+  },
+];
+
 export default function SitemapPage() {
+  const groupedTools = categoryOrder.map((category) => ({
+    category,
+    tools: tools.filter((tool) => tool.category === category),
+  }));
+
   return (
-    <div className="max-w-4xl mx-auto px-6 py-20">
+    <main className="mx-auto max-w-7xl px-6 py-12">
+      <div className="max-w-3xl">
+        <h1 className="text-4xl font-bold text-[var(--dark)]">
+          Sitemap
+        </h1>
 
-      <h1 className="text-4xl font-bold text-gray-900 mb-10">
-        Sitemap
-      </h1>
+        <p className="mt-4 text-gray-600 leading-relaxed">
+          Browse all important pages, categories, and practical tools available
+          on Yoryantra.
+        </p>
+      </div>
 
-      <div className="space-y-10">
+      <section className="mt-12">
+        <h2 className="text-2xl font-semibold text-gray-900">
+          Main Pages
+        </h2>
 
-        {/* MAIN */}
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-            Main Pages
-          </h2>
-
-          <div className="flex flex-col gap-3 text-gray-700">
-
-            <Link href="/" className="hover:text-[var(--light-gold)] transition-colors">
-              Home
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { title: "Home", href: "/" },
+            { title: "Tools", href: "/tools" },
+            { title: "Categories", href: "/categories" },
+            { title: "About", href: "/about" },
+            { title: "Contact", href: "/contact" },
+            { title: "Privacy Policy", href: "/privacy-policy" },
+            { title: "Terms", href: "/terms" },
+            { title: "Disclaimer", href: "/disclaimer" },
+          ].map((page) => (
+            <Link
+              key={page.href}
+              href={page.href}
+              className="rounded-xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-700 transition hover:border-gray-300"
+            >
+              {page.title}
             </Link>
-
-            <Link href="/tools" className="hover:text-[var(--light-gold)] transition-colors">
-              Tools
-            </Link>
-
-            <Link href="/about" className="hover:text-[var(--light-gold)] transition-colors">
-              About
-            </Link>
-
-            <Link href="/contact" className="hover:text-[var(--light-gold)] transition-colors">
-              Contact
-            </Link>
-
-          </div>
+          ))}
         </div>
+      </section>
 
-        {/* TOOLS */}
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+      <section className="mt-14">
+        <h2 className="text-2xl font-semibold text-gray-900">
+          Categories
+        </h2>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {categoryLinks.map((category) => (
+            <Link
+              key={category.href}
+              href={category.href}
+              className="rounded-xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-700 transition hover:border-gray-300"
+            >
+              {category.title}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-14">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <h2 className="text-2xl font-semibold text-gray-900">
             Tools
           </h2>
 
-          <div className="flex flex-col gap-3 text-gray-700">
-
-            {tools.map((tool) => (
-              <Link
-                key={tool.href}
-                href={tool.href}
-                className="hover:text-[var(--light-gold)] transition-colors"
-              >
-                {tool.title}
-              </Link>
-            ))}
-
-          </div>
+          <p className="text-sm text-gray-500">
+            {tools.length} tools across {categoryOrder.length} categories
+          </p>
         </div>
 
-        {/* LEGAL */}
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-            Legal
-          </h2>
+        <div className="mt-8 grid gap-8 lg:grid-cols-2">
+          {groupedTools.map(({ category, tools: categoryTools }) => (
+            <div
+              key={category}
+              className="rounded-2xl border border-gray-200 bg-white p-6"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {category}
+                </h3>
 
-          <div className="flex flex-col gap-3 text-gray-700">
+                <span className="text-sm text-gray-500">
+                  {categoryTools.length}
+                </span>
+              </div>
 
-            <Link href="/privacy-policy" className="hover:text-[var(--light-gold)] transition-colors">
-              Privacy Policy
-            </Link>
-
-            <Link href="/terms" className="hover:text-[var(--light-gold)] transition-colors">
-              Terms of Use
-            </Link>
-
-            <Link href="/disclaimer" className="hover:text-[var(--light-gold)] transition-colors">
-              Disclaimer
-            </Link>
-
-          </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {categoryTools.map((tool) => (
+                  <Link
+                    key={tool.href}
+                    href={tool.href}
+                    className="text-sm text-gray-700 transition hover:text-[var(--green)]"
+                  >
+                    {tool.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
-
-      </div>
-
-    </div>
+      </section>
+    </main>
   );
 }
