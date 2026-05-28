@@ -127,7 +127,7 @@ export default function SitemapPage() {
           {groupedTools.map(({ category, tools: categoryTools }) => (
             <div
               key={category}
-              className="rounded-2xl border border-gray-200 bg-white p-6"
+              className="rounded-2xl border border-gray-200 bg-white p-5"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -139,12 +139,12 @@ export default function SitemapPage() {
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="mt-5 grid gap-x-8 gap-y-2 sm:grid-cols-2">
                 {categoryTools.map((tool) => (
                   <Link
                     key={tool.href}
                     href={tool.href}
-                    className="text-sm text-gray-700 transition hover:text-[var(--green)]"
+                    className="text-[15px] leading-6 text-gray-700 transition hover:text-[var(--green)]"
                   >
                     {tool.title}
                   </Link>
