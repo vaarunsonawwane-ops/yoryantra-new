@@ -4,6 +4,7 @@ import { useState } from "react";
 import bcrypt from "bcryptjs";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 export default function ToolClient() {
   const [password, setPassword] =
@@ -64,33 +65,32 @@ export default function ToolClient() {
           Salt Rounds
         </label>
 
-        <select
-          value={rounds}
-          onChange={(e) =>
+        <YoryantraSelect
+          value={String(rounds)}
+          onChange={(value) =>
             setRounds(
-              Number(
-                e.target.value
-              )
+              Number(value)
             )
           }
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition bg-white"
-        >
-          <option value={8}>
-            8
-          </option>
-
-          <option value={10}>
-            10 Recommended
-          </option>
-
-          <option value={12}>
-            12 Stronger
-          </option>
-
-          <option value={14}>
-            14 High Security
-          </option>
-        </select>
+          options={[
+            {
+              label: "8",
+              value: "8",
+            },
+            {
+              label: "10 Recommended",
+              value: "10",
+            },
+            {
+              label: "12 Stronger",
+              value: "12",
+            },
+            {
+              label: "14 High Security",
+              value: "14",
+            },
+          ]}
+        />
       </div>
 
       {/* ACTIONS */}
