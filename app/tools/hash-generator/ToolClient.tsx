@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -79,20 +80,18 @@ export default function ToolClient() {
           Hash Algorithm
         </label>
 
-        <select
+        <YoryantraSelect
           value={algorithm}
-          onChange={(e) =>
-            setAlgorithm(
-              e.target.value
-            )
+          onChange={(value) =>
+            setAlgorithm(value)
           }
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-        >
-          <option>SHA-1</option>
-          <option>SHA-256</option>
-          <option>SHA-384</option>
-          <option>SHA-512</option>
-        </select>
+          options={[
+            { label: "SHA-1", value: "SHA-1" },
+            { label: "SHA-256", value: "SHA-256" },
+            { label: "SHA-384", value: "SHA-384" },
+            { label: "SHA-512", value: "SHA-512" },
+          ]}
+        />
       </div>
 
       {/* ACTIONS */}
