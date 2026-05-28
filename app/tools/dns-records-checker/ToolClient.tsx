@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type DnsAnswer = {
   name: string;
@@ -181,18 +182,20 @@ export default function ToolClient() {
             Record Type
           </label>
 
-          <select
+          <YoryantraSelect
             value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-          >
-            <option value="ALL">All common records</option>
-            {recordTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setSelectedType(value)}
+            options={[
+              {
+                label: "All common records",
+                value: "ALL",
+              },
+              ...recordTypes.map((type) => ({
+                label: type,
+                value: type,
+              })),
+            ]}
+          />
         </div>
       </div>
 
