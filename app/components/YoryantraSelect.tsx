@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Option = {
   label: string;
@@ -21,11 +21,30 @@ export default function YoryantraSelect({
   label,
 }: YoryantraSelectProps) {
   const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+  function handleClickOutside(event: MouseEvent) {
+    if (
+      wrapperRef.current &&
+      !wrapperRef.current.contains(event.target as Node)
+    ) {
+      setOpen(false);
+    }
+  }
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
+  
 
   const selected = options.find((option) => option.value === value);
 
   return (
-    <div className="relative">
+    <div ref={wrapperRef} className="relative">
       {label && (
         <label className="block mb-2 text-sm font-medium text-gray-700">
           {label}
