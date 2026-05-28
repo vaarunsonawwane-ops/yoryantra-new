@@ -48,6 +48,17 @@ const categoryLinks = [
   },
 ];
 
+const mainPages = [
+  { title: "Home", href: "/" },
+  { title: "Tools", href: "/tools" },
+  { title: "Categories", href: "/categories" },
+  { title: "About", href: "/about" },
+  { title: "Contact", href: "/contact" },
+  { title: "Privacy Policy", href: "/privacy-policy" },
+  { title: "Terms", href: "/terms" },
+  { title: "Disclaimer", href: "/disclaimer" },
+];
+
 export default function SitemapPage() {
   const groupedTools = categoryOrder.map((category) => ({
     category,
@@ -67,52 +78,57 @@ export default function SitemapPage() {
         </p>
       </div>
 
-      <section className="mt-12">
-        <h2 className="text-2xl font-semibold text-gray-900">
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold text-gray-900">
           Main Pages
         </h2>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            { title: "Home", href: "/" },
-            { title: "Tools", href: "/tools" },
-            { title: "Categories", href: "/categories" },
-            { title: "About", href: "/about" },
-            { title: "Contact", href: "/contact" },
-            { title: "Privacy Policy", href: "/privacy-policy" },
-            { title: "Terms", href: "/terms" },
-            { title: "Disclaimer", href: "/disclaimer" },
-          ].map((page) => (
-            <Link
-              key={page.href}
-              href={page.href}
-              className="rounded-xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-700 transition hover:border-gray-300"
-            >
-              {page.title}
-            </Link>
+        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-sm">
+          {mainPages.map((page, index) => (
+            <div key={page.href} className="flex items-center">
+              <Link
+                href={page.href}
+                className="text-gray-700 transition hover:text-[var(--green)]"
+              >
+                {page.title}
+              </Link>
+
+              {index < mainPages.length - 1 && (
+                <span className="mx-3 text-gray-300">
+                  •
+                </span>
+              )}
+            </div>
           ))}
         </div>
       </section>
 
-      <section className="mt-14">
-        <h2 className="text-2xl font-semibold text-gray-900">
+      <section className="mt-8">
+        <h2 className="text-xl font-semibold text-gray-900">
           Categories
         </h2>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {categoryLinks.map((category) => (
-            <Link
-              key={category.href}
-              href={category.href}
-              className="rounded-xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-700 transition hover:border-gray-300"
-            >
-              {category.title}
-            </Link>
+        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-sm">
+          {categoryLinks.map((category, index) => (
+            <div key={category.href} className="flex items-center">
+              <Link
+                href={category.href}
+                className="text-gray-700 transition hover:text-[var(--green)]"
+              >
+                {category.title}
+              </Link>
+
+              {index < categoryLinks.length - 1 && (
+                <span className="mx-3 text-gray-300">
+                  •
+                </span>
+              )}
+            </div>
           ))}
         </div>
       </section>
 
-      <section className="mt-14">
+      <section className="mt-12">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <h2 className="text-2xl font-semibold text-gray-900">
             Tools
@@ -123,7 +139,7 @@ export default function SitemapPage() {
           </p>
         </div>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
           {groupedTools.map(({ category, tools: categoryTools }) => (
             <div
               key={category}
@@ -139,7 +155,7 @@ export default function SitemapPage() {
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-x-8 gap-y-2 sm:grid-cols-2">
+              <div className="mt-4 grid gap-x-8 gap-y-1 sm:grid-cols-2">
                 {categoryTools.map((tool) => (
                   <Link
                     key={tool.href}
