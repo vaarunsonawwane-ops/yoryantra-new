@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 export default function ToolClient() {
   const [message, setMessage] =
@@ -133,23 +134,18 @@ export default function ToolClient() {
 
       {/* ALGORITHM */}
       <div className="mt-6">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          HMAC Algorithm
-        </label>
-
-        <select
+        <YoryantraSelect
+          label="HMAC Algorithm"
           value={algorithm}
-          onChange={(e) =>
-            setAlgorithm(
-              e.target.value
-            )
+          onChange={(value) =>
+            setAlgorithm(value)
           }
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-        >
-          <option>SHA-256</option>
-          <option>SHA-384</option>
-          <option>SHA-512</option>
-        </select>
+          options={[
+            { label: "SHA-256", value: "SHA-256" },
+            { label: "SHA-384", value: "SHA-384" },
+            { label: "SHA-512", value: "SHA-512" },
+          ]}
+        />
       </div>
 
       {/* ACTIONS */}
