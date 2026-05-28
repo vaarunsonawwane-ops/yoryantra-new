@@ -725,6 +725,15 @@ export const tools = [
 },
 
 
+{
+  title: "DNS Propagation Checker",
+  description:
+    "Check DNS propagation for A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA records across public resolvers.",
+  href: "/tools/dns-propagation-checker",
+  category: "DevOps Tools",
+},
+
+
 
 
 
