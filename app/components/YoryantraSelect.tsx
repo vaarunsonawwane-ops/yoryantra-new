@@ -35,7 +35,7 @@ export default function YoryantraSelect({
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="w-full rounded-xl border border-gray-300 bg-white p-4 pr-10 text-left text-sm text-[var(--dark)] outline-none transition hover:border-[var(--green)] focus:border-[var(--green)] focus:ring-2 focus:ring-[var(--green)]"
+        className="w-full rounded-xl border border-gray-300 bg-white p-4 pr-10 text-left text-sm text-[var(--dark)] outline-none transition focus:ring-2 focus:ring-[var(--green)] focus:border-transparent"
       >
         {selected?.label || "Select option"}
 
