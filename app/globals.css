@@ -96,3 +96,25 @@ body {
   background-color: rgba(47, 111, 78, 0.06);
   transform: translateY(-1px);
 }
+
+/* Yoryantra global select styling */
+select {
+  background-color: #ffffff;
+  color: var(--dark);
+  border-color: #d1d5db;
+}
+
+select:hover {
+  border-color: var(--green);
+}
+
+select:focus {
+  border-color: var(--green);
+  outline: none;
+}
+
+select option {
+  background-color: #ffffff;
+  color: var(--dark);
+}
+
