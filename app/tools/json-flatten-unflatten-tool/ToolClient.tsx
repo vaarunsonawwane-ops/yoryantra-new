@@ -361,7 +361,7 @@ function flattenJson(value: unknown, prefix = ""): Record<string, unknown> {
   }
 
   if (isPlainObject(value)) {
-    Object.entries(value).forEach(([key, item]) => {
+    Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
       const nextKey = prefix ? `${prefix}.${key}` : key;
 
       if (isObjectLike(item)) {
