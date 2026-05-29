@@ -797,4 +797,16 @@ export const tools = [
 },
 
 
+{
+  title: "IPv4 Subnet Calculator",
+  description:
+    "Calculate IPv4 subnet details, CIDR ranges, masks, usable hosts, and subnet splits.",
+  href: "/tools/ipv4-subnet-calculator",
+  category: "DevOps Tools",
+},
+
+
+
+
+
 ];
