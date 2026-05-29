@@ -814,6 +814,14 @@ export const tools = [
   category: "Security Tools",
 },
 
+{
+  title: "Regex Match Tester",
+  description:
+    "Test regular expressions, inspect matches and capture groups, and preview replacements.",
+  href: "/tools/regex-match-tester",
+  category: "Developer Tools",
+},
+
 
 
 
