@@ -6,6 +6,8 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ValueMode = "auto" | "string";
+type KeyMode = "nested" | "flat";
+type OutputSpacing = "two" | "four" | "compact";
 
 type JsonValue =
   | string
@@ -18,6 +20,7 @@ type JsonValue =
 type ParsedEnvLine = {
   key: string;
   value: string;
+  lineNumber: number;
 };
 
 const sampleEnv = `DATABASE_HOST=localhost
@@ -33,35 +36,46 @@ export default function ToolClient() {
   const [input, setInput] = useState(sampleEnv);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
+  const [parsedLines, setParsedLines] = useState<ParsedEnvLine[]>([]);
   const [valueMode, setValueMode] = useState<ValueMode>("auto");
-  const [nestKeys, setNestKeys] = useState(true);
+  const [keyMode, setKeyMode] = useState<KeyMode>("nested");
+  const [outputSpacing, setOutputSpacing] = useState<OutputSpacing>("two");
   const [ignoreComments, setIgnoreComments] = useState(true);
+  const [stripExportKeyword, setStripExportKeyword] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const convertEnvToJson = () => {
     if (!input.trim()) {
       setError("Please enter ENV input.");
       setOutput("");
+      setParsedLines([]);
+      setCopied(false);
       return;
     }
 
     try {
-      const parsedLines = parseEnvInput(input, {
+      const lines = parseEnvInput(input, {
         ignoreComments,
+        stripExportKeyword,
       });
 
-      if (parsedLines.length === 0) {
+      if (lines.length === 0) {
         setError("No ENV variables were found in this input.");
         setOutput("");
+        setParsedLines([]);
+        setCopied(false);
         return;
       }
 
-      const jsonObject = createJsonObject(parsedLines, {
+      const jsonObject = createJsonObject(lines, {
         valueMode,
-        nestKeys,
+        keyMode,
       });
 
-      setOutput(JSON.stringify(jsonObject, null, 2));
+      setOutput(JSON.stringify(jsonObject, null, getSpacingValue(outputSpacing)));
+      setParsedLines(lines);
       setError("");
+      setCopied(false);
     } catch (err) {
       setError(
         err instanceof Error
@@ -69,25 +83,48 @@ export default function ToolClient() {
           : "Unable to parse and convert this ENV input."
       );
       setOutput("");
+      setParsedLines([]);
+      setCopied(false);
     }
+  };
+
+  const copyOutput = async () => {
+    if (!output) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+
+    window.setTimeout(() => {
+      setCopied(false);
+    }, 1400);
   };
 
   const loadExample = () => {
     setInput(sampleEnv);
     setOutput("");
     setError("");
+    setParsedLines([]);
     setValueMode("auto");
-    setNestKeys(true);
+    setKeyMode("nested");
+    setOutputSpacing("two");
     setIgnoreComments(true);
+    setStripExportKeyword(true);
+    setCopied(false);
   };
 
   const resetAll = () => {
     setInput("");
     setOutput("");
     setError("");
+    setParsedLines([]);
     setValueMode("auto");
-    setNestKeys(true);
+    setKeyMode("nested");
+    setOutputSpacing("two");
     setIgnoreComments(true);
+    setStripExportKeyword(true);
+    setCopied(false);
   };
 
   return (
@@ -95,26 +132,36 @@ export default function ToolClient() {
       title="ENV to JSON Converter"
       description="Convert .env variables into JSON, parse dotenv key-value pairs, nest environment keys, and format clean JSON directly in your browser."
     >
-      <div className="grid gap-5 md:grid-cols-[1fr_280px]">
-        <div>
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            ENV Input
-          </label>
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          ENV Input
+        </label>
 
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder={sampleEnv}
-            className="w-full min-h-[320px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-          />
+        <textarea
+          value={input}
+          onChange={(event) => {
+            setInput(event.target.value);
+            setOutput("");
+            setError("");
+            setParsedLines([]);
+            setCopied(false);
+          }}
+          placeholder={sampleEnv}
+          className="w-full min-h-[340px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        />
 
-          <p className="mt-2 text-sm text-gray-500">
-            Paste .env variables, dotenv config, shell-style key-value pairs, or
-            deployment settings to convert them into structured JSON.
-          </p>
-        </div>
+        <p className="mt-2 text-sm text-gray-500">
+          Paste .env variables, dotenv content, deployment settings, or
+          shell-style key-value pairs to convert them into structured JSON.
+        </p>
+      </div>
 
-        <div>
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <h3 className="text-lg font-semibold text-gray-900">
+          JSON Conversion Options
+        </h3>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
           <YoryantraSelect
             label="Value Parsing"
             value={valueMode}
@@ -122,6 +169,8 @@ export default function ToolClient() {
               setValueMode(value as ValueMode);
               setOutput("");
               setError("");
+              setParsedLines([]);
+              setCopied(false);
             }}
             options={[
               {
@@ -135,59 +184,106 @@ export default function ToolClient() {
             ]}
           />
 
-          <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-            <h3 className="text-lg font-semibold text-gray-900">
-              JSON Options
-            </h3>
+          <YoryantraSelect
+            label="Key Output"
+            value={keyMode}
+            onChange={(value) => {
+              setKeyMode(value as KeyMode);
+              setOutput("");
+              setError("");
+              setParsedLines([]);
+              setCopied(false);
+            }}
+            options={[
+              {
+                label: "Nested JSON",
+                value: "nested",
+              },
+              {
+                label: "Flat Keys",
+                value: "flat",
+              },
+            ]}
+          />
 
-            <div className="mt-4 space-y-3">
-              <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-                <input
-                  type="checkbox"
-                  checked={nestKeys}
-                  onChange={(event) => {
-                    setNestKeys(event.target.checked);
-                    setOutput("");
-                    setError("");
-                  }}
-                  className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-                />
+          <YoryantraSelect
+            label="Output Spacing"
+            value={outputSpacing}
+            onChange={(value) => {
+              setOutputSpacing(value as OutputSpacing);
+              setOutput("");
+              setError("");
+              setParsedLines([]);
+              setCopied(false);
+            }}
+            options={[
+              {
+                label: "2 spaces",
+                value: "two",
+              },
+              {
+                label: "4 spaces",
+                value: "four",
+              },
+              {
+                label: "Compact",
+                value: "compact",
+              },
+            ]}
+          />
+        </div>
 
-                <span>
-                  <span className="block text-sm font-medium text-gray-900">
-                    Nest underscore keys
-                  </span>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+            <input
+              type="checkbox"
+              checked={ignoreComments}
+              onChange={(event) => {
+                setIgnoreComments(event.target.checked);
+                setOutput("");
+                setError("");
+                setParsedLines([]);
+                setCopied(false);
+              }}
+              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+            />
 
-                  <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                    Convert DATABASE_HOST into database.host in the JSON output.
-                  </span>
-                </span>
-              </label>
+            <span>
+              <span className="block text-sm font-medium text-gray-900">
+                Ignore comments
+              </span>
 
-              <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-                <input
-                  type="checkbox"
-                  checked={ignoreComments}
-                  onChange={(event) => {
-                    setIgnoreComments(event.target.checked);
-                    setOutput("");
-                    setError("");
-                  }}
-                  className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-                />
+              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+                Skip lines that start with # and keep only ENV variables in the
+                JSON output.
+              </span>
+            </span>
+          </label>
 
-                <span>
-                  <span className="block text-sm font-medium text-gray-900">
-                    Ignore comments
-                  </span>
+          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+            <input
+              type="checkbox"
+              checked={stripExportKeyword}
+              onChange={(event) => {
+                setStripExportKeyword(event.target.checked);
+                setOutput("");
+                setError("");
+                setParsedLines([]);
+                setCopied(false);
+              }}
+              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+            />
 
-                  <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                    Skip lines that start with # and keep only ENV variables.
-                  </span>
-                </span>
-              </label>
-            </div>
-          </div>
+            <span>
+              <span className="block text-sm font-medium text-gray-900">
+                Strip export keyword
+              </span>
+
+              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+                Treat export API_KEY=value as API_KEY=value before converting.
+              </span>
+            </span>
+          </label>
         </div>
       </div>
 
@@ -211,6 +307,48 @@ export default function ToolClient() {
         </div>
       )}
 
+      {parsedLines.length > 0 && (
+        <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Parsed ENV Preview
+          </h3>
+
+          <p className="mt-2 text-sm text-gray-500">
+            Review parsed keys and values before using the generated JSON.
+          </p>
+
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-white">
+            <table className="w-full min-w-[680px] text-left text-sm">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Line</th>
+                  <th className="px-4 py-3 font-semibold">ENV Key</th>
+                  <th className="px-4 py-3 font-semibold">Value</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-gray-100">
+                {parsedLines.map((line) => (
+                  <tr key={`${line.lineNumber}-${line.key}`}>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-600">
+                      {line.lineNumber}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-900">
+                      {line.key}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-600">
+                      <span className="block max-w-[360px] truncate">
+                        {line.value}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -219,10 +357,10 @@ export default function ToolClient() {
 
           {output && (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              onClick={copyOutput}
               className="yoryantra-btn-outline text-sm"
             >
-              Copy
+              {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
@@ -269,6 +407,7 @@ export default function ToolClient() {
             <li>Paste valid .env content into the input box.</li>
             <li>Select whether values should be parsed automatically or kept as strings.</li>
             <li>Choose whether underscore-separated ENV keys should become nested JSON.</li>
+            <li>Select the spacing style for the generated JSON output.</li>
             <li>
               Click <strong>Convert ENV to JSON</strong> and copy the formatted output.
             </li>
@@ -286,6 +425,7 @@ export default function ToolClient() {
             <li>Converting dotenv values before sharing app setup documentation.</li>
             <li>Preparing JSON config from Node.js, Next.js, Docker, or CI/CD variables.</li>
             <li>Checking API keys, service URLs, feature flags, and runtime settings together.</li>
+            <li>Cleaning shell-style export lines before moving values into JSON.</li>
           </ul>
         </div>
 
@@ -313,6 +453,25 @@ After:
 }`}
             </pre>
           </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Nesting ENV Keys Into JSON Objects
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Many environment variables use prefixes to show grouping, such as
+            DATABASE_HOST, DATABASE_PORT, API_BASE_URL, or USER_ACTIVE. Nested
+            mode converts those underscore-separated names into JSON objects so
+            related values sit together.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Flat mode keeps the original ENV keys exactly as top-level JSON
+            properties. This is useful when you want a direct key-value export
+            without changing names or grouping values.
+          </p>
         </div>
 
         <div>
@@ -371,6 +530,18 @@ After:
 
             <div>
               <h3 className="font-semibold text-gray-900">
+                What happens to comments?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Comment lines that start with # can be ignored. Disable the
+                option if you want the tool to warn about lines that are not
+                valid key-value pairs.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
                 Is my ENV file uploaded anywhere?
               </h3>
 
@@ -418,6 +589,7 @@ function parseEnvInput(
   input: string,
   options: {
     ignoreComments: boolean;
+    stripExportKeyword: boolean;
   }
 ): ParsedEnvLine[] {
   const lines = input.split(/\r?\n/);
@@ -434,9 +606,10 @@ function parseEnvInput(
       return;
     }
 
-    const normalizedLine = line.startsWith("export ")
-      ? line.slice("export ".length).trim()
-      : line;
+    const normalizedLine =
+      options.stripExportKeyword && line.startsWith("export ")
+        ? line.slice("export ".length).trim()
+        : line;
 
     const equalsIndex = findFirstUnquotedEquals(normalizedLine);
 
@@ -458,6 +631,7 @@ function parseEnvInput(
     parsed.push({
       key,
       value: unwrapEnvValue(rawValue),
+      lineNumber: index + 1,
     });
   });
 
@@ -468,7 +642,7 @@ function createJsonObject(
   lines: ParsedEnvLine[],
   options: {
     valueMode: ValueMode;
-    nestKeys: boolean;
+    keyMode: KeyMode;
   }
 ): Record<string, JsonValue> {
   const output: Record<string, JsonValue> = {};
@@ -477,7 +651,7 @@ function createJsonObject(
     const parsedValue =
       options.valueMode === "auto" ? parseEnvValue(value) : value;
 
-    if (!options.nestKeys) {
+    if (options.keyMode === "flat") {
       output[key] = parsedValue;
       return;
     }
@@ -618,6 +792,18 @@ function findFirstUnquotedEquals(value: string) {
   }
 
   return -1;
+}
+
+function getSpacingValue(outputSpacing: OutputSpacing) {
+  if (outputSpacing === "four") {
+    return 4;
+  }
+
+  if (outputSpacing === "compact") {
+    return 0;
+  }
+
+  return 2;
 }
 
 function isValidEnvKey(key: string) {
