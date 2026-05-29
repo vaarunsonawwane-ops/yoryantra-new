@@ -788,5 +788,13 @@ export const tools = [
 },
 
 
+{
+  title: "CIDR Range Expander",
+  description:
+    "Expand IPv4 CIDR ranges into IP addresses and calculate subnet details.",
+  href: "/tools/cidr-range-expander",
+  category: "DevOps Tools",
+},
+
 
 ];
