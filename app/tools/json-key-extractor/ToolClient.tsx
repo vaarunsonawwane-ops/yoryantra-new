@@ -128,7 +128,7 @@ export default function ToolClient() {
               type="checkbox"
               checked={includeArrayIndexes}
               onChange={(event) => setIncludeArrayIndexes(event.target.checked)}
-              className="mt-1 h-4 w-4 accent-[var(--green)]"
+              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
             />
 
             <span>
@@ -147,7 +147,7 @@ export default function ToolClient() {
               type="checkbox"
               checked={includeLeafOnly}
               onChange={(event) => setIncludeLeafOnly(event.target.checked)}
-              className="mt-1 h-4 w-4 accent-[var(--green)]"
+              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
             />
 
             <span>
