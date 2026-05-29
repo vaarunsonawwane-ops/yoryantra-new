@@ -831,6 +831,13 @@ export const tools = [
 },
 
 
+{
+  title: "SQL Beautifier / Minifier",
+  description:
+    "Beautify, format, minify, and clean SQL queries directly in your browser.",
+  href: "/tools/sql-beautifier-minifier",
+  category: "Developer Tools",
+},
 
 
 ];
