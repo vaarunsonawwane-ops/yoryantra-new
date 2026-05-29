@@ -122,7 +122,7 @@ const sqlFunctions = [
 ];
 
 export default function ToolClient() {
-  const [input, setInput] = useState(sampleSql);
+  const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [action, setAction] = useState<SQLAction>("beautify");
