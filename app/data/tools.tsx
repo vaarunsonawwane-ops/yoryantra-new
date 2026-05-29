@@ -822,6 +822,14 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "HTTP Request Parser",
+  description:
+    "Parse raw HTTP requests, inspect headers, query parameters, cookies, and request bodies.",
+  href: "/tools/http-request-parser",
+  category: "Developer Tools",
+},
+
 
 
 
