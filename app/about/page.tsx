@@ -110,7 +110,7 @@ export default function AboutPage() {
               href="/contact"
               className="text-[#c89b3c] font-bold hover:underline"
             >
-              Contact Us
+              Contact
             </a>{" "}
             page.
           </p>
