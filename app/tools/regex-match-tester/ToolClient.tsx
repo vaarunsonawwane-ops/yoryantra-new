@@ -64,8 +64,8 @@ Invalid examples like support@local should not match.
 You can also reach admin.team+alerts@example.co.in for alerts.`;
 
 export default function ToolClient() {
-  const [pattern, setPattern] = useState(samplePattern);
-  const [testText, setTestText] = useState(sampleText);
+  const [pattern, setPattern] = useState("");
+  const [testText, setTestText] = useState("");
   const [selectedFlags, setSelectedFlags] = useState(["g", "i"]);
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("summary");
   const [replacementMode, setReplacementMode] =
