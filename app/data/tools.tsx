@@ -806,6 +806,14 @@ export const tools = [
 },
 
 
+{
+  title: "CSP Policy Builder",
+  description:
+    "Build Content Security Policy headers, configure CSP directives, and generate deployment-ready CSP output.",
+  href: "/tools/csp-policy-builder",
+  category: "Security Tools",
+},
+
 
 
 
