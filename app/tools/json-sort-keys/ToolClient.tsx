@@ -6,6 +6,7 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type SortDirection = "asc" | "desc";
+type OutputSpacing = "two" | "four" | "compact";
 
 const sampleJson = `{
   "zebra": "last",
@@ -34,13 +35,16 @@ export default function ToolClient() {
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [outputSpacing, setOutputSpacing] = useState<OutputSpacing>("two");
   const [sortNestedKeys, setSortNestedKeys] = useState(true);
   const [preserveArrayOrder, setPreserveArrayOrder] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const sortJsonKeys = () => {
     if (!input.trim()) {
       setError("Please enter JSON input.");
       setOutput("");
+      setCopied(false);
       return;
     }
 
@@ -52,8 +56,9 @@ export default function ToolClient() {
         preserveArrayOrder,
       });
 
-      setOutput(JSON.stringify(sorted, null, 2));
+      setOutput(JSON.stringify(sorted, null, getSpacingValue(outputSpacing)));
       setError("");
+      setCopied(false);
     } catch (err) {
       setError(
         err instanceof Error
@@ -61,7 +66,55 @@ export default function ToolClient() {
           : "Unable to parse and sort this JSON."
       );
       setOutput("");
+      setCopied(false);
     }
+  };
+
+  const formatInput = () => {
+    if (!input.trim()) {
+      setError("Please enter JSON input.");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(input);
+      setInput(JSON.stringify(parsed, null, 2));
+      setError("");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to format this JSON."
+      );
+    }
+  };
+
+  const minifyInput = () => {
+    if (!input.trim()) {
+      setError("Please enter JSON input.");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(input);
+      setInput(JSON.stringify(parsed));
+      setError("");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to minify this JSON."
+      );
+    }
+  };
+
+  const copyOutput = async () => {
+    if (!output) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+
+    window.setTimeout(() => {
+      setCopied(false);
+    }, 1400);
   };
 
   const loadExample = () => {
@@ -69,8 +122,10 @@ export default function ToolClient() {
     setOutput("");
     setError("");
     setSortDirection("asc");
+    setOutputSpacing("two");
     setSortNestedKeys(true);
     setPreserveArrayOrder(true);
+    setCopied(false);
   };
 
   const resetAll = () => {
@@ -78,8 +133,10 @@ export default function ToolClient() {
     setOutput("");
     setError("");
     setSortDirection("asc");
+    setOutputSpacing("two");
     setSortNestedKeys(true);
     setPreserveArrayOrder(true);
+    setCopied(false);
   };
 
   return (
@@ -87,26 +144,45 @@ export default function ToolClient() {
       title="JSON Sort Keys Tool"
       description="Sort JSON object keys alphabetically, reorder nested JSON keys, and format structured JSON directly in your browser."
     >
-      <div className="grid gap-5 md:grid-cols-[1fr_280px]">
-        <div>
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            JSON Input
-          </label>
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          JSON Input
+        </label>
 
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder={sampleJson}
-            className="w-full min-h-[320px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-          />
+        <textarea
+          value={input}
+          onChange={(event) => {
+            setInput(event.target.value);
+            setOutput("");
+            setError("");
+            setCopied(false);
+          }}
+          placeholder={sampleJson}
+          className="w-full min-h-[340px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        />
 
-          <p className="mt-2 text-sm text-gray-500">
-            Paste JSON from an API response, config file, export, or structured
-            data payload to sort its object keys.
-          </p>
+        <p className="mt-2 text-sm text-gray-500">
+          Paste a JSON object, array, API response, configuration file, or log
+          payload to sort object keys without changing the actual values.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button onClick={formatInput} className="yoryantra-btn-outline">
+            Format Input
+          </button>
+
+          <button onClick={minifyInput} className="yoryantra-btn-outline">
+            Minify Input
+          </button>
         </div>
+      </div>
 
-        <div>
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Sorting Options
+        </h3>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
           <YoryantraSelect
             label="Sort Direction"
             value={sortDirection}
@@ -114,6 +190,7 @@ export default function ToolClient() {
               setSortDirection(value as SortDirection);
               setOutput("");
               setError("");
+              setCopied(false);
             }}
             options={[
               {
@@ -127,59 +204,81 @@ export default function ToolClient() {
             ]}
           />
 
-          <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Sort Options
-            </h3>
+          <YoryantraSelect
+            label="Output Spacing"
+            value={outputSpacing}
+            onChange={(value) => {
+              setOutputSpacing(value as OutputSpacing);
+              setOutput("");
+              setError("");
+              setCopied(false);
+            }}
+            options={[
+              {
+                label: "2 spaces",
+                value: "two",
+              },
+              {
+                label: "4 spaces",
+                value: "four",
+              },
+              {
+                label: "Compact",
+                value: "compact",
+              },
+            ]}
+          />
+        </div>
 
-            <div className="mt-4 space-y-3">
-              <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-                <input
-                  type="checkbox"
-                  checked={sortNestedKeys}
-                  onChange={(event) => {
-                    setSortNestedKeys(event.target.checked);
-                    setOutput("");
-                    setError("");
-                  }}
-                  className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-                />
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+            <input
+              type="checkbox"
+              checked={sortNestedKeys}
+              onChange={(event) => {
+                setSortNestedKeys(event.target.checked);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+            />
 
-                <span>
-                  <span className="block text-sm font-medium text-gray-900">
-                    Sort nested keys
-                  </span>
+            <span>
+              <span className="block text-sm font-medium text-gray-900">
+                Sort nested keys
+              </span>
 
-                  <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                    Sort keys inside nested objects, not just the top level.
-                  </span>
-                </span>
-              </label>
+              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+                Reorder keys inside nested objects, not just the first level.
+              </span>
+            </span>
+          </label>
 
-              <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-                <input
-                  type="checkbox"
-                  checked={preserveArrayOrder}
-                  onChange={(event) => {
-                    setPreserveArrayOrder(event.target.checked);
-                    setOutput("");
-                    setError("");
-                  }}
-                  className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-                />
+          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+            <input
+              type="checkbox"
+              checked={preserveArrayOrder}
+              onChange={(event) => {
+                setPreserveArrayOrder(event.target.checked);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+            />
 
-                <span>
-                  <span className="block text-sm font-medium text-gray-900">
-                    Preserve array order
-                  </span>
+            <span>
+              <span className="block text-sm font-medium text-gray-900">
+                Preserve array order
+              </span>
 
-                  <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                    Keep array item order unchanged while sorting objects.
-                  </span>
-                </span>
-              </label>
-            </div>
-          </div>
+              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+                Keep array item order unchanged while sorting objects inside
+                arrays when nested sorting is enabled.
+              </span>
+            </span>
+          </label>
         </div>
       </div>
 
@@ -211,10 +310,10 @@ export default function ToolClient() {
 
           {output && (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              onClick={copyOutput}
               className="yoryantra-btn-outline text-sm"
             >
-              Copy
+              {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
@@ -260,6 +359,7 @@ export default function ToolClient() {
             <li>Paste valid JSON into the input box.</li>
             <li>Select ascending or descending key order.</li>
             <li>Choose whether nested object keys should also be sorted.</li>
+            <li>Select the spacing style for the formatted JSON output.</li>
             <li>
               Click <strong>Sort JSON Keys</strong> and copy the formatted output.
             </li>
@@ -277,6 +377,7 @@ export default function ToolClient() {
             <li>Making configuration files easier to review.</li>
             <li>Reducing noisy diffs in version control.</li>
             <li>Organizing nested JSON data for documentation.</li>
+            <li>Sorting JSON payloads before pasting them into bug reports.</li>
           </ul>
         </div>
 
@@ -304,6 +405,27 @@ After:
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
+            When Nested Sorting Helps
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Many JSON files contain nested objects such as user profiles,
+            settings, permissions, API metadata, feature flags, and response
+            details. Sorting only the top level may still leave deeper sections
+            difficult to compare. Nested sorting keeps the entire structure more
+            predictable.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Preserving array order is useful when array position has meaning,
+            such as ordered steps, menu items, route lists, priority rules, or
+            test fixture sequences. The tool keeps arrays stable while still
+            sorting object keys inside them when nested sorting is enabled.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
             Frequently Asked Questions
           </h2>
 
@@ -326,7 +448,8 @@ After:
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 No. This tool only changes object key order and formatting. It
-                does not intentionally change values.
+                does not intentionally change strings, numbers, booleans, arrays,
+                or nested values.
               </p>
             </div>
 
@@ -338,6 +461,18 @@ After:
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Yes. Enable nested key sorting to reorder keys inside nested
                 objects throughout the JSON structure.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What happens to arrays?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Array item order is preserved by default. If an array contains
+                objects, keys inside those objects can still be sorted when
+                nested sorting is enabled.
               </p>
             </div>
 
@@ -375,6 +510,10 @@ After:
             <Link href="/tools/json-key-extractor" className="yoryantra-btn-outline">
               JSON Key Extractor
             </Link>
+
+            <Link href="/tools/json-to-env-converter" className="yoryantra-btn-outline">
+              JSON to ENV Converter
+            </Link>
           </div>
         </div>
       </section>
@@ -392,6 +531,14 @@ function sortValue(
   isRoot = true
 ): unknown {
   if (Array.isArray(value)) {
+    if (!options.preserveArrayOrder) {
+      return [...value]
+        .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+        .map((item) =>
+          options.sortNestedKeys ? sortValue(item, options, false) : item
+        );
+    }
+
     return value.map((item) =>
       options.sortNestedKeys ? sortValue(item, options, false) : item
     );
@@ -423,6 +570,18 @@ function sortValue(
   return value;
 }
 
-function isPlainObject(value: unknown) {
+function getSpacingValue(outputSpacing: OutputSpacing) {
+  if (outputSpacing === "four") {
+    return 4;
+  }
+
+  if (outputSpacing === "compact") {
+    return 0;
+  }
+
+  return 2;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
