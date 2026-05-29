@@ -22,8 +22,7 @@ type CIDRDetails = {
   endNumber: number;
 };
 
-const sampleCIDR = `192.168.1.0/29`;
-
+const sampleCIDR = "192.168.1.0/29";
 const MAX_EXPANDED_ADDRESSES = 65536;
 
 export default function ToolClient() {
@@ -35,12 +34,14 @@ export default function ToolClient() {
   const [includeNetworkAndBroadcast, setIncludeNetworkAndBroadcast] =
     useState(false);
   const [showDetails, setShowDetails] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const expandCIDRRange = () => {
     if (!input.trim()) {
       setError("Please enter a CIDR range.");
       setOutput("");
       setDetails(null);
+      setCopied(false);
       return;
     }
 
@@ -56,12 +57,14 @@ export default function ToolClient() {
         );
         setOutput("");
         setDetails(cidrDetails);
+        setCopied(false);
         return;
       }
 
       setOutput(formatOutput(expandedAddresses, outputFormat));
       setDetails(cidrDetails);
       setError("");
+      setCopied(false);
     } catch (err) {
       setError(
         err instanceof Error
@@ -70,7 +73,21 @@ export default function ToolClient() {
       );
       setOutput("");
       setDetails(null);
+      setCopied(false);
     }
+  };
+
+  const copyOutput = async () => {
+    if (!output) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+
+    window.setTimeout(() => {
+      setCopied(false);
+    }, 1400);
   };
 
   const loadExample = () => {
@@ -81,6 +98,7 @@ export default function ToolClient() {
     setOutputFormat("list");
     setIncludeNetworkAndBroadcast(false);
     setShowDetails(true);
+    setCopied(false);
   };
 
   const resetAll = () => {
@@ -91,6 +109,7 @@ export default function ToolClient() {
     setOutputFormat("list");
     setIncludeNetworkAndBroadcast(false);
     setShowDetails(true);
+    setCopied(false);
   };
 
   return (
@@ -98,26 +117,52 @@ export default function ToolClient() {
       title="CIDR Range Expander"
       description="Expand IPv4 CIDR ranges into IP addresses, calculate subnet details, and copy clean IP lists directly in your browser."
     >
-      <div className="grid gap-5 md:grid-cols-[1fr_280px]">
-        <div>
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            CIDR Input
-          </label>
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          CIDR Block
+        </label>
 
-          <textarea
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+          <input
             value={input}
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+              setInput(event.target.value);
+              setOutput("");
+              setDetails(null);
+              setError("");
+              setCopied(false);
+            }}
             placeholder={sampleCIDR}
-            className="w-full min-h-[320px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
 
-          <p className="mt-2 text-sm text-gray-500">
-            Enter one IPv4 CIDR block such as 192.168.1.0/29, 10.0.0.0/30, or
-            172.16.5.128/28 to expand it into individual IP addresses.
-          </p>
+          <button onClick={expandCIDRRange} className="yoryantra-btn">
+            Expand CIDR
+          </button>
         </div>
 
-        <div>
+        <p className="mt-2 text-sm text-gray-500">
+          Enter one IPv4 CIDR block such as 192.168.1.0/29, 10.0.0.0/30, or
+          172.16.5.128/28 to expand it into individual IP addresses.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button onClick={loadExample} className="yoryantra-btn-outline">
+            Load Example
+          </button>
+
+          <button onClick={resetAll} className="yoryantra-btn-outline">
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Expansion Options
+        </h3>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
           <YoryantraSelect
             label="Output Format"
             value={outputFormat}
@@ -125,6 +170,7 @@ export default function ToolClient() {
               setOutputFormat(value as OutputFormat);
               setOutput("");
               setError("");
+              setCopied(false);
             }}
             options={[
               {
@@ -142,75 +188,68 @@ export default function ToolClient() {
             ]}
           />
 
-          <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Range Options
-            </h3>
-
-            <div className="mt-4 space-y-3">
-              <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-                <input
-                  type="checkbox"
-                  checked={includeNetworkAndBroadcast}
-                  onChange={(event) => {
-                    setIncludeNetworkAndBroadcast(event.target.checked);
-                    setOutput("");
-                    setError("");
-                  }}
-                  className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-                />
-
-                <span>
-                  <span className="block text-sm font-medium text-gray-900">
-                    Include network and broadcast
-                  </span>
-
-                  <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                    Include the first and last addresses in traditional IPv4
-                    subnet ranges.
-                  </span>
-                </span>
-              </label>
-
-              <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-                <input
-                  type="checkbox"
-                  checked={showDetails}
-                  onChange={(event) => {
-                    setShowDetails(event.target.checked);
-                    setError("");
-                  }}
-                  className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-                />
-
-                <span>
-                  <span className="block text-sm font-medium text-gray-900">
-                    Show subnet details
-                  </span>
-
-                  <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                    Display network, broadcast, usable host range, subnet mask,
-                    and host count.
-                  </span>
-                </span>
-              </label>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="text-sm font-medium text-gray-900">
+              Safe expansion limit
             </div>
+
+            <p className="mt-1 text-sm leading-relaxed text-gray-500">
+              The browser output is limited to{" "}
+              {MAX_EXPANDED_ADDRESSES.toLocaleString()} addresses to avoid
+              freezing very large CIDR ranges.
+            </p>
           </div>
         </div>
-      </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={expandCIDRRange} className="yoryantra-btn">
-          Expand CIDR Range
-        </button>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+            <input
+              type="checkbox"
+              checked={includeNetworkAndBroadcast}
+              onChange={(event) => {
+                setIncludeNetworkAndBroadcast(event.target.checked);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+            />
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
-          Load Example
-        </button>
+            <span>
+              <span className="block text-sm font-medium text-gray-900">
+                Include network and broadcast
+              </span>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
-          Reset
-        </button>
+              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+                Include the first and last addresses in traditional IPv4 subnet
+                ranges.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+            <input
+              type="checkbox"
+              checked={showDetails}
+              onChange={(event) => {
+                setShowDetails(event.target.checked);
+                setError("");
+              }}
+              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+            />
+
+            <span>
+              <span className="block text-sm font-medium text-gray-900">
+                Show subnet details
+              </span>
+
+              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+                Display network, broadcast, usable range, subnet mask, wildcard,
+                and address counts.
+              </span>
+            </span>
+          </label>
+        </div>
       </div>
 
       {error && (
@@ -220,25 +259,36 @@ export default function ToolClient() {
       )}
 
       {details && showDetails && (
-        <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-5">
+        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">
-            CIDR Details
+            Subnet Details
           </h3>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <DetailRow label="CIDR Block" value={details.cidr} />
-            <DetailRow label="Prefix Length" value={`/${details.prefixLength}`} />
-            <DetailRow label="Network Address" value={details.networkAddress} />
-            <DetailRow label="Broadcast Address" value={details.broadcastAddress} />
-            <DetailRow label="First Usable IP" value={details.firstUsableAddress} />
-            <DetailRow label="Last Usable IP" value={details.lastUsableAddress} />
-            <DetailRow label="Subnet Mask" value={details.subnetMask} />
-            <DetailRow label="Wildcard Mask" value={details.wildcardMask} />
-            <DetailRow
+          <p className="mt-2 text-sm text-gray-500">
+            Review the calculated network information before copying or using the
+            expanded IP list.
+          </p>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <DetailCard label="CIDR Block" value={details.cidr} />
+            <DetailCard label="Prefix Length" value={`/${details.prefixLength}`} />
+            <DetailCard label="Subnet Mask" value={details.subnetMask} />
+            <DetailCard label="Wildcard Mask" value={details.wildcardMask} />
+            <DetailCard label="Network Address" value={details.networkAddress} />
+            <DetailCard label="Broadcast Address" value={details.broadcastAddress} />
+            <DetailCard
+              label="First Usable IP"
+              value={details.firstUsableAddress}
+            />
+            <DetailCard
+              label="Last Usable IP"
+              value={details.lastUsableAddress}
+            />
+            <DetailCard
               label="Total Addresses"
               value={details.totalAddresses.toLocaleString()}
             />
-            <DetailRow
+            <DetailCard
               label="Usable Addresses"
               value={details.usableAddresses.toLocaleString()}
             />
@@ -254,10 +304,10 @@ export default function ToolClient() {
 
           {output && (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              onClick={copyOutput}
               className="yoryantra-btn-outline text-sm"
             >
-              Copy
+              {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
@@ -301,11 +351,11 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste an IPv4 CIDR block into the input box.</li>
+            <li>Enter an IPv4 CIDR block into the input field.</li>
             <li>Select whether network and broadcast addresses should be included.</li>
             <li>Choose line list, CSV, or JSON output format.</li>
             <li>
-              Click <strong>Expand CIDR Range</strong> and copy the generated IP list.
+              Click <strong>Expand CIDR</strong> and copy the generated IP list.
             </li>
           </ol>
         </div>
@@ -466,9 +516,9 @@ Usable addresses: 6`}
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
         {label}
       </div>
@@ -487,7 +537,13 @@ function parseCIDR(input: string): CIDRDetails {
     throw new Error("CIDR input must include a prefix length, such as 192.168.1.0/24.");
   }
 
-  const [ipPart, prefixPart] = normalized.split("/");
+  const parts = normalized.split("/");
+
+  if (parts.length !== 2) {
+    throw new Error("Please enter one valid IPv4 CIDR range.");
+  }
+
+  const [ipPart, prefixPart] = parts;
 
   if (!ipPart || !prefixPart) {
     throw new Error("Please enter a valid IPv4 CIDR range.");
