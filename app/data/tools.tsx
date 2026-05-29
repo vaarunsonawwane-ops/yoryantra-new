@@ -761,6 +761,14 @@ export const tools = [
 },
 
 
+{
+  title: "JSON Sort Keys Tool",
+  description:
+    "Sort JSON object keys alphabetically, reorder nested JSON keys, and format structured JSON.",
+  href: "/tools/json-sort-keys",
+  category: "JSON & Data Tools",
+},
+
 
 
 ];
