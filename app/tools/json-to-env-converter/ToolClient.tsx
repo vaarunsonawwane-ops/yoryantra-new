@@ -7,6 +7,11 @@ import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type QuoteMode = "auto" | "always" | "never";
 
+type EnvVariable = {
+  key: string;
+  value: string;
+};
+
 const sampleJson = `{
   "database": {
     "host": "localhost",
