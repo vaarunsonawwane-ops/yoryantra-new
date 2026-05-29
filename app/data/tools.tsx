@@ -752,6 +752,15 @@ export const tools = [
 },
 
 
+{
+  title: "JSON Key Extractor",
+  description:
+    "Extract keys, dot notation paths, value types, and nested field structure from JSON.",
+  href: "/tools/json-key-extractor",
+  category: "JSON & Data Tools",
+},
+
+
 
 
 ];
