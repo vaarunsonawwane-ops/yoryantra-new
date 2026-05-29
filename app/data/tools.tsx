@@ -770,5 +770,15 @@ export const tools = [
 },
 
 
+{
+  title: "JSON to ENV Converter",
+  description:
+    "Convert JSON into .env variables, flatten nested JSON keys, and generate dotenv-ready environment variables.",
+  href: "/tools/json-to-env-converter",
+  category: "JSON & Data Tools",
+},
+
+
+
 
 ];
