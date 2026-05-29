@@ -779,6 +779,14 @@ export const tools = [
 },
 
 
+{
+  title: "ENV to JSON Converter",
+  description:
+    "Convert .env variables into JSON, parse dotenv key-value pairs, and format structured JSON.",
+  href: "/tools/env-to-json-converter",
+  category: "JSON & Data Tools",
+},
+
 
 
 ];
