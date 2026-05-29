@@ -21,7 +21,7 @@ export default function PrivacyPolicyPage() {
         </p>
 
         <p>
-          We may use basic analytics tools to understand usage patterns and improve performance.
+          We use basic analytics tools to understand usage patterns and improve performance.
 		  In the future, we may also use third-party services such as analytics or advertising networks.
         </p>
 
