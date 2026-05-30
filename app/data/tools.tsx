@@ -932,6 +932,14 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "Nginx Redirect Rule Tester",
+  description:
+    "Test Nginx return and rewrite redirect rules, HTTP to HTTPS redirects, and possible redirect loops.",
+  href: "/tools/nginx-redirect-rule-tester",
+  category: "DevOps Tools",
+},
+
 
 
 
