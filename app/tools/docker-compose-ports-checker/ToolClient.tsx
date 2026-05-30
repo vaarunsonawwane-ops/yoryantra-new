@@ -245,7 +245,7 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={checkHostConflicts}
@@ -270,7 +270,7 @@ export default function ToolClient() {
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={checkContainerConflicts}
@@ -295,7 +295,7 @@ export default function ToolClient() {
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={warnPrivilegedPorts}
@@ -320,7 +320,7 @@ export default function ToolClient() {
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={warnUnquotedPorts}

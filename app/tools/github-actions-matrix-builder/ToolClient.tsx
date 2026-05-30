@@ -5,143 +5,237 @@ import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
-type OutputMode = "summary" | "json" | "table";
-type Severity = "error" | "warning" | "info";
-
-type PortMapping = {
-  service: string;
-  raw: string;
-  line: number;
-  hostIp: string;
-  hostPort: string;
-  containerPort: string;
-  protocol: string;
-  mode: "published" | "exposed" | "object" | "unknown";
-  valid: boolean;
-  normalizedHostKey: string;
+type OutputMode = "matrix" | "job" | "json";
+type MatrixAxis = {
+  id: number;
+  name: string;
+  values: string;
+  enabled: boolean;
 };
 
-type ServicePorts = {
-  service: string;
-  ports: PortMapping[];
-  expose: PortMapping[];
+type MatrixRule = {
+  id: number;
+  values: string;
+  enabled: boolean;
 };
 
-type PortIssue = {
-  severity: Severity;
+type MatrixCombination = Record<string, string>;
+
+type MatrixResult = {
+  axes: MatrixAxis[];
+  includeRules: MatrixCombination[];
+  excludeRules: MatrixCombination[];
+  combinations: MatrixCombination[];
+  finalCombinations: MatrixCombination[];
+  totalBeforeExclude: number;
+  totalAfterExclude: number;
+  yaml: string;
+  jobYaml: string;
+  json: string;
+};
+
+type MatrixNote = {
   title: string;
   message: string;
-  service: string;
-  line: number;
 };
 
-type PortSummary = {
-  services: ServicePorts[];
-  mappings: PortMapping[];
-  issues: PortIssue[];
-  duplicateHostPorts: PortMapping[][];
-  duplicateContainerPorts: PortMapping[][];
-  publishedCount: number;
-  exposedOnlyCount: number;
-  invalidCount: number;
-  privilegedHostPorts: number;
-};
+const defaultAxes: MatrixAxis[] = [
+  {
+    id: 1,
+    name: "os",
+    values: "ubuntu-latest, windows-latest, macos-latest",
+    enabled: true,
+  },
+  {
+    id: 2,
+    name: "node-version",
+    values: "20, 22",
+    enabled: true,
+  },
+];
 
-type YAMLLine = {
-  raw: string;
-  trimmed: string;
-  indent: number;
-  line: number;
-};
+const defaultIncludeRules: MatrixRule[] = [
+  {
+    id: 1,
+    values: "os=ubuntu-latest,node-version=22,experimental=true",
+    enabled: false,
+  },
+];
 
-const sampleCompose = `services:
-  web:
-    image: nginx:latest
-    ports:
-      - "8080:80"
-      - "8443:443"
-
-  api:
-    image: node:22
-    ports:
-      - "3000:3000"
-      - "127.0.0.1:9229:9229"
-
-  admin:
-    image: adminer
-    ports:
-      - "8080:8080"
-
-  redis:
-    image: redis:7
-    expose:
-      - "6379"`;
+const defaultExcludeRules: MatrixRule[] = [
+  {
+    id: 1,
+    values: "os=windows-latest,node-version=20",
+    enabled: false,
+  },
+];
 
 export default function ToolClient() {
-  const [input, setInput] = useState("");
-  const [outputMode, setOutputMode] = useState<OutputMode>("summary");
-  const [checkHostConflicts, setCheckHostConflicts] = useState(true);
-  const [checkContainerConflicts, setCheckContainerConflicts] = useState(false);
-  const [warnPrivilegedPorts, setWarnPrivilegedPorts] = useState(true);
-  const [warnUnquotedPorts, setWarnUnquotedPorts] = useState(true);
-  const [portsSummary, setPortsSummary] = useState<PortSummary | null>(null);
-  const [output, setOutput] = useState("");
-  const [error, setError] = useState("");
+  const [axes, setAxes] = useState<MatrixAxis[]>([
+    {
+      id: 1,
+      name: "",
+      values: "",
+      enabled: true,
+    },
+  ]);
+  const [includeRules, setIncludeRules] = useState<MatrixRule[]>([]);
+  const [excludeRules, setExcludeRules] = useState<MatrixRule[]>([]);
+  const [outputMode, setOutputMode] = useState<OutputMode>("matrix");
+  const [jobName, setJobName] = useState("test");
+  const [runnerExpression, setRunnerExpression] = useState("${{ matrix.os }}");
+  const [failFast, setFailFast] = useState(true);
+  const [maxParallel, setMaxParallel] = useState("");
+  const [sortAxes, setSortAxes] = useState(false);
+  const [quoteValues, setQuoteValues] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const groupedIssues = useMemo(() => {
-    if (!portsSummary) {
-      return {
-        errors: [],
-        warnings: [],
-        info: [],
-      };
+  const result = useMemo(
+    () =>
+      buildMatrixResult({
+        axes,
+        includeRules,
+        excludeRules,
+        jobName,
+        runnerExpression,
+        failFast,
+        maxParallel,
+        sortAxes,
+        quoteValues,
+      }),
+    [
+      axes,
+      includeRules,
+      excludeRules,
+      jobName,
+      runnerExpression,
+      failFast,
+      maxParallel,
+      sortAxes,
+      quoteValues,
+    ]
+  );
+
+  const output = useMemo(() => {
+    if (outputMode === "json") {
+      return result.json;
     }
 
-    return {
-      errors: portsSummary.issues.filter((issue) => issue.severity === "error"),
-      warnings: portsSummary.issues.filter(
-        (issue) => issue.severity === "warning"
-      ),
-      info: portsSummary.issues.filter((issue) => issue.severity === "info"),
-    };
-  }, [portsSummary]);
-
-  const checkPorts = () => {
-    if (!input.trim()) {
-      setError("Please paste a Docker Compose YAML file.");
-      setPortsSummary(null);
-      setOutput("");
-      setCopied(false);
-      return;
+    if (outputMode === "job") {
+      return result.jobYaml;
     }
 
-    try {
-      const summary = analyzeComposePorts(input, {
-        checkHostConflicts,
-        checkContainerConflicts,
-        warnPrivilegedPorts,
-        warnUnquotedPorts,
-      });
+    return result.yaml;
+  }, [outputMode, result]);
 
-      const nextOutput = formatPortOutput(summary, {
-        outputMode,
-      });
+  const notes = useMemo(() => getMatrixNotes(result), [result]);
 
-      setPortsSummary(summary);
-      setOutput(nextOutput);
-      setError("");
-      setCopied(false);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to check Docker Compose ports."
+  const addAxis = () => {
+    setAxes((current) => [
+      ...current,
+      {
+        id: Date.now(),
+        name: "",
+        values: "",
+        enabled: true,
+      },
+    ]);
+    setCopied(false);
+  };
+
+  const updateAxis = (
+    id: number,
+    field: keyof Omit<MatrixAxis, "id">,
+    value: string | boolean
+  ) => {
+    setAxes((current) =>
+      current.map((axis) =>
+        axis.id === id
+          ? {
+              ...axis,
+              [field]: value,
+            }
+          : axis
+      )
+    );
+    setCopied(false);
+  };
+
+  const removeAxis = (id: number) => {
+    setAxes((current) => {
+      const next = current.filter((axis) => axis.id !== id);
+
+      return next.length > 0
+        ? next
+        : [
+            {
+              id: Date.now(),
+              name: "",
+              values: "",
+              enabled: true,
+            },
+          ];
+    });
+    setCopied(false);
+  };
+
+  const addIncludeRule = () => {
+    setIncludeRules((current) => [
+      ...current,
+      {
+        id: Date.now(),
+        values: "",
+        enabled: true,
+      },
+    ]);
+    setCopied(false);
+  };
+
+  const addExcludeRule = () => {
+    setExcludeRules((current) => [
+      ...current,
+      {
+        id: Date.now(),
+        values: "",
+        enabled: true,
+      },
+    ]);
+    setCopied(false);
+  };
+
+  const updateRule = (
+    type: "include" | "exclude",
+    id: number,
+    field: keyof Omit<MatrixRule, "id">,
+    value: string | boolean
+  ) => {
+    const updater = (current: MatrixRule[]) =>
+      current.map((rule) =>
+        rule.id === id
+          ? {
+              ...rule,
+              [field]: value,
+            }
+          : rule
       );
-      setPortsSummary(null);
-      setOutput("");
-      setCopied(false);
+
+    if (type === "include") {
+      setIncludeRules(updater);
+    } else {
+      setExcludeRules(updater);
     }
+
+    setCopied(false);
+  };
+
+  const removeRule = (type: "include" | "exclude", id: number) => {
+    if (type === "include") {
+      setIncludeRules((current) => current.filter((rule) => rule.id !== id));
+    } else {
+      setExcludeRules((current) => current.filter((rule) => rule.id !== id));
+    }
+
+    setCopied(false);
   };
 
   const copyOutput = async () => {
@@ -158,102 +252,226 @@ export default function ToolClient() {
   };
 
   const loadExample = () => {
-    setInput(sampleCompose);
-    setOutputMode("summary");
-    setCheckHostConflicts(true);
-    setCheckContainerConflicts(false);
-    setWarnPrivilegedPorts(true);
-    setWarnUnquotedPorts(true);
-    setPortsSummary(null);
-    setOutput("");
-    setError("");
+    setAxes(defaultAxes);
+    setIncludeRules(defaultIncludeRules);
+    setExcludeRules(defaultExcludeRules);
+    setOutputMode("matrix");
+    setJobName("test");
+    setRunnerExpression("${{ matrix.os }}");
+    setFailFast(true);
+    setMaxParallel("");
+    setSortAxes(false);
+    setQuoteValues(false);
     setCopied(false);
   };
 
   const resetAll = () => {
-    setInput("");
-    setOutputMode("summary");
-    setCheckHostConflicts(true);
-    setCheckContainerConflicts(false);
-    setWarnPrivilegedPorts(true);
-    setWarnUnquotedPorts(true);
-    setPortsSummary(null);
-    setOutput("");
-    setError("");
+    setAxes([
+      {
+        id: 1,
+        name: "",
+        values: "",
+        enabled: true,
+      },
+    ]);
+    setIncludeRules([]);
+    setExcludeRules([]);
+    setOutputMode("matrix");
+    setJobName("test");
+    setRunnerExpression("${{ matrix.os }}");
+    setFailFast(true);
+    setMaxParallel("");
+    setSortAxes(false);
+    setQuoteValues(false);
     setCopied(false);
   };
 
   return (
     <ToolShell
-      title="Docker Compose Ports Checker"
-      description="Check Docker Compose ports, find duplicate host ports, invalid port mappings, protocol issues, ranges, exposed ports, and service port conflicts directly in your browser."
+      title="GitHub Actions Matrix Builder"
+      description="Build GitHub Actions strategy matrix YAML for OS runners, language versions, include rules, exclude rules, fail-fast, and max-parallel settings directly in your browser."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Docker Compose YAML
-        </label>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Matrix Axes
+            </h3>
 
-        <textarea
-          value={input}
-          onChange={(event) => {
-            setInput(event.target.value);
-            setPortsSummary(null);
-            setOutput("");
-            setError("");
-            setCopied(false);
-          }}
-          placeholder={sampleCompose}
-          className="w-full min-h-[430px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            <p className="mt-1 text-sm text-gray-500">
+              Add each matrix axis as a name and comma-separated values.
+            </p>
+          </div>
+
+          <button onClick={addAxis} className="yoryantra-btn-outline">
+            Add Axis
+          </button>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          {axes.map((axis, index) => (
+            <div
+              key={axis.id}
+              className="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-[auto_1fr_2fr_auto]"
+            >
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={axis.enabled}
+                  onChange={(event) =>
+                    updateAxis(axis.id, "enabled", event.target.checked)
+                  }
+                  className="h-4 w-4 accent-[var(--light-gold)]"
+                />
+
+                <span>{index + 1}</span>
+              </label>
+
+              <input
+                value={axis.name}
+                onChange={(event) =>
+                  updateAxis(axis.id, "name", event.target.value)
+                }
+                placeholder="os"
+                className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              />
+
+              <input
+                value={axis.values}
+                onChange={(event) =>
+                  updateAxis(axis.id, "values", event.target.value)
+                }
+                placeholder="ubuntu-latest, windows-latest, macos-latest"
+                className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              />
+
+              <button
+                onClick={() => removeAxis(axis.id)}
+                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+          Examples: <span className="font-mono text-gray-900">os</span>,{" "}
+          <span className="font-mono text-gray-900">node-version</span>,{" "}
+          <span className="font-mono text-gray-900">python-version</span>,{" "}
+          <span className="font-mono text-gray-900">package-manager</span>.
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <RuleSection
+          title="Include Rules"
+          description="Add extra matrix combinations or add fields to a specific combination."
+          buttonText="Add Include Rule"
+          rules={includeRules}
+          onAdd={addIncludeRule}
+          onUpdate={(id, field, value) => updateRule("include", id, field, value)}
+          onRemove={(id) => removeRule("include", id)}
+          placeholder="os=ubuntu-latest,node-version=22,experimental=true"
         />
 
-        <p className="mt-2 text-sm text-gray-500">
-          Paste a Docker Compose file to check published ports, exposed ports,
-          duplicate host ports, and service-level port mapping problems.
-        </p>
+        <RuleSection
+          title="Exclude Rules"
+          description="Remove specific matrix combinations from the final result."
+          buttonText="Add Exclude Rule"
+          rules={excludeRules}
+          onAdd={addExcludeRule}
+          onUpdate={(id, field, value) => updateRule("exclude", id, field, value)}
+          onRemove={(id) => removeRule("exclude", id)}
+          placeholder="os=windows-latest,node-version=20"
+        />
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
-          Check Options
+          Output Options
         </h3>
 
-        <div className="mt-4 max-w-md">
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
           <YoryantraSelect
             label="Output"
             value={outputMode}
             onChange={(value) => {
               setOutputMode(value as OutputMode);
-              setOutput("");
-              setError("");
               setCopied(false);
             }}
             options={[
               {
-                label: "Summary",
-                value: "summary",
+                label: "Matrix YAML",
+                value: "matrix",
+              },
+              {
+                label: "Full job YAML",
+                value: "job",
               },
               {
                 label: "JSON",
                 value: "json",
               },
-              {
-                label: "Table",
-                value: "table",
-              },
             ]}
           />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Job Name
+            </label>
+
+            <input
+              value={jobName}
+              onChange={(event) => {
+                setJobName(event.target.value);
+                setCopied(false);
+              }}
+              placeholder="test"
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              runs-on
+            </label>
+
+            <input
+              value={runnerExpression}
+              onChange={(event) => {
+                setRunnerExpression(event.target.value);
+                setCopied(false);
+              }}
+              placeholder="${{ matrix.os }}"
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            />
+          </div>
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+        <div className="mt-4 grid gap-4 md:grid-cols-4">
+          <div className="min-h-[116px] rounded-xl border border-gray-200 bg-white p-4">
+            <label className="block text-sm font-medium text-gray-900">
+              Max Parallel
+            </label>
+
+            <input
+              value={maxParallel}
+              onChange={(event) => {
+                setMaxParallel(event.target.value);
+                setCopied(false);
+              }}
+              placeholder="optional"
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            />
+          </div>
+
+          <label className="flex min-h-[116px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
-              checked={checkHostConflicts}
+              checked={failFast}
               onChange={(event) => {
-                setCheckHostConflicts(event.target.checked);
-                setPortsSummary(null);
-                setOutput("");
-                setError("");
+                setFailFast(event.target.checked);
                 setCopied(false);
               }}
               className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
@@ -261,24 +479,21 @@ export default function ToolClient() {
 
             <span>
               <span className="block text-sm font-medium text-gray-900">
-                Check host conflicts
+                Fail fast
               </span>
 
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Find services trying to publish the same host port.
+                Stop queued matrix jobs after one failure.
               </span>
             </span>
           </label>
 
-          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[116px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
-              checked={checkContainerConflicts}
+              checked={sortAxes}
               onChange={(event) => {
-                setCheckContainerConflicts(event.target.checked);
-                setPortsSummary(null);
-                setOutput("");
-                setError("");
+                setSortAxes(event.target.checked);
                 setCopied(false);
               }}
               className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
@@ -286,24 +501,21 @@ export default function ToolClient() {
 
             <span>
               <span className="block text-sm font-medium text-gray-900">
-                Check container ports
+                Sort axes
               </span>
 
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Warn when several services use the same container port.
+                Sort matrix axes alphabetically.
               </span>
             </span>
           </label>
 
-          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[116px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
-              checked={warnPrivilegedPorts}
+              checked={quoteValues}
               onChange={(event) => {
-                setWarnPrivilegedPorts(event.target.checked);
-                setPortsSummary(null);
-                setOutput("");
-                setError("");
+                setQuoteValues(event.target.checked);
                 setCopied(false);
               }}
               className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
@@ -311,36 +523,11 @@ export default function ToolClient() {
 
             <span>
               <span className="block text-sm font-medium text-gray-900">
-                Warn privileged ports
+                Quote values
               </span>
 
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Warn when host ports are below 1024.
-              </span>
-            </span>
-          </label>
-
-          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-            <input
-              type="checkbox"
-              checked={warnUnquotedPorts}
-              onChange={(event) => {
-                setWarnUnquotedPorts(event.target.checked);
-                setPortsSummary(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-            />
-
-            <span>
-              <span className="block text-sm font-medium text-gray-900">
-                Warn unquoted ports
-              </span>
-
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Suggest quoting port mappings like "8080:80".
+                Wrap matrix values in YAML quotes.
               </span>
             </span>
           </label>
@@ -348,8 +535,8 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={checkPorts} className="yoryantra-btn">
-          Check Compose Ports
+        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+          {copied ? "Copied" : "Copy Output"}
         </button>
 
         <button onClick={loadExample} className="yoryantra-btn-outline">
@@ -361,127 +548,105 @@ export default function ToolClient() {
         </button>
       </div>
 
-      {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
-          {error}
-        </div>
-      )}
+      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <SummaryCard
+          label="Axes"
+          value={result.axes.length.toLocaleString()}
+        />
+        <SummaryCard
+          label="Before Exclude"
+          value={result.totalBeforeExclude.toLocaleString()}
+        />
+        <SummaryCard
+          label="Final Jobs"
+          value={result.totalAfterExclude.toLocaleString()}
+        />
+        <SummaryCard
+          label="Include Rules"
+          value={result.includeRules.length.toLocaleString()}
+        />
+      </div>
 
-      {portsSummary && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard
-            label="Services"
-            value={portsSummary.services.length.toLocaleString()}
-          />
-          <SummaryCard
-            label="Published Ports"
-            value={portsSummary.publishedCount.toLocaleString()}
-          />
-          <SummaryCard
-            label="Issues"
-            value={portsSummary.issues.length.toLocaleString()}
-          />
-          <SummaryCard
-            label="Host Conflicts"
-            value={portsSummary.duplicateHostPorts.length.toLocaleString()}
-          />
-        </div>
-      )}
-
-      {portsSummary && portsSummary.mappings.length > 0 && (
+      {result.finalCombinations.length > 0 && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">
-            Port Mappings Found
+            Matrix Combinations
           </h3>
 
           <p className="mt-2 text-sm text-gray-500">
-            Published and exposed ports detected from the Compose file.
+            The combinations this matrix will create after exclude rules are
+            applied.
           </p>
 
           <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Service</th>
-                  <th className="px-4 py-3 font-semibold">Mode</th>
-                  <th className="px-4 py-3 font-semibold">Host IP</th>
-                  <th className="px-4 py-3 font-semibold">Host Port</th>
-                  <th className="px-4 py-3 font-semibold">Container Port</th>
-                  <th className="px-4 py-3 font-semibold">Protocol</th>
-                  <th className="px-4 py-3 font-semibold">Line</th>
-                  <th className="px-4 py-3 font-semibold">Raw</th>
+                  <th className="px-4 py-3 font-semibold">#</th>
+                  {Object.keys(result.finalCombinations[0] || {}).map((key) => (
+                    <th key={key} className="px-4 py-3 font-semibold">
+                      {key}
+                    </th>
+                  ))}
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-gray-100">
-                {portsSummary.mappings.map((mapping, index) => (
-                  <tr key={`${mapping.service}-${mapping.line}-${index}`}>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-800">
-                      {mapping.service}
-                    </td>
+                {result.finalCombinations.slice(0, 50).map((combination, index) => (
+                  <tr key={`combo-${index}`}>
                     <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      {mapping.mode}
+                      {index + 1}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      {mapping.hostIp || "(all)"}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      {mapping.hostPort || "(none)"}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      {mapping.containerPort || "(none)"}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      {mapping.protocol}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      {mapping.line}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      <span className="block max-w-[300px] break-words">
-                        {mapping.raw}
-                      </span>
-                    </td>
+
+                    {Object.keys(result.finalCombinations[0] || {}).map((key) => (
+                      <td
+                        key={`combo-${index}-${key}`}
+                        className="px-4 py-3 font-mono text-xs text-gray-700"
+                      >
+                        {combination[key] || ""}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {result.finalCombinations.length > 50 && (
+            <p className="mt-3 text-sm text-gray-500">
+              Showing the first 50 combinations only. Copy JSON output to inspect
+              the full list.
+            </p>
+          )}
         </div>
       )}
 
-      {portsSummary && portsSummary.issues.length > 0 && (
-        <div className="mt-8 grid gap-6 lg:grid-cols-3">
-          <IssueColumn
-            title="Errors"
-            description="Problems that can break port publishing."
-            issues={groupedIssues.errors}
-          />
+      {notes.length > 0 && (
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="text-sm font-semibold text-amber-900">
+            Matrix notes
+          </h3>
 
-          <IssueColumn
-            title="Warnings"
-            description="Things that may work but should be reviewed."
-            issues={groupedIssues.warnings}
-          />
+          <div className="mt-3 space-y-3">
+            {notes.map((note) => (
+              <div key={note.title}>
+                <p className="text-sm font-semibold text-amber-900">
+                  {note.title}
+                </p>
 
-          <IssueColumn
-            title="Info"
-            description="Helpful notes about port mappings."
-            issues={groupedIssues.info}
-          />
-        </div>
-      )}
-
-      {portsSummary && portsSummary.issues.length === 0 && (
-        <div className="mt-8 rounded-xl border border-green-200 bg-green-50 p-4 text-sm leading-relaxed text-green-800">
-          No port issues found with the selected checks.
+                <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                  {note.message}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Ports Output
+            Matrix Output
           </h3>
 
           {output && (
@@ -494,102 +659,101 @@ export default function ToolClient() {
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
-          {output || "Docker Compose ports output will appear here."}
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[340px] whitespace-pre-wrap break-words">
+          {output || "GitHub Actions matrix output will appear here."}
         </pre>
       </div>
 
       <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Docker Compose port checking happens directly in your browser. Your YAML
-        is not uploaded to a server.
+        Matrix building happens directly in your browser. The values you enter
+        are not uploaded to a server.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking Docker Compose Port Conflicts Before Running Containers
+            Building GitHub Actions Matrix YAML
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Docker Compose port issues are common when several services try to
-            publish the same host port. A web app, admin panel, database UI, or
-            local debug service can fail to start because another container is
-            already using the port.
+            GitHub Actions matrix jobs are useful when you need to test the same
+            workflow across multiple operating systems, language versions, or
+            package managers. But writing the matrix by hand can become messy
+            once include and exclude rules are added.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Docker Compose Ports Checker reads the ports and expose sections
-            from a Compose file and shows published ports, container ports,
-            duplicate host ports, invalid mappings, privileged ports, and useful
-            notes before you run the stack.
+            This GitHub Actions Matrix Builder helps you create a strategy matrix
+            from simple rows. Add axes, values, include rules, exclude rules,
+            fail-fast, and max-parallel settings, then copy clean YAML for your
+            workflow file.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Reviewing Ports in a Compose File
+            Creating a Matrix for CI Jobs
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your Docker Compose YAML into the input box.</li>
-            <li>Choose whether to check host ports, container ports, and low ports.</li>
-            <li>Run the checker to see published and exposed ports.</li>
-            <li>Review conflicts, invalid mappings, and quoting suggestions.</li>
-            <li>Copy the summary, JSON, or table output for notes or fixes.</li>
+            <li>Add matrix axes such as os, node-version, or python-version.</li>
+            <li>Enter comma-separated values for each axis.</li>
+            <li>Add include or exclude rules when certain combinations need changes.</li>
+            <li>Choose matrix-only YAML or a full job snippet.</li>
+            <li>Copy the output into your GitHub Actions workflow file.</li>
           </ol>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Docker Compose Ports Checker Use Cases
+            Common GitHub Actions Matrix Builder Use Cases
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Finding two services using the same host port.</li>
-            <li>Checking localhost-bound ports like 127.0.0.1:9229:9229.</li>
-            <li>Reviewing published ports before sharing a Compose file.</li>
-            <li>Finding unquoted port mappings that may be confusing in YAML.</li>
-            <li>Checking exposed-only ports that are not published to the host.</li>
-            <li>Preparing cleaner debugging notes for a Compose startup issue.</li>
+            <li>Testing a Node project across multiple Node versions.</li>
+            <li>Running a workflow across Ubuntu, Windows, and macOS.</li>
+            <li>Building Python CI jobs across several Python versions.</li>
+            <li>Excluding unsupported operating system and version pairs.</li>
+            <li>Adding experimental jobs with include rules.</li>
+            <li>Limiting matrix concurrency with max-parallel.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example Port Mapping
+            Example Matrix Output
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <pre className="whitespace-pre-wrap break-words">
-{`services:
-  web:
-    ports:
-      - "8080:80"
-      - "127.0.0.1:9229:9229"
-
-  admin:
-    ports:
-      - "8080:8080"`}
+{`strategy:
+  fail-fast: true
+  matrix:
+    os:
+      - ubuntu-latest
+      - windows-latest
+    node-version:
+      - 20
+      - 22`}
             </pre>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Ports and Expose Are Not the Same
+            Keep Matrix Size Practical
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The ports section publishes a container port to the host machine.
-            The expose section only documents or exposes ports inside the Docker
-            network. A service can be reachable by other containers without being
-            published to your laptop or server.
+            Every axis multiplies the number of jobs. Three operating systems
+            and four language versions already create twelve jobs. Add another
+            axis and the count can grow quickly.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            When a container is not reachable from the browser or API client,
-            check whether the port is actually published under ports and whether
-            another service is already using the same host port.
+            Use exclude rules, max-parallel, or smaller version lists when a
+            matrix becomes too expensive or too slow for normal pull request
+            checks.
           </p>
         </div>
 
@@ -601,46 +765,56 @@ export default function ToolClient() {
           <div className="mt-5 space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What does a Docker Compose ports checker do?
+                What is a GitHub Actions matrix?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                It reads Docker Compose YAML and checks published ports, exposed
-                ports, duplicate host ports, invalid mappings, and common port
-                configuration issues.
+                A matrix lets one job run multiple times with different values,
+                such as operating systems, Node versions, or Python versions.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Can this find duplicate host ports?
+                What does include do in a matrix?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. It can show when two services publish the same host port,
-                which often causes one container to fail at startup.
+                Include adds extra combinations or extra fields to a specific
+                combination in the matrix.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this run Docker Compose?
+                What does exclude do in a matrix?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool only checks the YAML text. It does not run Docker
-                or connect to your machine.
+                Exclude removes specific combinations, such as one unsupported OS
+                and language version pair.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is my Compose file uploaded anywhere?
+                Does this validate the full workflow?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Port checking happens directly in your browser, and your
-                YAML is not uploaded to a server.
+                No. This tool builds the matrix YAML. Use the GitHub Actions YAML
+                Validator to review the full workflow structure.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Are my matrix values uploaded anywhere?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. Matrix generation happens directly in your browser, and your
+                values are not uploaded to a server.
               </p>
             </div>
           </div>
@@ -652,29 +826,113 @@ export default function ToolClient() {
           </h2>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/docker-compose-validator" className="yoryantra-btn-outline">
-              Docker Compose Validator
-            </Link>
-
-            <Link href="/tools/dockerfile-linter" className="yoryantra-btn-outline">
-              Dockerfile Linter
+            <Link href="/tools/github-actions-yaml-validator" className="yoryantra-btn-outline">
+              GitHub Actions YAML Validator
             </Link>
 
             <Link href="/tools/yaml-validator" className="yoryantra-btn-outline">
               YAML Validator
             </Link>
 
-            <Link href="/tools/environment-variable-diff-checker" className="yoryantra-btn-outline">
-              Environment Variable Diff Checker
+            <Link href="/tools/dockerfile-linter" className="yoryantra-btn-outline">
+              Dockerfile Linter
             </Link>
 
-            <Link href="/tools/cidr-range-expander" className="yoryantra-btn-outline">
-              CIDR Range Expander
+            <Link href="/tools/docker-compose-validator" className="yoryantra-btn-outline">
+              Docker Compose Validator
+            </Link>
+
+            <Link href="/tools/environment-variable-diff-checker" className="yoryantra-btn-outline">
+              Environment Variable Diff Checker
             </Link>
           </div>
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function RuleSection({
+  title,
+  description,
+  buttonText,
+  rules,
+  onAdd,
+  onUpdate,
+  onRemove,
+  placeholder,
+}: {
+  title: string;
+  description: string;
+  buttonText: string;
+  rules: MatrixRule[];
+  onAdd: () => void;
+  onUpdate: (
+    id: number,
+    field: keyof Omit<MatrixRule, "id">,
+    value: string | boolean
+  ) => void;
+  onRemove: (id: number) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+
+          <p className="mt-1 text-sm text-gray-500">{description}</p>
+        </div>
+
+        <button onClick={onAdd} className="yoryantra-btn-outline whitespace-nowrap px-4 py-2">
+          {buttonText}
+        </button>
+      </div>
+
+      <div className="mt-5 space-y-3">
+        {rules.length === 0 ? (
+          <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+            No rules added.
+          </p>
+        ) : (
+          rules.map((rule, index) => (
+            <div
+              key={rule.id}
+              className="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-[auto_1fr_auto]"
+            >
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={rule.enabled}
+                  onChange={(event) =>
+                    onUpdate(rule.id, "enabled", event.target.checked)
+                  }
+                  className="h-4 w-4 accent-[var(--light-gold)]"
+                />
+
+                <span>{index + 1}</span>
+              </label>
+
+              <input
+                value={rule.values}
+                onChange={(event) =>
+                  onUpdate(rule.id, "values", event.target.value)
+                }
+                placeholder={placeholder}
+                className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              />
+
+              <button
+                onClick={() => onRemove(rule.id)}
+                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+              >
+                Remove
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -692,520 +950,310 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function IssueColumn({
-  title,
-  description,
-  issues,
+function buildMatrixResult({
+  axes,
+  includeRules,
+  excludeRules,
+  jobName,
+  runnerExpression,
+  failFast,
+  maxParallel,
+  sortAxes,
+  quoteValues,
 }: {
-  title: string;
-  description: string;
-  issues: PortIssue[];
-}) {
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
-      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+  axes: MatrixAxis[];
+  includeRules: MatrixRule[];
+  excludeRules: MatrixRule[];
+  jobName: string;
+  runnerExpression: string;
+  failFast: boolean;
+  maxParallel: string;
+  sortAxes: boolean;
+  quoteValues: boolean;
+}): MatrixResult {
+  const enabledAxes = axes
+    .filter((axis) => axis.enabled)
+    .filter((axis) => axis.name.trim() && axis.values.trim())
+    .map((axis) => ({
+      ...axis,
+      name: axis.name.trim(),
+      values: axis.values,
+    }));
 
-      <p className="mt-2 text-sm text-gray-500">{description}</p>
+  const finalAxes = sortAxes
+    ? [...enabledAxes].sort((a, b) => a.name.localeCompare(b.name))
+    : enabledAxes;
 
-      <div className="mt-4 space-y-3">
-        {issues.length === 0 ? (
-          <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
-            No {title.toLowerCase()} found.
-          </p>
-        ) : (
-          issues.map((issue, index) => (
-            <div
-              key={`${issue.severity}-${issue.service}-${issue.line}-${index}`}
-              className="rounded-xl border border-gray-200 bg-gray-50 p-4"
-            >
-              <p className="text-sm font-semibold text-gray-900">
-                {issue.title}
-              </p>
+  const combinations = buildCombinations(finalAxes);
+  const parsedIncludeRules = includeRules
+    .filter((rule) => rule.enabled && rule.values.trim())
+    .map((rule) => parseRule(rule.values));
+  const parsedExcludeRules = excludeRules
+    .filter((rule) => rule.enabled && rule.values.trim())
+    .map((rule) => parseRule(rule.values));
 
-              <p className="mt-1 text-sm leading-relaxed text-gray-600">
-                {issue.message}
-              </p>
-
-              <p className="mt-2 break-words font-mono text-xs text-gray-500">
-                {issue.service ? `${issue.service}, ` : ""}line {issue.line || "?"}
-              </p>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+  const afterExclude = combinations.filter(
+    (combination) =>
+      !parsedExcludeRules.some((rule) => doesRuleMatch(combination, rule))
   );
-}
+  const finalCombinations = [...afterExclude, ...parsedIncludeRules];
 
-function analyzeComposePorts(
-  input: string,
-  options: {
-    checkHostConflicts: boolean;
-    checkContainerConflicts: boolean;
-    warnPrivilegedPorts: boolean;
-    warnUnquotedPorts: boolean;
-  }
-): PortSummary {
-  const lines = toLines(input);
-  const services = parseComposeServices(lines);
-  const mappings = services.flatMap((service) => [...service.ports, ...service.expose]);
-  const issues: PortIssue[] = [];
-
-  mappings.forEach((mapping) => {
-    if (!mapping.valid) {
-      issues.push({
-        severity: "error",
-        title: "Invalid port mapping",
-        message: `Could not read the port mapping "${mapping.raw}".`,
-        service: mapping.service,
-        line: mapping.line,
-      });
-    }
-
-    if (
-      options.warnPrivilegedPorts &&
-      mapping.hostPort &&
-      isNumericPort(mapping.hostPort) &&
-      Number(mapping.hostPort) < 1024
-    ) {
-      issues.push({
-        severity: "warning",
-        title: "Privileged host port",
-        message:
-          "Host ports below 1024 may need elevated permissions or may conflict with system services.",
-        service: mapping.service,
-        line: mapping.line,
-      });
-    }
-
-    if (
-      options.warnUnquotedPorts &&
-      mapping.mode === "published" &&
-      mapping.raw.includes(":") &&
-      !isQuoted(mapping.raw)
-    ) {
-      issues.push({
-        severity: "info",
-        title: "Port mapping is not quoted",
-        message:
-          "Quoting port mappings like \"8080:80\" avoids YAML confusion and keeps the value clearly as a string.",
-        service: mapping.service,
-        line: mapping.line,
-      });
-    }
-
-    if (mapping.protocol && !["tcp", "udp"].includes(mapping.protocol)) {
-      issues.push({
-        severity: "warning",
-        title: "Unusual protocol",
-        message:
-          "Docker Compose ports usually use tcp or udp. Review this protocol value.",
-        service: mapping.service,
-        line: mapping.line,
-      });
-    }
-
-    if (mapping.hostPort && mapping.hostPort.includes("-")) {
-      issues.push({
-        severity: "info",
-        title: "Host port range found",
-        message:
-          "Port ranges are valid in some Compose use cases, but they are harder to check for conflicts exactly.",
-        service: mapping.service,
-        line: mapping.line,
-      });
-    }
+  const yaml = buildMatrixYaml({
+    axes: finalAxes,
+    includeRules: parsedIncludeRules,
+    excludeRules: parsedExcludeRules,
+    failFast,
+    maxParallel,
+    quoteValues,
   });
 
-  const duplicateHostPorts = options.checkHostConflicts
-    ? findDuplicateHostPorts(mappings)
-    : [];
-  duplicateHostPorts.forEach((group) => {
-    group.forEach((mapping) => {
-      issues.push({
-        severity: "error",
-        title: "Duplicate host port",
-        message: `Host port ${mapping.hostPort}/${mapping.protocol} is published by more than one service.`,
-        service: mapping.service,
-        line: mapping.line,
-      });
-    });
-  });
-
-  const duplicateContainerPorts = options.checkContainerConflicts
-    ? findDuplicateContainerPorts(mappings)
-    : [];
-  duplicateContainerPorts.forEach((group) => {
-    group.forEach((mapping) => {
-      issues.push({
-        severity: "warning",
-        title: "Repeated container port",
-        message: `Container port ${mapping.containerPort}/${mapping.protocol} appears in more than one service.`,
-        service: mapping.service,
-        line: mapping.line,
-      });
-    });
+  const jobYaml = buildJobYaml({
+    jobName: jobName.trim() || "test",
+    runnerExpression: runnerExpression.trim() || "${{ matrix.os }}",
+    matrixYaml: yaml,
   });
 
   return {
-    services,
-    mappings,
-    issues,
-    duplicateHostPorts,
-    duplicateContainerPorts,
-    publishedCount: mappings.filter((mapping) => mapping.mode === "published" || mapping.mode === "object").length,
-    exposedOnlyCount: mappings.filter((mapping) => mapping.mode === "exposed").length,
-    invalidCount: mappings.filter((mapping) => !mapping.valid).length,
-    privilegedHostPorts: mappings.filter(
-      (mapping) =>
-        mapping.hostPort &&
-        isNumericPort(mapping.hostPort) &&
-        Number(mapping.hostPort) < 1024
-    ).length,
+    axes: finalAxes,
+    includeRules: parsedIncludeRules,
+    excludeRules: parsedExcludeRules,
+    combinations,
+    finalCombinations,
+    totalBeforeExclude: combinations.length,
+    totalAfterExclude: finalCombinations.length,
+    yaml,
+    jobYaml,
+    json: JSON.stringify(
+      {
+        axes: finalAxes.map((axis) => ({
+          name: axis.name,
+          values: splitValues(axis.values),
+        })),
+        include: parsedIncludeRules,
+        exclude: parsedExcludeRules,
+        totalBeforeExclude: combinations.length,
+        totalAfterExclude: finalCombinations.length,
+        combinations: finalCombinations,
+      },
+      null,
+      2
+    ),
   };
 }
 
-function toLines(input: string): YAMLLine[] {
-  return input.replace(/\r\n/g, "\n").split("\n").map((raw, index) => ({
-    raw,
-    trimmed: stripComment(raw).trim(),
-    indent: raw.length - raw.trimStart().length,
-    line: index + 1,
-  }));
-}
-
-function stripComment(line: string) {
-  let quote: "'" | '"' | null = null;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-
-    if (quote) {
-      if (char === quote) {
-        quote = null;
-      }
-
-      continue;
-    }
-
-    if (char === "'" || char === '"') {
-      quote = char;
-      continue;
-    }
-
-    if (char === "#") {
-      return line.slice(0, index);
-    }
-  }
-
-  return line;
-}
-
-function parseComposeServices(lines: YAMLLine[]): ServicePorts[] {
-  const servicesLine = lines.find(
-    (line) => line.indent === 0 && line.trimmed === "services:"
-  );
-
-  if (!servicesLine) {
-    throw new Error("Could not find a top-level services block.");
-  }
-
-  const serviceLines = lines.filter(
-    (line) =>
-      line.line > servicesLine.line &&
-      line.indent === 2 &&
-      line.trimmed.endsWith(":")
-  );
-
-  const services = serviceLines.map((serviceLine, index) => {
-    const nextServiceLine = serviceLines[index + 1];
-    const serviceName = serviceLine.trimmed.slice(0, -1);
-    const blockLines = lines.filter(
-      (line) =>
-        line.line > serviceLine.line &&
-        (!nextServiceLine || line.line < nextServiceLine.line)
-    );
-
-    return {
-      service: serviceName,
-      ports: parsePortsForService(serviceName, blockLines, "ports"),
-      expose: parsePortsForService(serviceName, blockLines, "expose"),
-    };
-  });
-
-  if (services.length === 0) {
-    throw new Error("No services were found under the services block.");
-  }
-
-  return services;
-}
-
-function parsePortsForService(
-  service: string,
-  lines: YAMLLine[],
-  sectionName: "ports" | "expose"
-): PortMapping[] {
-  const section = lines.find(
-    (line) => line.indent === 4 && line.trimmed === `${sectionName}:`
-  );
-
-  if (!section) {
+function buildCombinations(axes: MatrixAxis[]): MatrixCombination[] {
+  if (axes.length === 0) {
     return [];
   }
 
-  const itemLines = lines.filter(
-    (line) =>
-      line.line > section.line &&
-      line.indent > section.indent &&
-      line.trimmed.startsWith("-")
-  );
+  return axes.reduce<MatrixCombination[]>((current, axis) => {
+    const values = splitValues(axis.values);
 
-  const mappings: PortMapping[] = [];
-
-  itemLines.forEach((line, index) => {
-    const nextItem = itemLines[index + 1];
-    const rawItem = line.trimmed.replace(/^-\s*/, "");
-
-    if (rawItem.includes(":") && !rawItem.startsWith("{") && !rawItem.includes("=")) {
-      mappings.push(parsePortString(service, rawItem, line.line, sectionName));
-      return;
+    if (current.length === 0) {
+      return values.map((value) => ({
+        [axis.name]: value,
+      }));
     }
 
-    if (rawItem && !rawItem.includes(":")) {
-      mappings.push(parsePortString(service, rawItem, line.line, sectionName));
-      return;
-    }
-
-    const objectLines = lines.filter(
-      (candidate) =>
-        candidate.line >= line.line &&
-        (!nextItem || candidate.line < nextItem.line)
+    return current.flatMap((combination) =>
+      values.map((value) => ({
+        ...combination,
+        [axis.name]: value,
+      }))
     );
-    const objectMapping = parseObjectPort(service, objectLines, line.line, sectionName);
-
-    if (objectMapping) {
-      mappings.push(objectMapping);
-    }
-  });
-
-  return mappings;
+  }, []);
 }
 
-function parsePortString(
-  service: string,
-  rawInput: string,
-  line: number,
-  sectionName: "ports" | "expose"
-): PortMapping {
-  const raw = cleanValue(rawInput);
-  const protocolSplit = raw.split("/");
-  const portPart = protocolSplit[0];
-  const protocol = (protocolSplit[1] || "tcp").trim();
-  const parts = portPart.split(":");
-  const mode = sectionName === "expose" ? "exposed" : "published";
-
-  let hostIp = "";
-  let hostPort = "";
-  let containerPort = "";
-
-  if (sectionName === "expose") {
-    containerPort = parts[0] || "";
-  } else if (parts.length === 1) {
-    containerPort = parts[0] || "";
-  } else if (parts.length === 2) {
-    hostPort = parts[0] || "";
-    containerPort = parts[1] || "";
-  } else if (parts.length >= 3) {
-    hostIp = parts.slice(0, -2).join(":");
-    hostPort = parts[parts.length - 2] || "";
-    containerPort = parts[parts.length - 1] || "";
-  }
-
-  const valid = Boolean(containerPort) && isPortOrRange(containerPort) && (!hostPort || isPortOrRange(hostPort));
-
-  return {
-    service,
-    raw: rawInput,
-    line,
-    hostIp,
-    hostPort,
-    containerPort,
-    protocol,
-    mode,
-    valid,
-    normalizedHostKey: buildHostKey(hostIp, hostPort, protocol),
-  };
+function splitValues(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
-function parseObjectPort(
-  service: string,
-  lines: YAMLLine[],
-  fallbackLine: number,
-  sectionName: "ports" | "expose"
-): PortMapping | null {
-  const values: Record<string, string> = {};
+function parseRule(value: string): MatrixCombination {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .reduce<MatrixCombination>((acc, pair) => {
+      const equalsIndex = pair.indexOf("=");
 
-  lines.forEach((line) => {
-    const cleaned = line.trimmed.replace(/^-\s*/, "");
-    const colonIndex = cleaned.indexOf(":");
+      if (equalsIndex === -1) {
+        return acc;
+      }
 
-    if (colonIndex === -1) {
-      return;
-    }
+      const key = pair.slice(0, equalsIndex).trim();
+      const itemValue = pair.slice(equalsIndex + 1).trim();
 
-    const key = cleaned.slice(0, colonIndex).trim();
-    const value = cleanValue(cleaned.slice(colonIndex + 1).trim());
+      if (key) {
+        acc[key] = itemValue;
+      }
 
-    if (key) {
-      values[key] = value;
-    }
-  });
-
-  if (Object.keys(values).length === 0) {
-    return null;
-  }
-
-  const hostIp = values.host_ip || values.hostIp || "";
-  const hostPort = values.published || values.host_port || values.hostPort || "";
-  const containerPort = values.target || values.container_port || values.containerPort || "";
-  const protocol = values.protocol || "tcp";
-  const valid = Boolean(containerPort) && isPortOrRange(containerPort) && (!hostPort || isPortOrRange(hostPort));
-
-  return {
-    service,
-    raw: lines.map((line) => line.raw.trim()).join(" "),
-    line: fallbackLine,
-    hostIp,
-    hostPort,
-    containerPort,
-    protocol,
-    mode: sectionName === "expose" ? "exposed" : "object",
-    valid,
-    normalizedHostKey: buildHostKey(hostIp, hostPort, protocol),
-  };
+      return acc;
+    }, {});
 }
 
-function findDuplicateHostPorts(mappings: PortMapping[]) {
-  const groups = new Map<string, PortMapping[]>();
-
-  mappings
-    .filter((mapping) => mapping.hostPort && mapping.valid)
-    .forEach((mapping) => {
-      const key = mapping.normalizedHostKey;
-      const existing = groups.get(key) || [];
-      existing.push(mapping);
-      groups.set(key, existing);
-    });
-
-  return Array.from(groups.values()).filter((group) => group.length > 1);
-}
-
-function findDuplicateContainerPorts(mappings: PortMapping[]) {
-  const groups = new Map<string, PortMapping[]>();
-
-  mappings
-    .filter((mapping) => mapping.containerPort && mapping.valid)
-    .forEach((mapping) => {
-      const key = `${mapping.containerPort}/${mapping.protocol}`;
-      const existing = groups.get(key) || [];
-      existing.push(mapping);
-      groups.set(key, existing);
-    });
-
-  return Array.from(groups.values()).filter((group) => group.length > 1);
-}
-
-function buildHostKey(hostIp: string, hostPort: string, protocol: string) {
-  return `${hostIp || "0.0.0.0"}:${hostPort}/${protocol}`;
-}
-
-function isPortOrRange(value: string) {
-  if (!value) {
-    return false;
-  }
-
-  if (value.includes("-")) {
-    const [start, end] = value.split("-").map(Number);
-    return isValidPortNumber(start) && isValidPortNumber(end) && start <= end;
-  }
-
-  return isValidPortNumber(Number(value));
-}
-
-function isNumericPort(value: string) {
-  return /^\d+$/.test(value);
-}
-
-function isValidPortNumber(value: number) {
-  return Number.isInteger(value) && value > 0 && value <= 65535;
-}
-
-function isQuoted(value: string) {
-  const trimmed = value.trim();
-  return (
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  );
-}
-
-function cleanValue(value: string) {
-  return value.trim().replace(/^["']|["']$/g, "");
-}
-
-function formatPortOutput(
-  summary: PortSummary,
-  options: {
-    outputMode: OutputMode;
-  }
+function doesRuleMatch(
+  combination: MatrixCombination,
+  rule: MatrixCombination
 ) {
-  if (options.outputMode === "json") {
-    return JSON.stringify(summary, null, 2);
+  return Object.entries(rule).every(([key, value]) => combination[key] === value);
+}
+
+function buildMatrixYaml({
+  axes,
+  includeRules,
+  excludeRules,
+  failFast,
+  maxParallel,
+  quoteValues,
+}: {
+  axes: MatrixAxis[];
+  includeRules: MatrixCombination[];
+  excludeRules: MatrixCombination[];
+  failFast: boolean;
+  maxParallel: string;
+  quoteValues: boolean;
+}) {
+  const lines = ["strategy:", `  fail-fast: ${failFast ? "true" : "false"}`];
+
+  if (maxParallel.trim()) {
+    lines.push(`  max-parallel: ${maxParallel.trim()}`);
   }
 
-  if (options.outputMode === "table") {
-    return [
-      "Service | Mode | Host IP | Host Port | Container Port | Protocol | Line",
-      "--- | --- | --- | --- | --- | --- | ---:",
-      ...summary.mappings.map(
-        (mapping) =>
-          `${mapping.service} | ${mapping.mode} | ${mapping.hostIp || "(all)"} | ${
-            mapping.hostPort || "(none)"
-          } | ${mapping.containerPort || "(none)"} | ${mapping.protocol} | ${
-            mapping.line
-          }`
-      ),
-    ].join("\n");
+  lines.push("  matrix:");
+
+  if (axes.length === 0) {
+    lines.push("    # Add at least one matrix axis");
   }
+
+  axes.forEach((axis) => {
+    lines.push(`    ${axis.name}:`);
+    splitValues(axis.values).forEach((value) => {
+      lines.push(`      - ${formatYamlValue(value, quoteValues)}`);
+    });
+  });
+
+  if (includeRules.length > 0) {
+    lines.push("    include:");
+    includeRules.forEach((rule) => {
+      const entries = Object.entries(rule);
+      entries.forEach(([key, value], index) => {
+        if (index === 0) {
+          lines.push(`      - ${key}: ${formatYamlValue(value, quoteValues)}`);
+        } else {
+          lines.push(`        ${key}: ${formatYamlValue(value, quoteValues)}`);
+        }
+      });
+    });
+  }
+
+  if (excludeRules.length > 0) {
+    lines.push("    exclude:");
+    excludeRules.forEach((rule) => {
+      const entries = Object.entries(rule);
+      entries.forEach(([key, value], index) => {
+        if (index === 0) {
+          lines.push(`      - ${key}: ${formatYamlValue(value, quoteValues)}`);
+        } else {
+          lines.push(`        ${key}: ${formatYamlValue(value, quoteValues)}`);
+        }
+      });
+    });
+  }
+
+  return lines.join("\n");
+}
+
+function buildJobYaml({
+  jobName,
+  runnerExpression,
+  matrixYaml,
+}: {
+  jobName: string;
+  runnerExpression: string;
+  matrixYaml: string;
+}) {
+  const indentedMatrix = matrixYaml
+    .split("\n")
+    .map((line) => `    ${line}`)
+    .join("\n");
 
   return [
-    "Docker Compose Ports Check",
-    "--------------------------",
-    `Services checked: ${summary.services.length}`,
-    `Published ports: ${summary.publishedCount}`,
-    `Exposed-only ports: ${summary.exposedOnlyCount}`,
-    `Issues: ${summary.issues.length}`,
-    `Invalid mappings: ${summary.invalidCount}`,
-    `Host port conflict groups: ${summary.duplicateHostPorts.length}`,
-    `Privileged host ports: ${summary.privilegedHostPorts}`,
+    "jobs:",
+    `  ${jobName}:`,
+    `    runs-on: ${runnerExpression}`,
+    indentedMatrix,
+    "    steps:",
+    "      - name: Checkout repository",
+    "        uses: actions/checkout@v4",
     "",
-    "Port mappings:",
-    ...(summary.mappings.length === 0
-      ? ["(none found)"]
-      : summary.mappings.map(
-          (mapping) =>
-            `- ${mapping.service}: ${mapping.hostIp ? `${mapping.hostIp}:` : ""}${
-              mapping.hostPort ? `${mapping.hostPort}:` : ""
-            }${mapping.containerPort}/${mapping.protocol} (${mapping.mode}, line ${mapping.line})`
-        )),
-    "",
-    "Issues:",
-    ...(summary.issues.length === 0
-      ? ["No port issues found with the selected checks."]
-      : summary.issues.map(
-          (issue) =>
-            `- [${issue.severity.toUpperCase()}] ${issue.title}: ${
-              issue.message
-            } (${issue.service || "compose"}, line ${issue.line || "?"})`
-        )),
+    "      - name: Run matrix job",
+    "        run: echo \"Running matrix job\"",
   ].join("\n");
+}
+
+function formatYamlValue(value: string, quoteValues: boolean) {
+  const needsQuote =
+    quoteValues ||
+    value.includes(":") ||
+    value.includes("#") ||
+    value.includes("{") ||
+    value.includes("}") ||
+    value === "true" ||
+    value === "false" ||
+    value === "null";
+
+  if (!needsQuote) {
+    return value;
+  }
+
+  return `"${value.replace(/"/g, '\\"')}"`;
+}
+
+function getMatrixNotes(result: MatrixResult): MatrixNote[] {
+  const notes: MatrixNote[] = [];
+
+  if (result.axes.length === 0) {
+    notes.push({
+      title: "No matrix axes",
+      message:
+        "Add at least one axis such as os, node-version, or python-version.",
+    });
+  }
+
+  if (result.totalAfterExclude > 20) {
+    notes.push({
+      title: "Large matrix",
+      message:
+        "This matrix creates more than 20 jobs. That may slow down pull request checks or use more CI minutes.",
+    });
+  }
+
+  if (result.excludeRules.length > 0 && result.totalBeforeExclude === result.totalAfterExclude) {
+    notes.push({
+      title: "Exclude rules may not match",
+      message:
+        "Exclude rules were added, but the final job count did not change. Check whether the keys and values match the matrix axes.",
+    });
+  }
+
+  if (result.includeRules.length > 0) {
+    notes.push({
+      title: "Include rules added",
+      message:
+        "Include rules can add extra combinations or fields that are not part of the base matrix.",
+    });
+  }
+
+  if (result.axes.some((axis) => splitValues(axis.values).length === 1)) {
+    notes.push({
+      title: "Single-value axis",
+      message:
+        "One axis has only one value. That is valid, but it may not need to be part of the matrix.",
+    });
+  }
+
+  return notes;
 }
