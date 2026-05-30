@@ -906,7 +906,13 @@ export const tools = [
   category: "DevOps Tools",
 },
 
-
+{
+  title: "Kubernetes Resource Calculator",
+  description:
+    "Calculate Kubernetes CPU and memory requests, limits, container totals, and workload resource usage from YAML.",
+  href: "/tools/kubernetes-resource-calculator",
+  category: "DevOps Tools",
+},
 
 
 
