@@ -55,7 +55,7 @@ export default function ToolClient() {
   const [authType, setAuthType] = useState<AuthType>("none");
   const [authValue, setAuthValue] = useState("");
   const [apiKeyHeaderName, setApiKeyHeaderName] = useState("X-API-Key");
-  const [curlUrl, setCurlUrl] = useState("https://api.example.com/resource");
+  const [curlUrl, setCurlUrl] = useState("");
   const [hideSensitiveValues, setHideSensitiveValues] = useState(true);
   const [sortHeaders, setSortHeaders] = useState(false);
   const [skipEmptyHeaders, setSkipEmptyHeaders] = useState(true);
@@ -229,7 +229,7 @@ export default function ToolClient() {
     setAuthType("none");
     setAuthValue("");
     setApiKeyHeaderName("X-API-Key");
-    setCurlUrl("https://api.example.com/resource");
+    setCurlUrl("");
     setHideSensitiveValues(true);
     setSortHeaders(false);
     setSkipEmptyHeaders(true);
