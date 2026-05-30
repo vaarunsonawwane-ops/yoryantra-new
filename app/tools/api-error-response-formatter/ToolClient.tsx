@@ -196,7 +196,7 @@ export default function ToolClient() {
           Formatting Options
         </h3>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
           <YoryantraSelect
             label="Input"
             value={inputMode}
@@ -244,16 +244,7 @@ export default function ToolClient() {
             ]}
           />
 
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <div className="text-sm font-medium text-gray-900">
-              Browser-first formatting
-            </div>
 
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              The response is formatted in your browser. It is not sent to a
-              server.
-            </p>
-          </div>
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
