@@ -292,7 +292,7 @@ export default function ToolClient() {
       description="Build GitHub Actions strategy matrix YAML for OS runners, language versions, include rules, exclude rules, fail-fast, and max-parallel settings directly in your browser."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
               Matrix Axes
@@ -450,8 +450,8 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
+          <div className="min-h-[116px] rounded-xl border border-gray-200 bg-white p-4">
+            <label className="block text-sm font-medium text-gray-900">
               Max Parallel
             </label>
 
@@ -466,7 +466,7 @@ export default function ToolClient() {
             />
           </div>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[116px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={failFast}
@@ -488,7 +488,7 @@ export default function ToolClient() {
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[116px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={sortAxes}
@@ -510,7 +510,7 @@ export default function ToolClient() {
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[116px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={quoteValues}
@@ -877,14 +877,14 @@ function RuleSection({
 }) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
 
           <p className="mt-1 text-sm text-gray-500">{description}</p>
         </div>
 
-        <button onClick={onAdd} className="yoryantra-btn-outline">
+        <button onClick={onAdd} className="yoryantra-btn-outline whitespace-nowrap px-4 py-2">
           {buttonText}
         </button>
       </div>

@@ -924,6 +924,14 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "Docker Compose Ports Checker",
+  description:
+    "Check Docker Compose port mappings, duplicate host ports, exposed ports, and port conflicts.",
+  href: "/tools/docker-compose-ports-checker",
+  category: "DevOps Tools",
+},
+
 
 
 
