@@ -890,6 +890,18 @@ export const tools = [
 },
 
 
+{
+  title: "GitHub Actions YAML Validator",
+  description:
+    "Validate GitHub Actions workflow YAML, jobs, steps, triggers, permissions, and common CI mistakes.",
+  href: "/tools/github-actions-yaml-validator",
+  category: "DevOps Tools",
+},
+
+
+
+
+
 
 
 
