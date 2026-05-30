@@ -170,34 +170,38 @@ export default function ToolClient() {
       title="Nginx Redirect Rule Tester"
       description="Test Nginx redirect rules, rewrite rules, return 301 and 302 redirects, HTTP to HTTPS redirects, server_name matches, and possible redirect loops directly in your browser."
     >
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Nginx Config or Redirect Rules
-          </label>
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          Nginx Config or Redirect Rules
+        </label>
 
-          <textarea
-            value={configInput}
-            onChange={(event) => {
-              setConfigInput(event.target.value);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
-            }}
-            placeholder={sampleConfig}
-            className="w-full min-h-[430px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-          />
+        <textarea
+          value={configInput}
+          onChange={(event) => {
+            setConfigInput(event.target.value);
+            setResult(null);
+            setOutput("");
+            setError("");
+            setCopied(false);
+          }}
+          placeholder={sampleConfig}
+          className="w-full min-h-[430px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        />
 
-          <p className="mt-2 text-sm text-gray-500">
-            Paste a server block, location block, return rule, or rewrite rule to
-            test common redirect behavior.
-          </p>
-        </div>
+        <p className="mt-2 text-sm text-gray-500">
+          Paste a server block, location block, return rule, or rewrite rule to
+          test common redirect behavior.
+        </p>
+      </div>
 
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <label className="block mb-2 text-sm font-medium text-gray-700">
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Test URL and Options
+        </h3>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-900">
               Test URL
             </label>
 
@@ -211,115 +215,107 @@ export default function ToolClient() {
                 setCopied(false);
               }}
               placeholder={sampleUrl}
-              className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              className="mt-2 w-full rounded-xl border border-gray-300 p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
             />
 
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm leading-relaxed text-gray-500">
               Use the URL you want to test against the Nginx redirect rules.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Test Options
-            </h3>
+          <YoryantraSelect
+            label="Output"
+            value={outputMode}
+            onChange={(value) => {
+              setOutputMode(value as OutputMode);
+              setOutput("");
+              setError("");
+              setCopied(false);
+            }}
+            options={[
+              {
+                label: "Summary",
+                value: "summary",
+              },
+              {
+                label: "JSON",
+                value: "json",
+              },
+              {
+                label: "Redirect steps",
+                value: "steps",
+              },
+            ]}
+          />
 
-            <div className="mt-4 space-y-4">
-              <YoryantraSelect
-                label="Output"
-                value={outputMode}
-                onChange={(value) => {
-                  setOutputMode(value as OutputMode);
-                  setOutput("");
-                  setError("");
-                  setCopied(false);
-                }}
-                options={[
-                  {
-                    label: "Summary",
-                    value: "summary",
-                  },
-                  {
-                    label: "JSON",
-                    value: "json",
-                  },
-                  {
-                    label: "Redirect steps",
-                    value: "steps",
-                  },
-                ]}
-              />
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <label className="block text-sm font-medium text-gray-900">
+              Max Steps
+            </label>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Max Steps
-                </label>
-
-                <input
-                  value={maxSteps}
-                  onChange={(event) => {
-                    setMaxSteps(event.target.value);
-                    setResult(null);
-                    setOutput("");
-                    setError("");
-                    setCopied(false);
-                  }}
-                  placeholder="5"
-                  className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-                />
-              </div>
-
-              <label className="flex min-h-[104px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-                <input
-                  type="checkbox"
-                  checked={followRedirects}
-                  onChange={(event) => {
-                    setFollowRedirects(event.target.checked);
-                    setResult(null);
-                    setOutput("");
-                    setError("");
-                    setCopied(false);
-                  }}
-                  className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-                />
-
-                <span>
-                  <span className="block text-sm font-medium leading-5 text-gray-900">
-                    Follow redirects
-                  </span>
-
-                  <span className="mt-1 block text-sm leading-6 text-gray-500">
-                    Keep applying matching rules to detect chains or loops.
-                  </span>
-                </span>
-              </label>
-
-              <label className="flex min-h-[104px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-                <input
-                  type="checkbox"
-                  checked={treatPermanentAsFinal}
-                  onChange={(event) => {
-                    setTreatPermanentAsFinal(event.target.checked);
-                    setResult(null);
-                    setOutput("");
-                    setError("");
-                    setCopied(false);
-                  }}
-                  className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-                />
-
-                <span>
-                  <span className="block text-sm font-medium leading-5 text-gray-900">
-                    Stop after permanent redirect
-                  </span>
-
-                  <span className="mt-1 block text-sm leading-6 text-gray-500">
-                    Stop after 301 or 308 even when follow redirects is on.
-                  </span>
-                </span>
-              </label>
-            </div>
+            <input
+              value={maxSteps}
+              onChange={(event) => {
+                setMaxSteps(event.target.value);
+                setResult(null);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              placeholder="5"
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            />
           </div>
+
+          <label className="flex min-h-[104px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+            <input
+              type="checkbox"
+              checked={followRedirects}
+              onChange={(event) => {
+                setFollowRedirects(event.target.checked);
+                setResult(null);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+            />
+
+            <span>
+              <span className="block text-sm font-medium leading-5 text-gray-900">
+                Follow redirects
+              </span>
+
+              <span className="mt-1 block text-sm leading-6 text-gray-500">
+                Keep applying matching rules to detect chains or loops.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex min-h-[104px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+            <input
+              type="checkbox"
+              checked={treatPermanentAsFinal}
+              onChange={(event) => {
+                setTreatPermanentAsFinal(event.target.checked);
+                setResult(null);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+            />
+
+            <span>
+              <span className="block text-sm font-medium leading-5 text-gray-900">
+                Stop after permanent redirect
+              </span>
+
+              <span className="mt-1 block text-sm leading-6 text-gray-500">
+                Stop after 301 or 308 even when follow redirects is on.
+              </span>
+            </span>
+          </label>
         </div>
       </div>
 
