@@ -21,6 +21,7 @@ type ParsedPair = {
 
 type ParsedFetchRequest = {
   url: string;
+  urlPath: string;
   method: string;
   headers: ParsedHeader[];
   body: string;
