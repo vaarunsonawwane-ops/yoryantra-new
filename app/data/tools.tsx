@@ -865,6 +865,14 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "URL Parts Parser",
+  description:
+    "Parse URLs into protocol, hostname, path, query parameters, hash, and readable URL parts.",
+  href: "/tools/url-parts-parser",
+  category: "Developer Tools",
+},
+
 
 
 
