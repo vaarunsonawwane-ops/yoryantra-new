@@ -225,24 +225,30 @@ export default function ToolClient() {
             ]}
           />
 
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <label className="block text-sm font-medium text-gray-900">
-              Base URL for relative paths
-            </label>
+          {allowRelativeUrls && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <label className="block text-sm font-medium text-gray-900">
+                Base URL
+              </label>
 
-            <input
-              value={baseUrl}
-              onChange={(event) => {
-                setBaseUrl(event.target.value);
-                setParsedUrl(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              placeholder="https://example.com"
-              className="mt-2 w-full rounded-xl border border-gray-300 p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-            />
-          </div>
+              <input
+                value={baseUrl}
+                onChange={(event) => {
+                  setBaseUrl(event.target.value);
+                  setParsedUrl(null);
+                  setOutput("");
+                  setError("");
+                  setCopied(false);
+                }}
+                placeholder="https://example.com"
+                className="mt-2 w-full rounded-xl border border-gray-300 p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              />
+
+              <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                Used only when the input is a relative path like /api/users.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
