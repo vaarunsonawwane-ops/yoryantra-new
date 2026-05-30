@@ -857,5 +857,17 @@ export const tools = [
 },
 
 
+{
+  title: "Query String Builder",
+  description:
+    "Build URL query strings from key-value parameters, encode values, and preview final URLs.",
+  href: "/tools/query-string-builder",
+  category: "Developer Tools",
+},
+
+
+
+
+
 
 ];
