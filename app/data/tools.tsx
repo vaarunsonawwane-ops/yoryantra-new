@@ -840,4 +840,16 @@ export const tools = [
 },
 
 
+{
+  title: "cURL Command Parser",
+  description:
+    "Parse cURL commands into method, URL, headers, cookies, body, and request details.",
+  href: "/tools/curl-command-parser",
+  category: "Developer Tools",
+},
+
+
+
+
+
 ];
