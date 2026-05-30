@@ -881,6 +881,15 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "API Error Response Formatter",
+  description:
+    "Format API error responses, extract error codes, messages, validation errors, and trace details.",
+  href: "/tools/api-error-response-formatter",
+  category: "Developer Tools",
+},
+
+
 
 
 
