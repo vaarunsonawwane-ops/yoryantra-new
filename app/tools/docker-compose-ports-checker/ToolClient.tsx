@@ -244,8 +244,8 @@ export default function ToolClient() {
           />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="flex min-h-[104px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={checkHostConflicts}
@@ -260,17 +260,17 @@ export default function ToolClient() {
             />
 
             <span>
-              <span className="block text-sm font-medium text-gray-900">
+              <span className="block text-sm font-medium leading-5 text-gray-900">
                 Check host conflicts
               </span>
 
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+              <span className="mt-1 block text-sm leading-6 text-gray-500">
                 Find services trying to publish the same host port.
               </span>
             </span>
           </label>
 
-          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[104px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={checkContainerConflicts}
@@ -285,17 +285,17 @@ export default function ToolClient() {
             />
 
             <span>
-              <span className="block text-sm font-medium text-gray-900">
+              <span className="block text-sm font-medium leading-5 text-gray-900">
                 Check container ports
               </span>
 
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+              <span className="mt-1 block text-sm leading-6 text-gray-500">
                 Warn when several services use the same container port.
               </span>
             </span>
           </label>
 
-          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[104px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={warnPrivilegedPorts}
@@ -310,17 +310,17 @@ export default function ToolClient() {
             />
 
             <span>
-              <span className="block text-sm font-medium text-gray-900">
+              <span className="block text-sm font-medium leading-5 text-gray-900">
                 Warn privileged ports
               </span>
 
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+              <span className="mt-1 block text-sm leading-6 text-gray-500">
                 Warn when host ports are below 1024.
               </span>
             </span>
           </label>
 
-          <label className="flex min-h-[130px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex min-h-[104px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={warnUnquotedPorts}
@@ -335,11 +335,11 @@ export default function ToolClient() {
             />
 
             <span>
-              <span className="block text-sm font-medium text-gray-900">
+              <span className="block text-sm font-medium leading-5 text-gray-900">
                 Warn unquoted ports
               </span>
 
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+              <span className="mt-1 block text-sm leading-6 text-gray-500">
                 Suggest quoting port mappings like "8080:80".
               </span>
             </span>
