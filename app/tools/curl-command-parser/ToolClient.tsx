@@ -24,15 +24,14 @@ type ParsedCurlCommand = {
   queryParams: ParsedPair[];
   headers: ParsedHeader[];
   cookies: ParsedPair[];
-  bodyParts: string[];
   body: string;
+  userAgent: string;
   username: string;
   password: string;
-  userAgent: string;
   followRedirects: boolean;
   insecure: boolean;
   compressed: boolean;
-  includeHeadersOnly: boolean;
+  headOnly: boolean;
   outputFile: string;
   timeout: string;
   rawTokens: string[];
@@ -142,7 +141,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="cURL Command Parser"
-      description="Parse cURL commands into method, URL, headers, cookies, body, and request details directly in your browser."
+      description="Parse cURL commands into method, URL, headers, cookies, query parameters, body, and readable request details directly in your browser."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -163,8 +162,8 @@ export default function ToolClient() {
         />
 
         <p className="mt-2 text-sm text-gray-500">
-          Paste a cURL command copied from browser DevTools, API docs, logs,
-          terminal history, Postman, Insomnia, or a debugging note.
+          Paste a cURL command copied from browser DevTools, API docs, terminal
+          history, Postman, Insomnia, logs, or a debugging note.
         </p>
       </div>
 
@@ -173,7 +172,7 @@ export default function ToolClient() {
           Parsing Options
         </h3>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 max-w-xl">
           <YoryantraSelect
             label="Output Format"
             value={outputFormat}
@@ -198,17 +197,6 @@ export default function ToolClient() {
               },
             ]}
           />
-
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <div className="text-sm font-medium text-gray-900">
-              Browser-first parsing
-            </div>
-
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              The cURL command is parsed locally in your browser. It is not sent
-              to a server.
-            </p>
-          </div>
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -300,6 +288,10 @@ export default function ToolClient() {
         <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
+
+        <Link href="/tools/curl-command-builder" className="yoryantra-btn-outline">
+          cURL Command Builder
+        </Link>
       </div>
 
       {error && (
@@ -334,7 +326,7 @@ export default function ToolClient() {
 
           <p className="mt-2 text-sm text-gray-500">
             The parsed request details below help you quickly see what the cURL
-            command is trying to send.
+            command is sending.
           </p>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -613,6 +605,10 @@ export default function ToolClient() {
           </h2>
 
           <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/tools/curl-command-builder" className="yoryantra-btn-outline">
+              cURL Command Builder
+            </Link>
+
             <Link href="/tools/http-request-parser" className="yoryantra-btn-outline">
               HTTP Request Parser
             </Link>
@@ -623,10 +619,6 @@ export default function ToolClient() {
 
             <Link href="/tools/json-validator" className="yoryantra-btn-outline">
               JSON Validator
-            </Link>
-
-            <Link href="/tools/regex-match-tester" className="yoryantra-btn-outline">
-              Regex Match Tester
             </Link>
 
             <Link href="/tools/http-status-code-checker" className="yoryantra-btn-outline">
@@ -743,7 +735,7 @@ function parseCurlCommand(
   let followRedirects = false;
   let insecure = false;
   let compressed = false;
-  let includeHeadersOnly = false;
+  let headOnly = false;
   let outputFile = "";
   let timeout = "";
   const headers: ParsedHeader[] = [];
@@ -862,9 +854,9 @@ function parseCurlCommand(
 
     if (token === "-u" || token === "--user") {
       const authValue = readRequiredValue(tokens, index, token);
-      const parts = authValue.split(":");
-      username = parts[0] || "";
-      password = parts.slice(1).join(":");
+      const [nextUsername, nextPassword = ""] = authValue.split(":");
+      username = nextUsername;
+      password = nextPassword;
       headers.push({
         name: "Authorization",
         value: `Basic ${authValue}`,
@@ -875,9 +867,9 @@ function parseCurlCommand(
 
     if (token.startsWith("--user=")) {
       const authValue = token.slice("--user=".length);
-      const parts = authValue.split(":");
-      username = parts[0] || "";
-      password = parts.slice(1).join(":");
+      const [nextUsername, nextPassword = ""] = authValue.split(":");
+      username = nextUsername;
+      password = nextPassword;
       headers.push({
         name: "Authorization",
         value: `Basic ${authValue}`,
@@ -901,7 +893,7 @@ function parseCurlCommand(
     }
 
     if (token === "-I" || token === "--head") {
-      includeHeadersOnly = true;
+      headOnly = true;
       method = method || "HEAD";
       continue;
     }
@@ -928,14 +920,19 @@ function parseCurlCommand(
       continue;
     }
 
-    if (token.startsWith("--max-time=")) {
-      timeout = token.slice("--max-time=".length);
-      continue;
-    }
-
     if (token.startsWith("http://") || token.startsWith("https://")) {
       url = token;
       continue;
+    }
+  }
+
+  if (!url) {
+    const possibleUrl = tokens.find(
+      (token) => token.startsWith("http://") || token.startsWith("https://")
+    );
+
+    if (possibleUrl) {
+      url = possibleUrl;
     }
   }
 
@@ -948,7 +945,10 @@ function parseCurlCommand(
   const body = formatBody(bodyParts.join("&"), options.prettyPrintBody);
   const urlDetails = parseUrlDetails(url, options.decodeQueryParams);
 
-  if (hasBody && !headers.some((header) => header.name.toLowerCase() === "content-type")) {
+  if (
+    hasBody &&
+    !headers.some((header) => header.name.toLowerCase() === "content-type")
+  ) {
     headers.push({
       name: "Content-Type",
       value: guessContentType(body),
@@ -962,15 +962,14 @@ function parseCurlCommand(
     queryParams: urlDetails.queryParams,
     headers: dedupeHeaders(headers),
     cookies: dedupePairs(cookies),
-    bodyParts,
     body,
+    userAgent,
     username,
     password,
-    userAgent,
     followRedirects,
     insecure,
     compressed,
-    includeHeadersOnly,
+    headOnly,
     outputFile,
     timeout,
     rawTokens: tokens,
@@ -1247,6 +1246,8 @@ function formatParsedCurl(
     `Body size: ${parsed.body.length.toLocaleString()} characters`,
     `Follow redirects: ${parsed.followRedirects ? "yes" : "no"}`,
     `Insecure TLS: ${parsed.insecure ? "yes" : "no"}`,
+    parsed.timeout ? `Timeout: ${parsed.timeout}` : "",
+    parsed.outputFile ? `Output file: ${parsed.outputFile}` : "",
     "",
     "Headers:",
     ...parsed.headers.map(
@@ -1264,7 +1265,7 @@ function formatParsedCurl(
     parsed.body ? "Body:" : "",
     parsed.body || "",
   ]
-    .filter((line) => line !== undefined)
+    .filter((line) => line !== undefined && line !== "")
     .join("\n");
 }
 
