@@ -873,7 +873,13 @@ export const tools = [
   category: "Developer Tools",
 },
 
-
+{
+  title: "Request Header Builder",
+  description:
+    "Build HTTP request headers, add common API headers, and copy clean header output.",
+  href: "/tools/request-header-builder",
+  category: "Developer Tools",
+},
 
 
 
