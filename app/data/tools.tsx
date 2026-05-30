@@ -848,7 +848,13 @@ export const tools = [
   category: "Developer Tools",
 },
 
-
+{
+  title: "Fetch to cURL Converter",
+  description:
+    "Convert JavaScript fetch requests into cURL commands with method, headers, and body.",
+  href: "/tools/fetch-to-curl-converter",
+  category: "Developer Tools",
+},
 
 
 
