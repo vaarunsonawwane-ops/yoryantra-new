@@ -916,6 +916,14 @@ export const tools = [
 
 
 
+{
+  title: "GitHub Actions Matrix Builder",
+  description:
+    "Build GitHub Actions strategy matrix YAML with OS runners, versions, include rules, and exclude rules.",
+  href: "/tools/github-actions-matrix-builder",
+  category: "DevOps Tools",
+},
+
 
 
 
