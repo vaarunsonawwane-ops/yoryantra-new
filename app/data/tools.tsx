@@ -898,6 +898,15 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "Environment Variable Diff Checker",
+  description:
+    "Compare two .env files or environment variable blocks and find added, removed, changed, duplicate, and empty values.",
+  href: "/tools/environment-variable-diff-checker",
+  category: "DevOps Tools",
+},
+
+
 
 
 
