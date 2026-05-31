@@ -504,12 +504,16 @@ export default function ToolClient() {
                 className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
               />
 
-              <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                Used only when the pasted value is Base64-only.
-              </p>
+
             </div>
           )}
         </div>
+
+        {mode === "decode" && (
+          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+            MIME Type is used only when the pasted value is Base64-only. Full data URLs already include the image type.
+          </p>
+        )}
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
