@@ -287,7 +287,7 @@ export default function ToolClient() {
           Options
         </h3>
 
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-3">
+        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
           {mode === "decode" && (
             <YoryantraSelect
               label="Decode Input"
@@ -397,7 +397,7 @@ export default function ToolClient() {
             ]}
           />
 
-          <label className="flex h-[54px] cursor-pointer items-center gap-3 rounded-xl border border-gray-300 bg-white px-4">
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
             <input
               type="checkbox"
               checked={prettyJson}
@@ -411,13 +411,11 @@ export default function ToolClient() {
               className="h-4 w-4 accent-[var(--light-gold)]"
             />
 
-            <span className="text-sm font-medium text-gray-900">
-              Pretty JSON
-            </span>
+            Pretty JSON
           </label>
 
           {mode === "encode" && (
-            <label className="flex h-[54px] cursor-pointer items-center gap-3 rounded-xl border border-gray-300 bg-white px-4">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
               <input
                 type="checkbox"
                 checked={includePadding}
@@ -430,15 +428,13 @@ export default function ToolClient() {
                 className="h-4 w-4 accent-[var(--light-gold)]"
               />
 
-              <span className="text-sm font-medium text-gray-900">
-                Include padding
-              </span>
+              Include padding
             </label>
           )}
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Pretty JSON formats decoded JSON with indentation. Include padding is shown only while encoding.
+          Pretty JSON formats decoded or encoded JSON with indentation.
         </p>
       </div>
 
