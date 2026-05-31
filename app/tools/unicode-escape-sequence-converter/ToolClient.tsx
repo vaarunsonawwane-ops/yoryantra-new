@@ -616,7 +616,7 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Decoding \\uXXXX text from JSON or JavaScript strings.</li>
+            <li>Decoding {"\\\\uXXXX"} text from JSON or JavaScript strings.</li>
             <li>Encoding emoji and multilingual text into Unicode escapes.</li>
             <li>Inspecting Unicode code points for copied characters.</li>
             <li>Checking HTML decimal and hex entity values.</li>
@@ -669,7 +669,7 @@ export default function ToolClient() {
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 A Unicode escape sequence is a text form of a character, such as
-                \\u0041 for A or \\u{1F600} for 😀.
+                {"\\\\u0041"} for A or {"\\\\u{1F600}"} for 😀.
               </p>
             </div>
 
@@ -679,7 +679,7 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. It can decode \\uXXXX, braced Unicode escapes, \\xXX values,
+                Yes. It can decode {"\\\\uXXXX"}, braced Unicode escapes, {"\\\\xXX"} values,
                 and optional HTML entities.
               </p>
             </div>
