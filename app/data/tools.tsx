@@ -988,7 +988,13 @@ export const tools = [
   category: "JSON & Data Tools",
 },
 
-
+{
+  title: "JSON Schema to TypeScript Converter",
+  description:
+    "Convert JSON Schema into TypeScript interfaces and type aliases with nested objects, enums, arrays, and required fields.",
+  href: "/tools/json-schema-to-typescript-converter",
+  category: "JSON & Data Tools",
+},
 
 
 
