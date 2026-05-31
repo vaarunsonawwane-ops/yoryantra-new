@@ -1075,6 +1075,14 @@ export const tools = [
 
 
 
+{
+  title: "SERP Snippet Preview Tool",
+  description:
+    "Preview Google-style search snippets and check page title, meta description, URL, truncation, and SEO snippet issues.",
+  href: "/tools/serp-snippet-preview-tool",
+  category: "SEO Tools",
+},
+
 
 
 ];

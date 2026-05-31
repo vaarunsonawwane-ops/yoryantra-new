@@ -220,22 +220,16 @@ export default function ToolClient() {
               { label: "Last modified oldest", value: "lastmodAsc" },
             ]}
           />
-
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-sm font-semibold text-gray-900">Supported sitemap data</p>
-            <p className="mt-2 text-sm leading-relaxed text-gray-500">
-              Extracts loc, lastmod, changefreq, priority, sitemap index entries, and optional image loc values.
-            </p>
-          </div>
-
-          <CheckboxRow label="Remove duplicate URLs" checked={dedupeUrls} onChange={setDedupeUrls} clear={clearResult} />
+<CheckboxRow label="Remove duplicate URLs" checked={dedupeUrls} onChange={setDedupeUrls} clear={clearResult} />
           <CheckboxRow label="Include lastmod, changefreq, and priority in structured outputs" checked={includeMetadata} onChange={setIncludeMetadata} clear={clearResult} />
           <CheckboxRow label="Include image URLs in page URL output" checked={includeImages} onChange={setIncludeImages} clear={clearResult} />
           <CheckboxRow label="Decode XML entities" checked={decodeEntities} onChange={setDecodeEntities} clear={clearResult} />
           <CheckboxRow label="Keep HTTPS URLs only" checked={onlyHttps} onChange={setOnlyHttps} clear={clearResult} />
         </div>
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          This tool parses pasted XML only. It does not crawl linked child sitemaps automatically.
+          Extracts loc, lastmod, changefreq, priority, sitemap index entries, and
+          optional image loc values. This tool parses pasted XML only and does
+          not crawl linked child sitemaps automatically.
         </p>
       </div>
 
