@@ -434,19 +434,13 @@ export default function ToolClient() {
                     </p>
                   </div>
 
-                  <select
+                  <CompactAllowSelect
                     value={feature.mode}
-                    onChange={(event) =>
-                      updateFeature(feature.key, "mode", event.target.value as AllowMode)
+                    label={feature.label}
+                    onChange={(value) =>
+                      updateFeature(feature.key, "mode", value)
                     }
-                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-                    aria-label={`Allow setting for ${feature.label}`}
-                  >
-                    <option value="none">None</option>
-                    <option value="self">Self</option>
-                    <option value="all">All</option>
-                    <option value="custom">Custom origins</option>
-                  </select>
+                  />
                 </div>
 
                 {feature.mode === "custom" && (
@@ -740,6 +734,62 @@ export default function ToolClient() {
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function CompactAllowSelect({
+  value,
+  label,
+  onChange,
+}: {
+  value: AllowMode;
+  label: string;
+  onChange: (value: AllowMode) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const options: Array<{ label: string; value: AllowMode }> = [
+    { label: "None", value: "none" },
+    { label: "Self", value: "self" },
+    { label: "All", value: "all" },
+    { label: "Custom origins", value: "custom" },
+  ];
+  const selected = options.find((option) => option.value === value) || options[0];
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-900 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        aria-label={`Allow setting for ${label}`}
+        aria-expanded={open}
+      >
+        <span>{selected.label}</span>
+        <span className="ml-3 text-xs text-gray-500">▾</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-20 mt-1 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+              className={`block w-full px-3 py-2 text-left text-sm transition ${
+                option.value === value
+                  ? "bg-[var(--green)]/10 font-medium text-[var(--green)]"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
