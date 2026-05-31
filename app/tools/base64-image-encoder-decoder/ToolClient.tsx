@@ -485,10 +485,10 @@ export default function ToolClient() {
             />
           )}
 
-          {mode === "decode" && (
+          {mode === "decode" && decodeInputType === "base64Only" && (
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                MIME Type
+                Image Type
               </label>
 
               <input
@@ -509,9 +509,9 @@ export default function ToolClient() {
           )}
         </div>
 
-        {mode === "decode" && (
+        {mode === "decode" && decodeInputType === "base64Only" && (
           <p className="mt-3 text-sm leading-relaxed text-gray-500">
-            MIME Type is used only when the pasted value is Base64-only. Full data URLs already include the image type.
+            Image Type is used to build a valid data URL from Base64-only image text.
           </p>
         )}
       </div>
