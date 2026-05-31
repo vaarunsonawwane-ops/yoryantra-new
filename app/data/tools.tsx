@@ -940,6 +940,17 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "Base64 Image Encoder Decoder",
+  description:
+    "Convert images to Base64 data URLs, decode Base64 image strings, and preview image output.",
+  href: "/tools/base64-image-encoder-decoder",
+  category: "Encoding Tools",
+},
+
+
+
+
 
 
 
