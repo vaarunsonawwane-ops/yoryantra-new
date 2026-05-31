@@ -1125,6 +1125,13 @@ export const tools = [
   category: "Encoding Tools",
 },
 
+{
+  title: "Base58 Encoder Decoder",
+  description:
+    "Encode text or hex bytes to Base58 and decode Base58 strings with Bitcoin and Flickr alphabets.",
+  href: "/tools/base58-encoder-decoder",
+  category: "Encoding Tools",
+},
 
 
 
