@@ -394,79 +394,84 @@ export default function ToolClient() {
           Use custom origins only when a trusted third-party origin needs access.
         </p>
 
-        <div className="mt-5 space-y-3">
-          {features.map((feature) => (
-            <div
-              key={feature.key}
-              className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"
-            >
-              <div className="grid gap-3 md:grid-cols-[96px_1fr_180px] md:items-center">
-                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-                  <input
-                    type="checkbox"
-                    checked={feature.enabled}
-                    onChange={(event) =>
-                      updateFeature(feature.key, "enabled", event.target.checked)
-                    }
-                    className="h-4 w-4 accent-[var(--light-gold)]"
-                  />
+        <div className="mt-5 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+          <div className="hidden grid-cols-[96px_1fr_170px] gap-3 border-b border-gray-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 md:grid">
+            <span>Include</span>
+            <span>Feature</span>
+            <span>Allow</span>
+          </div>
 
-                  Include
-                </label>
+          <div className="divide-y divide-gray-200">
+            {features.map((feature) => (
+              <div key={feature.key} className="px-4 py-3">
+                <div className="grid gap-3 md:grid-cols-[96px_1fr_170px] md:items-center">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
+                    <input
+                      type="checkbox"
+                      checked={feature.enabled}
+                      onChange={(event) =>
+                        updateFeature(feature.key, "enabled", event.target.checked)
+                      }
+                      className="h-4 w-4 accent-[var(--light-gold)]"
+                    />
 
-                <div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <p className="font-semibold text-gray-900">
-                      {feature.label}
-                    </p>
+                    Include
+                  </label>
 
-                    <p className="font-mono text-xs text-gray-500">
-                      {feature.key}
+                  <div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <p className="font-semibold text-gray-900">
+                        {feature.label}
+                      </p>
+
+                      <p className="font-mono text-xs text-gray-500">
+                        {feature.key}
+                      </p>
+                    </div>
+
+                    <p className="mt-0.5 text-sm leading-relaxed text-gray-500">
+                      {feature.description}
                     </p>
                   </div>
 
-                  <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                    {feature.description}
-                  </p>
-                </div>
-
-                <YoryantraSelect
-                  label="Allow"
-                  value={feature.mode}
-                  onChange={(value) =>
-                    updateFeature(feature.key, "mode", value as AllowMode)
-                  }
-                  options={[
-                    { label: "None", value: "none" },
-                    { label: "Self", value: "self" },
-                    { label: "All", value: "all" },
-                    { label: "Custom origins", value: "custom" },
-                  ]}
-                />
-              </div>
-
-              {feature.mode === "custom" && (
-                <div className="mt-3 border-t border-gray-200 pt-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Allowed Origins
-                  </label>
-
-                  <input
-                    value={feature.origins}
+                  <select
+                    value={feature.mode}
                     onChange={(event) =>
-                      updateFeature(feature.key, "origins", event.target.value)
+                      updateFeature(feature.key, "mode", event.target.value as AllowMode)
                     }
-                    placeholder="https://example.com https://cdn.example.com"
-                    className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-                  />
-
-                  <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                    Separate origins with spaces. Example: https://example.com
-                  </p>
+                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                    aria-label={`Allow setting for ${feature.label}`}
+                  >
+                    <option value="none">None</option>
+                    <option value="self">Self</option>
+                    <option value="all">All</option>
+                    <option value="custom">Custom origins</option>
+                  </select>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {feature.mode === "custom" && (
+                  <div className="mt-3 border-t border-gray-200 pt-3 md:ml-[109px]">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Allowed Origins
+                    </label>
+
+                    <input
+                      value={feature.origins}
+                      onChange={(event) =>
+                        updateFeature(feature.key, "origins", event.target.value)
+                      }
+                      placeholder="https://example.com https://cdn.example.com"
+                      className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                    />
+
+                    <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                      Separate origins with spaces. Example: https://example.com
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
