@@ -1092,5 +1092,19 @@ export const tools = [
   category: "SEO Tools",
 },
 
+{
+  title: "Image Alt Text Checker",
+  description:
+    "Check image alt text, missing alt attributes, duplicate alt text, long alt text, dimensions, and image SEO issues.",
+  href: "/tools/image-alt-text-checker",
+  category: "SEO Tools",
+},
+
+
+
+
+
+
+
 
 ];
