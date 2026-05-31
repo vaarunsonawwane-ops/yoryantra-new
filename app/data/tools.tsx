@@ -1117,6 +1117,13 @@ export const tools = [
 },
 
 
+{
+  title: "Base32 Encoder Decoder",
+  description:
+    "Encode text or hex bytes to Base32 and decode Base32 strings with RFC 4648, Base32hex, padding, and grouped output.",
+  href: "/tools/base32-encoder-decoder",
+  category: "Encoding Tools",
+},
 
 
 
