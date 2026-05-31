@@ -996,6 +996,15 @@ export const tools = [
   category: "JSON & Data Tools",
 },
 
+{
+  title: "CSV to Markdown Table Converter",
+  description:
+    "Convert CSV, TSV, and delimited data into clean Markdown tables with headers, alignment, and escaped cells.",
+  href: "/tools/csv-to-markdown-table-converter",
+  category: "JSON & Data Tools",
+},
+
+
 
 
 
