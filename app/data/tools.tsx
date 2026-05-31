@@ -1175,6 +1175,14 @@ export const tools = [
 },
 
 
+{
+  title: "JSON Merge Tool",
+  description:
+    "Merge two JSON objects with deep merge, shallow merge, array handling, conflict detection, and clean merged output.",
+  href: "/tools/json-merge-tool",
+  category: "JSON & Data Tools",
+},
+
 
 
 ];
