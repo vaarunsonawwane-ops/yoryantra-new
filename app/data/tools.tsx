@@ -1084,5 +1084,13 @@ export const tools = [
 },
 
 
+{
+  title: "Heading Structure Checker",
+  description:
+    "Check H1, H2, H3, skipped heading levels, duplicate headings, empty headings, and page outline issues.",
+  href: "/tools/heading-structure-checker",
+  category: "SEO Tools",
+},
+
 
 ];
