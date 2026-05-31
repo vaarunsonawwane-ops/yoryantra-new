@@ -687,8 +687,8 @@ function encodeBase58(bytes: Uint8Array, alphabet: string, preserveLeadingZeros:
   let output = "";
 
   while (value > BigInt(0)) {
-    const remainder = Number(value % 5BigInt(8));
-    value = value / 5BigInt(8);
+    const remainder = Number(value % BigInt(58));
+    value = value / BigInt(58);
     output = alphabet[remainder] + output;
   }
 
@@ -719,7 +719,7 @@ function decodeBase58(input: string, alphabet: string, preserveLeadingZeros: boo
       throw new Error(`Invalid Base58 character: ${char}`);
     }
 
-    value = value * 5BigInt(8) + BigInt(index);
+    value = value * BigInt(58) + BigInt(index);
   }
 
   const bytes: number[] = [];
