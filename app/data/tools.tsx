@@ -956,6 +956,17 @@ export const tools = [
   category: "Encoding Tools",
 },
 
+{
+  title: "URL Query Encoder Decoder",
+  description:
+    "Encode and decode URL query strings, parse query parameters, and handle plus signs or percent encoding.",
+  href: "/tools/url-query-encoder-decoder",
+  category: "Encoding Tools",
+},
+
+
+
+
 
 
 
