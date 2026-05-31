@@ -1056,6 +1056,14 @@ export const tools = [
 },
 
 
+{
+  title: "Meta Robots Tag Generator",
+  description:
+    "Generate meta robots tags and X-Robots-Tag headers for index, noindex, follow, nofollow, snippets, images, and archives.",
+  href: "/tools/meta-robots-tag-generator",
+  category: "SEO Tools",
+},
+
 
 
 
