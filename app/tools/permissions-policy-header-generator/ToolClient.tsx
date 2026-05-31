@@ -394,13 +394,13 @@ export default function ToolClient() {
           Use custom origins only when a trusted third-party origin needs access.
         </p>
 
-        <div className="mt-5 space-y-4">
+        <div className="mt-5 space-y-3">
           {features.map((feature) => (
             <div
               key={feature.key}
-              className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+              className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"
             >
-              <div className="grid gap-4 md:grid-cols-[auto_1fr_190px] md:items-start">
+              <div className="grid gap-3 md:grid-cols-[96px_1fr_180px] md:items-center">
                 <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
                   <input
                     type="checkbox"
@@ -415,16 +415,18 @@ export default function ToolClient() {
                 </label>
 
                 <div>
-                  <p className="font-semibold text-gray-900">
-                    {feature.label}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <p className="font-semibold text-gray-900">
+                      {feature.label}
+                    </p>
+
+                    <p className="font-mono text-xs text-gray-500">
+                      {feature.key}
+                    </p>
+                  </div>
 
                   <p className="mt-1 text-sm leading-relaxed text-gray-500">
                     {feature.description}
-                  </p>
-
-                  <p className="mt-1 text-xs font-mono text-gray-500">
-                    {feature.key}
                   </p>
                 </div>
 
@@ -444,7 +446,7 @@ export default function ToolClient() {
               </div>
 
               {feature.mode === "custom" && (
-                <div className="mt-4">
+                <div className="mt-3 border-t border-gray-200 pt-3">
                   <label className="block text-sm font-medium text-gray-700">
                     Allowed Origins
                   </label>
