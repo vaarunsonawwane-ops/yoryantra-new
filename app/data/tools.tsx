@@ -972,7 +972,13 @@ export const tools = [
   category: "Encoding Tools",
 },
 
-
+{
+  title: "Unicode Escape Sequence Converter",
+  description:
+    "Convert Unicode escape sequences like \\uXXXX, \\u{1F600}, \\xXX, HTML entities, and plain text.",
+  href: "/tools/unicode-escape-sequence-converter",
+  category: "Encoding Tools",
+},
 
 
 
