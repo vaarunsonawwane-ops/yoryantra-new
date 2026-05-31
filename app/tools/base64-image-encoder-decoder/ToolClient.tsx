@@ -307,10 +307,10 @@ export default function ToolClient() {
               setError("");
               setCopied(false);
             }}
-            className={`rounded-xl border p-4 text-left transition ${
+            className={`rounded-xl border border-gray-200 bg-white p-4 text-left transition ${
               mode === "encode"
-                ? "border-[var(--green)] bg-white shadow-sm"
-                : "border-gray-200 bg-white hover:border-[var(--green)]"
+                ? "shadow-sm ring-2 ring-[var(--green)]"
+                : "hover:border-[var(--green)]"
             }`}
           >
             <span className="block text-sm font-semibold text-gray-900">
@@ -328,10 +328,10 @@ export default function ToolClient() {
               setError("");
               setCopied(false);
             }}
-            className={`rounded-xl border p-4 text-left transition ${
+            className={`rounded-xl border border-gray-200 bg-white p-4 text-left transition ${
               mode === "decode"
-                ? "border-[var(--green)] bg-white shadow-sm"
-                : "border-gray-200 bg-white hover:border-[var(--green)]"
+                ? "shadow-sm ring-2 ring-[var(--green)]"
+                : "hover:border-[var(--green)]"
             }`}
           >
             <span className="block text-sm font-semibold text-gray-900">
@@ -427,7 +427,7 @@ export default function ToolClient() {
           Output Options
         </h3>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid items-start gap-4 md:grid-cols-3">
           <YoryantraSelect
             label="Output"
             value={outputMode}
@@ -486,8 +486,8 @@ export default function ToolClient() {
           )}
 
           {mode === "decode" && (
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
-              <label className="block text-sm font-medium text-gray-900">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
                 MIME Type
               </label>
 
