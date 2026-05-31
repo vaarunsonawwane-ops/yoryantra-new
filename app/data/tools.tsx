@@ -964,7 +964,13 @@ export const tools = [
   category: "Encoding Tools",
 },
 
-
+{
+  title: "Data URI Generator",
+  description:
+    "Generate data URIs for text, SVG, HTML, CSS, JSON, and small snippets with percent or Base64 encoding.",
+  href: "/tools/data-uri-generator",
+  category: "Encoding Tools",
+},
 
 
 
