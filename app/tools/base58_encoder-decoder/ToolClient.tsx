@@ -678,17 +678,17 @@ function encodeBase58(bytes: Uint8Array, alphabet: string, preserveLeadingZeros:
     return "";
   }
 
-  let value = 0n;
+  let value = BigInt(0);
 
   for (const byte of bytes) {
-    value = (value << 8n) + BigInt(byte);
+    value = (value << BigInt(8)) + BigInt(byte);
   }
 
   let output = "";
 
-  while (value > 0n) {
-    const remainder = Number(value % 58n);
-    value = value / 58n;
+  while (value > BigInt(0)) {
+    const remainder = Number(value % 5BigInt(8));
+    value = value / 5BigInt(8);
     output = alphabet[remainder] + output;
   }
 
@@ -710,7 +710,7 @@ function decodeBase58(input: string, alphabet: string, preserveLeadingZeros: boo
     return new Uint8Array();
   }
 
-  let value = 0n;
+  let value = BigInt(0);
 
   for (const char of input) {
     const index = alphabet.indexOf(char);
@@ -719,14 +719,14 @@ function decodeBase58(input: string, alphabet: string, preserveLeadingZeros: boo
       throw new Error(`Invalid Base58 character: ${char}`);
     }
 
-    value = value * 58n + BigInt(index);
+    value = value * 5BigInt(8) + BigInt(index);
   }
 
   const bytes: number[] = [];
 
-  while (value > 0n) {
-    bytes.unshift(Number(value & 255n));
-    value >>= 8n;
+  while (value > BigInt(0)) {
+    bytes.unshift(Number(value & BigInt(255)));
+    value >>= BigInt(8);
   }
 
   if (preserveLeadingZeros) {
