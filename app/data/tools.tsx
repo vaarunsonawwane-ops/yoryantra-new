@@ -1100,7 +1100,13 @@ export const tools = [
   category: "SEO Tools",
 },
 
-
+{
+  title: "Hreflang Validator",
+  description:
+    "Validate hreflang tags for language codes, region codes, x-default, duplicate targets, absolute URLs, and self-reference.",
+  href: "/tools/hreflang-validator",
+  category: "SEO Tools",
+},
 
 
 
