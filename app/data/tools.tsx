@@ -1133,6 +1133,15 @@ export const tools = [
   category: "Encoding Tools",
 },
 
+{
+  title: "Quoted Printable Encoder Decoder",
+  description:
+    "Encode and decode Quoted-Printable MIME text with UTF-8, soft line breaks, line wrapping, and email debugging output.",
+  href: "/tools/quoted-printable-encoder-decoder",
+  category: "Encoding Tools",
+},
+
+
 
 
 
