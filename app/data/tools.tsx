@@ -1141,6 +1141,14 @@ export const tools = [
   category: "Encoding Tools",
 },
 
+{
+  title: "Percent Encoding Analyzer",
+  description:
+    "Inspect percent-encoded URL text, decode %XX escapes, find malformed percent encoding, and debug URL/query values.",
+  href: "/tools/percent-encoding-analyzer",
+  category: "Encoding Tools",
+},
+
 
 
 
