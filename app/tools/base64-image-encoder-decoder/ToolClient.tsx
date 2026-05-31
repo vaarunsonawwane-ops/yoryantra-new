@@ -845,7 +845,7 @@ function parseBase64ImageInput(
     throw new Error("Please paste a Base64 image string.");
   }
 
-  const dataUrlMatch = trimmed.match(/^data:([^;,]+);base64,(.+)$/is);
+  const dataUrlMatch = trimmed.match(/^data:([^;,]+);base64,([\s\S]+)$/i);
 
   if (options.decodeInputType !== "base64Only" && dataUrlMatch) {
     const mimeType = dataUrlMatch[1].trim();
