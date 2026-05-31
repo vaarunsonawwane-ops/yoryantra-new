@@ -1149,6 +1149,13 @@ export const tools = [
   category: "Encoding Tools",
 },
 
+{
+  title: "Docker Environment Variable Checker",
+  description:
+    "Check Docker .env and docker-compose environment variables for duplicates, missing values, invalid names, and risky secrets.",
+  href: "/tools/docker-environment-variable-checker",
+  category: "DevOps Tools",
+},
 
 
 
