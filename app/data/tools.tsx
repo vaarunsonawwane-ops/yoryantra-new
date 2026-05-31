@@ -1030,5 +1030,16 @@ export const tools = [
   category: "Security Tools",
 },
 
+{
+  title: "Permissions Policy Header Generator",
+  description:
+    "Generate Permissions-Policy headers for browser features like camera, microphone, geolocation, fullscreen, payment, USB, and clipboard.",
+  href: "/tools/permissions-policy-header-generator",
+  category: "Security Tools",
+},
+
+
+
+
 
 ];
