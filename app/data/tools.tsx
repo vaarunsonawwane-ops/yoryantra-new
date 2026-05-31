@@ -1065,6 +1065,15 @@ export const tools = [
 },
 
 
+{
+  title: "Sitemap URL Extractor",
+  description:
+    "Extract URLs, lastmod dates, priorities, image URLs, and child sitemap links from XML sitemaps.",
+  href: "/tools/sitemap-url-extractor",
+  category: "SEO Tools",
+},
+
+
 
 
 
