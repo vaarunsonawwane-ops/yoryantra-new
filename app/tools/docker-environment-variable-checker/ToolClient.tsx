@@ -226,9 +226,9 @@ export default function ToolClient() {
           </p>
 
           <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-            Do not paste real production secrets if you do not need to. This tool
-            works in the browser, but masking real values before sharing screenshots
-            is still a safer habit.
+            Do not paste real production secrets unless needed. This tool 
+			runs in your browser, but masking real values before sharing 
+			screenshots is still safer.
           </div>
         </div>
       </div>
