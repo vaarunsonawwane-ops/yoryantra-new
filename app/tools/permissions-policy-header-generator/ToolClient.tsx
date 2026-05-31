@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -747,6 +747,7 @@ function CompactAllowSelect({
   onChange: (value: AllowMode) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const options: Array<{ label: string; value: AllowMode }> = [
     { label: "None", value: "none" },
     { label: "Self", value: "self" },
@@ -755,8 +756,37 @@ function CompactAllowSelect({
   ];
   const selected = options.find((option) => option.value === value) || options[0];
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div ref={wrapperRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
