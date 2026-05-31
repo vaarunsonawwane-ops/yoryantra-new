@@ -1108,6 +1108,15 @@ export const tools = [
   category: "SEO Tools",
 },
 
+{
+  title: "Punycode Converter",
+  description:
+    "Convert international domain names between Unicode and xn-- Punycode for IDN, URL, email, and SEO/domain debugging.",
+  href: "/tools/punycode-converter",
+  category: "Encoding Tools",
+},
+
+
 
 
 
