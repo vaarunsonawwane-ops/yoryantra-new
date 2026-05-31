@@ -247,19 +247,7 @@ export default function ToolClient() {
               { label: "Relaxed", value: "relaxed" },
             ]}
           />
-
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-sm font-semibold text-gray-900">
-              What this checks
-            </p>
-
-            <p className="mt-2 text-sm leading-relaxed text-gray-500">
-              H1 count, empty headings, duplicate text, skipped levels, heading
-              length, and outline depth.
-            </p>
-          </div>
-
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+<label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
             <input
               type="checkbox"
               checked={ignoreHiddenHeadings}
@@ -346,8 +334,9 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          A useful heading structure is readable for people first. SEO checks are
-          only helpful when the page outline also makes sense to real users.
+          Checks H1 count, empty headings, duplicate text, skipped levels,
+          heading length, and outline depth. A useful heading structure should
+          make sense to real users first.
         </p>
       </div>
 
