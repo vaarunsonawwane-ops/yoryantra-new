@@ -980,6 +980,17 @@ export const tools = [
   category: "Encoding Tools",
 },
 
+{
+  title: "JSON Schema Generator",
+  description:
+    "Generate JSON Schema from sample JSON with detected types, arrays, nested objects, examples, and required fields.",
+  href: "/tools/json-schema-generator",
+  category: "JSON & Data Tools",
+},
+
+
+
+
 
 
 
