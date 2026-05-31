@@ -217,7 +217,7 @@ export default function ToolClient() {
               setCopied(false);
             }}
             placeholder={"APP_ENV\nAPP_PORT\nDATABASE_URL\nJWT_SECRET\nREDIS_URL"}
-            className="w-full min-h-[220px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            className="w-full min-h-[170px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
 
           <p className="mt-2 text-sm text-gray-500">
