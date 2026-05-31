@@ -1158,6 +1158,14 @@ export const tools = [
 },
 
 
+{
+  title: "Docker Compose Volume Checker",
+  description:
+    "Check Docker Compose volume mounts for duplicate targets, risky host paths, Docker socket mounts, anonymous volumes, and read-only recommendations.",
+  href: "/tools/docker-compose-volume-checker",
+  category: "DevOps Tools",
+},
+
 
 
 ];
