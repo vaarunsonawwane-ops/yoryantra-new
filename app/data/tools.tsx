@@ -1166,6 +1166,15 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "JSON Patch Generator",
+  description:
+    "Compare original and modified JSON to generate add, remove, and replace JSON Patch operations with JSON Pointer paths.",
+  href: "/tools/json-patch-generator",
+  category: "JSON & Data Tools",
+},
+
+
 
 
 ];
