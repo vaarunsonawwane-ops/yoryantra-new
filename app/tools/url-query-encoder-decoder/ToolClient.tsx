@@ -514,7 +514,7 @@ export default function ToolClient() {
           )}
 
           {(mode === "decode" || mode === "parse") && (
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
               <input
                 type="checkbox"
                 checked={decodePlusAsSpace}
@@ -532,7 +532,7 @@ export default function ToolClient() {
             </label>
           )}
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
             <input
               type="checkbox"
               checked={sortKeys}
@@ -550,7 +550,7 @@ export default function ToolClient() {
           </label>
 
           {mode === "encode" && (
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
               <input
                 type="checkbox"
                 checked={skipEmptyValues}
