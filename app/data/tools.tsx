@@ -1006,6 +1006,15 @@ export const tools = [
 
 
 
+{
+  title: "NDJSON Formatter Validator",
+  description:
+    "Validate, format, compact, inspect, and convert NDJSON or JSONL newline-delimited records.",
+  href: "/tools/ndjson-formatter-validator",
+  category: "JSON & Data Tools",
+},
+
+
 
 
 
