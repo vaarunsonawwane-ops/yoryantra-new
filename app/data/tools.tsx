@@ -1014,7 +1014,13 @@ export const tools = [
   category: "JSON & Data Tools",
 },
 
-
+{
+  title: "Cookie Security Checker",
+  description:
+    "Check Set-Cookie headers for Secure, HttpOnly, SameSite, expiry, domain, path, and prefix issues.",
+  href: "/tools/cookie-security-checker",
+  category: "Security Tools",
+},
 
 
 
