@@ -1039,6 +1039,14 @@ export const tools = [
 },
 
 
+{
+  title: "JWT Claims Inspector",
+  description:
+    "Inspect JWT claims and check expiration, issuer, audience, subject, scopes, roles, and common token issues.",
+  href: "/tools/jwt-claims-inspector",
+  category: "Security Tools",
+},
+
 
 
 
