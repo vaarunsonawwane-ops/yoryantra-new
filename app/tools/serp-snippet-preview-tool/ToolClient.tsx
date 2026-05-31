@@ -442,19 +442,7 @@ export default function ToolClient() {
               { label: "HTML tags", value: "html" },
             ]}
           />
-
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-sm font-semibold text-gray-900">
-              Preview reminder
-            </p>
-
-            <p className="mt-2 text-sm leading-relaxed text-gray-500">
-              Google can rewrite titles and descriptions. This tool helps you
-              write better metadata, not guarantee exact SERP display.
-            </p>
-          </div>
-
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+<label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
             <input
               type="checkbox"
               checked={showDate}
@@ -505,6 +493,11 @@ export default function ToolClient() {
             Check whether title includes site or brand name
           </label>
         </div>
+
+        <p className="mt-3 text-sm leading-relaxed text-gray-500">
+          Google can rewrite titles and descriptions. This preview helps you
+          write better metadata, but it cannot guarantee exact SERP display.
+        </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
