@@ -1047,6 +1047,16 @@ export const tools = [
   category: "Security Tools",
 },
 
+{
+  title: "Hash Algorithm Identifier",
+  description:
+    "Identify possible hash algorithms from format, length, character set, prefixes, and common hash shapes.",
+  href: "/tools/hash-algorithm-identifier",
+  category: "Security Tools",
+},
+
+
+
 
 
 
