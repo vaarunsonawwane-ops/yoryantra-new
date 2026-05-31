@@ -1022,7 +1022,13 @@ export const tools = [
   category: "Security Tools",
 },
 
-
+{
+  title: "HSTS Header Generator",
+  description:
+    "Generate Strict-Transport-Security headers with max-age, includeSubDomains, preload, and server config output.",
+  href: "/tools/hsts-header-generator",
+  category: "Security Tools",
+},
 
 
 ];
