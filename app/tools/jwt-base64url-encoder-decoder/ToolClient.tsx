@@ -397,7 +397,7 @@ export default function ToolClient() {
             ]}
           />
 
-          <label className="flex min-h-[104px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex h-[54px] cursor-pointer items-center gap-3 rounded-xl border border-gray-300 bg-white px-4">
             <input
               type="checkbox"
               checked={prettyJson}
@@ -408,22 +408,16 @@ export default function ToolClient() {
                 setError("");
                 setCopied(false);
               }}
-              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+              className="h-4 w-4 accent-[var(--light-gold)]"
             />
 
-            <span>
-              <span className="block text-sm font-medium leading-5 text-gray-900">
-                Pretty JSON
-              </span>
-
-              <span className="mt-1 block text-sm leading-6 text-gray-500">
-                Format decoded or encoded JSON with indentation.
-              </span>
+            <span className="text-sm font-medium text-gray-900">
+              Pretty JSON
             </span>
           </label>
 
           {mode === "encode" && (
-            <label className="flex min-h-[104px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+            <label className="flex h-[54px] cursor-pointer items-center gap-3 rounded-xl border border-gray-300 bg-white px-4">
               <input
                 type="checkbox"
                 checked={includePadding}
@@ -433,21 +427,19 @@ export default function ToolClient() {
                   setError("");
                   setCopied(false);
                 }}
-                className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+                className="h-4 w-4 accent-[var(--light-gold)]"
               />
 
-              <span>
-                <span className="block text-sm font-medium leading-5 text-gray-900">
-                  Include padding
-                </span>
-
-                <span className="mt-1 block text-sm leading-6 text-gray-500">
-                  Add = padding at the end of Base64URL output.
-                </span>
+              <span className="text-sm font-medium text-gray-900">
+                Include padding
               </span>
             </label>
           )}
         </div>
+
+        <p className="mt-3 text-sm leading-relaxed text-gray-500">
+          Pretty JSON formats decoded JSON with indentation. Include padding is shown only while encoding.
+        </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
