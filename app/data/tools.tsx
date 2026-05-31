@@ -948,7 +948,13 @@ export const tools = [
   category: "Encoding Tools",
 },
 
-
+{
+  title: "JWT Base64URL Encoder Decoder",
+  description:
+    "Encode and decode JWT Base64URL strings, convert JWT parts, and add or remove Base64URL padding.",
+  href: "/tools/jwt-base64url-encoder-decoder",
+  category: "Encoding Tools",
+},
 
 
 
