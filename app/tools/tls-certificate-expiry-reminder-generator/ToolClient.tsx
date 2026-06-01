@@ -209,7 +209,8 @@ export default function ToolClient() {
                   setExpiryDate(event.target.value);
                   clearResult();
                 }}
-                className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                style={{ accentColor: "var(--light-gold)" }}
+                className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition accent-[var(--light-gold)] focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
               />
             </div>
           </div>
