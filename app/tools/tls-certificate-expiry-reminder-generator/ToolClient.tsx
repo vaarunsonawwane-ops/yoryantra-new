@@ -556,7 +556,7 @@ function InputField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
       />
     </div>
   );
@@ -647,7 +647,7 @@ function DatePickerField({
       <button
         type="button"
         onClick={openPicker}
-        className="flex min-h-[48px] w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 py-3 text-left text-sm font-mono outline-none transition hover:border-gray-300 focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        className="flex min-h-[54px] w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-4 py-3 text-left text-sm font-mono outline-none transition hover:border-gray-300 focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
       >
         <span className={displayValue ? "text-gray-900" : "text-gray-400"}>
           {displayValue || "dd-mm-yyyy"}
