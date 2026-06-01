@@ -1249,6 +1249,13 @@ export const tools = [
   category: "SEO Tools",
 },
 
+{
+  title: "Crawl Budget URL Cleaner",
+  description:
+    "Clean URL lists for technical SEO by removing tracking parameters, fragments, duplicates, empty parameters, and crawl-waste URL patterns.",
+  href: "/tools/crawl-budget-url-cleaner",
+  category: "SEO Tools",
+},
 
 
 
