@@ -1184,5 +1184,24 @@ export const tools = [
 },
 
 
+{
+  title: "Regex Replace Tester",
+  description:
+    "Test regex find and replace patterns with capture groups, named groups, changed lines, match positions, and before-after output.",
+  href: "/tools/regex-replace-tester",
+  category: "Developer Tools",
+},
+
+
+{
+  title: "CSP Report Analyzer",
+  description:
+    "Analyze Content Security Policy violation reports, group blocked resources, inspect directives, and detect risky CSP patterns.",
+  href: "/tools/csp-report-analyzer",
+  category: "Security Tools",
+},
+
+
+
 
 ];
