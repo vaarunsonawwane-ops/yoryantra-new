@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -572,7 +572,9 @@ function DatePickerField({
   onChange: (value: string) => void;
 }) {
   const selectedDate = parseInputDate(value);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
+  const [openAbove, setOpenAbove] = useState(false);
   const [viewDate, setViewDate] = useState<Date>(() => selectedDate || new Date());
 
   const calendarDays = useMemo(() => buildCalendarDays(viewDate), [viewDate]);
@@ -582,6 +584,39 @@ function DatePickerField({
   });
 
   const displayValue = selectedDate ? formatDisplayDate(selectedDate) : "";
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target;
+
+      if (target instanceof Node && wrapperRef.current && !wrapperRef.current.contains(target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [open]);
+
+  const openPicker = () => {
+    if (!open && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      const estimatedPickerHeight = 360;
+      const bottomSpace = window.innerHeight - rect.bottom;
+      const topSpace = rect.top;
+
+      setOpenAbove(bottomSpace < estimatedPickerHeight && topSpace > bottomSpace);
+    }
+
+    setOpen((current) => !current);
+  };
 
   const moveMonth = (offset: number) => {
     setViewDate((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
@@ -604,14 +639,14 @@ function DatePickerField({
   };
 
   return (
-    <div className="relative">
+    <div ref={wrapperRef} className="relative">
       <label className="block mb-2 text-sm font-medium text-gray-700">
         {label}
       </label>
 
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={openPicker}
         className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-3 text-left text-sm font-mono shadow-sm outline-none transition hover:border-gray-300 focus:border-[var(--light-gold)] focus:ring-2 focus:ring-[var(--light-gold)]/30"
       >
         <span className={displayValue ? "text-gray-900" : "text-gray-400"}>
@@ -619,17 +654,22 @@ function DatePickerField({
         </span>
 
         <span className="text-[var(--light-gold)]" aria-hidden="true">
-          ◼
+          ▪
         </span>
       </button>
 
       {open && (
-        <div className="absolute left-0 z-30 mt-2 w-[300px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl">
+        <div
+          className={`absolute left-0 z-30 w-[300px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl ${
+            openAbove ? "bottom-full mb-2" : "top-full mt-2"
+          }`}
+        >
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => moveMonth(-1)}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 transition hover:border-[var(--light-gold)] hover:bg-gray-50"
+              className="px-2 py-1 text-xl leading-none text-[var(--light-gold)] transition hover:opacity-75"
+              aria-label="Previous month"
             >
               ←
             </button>
@@ -641,7 +681,8 @@ function DatePickerField({
             <button
               type="button"
               onClick={() => moveMonth(1)}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 transition hover:border-[var(--light-gold)] hover:bg-gray-50"
+              className="px-2 py-1 text-xl leading-none text-[var(--light-gold)] transition hover:opacity-75"
+              aria-label="Next month"
             >
               →
             </button>
@@ -683,7 +724,7 @@ function DatePickerField({
             <button
               type="button"
               onClick={clearDate}
-              className="text-sm font-medium text-gray-500 transition hover:text-gray-900"
+              className="text-sm font-semibold text-[var(--light-gold)] transition hover:opacity-75"
             >
               Clear
             </button>
@@ -691,7 +732,7 @@ function DatePickerField({
             <button
               type="button"
               onClick={selectToday}
-              className="text-sm font-semibold text-[var(--green)] transition hover:opacity-80"
+              className="text-sm font-semibold text-[var(--light-gold)] transition hover:opacity-75"
             >
               Today
             </button>
