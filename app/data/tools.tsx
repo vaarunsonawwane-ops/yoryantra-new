@@ -1258,5 +1258,13 @@ export const tools = [
 },
 
 
+{
+  title: "JWT Secret Strength Checker",
+  description:
+    "Check JWT and HMAC signing secrets for length, entropy estimate, weak/default words, repeated patterns, and risky secret formats.",
+  href: "/tools/jwt-secret-strength-checker",
+  category: "Security Tools",
+},
+
 
 ];
