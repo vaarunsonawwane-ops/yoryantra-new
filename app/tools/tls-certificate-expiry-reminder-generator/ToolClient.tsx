@@ -197,22 +197,14 @@ export default function ToolClient() {
               placeholder="Web / DevOps team"
             />
 
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Expiry Date
-              </label>
-
-              <input
-                type="date"
-                value={expiryDate}
-                onChange={(event) => {
-                  setExpiryDate(event.target.value);
-                  clearResult();
-                }}
-                style={{ accentColor: "var(--light-gold)" }}
-                className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition accent-[var(--light-gold)] focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-              />
-            </div>
+            <DatePickerField
+              label="Expiry Date"
+              value={expiryDate}
+              onChange={(value) => {
+                setExpiryDate(value);
+                clearResult();
+              }}
+            />
           </div>
         </div>
 
@@ -570,6 +562,146 @@ function InputField({
   );
 }
 
+function DatePickerField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const selectedDate = parseInputDate(value);
+  const [open, setOpen] = useState(false);
+  const [viewDate, setViewDate] = useState<Date>(() => selectedDate || new Date());
+
+  const calendarDays = useMemo(() => buildCalendarDays(viewDate), [viewDate]);
+  const monthLabel = viewDate.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const displayValue = selectedDate ? formatDisplayDate(selectedDate) : "";
+
+  const moveMonth = (offset: number) => {
+    setViewDate((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+  };
+
+  const selectDate = (date: Date) => {
+    onChange(formatDateInputValue(date));
+    setViewDate(date);
+    setOpen(false);
+  };
+
+  const clearDate = () => {
+    onChange("");
+    setOpen(false);
+  };
+
+  const selectToday = () => {
+    const today = new Date();
+    selectDate(today);
+  };
+
+  return (
+    <div className="relative">
+      <label className="block mb-2 text-sm font-medium text-gray-700">
+        {label}
+      </label>
+
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-3 text-left text-sm font-mono shadow-sm outline-none transition hover:border-gray-300 focus:border-[var(--light-gold)] focus:ring-2 focus:ring-[var(--light-gold)]/30"
+      >
+        <span className={displayValue ? "text-gray-900" : "text-gray-400"}>
+          {displayValue || "dd-mm-yyyy"}
+        </span>
+
+        <span className="text-[var(--light-gold)]" aria-hidden="true">
+          ◼
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 z-30 mt-2 w-[300px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => moveMonth(-1)}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 transition hover:border-[var(--light-gold)] hover:bg-gray-50"
+            >
+              ←
+            </button>
+
+            <p className="text-sm font-semibold text-gray-900">
+              {monthLabel}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => moveMonth(1)}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 transition hover:border-[var(--light-gold)] hover:bg-gray-50"
+            >
+              →
+            </button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500">
+            {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((day) => (
+              <div key={day} className="py-1">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-1 grid grid-cols-7 gap-1">
+            {calendarDays.map((day) => {
+              const isSelected = selectedDate ? isSameDate(day.date, selectedDate) : false;
+              const isToday = isSameDate(day.date, new Date());
+
+              return (
+                <button
+                  key={day.key}
+                  type="button"
+                  onClick={() => selectDate(day.date)}
+                  className={`h-9 rounded-lg text-sm transition ${
+                    isSelected
+                      ? "bg-[var(--light-gold)] font-semibold text-white shadow-sm"
+                      : day.inCurrentMonth
+                        ? "text-gray-800 hover:bg-[var(--light-gold)]/10 hover:text-gray-900"
+                        : "text-gray-400 hover:bg-gray-50"
+                  } ${isToday && !isSelected ? "ring-1 ring-[var(--light-gold)]" : ""}`}
+                >
+                  {day.date.getDate()}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+            <button
+              type="button"
+              onClick={clearDate}
+              className="text-sm font-medium text-gray-500 transition hover:text-gray-900"
+            >
+              Clear
+            </button>
+
+            <button
+              type="button"
+              onClick={selectToday}
+              className="text-sm font-semibold text-[var(--green)] transition hover:opacity-80"
+            >
+              Today
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
   return (
     <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
@@ -600,6 +732,68 @@ function Faq({ title, children }: { title: string; children: React.ReactNode }) 
       <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
     </div>
   );
+}
+
+function parseInputDate(value: string) {
+  if (!value) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+
+  if (!year || !month || !day) return null;
+
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatDisplayDate(date: Date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day}-${month}-${year}`;
+}
+
+function isSameDate(first: Date, second: Date) {
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  );
+}
+
+function buildCalendarDays(viewDate: Date) {
+  const firstDay = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const start = new Date(firstDay);
+  start.setDate(firstDay.getDate() - startOffset);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+
+    return {
+      date,
+      key: formatDateInputValue(date),
+      inCurrentMonth: date.getMonth() === viewDate.getMonth(),
+    };
+  });
 }
 
 function buildReminder(options: {
