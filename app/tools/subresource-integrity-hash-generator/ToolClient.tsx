@@ -93,9 +93,13 @@ export default function ToolClient() {
 
   const copyOutput = async () => {
     if (!output) return;
+
     await navigator.clipboard.writeText(output);
     setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+
+    window.setTimeout(() => {
+      setCopied(false);
+    }, 1400);
   };
 
   const loadExample = () => {
@@ -107,7 +111,10 @@ export default function ToolClient() {
     setIncludeCrossorigin(true);
     setIncludeAllHashes(false);
     setWarnAboutDynamicFiles(true);
-    clearResult();
+    setResult(null);
+    setOutput("");
+    setError("");
+    setCopied(false);
   };
 
   const resetAll = () => {
@@ -119,7 +126,10 @@ export default function ToolClient() {
     setIncludeCrossorigin(true);
     setIncludeAllHashes(false);
     setWarnAboutDynamicFiles(true);
-    clearResult();
+    setResult(null);
+    setOutput("");
+    setError("");
+    setCopied(false);
   };
 
   return (
@@ -168,7 +178,9 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Options</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Options
+        </h3>
 
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
           <YoryantraSelect
@@ -217,9 +229,32 @@ export default function ToolClient() {
           />
 
           <div className="md:col-span-2 space-y-3">
-            <CheckboxRow checked={includeCrossorigin} label="Include crossorigin=&quot;anonymous&quot; in HTML snippet" onChange={(checked) => { setIncludeCrossorigin(checked); clearResult(); }} />
-            <CheckboxRow checked={includeAllHashes} label="Include all generated hashes in integrity value" onChange={(checked) => { setIncludeAllHashes(checked); clearResult(); }} />
-            <CheckboxRow checked={warnAboutDynamicFiles} label="Warn about dynamic or frequently changing files" onChange={(checked) => { setWarnAboutDynamicFiles(checked); clearResult(); }} />
+            <CheckboxRow
+              checked={includeCrossorigin}
+              label="Include crossorigin=&quot;anonymous&quot; in HTML snippet"
+              onChange={(checked) => {
+                setIncludeCrossorigin(checked);
+                clearResult();
+              }}
+            />
+
+            <CheckboxRow
+              checked={includeAllHashes}
+              label="Include all generated hashes in integrity value"
+              onChange={(checked) => {
+                setIncludeAllHashes(checked);
+                clearResult();
+              }}
+            />
+
+            <CheckboxRow
+              checked={warnAboutDynamicFiles}
+              label="Warn about dynamic or frequently changing files"
+              onChange={(checked) => {
+                setWarnAboutDynamicFiles(checked);
+                clearResult();
+              }}
+            />
           </div>
         </div>
 
@@ -263,7 +298,9 @@ export default function ToolClient() {
 
       {result && result.hashes.length > 0 && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Generated Hashes</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Generated Hashes
+          </h3>
 
           <p className="mt-2 text-sm text-gray-500">
             Copy the integrity value into your script or stylesheet tag.
@@ -281,9 +318,13 @@ export default function ToolClient() {
               <tbody className="divide-y divide-gray-100">
                 {result.hashes.map((hash) => (
                   <tr key={hash.algorithm}>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{hash.algorithm}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
+                      {hash.algorithm}
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-800">
-                      <span className="block max-w-[620px] break-words">{hash.integrity}</span>
+                      <span className="block max-w-[620px] break-words">
+                        {hash.integrity}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -295,13 +336,20 @@ export default function ToolClient() {
 
       {result && result.issues.length > 0 && (
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">SRI findings</h3>
+          <h3 className="text-sm font-semibold text-amber-900">
+            SRI findings
+          </h3>
 
           <div className="mt-3 space-y-3">
             {result.issues.map((issue, index) => (
               <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
+                <p className="text-sm font-semibold text-amber-900">
+                  {issue.title}
+                </p>
+
+                <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                  {issue.message}
+                </p>
               </div>
             ))}
           </div>
@@ -310,13 +358,20 @@ export default function ToolClient() {
 
       {notes.length > 0 && (
         <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">SRI guidance</h3>
+          <h3 className="text-sm font-semibold text-blue-900">
+            SRI guidance
+          </h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-blue-900">
+                  {note.title}
+                </p>
+
+                <p className="mt-1 text-sm leading-relaxed text-blue-800">
+                  {note.message}
+                </p>
               </div>
             ))}
           </div>
@@ -325,7 +380,9 @@ export default function ToolClient() {
 
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">Output</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Output
+          </h3>
 
           {output && (
             <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
@@ -345,7 +402,9 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Generating Subresource Integrity Hashes for CDN Files</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Generating Subresource Integrity Hashes for CDN Files
+          </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
             Subresource Integrity helps browsers verify that an external script or stylesheet has not changed unexpectedly. When you add an integrity attribute, the browser checks the downloaded file against the expected hash before using it.
@@ -357,7 +416,9 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the SRI Hash Generator</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Using the SRI Hash Generator
+          </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Paste the exact JavaScript or CSS content served by the CDN.</li>
@@ -369,7 +430,9 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example SRI Script Tag</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Example SRI Script Tag
+          </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <pre className="whitespace-pre-wrap break-words">
@@ -381,7 +444,9 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">When SRI Is Useful</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            When SRI Is Useful
+          </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Loading third-party scripts from a CDN.</li>
@@ -393,7 +458,9 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">SRI Works Best With Fixed File Versions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            SRI Works Best With Fixed File Versions
+          </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
             SRI hashes are exact. If even one byte changes in the CDN file, the browser rejects the resource. This is good for safety, but it means SRI should usually be used with versioned or pinned files, not URLs that change often.
@@ -405,7 +472,9 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Frequently Asked Questions
+          </h2>
 
           <div className="mt-5 space-y-6">
             <Faq title="What is Subresource Integrity?">
@@ -431,14 +500,30 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/hash-generator" className="yoryantra-btn-outline">Hash Generator</Link>
-            <Link href="/tools/sha256-generator" className="yoryantra-btn-outline">SHA256 Generator</Link>
-            <Link href="/tools/security-headers-scanner" className="yoryantra-btn-outline">Security Headers Scanner</Link>
-            <Link href="/tools/csp-analyzer" className="yoryantra-btn-outline">CSP Analyzer</Link>
-            <Link href="/tools/csp-report-analyzer" className="yoryantra-btn-outline">CSP Report Analyzer</Link>
+            <Link href="/tools/hash-generator" className="yoryantra-btn-outline">
+              Hash Generator
+            </Link>
+
+            <Link href="/tools/sha256-generator" className="yoryantra-btn-outline">
+              SHA256 Generator
+            </Link>
+
+            <Link href="/tools/security-headers-scanner" className="yoryantra-btn-outline">
+              Security Headers Scanner
+            </Link>
+
+            <Link href="/tools/csp-analyzer" className="yoryantra-btn-outline">
+              CSP Analyzer
+            </Link>
+
+            <Link href="/tools/csp-report-analyzer" className="yoryantra-btn-outline">
+              CSP Report Analyzer
+            </Link>
           </div>
         </div>
       </section>
@@ -446,7 +531,15 @@ export default function ToolClient() {
   );
 }
 
-function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
+function CheckboxRow({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
   return (
     <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
       <input
@@ -463,8 +556,13 @@ function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: st
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+
+      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">
+        {value}
+      </div>
     </div>
   );
 }
@@ -472,8 +570,13 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 function Faq({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
+      <h3 className="font-semibold text-gray-900">
+        {title}
+      </h3>
+
+      <p className="mt-2 text-gray-600 leading-relaxed">
+        {children}
+      </p>
     </div>
   );
 }
@@ -491,11 +594,19 @@ async function buildSriResult(options: {
   const algorithms: HashAlgorithm[] = options.algorithm === "all"
     ? ["SHA-256", "SHA-384", "SHA-512"]
     : [options.algorithm];
-  const hashes = await Promise.all(algorithms.map((item) => makeSriHash(options.content, item)));
+
+  const hashes = await Promise.all(
+    algorithms.map((item) => makeSriHash(options.content, item))
+  );
   const recommendedIntegrity = options.includeAllHashes
     ? hashes.map((hash) => hash.integrity).join(" ")
     : hashes[0]?.integrity || "";
-  const htmlSnippet = makeHtmlSnippet(options.resourceUrl, recommendedIntegrity, options.resourceType, options.includeCrossorigin);
+  const htmlSnippet = makeHtmlSnippet(
+    options.resourceUrl,
+    recommendedIntegrity,
+    options.resourceType,
+    options.includeCrossorigin
+  );
   const issues = getIssues(options, hashes);
   const inputBytes = new TextEncoder().encode(options.content).length;
   const base = {
@@ -528,8 +639,14 @@ async function makeSriHash(content: string, algorithm: HashAlgorithm): Promise<S
 }
 
 function algorithmToPrefix(algorithm: HashAlgorithm): SriHash["prefix"] {
-  if (algorithm === "SHA-256") return "sha256";
-  if (algorithm === "SHA-512") return "sha512";
+  if (algorithm === "SHA-256") {
+    return "sha256";
+  }
+
+  if (algorithm === "SHA-512") {
+    return "sha512";
+  }
+
   return "sha384";
 }
 
@@ -544,7 +661,12 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
   return btoa(binary);
 }
 
-function makeHtmlSnippet(url: string, integrity: string, type: ResourceType, includeCrossorigin: boolean) {
+function makeHtmlSnippet(
+  url: string,
+  integrity: string,
+  type: ResourceType,
+  includeCrossorigin: boolean
+) {
   const safeUrl = url || "https://cdn.example.com/resource.js";
   const crossorigin = includeCrossorigin ? ' crossorigin="anonymous"' : "";
 
@@ -623,7 +745,9 @@ function formatOutput(result: Omit<SriResult, "output">, mode: OutputMode) {
   }
 
   if (mode === "hashes") {
-    return result.hashes.map((hash) => `${hash.algorithm}: ${hash.integrity}`).join("\\n");
+    return result.hashes
+      .map((hash) => `${hash.algorithm}: ${hash.integrity}`)
+      .join("\n");
   }
 
   if (mode === "markdown") {
@@ -631,7 +755,7 @@ function formatOutput(result: Omit<SriResult, "output">, mode: OutputMode) {
       "| Algorithm | Integrity |",
       "| --- | --- |",
       ...result.hashes.map((hash) => `| ${hash.algorithm} | ${hash.integrity} |`),
-    ].join("\\n");
+    ].join("\n");
   }
 
   return result.recommendedIntegrity;
@@ -656,5 +780,9 @@ function getNotes(result: SriResult) {
 }
 
 function escapeHtml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
