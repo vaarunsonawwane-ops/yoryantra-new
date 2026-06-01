@@ -161,7 +161,7 @@ export default function ToolClient() {
       description="Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans for domains, environments, issuers, and certificate owners."
     >
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="h-full rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">
             Certificate Details
           </h3>
@@ -208,7 +208,7 @@ export default function ToolClient() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="h-full rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">
             Renewal Context
           </h3>
@@ -647,7 +647,7 @@ function DatePickerField({
       <button
         type="button"
         onClick={openPicker}
-        className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-3 text-left text-sm font-mono shadow-sm outline-none transition hover:border-gray-300 focus:border-[var(--light-gold)] focus:ring-2 focus:ring-[var(--light-gold)]/30"
+        className="flex min-h-[48px] w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 py-3 text-left text-sm font-mono outline-none transition hover:border-gray-300 focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
       >
         <span className={displayValue ? "text-gray-900" : "text-gray-400"}>
           {displayValue || "dd-mm-yyyy"}
