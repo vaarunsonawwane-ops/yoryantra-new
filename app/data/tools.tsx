@@ -1274,6 +1274,14 @@ export const tools = [
   category: "Security Tools",
 },
 
+{
+  title: "TLS Certificate Expiry Reminder Generator",
+  description:
+    "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans for domains and teams.",
+  href: "/tools/tls-certificate-expiry-reminder-generator",
+  category: "Security Tools",
+},
+
 
 
 
