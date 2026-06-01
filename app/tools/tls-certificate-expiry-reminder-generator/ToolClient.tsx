@@ -36,6 +36,21 @@ type Result = {
 
 const sampleDomain = "example.com";
 
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 export default function ToolClient() {
   const [domain, setDomain] = useState("");
   const [issuer, setIssuer] = useState("");
@@ -578,11 +593,6 @@ function DatePickerField({
   const [viewDate, setViewDate] = useState<Date>(() => selectedDate || new Date());
 
   const calendarDays = useMemo(() => buildCalendarDays(viewDate), [viewDate]);
-  const monthLabel = viewDate.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
-
   const displayValue = selectedDate ? formatDisplayDate(selectedDate) : "";
 
   useEffect(() => {
@@ -664,24 +674,58 @@ function DatePickerField({
             openAbove ? "bottom-full mb-2" : "top-full mt-2"
           }`}
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => moveMonth(-1)}
-              className="px-2 py-1 text-xl leading-none text-[var(--light-gold)] transition hover:opacity-75"
+              className="px-1 py-1 text-xl leading-none text-[var(--light-gold)] transition hover:opacity-75"
               aria-label="Previous month"
             >
               ←
             </button>
 
-            <p className="text-sm font-semibold text-gray-900">
-              {monthLabel}
-            </p>
+            <div className="flex flex-1 items-center justify-center gap-2">
+              <select
+                value={viewDate.getMonth()}
+                onChange={(event) => {
+                  const next = new Date(viewDate);
+                  next.setMonth(Number(event.target.value));
+                  next.setDate(1);
+                  setViewDate(next);
+                }}
+                className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-sm font-semibold text-gray-900 outline-none transition focus:border-[var(--light-gold)] focus:ring-2 focus:ring-[var(--light-gold)]/20"
+                aria-label="Select month"
+              >
+                {monthNames.map((month, index) => (
+                  <option key={month} value={index}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={viewDate.getFullYear()}
+                onChange={(event) => {
+                  const next = new Date(viewDate);
+                  next.setFullYear(Number(event.target.value));
+                  next.setDate(1);
+                  setViewDate(next);
+                }}
+                className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-sm font-semibold text-gray-900 outline-none transition focus:border-[var(--light-gold)] focus:ring-2 focus:ring-[var(--light-gold)]/20"
+                aria-label="Select year"
+              >
+                {buildYearOptions(viewDate).map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <button
               type="button"
               onClick={() => moveMonth(1)}
-              className="px-2 py-1 text-xl leading-none text-[var(--light-gold)] transition hover:opacity-75"
+              className="px-1 py-1 text-xl leading-none text-[var(--light-gold)] transition hover:opacity-75"
               aria-label="Next month"
             >
               →
@@ -817,6 +861,15 @@ function isSameDate(first: Date, second: Date) {
     first.getMonth() === second.getMonth() &&
     first.getDate() === second.getDate()
   );
+}
+
+function buildYearOptions(viewDate: Date) {
+  const currentYear = new Date().getFullYear();
+  const selectedYear = viewDate.getFullYear();
+  const start = Math.min(currentYear - 5, selectedYear - 5);
+  const end = Math.max(currentYear + 15, selectedYear + 15);
+
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
 function buildCalendarDays(viewDate: Date) {
