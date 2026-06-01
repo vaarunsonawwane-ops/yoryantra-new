@@ -1241,6 +1241,14 @@ export const tools = [
   category: "Security Tools",
 },
 
+{
+  title: "Indexability Checker",
+  description:
+    "Check pasted HTML and headers for noindex, nofollow, robots meta tags, X-Robots-Tag, canonical issues, meta refresh, and indexing blockers.",
+  href: "/tools/indexability-checker",
+  category: "SEO Tools",
+},
+
 
 
 
