@@ -1217,6 +1217,13 @@ export const tools = [
   category: "SEO Tools",
 },
 
+{
+  title: "SEO Slug Analyzer",
+  description:
+    "Analyze URL slugs for length, target keyword, hyphens, underscores, uppercase letters, stop words, special characters, and clean URL readability.",
+  href: "/tools/seo-slug-analyzer",
+  category: "SEO Tools",
+},
 
 
 
