@@ -1209,6 +1209,13 @@ export const tools = [
   category: "SEO Tools",
 },
 
+{
+  title: "Meta Description Length Checker",
+  description:
+    "Check meta description length, truncation risk, keyword usage, duplicate descriptions, CTA wording, empty descriptions, and SERP-style preview.",
+  href: "/tools/meta-description-length-checker",
+  category: "SEO Tools",
+},
 
 
 
