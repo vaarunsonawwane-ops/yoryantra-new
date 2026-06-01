@@ -1266,5 +1266,16 @@ export const tools = [
   category: "Security Tools",
 },
 
+{
+  title: "Security.txt Generator",
+  description:
+    "Generate /.well-known/security.txt content with Contact, Expires, Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring fields.",
+  href: "/tools/security-txt-generator",
+  category: "Security Tools",
+},
+
+
+
+
 
 ];
