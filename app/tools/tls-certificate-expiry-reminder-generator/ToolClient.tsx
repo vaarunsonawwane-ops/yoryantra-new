@@ -632,6 +632,10 @@ function DatePickerField({
     setViewDate((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
   };
 
+  const moveYear = (offset: number) => {
+    setViewDate((current) => new Date(current.getFullYear() + offset, current.getMonth(), 1));
+  };
+
   const selectDate = (date: Date) => {
     onChange(formatDateInputValue(date));
     setViewDate(date);
@@ -684,42 +688,10 @@ function DatePickerField({
               ←
             </button>
 
-            <div className="flex flex-1 items-center justify-center gap-2">
-              <select
-                value={viewDate.getMonth()}
-                onChange={(event) => {
-                  const next = new Date(viewDate);
-                  next.setMonth(Number(event.target.value));
-                  next.setDate(1);
-                  setViewDate(next);
-                }}
-                className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-sm font-semibold text-gray-900 outline-none transition focus:border-[var(--light-gold)] focus:ring-2 focus:ring-[var(--light-gold)]/20"
-                aria-label="Select month"
-              >
-                {monthNames.map((month, index) => (
-                  <option key={month} value={index}>
-                    {month}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={viewDate.getFullYear()}
-                onChange={(event) => {
-                  const next = new Date(viewDate);
-                  next.setFullYear(Number(event.target.value));
-                  next.setDate(1);
-                  setViewDate(next);
-                }}
-                className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-sm font-semibold text-gray-900 outline-none transition focus:border-[var(--light-gold)] focus:ring-2 focus:ring-[var(--light-gold)]/20"
-                aria-label="Select year"
-              >
-                {buildYearOptions(viewDate).map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-gray-900">
+                {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
+              </p>
             </div>
 
             <button
@@ -729,6 +701,24 @@ function DatePickerField({
               aria-label="Next month"
             >
               →
+            </button>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => moveYear(-1)}
+              className="rounded-lg border border-[var(--light-gold)]/40 bg-[var(--light-gold)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--light-gold)] transition hover:bg-[var(--light-gold)]/15"
+            >
+              − Year
+            </button>
+
+            <button
+              type="button"
+              onClick={() => moveYear(1)}
+              className="rounded-lg border border-[var(--light-gold)]/40 bg-[var(--light-gold)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--light-gold)] transition hover:bg-[var(--light-gold)]/15"
+            >
+              + Year
             </button>
           </div>
 
@@ -861,15 +851,6 @@ function isSameDate(first: Date, second: Date) {
     first.getMonth() === second.getMonth() &&
     first.getDate() === second.getDate()
   );
-}
-
-function buildYearOptions(viewDate: Date) {
-  const currentYear = new Date().getFullYear();
-  const selectedYear = viewDate.getFullYear();
-  const start = Math.min(currentYear - 5, selectedYear - 5);
-  const end = Math.max(currentYear + 15, selectedYear + 15);
-
-  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
 function buildCalendarDays(viewDate: Date) {
