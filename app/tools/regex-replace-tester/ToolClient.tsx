@@ -217,7 +217,7 @@ export default function ToolClient() {
               clearResult();
             }}
             placeholder="gi"
-            className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            className="w-full max-w-[180px] rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
 
           <p className="mt-2 text-sm text-gray-500">
