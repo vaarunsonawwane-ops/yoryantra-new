@@ -1201,6 +1201,16 @@ export const tools = [
   category: "Security Tools",
 },
 
+{
+  title: "Title Tag Length Checker",
+  description:
+    "Check SEO title tag length, truncation risk, keyword placement, brand placement, duplicate titles, separators, and SERP-style preview.",
+  href: "/tools/title-tag-length-checker",
+  category: "SEO Tools",
+},
+
+
+
 
 
 
