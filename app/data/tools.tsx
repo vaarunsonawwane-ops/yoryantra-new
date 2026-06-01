@@ -1233,6 +1233,15 @@ export const tools = [
   category: "Security Tools",
 },
 
+{
+  title: "Referrer Policy Generator",
+  description:
+    "Generate Referrer-Policy headers, Nginx/Apache config, HTML meta tags, and privacy guidance for browser referrer behavior.",
+  href: "/tools/referrer-policy-generator",
+  category: "Security Tools",
+},
+
+
 
 
 ];
