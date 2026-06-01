@@ -687,7 +687,7 @@ function analyzeOne(input: string, options: {
   if (options.checkStopWords) {
     const stopWordCount = words.filter((word) => stopWords.has(word.toLowerCase())).length;
 
-    if (stopWordCount >= 4 || (words.length >= 8 andRatio(stopWordCount, words.length) > 0.45)) {
+    if (stopWordCount >= 4 || (words.length >= 8 && andRatio(stopWordCount, words.length) > 0.45)) {
       issues.push({
         severity: "info",
         title: "Many stop words",
