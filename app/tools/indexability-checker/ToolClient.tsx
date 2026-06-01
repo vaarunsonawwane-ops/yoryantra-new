@@ -606,7 +606,7 @@ function analyzeIndexability(options: {
   }
 
   const score = calculateScore(issues);
-  const status = issues.some((issue) => issue.severity === "high")
+  const status: Result["status"] = issues.some((issue) => issue.severity === "high")
     ? "blocked"
     : issues.some((issue) => issue.severity === "warning")
       ? "needs-review"
