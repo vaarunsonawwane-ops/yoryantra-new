@@ -54,7 +54,7 @@ user-1024
 user-2048`;
 
 const samplePattern = String.raw`(?<name>[a-z]+)@(?<domain>[a-z0-9.-]+\.[a-z]{2,})`;
-const sampleReplacement = String.raw`${name} [at] ${domain}`;
+const sampleReplacement = String.raw`\${name} [at] \${domain}`;
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
