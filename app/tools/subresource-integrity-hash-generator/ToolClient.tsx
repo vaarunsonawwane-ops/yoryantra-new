@@ -39,7 +39,7 @@ function add(a, b) {
 
 export default function ToolClient() {
   const [content, setContent] = useState("");
-  const [resourceUrl, setResourceUrl] = useState("https://cdn.example.com/app.min.js");
+  const [resourceUrl, setResourceUrl] = useState("");
   const [algorithm, setAlgorithm] = useState<Algorithm>("SHA-384");
   const [resourceType, setResourceType] = useState<ResourceType>("script");
   const [outputMode, setOutputMode] = useState<OutputMode>("attribute");
@@ -119,7 +119,7 @@ export default function ToolClient() {
 
   const resetAll = () => {
     setContent("");
-    setResourceUrl("https://cdn.example.com/app.min.js");
+    setResourceUrl("");
     setAlgorithm("SHA-384");
     setResourceType("script");
     setOutputMode("attribute");
