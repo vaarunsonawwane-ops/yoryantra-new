@@ -1225,6 +1225,13 @@ export const tools = [
   category: "SEO Tools",
 },
 
+{
+  title: "Subresource Integrity Hash Generator",
+  description:
+    "Generate SHA-256, SHA-384, and SHA-512 Subresource Integrity hashes and script/style integrity attributes for CDN resources.",
+  href: "/tools/subresource-integrity-hash-generator",
+  category: "Security Tools",
+},
 
 
 
