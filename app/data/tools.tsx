@@ -1283,6 +1283,15 @@ export const tools = [
 },
 
 
+{
+  title: "HTTP Cache Header Analyzer",
+  description:
+    "Analyze Cache-Control, ETag, Expires, Last-Modified, Vary, Age, CDN cache status, browser TTL, and revalidation behavior.",
+  href: "/tools/http-cache-header-analyzer",
+  category: "Developer Tools",
+},
+
+
 
 
 
