@@ -262,9 +262,13 @@ export default function ToolClient() {
               ]}
             />
 
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Selected Content-Type</p>
-              <p className="mt-1 break-words font-mono text-sm text-gray-900">
+            <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+              <p className="text-sm font-medium text-gray-700">Selected Content-Type</p>
+              <p className={`mt-1 break-words font-mono text-sm ${
+                contentTypePreset === "custom" && customContentType.trim()
+                  ? "text-gray-900"
+                  : "text-gray-500"
+              }`}>
                 {activeContentType || "not set"}
               </p>
             </div>
