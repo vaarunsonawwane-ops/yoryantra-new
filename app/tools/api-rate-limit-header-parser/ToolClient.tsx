@@ -734,7 +734,7 @@ function formatNullable(value: number | null) {
   return value === null ? "unknown" : value.toLocaleString();
 }
 
-function resultRows(result: RateLimitResult) {
+function resultRows(result: Omit<RateLimitResult, "output">) {
   return [
     { name: "Detected style", value: result.detectedStyle },
     { name: "HTTP status", value: result.headers.statusCode === null ? "not found" : String(result.headers.statusCode) },
