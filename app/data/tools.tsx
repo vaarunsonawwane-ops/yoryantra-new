@@ -1316,6 +1316,15 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "GraphQL Query Formatter",
+  description:
+    "Format, minify, and inspect GraphQL queries, mutations, subscriptions, fragments, variables, and request payloads.",
+  href: "/tools/graphql-query-formatter",
+  category: "Developer Tools",
+},
+
+
 
 
 
