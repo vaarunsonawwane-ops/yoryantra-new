@@ -95,7 +95,7 @@ export default function ToolClient() {
   const [contentType, setContentType] = useState(presetValues.jsonApi.contentType);
   const [language, setLanguage] = useState(presetValues.jsonApi.language);
   const [encoding, setEncoding] = useState(presetValues.jsonApi.encoding);
-  const [endpoint, setEndpoint] = useState("https://api.example.com/items");
+  const [endpoint, setEndpoint] = useState("");
   const [charset, setCharset] = useState<Charset>("utf-8");
   const [encodingMode, setEncodingMode] = useState<EncodingMode>("modern");
   const [outputMode, setOutputMode] = useState<OutputMode>("headers");
@@ -197,7 +197,7 @@ export default function ToolClient() {
     setContentType(presetValues.jsonApi.contentType);
     setLanguage(presetValues.jsonApi.language);
     setEncoding(presetValues.jsonApi.encoding);
-    setEndpoint("https://api.example.com/items");
+    setEndpoint("");
     setRequestMethod("GET");
     setCharset("utf-8");
     setEncodingMode("modern");
@@ -782,6 +782,7 @@ function formatOutput(result: Omit<Result, "output">, options: {
   endpoint: string;
   requestMethod: string;
 }) {
+  const endpoint = options.endpoint.trim() || "https://api.example.com/items";
   const headerObject = Object.fromEntries(result.headers.map((header) => [header.name, header.value]));
   const headerLines = result.headers.map((header) => `${header.name}: ${header.value}`);
 
@@ -791,12 +792,12 @@ function formatOutput(result: Omit<Result, "output">, options: {
 
   if (options.outputMode === "curl") {
     const headers = result.headers.map((header) => `  -H "${header.name}: ${header.value}"`).join(" \\\n");
-    return [`curl -X ${options.requestMethod} "${options.endpoint}"`, headers].filter(Boolean).join(" \\\n");
+    return [`curl -X ${options.requestMethod} "${endpoint}"`, headers].filter(Boolean).join(" \\\n");
   }
 
   if (options.outputMode === "fetch") {
     return [
-      `fetch("${options.endpoint}", {`,
+      `fetch("${endpoint}", {`,
       `  method: "${options.requestMethod}",`,
       "  headers: {",
       ...result.headers.map((header) => `    "${header.name}": "${escapeJs(header.value)}",`),
@@ -809,7 +810,7 @@ function formatOutput(result: Omit<Result, "output">, options: {
     return [
       "axios({",
       `  method: "${options.requestMethod.toLowerCase()}",`,
-      `  url: "${options.endpoint}",`,
+      `  url: "${endpoint}",`,
       "  headers: {",
       ...result.headers.map((header) => `    "${header.name}": "${escapeJs(header.value)}",`),
       "  },",
