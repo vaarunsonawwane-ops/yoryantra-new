@@ -1308,6 +1308,15 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "Content-Disposition Header Generator",
+  description:
+    "Generate Content-Disposition headers for attachment or inline file responses with safe filenames, UTF-8 filename*, and server snippets.",
+  href: "/tools/content-disposition-header-generator",
+  category: "Developer Tools",
+},
+
+
 
 
 ];
