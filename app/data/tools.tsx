@@ -1292,6 +1292,14 @@ export const tools = [
 },
 
 
+{
+  title: "API Rate Limit Header Parser",
+  description:
+    "Parse RateLimit, X-RateLimit, Retry-After, reset time, remaining quota, usage percentage, and API throttling headers.",
+  href: "/tools/api-rate-limit-header-parser",
+  category: "Developer Tools",
+},
+
 
 
 
