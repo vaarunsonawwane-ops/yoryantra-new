@@ -1300,6 +1300,13 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "HTTP Accept Header Generator",
+  description:
+    "Generate Accept, Content-Type, Accept-Language, and Accept-Encoding headers for API testing and content negotiation debugging.",
+  href: "/tools/http-accept-header-generator",
+  category: "Developer Tools",
+},
 
 
 
