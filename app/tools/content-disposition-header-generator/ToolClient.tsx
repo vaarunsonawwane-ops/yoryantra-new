@@ -557,7 +557,7 @@ function buildContentDisposition(options: {
   const asciiFallback = buildAsciiFallback(options.fallbackFilename.trim() || sanitizedFilename);
   const encodedFilename = encodeRfc5987Value(sanitizedFilename);
   const contentType = options.contentTypePreset === "custom" ? options.customContentType.trim() : contentTypes[options.contentTypePreset];
-  const parts = [options.dispositionType];
+  const parts: string[] = [options.dispositionType];
 
   if ((options.filenameMode === "both" || options.filenameMode === "asciiOnly") && options.includeAsciiFallback) {
     parts.push(`filename="${escapeQuotedHeader(asciiFallback)}"`);
