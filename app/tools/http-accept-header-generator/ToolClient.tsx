@@ -832,9 +832,8 @@ function formatOutput(result: Omit<Result, "output">, options: {
 }
 
 function escapeJs(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\"");
+  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
 }
-
 function escapeMarkdown(value: string) {
   return value.replace(/\|/g, "\\|").replace(/\n/g, "\\n");
 }
