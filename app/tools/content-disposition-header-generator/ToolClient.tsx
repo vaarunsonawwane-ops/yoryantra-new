@@ -626,7 +626,7 @@ function encodeRfc5987Value(value: string) {
 }
 
 function escapeQuotedHeader(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\"");
+  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
 }
 
 function buildIssues(params: {
@@ -759,7 +759,7 @@ function extensionFromFilename(filename: string) {
 }
 
 function escapeJs(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\"");
+  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
 }
 
 function escapeMarkdown(value: string) {
