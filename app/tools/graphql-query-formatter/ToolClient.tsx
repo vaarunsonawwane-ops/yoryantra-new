@@ -165,11 +165,22 @@ export default function ToolClient() {
       title="GraphQL Query Formatter"
       description="Format, minify, and inspect GraphQL queries, mutations, subscriptions, fragments, variables, operation names, and request payloads directly in your browser."
     >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            GraphQL Query
-          </label>
+          <div className="mb-3 flex items-start justify-between gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900">
+                GraphQL Query
+              </label>
+              <p className="mt-1 text-sm text-gray-500">
+                Paste a query, mutation, subscription, fragment, or copied request body query string.
+              </p>
+            </div>
+
+            <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-500">
+              Main input
+            </span>
+          </div>
 
           <textarea
             value={query}
@@ -178,49 +189,56 @@ export default function ToolClient() {
               clearResult();
             }}
             placeholder={sampleQuery}
-            className="w-full min-h-[430px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            className="w-full min-h-[460px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
-
-          <p className="mt-2 text-sm text-gray-500">
-            Paste a GraphQL query, mutation, subscription, fragment, or copied request body query string.
-          </p>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <label className="block mb-2 text-sm font-medium text-gray-700">
-              Variables JSON
-            </label>
-
-            <textarea
-              value={variablesJson}
-              onChange={(event) => {
-                setVariablesJson(event.target.value);
-                clearResult();
-              }}
-              placeholder={sampleVariables}
-              className="w-full min-h-[190px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-            />
-
-            <p className="mt-2 text-sm text-gray-500">
-              Optional. Used for JSON payload and cURL output.
+        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-900">
+              Request Context
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Optional values used when generating request payloads or cURL output.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <InputField
-              label="GraphQL Endpoint"
-              value={endpoint}
-              onChange={(value) => {
-                setEndpoint(value);
-                clearResult();
-              }}
-              placeholder="https://api.example.com/graphql"
-            />
+          <div className="space-y-5">
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Variables JSON
+              </label>
 
-            <p className="mt-2 text-sm text-gray-500">
-              Optional. Used only for cURL output.
-            </p>
+              <textarea
+                value={variablesJson}
+                onChange={(event) => {
+                  setVariablesJson(event.target.value);
+                  clearResult();
+                }}
+                placeholder={sampleVariables}
+                className="w-full min-h-[260px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              />
+
+              <p className="mt-2 text-sm text-gray-500">
+                Leave empty when the query does not need variables.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+              <InputField
+                label="GraphQL Endpoint"
+                value={endpoint}
+                onChange={(value) => {
+                  setEndpoint(value);
+                  clearResult();
+                }}
+                placeholder="https://api.example.com/graphql"
+              />
+
+              <p className="mt-2 text-sm text-gray-500">
+                Used only for cURL output. The placeholder is not sent unless you generate a cURL example without an endpoint.
+              </p>
+            </div>
           </div>
         </div>
       </div>
