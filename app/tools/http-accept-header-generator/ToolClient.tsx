@@ -91,10 +91,10 @@ const presetValues: Record<Preset, {
 
 export default function ToolClient() {
   const [preset, setPreset] = useState<Preset>("jsonApi");
-  const [accept, setAccept] = useState(presetValues.jsonApi.accept);
-  const [contentType, setContentType] = useState(presetValues.jsonApi.contentType);
-  const [language, setLanguage] = useState(presetValues.jsonApi.language);
-  const [encoding, setEncoding] = useState(presetValues.jsonApi.encoding);
+  const [accept, setAccept] = useState("");
+  const [contentType, setContentType] = useState("");
+  const [language, setLanguage] = useState("");
+  const [encoding, setEncoding] = useState("");
   const [endpoint, setEndpoint] = useState("");
   const [charset, setCharset] = useState<Charset>("utf-8");
   const [encodingMode, setEncodingMode] = useState<EncodingMode>("modern");
@@ -122,19 +122,13 @@ export default function ToolClient() {
 
   const applyPreset = (nextPreset: Preset) => {
     setPreset(nextPreset);
-
-    if (nextPreset !== "custom") {
-      setAccept(presetValues[nextPreset].accept);
-      setContentType(presetValues[nextPreset].contentType);
-      setLanguage(presetValues[nextPreset].language);
-      setEncoding(presetValues[nextPreset].encoding);
-    }
-
     clearResult();
   };
 
   const generateHeaders = () => {
-    if (!accept.trim() && includeAccept) {
+    const fallbackValues = presetValues[preset];
+
+    if (!accept.trim() && includeAccept && !fallbackValues.accept.trim()) {
       setError("Please enter an Accept header value or turn off the Accept header.");
       setResult(null);
       setOutput("");
@@ -142,10 +136,10 @@ export default function ToolClient() {
     }
 
     const next = buildHeaders({
-      accept,
-      contentType,
-      language,
-      encoding,
+      accept: accept.trim() || fallbackValues.accept,
+      contentType: contentType.trim() || fallbackValues.contentType,
+      language: language.trim() || fallbackValues.language,
+      encoding: encoding.trim() || fallbackValues.encoding,
       endpoint,
       charset,
       outputMode,
@@ -176,7 +170,11 @@ export default function ToolClient() {
   };
 
   const loadExample = () => {
-    applyPreset("jsonApi");
+    setPreset("jsonApi");
+    setAccept(presetValues.jsonApi.accept);
+    setContentType(presetValues.jsonApi.contentType);
+    setLanguage(presetValues.jsonApi.language);
+    setEncoding(presetValues.jsonApi.encoding);
     setEndpoint("https://api.example.com/items");
     setRequestMethod("GET");
     setCharset("utf-8");
@@ -193,10 +191,10 @@ export default function ToolClient() {
 
   const resetAll = () => {
     setPreset("jsonApi");
-    setAccept(presetValues.jsonApi.accept);
-    setContentType(presetValues.jsonApi.contentType);
-    setLanguage(presetValues.jsonApi.language);
-    setEncoding(presetValues.jsonApi.encoding);
+    setAccept("");
+    setContentType("");
+    setLanguage("");
+    setEncoding("");
     setEndpoint("");
     setRequestMethod("GET");
     setCharset("utf-8");
@@ -220,6 +218,8 @@ export default function ToolClient() {
 
     clearResult();
   };
+
+  const activePresetValues = presetValues[preset];
 
   return (
     <ToolShell
@@ -303,7 +303,7 @@ export default function ToolClient() {
               setPreset("custom");
               clearResult();
             }}
-            placeholder="application/json"
+            placeholder={activePresetValues.accept}
           />
 
           <InputField
@@ -314,7 +314,7 @@ export default function ToolClient() {
               setPreset("custom");
               clearResult();
             }}
-            placeholder="application/json"
+            placeholder={activePresetValues.contentType}
           />
 
           <InputField
@@ -325,7 +325,7 @@ export default function ToolClient() {
               setPreset("custom");
               clearResult();
             }}
-            placeholder="en-US,en;q=0.9"
+            placeholder={activePresetValues.language}
           />
 
           <InputField
@@ -337,7 +337,7 @@ export default function ToolClient() {
               setEncodingMode("custom");
               clearResult();
             }}
-            placeholder="gzip, br"
+            placeholder={activePresetValues.encoding}
           />
         </div>
       </div>
