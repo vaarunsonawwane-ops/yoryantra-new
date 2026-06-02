@@ -590,9 +590,11 @@ function DatePickerField({
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [openAbove, setOpenAbove] = useState(false);
+  const [pickerMode, setPickerMode] = useState<"days" | "months" | "years">("days");
   const [viewDate, setViewDate] = useState<Date>(() => selectedDate || new Date());
 
   const calendarDays = useMemo(() => buildCalendarDays(viewDate), [viewDate]);
+  const yearOptions = useMemo(() => buildYearOptions(viewDate), [viewDate]);
   const displayValue = selectedDate ? formatDisplayDate(selectedDate) : "";
 
   useEffect(() => {
@@ -603,6 +605,7 @@ function DatePickerField({
 
       if (target instanceof Node && wrapperRef.current && !wrapperRef.current.contains(target)) {
         setOpen(false);
+        setPickerMode("days");
       }
     };
 
@@ -618,7 +621,7 @@ function DatePickerField({
   const openPicker = () => {
     if (!open && wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect();
-      const estimatedPickerHeight = 360;
+      const estimatedPickerHeight = 380;
       const bottomSpace = window.innerHeight - rect.bottom;
       const topSpace = rect.top;
 
@@ -626,25 +629,35 @@ function DatePickerField({
     }
 
     setOpen((current) => !current);
+    setPickerMode("days");
   };
 
   const moveMonth = (offset: number) => {
     setViewDate((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+    setPickerMode("days");
   };
 
-  const moveYear = (offset: number) => {
-    setViewDate((current) => new Date(current.getFullYear() + offset, current.getMonth(), 1));
+  const selectMonth = (monthIndex: number) => {
+    setViewDate((current) => new Date(current.getFullYear(), monthIndex, 1));
+    setPickerMode("days");
+  };
+
+  const selectYear = (year: number) => {
+    setViewDate((current) => new Date(year, current.getMonth(), 1));
+    setPickerMode("months");
   };
 
   const selectDate = (date: Date) => {
     onChange(formatDateInputValue(date));
     setViewDate(date);
     setOpen(false);
+    setPickerMode("days");
   };
 
   const clearDate = () => {
     onChange("");
     setOpen(false);
+    setPickerMode("days");
   };
 
   const selectToday = () => {
@@ -688,10 +701,30 @@ function DatePickerField({
               ←
             </button>
 
-            <div className="text-center">
-              <p className="text-sm font-semibold text-gray-900">
-                {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
-              </p>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPickerMode((current) => current === "months" ? "days" : "months")}
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                  pickerMode === "months"
+                    ? "bg-[var(--light-gold)]/15 text-[var(--light-gold)]"
+                    : "text-gray-900 hover:bg-[var(--light-gold)]/10"
+                }`}
+              >
+                {monthNames[viewDate.getMonth()]}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPickerMode((current) => current === "years" ? "days" : "years")}
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                  pickerMode === "years"
+                    ? "bg-[var(--light-gold)]/15 text-[var(--light-gold)]"
+                    : "text-gray-900 hover:bg-[var(--light-gold)]/10"
+                }`}
+              >
+                {viewDate.getFullYear()}
+              </button>
             </div>
 
             <button
@@ -704,61 +737,93 @@ function DatePickerField({
             </button>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => moveYear(-1)}
-              className="rounded-lg border border-[var(--light-gold)]/40 bg-[var(--light-gold)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--light-gold)] transition hover:bg-[var(--light-gold)]/15"
-            >
-              − Year
-            </button>
+          {pickerMode === "months" && (
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {monthNames.map((month, index) => {
+                const isSelected = index === viewDate.getMonth();
 
-            <button
-              type="button"
-              onClick={() => moveYear(1)}
-              className="rounded-lg border border-[var(--light-gold)]/40 bg-[var(--light-gold)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--light-gold)] transition hover:bg-[var(--light-gold)]/15"
-            >
-              + Year
-            </button>
-          </div>
+                return (
+                  <button
+                    key={month}
+                    type="button"
+                    onClick={() => selectMonth(index)}
+                    className={`rounded-lg px-2 py-2 text-sm transition ${
+                      isSelected
+                        ? "bg-[var(--light-gold)] font-semibold text-white shadow-sm"
+                        : "text-gray-800 hover:bg-[var(--light-gold)]/10"
+                    }`}
+                  >
+                    {month.slice(0, 3)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-          <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500">
-            {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((day) => (
-              <div key={day} className="py-1">
-                {day}
+          {pickerMode === "years" && (
+            <div className="mt-4 grid max-h-[260px] grid-cols-4 gap-2 overflow-y-auto pr-1">
+              {yearOptions.map((year) => {
+                const isSelected = year === viewDate.getFullYear();
+
+                return (
+                  <button
+                    key={year}
+                    type="button"
+                    onClick={() => selectYear(year)}
+                    className={`rounded-lg px-2 py-2 text-sm transition ${
+                      isSelected
+                        ? "bg-[var(--light-gold)] font-semibold text-white shadow-sm"
+                        : "text-gray-800 hover:bg-[var(--light-gold)]/10"
+                    }`}
+                  >
+                    {year}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {pickerMode === "days" && (
+            <>
+              <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500">
+                {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((day) => (
+                  <div key={day} className="py-1">
+                    {day}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="mt-1 grid grid-cols-7 gap-1">
-            {calendarDays.map((day) => {
-              const isSelected = selectedDate ? isSameDate(day.date, selectedDate) : false;
-              const isToday = isSameDate(day.date, new Date());
+              <div className="mt-1 grid grid-cols-7 gap-1">
+                {calendarDays.map((day) => {
+                  const isSelected = selectedDate ? isSameDate(day.date, selectedDate) : false;
+                  const isToday = isSameDate(day.date, new Date());
 
-              return (
-                <button
-                  key={day.key}
-                  type="button"
-                  onClick={() => selectDate(day.date)}
-                  className={`h-9 rounded-lg text-sm transition ${
-                    isSelected
-                      ? "bg-[var(--light-gold)] font-semibold text-white shadow-sm"
-                      : day.inCurrentMonth
-                        ? "text-gray-800 hover:bg-[var(--light-gold)]/10 hover:text-gray-900"
-                        : "text-gray-400 hover:bg-gray-50"
-                  } ${isToday && !isSelected ? "ring-1 ring-[var(--light-gold)]" : ""}`}
-                >
-                  {day.date.getDate()}
-                </button>
-              );
-            })}
-          </div>
+                  return (
+                    <button
+                      key={day.key}
+                      type="button"
+                      onClick={() => selectDate(day.date)}
+                      className={`h-9 rounded-lg text-sm transition ${
+                        isSelected
+                          ? "bg-[var(--light-gold)] font-semibold text-white shadow-sm"
+                          : day.inCurrentMonth
+                            ? "text-gray-800 hover:bg-[var(--light-gold)]/10 hover:text-gray-900"
+                            : "text-gray-400 hover:bg-gray-50"
+                      } ${isToday && !isSelected ? "ring-1 ring-[var(--light-gold)]" : ""}`}
+                    >
+                      {day.date.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
             <button
               type="button"
               onClick={clearDate}
-              className="text-sm font-semibold text-[var(--light-gold)] transition hover:opacity-75"
+              className="text-sm font-semibold text-gray-900 transition hover:text-[var(--light-gold)]"
             >
               Clear
             </button>
@@ -766,45 +831,13 @@ function DatePickerField({
             <button
               type="button"
               onClick={selectToday}
-              className="text-sm font-semibold text-[var(--light-gold)] transition hover:opacity-75"
+              className="text-sm font-semibold text-gray-900 transition hover:text-[var(--light-gold)]"
             >
               Today
             </button>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 accent-[var(--light-gold)]"
-      />
-      {label}
-    </label>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
-    </div>
-  );
-}
-
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
     </div>
   );
 }
@@ -851,6 +884,15 @@ function isSameDate(first: Date, second: Date) {
     first.getMonth() === second.getMonth() &&
     first.getDate() === second.getDate()
   );
+}
+
+function buildYearOptions(viewDate: Date) {
+  const currentYear = new Date().getFullYear();
+  const selectedYear = viewDate.getFullYear();
+  const start = Math.min(currentYear - 5, selectedYear - 5);
+  const end = Math.max(currentYear + 15, selectedYear + 15);
+
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
 function buildCalendarDays(viewDate: Date) {
