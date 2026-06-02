@@ -842,6 +842,38 @@ function DatePickerField({
   );
 }
 
+function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="h-4 w-4 accent-[var(--light-gold)]"
+      />
+      {label}
+    </label>
+  );
+}
+
+function SummaryCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
+    </div>
+  );
+}
+
+function Faq({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h3 className="font-semibold text-gray-900">{title}</h3>
+      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
+    </div>
+  );
+}
+
 function parseInputDate(value: string) {
   if (!value) return null;
 
