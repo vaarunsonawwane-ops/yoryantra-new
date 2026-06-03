@@ -1399,6 +1399,14 @@ export const tools = [
 
 
 
+{
+  title: "MIME Encoded-Word Decoder",
+  description: "Decode RFC 2047 email subjects, sender names, charsets, and MIME encoded-word headers locally.",
+  href: "/tools/mime-encoded-word-decoder",
+  category: "Encoding Tools",
+},
+
+
 
 
 
