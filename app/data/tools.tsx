@@ -1324,6 +1324,13 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "HTTP Basic Auth Header Generator",
+  description:
+    "Generate Authorization: Basic headers from username and password values with cURL, Fetch, Axios, JSON, and plain header outputs.",
+  href: "/tools/http-basic-auth-header-generator",
+  category: "Developer Tools",
+},
 
 
 
