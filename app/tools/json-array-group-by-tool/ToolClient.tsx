@@ -69,13 +69,13 @@ const sampleInput = `[
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
-  const [groupKey, setGroupKey] = useState("category");
-  const [numericKey, setNumericKey] = useState("views");
+  const [groupKey, setGroupKey] = useState("");
+  const [numericKey, setNumericKey] = useState("");
   const [outputMode, setOutputMode] = useState<OutputMode>("summary");
   const [groupMode, setGroupMode] = useState<GroupMode>("trimmed");
   const [sortMode, setSortMode] = useState<SortMode>("countDesc");
   const [missingMode, setMissingMode] = useState<MissingMode>("missingLabel");
-  const [numericMode, setNumericMode] = useState<NumericMode>("sum");
+  const [numericMode, setNumericMode] = useState<NumericMode>("none");
   const [flattenNestedObjects, setFlattenNestedObjects] = useState(true);
   const [includeRecordsInJson, setIncludeRecordsInJson] = useState(true);
   const [includePercentages, setIncludePercentages] = useState(true);
@@ -178,13 +178,13 @@ export default function ToolClient() {
 
   const resetAll = () => {
     setInput("");
-    setGroupKey("category");
-    setNumericKey("views");
+    setGroupKey("");
+    setNumericKey("");
     setOutputMode("summary");
     setGroupMode("trimmed");
     setSortMode("countDesc");
     setMissingMode("missingLabel");
-    setNumericMode("sum");
+    setNumericMode("none");
     setFlattenNestedObjects(true);
     setIncludeRecordsInJson(true);
     setIncludePercentages(true);
