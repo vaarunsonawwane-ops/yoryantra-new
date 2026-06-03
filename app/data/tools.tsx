@@ -1420,6 +1420,16 @@ export const tools = [
     category: "Encoding Tools",
   },
 
+{
+    title: "Shell Command Escape Tool",
+    description: "Quote and escape command-line arguments for Bash, PowerShell, CMD, and env values.",
+    href: "/tools/shell-command-escape-tool",
+    category: "Encoding Tools",
+  },
+
+
+
+
 
 
 ];
