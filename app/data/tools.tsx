@@ -1427,7 +1427,12 @@ export const tools = [
     category: "Encoding Tools",
   },
 
-
+{
+  title: "JSON Lines to JSON Converter",
+  description: "Convert JSONL and NDJSON records into JSON arrays or newline-delimited JSON.",
+  href: "/tools/json-lines-to-json-converter",
+  category: "JSON & Data Tools",
+},
 
 
 
