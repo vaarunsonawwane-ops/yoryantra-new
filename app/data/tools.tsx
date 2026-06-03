@@ -1332,6 +1332,14 @@ export const tools = [
   category: "Developer Tools",
 },
 
+{
+  title: "Dockerfile Instruction Explainer",
+  description:
+    "Explain Dockerfile instructions, review common Dockerfile mistakes, and generate summaries, JSON, Markdown, CSV, or checklist output.",
+  href: "/tools/dockerfile-instruction-explainer",
+  category: "DevOps Tools",
+},
+
 
 
 
