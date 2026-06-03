@@ -43,9 +43,8 @@ type Result = {
   charsetCount: number;
 };
 
-const sampleInput = `Subject: =?UTF-8?B?WW9yeWFudHJhIOKcqCBFbWFpbCBIZWFkZXIgVGVzdA==?=
-From: =?UTF-8?Q?Varoun_Sonawane?= <hello@yoryantra.com>
-X-Note: =?ISO-8859-1?Q?caf=E9?= example`;
+const sampleInput = `Subject: =?UTF-8?B?V29ybGQ=?=
+From: =?UTF-8?Q?Varoun_Sonawane?= <hello@yoryantra.com>`;
 
 const charsetOptions = [
   { label: "UTF-8", value: "utf-8" },
@@ -221,40 +220,51 @@ export default function ToolClient() {
               ]}
             />
 
-            <YoryantraSelect
-              label="Encoding for New Words"
-              value={encodingMode}
-              onChange={(value) => {
-                setEncodingMode(value as EncodingMode);
-                clearResult();
-              }}
-              options={encodingOptions}
-            />
+            <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-gray-900">Encoding Options</p>
+                <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                  These settings are mainly used when you encode plain text into a new MIME encoded-word value.
+                </p>
+              </div>
 
-            <YoryantraSelect
-              label="Charset for New Words"
-              value={charsetMode}
-              onChange={(value) => {
-                setCharsetMode(value as CharsetMode);
-                clearResult();
-              }}
-              options={charsetOptions}
-            />
+              <div className="space-y-4">
+                <YoryantraSelect
+                  label="Encoding for New Words"
+                  value={encodingMode}
+                  onChange={(value) => {
+                    setEncodingMode(value as EncodingMode);
+                    clearResult();
+                  }}
+                  options={encodingOptions}
+                />
 
-            <YoryantraSelect
-              label="Header Type"
-              value={headerKind}
-              onChange={(value) => {
-                setHeaderKind(value as HeaderKind);
-                clearResult();
-              }}
-              options={[
-                { label: "Subject header", value: "subject" },
-                { label: "Display name", value: "display-name" },
-                { label: "Comment text", value: "comment" },
-                { label: "Generic header text", value: "generic" },
-              ]}
-            />
+                <YoryantraSelect
+                  label="Charset for New Words"
+                  value={charsetMode}
+                  onChange={(value) => {
+                    setCharsetMode(value as CharsetMode);
+                    clearResult();
+                  }}
+                  options={charsetOptions}
+                />
+
+                <YoryantraSelect
+                  label="Header Type"
+                  value={headerKind}
+                  onChange={(value) => {
+                    setHeaderKind(value as HeaderKind);
+                    clearResult();
+                  }}
+                  options={[
+                    { label: "Subject header", value: "subject" },
+                    { label: "Display name", value: "display-name" },
+                    { label: "Comment text", value: "comment" },
+                    { label: "Generic header text", value: "generic" },
+                  ]}
+                />
+              </div>
+            </div>
 
             <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
               <p className="text-sm font-medium text-gray-700">Encoded-word shape</p>
@@ -281,9 +291,6 @@ export default function ToolClient() {
           <CheckboxRow checked={warnLongHeaderLines} label="Warn about very long header lines" onChange={(checked) => { setWarnLongHeaderLines(checked); clearResult(); }} />
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          MIME header processing runs locally in your browser. It is useful for debugging subjects, sender display names, support emails, and raw message headers.
-        </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
@@ -408,9 +415,6 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This tool decodes and encodes pasted email header text locally in your browser. It does not connect to your mailbox, send emails, fetch remote messages, or upload header content.
-      </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
