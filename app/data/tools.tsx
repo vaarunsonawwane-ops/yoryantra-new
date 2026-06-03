@@ -1449,6 +1449,14 @@ export const tools = [
   category: "JSON & Data Tools",
 },
 
+{
+  title: "JSON Pointer Evaluator",
+  description: "Evaluate RFC 6901 JSON Pointer paths against JSON and inspect matched values.",
+  href: "/tools/json-pointer-evaluator",
+  category: "JSON & Data Tools",
+},
+
+
 
 
 ];
