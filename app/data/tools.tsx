@@ -1356,5 +1356,16 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "Kubernetes Service Port Mapper",
+  description:
+    "Map Kubernetes service ports, targetPorts, nodePorts, selectors, container ports, and ingress hosts.",
+  href: "/tools/kubernetes-service-port-mapper",
+  category: "DevOps Tools",
+},
+
+
+
+
 
 ];
