@@ -1435,6 +1435,13 @@ export const tools = [
 },
 
 
+{
+  title: "JSON to Markdown Table Converter",
+  description: "Convert JSON arrays and objects into clean Markdown tables for docs and GitHub.",
+  href: "/tools/json-to-markdown-table-converter",
+  category: "JSON & Data Tools",
+},
+
 
 
 ];
