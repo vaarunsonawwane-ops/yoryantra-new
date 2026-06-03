@@ -1348,6 +1348,13 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "Kubernetes YAML Resource Summarizer",
+  description:
+    "Summarize Kubernetes manifests with resources, namespaces, images, replicas, ports, hosts, and review notes.",
+  href: "/tools/kubernetes-yaml-resource-summarizer",
+  category: "DevOps Tools",
+},
 
 
 ];
