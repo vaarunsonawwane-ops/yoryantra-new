@@ -247,33 +247,33 @@ export default function ToolClient() {
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
           These checks keep escaped text readable while still warning about invalid sequences, hidden control characters, and formatting changes.
         </p>
-
-        <div className="mt-5 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={processString}
-            className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-          >
-            Convert String
-          </button>
-          <button
-            type="button"
-            onClick={loadExample}
-            className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
-          >
-            Load Example
-          </button>
-          <button
-            type="button"
-            onClick={resetAll}
-            className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
-          >
-            Reset
-          </button>
-        </div>
-
-        {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
       </div>
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={processString}
+          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+        >
+          Convert String
+        </button>
+        <button
+          type="button"
+          onClick={loadExample}
+          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+        >
+          Load Example
+        </button>
+        <button
+          type="button"
+          onClick={resetAll}
+          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+        >
+          Reset
+        </button>
+      </div>
+
+      {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
       {result ? (
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
