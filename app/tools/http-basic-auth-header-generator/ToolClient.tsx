@@ -177,9 +177,7 @@ export default function ToolClient() {
             />
           </div>
 
-          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-            Avoid pasting real production passwords unless you need to. Basic Auth is only Base64 encoded, not encrypted by itself.
-          </div>
+
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -233,26 +231,45 @@ export default function ToolClient() {
               ]}
             />
 
-            <InputField
-              label="Endpoint URL"
-              value={endpoint}
-              onChange={(value) => {
-                setEndpoint(value);
-                clearResult();
-              }}
-              placeholder="https://api.example.com/protected"
-              type="text"
-            />
-          </div>
+            <div className="md:col-span-2">
+              <InputField
+                label="Endpoint URL"
+                value={endpoint}
+                onChange={(value) => {
+                  setEndpoint(value);
+                  clearResult();
+                }}
+                placeholder="https://api.example.com/protected"
+                type="text"
+              />
 
-          <div className="mt-5 space-y-3">
-            <CheckboxRow checked={includeAcceptJson} label="Include Accept: application/json in snippets" onChange={(checked) => { setIncludeAcceptJson(checked); clearResult(); }} />
-            <CheckboxRow checked={includeContentTypeJson} label="Include Content-Type: application/json in snippets" onChange={(checked) => { setIncludeContentTypeJson(checked); clearResult(); }} />
-            <CheckboxRow checked={warnRealSecrets} label="Show secret handling warning" onChange={(checked) => { setWarnRealSecrets(checked); clearResult(); }} />
-            <CheckboxRow checked={warnEmptyPassword} label="Warn when password is empty" onChange={(checked) => { setWarnEmptyPassword(checked); clearResult(); }} />
-            <CheckboxRow checked={warnColonUsername} label="Warn when username contains colon" onChange={(checked) => { setWarnColonUsername(checked); clearResult(); }} />
+              <p className="mt-2 text-sm text-gray-500">
+                Optional. Used only for cURL, Fetch, and Axios output.
+              </p>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-sm leading-relaxed text-amber-800">
+        <span className="font-semibold text-amber-900">Safety note:</span>{" "}
+        Basic Auth is Base64 encoded, not encrypted by itself. Avoid using real production passwords unless you need to.
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <h3 className="text-lg font-semibold text-gray-900">Options</h3>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <CheckboxRow checked={includeAcceptJson} label="Include Accept: application/json in snippets" onChange={(checked) => { setIncludeAcceptJson(checked); clearResult(); }} />
+          <CheckboxRow checked={includeContentTypeJson} label="Include Content-Type: application/json in snippets" onChange={(checked) => { setIncludeContentTypeJson(checked); clearResult(); }} />
+          <CheckboxRow checked={warnRealSecrets} label="Show secret handling warning" onChange={(checked) => { setWarnRealSecrets(checked); clearResult(); }} />
+          <CheckboxRow checked={warnEmptyPassword} label="Warn when password is empty" onChange={(checked) => { setWarnEmptyPassword(checked); clearResult(); }} />
+          <CheckboxRow checked={warnColonUsername} label="Warn when username contains colon" onChange={(checked) => { setWarnColonUsername(checked); clearResult(); }} />
+        </div>
+
+        <p className="mt-3 text-sm leading-relaxed text-gray-500">
+          Keep generated Authorization headers private. Basic Auth credentials can be decoded from the header value.
+        </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
