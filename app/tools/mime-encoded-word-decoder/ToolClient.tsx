@@ -163,125 +163,109 @@ export default function ToolClient() {
       title="MIME Encoded-Word Decoder"
       description="Decode RFC 2047 encoded words in email subjects, sender names, and other message headers. Inspect charset, Base64 or Q encoding, folding, and decoded text locally."
     >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-900">Email Header or Text</label>
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Paste a subject line, From display name, folded header, or plain text you want to encode into MIME encoded-word format.
-            </p>
-          </div>
-
-          <textarea
-            value={input}
-            onChange={(event) => {
-              setInput(event.target.value);
-              clearResult();
-            }}
-            placeholder={sampleInput}
-            spellCheck={false}
-            className="w-full min-h-[420px] rounded-xl border border-gray-300 p-4 text-sm leading-6 font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-          />
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-gray-900">Email Header or Text</label>
+          <p className="mt-1 text-sm leading-relaxed text-gray-500">
+            Paste a subject line, From display name, folded header, or plain text you want to decode or encode as a MIME encoded word.
+          </p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Header Settings</h3>
+        <textarea
+          value={input}
+          onChange={(event) => {
+            setInput(event.target.value);
+            clearResult();
+          }}
+          placeholder={sampleInput}
+          spellCheck={false}
+          className="w-full min-h-[360px] rounded-xl border border-gray-300 p-4 text-sm leading-6 font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        />
 
-          <div className="mt-4 space-y-4">
-            <YoryantraSelect
-              label="Action"
-              value={actionMode}
-              onChange={(value) => {
-                setActionMode(value as ActionMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Decode encoded words", value: "decode" },
-                { label: "Encode text as MIME word", value: "encode" },
-                { label: "Analyze header only", value: "analyze" },
-                { label: "Normalize decoded header", value: "normalize" },
-              ]}
-            />
-
-            <YoryantraSelect
-              label="Output"
-              value={outputMode}
-              onChange={(value) => {
-                setOutputMode(value as OutputMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Readable summary", value: "summary" },
-                { label: "Plain text", value: "plain" },
-                { label: "JSON", value: "json" },
-                { label: "Markdown table", value: "markdown" },
-                { label: "CSV", value: "csv" },
-                { label: "Review checklist", value: "checklist" },
-              ]}
-            />
-
-            <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
-              <div className="mb-4">
-                <p className="text-sm font-semibold text-gray-900">Encoding Options</p>
-                <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                  These settings are mainly used when you encode plain text into a new MIME encoded-word value.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <YoryantraSelect
-                  label="Encoding for New Words"
-                  value={encodingMode}
-                  onChange={(value) => {
-                    setEncodingMode(value as EncodingMode);
-                    clearResult();
-                  }}
-                  options={encodingOptions}
-                />
-
-                <YoryantraSelect
-                  label="Charset for New Words"
-                  value={charsetMode}
-                  onChange={(value) => {
-                    setCharsetMode(value as CharsetMode);
-                    clearResult();
-                  }}
-                  options={charsetOptions}
-                />
-
-                <YoryantraSelect
-                  label="Header Type"
-                  value={headerKind}
-                  onChange={(value) => {
-                    setHeaderKind(value as HeaderKind);
-                    clearResult();
-                  }}
-                  options={[
-                    { label: "Subject header", value: "subject" },
-                    { label: "Display name", value: "display-name" },
-                    { label: "Comment text", value: "comment" },
-                    { label: "Generic header text", value: "generic" },
-                  ]}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
-              <p className="text-sm font-medium text-gray-700">Encoded-word shape</p>
-              <div className="mt-2 space-y-1 font-mono text-xs text-gray-500">
-                <p>=?UTF-8?B?...?=</p>
-                <p>=?UTF-8?Q?...?=</p>
-                <p>Used in Subject, From, To, and other email headers</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <p className="mt-3 text-sm leading-relaxed text-gray-500">
+          Paste raw encoded words like <span className="font-mono text-gray-700">=?UTF-8?B?...?=</span>, full email header lines, or plain text you want to encode.
+        </p>
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">Options</h3>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <YoryantraSelect
+            label="Action"
+            value={actionMode}
+            onChange={(value) => {
+              setActionMode(value as ActionMode);
+              clearResult();
+            }}
+            options={[
+              { label: "Decode encoded words", value: "decode" },
+              { label: "Encode text as MIME word", value: "encode" },
+              { label: "Analyze header only", value: "analyze" },
+              { label: "Normalize decoded header", value: "normalize" },
+            ]}
+          />
+
+          <YoryantraSelect
+            label="Output"
+            value={outputMode}
+            onChange={(value) => {
+              setOutputMode(value as OutputMode);
+              clearResult();
+            }}
+            options={[
+              { label: "Readable summary", value: "summary" },
+              { label: "Plain text", value: "plain" },
+              { label: "JSON", value: "json" },
+              { label: "Markdown table", value: "markdown" },
+              { label: "CSV", value: "csv" },
+              { label: "Review checklist", value: "checklist" },
+            ]}
+          />
+
+          <YoryantraSelect
+            label="Encoding for New Words"
+            value={encodingMode}
+            onChange={(value) => {
+              setEncodingMode(value as EncodingMode);
+              clearResult();
+            }}
+            options={encodingOptions}
+          />
+
+          <YoryantraSelect
+            label="Charset for New Words"
+            value={charsetMode}
+            onChange={(value) => {
+              setCharsetMode(value as CharsetMode);
+              clearResult();
+            }}
+            options={charsetOptions}
+          />
+
+          <YoryantraSelect
+            label="Header Type"
+            value={headerKind}
+            onChange={(value) => {
+              setHeaderKind(value as HeaderKind);
+              clearResult();
+            }}
+            options={[
+              { label: "Subject header", value: "subject" },
+              { label: "Display name", value: "display-name" },
+              { label: "Comment text", value: "comment" },
+              { label: "Generic header text", value: "generic" },
+            ]}
+          />
+        </div>
+
+        <div className="mt-5 rounded-xl border border-gray-200 bg-white p-4 text-sm leading-relaxed text-gray-600">
+          <p>
+            MIME encoded words usually look like <span className="font-mono text-gray-800">=?UTF-8?B?...?=</span> or <span className="font-mono text-gray-800">=?UTF-8?Q?...?=</span> and are commonly found in Subject, From, To, and other email headers.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
           <CheckboxRow checked={unfoldHeaders} label="Unfold multiline email headers" onChange={(checked) => { setUnfoldHeaders(checked); clearResult(); }} />
           <CheckboxRow checked={joinAdjacentWords} label="Join adjacent encoded words cleanly" onChange={(checked) => { setJoinAdjacentWords(checked); clearResult(); }} />
           <CheckboxRow checked={preserveHeaderNames} label="Preserve header names like Subject:" onChange={(checked) => { setPreserveHeaderNames(checked); clearResult(); }} />
@@ -291,6 +275,9 @@ export default function ToolClient() {
           <CheckboxRow checked={warnLongHeaderLines} label="Warn about very long header lines" onChange={(checked) => { setWarnLongHeaderLines(checked); clearResult(); }} />
         </div>
 
+        <p className="mt-4 text-sm leading-relaxed text-gray-500">
+          Use decode mode for copied email headers, encode mode for new non-ASCII subject lines or display names, and analyze mode when you only want to inspect the structure.
+        </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
