@@ -1340,6 +1340,13 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "Docker Compose Service Dependency Visualizer",
+  description:
+    "Visualize Docker Compose service dependencies from depends_on, links, ports, networks, and environment hints with Mermaid, JSON, Markdown, CSV, and checklist output.",
+  href: "/tools/docker-compose-service-dependency-visualizer",
+  category: "DevOps Tools",
+},
 
 
 
