@@ -1364,6 +1364,13 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "Kubernetes Image Tag Checker",
+  description:
+    "Check Kubernetes image tags, latest usage, missing tags, digest pins, and registry names.",
+  href: "/tools/kubernetes-image-tag-checker",
+  category: "DevOps Tools",
+},a
 
 
 
