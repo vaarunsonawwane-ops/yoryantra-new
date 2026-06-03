@@ -1373,6 +1373,14 @@ export const tools = [
 },
 
 
+{
+  title: "Kubernetes Resource Requests and Limits Checker",
+  description:
+    "Check Kubernetes CPU and memory requests, limits, missing resources, and container settings.",
+  href: "/tools/kubernetes-resource-requests-limits-checker",
+  category: "DevOps Tools",
+},
+
 
 
 ];
