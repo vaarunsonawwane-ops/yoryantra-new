@@ -1463,5 +1463,17 @@ export const tools = [
   category: "JSON & Data Tools",
 },
 
+{
+  title: "JSON Array Group By Tool",
+  description: "Group JSON array records by key, count values, and summarize numeric fields.",
+  href: "/tools/json-array-group-by-tool",
+  category: "JSON & Data Tools",
+},
+
+
+
+
+
+
 
 ];
