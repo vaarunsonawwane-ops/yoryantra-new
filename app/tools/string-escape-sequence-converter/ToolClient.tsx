@@ -351,107 +351,98 @@ export default function ToolClient() {
         </div>
       ) : null}
 
-      <section className="mt-12 space-y-10">
-        <ContentBlock title="Converting Escaped Strings Without Guesswork">
-          <p>
-            Escaped strings appear everywhere: JSON payloads, JavaScript code, copied API responses, log files, error messages, CSV exports, command output, and configuration snippets. A value that should read like normal text can arrive as <code className="rounded bg-gray-100 px-1 py-0.5">Hello\nWorld</code>, <code className="rounded bg-gray-100 px-1 py-0.5">\u0935\u0930</code>, or <code className="rounded bg-gray-100 px-1 py-0.5">\x48\x69</code>. This converter helps you turn those sequences back into readable text, or encode plain text into a safer escaped form.
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">Converting Escaped Strings Without Guesswork</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Escaped strings appear everywhere: JSON payloads, JavaScript code, copied API responses, log files, error messages, CSV exports, command output, and configuration snippets. A value that should read like normal text can arrive as <code className="rounded bg-gray-100 px-1 py-0.5">Hello\nWorld</code>, <code className="rounded bg-gray-100 px-1 py-0.5">\u0935\u0930</code>, or <code className="rounded bg-gray-100 px-1 py-0.5">\x48\x69</code>.
           </p>
-          <p>
-            The tool is useful when you need to understand a copied string quickly but do not want to paste it into a console, create a temporary script, or risk accidentally running code. It focuses only on string conversion and inspection.
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This converter helps you turn those sequences back into readable text, or encode plain text into a safer escaped form, without needing to open a console or create a temporary script.
           </p>
-        </ContentBlock>
+        </div>
 
-        <ContentBlock title="When This Escape Sequence Converter Helps">
-          <div className="grid gap-4 md:grid-cols-2">
-            <InfoCard title="Reading copied JSON values">
-              Decode escaped newlines, tabs, quotes, Unicode characters, and backslashes from JSON-looking strings.
-            </InfoCard>
-            <InfoCard title="Checking JavaScript strings">
-              Convert JavaScript escape sequences into readable text before using them in examples, tests, or documentation.
-            </InfoCard>
-            <InfoCard title="Inspecting Unicode escapes">
-              See what <code>\uXXXX</code> and <code>\u{'{'}...{'}'}</code> sequences represent without opening a separate script.
-            </InfoCard>
-            <InfoCard title="Preparing safe output">
-              Encode plain text into JavaScript, JSON, Unicode, hex, or C-style escaped strings for copying elsewhere.
-            </InfoCard>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">When This Escape Sequence Converter Helps</h2>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <p>Reading copied JSON values with escaped newlines, tabs, quotes, Unicode characters, and backslashes.</p>
+            <p className="mt-2">Checking JavaScript strings before using them in examples, tests, or documentation.</p>
+            <p className="mt-2">Inspecting what <code className="rounded bg-white px-1 py-0.5">\uXXXX</code> and <code className="rounded bg-white px-1 py-0.5">\u{'{'}...{'}'}</code> sequences represent without opening a script.</p>
+            <p className="mt-2">Preparing safe output for JavaScript, JSON, Unicode, hex, or C-style escaped strings.</p>
           </div>
-        </ContentBlock>
+        </div>
 
-        <ContentBlock title="How to Use the String Escape Sequence Converter">
-          <ol className="list-decimal space-y-3 pl-6 text-gray-700">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">How to Use the String Escape Sequence Converter</h2>
+          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Paste escaped text, copied JSON string content, Unicode escapes, hex escapes, or normal text into the input box.</li>
             <li>Choose whether you want to decode, encode, inspect, or normalize the string.</li>
             <li>Select the escape style that matches your source or target format.</li>
             <li>Pick an output format such as converted text, JSON report, Markdown, CSV, or checklist.</li>
             <li>Review the output, character table, and warnings before copying the result.</li>
           </ol>
-        </ContentBlock>
+        </div>
 
-        <ContentBlock title="Escape Sequence Examples">
-          <div className="overflow-x-auto rounded-2xl border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50 text-left text-gray-600">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Input</th>
-                  <th className="px-4 py-3 font-semibold">Meaning</th>
-                  <th className="px-4 py-3 font-semibold">Common place</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-gray-700">
-                <tr>
-                  <td className="px-4 py-3 font-mono">Hello\nWorld</td>
-                  <td className="px-4 py-3">Line break between words</td>
-                  <td className="px-4 py-3">JSON strings, logs, JavaScript</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-mono">\u0935\u0930</td>
-                  <td className="px-4 py-3">Unicode characters</td>
-                  <td className="px-4 py-3">Escaped API responses</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-mono">\x48\x69</td>
-                  <td className="px-4 py-3">Hex bytes for readable text</td>
-                  <td className="px-4 py-3">Scripts, older formats, debugging output</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-mono">\t</td>
-                  <td className="px-4 py-3">Tab character</td>
-                  <td className="px-4 py-3">Delimited text and copied code</td>
-                </tr>
-              </tbody>
-            </table>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Escape Sequence Examples</h2>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <div>
+              <div className="font-medium text-gray-900">JavaScript newline</div>
+              <div className="mt-1 font-mono">Input: Hello\nWorld</div>
+              <div className="mt-1 font-mono">Decoded: Hello World</div>
+            </div>
+            <div className="mt-4">
+              <div className="font-medium text-gray-900">Unicode escape</div>
+              <div className="mt-1 font-mono">Input: \u0935\u0930\u0941\u0923</div>
+              <div className="mt-1 font-mono">Decoded: वरुण</div>
+            </div>
+            <div className="mt-4">
+              <div className="font-medium text-gray-900">Hex bytes</div>
+              <div className="mt-1 font-mono">Input: \x48\x69</div>
+              <div className="mt-1 font-mono">Decoded: Hi</div>
+            </div>
+            <div className="mt-4">
+              <div className="font-medium text-gray-900">Tab character</div>
+              <div className="mt-1 font-mono">Input: Name\tValue</div>
+              <div className="mt-1 font-mono">Decoded: Name    Value</div>
+            </div>
           </div>
-        </ContentBlock>
+        </div>
 
-        <ContentBlock title="FAQs">
-          <FaqItem question="Does this tool run code from my string?">
-            No. It treats your input as text and converts escape sequences. It does not evaluate JavaScript expressions, execute commands, or run pasted code.
-          </FaqItem>
-          <FaqItem question="Is anything uploaded while converting escaped strings?">
-            No. The conversion runs locally in your browser. Pasted strings, logs, JSON values, or copied snippets are not uploaded by this tool.
-          </FaqItem>
-          <FaqItem question="What is the difference between JSON and JavaScript escaping?">
-            JSON strings are stricter. JavaScript allows some escape forms that JSON does not. Use JSON mode when preparing a value for valid JSON and JavaScript mode when working with source-code style strings.
-          </FaqItem>
-          <FaqItem question="Can this decode Unicode emoji escapes?">
-            Yes. It supports normal Unicode escapes such as <code>\uXXXX</code> and braced JavaScript escapes such as <code>\u{'{'}1F680{'}'}</code> when the value is valid.
-          </FaqItem>
-          <FaqItem question="Why do some escape sequences stay unchanged?">
-            Invalid or incomplete escape sequences are left as text instead of being guessed. The review notes can warn you when suspicious sequences are found.
-          </FaqItem>
-        </ContentBlock>
-
-        <ContentBlock title="Related Encoding Tools">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <RelatedTool href="/tools/mime-encoded-word-decoder" title="MIME Encoded-Word Decoder" description="Decode encoded email header words and inspect common MIME header text." />
-            <RelatedTool href="/tools/unicode-escape-sequence-converter" title="Unicode Escape Sequence Converter" description="Convert Unicode escape sequences into readable text and back." />
-            <RelatedTool href="/tools/hex-to-text-converter" title="Hex to Text Converter" description="Convert hex values into text and inspect decoded characters." />
-            <RelatedTool href="/tools/base64-encoder-decoder" title="Base64 Encoder Decoder" description="Encode and decode Base64 text for quick browser-side checks." />
-            <RelatedTool href="/tools/url-encoder-decoder" title="URL Encoder Decoder" description="Encode and decode URL components, query strings, and percent-encoded text." />
-            <RelatedTool href="/tools/json-string-escape-unescape" title="JSON String Escape Unescape" description="Escape and unescape JSON-safe string values for APIs and configs." />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <div className="mt-5 space-y-6">
+            <Faq title="What does string escaping mean?">
+              String escaping converts special characters into escape sequences so the value can safely appear inside code, JSON, logs, config files, or copied text.
+            </Faq>
+            <Faq title="What does unescaping do?">
+              Unescaping converts escaped string sequences back into readable text.
+            </Faq>
+            <Faq title="Why do backslashes appear in escaped strings?">
+              Backslashes are used to represent characters such as quotes, newlines, tabs, Unicode values, and other special characters.
+            </Faq>
+            <Faq title="Is this useful for API debugging?">
+              Yes. It helps when copied API responses, JSON payloads, webhook bodies, logs, or debug output contain escaped values that are hard to read directly.
+            </Faq>
+            <Faq title="Is anything uploaded while converting escaped strings?">
+              No. The conversion runs entirely inside your browser.
+            </Faq>
           </div>
-        </ContentBlock>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            String escaping often connects with API debugging, structured data workflows, backend development, payload validation, and copied developer output.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/tools/json-validator" className="yoryantra-btn-outline">JSON Validator</Link>
+            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">JSON Formatter</Link>
+            <Link href="/tools/json-schema-validator" className="yoryantra-btn-outline">JSON Schema Validator</Link>
+            <Link href="/tools/json-diff-checker" className="yoryantra-btn-outline">JSON Diff Checker</Link>
+            <Link href="/tools/url-safe-base64-converter" className="yoryantra-btn-outline">Base64URL Encoder Decoder</Link>
+          </div>
+        </div>
       </section>
     </ToolShell>
   );
@@ -860,38 +851,11 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ContentBlock({ title, children }: { title: string; children: ReactNode }) {
+function Faq({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-6">
-      <h2 className="text-2xl font-semibold tracking-tight text-gray-900">{title}</h2>
-      <div className="mt-4 space-y-4 text-base leading-7 text-gray-700">{children}</div>
-    </section>
-  );
-}
-
-function InfoCard({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-gray-600">{children}</p>
+    <div>
+      <h3 className="font-semibold text-gray-900">{title}</h3>
+      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
     </div>
-  );
-}
-
-function FaqItem({ question, children }: { question: string; children: ReactNode }) {
-  return (
-    <div className="border-t border-gray-200 pt-5 first:border-t-0 first:pt-0">
-      <h3 className="text-base font-semibold text-gray-900">{question}</h3>
-      <p className="mt-2 text-sm leading-6 text-gray-600">{children}</p>
-    </div>
-  );
-}
-
-function RelatedTool({ href, title, description }: { href: string; title: string; description: string }) {
-  return (
-    <Link href={href} className="rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:border-[var(--green)] hover:bg-white">
-      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-gray-600">{description}</p>
-    </Link>
   );
 }
