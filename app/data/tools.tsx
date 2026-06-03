@@ -1442,6 +1442,13 @@ export const tools = [
   category: "JSON & Data Tools",
 },
 
+{
+  title: "JSON to Form Data Converter",
+  description: "Convert JSON objects into form-data fields, URL encoded bodies, and cURL parameters.",
+  href: "/tools/json-to-form-data-converter",
+  category: "JSON & Data Tools",
+},
+
 
 
 ];
