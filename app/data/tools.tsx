@@ -1389,5 +1389,17 @@ export const tools = [
   category: "Encoding Tools",
 },
 
+{
+  title: "PEM Certificate Encoder Decoder",
+  description:
+    "Parse, normalize, and convert PEM certificates, keys, Base64 bodies, and line wrapping.",
+  href: "/tools/pem-certificate-encoder-decoder",
+  category: "Encoding Tools",
+},
+
+
+
+
+
 
 ];
