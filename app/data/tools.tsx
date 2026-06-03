@@ -1413,6 +1413,13 @@ export const tools = [
   category: "Encoding Tools",
 },
 
+{
+    title: "XML Escape Unescape",
+    description: "Escape and unescape XML entities for feeds, APIs, SVG, SOAP, and sitemap text.",
+    href: "/tools/xml-escape-unescape",
+    category: "Encoding Tools",
+  },
+
 
 
 ];
