@@ -1406,16 +1406,6 @@ export const tools = [
   category: "Encoding Tools",
 },
 
-{
-  title: "Data URI Encoder Decoder",
-  description: "Encode, decode, and inspect Data URLs for text, images, fonts, and inline assets.",
-  href: "/tools/data-uri-encoder-decoder",
-  category: "Encoding Tools",
-},
-
-
-
-
 
 
 ];
