@@ -1381,6 +1381,13 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "URL Safe Base64 Converter",
+  description:
+    "Convert Base64URL, standard Base64, text, padding, and JWT-style token segments.",
+  href: "/tools/url-safe-base64-converter",
+  category: "Encoding Tools",
+},
 
 
 ];
