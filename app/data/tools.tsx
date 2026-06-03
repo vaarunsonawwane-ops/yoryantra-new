@@ -1406,6 +1406,13 @@ export const tools = [
   category: "Encoding Tools",
 },
 
+{
+  title: "String Escape Sequence Converter",
+  description: "Decode and encode escaped strings for JavaScript, JSON, Unicode, hex, and C-style text.",
+  href: "/tools/string-escape-sequence-converter",
+  category: "Encoding Tools",
+},
+
 
 
 ];
