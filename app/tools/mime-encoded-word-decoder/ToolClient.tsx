@@ -259,11 +259,6 @@ export default function ToolClient() {
           />
         </div>
 
-        <div className="mt-5 rounded-xl border border-gray-200 bg-white p-4 text-sm leading-relaxed text-gray-600">
-          <p>
-            MIME encoded words usually look like <span className="font-mono text-gray-800">=?UTF-8?B?...?=</span> or <span className="font-mono text-gray-800">=?UTF-8?Q?...?=</span> and are commonly found in Subject, From, To, and other email headers.
-          </p>
-        </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-2">
           <CheckboxRow checked={unfoldHeaders} label="Unfold multiline email headers" onChange={(checked) => { setUnfoldHeaders(checked); clearResult(); }} />
