@@ -167,30 +167,36 @@ export default function ToolClient() {
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <div className="mb-3 flex items-start justify-between gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-900">
-                GraphQL Query
-              </label>
-              <p className="mt-1 text-sm text-gray-500">
-                Paste a query, mutation, subscription, fragment, or copied request body query string.
-              </p>
-            </div>
-
-            <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-500">
-              Main input
-            </span>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-900">
+              GraphQL Query
+            </label>
+            <p className="mt-1 text-sm leading-relaxed text-gray-500">
+              Paste a query, mutation, subscription, fragment, or copied request body query string.
+            </p>
           </div>
 
-          <textarea
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              clearResult();
-            }}
-            placeholder={sampleQuery}
-            className="w-full min-h-[460px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-          />
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/70 px-4 py-2.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Query editor
+              </span>
+              <span className="text-xs font-medium text-gray-400">
+                Local only
+              </span>
+            </div>
+
+            <textarea
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                clearResult();
+              }}
+              placeholder={sampleQuery}
+              spellCheck={false}
+              className="block w-full min-h-[420px] resize-y border-0 bg-white p-4 text-sm leading-6 font-mono outline-none placeholder:text-gray-400 focus:ring-0"
+            />
+          </div>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
