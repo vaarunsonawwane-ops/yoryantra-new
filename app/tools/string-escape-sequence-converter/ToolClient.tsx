@@ -234,7 +234,7 @@ export default function ToolClient() {
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
         <h3 className="text-lg font-semibold text-gray-900">Options</h3>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
           <Toggle checked={trimInput} onChange={setTrimInput} label="Trim outer whitespace" />
           <Toggle checked={unwrapQuotes} onChange={setUnwrapQuotes} label="Unwrap matching quotes while decoding" />
           <Toggle checked={escapeNonAscii} onChange={setEscapeNonAscii} label="Escape non-ASCII characters" />
@@ -244,6 +244,9 @@ export default function ToolClient() {
           <Toggle checked={warnInvalidEscapes} onChange={setWarnInvalidEscapes} label="Warn about invalid escapes" />
           <Toggle checked={warnControlCharacters} onChange={setWarnControlCharacters} label="Warn about control characters" />
         </div>
+        <p className="mt-4 text-sm leading-relaxed text-gray-500">
+          These checks keep escaped text readable while still warning about invalid sequences, hidden control characters, and formatting changes.
+        </p>
 
         <div className="mt-5 flex flex-wrap gap-3">
           <button
@@ -830,7 +833,7 @@ function getNotes(result: Result): Issue[] {
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
   return (
-    <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+    <label className="flex items-center gap-2 text-sm text-gray-700">
       <input
         type="checkbox"
         checked={checked}
