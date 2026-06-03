@@ -1456,7 +1456,12 @@ export const tools = [
   category: "JSON & Data Tools",
 },
 
-
+{
+  title: "JSON to URL Query Converter",
+  description: "Convert JSON objects into URL query strings and decode query strings back into JSON.",
+  href: "/tools/json-to-url-query-converter",
+  category: "JSON & Data Tools",
+},
 
 
 ];
