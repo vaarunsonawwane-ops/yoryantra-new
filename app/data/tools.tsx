@@ -1477,7 +1477,12 @@ export const tools = [
   category: "Developer Tools",
 },
 
-
+{
+  title: "Docker Compose Environment Variable Resolver",
+  description: "Preview Docker Compose .env substitutions, defaults, and missing environment variables.",
+  href: "/tools/docker-compose-environment-variable-resolver",
+  category: "DevOps Tools",
+},
 
 
 
