@@ -1491,5 +1491,18 @@ export const tools = [
   category: "Encoding Tools",
 },
 
+{
+  title: "JSON Array Filter Tool",
+  description: "Filter JSON array records by key, value, condition, and dot path.",
+  href: "/tools/json-array-filter-tool",
+  category: "JSON & Data Tools",
+},
+
+
+
+
+
+
+
 
 ];
