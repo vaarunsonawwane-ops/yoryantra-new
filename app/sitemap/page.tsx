@@ -155,17 +155,17 @@ export default function SitemapPage() {
                 </span>
               </div>
 
-              <div className="mt-4 grid gap-x-8 gap-y-1 sm:grid-cols-2">
-                {categoryTools.map((tool) => (
-                  <Link
-                    key={tool.href}
-                    href={tool.href}
-                    className="text-[15px] leading-6 text-gray-700 transition hover:text-[var(--light-gold)]"
-                  >
-                    {tool.title}
-                  </Link>
-                ))}
-              </div>
+			  <div className="mt-4 columns-1 gap-8 sm:columns-2">
+			    {categoryTools.map((tool) => (
+				  <Link
+				    key={tool.href}
+				    href={tool.href}
+				    className="mb-2 block break-inside-avoid text-[15px] leading-6 text-gray-700 transition hover:text-[var(--light-gold)]"
+				  >
+				    {tool.title}
+				  </Link>
+			    ))}
+			  </div>
             </div>
           ))}
         </div>
