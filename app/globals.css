@@ -28,6 +28,13 @@ body {
   color: var(--dark);
 }
 
+textarea {
+  max-height: 520px;
+  resize: vertical;
+  overflow: auto;
+}
+
+
 /* =========================================
    OUTPUT BOX
 ========================================= */
