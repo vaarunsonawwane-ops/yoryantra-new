@@ -50,7 +50,7 @@ export default function ToolClient() {
   const [authMode, setAuthMode] = useState<AuthMode>("none");
   const [safetyLevel, setSafetyLevel] = useState<SafetyLevel>("safeExample");
   const [requestBody, setRequestBody] = useState("");
-  const [customHeaders, setCustomHeaders] = useState("Accept: application/json");
+  const [customHeaders, setCustomHeaders] = useState("");
   const [includeContentType, setIncludeContentType] = useState(true);
   const [includeAcceptHeader, setIncludeAcceptHeader] = useState(true);
   const [includeAuthPlaceholder, setIncludeAuthPlaceholder] = useState(false);
@@ -131,7 +131,7 @@ export default function ToolClient() {
     setAuthMode("bearer");
     setSafetyLevel("safeExample");
     setRequestBody(sampleBody);
-    setCustomHeaders("Accept: application/json\nX-Request-ID: example-request-id");
+    setCustomHeaders("X-Request-ID: example-request-id");
     setIncludeContentType(true);
     setIncludeAcceptHeader(true);
     setIncludeAuthPlaceholder(true);
@@ -152,7 +152,7 @@ export default function ToolClient() {
     setAuthMode("none");
     setSafetyLevel("safeExample");
     setRequestBody("");
-    setCustomHeaders("Accept: application/json");
+    setCustomHeaders("");
     setIncludeContentType(true);
     setIncludeAcceptHeader(true);
     setIncludeAuthPlaceholder(false);
