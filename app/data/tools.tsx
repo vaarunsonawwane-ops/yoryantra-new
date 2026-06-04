@@ -1498,8 +1498,12 @@ export const tools = [
   category: "JSON & Data Tools",
 },
 
-
-
+{
+  title: "Bearer Token Header Generator",
+  description: "Generate Bearer token Authorization headers and safe API request snippets.",
+  href: "/tools/bearer-token-header-generator",
+  category: "Security Tools",
+},
 
 
 
