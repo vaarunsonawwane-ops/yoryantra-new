@@ -585,8 +585,10 @@ function buildHeaders(options: {
   headerCase: HeaderCase;
   includeAcceptHeader: boolean;
   includeContentTypeHeader: boolean;
-}, authValue: string) {
-  const headers = [{ name: options.headerCase, value: authValue }];
+}, authValue: string): Array<{ name: string; value: string }> {
+  const headers: Array<{ name: string; value: string }> = [
+    { name: options.headerCase, value: authValue },
+  ];
 
   if (options.includeAcceptHeader) {
     headers.push({ name: "Accept", value: "application/json" });
