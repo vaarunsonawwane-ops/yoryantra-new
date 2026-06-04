@@ -1484,6 +1484,12 @@ export const tools = [
   category: "DevOps Tools",
 },
 
+{
+  title: "Octal Encoder Decoder",
+  description: "Convert text to octal values and decode octal bytes back to readable text.",
+  href: "/tools/octal-encoder-decoder",
+  category: "Encoding Tools",
+},
 
 
 ];
