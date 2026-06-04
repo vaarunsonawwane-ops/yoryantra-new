@@ -238,7 +238,7 @@ export default function ToolClient() {
             }}
             placeholder={sampleInput}
             spellCheck={false}
-            className="w-full min-h-[420px] rounded-xl border border-gray-300 p-4 text-sm leading-6 font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            className="w-full min-h-[420px] max-h-[520px] resize-y overflow-auto rounded-xl border border-gray-300 p-4 text-sm leading-6 font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
         </div>
 
