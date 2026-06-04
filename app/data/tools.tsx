@@ -1470,7 +1470,12 @@ export const tools = [
   category: "JSON & Data Tools",
 },
 
-
+{
+  title: "HTTP Method Tester",
+  description: "Check HTTP method usage and generate safe cURL or fetch request examples.",
+  href: "/tools/http-method-tester",
+  category: "Developer Tools",
+},
 
 
 
