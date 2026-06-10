@@ -60,7 +60,7 @@ export default function ToolClient() {
   const [encodingMode, setEncodingMode] = useState<EncodingMode>("percent");
   const [outputMode, setOutputMode] = useState<OutputMode>("dataUri");
   const [charsetMode, setCharsetMode] = useState<CharsetMode>("include");
-  const [charset, setCharset] = useState("utf-8");
+  const [charset, setCharset] = useState("");
   const [trimInput, setTrimInput] = useState(true);
   const [result, setResult] = useState<DataUriResult | null>(null);
   const [output, setOutput] = useState("");
@@ -133,7 +133,7 @@ export default function ToolClient() {
     setEncodingMode("percent");
     setOutputMode("dataUri");
     setCharsetMode("include");
-    setCharset("utf-8");
+    setCharset("");
     setTrimInput(true);
     clearResult();
   };
@@ -251,6 +251,9 @@ export default function ToolClient() {
                   clearResult();
                 }}
                 placeholder="utf-8"
+                spellCheck={false}
+                autoCapitalize="none"
+                autoCorrect="off"
                 className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
               />
             </div>
