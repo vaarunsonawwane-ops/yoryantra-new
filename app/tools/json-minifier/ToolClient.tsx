@@ -546,7 +546,7 @@ function countArrays(value: unknown): number {
   }
 
   if (value && typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).reduce(
+    return Object.values(value as Record<string, unknown>).reduce<number>(
       (total, item) => total + countArrays(item),
       0
     );
@@ -563,7 +563,7 @@ function countObjects(value: unknown): number {
   if (value && typeof value === "object" && value !== null) {
     return (
       1 +
-      Object.values(value as Record<string, unknown>).reduce(
+      Object.values(value as Record<string, unknown>).reduce<number>(
         (total, item) => total + countObjects(item),
         0
       )
