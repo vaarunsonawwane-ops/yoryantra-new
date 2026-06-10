@@ -1,55 +1,45 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title:
-    "HTML Escape Unescape – Encode & Decode HTML Entities | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "HTML Escape Unescape Online | Encode and Decode HTML Entities",
   description:
-    "Escape and unescape HTML entities for safe text rendering, HTML content, frontend debugging, APIs, and web development workflows.",
-
+    "Escape HTML online, unescape HTML entities, encode special characters, decode entity-encoded text, and safely convert HTML snippets for frontend and content workflows.",
   keywords: [
     "html escape unescape",
+    "html escape online",
+    "html unescape online",
     "html entity encoder",
     "html entity decoder",
     "escape html",
     "unescape html",
-    "html entities converter",
-    "html encoder decoder",
     "encode html entities",
     "decode html entities",
+    "html entities converter",
+    "html encoder decoder",
     "html escape tool",
+    "html decode online",
     "encoding tools",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/html-escape-unescape",
   },
-
   openGraph: {
-    title:
-      "HTML Escape Unescape – Encode & Decode HTML Entities | Yoryantra",
-
+    title: "HTML Escape Unescape Online | Yoryantra",
     description:
-      "Escape and unescape HTML entities for safe rendering, frontend debugging, APIs, and web development workflows.",
-
+      "Escape HTML, unescape HTML entities, and convert special characters directly in your browser.",
     url: "https://yoryantra.com/tools/html-escape-unescape",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title:
-      "HTML Escape Unescape – Encode & Decode HTML Entities | Yoryantra",
-
+    card: "summary",
+    title: "HTML Escape Unescape Online | Yoryantra",
     description:
-      "Free HTML Escape Unescape tool for encoding and decoding HTML entities safely.",
+      "Encode and decode HTML entities for safe text display, frontend debugging, APIs, and content work.",
   },
 };
 
-export default function Page() {
+export default function HtmlEscapeUnescapePage() {
   return <ToolClient />;
 }
