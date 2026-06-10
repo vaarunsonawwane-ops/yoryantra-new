@@ -1,48 +1,43 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "JSON Minifier Online Free | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "JSON Minifier Online | Minify, Compress, and Validate JSON",
   description:
-    "Minify and compress JSON data instantly with this free online JSON Minifier. Remove whitespace from JSON for APIs, apps, and development workflows.",
-
+    "Minify JSON online, compress JSON payloads, remove whitespace, validate JSON syntax, and copy clean compact JSON for APIs, apps, logs, and development workflows.",
   keywords: [
     "json minifier",
+    "json minifier online",
     "minify json",
+    "minify json online",
+    "json minify",
+    "json minify online",
     "json compressor",
     "compress json online",
     "remove whitespace from json",
-    "json tools",
-    "developer utilities",
+    "compact json",
+    "json validator",
+    "developer tools",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/json-minifier",
   },
-
   openGraph: {
-    title: "JSON Minifier Online Free | Yoryantra",
-
+    title: "JSON Minifier Online | Yoryantra",
     description:
-      "Minify and compress JSON data instantly with this free online JSON Minifier.",
-
+      "Minify JSON, remove whitespace, validate syntax, and create compact JSON directly in your browser.",
     url: "https://yoryantra.com/tools/json-minifier",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "JSON Minifier Online Free | Yoryantra",
-
+    card: "summary",
+    title: "JSON Minifier Online | Yoryantra",
     description:
-      "Compress JSON instantly with this clean and fast JSON Minifier.",
+      "Compress JSON online, validate syntax, and copy compact JSON for APIs and development work.",
   },
 };
 
-export default function Page() {
+export default function JsonMinifierPage() {
   return <ToolClient />;
 }
