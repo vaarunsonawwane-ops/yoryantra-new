@@ -161,7 +161,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Lines to JSON Converter"
-      description="Convert JSON Lines and NDJSON into JSON arrays, inspect each record, or convert JSON arrays back into newline-delimited JSON locally in your browser."
+      description="Convert JSON Lines to JSON arrays, convert NDJSON to JSON, inspect each record, or turn JSON arrays back into newline-delimited JSON locally in your browser."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -277,21 +277,21 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={processInput}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="yoryantra-btn"
         >
           Convert JSON Lines
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="yoryantra-btn-outline"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="yoryantra-btn-outline"
         >
           Reset
         </button>
@@ -383,22 +383,26 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Converting JSON Lines Into Usable JSON</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Converting JSON Lines and NDJSON Into Usable JSON</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Lines and NDJSON files store one JSON value per line. This format is common in logs, exports, streaming APIs, analytics data, queues, and data pipelines because each record can be processed independently.
+            JSON Lines and NDJSON files store one JSON value per line. This format is common in logs, exports, streaming APIs, analytics events, queues, and data pipelines because each record can be processed independently.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
             This converter helps turn newline-delimited records into a normal JSON array, inspect line-by-line parse problems, or convert a JSON array back into compact JSON Lines for tools that expect one record per line.
           </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            It is useful when a tool expects regular JSON but your source data is in JSONL or NDJSON, or when a pipeline needs one compact JSON record on each line.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This JSON Lines Converter Helps</h2>
+          <h2 className="text-xl font-semibold text-gray-900">When This JSONL and NDJSON Converter Helps</h2>
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <p>Turning log exports, analytics events, or streamed API records into a JSON array you can inspect or share.</p>
             <p className="mt-2">Checking which line in a JSONL or NDJSON file is broken before importing it into another tool.</p>
             <p className="mt-2">Converting a JSON array into newline-delimited records for pipelines, data scripts, queues, and command-line workflows.</p>
-            <p className="mt-2">Creating Markdown, CSV, or checklist summaries before copying the data into documentation or issue reports.</p>
+            <p className="mt-2">Creating Markdown, CSV, or checklist summaries before copying the data into documentation, pull requests, or issue reports.</p>
+            <p className="mt-2">Converting newline-delimited JSON from CLI tools, database exports, and event streams into readable JSON.</p>
           </div>
         </div>
 
@@ -414,11 +418,28 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example JSON Lines Input</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Example JSON Lines to JSON Conversion</h2>
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`{"id":1,"event":"page_view"}
+            <p className="font-medium text-gray-900">JSON Lines input:</p>
+            <pre className="mt-2 whitespace-pre-wrap break-words">{`{"id":1,"event":"page_view"}
 {"id":2,"event":"scroll"}
 {"id":3,"event":"conversion"}`}</pre>
+
+            <p className="mt-4 font-medium text-gray-900">JSON array output:</p>
+            <pre className="mt-2 whitespace-pre-wrap break-words">{`[
+  {
+    "id": 1,
+    "event": "page_view"
+  },
+  {
+    "id": 2,
+    "event": "scroll"
+  },
+  {
+    "id": 3,
+    "event": "conversion"
+  }
+]`}</pre>
           </div>
         </div>
 
@@ -432,11 +453,14 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
           <div className="mt-5 space-y-6">
-            <Faq title="What does this JSON Lines converter do?">
+            <Faq title="What does a JSON Lines to JSON converter do?">
               It converts one-JSON-value-per-line text into a JSON array, or converts a JSON array back into newline-delimited JSON records.
             </Faq>
             <Faq title="Is JSON Lines the same as NDJSON?">
               They are commonly used to describe the same style of newline-delimited JSON records. Each non-empty line should contain one valid JSON value.
+            </Faq>
+            <Faq title="Why would I convert JSONL to a JSON array?">
+              Many editors, API tools, and data viewers expect one normal JSON document. Converting JSONL to a JSON array makes those records easier to inspect, copy, and reuse.
             </Faq>
             <Faq title="Can this find the broken line in a JSONL file?">
               Yes. The line inspection table shows which lines parsed successfully and which lines have JSON parse errors.
@@ -457,6 +481,7 @@ export default function ToolClient() {
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link href="/tools/ndjson-formatter-validator" className="yoryantra-btn-outline">NDJSON Formatter Validator</Link>
+            <Link href="/tools/json-minifier" className="yoryantra-btn-outline">JSON Minifier</Link>
             <Link href="/tools/json-formatter" className="yoryantra-btn-outline">JSON Formatter</Link>
             <Link href="/tools/json-validator" className="yoryantra-btn-outline">JSON Validator</Link>
             <Link href="/tools/json-to-csv-converter" className="yoryantra-btn-outline">JSON to CSV Converter</Link>
