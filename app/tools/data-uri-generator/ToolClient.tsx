@@ -56,7 +56,7 @@ const mimeByKind: Record<InputKind, string> = {
 export default function ToolClient() {
   const [inputKind, setInputKind] = useState<InputKind>("svg");
   const [input, setInput] = useState("");
-  const [mimeType, setMimeType] = useState("image/svg+xml");
+  const [mimeType, setMimeType] = useState("");
   const [encodingMode, setEncodingMode] = useState<EncodingMode>("percent");
   const [outputMode, setOutputMode] = useState<OutputMode>("dataUri");
   const [charsetMode, setCharsetMode] = useState<CharsetMode>("include");
@@ -119,7 +119,7 @@ export default function ToolClient() {
 
   const loadExample = () => {
     setInput(examples[inputKind]);
-    setMimeType(mimeByKind[inputKind]);
+    setMimeType("");
     setResult(null);
     setOutput("");
     setError("");
@@ -129,7 +129,7 @@ export default function ToolClient() {
   const resetAll = () => {
     setInputKind("svg");
     setInput("");
-    setMimeType("image/svg+xml");
+    setMimeType("");
     setEncodingMode("percent");
     setOutputMode("dataUri");
     setCharsetMode("include");
@@ -140,7 +140,7 @@ export default function ToolClient() {
 
   const changeKind = (value: InputKind) => {
     setInputKind(value);
-    setMimeType(mimeByKind[value]);
+    setMimeType("");
     clearResult();
   };
 
@@ -223,7 +223,10 @@ export default function ToolClient() {
                 setMimeType(event.target.value);
                 clearResult();
               }}
-              placeholder="image/svg+xml"
+              placeholder={mimeByKind[inputKind]}
+              spellCheck={false}
+              autoCapitalize="none"
+              autoCorrect="off"
               className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
             />
           </div>
