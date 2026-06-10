@@ -1,38 +1,40 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "YAML Formatter Online Free | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "YAML Formatter Online | Format, Beautify, and Validate YAML",
   description:
-    "Format and beautify YAML instantly with this free online YAML Formatter. Clean, validate, and improve YAML readability.",
-
+    "Format YAML online, beautify indentation, validate YAML syntax, and clean YAML configuration files for Kubernetes, Docker Compose, CI/CD, and DevOps workflows.",
   keywords: [
     "yaml formatter",
-    "format yaml",
+    "yaml formatter online",
+    "yaml format online",
+    "format yaml online",
+    "online yaml formatter",
     "yaml beautifier",
     "yaml validator",
     "pretty print yaml",
-    "developer utilities",
+    "yaml indentation checker",
+    "kubernetes yaml formatter",
+    "docker compose yaml formatter",
+    "ci cd yaml formatter",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/yaml-formatter",
   },
-
   openGraph: {
-    title: "YAML Formatter Online Free | Yoryantra",
+    title: "YAML Formatter Online | Yoryantra",
     description:
-      "Format and beautify YAML instantly with this free online YAML Formatter.",
+      "Format, beautify, and validate YAML configuration files directly in your browser.",
     url: "https://yoryantra.com/tools/yaml-formatter",
     siteName: "Yoryantra",
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-    title: "YAML Formatter Online Free | Yoryantra",
+    title: "YAML Formatter Online | Yoryantra",
     description:
-      "Beautify and format YAML instantly with this clean online YAML Formatter.",
+      "Format YAML online, validate syntax, and clean YAML indentation for configuration files.",
   },
 };
 
