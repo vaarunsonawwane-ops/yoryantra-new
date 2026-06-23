@@ -76,25 +76,6 @@ export default function RootLayout({
         <main>{children}</main>
 
         <Footer />
-
-        {/* Existing direct Google Analytics installation */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-V1ZXR0B4FM"
-          strategy="afterInteractive"
-        />
-
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-
-            function gtag(){
-              dataLayer.push(arguments);
-            }
-
-            gtag('js', new Date());
-            gtag('config', 'G-V1ZXR0B4FM');
-          `}
-        </Script>
       </body>
     </html>
   );
