@@ -11,7 +11,11 @@
       color-scheme: light;
       font-family: Arial, Helvetica, sans-serif;
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -21,6 +25,7 @@
       color: #111827;
       padding: 24px;
     }
+
     .card {
       width: 100%;
       max-width: 560px;
@@ -30,17 +35,20 @@
       padding: 32px;
       box-shadow: 0 10px 30px rgba(17, 24, 39, 0.06);
     }
+
     .eyebrow {
       margin: 0 0 8px;
       color: #6b7280;
       font-size: 14px;
       font-weight: 700;
     }
+
     h1 {
       margin: 0;
       font-size: 28px;
       line-height: 1.25;
     }
+
     .status {
       margin-top: 24px;
       border-left: 4px solid #c89b3c;
@@ -48,30 +56,36 @@
       padding: 16px;
       border-radius: 8px;
     }
+
     .status.disabled {
       border-left-color: #15803d;
       background: #f0fdf4;
     }
+
     .status.error {
       border-left-color: #b91c1c;
       background: #fef2f2;
     }
+
     .status strong {
       display: block;
       margin-bottom: 4px;
     }
+
     .status p {
       margin: 0;
       color: #4b5563;
       font-size: 14px;
       line-height: 1.6;
     }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
       margin-top: 24px;
     }
+
     button {
       border: 0;
       border-radius: 9px;
@@ -81,15 +95,18 @@
       font-weight: 700;
       cursor: pointer;
     }
+
     .disable {
       background: #111827;
       color: #ffffff;
     }
+
     .enable {
       border: 1px solid #d1d5db;
       background: #ffffff;
       color: #111827;
     }
+
     .note {
       margin: 20px 0 0;
       color: #6b7280;
@@ -119,9 +136,9 @@
     </div>
 
     <p class="note">
-      This setting applies only to this browser on this device. Clearing website
-      cookies removes the setting. This standalone page does not load Google
-      Analytics or Google Tag Manager.
+      This setting applies to yoryantra.com and its www hostname in this browser.
+      Clearing website cookies removes the setting. This standalone page does not
+      load Google Analytics or Google Tag Manager.
     </p>
   </main>
 
@@ -130,6 +147,7 @@
       "use strict";
 
       var COOKIE_NAME = "internal_staff";
+      var COOKIE_DOMAIN = "yoryantra.com";
       var ONE_YEAR_IN_SECONDS = 31536000;
       var statusBox = document.getElementById("status");
       var disableButton = document.getElementById("disableButton");
@@ -175,6 +193,7 @@
           COOKIE_NAME + "=true",
           "Max-Age=" + ONE_YEAR_IN_SECONDS,
           "Path=/",
+          "Domain=" + COOKIE_DOMAIN,
           "SameSite=Lax",
           "Secure"
         ].join("; ");
@@ -183,6 +202,17 @@
       }
 
       function enableAnalytics() {
+        // Remove the domain-scoped cookie.
+        document.cookie = [
+          COOKIE_NAME + "=",
+          "Max-Age=0",
+          "Path=/",
+          "Domain=" + COOKIE_DOMAIN,
+          "SameSite=Lax",
+          "Secure"
+        ].join("; ");
+
+        // Also remove any older host-only version created by the previous file.
         document.cookie = [
           COOKIE_NAME + "=",
           "Max-Age=0",
