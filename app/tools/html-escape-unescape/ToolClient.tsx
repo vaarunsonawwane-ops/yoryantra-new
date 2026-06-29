@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type Mode = "escape" | "unescape";
@@ -329,19 +329,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            HTML escaping often connects with URL encoding, JSON escaping, XML escaping, Unicode text, and frontend debugging workflows.
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/tools/json-escape-unescape" className="yoryantra-btn-outline">JSON Escape Unescape</Link>
-            <Link href="/tools/xml-escape-unescape" className="yoryantra-btn-outline">XML Escape Unescape</Link>
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">URL Encoder Decoder</Link>
-            <Link href="/tools/unicode-encoder-decoder" className="yoryantra-btn-outline">Unicode Encoder Decoder</Link>
-            <Link href="/categories/encoding-tools" className="yoryantra-btn-outline">Encoding Tools</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/html-escape-unescape" />
         </div>
       </section>
     </ToolShell>

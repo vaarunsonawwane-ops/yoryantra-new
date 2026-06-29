@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import {
   ToolContent,
   ToolExampleCard,
@@ -447,47 +447,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Morse code translation often connects with text conversion, ASCII,
-            Unicode, Base64, and other encoding workflows.
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/tools/text-case-converter"
-              className="yoryantra-btn-outline"
-            >
-              Text Case Converter
-            </Link>
-
-            <Link
-              href="/tools/ascii-converter"
-              className="yoryantra-btn-outline"
-            >
-              ASCII Converter
-            </Link>
-
-            <Link
-              href="/tools/unicode-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Unicode Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/base64-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link
-              href="/categories/encoding-tools"
-              className="yoryantra-btn-outline"
-            >
-              Encoding Tools
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/morse-code-translator" />
         </div>
       </ToolContent>
     </ToolShell>

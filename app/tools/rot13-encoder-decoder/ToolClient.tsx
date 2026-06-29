@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import {
   ToolContent,
   ToolExampleCard,
@@ -316,47 +316,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            ROT13 often connects with text conversion, Morse code, binary,
-            Base64, and other simple encoding workflows.
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/tools/text-case-converter"
-              className="yoryantra-btn-outline"
-            >
-              Text Case Converter
-            </Link>
-
-            <Link
-              href="/tools/morse-code-translator"
-              className="yoryantra-btn-outline"
-            >
-              Morse Code Translator
-            </Link>
-
-            <Link
-              href="/tools/binary-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Binary Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/base64-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link
-              href="/categories/encoding-tools"
-              className="yoryantra-btn-outline"
-            >
-              Encoding Tools
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/rot13-encoder-decoder" />
         </div>
       </ToolContent>
     </ToolShell>

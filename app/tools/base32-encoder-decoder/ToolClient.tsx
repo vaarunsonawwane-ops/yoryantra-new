@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type Mode = "encode" | "decode" | "auto";
@@ -582,27 +582,7 @@ Base32: NBSWY3DP`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link href="/tools/hex-encoder-decoder" className="yoryantra-btn-outline">
-              Hex Encoder Decoder
-            </Link>
-
-            <Link href="/tools/binary-encoder-decoder" className="yoryantra-btn-outline">
-              Binary Encoder Decoder
-            </Link>
-
-            <Link href="/tools/jwt-base64url-encoder-decoder" className="yoryantra-btn-outline">
-              JWT Base64URL Encoder Decoder
-            </Link>
-
-            <Link href="/tools/punycode-converter" className="yoryantra-btn-outline">
-              Punycode Converter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/base32-encoder-decoder" />
         </div>
       </section>
     </ToolShell>

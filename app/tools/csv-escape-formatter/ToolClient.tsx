@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type Mode = "single" | "lines";
 
@@ -358,47 +358,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            CSV escaping often connects with JSON conversion, text formatting,
-            data cleanup, spreadsheet exports, and structured data workflows.
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/tools/csv-to-json-converter"
-              className="yoryantra-btn-outline"
-            >
-              CSV to JSON Converter
-            </Link>
-
-            <Link
-              href="/tools/json-to-csv-converter"
-              className="yoryantra-btn-outline"
-            >
-              JSON to CSV Converter
-            </Link>
-
-            <Link
-              href="/tools/json-escape-unescape"
-              className="yoryantra-btn-outline"
-            >
-              JSON Escape Unescape
-            </Link>
-
-            <Link
-              href="/tools/text-case-converter"
-              className="yoryantra-btn-outline"
-            >
-              Text Case Converter
-            </Link>
-
-            <Link
-              href="/categories/encoding-tools"
-              className="yoryantra-btn-outline"
-            >
-              Encoding Tools
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/csv-escape-formatter" />
         </div>
       </section>
     </ToolShell>

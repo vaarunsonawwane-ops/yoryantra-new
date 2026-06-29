@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -278,47 +278,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Slug generation often connects with meta tags, Open Graph previews,
-            sitemap generation, URL encoding, and technical SEO workflows.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/meta-tag-generator"
-              className="yoryantra-btn-outline"
-            >
-              Meta Tag Generator
-            </Link>
-
-            <Link
-              href="/tools/open-graph-generator"
-              className="yoryantra-btn-outline"
-            >
-              Open Graph Generator
-            </Link>
-
-            <Link
-              href="/tools/sitemap-generator"
-              className="yoryantra-btn-outline"
-            >
-              Sitemap Generator
-            </Link>
-
-            <Link
-              href="/tools/url-encoder"
-              className="yoryantra-btn-outline"
-            >
-              URL Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/word-counter"
-              className="yoryantra-btn-outline"
-            >
-              Word Counter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/slug-generator" />
         </div>
       </section>
     </ToolShell>

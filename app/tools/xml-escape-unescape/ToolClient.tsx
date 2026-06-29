@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ActionMode = "escape" | "unescape" | "inspect" | "normalize";
@@ -430,17 +430,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            XML escaping often connects with HTML entities, URL encoding, data cleanup, API payloads, and sitemap or feed work.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/html-escape-unescape" className="yoryantra-btn-outline">HTML Escape Unescape</Link>
-            <Link href="/tools/html-encoder-decoder" className="yoryantra-btn-outline">HTML Encoder Decoder</Link>
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">URL Encoder Decoder</Link>
-            <Link href="/tools/unicode-escape-sequence-converter" className="yoryantra-btn-outline">Unicode Escape Sequence Converter</Link>
-            <Link href="/tools/string-escape-sequence-converter" className="yoryantra-btn-outline">String Escape Sequence Converter</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/xml-escape-unescape" />
         </div>
       </section>
     </ToolShell>

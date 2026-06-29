@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type Mode = "decode" | "encode" | "convert";
@@ -731,27 +731,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
-              JWT Decoder
-            </Link>
-
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link href="/tools/base64-image-encoder-decoder" className="yoryantra-btn-outline">
-              Base64 Image Encoder Decoder
-            </Link>
-
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">
-              URL Encoder Decoder
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/jwt-base64url-encoder-decoder" />
         </div>
       </section>
     </ToolShell>

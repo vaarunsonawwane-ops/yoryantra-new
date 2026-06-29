@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import {
   ToolContent,
   ToolExampleCard,
@@ -403,47 +403,7 @@ WELCOME TO YORYANTRA TOOLS
             Related Tools
           </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Text formatting often connects with slug generation, content
-            editing, SEO metadata, word counting, and publishing workflows.
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/tools/slug-generator"
-              className="yoryantra-btn-outline"
-            >
-              Slug Generator
-            </Link>
-
-            <Link
-              href="/tools/word-counter"
-              className="yoryantra-btn-outline"
-            >
-              Word Counter
-            </Link>
-
-            <Link
-              href="/tools/meta-tag-generator"
-              className="yoryantra-btn-outline"
-            >
-              Meta Tag Generator
-            </Link>
-
-            <Link
-              href="/tools/url-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              URL Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/open-graph-generator"
-              className="yoryantra-btn-outline"
-            >
-              Open Graph Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/text-case-converter" />
         </div>
       </ToolContent>
     </ToolShell>

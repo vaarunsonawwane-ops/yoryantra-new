@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -311,47 +311,7 @@ https%3A%2F%2Fexample.com%2Fsearch%3Fq%3Dhello%20world
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            URL encoding often connects with query parameters, redirects, API
-            debugging, slug generation, and frontend routing workflows.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/url-query-params-parser"
-              className="yoryantra-btn-outline"
-            >
-              URL Query Params Parser
-            </Link>
-
-            <Link
-              href="/tools/slug-generator"
-              className="yoryantra-btn-outline"
-            >
-              Slug Generator
-            </Link>
-
-            <Link
-              href="/tools/redirect-checker"
-              className="yoryantra-btn-outline"
-            >
-              Redirect Checker
-            </Link>
-
-            <Link
-              href="/tools/curl-command-builder"
-              className="yoryantra-btn-outline"
-            >
-              CURL Command Builder
-            </Link>
-
-            <Link
-              href="/tools/base64-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Base64 Encoder Decoder
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/url-encoder-decoder" />
         </div>
       </section>
     </ToolShell>

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import QRCode from "qrcode";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] =
@@ -377,48 +377,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            QR code generation often connects with campaign tracking, URL
-            management, analytics workflows, SEO reporting, and digital
-            marketing systems.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/utm-builder"
-              className="yoryantra-btn-outline"
-            >
-              UTM Builder
-            </Link>
-
-            <Link
-              href="/tools/url-query-params-parser"
-              className="yoryantra-btn-outline"
-            >
-              URL Query Params Parser
-            </Link>
-
-            <Link
-              href="/tools/url-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              URL Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/redirect-checker"
-              className="yoryantra-btn-outline"
-            >
-              Redirect Checker
-            </Link>
-
-            <Link
-              href="/tools/open-graph-generator"
-              className="yoryantra-btn-outline"
-            >
-              Open Graph Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/qr-code-generator" />
         </div>
       </section>
     </ToolShell>

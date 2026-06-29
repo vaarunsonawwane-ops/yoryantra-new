@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type Mode = "encode" | "decode" | "auto";
@@ -583,27 +583,7 @@ Quoted-Printable: caf=C3=A9 =3D price`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link href="/tools/html-encoder-decoder" className="yoryantra-btn-outline">
-              HTML Encoder Decoder
-            </Link>
-
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">
-              URL Encoder Decoder
-            </Link>
-
-            <Link href="/tools/unicode-escape-sequence-converter" className="yoryantra-btn-outline">
-              Unicode Escape Sequence Converter
-            </Link>
-
-            <Link href="/tools/ascii-converter" className="yoryantra-btn-outline">
-              ASCII Converter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/quoted-printable-encoder-decoder" />
         </div>
       </section>
     </ToolShell>

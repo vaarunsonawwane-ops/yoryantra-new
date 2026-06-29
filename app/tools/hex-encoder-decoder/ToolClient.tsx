@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -329,47 +329,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Hex conversion often appears alongside Unicode, Base64, URL
-            encoding, JSON debugging, and text transformation workflows.
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/tools/unicode-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Unicode Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/base64-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/url-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              URL Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-
-            <Link
-              href="/categories/encoding-tools"
-              className="yoryantra-btn-outline"
-            >
-              Encoding Tools
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/hex-encoder-decoder" />
         </div>
       </section>
     </ToolShell>

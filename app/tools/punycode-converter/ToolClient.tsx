@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ConvertMode = "auto" | "unicodeToPunycode" | "punycodeToUnicode";
@@ -600,27 +600,7 @@ Punycode: xn--maana-pta.com`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">
-              URL Encoder Decoder
-            </Link>
-
-            <Link href="/tools/unicode-encoder-decoder" className="yoryantra-btn-outline">
-              Unicode Encoder Decoder
-            </Link>
-
-            <Link href="/tools/unicode-escape-sequence-converter" className="yoryantra-btn-outline">
-              Unicode Escape Sequence Converter
-            </Link>
-
-            <Link href="/tools/url-query-encoder-decoder" className="yoryantra-btn-outline">
-              URL Query Encoder Decoder
-            </Link>
-
-            <Link href="/tools/hreflang-validator" className="yoryantra-btn-outline">
-              Hreflang Validator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/punycode-converter" />
         </div>
       </section>
     </ToolShell>

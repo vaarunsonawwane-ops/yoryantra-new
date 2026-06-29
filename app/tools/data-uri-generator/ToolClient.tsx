@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type InputKind = "text" | "svg" | "html" | "css" | "json";
@@ -475,33 +475,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Data URI work often connects with Base64 encoding, URL encoding, SVG cleanup, and HTML or CSS escaping.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/base64-image-encoder-decoder" className="yoryantra-btn-outline">
-              Base64 Image Encoder Decoder
-            </Link>
-
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link href="/tools/url-query-encoder-decoder" className="yoryantra-btn-outline">
-              URL Query Encoder Decoder
-            </Link>
-
-            <Link href="/tools/html-escape-unescape" className="yoryantra-btn-outline">
-              HTML Escape Unescape
-            </Link>
-
-            <Link href="/tools/svg-optimizer" className="yoryantra-btn-outline">
-              SVG Optimizer
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/data-uri-generator" />
         </div>
       </section>
     </ToolShell>

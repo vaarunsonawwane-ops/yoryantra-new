@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ActionMode =
@@ -438,15 +438,11 @@ Base64URL: eyJzdWIiOiJ1c2VyXzEyMyJ9`}
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">Base64 Encoder Decoder</Link>
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">JWT Decoder</Link>
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">URL Encoder Decoder</Link>
-            <Link href="/tools/unicode-escape-sequence-converter" className="yoryantra-btn-outline">Unicode Escape Sequence Converter</Link>
-            <Link href="/tools/json-string-escape-unescape" className="yoryantra-btn-outline">JSON String Escape Unescape</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/url-safe-base64-converter" />
         </div>
       </section>
     </ToolShell>

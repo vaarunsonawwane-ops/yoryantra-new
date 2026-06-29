@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ActionMode = "encode" | "decode" | "inspect";
@@ -486,17 +486,11 @@ Escaped octal:
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Octal conversion often connects with byte inspection, binary conversion, hex conversion, ASCII lookup, and Unicode escape debugging.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/binary-encoder-decoder" className="yoryantra-btn-outline">Binary Encoder Decoder</Link>
-            <Link href="/tools/hex-encoder-decoder" className="yoryantra-btn-outline">Hex Encoder Decoder</Link>
-            <Link href="/tools/ascii-converter" className="yoryantra-btn-outline">ASCII Converter</Link>
-            <Link href="/tools/unicode-escape-sequence-converter" className="yoryantra-btn-outline">Unicode Escape Sequence Converter</Link>
-            <Link href="/tools/string-escape-sequence-converter" className="yoryantra-btn-outline">String Escape Sequence Converter</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/octal-encoder-decoder" />
         </div>
       </section>
     </ToolShell>

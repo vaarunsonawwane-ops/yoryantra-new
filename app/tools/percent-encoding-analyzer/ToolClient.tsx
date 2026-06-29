@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type InputMode = "text" | "url" | "query";
@@ -625,27 +625,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">
-              URL Encoder Decoder
-            </Link>
-
-            <Link href="/tools/url-query-encoder-decoder" className="yoryantra-btn-outline">
-              URL Query Encoder Decoder
-            </Link>
-
-            <Link href="/tools/url-query-params-parser" className="yoryantra-btn-outline">
-              URL Query Params Parser
-            </Link>
-
-            <Link href="/tools/data-uri-generator" className="yoryantra-btn-outline">
-              Data URI Generator
-            </Link>
-
-            <Link href="/tools/punycode-converter" className="yoryantra-btn-outline">
-              Punycode Converter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/percent-encoding-analyzer" />
         </div>
       </section>
     </ToolShell>

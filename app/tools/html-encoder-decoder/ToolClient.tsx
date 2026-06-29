@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -330,47 +330,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            HTML encoding often connects with APIs, frontend debugging, text
-            transformation, Base64 encoding, and structured content workflows.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/url-encoder"
-              className="yoryantra-btn-outline"
-            >
-              URL Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/base64-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-
-            <Link
-              href="/tools/regex-tester"
-              className="yoryantra-btn-outline"
-            >
-              Regex Tester
-            </Link>
-
-            <Link
-              href="/tools/text-case-converter"
-              className="yoryantra-btn-outline"
-            >
-              Text Case Converter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/html-encoder-decoder" />
         </div>
       </section>
     </ToolShell>

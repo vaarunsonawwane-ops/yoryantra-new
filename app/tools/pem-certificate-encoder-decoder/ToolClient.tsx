@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ActionMode = "parse" | "extract" | "wrap" | "normalize" | "inspect";
@@ -482,14 +482,11 @@ MIIDXTCCAkWgAwIBAgI...
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">Base64 Encoder Decoder</Link>
-            <Link href="/tools/url-safe-base64-converter" className="yoryantra-btn-outline">URL Safe Base64 Converter</Link>
-            <Link href="/tools/hash-generator" className="yoryantra-btn-outline">Hash Generator</Link>
-            <Link href="/tools/tls-certificate-expiry-reminder-generator" className="yoryantra-btn-outline">TLS Certificate Expiry Reminder Generator</Link>
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">JWT Decoder</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/pem-certificate-encoder-decoder" />
         </div>
       </section>
     </ToolShell>

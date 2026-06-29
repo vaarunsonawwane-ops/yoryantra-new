@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ActionMode = "decode" | "encode" | "analyze" | "normalize";
@@ -486,14 +486,11 @@ From: =?UTF-8?Q?Varoun_Sonawane?= <hello@yoryantra.com>`}</pre>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">Base64 Encoder Decoder</Link>
-            <Link href="/tools/quoted-printable-encoder-decoder" className="yoryantra-btn-outline">Quoted Printable Encoder Decoder</Link>
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">URL Encoder Decoder</Link>
-            <Link href="/tools/html-escape-unescape" className="yoryantra-btn-outline">HTML Escape Unescape</Link>
-            <Link href="/tools/unicode-escape-sequence-converter" className="yoryantra-btn-outline">Unicode Escape Sequence Converter</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/mime-encoded-word-decoder" />
         </div>
       </section>
     </ToolShell>

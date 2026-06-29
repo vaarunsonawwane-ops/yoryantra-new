@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import {
   ToolContent,
   ToolExampleCard,
@@ -379,47 +379,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Binary conversion often connects with ASCII, hex, Unicode, Base64,
-            and other encoding workflows.
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/tools/ascii-converter"
-              className="yoryantra-btn-outline"
-            >
-              ASCII Converter
-            </Link>
-
-            <Link
-              href="/tools/hex-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Hex Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/unicode-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Unicode Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/base64-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link
-              href="/categories/encoding-tools"
-              className="yoryantra-btn-outline"
-            >
-              Encoding Tools
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/binary-encoder-decoder" />
         </div>
       </ToolContent>
     </ToolShell>

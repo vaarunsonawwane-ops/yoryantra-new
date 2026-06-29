@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ActionMode = "escape" | "unescape" | "inspect" | "env";
@@ -443,17 +443,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Shell escaping often connects with environment variables, copied command output, encoded tokens, JSON values, URLs, and DevOps troubleshooting.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-to-env-converter" className="yoryantra-btn-outline">JSON to ENV Converter</Link>
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">URL Encoder Decoder</Link>
-            <Link href="/tools/string-escape-sequence-converter" className="yoryantra-btn-outline">String Escape Sequence Converter</Link>
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">Base64 Encoder Decoder</Link>
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">JWT Decoder</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/shell-command-escape-tool" />
         </div>
       </section>
     </ToolShell>

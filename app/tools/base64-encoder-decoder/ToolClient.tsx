@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -312,47 +312,7 @@ SGVsbG8gWW9yeWFudHJh
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Base64 encoding often connects with JWT tokens, APIs, JSON payloads,
-            URL encoding, and developer debugging workflows.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/jwt-decoder"
-              className="yoryantra-btn-outline"
-            >
-              JWT Decoder
-            </Link>
-
-            <Link
-              href="/tools/url-encoder"
-              className="yoryantra-btn-outline"
-            >
-              URL Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-
-            <Link
-              href="/tools/curl-command-builder"
-              className="yoryantra-btn-outline"
-            >
-              CURL Command Builder
-            </Link>
-
-            <Link
-              href="/tools/http-headers-parser"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Parser
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/base64-encoder-decoder" />
         </div>
       </section>
     </ToolShell>
