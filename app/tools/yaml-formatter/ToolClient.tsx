@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import YAML from "yaml";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "formattedYaml" | "jsonPreview" | "validationReport" | "checklist";
@@ -388,33 +388,11 @@ active: true`}</pre>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            YAML formatting often connects with JSON conversion, Kubernetes validation, Docker Compose review, and CI/CD configuration checks.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/yaml-to-json-converter" className="yoryantra-btn-outline">
-              YAML to JSON Converter
-            </Link>
-
-            <Link href="/tools/json-to-yaml-converter" className="yoryantra-btn-outline">
-              JSON to YAML Converter
-            </Link>
-
-            <Link href="/tools/docker-compose-validator" className="yoryantra-btn-outline">
-              Docker Compose Validator
-            </Link>
-
-            <Link href="/tools/kubernetes-yaml-validator" className="yoryantra-btn-outline">
-              Kubernetes YAML Validator
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/yaml-formatter" />
         </div>
       </section>
     </ToolShell>

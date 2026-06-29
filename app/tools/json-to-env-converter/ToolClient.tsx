@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type QuoteMode = "auto" | "always" | "never";
@@ -712,27 +712,7 @@ API_KEY=secret-key`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">
-              JSON Validator
-            </Link>
-
-            <Link href="/tools/json-sort-keys" className="yoryantra-btn-outline">
-              JSON Sort Keys
-            </Link>
-
-            <Link href="/tools/env-to-json-converter" className="yoryantra-btn-outline">
-              ENV to JSON Converter
-            </Link>
-
-            <Link href="/tools/json-key-extractor" className="yoryantra-btn-outline">
-              JSON Key Extractor
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/json-to-env-converter" />
         </div>
       </section>
     </ToolShell>

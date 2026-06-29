@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "groupedJson" | "countsJson" | "markdown" | "csv" | "checklist";
@@ -538,17 +538,11 @@ Sum views: 76`}</pre>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            JSON grouping often connects with formatting, flattening, table conversion, CSV export, and JSON path inspection.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">JSON Formatter</Link>
-            <Link href="/tools/json-flatten-unflatten-tool" className="yoryantra-btn-outline">JSON Flatten / Unflatten Tool</Link>
-            <Link href="/tools/json-to-csv-converter" className="yoryantra-btn-outline">JSON to CSV Converter</Link>
-            <Link href="/tools/json-to-markdown-table-converter" className="yoryantra-btn-outline">JSON to Markdown Table Converter</Link>
-            <Link href="/tools/json-path-tester" className="yoryantra-btn-outline">JSON Path Tester</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/json-array-group-by-tool" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ActionMode = "jsonlToJson" | "jsonToJsonl" | "inspect";
@@ -475,18 +475,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            JSON Lines work often connects with formatting, validation, path testing, conversion, and structured data cleanup.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/ndjson-formatter-validator" className="yoryantra-btn-outline">NDJSON Formatter Validator</Link>
-            <Link href="/tools/json-minifier" className="yoryantra-btn-outline">JSON Minifier</Link>
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">JSON Formatter</Link>
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">JSON Validator</Link>
-            <Link href="/tools/json-to-csv-converter" className="yoryantra-btn-outline">JSON to CSV Converter</Link>
-            <Link href="/tools/json-path-tester" className="yoryantra-btn-outline">JSON Path Tester</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/json-lines-to-json-converter" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -377,47 +377,7 @@ Ravi,Designer`}
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            CSV conversion often connects with spreadsheets, APIs, structured
-            data workflows, analytics systems, and JSON formatting tools.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/json-to-csv-converter"
-              className="yoryantra-btn-outline"
-            >
-              JSON to CSV Converter
-            </Link>
-
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-
-            <Link
-              href="/tools/json-validator"
-              className="yoryantra-btn-outline"
-            >
-              JSON Validator
-            </Link>
-
-            <Link
-              href="/tools/json-minifier"
-              className="yoryantra-btn-outline"
-            >
-              JSON Minifier
-            </Link>
-
-            <Link
-              href="/tools/sql-formatter"
-              className="yoryantra-btn-outline"
-            >
-              SQL Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/csv-to-json" />
         </div>
       </section>
     </ToolShell>

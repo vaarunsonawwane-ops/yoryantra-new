@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "prettyNdjson" | "compactNdjson" | "jsonArray" | "summary" | "errorsOnly";
@@ -607,27 +607,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">
-              JSON Validator
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/json-lines-to-json-array" className="yoryantra-btn-outline">
-              JSON Lines to JSON Array
-            </Link>
-
-            <Link href="/tools/json-to-csv-converter" className="yoryantra-btn-outline">
-              JSON to CSV Converter
-            </Link>
-
-            <Link href="/tools/api-error-response-formatter" className="yoryantra-btn-outline">
-              API Error Response Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/ndjson-formatter-validator" />
         </div>
       </section>
     </ToolShell>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type KeywordCase = "upper" | "lower" | "preserve";
@@ -613,23 +614,7 @@ ORDER BY created_at DESC;`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/sql-beautifier-minifier" className="yoryantra-btn-outline">
-              SQL Beautifier / Minifier
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/regex-tester" className="yoryantra-btn-outline">
-              Regex Tester
-            </Link>
-
-            <Link href="/tools/http-request-parser" className="yoryantra-btn-outline">
-              HTTP Request Parser
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/sql-formatter" />
         </div>
       </section>
     </ToolShell>

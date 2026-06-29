@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type SchemaDraft = "2020-12" | "2019-09" | "draft-07";
@@ -658,27 +658,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-schema-validator" className="yoryantra-btn-outline">
-              JSON Schema Validator
-            </Link>
-
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">
-              JSON Validator
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/json-path-tester" className="yoryantra-btn-outline">
-              JSON Path Tester
-            </Link>
-
-            <Link href="/tools/json-to-typescript-converter" className="yoryantra-btn-outline">
-              JSON to TypeScript Converter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/json-schema-generator" />
         </div>
       </section>
     </ToolShell>

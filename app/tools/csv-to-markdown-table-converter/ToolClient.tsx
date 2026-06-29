@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type DelimiterMode = "comma" | "semicolon" | "tab" | "pipe" | "auto";
@@ -595,27 +595,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/csv-to-json-converter" className="yoryantra-btn-outline">
-              CSV to JSON Converter
-            </Link>
-
-            <Link href="/tools/json-to-csv-converter" className="yoryantra-btn-outline">
-              JSON to CSV Converter
-            </Link>
-
-            <Link href="/tools/csv-escape-formatter" className="yoryantra-btn-outline">
-              CSV Escape Formatter
-            </Link>
-
-            <Link href="/tools/markdown-table-generator" className="yoryantra-btn-outline">
-              Markdown Table Generator
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/csv-to-markdown-table-converter" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type MergeMode = "deep" | "shallow" | "leftOnly" | "rightOnly";
@@ -692,27 +692,7 @@ Merged:
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-patch-generator" className="yoryantra-btn-outline">
-              JSON Patch Generator
-            </Link>
-
-            <Link href="/tools/json-diff-checker" className="yoryantra-btn-outline">
-              JSON Diff Checker
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">
-              JSON Validator
-            </Link>
-
-            <Link href="/tools/json-flatten-unflatten-tool" className="yoryantra-btn-outline">
-              JSON Flatten / Unflatten Tool
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/json-merge-tool" />
         </div>
       </section>
     </ToolShell>

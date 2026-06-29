@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] =
@@ -455,48 +455,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            XML conversion often connects with API debugging, structured data
-            workflows, enterprise integrations, configuration management, and
-            backend development.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/xml-formatter"
-              className="yoryantra-btn-outline"
-            >
-              XML Formatter
-            </Link>
-
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-
-            <Link
-              href="/tools/json-validator"
-              className="yoryantra-btn-outline"
-            >
-              JSON Validator
-            </Link>
-
-            <Link
-              href="/tools/json-to-yaml-converter"
-              className="yoryantra-btn-outline"
-            >
-              JSON to YAML Converter
-            </Link>
-
-            <Link
-              href="/tools/json-diff-checker"
-              className="yoryantra-btn-outline"
-            >
-              JSON Diff Checker
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/xml-to-json-converter" />
         </div>
       </section>
     </ToolShell>

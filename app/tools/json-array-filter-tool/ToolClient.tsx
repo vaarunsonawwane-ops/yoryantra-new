@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type Operator =
@@ -575,17 +575,11 @@ Only records where category is "JSON & Data" are kept.`}</pre>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            JSON filtering often connects with grouping, flattening, formatting, CSV export, and path inspection.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-array-group-by-tool" className="yoryantra-btn-outline">JSON Array Group By Tool</Link>
-            <Link href="/tools/json-flatten-unflatten-tool" className="yoryantra-btn-outline">JSON Flatten / Unflatten Tool</Link>
-            <Link href="/tools/json-to-csv-converter" className="yoryantra-btn-outline">JSON to CSV Converter</Link>
-            <Link href="/tools/json-path-tester" className="yoryantra-btn-outline">JSON Path Tester</Link>
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">JSON Formatter</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/json-array-filter-tool" />
         </div>
       </section>
     </ToolShell>

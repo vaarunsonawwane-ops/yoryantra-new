@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ActionMode = "evaluate" | "inspect" | "generate" | "decode";
@@ -489,17 +489,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            JSON Pointer work often connects with path testing, patch generation, schema validation, and API debugging.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-path-tester" className="yoryantra-btn-outline">JSON Path Tester</Link>
-            <Link href="/tools/json-patch-generator" className="yoryantra-btn-outline">JSON Patch Generator</Link>
-            <Link href="/tools/json-schema-validator" className="yoryantra-btn-outline">JSON Schema Validator</Link>
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">JSON Formatter</Link>
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">JSON Validator</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/json-pointer-evaluator" />
         </div>
       </section>
     </ToolShell>

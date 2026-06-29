@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type XMLIssue = {
   level: "Error" | "Warning" | "Suggestion";
@@ -255,35 +255,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/xml-formatter"
-              className="yoryantra-btn-outline"
-            >
-              XML Formatter
-            </Link>
-
-            <Link
-              href="/tools/xml-to-json-converter"
-              className="yoryantra-btn-outline"
-            >
-              XML to JSON Converter
-            </Link>
-
-            <Link
-              href="/tools/json-validator"
-              className="yoryantra-btn-outline"
-            >
-              JSON Validator
-            </Link>
-
-            <Link
-              href="/tools/sitemap-generator"
-              className="yoryantra-btn-outline"
-            >
-              Sitemap Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/xml-validator" />
         </div>
       </section>
     </ToolShell>

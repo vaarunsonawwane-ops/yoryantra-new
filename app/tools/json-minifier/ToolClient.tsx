@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "minified" | "escapedString" | "validationReport" | "sizeReport";
@@ -420,33 +420,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            JSON minification often connects with formatting, validation, conversion, escaping, and API request preparation.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">
-              JSON Validator
-            </Link>
-
-            <Link href="/tools/json-escape-unescape" className="yoryantra-btn-outline">
-              JSON Escape Unescape
-            </Link>
-
-            <Link href="/tools/json-to-yaml-converter" className="yoryantra-btn-outline">
-              JSON to YAML Converter
-            </Link>
-
-            <Link href="/tools/curl-to-fetch-converter" className="yoryantra-btn-outline">
-              cURL to Fetch Converter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/json-minifier" />
         </div>
       </section>
     </ToolShell>

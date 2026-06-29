@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type SortDirection = "asc" | "desc";
@@ -494,27 +494,7 @@ After:
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">
-              JSON Validator
-            </Link>
-
-            <Link href="/tools/json-diff-checker" className="yoryantra-btn-outline">
-              JSON Diff Checker
-            </Link>
-
-            <Link href="/tools/json-key-extractor" className="yoryantra-btn-outline">
-              JSON Key Extractor
-            </Link>
-
-            <Link href="/tools/json-to-env-converter" className="yoryantra-btn-outline">
-              JSON to ENV Converter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/json-sort-keys" />
         </div>
       </section>
     </ToolShell>
