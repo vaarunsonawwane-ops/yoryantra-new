@@ -156,10 +156,10 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="PEM Certificate Encoder Decoder"
-      description="Parse, normalize, encode, and decode PEM certificate and key blocks. Extract Base64 bodies, detect PEM types, wrap lines, and inspect certificate/key text locally."
+      description="Decode, encode, parse, and normalize PEM certificates, keys, CSRs, CRLs, and Base64 bodies. Inspect PEM blocks and fix line wrapping locally."
     >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+        <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-900">PEM Block or Base64 Body</label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
@@ -179,7 +179,7 @@ export default function ToolClient() {
           />
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">PEM Settings</h3>
 
           <div className="mt-4 space-y-4">
@@ -303,7 +303,7 @@ export default function ToolClient() {
       )}
 
       {result && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="PEM Blocks" value={result.blockCount.toLocaleString()} />
           <SummaryCard label="Base64 Length" value={result.base64Length.toLocaleString()} />
           <SummaryCard label="Estimated Bytes" value={result.byteEstimate.toLocaleString()} />
@@ -312,7 +312,7 @@ export default function ToolClient() {
       )}
 
       {result && result.blocks.length > 0 && (
-        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-8 min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">Detected PEM Blocks</h3>
 
           <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
@@ -372,8 +372,8 @@ export default function ToolClient() {
         </div>
       )}
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+      <div className="mt-8 min-w-0">
+        <div className="flex items-center justify-between gap-3 mb-3">
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
           {output && (
             <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
@@ -393,17 +393,17 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Working With PEM Certificates and Keys</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Decode and Encode PEM Certificates and Keys</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            PEM files are common in TLS certificates, public keys, private keys, certificate signing requests, and trust bundles. The format is text-based: a BEGIN line, a Base64 body, and an END line.
+            PEM files are commonly used for TLS certificates, public keys, private keys, certificate signing requests, certificate chains, and trust bundles. Each block contains a BEGIN label, a Base64 body, and a matching END label.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This PEM Certificate Encoder Decoder helps parse PEM blocks, extract Base64 content, normalize line wrapping, and rebuild PEM text from a raw Base64 body.
+            This PEM certificate decoder and encoder can parse PEM blocks, extract Base64 content, rebuild PEM text from raw Base64, normalize line wrapping, and identify common certificate or key labels.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the PEM Certificate Encoder Decoder</h2>
+          <h2 className="text-xl font-semibold text-gray-900">How to Use the PEM Certificate Decoder and Encoder</h2>
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Paste a PEM block, certificate chain, public key, private key, CSR, CRL, or Base64 body.</li>
             <li>Choose whether to parse, extract Base64, rebuild PEM, normalize formatting, or inspect content.</li>
@@ -411,6 +411,16 @@ export default function ToolClient() {
             <li>Review detected block types, body length, estimated bytes, and warnings.</li>
             <li>Copy PEM, Base64, JSON, Markdown, CSV, or checklist output.</li>
           </ol>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Convert PEM to Base64 or Base64 to PEM</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            To convert PEM to Base64, choose <strong>Extract Base64 body</strong>. The tool removes the BEGIN and END lines, blank lines, and line breaks while keeping the encoded body.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            To convert Base64 to PEM, paste the raw Base64 text, choose <strong>Base64 body to PEM</strong>, select the correct PEM label, and set the required line length and line-break style.
+          </p>
         </div>
 
         <div>
@@ -458,6 +468,12 @@ MIIDXTCCAkWgAwIBAgI...
             </Faq>
             <Faq title="What line length should PEM use?">
               PEM bodies are commonly wrapped at 64 characters per line. This tool uses 64 by default.
+            </Faq>
+            <Faq title="How do I convert PEM to Base64?">
+              Choose Extract Base64 body. The tool removes the PEM header, footer, spaces, and line breaks and returns only the Base64 content.
+            </Faq>
+            <Faq title="How do I convert Base64 to a PEM certificate?">
+              Paste the Base64 body, choose Base64 body to PEM, select CERTIFICATE as the label, and process the input.
             </Faq>
             <Faq title="Is anything uploaded when I process PEM text?">
               No. PEM handling runs directly in your browser.

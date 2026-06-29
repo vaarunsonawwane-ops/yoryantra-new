@@ -2,37 +2,37 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "PEM Certificate Encoder Decoder | Parse and Normalize PEM Blocks | Yoryantra",
+  title: "PEM Certificate Decoder & Encoder Online | Yoryantra",
   description:
-    "Parse, normalize, encode, and decode PEM certificate and key blocks. Extract Base64 bodies, detect PEM types, wrap lines, and inspect certificate/key text locally.",
+    "Decode, encode, parse, and normalize PEM certificates, keys, CSRs, CRLs, and Base64 bodies. Inspect PEM blocks and fix line wrapping locally.",
   keywords: [
-    "PEM Certificate Encoder Decoder",
+    "PEM certificate decoder",
+    "PEM certificate encoder",
+    "PEM decoder online",
+    "PEM encoder online",
     "PEM parser",
-    "PEM decoder",
-    "PEM encoder",
     "certificate PEM decoder",
     "private key PEM parser",
     "public key PEM parser",
-    "Base64 PEM converter",
-    "encoding tools",
-    "certificate tools",
+    "Base64 to PEM converter",
+    "PEM to Base64 converter",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/pem-certificate-encoder-decoder",
   },
   openGraph: {
-    title: "PEM Certificate Encoder Decoder | Parse and Normalize PEM Blocks | Yoryantra",
+    title: "PEM Certificate Decoder & Encoder Online | Yoryantra",
     description:
-      "Parse, normalize, encode, and decode PEM certificate and key blocks. Extract Base64 bodies, detect PEM types, wrap lines, and inspect certificate/key text locally.",
+      "Decode, encode, parse, and normalize PEM certificates, keys, CSRs, CRLs, and Base64 bodies. Inspect PEM blocks and fix line wrapping locally.",
     url: "https://yoryantra.com/tools/pem-certificate-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "PEM Certificate Encoder Decoder | Parse and Normalize PEM Blocks | Yoryantra",
+    title: "PEM Certificate Decoder & Encoder Online | Yoryantra",
     description:
-      "Parse, normalize, encode, and decode PEM certificate and key blocks. Extract Base64 bodies, detect PEM types, wrap lines, and inspect certificate/key text locally.",
+      "Decode, encode, parse, and normalize PEM certificates, keys, CSRs, CRLs, and Base64 bodies. Inspect PEM blocks and fix line wrapping locally.",
   },
 };
 
