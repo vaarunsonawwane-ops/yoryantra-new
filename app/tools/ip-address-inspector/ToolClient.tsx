@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [ip, setIp] = useState("");
@@ -281,48 +281,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            IP address debugging often connects with HTTP headers, user agents,
-            CORS settings, API requests, status codes, and network
-            troubleshooting workflows.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/http-headers-parser"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Parser
-            </Link>
-
-            <Link
-              href="/tools/user-agent-parser"
-              className="yoryantra-btn-outline"
-            >
-              User Agent Parser
-            </Link>
-
-            <Link
-              href="/tools/cors-header-checker"
-              className="yoryantra-btn-outline"
-            >
-              CORS Header Checker
-            </Link>
-
-            <Link
-              href="/tools/curl-command-builder"
-              className="yoryantra-btn-outline"
-            >
-              CURL Command Builder
-            </Link>
-
-            <Link
-              href="/tools/http-status-code-explorer"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Status Code Explorer
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/ip-address-inspector" />
         </div>
       </section>
     </ToolShell>

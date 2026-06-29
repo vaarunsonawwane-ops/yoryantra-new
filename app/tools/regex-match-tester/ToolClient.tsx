@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputFormat = "summary" | "json" | "list";
@@ -713,23 +713,7 @@ billing@example.org`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">
-              JSON Validator
-            </Link>
-
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">
-              URL Encoder Decoder
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/regex-match-tester" />
         </div>
       </section>
     </ToolShell>

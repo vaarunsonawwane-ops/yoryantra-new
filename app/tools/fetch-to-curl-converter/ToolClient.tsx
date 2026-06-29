@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputStyle = "multiline" | "single";
@@ -632,27 +633,7 @@ curl -X POST "https://api.example.com/users" \\
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/curl-to-fetch-converter" className="yoryantra-btn-outline">
-              cURL to Fetch Converter
-            </Link>
-
-            <Link href="/tools/curl-command-parser" className="yoryantra-btn-outline">
-              cURL Command Parser
-            </Link>
-
-            <Link href="/tools/curl-command-builder" className="yoryantra-btn-outline">
-              cURL Command Builder
-            </Link>
-
-            <Link href="/tools/http-request-parser" className="yoryantra-btn-outline">
-              HTTP Request Parser
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/fetch-to-curl-converter" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "header" | "headersBlock" | "curl" | "fetch" | "axios" | "json" | "markdown";
@@ -441,15 +441,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/api-request-header-builder" className="yoryantra-btn-outline">API Request Header Builder</Link>
-            <Link href="/tools/http-accept-header-generator" className="yoryantra-btn-outline">HTTP Accept Header Generator</Link>
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">Base64 Encoder Decoder</Link>
-            <Link href="/tools/curl-command-parser" className="yoryantra-btn-outline">cURL Command Parser</Link>
-            <Link href="/tools/http-headers-parser" className="yoryantra-btn-outline">HTTP Headers Parser</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/http-basic-auth-header-generator" />
         </div>
       </section>
     </ToolShell>

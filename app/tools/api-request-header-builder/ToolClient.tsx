@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type HeaderRow = {
   id: number;
@@ -422,35 +422,7 @@ X-API-Key: YOUR_API_KEY_HERE`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/curl-command-builder"
-              className="yoryantra-btn-outline"
-            >
-              CURL Command Builder
-            </Link>
-
-            <Link
-              href="/tools/curl-to-fetch-converter"
-              className="yoryantra-btn-outline"
-            >
-              CURL to Fetch Converter
-            </Link>
-
-            <Link
-              href="/tools/http-request-formatter"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Request Formatter
-            </Link>
-
-            <Link
-              href="/tools/api-key-generator"
-              className="yoryantra-btn-outline"
-            >
-              API Key Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/api-request-header-builder" />
         </div>
       </section>
     </ToolShell>

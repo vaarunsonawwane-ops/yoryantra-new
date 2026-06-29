@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type ParsedRequest = {
   method: string;
@@ -249,35 +249,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/curl-to-fetch-converter"
-              className="yoryantra-btn-outline"
-            >
-              CURL to Fetch Converter
-            </Link>
-
-            <Link
-              href="/tools/curl-command-builder"
-              className="yoryantra-btn-outline"
-            >
-              CURL Command Builder
-            </Link>
-
-            <Link
-              href="/tools/http-headers-parser"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Parser
-            </Link>
-
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/http-request-formatter" />
         </div>
       </section>
     </ToolShell>

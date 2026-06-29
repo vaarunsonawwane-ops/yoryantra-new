@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "report" | "json" | "markdown" | "csv";
@@ -420,14 +420,11 @@ Retry-After: 120`}
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/http-headers-parser" className="yoryantra-btn-outline">HTTP Headers Parser</Link>
-            <Link href="/tools/api-request-header-builder" className="yoryantra-btn-outline">API Request Header Builder</Link>
-            <Link href="/tools/http-response-formatter" className="yoryantra-btn-outline">HTTP Response Formatter</Link>
-            <Link href="/tools/http-cache-header-analyzer" className="yoryantra-btn-outline">HTTP Cache Header Analyzer</Link>
-            <Link href="/tools/curl-command-parser" className="yoryantra-btn-outline">cURL Command Parser</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/api-rate-limit-header-parser" />
         </div>
       </section>
     </ToolShell>

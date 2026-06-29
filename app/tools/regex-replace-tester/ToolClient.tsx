@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "preview" | "result" | "matches" | "json" | "markdown";
@@ -577,15 +577,11 @@ john@example.com -> john [at] example.com`}
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/regex-tester" className="yoryantra-btn-outline">Regex Tester</Link>
-            <Link href="/tools/regex-match-tester" className="yoryantra-btn-outline">Regex Match Tester</Link>
-            <Link href="/tools/text-case-converter" className="yoryantra-btn-outline">Text Case Converter</Link>
-            <Link href="/tools/word-counter" className="yoryantra-btn-outline">Word Counter</Link>
-            <Link href="/tools/query-string-builder" className="yoryantra-btn-outline">Query String Builder</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/regex-replace-tester" />
         </div>
       </section>
     </ToolShell>

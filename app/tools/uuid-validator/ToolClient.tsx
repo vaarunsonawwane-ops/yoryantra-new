@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type UUIDCheck = {
   value: string;
@@ -243,35 +243,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/uuid-generator"
-              className="yoryantra-btn-outline"
-            >
-              UUID Generator
-            </Link>
-
-            <Link
-              href="/tools/regex-tester"
-              className="yoryantra-btn-outline"
-            >
-              Regex Tester
-            </Link>
-
-            <Link
-              href="/tools/json-validator"
-              className="yoryantra-btn-outline"
-            >
-              JSON Validator
-            </Link>
-
-            <Link
-              href="/tools/api-key-generator"
-              className="yoryantra-btn-outline"
-            >
-              API Key Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/uuid-validator" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "headerBlock" | "json" | "curl" | "fetch";
@@ -751,27 +751,7 @@ X-Request-ID: req_12345`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/http-request-parser" className="yoryantra-btn-outline">
-              HTTP Request Parser
-            </Link>
-
-            <Link href="/tools/curl-command-builder" className="yoryantra-btn-outline">
-              cURL Command Builder
-            </Link>
-
-            <Link href="/tools/curl-command-parser" className="yoryantra-btn-outline">
-              cURL Command Parser
-            </Link>
-
-            <Link href="/tools/query-string-builder" className="yoryantra-btn-outline">
-              Query String Builder
-            </Link>
-
-            <Link href="/tools/security-headers-checker" className="yoryantra-btn-outline">
-              Security Headers Checker
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/request-header-builder" />
         </div>
       </section>
     </ToolShell>

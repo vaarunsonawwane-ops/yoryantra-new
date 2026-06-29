@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [text, setText] = useState("");
@@ -324,47 +324,7 @@ Reading Time: 1 min`}
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Word counting often connects with slug generation, text formatting,
-            SEO optimization, content editing, and publishing workflows.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/slug-generator"
-              className="yoryantra-btn-outline"
-            >
-              Slug Generator
-            </Link>
-
-            <Link
-              href="/tools/meta-tag-generator"
-              className="yoryantra-btn-outline"
-            >
-              Meta Tag Generator
-            </Link>
-
-            <Link
-              href="/tools/text-case-converter"
-              className="yoryantra-btn-outline"
-            >
-              Text Case Converter
-            </Link>
-
-            <Link
-              href="/tools/url-encoder"
-              className="yoryantra-btn-outline"
-            >
-              URL Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/open-graph-generator"
-              className="yoryantra-btn-outline"
-            >
-              Open Graph Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/word-counter" />
         </div>
       </section>
     </ToolShell>

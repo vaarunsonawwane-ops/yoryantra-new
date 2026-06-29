@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [timestamp, setTimestamp] = useState("");
@@ -334,47 +334,7 @@ Wed, 15 May 2024 00:00:00 GMT
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Timestamp conversion often connects with JWT debugging, APIs,
-            authentication systems, logs, and backend development workflows.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/jwt-expiration-checker"
-              className="yoryantra-btn-outline"
-            >
-              JWT Expiration Checker
-            </Link>
-
-            <Link
-              href="/tools/jwt-decoder"
-              className="yoryantra-btn-outline"
-            >
-              JWT Decoder
-            </Link>
-
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-
-            <Link
-              href="/tools/http-headers-parser"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Parser
-            </Link>
-
-            <Link
-              href="/tools/url-encoder"
-              className="yoryantra-btn-outline"
-            >
-              URL Encoder Decoder
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/timestamp-converter" />
         </div>
       </section>
     </ToolShell>

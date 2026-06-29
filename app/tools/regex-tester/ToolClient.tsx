@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type RegexMatch = {
   value: string;
@@ -509,23 +510,7 @@ billing@example.org`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/regex-match-tester" className="yoryantra-btn-outline">
-              Regex Match Tester
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">
-              URL Encoder Decoder
-            </Link>
-
-            <Link href="/tools/sql-formatter" className="yoryantra-btn-outline">
-              SQL Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/regex-tester" />
         </div>
       </section>
     </ToolShell>

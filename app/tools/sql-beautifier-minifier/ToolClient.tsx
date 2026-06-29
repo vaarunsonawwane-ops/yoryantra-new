@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type SQLAction = "beautify" | "minify";
@@ -761,23 +761,7 @@ ORDER BY created_at DESC;`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">
-              JSON Validator
-            </Link>
-
-            <Link href="/tools/regex-match-tester" className="yoryantra-btn-outline">
-              Regex Match Tester
-            </Link>
-
-            <Link href="/tools/http-request-parser" className="yoryantra-btn-outline">
-              HTTP Request Parser
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/sql-beautifier-minifier" />
         </div>
       </section>
     </ToolShell>

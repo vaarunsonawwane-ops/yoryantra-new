@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type BodyParseMode = "auto" | "text" | "json" | "form";
@@ -612,23 +612,7 @@ Authorization: Bearer token
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/http-status-code-checker" className="yoryantra-btn-outline">
-              HTTP Status Code Checker
-            </Link>
-
-            <Link href="/tools/security-headers-checker" className="yoryantra-btn-outline">
-              Security Headers Checker
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">
-              URL Encoder Decoder
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/http-request-parser" />
         </div>
       </section>
     </ToolShell>

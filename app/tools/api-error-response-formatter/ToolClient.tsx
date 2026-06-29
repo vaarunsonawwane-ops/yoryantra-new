@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type InputMode = "json" | "http";
@@ -611,27 +611,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/http-response-formatter" className="yoryantra-btn-outline">
-              HTTP Response Formatter
-            </Link>
-
-            <Link href="/tools/http-request-parser" className="yoryantra-btn-outline">
-              HTTP Request Parser
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-
-            <Link href="/tools/json-validator" className="yoryantra-btn-outline">
-              JSON Validator
-            </Link>
-
-            <Link href="/tools/http-status-code-checker" className="yoryantra-btn-outline">
-              HTTP Status Code Checker
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/api-error-response-formatter" />
         </div>
       </section>
     </ToolShell>

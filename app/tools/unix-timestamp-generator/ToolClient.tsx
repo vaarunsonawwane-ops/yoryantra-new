@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type Mode = "date-to-timestamp" | "timestamp-to-date";
 
@@ -364,35 +364,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/timestamp-converter"
-              className="yoryantra-btn-outline"
-            >
-              Timestamp Converter
-            </Link>
-
-            <Link
-              href="/tools/uuid-generator"
-              className="yoryantra-btn-outline"
-            >
-              UUID Generator
-            </Link>
-
-            <Link
-              href="/tools/uuid-validator"
-              className="yoryantra-btn-outline"
-            >
-              UUID Validator
-            </Link>
-
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/unix-timestamp-generator" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [method, setMethod] = useState("GET");
@@ -346,48 +346,7 @@ Content-Type: application/json`}
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            CURL workflows often connect with HTTP headers, API debugging,
-            cookies, status codes, CORS configuration, and request parameter
-            inspection.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/http-headers-parser"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Parser
-            </Link>
-
-            <Link
-              href="/tools/cors-header-checker"
-              className="yoryantra-btn-outline"
-            >
-              CORS Header Checker
-            </Link>
-
-            <Link
-              href="/tools/http-status-code-explorer"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Status Code Explorer
-            </Link>
-
-            <Link
-              href="/tools/url-query-params-parser"
-              className="yoryantra-btn-outline"
-            >
-              URL Query Params Parser
-            </Link>
-
-            <Link
-              href="/tools/cookie-parser"
-              className="yoryantra-btn-outline"
-            >
-              Cookie Parser
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/curl-command-builder" />
         </div>
       </section>
     </ToolShell>

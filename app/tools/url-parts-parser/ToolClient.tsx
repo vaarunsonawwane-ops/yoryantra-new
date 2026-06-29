@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "json" | "query";
@@ -570,27 +570,7 @@ Hash: #details`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/query-string-builder" className="yoryantra-btn-outline">
-              Query String Builder
-            </Link>
-
-            <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">
-              URL Encoder Decoder
-            </Link>
-
-            <Link href="/tools/http-request-parser" className="yoryantra-btn-outline">
-              HTTP Request Parser
-            </Link>
-
-            <Link href="/tools/curl-command-parser" className="yoryantra-btn-outline">
-              cURL Command Parser
-            </Link>
-
-            <Link href="/tools/redirect-checker" className="yoryantra-btn-outline">
-              Redirect Checker
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/url-parts-parser" />
         </div>
       </section>
     </ToolShell>
