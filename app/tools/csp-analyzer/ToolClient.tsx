@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type CSPDirective = {
   name: string;
@@ -257,35 +257,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/csp-generator"
-              className="yoryantra-btn-outline"
-            >
-              CSP Generator
-            </Link>
-
-            <Link
-              href="/tools/security-headers-scanner"
-              className="yoryantra-btn-outline"
-            >
-              Security Headers Scanner
-            </Link>
-
-            <Link
-              href="/tools/http-headers-checker"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Checker
-            </Link>
-
-            <Link
-              href="/tools/cors-header-checker"
-              className="yoryantra-btn-outline"
-            >
-              CORS Header Checker
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/csp-analyzer" />
         </div>
       </section>
     </ToolShell>

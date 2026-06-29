@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [length, setLength] =
@@ -380,48 +380,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Random token generation often connects with API authentication,
-            session management, JWT workflows, security testing, backend
-            development, and DevOps systems.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/api-key-generator"
-              className="yoryantra-btn-outline"
-            >
-              API Key Generator
-            </Link>
-
-            <Link
-              href="/tools/password-generator"
-              className="yoryantra-btn-outline"
-            >
-              Password Generator
-            </Link>
-
-            <Link
-              href="/tools/hmac-generator"
-              className="yoryantra-btn-outline"
-            >
-              HMAC Generator
-            </Link>
-
-            <Link
-              href="/tools/uuid-generator"
-              className="yoryantra-btn-outline"
-            >
-              UUID Generator
-            </Link>
-
-            <Link
-              href="/tools/rsa-key-generator"
-              className="yoryantra-btn-outline"
-            >
-              RSA Key Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/random-token-generator" />
         </div>
       </section>
     </ToolShell>

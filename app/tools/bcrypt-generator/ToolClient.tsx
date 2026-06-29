@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import bcrypt from "bcryptjs";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 export default function ToolClient() {
@@ -296,25 +296,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/password-generator" className="yoryantra-btn-outline">
-              Password Generator
-            </Link>
-            <Link href="/tools/hash-generator" className="yoryantra-btn-outline">
-              Hash Generator
-            </Link>
-            <Link href="/tools/hmac-generator" className="yoryantra-btn-outline">
-              HMAC Generator
-            </Link>
-            <Link href="/tools/api-key-generator" className="yoryantra-btn-outline">
-              API Key Generator
-            </Link>
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
-              JWT Decoder
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/bcrypt-generator" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "detailed" | "json" | "matches";
@@ -741,27 +741,7 @@ bcrypt: $2y$10$...`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/hash-generator" className="yoryantra-btn-outline">
-              Hash Generator
-            </Link>
-
-            <Link href="/tools/sha256-generator" className="yoryantra-btn-outline">
-              SHA256 Generator
-            </Link>
-
-            <Link href="/tools/hmac-generator" className="yoryantra-btn-outline">
-              HMAC Generator
-            </Link>
-
-            <Link href="/tools/bcrypt-generator" className="yoryantra-btn-outline">
-              bcrypt Generator
-            </Link>
-
-            <Link href="/tools/random-token-generator" className="yoryantra-btn-outline">
-              Random Token Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/hash-algorithm-identifier" />
         </div>
       </section>
     </ToolShell>

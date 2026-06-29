@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [headersInput, setHeadersInput] = useState("");
@@ -341,47 +341,7 @@ Access-Control-Allow-Credentials: true`}
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            CORS debugging usually connects with HTTP headers, cookies, status
-            codes, browser requests, and command-line API testing.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/http-headers-parser"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Parser
-            </Link>
-
-            <Link
-              href="/tools/curl-command-builder"
-              className="yoryantra-btn-outline"
-            >
-              CURL Command Builder
-            </Link>
-
-            <Link
-              href="/tools/cookie-parser"
-              className="yoryantra-btn-outline"
-            >
-              Cookie Parser
-            </Link>
-
-            <Link
-              href="/tools/http-status-code-explorer"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Status Code Explorer
-            </Link>
-
-            <Link
-              href="/tools/user-agent-parser"
-              className="yoryantra-btn-outline"
-            >
-              User Agent Parser
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/cors-header-checker" />
         </div>
       </section>
     </ToolShell>

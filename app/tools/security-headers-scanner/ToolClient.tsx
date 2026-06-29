@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type HeaderResult = {
   name: string;
@@ -533,48 +533,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Security header scanning connects naturally with HTTP header checks,
-            CSP creation, CORS review, JWT debugging, and security-focused
-            development workflows.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/http-headers-checker"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Checker
-            </Link>
-
-            <Link
-              href="/tools/csp-generator"
-              className="yoryantra-btn-outline"
-            >
-              CSP Generator
-            </Link>
-
-            <Link
-              href="/tools/cors-header-checker"
-              className="yoryantra-btn-outline"
-            >
-              CORS Header Checker
-            </Link>
-
-            <Link
-              href="/tools/jwt-decoder"
-              className="yoryantra-btn-outline"
-            >
-              JWT Decoder
-            </Link>
-
-            <Link
-              href="/security-guides"
-              className="yoryantra-btn-outline"
-            >
-              Security Guides
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/security-headers-scanner" />
         </div>
       </section>
     </ToolShell>

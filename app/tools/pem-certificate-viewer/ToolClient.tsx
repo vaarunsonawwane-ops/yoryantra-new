@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type PEMBlock = {
   type: string;
@@ -265,35 +265,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/pem-formatter"
-              className="yoryantra-btn-outline"
-            >
-              PEM Formatter
-            </Link>
-
-            <Link
-              href="/tools/rsa-key-generator"
-              className="yoryantra-btn-outline"
-            >
-              RSA Key Generator
-            </Link>
-
-            <Link
-              href="/tools/security-headers-scanner"
-              className="yoryantra-btn-outline"
-            >
-              Security Headers Scanner
-            </Link>
-
-            <Link
-              href="/tools/csp-analyzer"
-              className="yoryantra-btn-outline"
-            >
-              CSP Analyzer
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/pem-certificate-viewer" />
         </div>
       </section>
     </ToolShell>

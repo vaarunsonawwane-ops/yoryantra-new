@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type PolicyValue =
@@ -545,27 +545,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/security-header-generator" className="yoryantra-btn-outline">
-              Security Header Generator
-            </Link>
-
-            <Link href="/tools/security-headers-scanner" className="yoryantra-btn-outline">
-              Security Headers Scanner
-            </Link>
-
-            <Link href="/tools/permissions-policy-header-generator" className="yoryantra-btn-outline">
-              Permissions Policy Header Generator
-            </Link>
-
-            <Link href="/tools/hsts-header-generator" className="yoryantra-btn-outline">
-              HSTS Header Generator
-            </Link>
-
-            <Link href="/tools/csp-policy-builder" className="yoryantra-btn-outline">
-              CSP Policy Builder
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/referrer-policy-generator" />
         </div>
       </section>
     </ToolShell>

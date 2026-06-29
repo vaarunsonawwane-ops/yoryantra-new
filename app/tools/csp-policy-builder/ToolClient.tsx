@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type PolicyMode = "enforce" | "report-only";
@@ -1012,23 +1012,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/security-headers-checker" className="yoryantra-btn-outline">
-              Security Headers Checker
-            </Link>
-
-            <Link href="/tools/http-status-code-checker" className="yoryantra-btn-outline">
-              HTTP Status Code Checker
-            </Link>
-
-            <Link href="/tools/dns-lookup" className="yoryantra-btn-outline">
-              DNS Lookup
-            </Link>
-
-            <Link href="/tools/json-formatter" className="yoryantra-btn-outline">
-              JSON Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/csp-policy-builder" />
         </div>
       </section>
     </ToolShell>

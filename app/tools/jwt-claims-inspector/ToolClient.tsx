@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "report" | "json" | "claims";
@@ -672,27 +672,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
-              JWT Decoder
-            </Link>
-
-            <Link href="/tools/jwt-expiration-checker" className="yoryantra-btn-outline">
-              JWT Expiration Checker
-            </Link>
-
-            <Link href="/tools/jwt-signature-verifier" className="yoryantra-btn-outline">
-              JWT Signature Verifier
-            </Link>
-
-            <Link href="/tools/jwt-base64url-encoder-decoder" className="yoryantra-btn-outline">
-              JWT Base64URL Encoder Decoder
-            </Link>
-
-            <Link href="/tools/random-token-generator" className="yoryantra-btn-outline">
-              Random Token Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/jwt-claims-inspector" />
         </div>
       </section>
     </ToolShell>

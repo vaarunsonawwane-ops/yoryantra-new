@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 export default function ToolClient() {
@@ -488,48 +488,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            RSA key generation often connects with JWT authentication, SSL
-            certificates, API security, PEM formatting, OAuth workflows, and
-            backend cryptography systems.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/pem-formatter"
-              className="yoryantra-btn-outline"
-            >
-              PEM Formatter
-            </Link>
-
-            <Link
-              href="/tools/jwt-signature-verifier"
-              className="yoryantra-btn-outline"
-            >
-              JWT Signature Verifier
-            </Link>
-
-            <Link
-              href="/tools/base64url-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Base64URL Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/hmac-generator"
-              className="yoryantra-btn-outline"
-            >
-              HMAC Generator
-            </Link>
-
-            <Link
-              href="/tools/api-key-generator"
-              className="yoryantra-btn-outline"
-            >
-              API Key Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/rsa-key-generator" />
         </div>
       </section>
     </ToolShell>

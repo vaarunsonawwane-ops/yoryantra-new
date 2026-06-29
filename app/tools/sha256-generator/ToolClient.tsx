@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] =
@@ -374,48 +374,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            SHA256 hashing often connects with API verification, authentication
-            systems, HMAC workflows, backend security, blockchain systems, and
-            cryptographic validation workflows.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/hash-generator"
-              className="yoryantra-btn-outline"
-            >
-              Hash Generator
-            </Link>
-
-            <Link
-              href="/tools/hmac-generator"
-              className="yoryantra-btn-outline"
-            >
-              HMAC Generator
-            </Link>
-
-            <Link
-              href="/tools/bcrypt-generator"
-              className="yoryantra-btn-outline"
-            >
-              bcrypt Generator
-            </Link>
-
-            <Link
-              href="/tools/random-token-generator"
-              className="yoryantra-btn-outline"
-            >
-              Random Token Generator
-            </Link>
-
-            <Link
-              href="/tools/api-key-generator"
-              className="yoryantra-btn-outline"
-            >
-              API Key Generator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/sha256-generator" />
         </div>
       </section>
     </ToolShell>

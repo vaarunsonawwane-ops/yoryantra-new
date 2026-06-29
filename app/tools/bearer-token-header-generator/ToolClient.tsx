@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "header" | "curl" | "fetch" | "http" | "json" | "markdown" | "checklist";
@@ -485,17 +485,11 @@ curl -X GET "https://api.example.com/v1/profile" \\
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Bearer token headers often connect with JWT inspection, API request headers, cURL examples, and HTTP request debugging.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">JWT Decoder</Link>
-            <Link href="/tools/jwt-expiration-checker" className="yoryantra-btn-outline">JWT Expiration Checker</Link>
-            <Link href="/tools/api-request-header-builder" className="yoryantra-btn-outline">API Request Header Builder</Link>
-            <Link href="/tools/http-basic-auth-header-generator" className="yoryantra-btn-outline">HTTP Basic Auth Header Generator</Link>
-            <Link href="/tools/curl-command-builder" className="yoryantra-btn-outline">cURL Command Builder</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/bearer-token-header-generator" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "securityTxt" | "signedTemplate" | "json" | "markdown" | "nginx" | "apache";
@@ -522,15 +522,11 @@ Preferred-Languages: en`}
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/security-headers-scanner" className="yoryantra-btn-outline">Security Headers Scanner</Link>
-            <Link href="/tools/security-header-generator" className="yoryantra-btn-outline">Security Header Generator</Link>
-            <Link href="/tools/csp-policy-builder" className="yoryantra-btn-outline">CSP Policy Builder</Link>
-            <Link href="/tools/referrer-policy-generator" className="yoryantra-btn-outline">Referrer Policy Generator</Link>
-            <Link href="/tools/jwt-secret-strength-checker" className="yoryantra-btn-outline">JWT Secret Strength Checker</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/security-txt-generator" />
         </div>
       </section>
     </ToolShell>

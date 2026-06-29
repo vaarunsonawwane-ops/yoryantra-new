@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type Algorithm = "SHA-256" | "SHA-384" | "SHA-512" | "all";
@@ -504,27 +504,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/hash-generator" className="yoryantra-btn-outline">
-              Hash Generator
-            </Link>
-
-            <Link href="/tools/sha256-generator" className="yoryantra-btn-outline">
-              SHA256 Generator
-            </Link>
-
-            <Link href="/tools/security-headers-scanner" className="yoryantra-btn-outline">
-              Security Headers Scanner
-            </Link>
-
-            <Link href="/tools/csp-analyzer" className="yoryantra-btn-outline">
-              CSP Analyzer
-            </Link>
-
-            <Link href="/tools/csp-report-analyzer" className="yoryantra-btn-outline">
-              CSP Report Analyzer
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/subresource-integrity-hash-generator" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "report" | "json" | "fixed";
@@ -584,27 +584,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/security-headers-scanner" className="yoryantra-btn-outline">
-              Security Headers Scanner
-            </Link>
-
-            <Link href="/tools/security-header-generator" className="yoryantra-btn-outline">
-              Security Header Generator
-            </Link>
-
-            <Link href="/tools/cors-header-checker" className="yoryantra-btn-outline">
-              CORS Header Checker
-            </Link>
-
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
-              JWT Decoder
-            </Link>
-
-            <Link href="/tools/http-response-formatter" className="yoryantra-btn-outline">
-              HTTP Response Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/cookie-security-checker" />
         </div>
       </section>
     </ToolShell>

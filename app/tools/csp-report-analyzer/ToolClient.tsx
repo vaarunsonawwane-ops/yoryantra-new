@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type InputMode = "auto" | "json" | "ndjson";
@@ -437,14 +437,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/csp-analyzer" className="yoryantra-btn-outline">CSP Analyzer</Link>
-            <Link href="/tools/csp-policy-builder" className="yoryantra-btn-outline">CSP Policy Builder</Link>
-            <Link href="/tools/security-headers-scanner" className="yoryantra-btn-outline">Security Headers Scanner</Link>
-            <Link href="/tools/security-header-generator" className="yoryantra-btn-outline">Security Header Generator</Link>
-            <Link href="/tools/cors-header-checker" className="yoryantra-btn-outline">CORS Header Checker</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/csp-report-analyzer" />
         </div>
       </section>
     </ToolShell>

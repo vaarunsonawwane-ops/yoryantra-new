@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "reminder" | "checklist" | "calendar" | "json" | "markdown" | "csv";
@@ -537,13 +537,7 @@ Post-renewal: verify browser, chain, CDN, load balancer, and monitoring checks`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/security-headers-scanner" className="yoryantra-btn-outline">Security Headers Scanner</Link>
-            <Link href="/tools/hsts-header-generator" className="yoryantra-btn-outline">HSTS Header Generator</Link>
-            <Link href="/tools/http-status-code-checker" className="yoryantra-btn-outline">HTTP Status Code Checker</Link>
-            <Link href="/tools/redirect-chain-checker" className="yoryantra-btn-outline">Redirect Chain Checker</Link>
-            <Link href="/tools/security-txt-generator" className="yoryantra-btn-outline">Security.txt Generator</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/tls-certificate-expiry-reminder-generator" />
         </div>
       </section>
     </ToolShell>

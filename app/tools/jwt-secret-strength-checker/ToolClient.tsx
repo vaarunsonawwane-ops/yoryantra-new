@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "report" | "json" | "markdown" | "csv";
@@ -402,15 +402,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">JWT Decoder</Link>
-            <Link href="/tools/jwt-claims-inspector" className="yoryantra-btn-outline">JWT Claims Inspector</Link>
-            <Link href="/tools/hash-generator" className="yoryantra-btn-outline">Hash Generator</Link>
-            <Link href="/tools/random-password-generator" className="yoryantra-btn-outline">Random Password Generator</Link>
-            <Link href="/tools/api-key-generator" className="yoryantra-btn-outline">API Key Generator</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/jwt-secret-strength-checker" />
         </div>
       </section>
     </ToolShell>

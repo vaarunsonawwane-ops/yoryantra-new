@@ -1518,3 +1518,44 @@ export const tools = [
 
 
 ];
+
+export type YoryantraTool = (typeof tools)[number];
+
+const categoryHrefs: Record<YoryantraTool["category"], string> = {
+  "Developer Tools": "/categories/developer-tools",
+  "DevOps Tools": "/categories/devops-tools",
+  "Security Tools": "/categories/security-tools",
+  "SEO Tools": "/categories/seo-tools",
+  "Encoding Tools": "/categories/encoding-tools",
+  "JSON & Data Tools": "/categories/json-data-tools",
+};
+
+export function getToolByHref(href: YoryantraTool["href"]) {
+  return tools.find((tool) => tool.href === href);
+}
+
+export function getRelatedTools(
+  currentHref: YoryantraTool["href"],
+  category: YoryantraTool["category"],
+  limit = 6,
+) {
+  const categoryTools = tools.filter((tool) => tool.category === category);
+  const currentIndex = categoryTools.findIndex(
+    (tool) => tool.href === currentHref,
+  );
+
+  if (currentIndex === -1) {
+    return categoryTools.slice(0, limit);
+  }
+
+  return Array.from(
+    { length: Math.min(limit, Math.max(categoryTools.length - 1, 0)) },
+    (_, offset) =>
+      categoryTools[(currentIndex + offset + 1) % categoryTools.length],
+  );
+}
+
+export function getCategoryHref(category: YoryantraTool["category"]) {
+  return categoryHrefs[category];
+}
+

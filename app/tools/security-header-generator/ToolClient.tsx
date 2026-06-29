@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type HeaderOptions = {
   hsts: boolean;
@@ -406,35 +406,7 @@ Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'self';
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/security-headers-scanner"
-              className="yoryantra-btn-outline"
-            >
-              Security Headers Scanner
-            </Link>
-
-            <Link
-              href="/tools/csp-analyzer"
-              className="yoryantra-btn-outline"
-            >
-              CSP Analyzer
-            </Link>
-
-            <Link
-              href="/tools/csp-generator"
-              className="yoryantra-btn-outline"
-            >
-              CSP Generator
-            </Link>
-
-            <Link
-              href="/tools/http-headers-checker"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Checker
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/security-header-generator" />
         </div>
       </section>
     </ToolShell>

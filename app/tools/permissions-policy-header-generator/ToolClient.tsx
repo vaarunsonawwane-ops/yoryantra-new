@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type PresetMode = "strict" | "balanced" | "media" | "custom";
@@ -710,27 +710,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/security-header-generator" className="yoryantra-btn-outline">
-              Security Header Generator
-            </Link>
-
-            <Link href="/tools/security-headers-scanner" className="yoryantra-btn-outline">
-              Security Headers Scanner
-            </Link>
-
-            <Link href="/tools/hsts-header-generator" className="yoryantra-btn-outline">
-              HSTS Header Generator
-            </Link>
-
-            <Link href="/tools/csp-generator" className="yoryantra-btn-outline">
-              CSP Generator
-            </Link>
-
-            <Link href="/tools/cookie-security-checker" className="yoryantra-btn-outline">
-              Cookie Security Checker
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/permissions-policy-header-generator" />
         </div>
       </section>
     </ToolShell>
