@@ -1212,10 +1212,11 @@ export const tools = [
 {
   title: "Meta Description Length Checker",
   description:
-    "Check meta description length, truncation risk, keyword usage, duplicate descriptions, CTA wording, empty descriptions, and SERP-style preview.",
+    "Check meta description length, estimated pixel width, truncation risk, keyword use, duplicate text, and desktop or mobile snippet previews.",
   href: "/tools/meta-description-length-checker",
   category: "SEO Tools",
 },
+
 
 {
   title: "SEO Slug Analyzer",

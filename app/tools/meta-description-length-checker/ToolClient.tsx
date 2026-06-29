@@ -145,7 +145,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Meta Description Length Checker"
-      description="Check meta description length, truncation risk, keyword usage, duplicate descriptions, CTA wording, empty descriptions, and SERP-style snippet preview directly in your browser."
+      description="Check meta description length, estimated pixel width, truncation risk, keyword use, duplicate text, and Google-style desktop or mobile snippet previews."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -163,7 +163,7 @@ export default function ToolClient() {
         />
 
         <p className="mt-2 text-sm text-gray-500">
-          Paste one meta description per line, or paste description and URL pairs if you want page context in reports.
+          Paste one meta description per line. Use the options below to review character length, estimated display width, keyword use, duplicates, and snippet appearance.
         </p>
       </div>
 
@@ -427,86 +427,136 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Checking Meta Descriptions Before Publishing</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Check Meta Description Length Before Publishing
+          </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A meta description can influence how people understand your page in search results. It should explain the page clearly, match the search intent, and give users a reason to click without sounding like spam.
+            A useful meta description explains the page clearly and gives searchers a reason to visit it. This meta description checker reviews character count, estimated pixel width, truncation risk, keyword use, duplicate text, empty descriptions, and snippet wording.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Meta Description Length Checker reviews description length, approximate display width, keyword usage, duplicate text, generic wording, action language, and snippet-style preview before you publish or update a page.
+            You can check one description or review many descriptions together. Everything runs in your browser, so the text you paste is not sent to a server.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Meta Description Length Checker</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            How to Use the Meta Description Checker
+          </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste one meta description per line, or paste a list from your pages.</li>
-            <li>Optionally enter a target keyword and page title.</li>
-            <li>Choose desktop or mobile preview and a checking style.</li>
-            <li>Review length, estimated pixels, description quality issues, and SERP-style preview.</li>
-            <li>Copy the summary, report, JSON, Markdown, or CSV output.</li>
+            <li>Paste one meta description per line.</li>
+            <li>Optionally add the target keyword and page title.</li>
+            <li>Choose a desktop or mobile preview.</li>
+            <li>Select balanced, strict, or relaxed checking.</li>
+            <li>Review the length, estimated pixels, status, score, and snippet preview.</li>
+            <li>Copy the summary or export a detailed report, JSON, Markdown, or CSV result.</li>
           </ol>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common Meta Description Issues</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Meta Description Character Count and Pixel Width
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Meta descriptions are often discussed by character count, but search snippets are displayed within a visual width. Wide letters can use more space than narrow letters, so two descriptions with the same number of characters may not occupy the same width.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This tool checks both character length and an estimated pixel width. The estimate is a practical warning signal rather than a promise that Google will display the full description.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            What Is a Good Meta Description Length?
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Many clear descriptions fit within roughly 120 to 160 characters, but there is no guaranteed character limit. The best description is long enough to explain the page and short enough to keep the most useful wording visible.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Put the main topic and strongest benefit near the beginning. Avoid filling the description with repeated keywords, vague claims, or wording that does not match the page.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Meta Description Problems
+          </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Descriptions that are missing or empty.</li>
-            <li>Descriptions that are too short to explain the page.</li>
-            <li>Descriptions that are too long and likely to be truncated.</li>
-            <li>Duplicate descriptions across many pages.</li>
-            <li>Main topic or target keyword missing completely.</li>
-            <li>Generic wording like “welcome to our website” that does not describe the page.</li>
+            <li>A missing or empty meta description.</li>
+            <li>A description that is too short to explain the page.</li>
+            <li>A long description that may be truncated in search results.</li>
+            <li>The same description reused across several pages.</li>
+            <li>The main topic missing from the description.</li>
+            <li>Generic wording that does not explain the page clearly.</li>
+            <li>Important information placed too late in the description.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Meta Description</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Meta Description Example
+          </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <pre className="whitespace-pre-wrap break-words">
-{`Check meta description length, truncation risk, keyword usage, duplicates, CTA wording, and SERP-style snippet preview directly in your browser.`}
+{`Check meta description length, estimated pixel width, truncation risk, keyword use, duplicates, and Google-style snippet previews in your browser.`}
             </pre>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Why Meta Description Length Is Not an Exact Rule</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why Google May Show Different Description Text
+          </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Google can rewrite descriptions based on the page content and search query. A description that is technically the right length can still be weak if it does not explain the page or match the user’s intent.
+            Google may create a different search snippet from the visible page content when it believes that text matches a search query more closely. A well-written meta description is still useful because it gives Google a clear summary to consider.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Use length as a useful review signal, but write descriptions for real people first: clear, specific, and connected to the page.
+            Treat length as one part of the review. Accuracy, relevance, readability, and alignment with the page matter more than reaching an exact number.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Frequently Asked Questions
+          </h2>
 
           <div className="mt-5 space-y-6">
-            <Faq title="What does a meta description length checker do?">
-              It checks description text for length, estimated display width, truncation risk, duplicate text, target keyword usage, and common snippet quality issues.
+            <Faq title="What does a meta description checker do?">
+              It checks description length, estimated display width, truncation risk, keyword use, duplicate text, empty descriptions, and common snippet-quality issues.
             </Faq>
 
-            <Faq title="What is a good meta description length?">
-              Many descriptions work well around 120 to 160 characters, but the best length depends on wording, page intent, and search result display.
+            <Faq title="How long should a meta description be?">
+              Many descriptions work well at about 120 to 160 characters, but there is no fixed length that guarantees the full text will appear in Google.
             </Faq>
 
-            <Faq title="Can Google rewrite my meta description?">
-              Yes. Google may use page content instead of your written description when it thinks another snippet better matches the query.
+            <Faq title="Does Google use pixels or characters for meta descriptions?">
+              Search results are displayed within a visual width, so character count alone cannot predict truncation perfectly. Estimated pixel width can provide another useful warning.
             </Faq>
 
-            <Faq title="Should every page have a unique description?">
-              Yes. Unique descriptions help users understand what each page is about before they click.
+            <Faq title="Can Google rewrite a meta description?">
+              Yes. Google may use text from the page when it believes another passage answers the search query more clearly.
             </Faq>
 
-            <Faq title="Is anything uploaded when I check descriptions?">
-              No. The check runs directly in your browser.
+            <Faq title="Should every page have a unique meta description?">
+              Important indexable pages should normally have descriptions that accurately explain what makes each page different.
+            </Faq>
+
+            <Faq title="Can I check multiple meta descriptions together?">
+              Yes. Paste one description per line to compare lengths, statuses, scores, duplicates, and other findings in one report.
+            </Faq>
+
+            <Faq title="Is my description text uploaded anywhere?">
+              No. The checker runs directly in your browser.
             </Faq>
           </div>
         </div>
@@ -518,7 +568,7 @@ export default function ToolClient() {
             <Link href="/tools/title-tag-length-checker" className="yoryantra-btn-outline">Title Tag Length Checker</Link>
             <Link href="/tools/meta-tags-checker" className="yoryantra-btn-outline">Meta Tags Checker</Link>
             <Link href="/tools/serp-snippet-preview-tool" className="yoryantra-btn-outline">SERP Snippet Preview Tool</Link>
-            <Link href="/tools/meta-tags-generator" className="yoryantra-btn-outline">Meta Tags Generator</Link>
+            <Link href="/tools/meta-tag-generator" className="yoryantra-btn-outline">Meta Tag Generator</Link>
             <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline">Canonical URL Checker</Link>
           </div>
         </div>
