@@ -1527,7 +1527,7 @@ const categoryHrefs: Record<YoryantraTool["category"], string> = {
   "Security Tools": "/categories/security-tools",
   "SEO Tools": "/categories/seo-tools",
   "Encoding Tools": "/categories/encoding-tools",
-  "JSON & Data Tools": "/categories/json-data-tools",
+  "JSON & Data Tools": "/categories/json-tools",
 };
 
 export function getToolByHref(href: YoryantraTool["href"]) {
