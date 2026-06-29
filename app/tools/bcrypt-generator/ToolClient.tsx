@@ -38,8 +38,8 @@ export default function ToolClient() {
 
   return (
     <ToolShell
-      title="bcrypt Generator"
-      description="Generate secure bcrypt password hashes instantly with this free online bcrypt Generator."
+      title="bcrypt Hash Generator"
+      description="Generate salted bcrypt password hashes online with selectable cost factors. Hashing runs locally in your browser for development and testing."
     >
       {/* PASSWORD */}
       <div>
@@ -111,8 +111,8 @@ export default function ToolClient() {
       </div>
 
       {/* OUTPUT */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+      <div className="mt-8 min-w-0">
+        <div className="flex items-center justify-between gap-3 mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
             Generated bcrypt Hash
           </h3>
@@ -131,7 +131,7 @@ export default function ToolClient() {
           )}
         </div>
 
-        <div className="yoryantra-output min-h-[140px] flex items-center text-sm break-words">
+        <div className="yoryantra-output min-h-[140px] min-w-0 flex items-center text-sm break-all">
           {hash ||
             "Generated bcrypt hash will appear here..."}
         </div>
@@ -153,27 +153,19 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Generating bcrypt Hashes for Password Testing
+            Generate bcrypt Password Hashes Online
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            bcrypt hashing helps developers securely transform passwords into
-            protected hash values for authentication systems, login workflows,
-            backend applications, user management systems, APIs, and testing
-            environments.
+            bcrypt is a password-hashing algorithm designed for storing passwords more safely than fast general-purpose hashes. It creates a salted hash and applies a configurable cost factor so each hashing operation requires deliberate computing work.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Unlike simple hashing algorithms such as MD5 or SHA-based password
-            storage, bcrypt is specifically designed for password hashing. It
-            automatically includes salting and configurable work factors to make
-            brute-force attacks significantly harder.
+            This bcrypt hash generator runs locally in your browser using bcryptjs. Enter a test password, choose the salt rounds, generate the hash, and copy it into a development or testing workflow.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This bcrypt Generator creates secure password hashes directly inside
-            your browser using bcryptjs without requiring server-side
-            processing.
+            Avoid entering a real production password into any online tool, even when processing happens locally. Use sample credentials when testing.
           </p>
         </div>
 
@@ -183,142 +175,74 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Enter the password you want to hash.
-            </li>
-
-            <li>
-              Select the bcrypt salt rounds.
-            </li>
-
-            <li>
-              Click <strong>Generate bcrypt Hash</strong>.
-            </li>
-
-            <li>
-              Copy the generated hash for testing or backend workflows.
-            </li>
+            <li>Enter the password or sample text you want to hash.</li>
+            <li>Select the bcrypt cost factor, commonly called salt rounds.</li>
+            <li>Click <strong>Generate bcrypt Hash</strong>.</li>
+            <li>Copy the generated hash for development or testing.</li>
           </ol>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Understanding bcrypt Salt Rounds
+            bcrypt Cost Factor and Salt Rounds
           </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The cost factor controls how much work bcrypt performs. Increasing it makes each hash slower to calculate, which can make large-scale password guessing more expensive. It also increases the time required by your own application, so the value should be tested on the hardware and environment where authentication will run.
+          </p>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <ul className="space-y-3">
-              <li>
-                <strong>8 rounds:</strong> Faster hashing useful for lightweight
-                testing.
-              </li>
-
-              <li>
-                <strong>10 rounds:</strong> Common recommended balance between
-                speed and security.
-              </li>
-
-              <li>
-                <strong>12 rounds:</strong> Stronger security with slower hash
-                generation.
-              </li>
-
-              <li>
-                <strong>14 rounds:</strong> High-security hashing for sensitive
-                systems.
-              </li>
+              <li><strong>8 rounds:</strong> Faster output for lightweight local testing.</li>
+              <li><strong>10 rounds:</strong> A practical starting point for many test environments.</li>
+              <li><strong>12 rounds:</strong> More computational work and slower generation.</li>
+              <li><strong>14 rounds:</strong> Significantly slower and useful for performance comparison.</li>
             </ul>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
+            What a bcrypt Hash Contains
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A bcrypt hash normally includes the bcrypt version marker, cost factor, salt, and resulting hash data in one string. Because a fresh salt is generated each time, the same password can produce different bcrypt hashes.
+          </p>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-all">
+{`$2a$10$exampleSaltAndHashValue`}
+            </pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Uses
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Creating secure password hashes for applications.
-            </li>
-
-            <li>
-              Testing login and authentication systems.
-            </li>
-
-            <li>
-              Generating sample hashes for backend development.
-            </li>
-
-            <li>
-              Learning how bcrypt password hashing works.
-            </li>
-
-            <li>
-              Comparing different salt round strengths.
-            </li>
-
-            <li>
-              Building secure user authentication workflows.
-            </li>
-
-            <li>
-              Preparing test credentials for development environments.
-            </li>
+            <li>Creating sample bcrypt hashes for backend development.</li>
+            <li>Testing login and password-verification workflows.</li>
+            <li>Comparing the performance of different cost factors.</li>
+            <li>Preparing test fixtures for authentication systems.</li>
+            <li>Learning how salted password hashing works.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example bcrypt Hash
+            bcrypt Compared With Fast Hash Functions
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <p className="font-medium text-gray-900">
-              Password:
-            </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            General-purpose hash functions are designed to run quickly. That speed is useful for checksums and integrity checks, but it is not ideal for password storage. bcrypt is intentionally slower and includes a cost setting that can be increased as hardware becomes faster.
+          </p>
 
-            <pre className="mt-2 whitespace-pre-wrap break-words">
-{`mySecurePassword123`}
-            </pre>
-
-            <p className="mt-4 font-medium text-gray-900">
-              bcrypt hash:
-            </p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">
-{`$2a$10$examplebcryptpasswordhashvalue`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Why bcrypt Matters for Password Security
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>Automatic salting:</strong> bcrypt generates unique
-                salts automatically for every password.
-              </li>
-
-              <li>
-                <strong>Slower brute-force attacks:</strong> Configurable work
-                factors increase attack difficulty.
-              </li>
-
-              <li>
-                <strong>Password-focused security:</strong> bcrypt is designed
-                specifically for password storage workflows.
-              </li>
-
-              <li>
-                <strong>Modern authentication support:</strong> Widely used in
-                backend frameworks and authentication systems.
-              </li>
-            </ul>
-          </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Applications should store only the bcrypt hash, not the original password. During login, the entered password is checked against the stored hash using a bcrypt verification function.
+          </p>
         </div>
 
         <div>
@@ -328,107 +252,67 @@ export default function ToolClient() {
 
           <div className="mt-5 space-y-6">
             <div>
-              <h3 className="font-semibold text-gray-900">
-                What is bcrypt?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">What is bcrypt?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                bcrypt is a password hashing algorithm designed specifically for
-                secure password storage and authentication systems.
+                bcrypt is a password-hashing algorithm that combines salting with a configurable cost factor.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900">
-                What are bcrypt salt rounds?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">Can bcrypt hashes be decrypted?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Salt rounds control how much computational work bcrypt performs
-                while generating hashes. Higher rounds increase security but
-                also increase processing time.
+                No. bcrypt is designed as a one-way password-hashing function. Password verification compares an entered password against the stored hash.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900">
-                Can bcrypt hashes be decrypted?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">Why does the same password generate different hashes?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. bcrypt is a one-way hashing algorithm designed so the
-                original password cannot be directly recovered from the hash.
+                bcrypt generates a random salt for each hash. The salt is stored inside the final bcrypt string, allowing verification without storing it separately.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this bcrypt Generator secure?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">What bcrypt rounds should I choose?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Password hashing happens locally inside your browser
-                without uploading passwords externally.
+                Choose a cost that your application can calculate within an acceptable login time. Test it in the real deployment environment rather than relying on one universal value.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900">
-                Is bcrypt generation processed on the server?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">Does this tool upload passwords?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. bcrypt hashing happens entirely inside your browser.
+                No. Hash generation runs in your browser. For safety, use sample passwords rather than real credentials.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">Can I use the generated hash in my application?</h3>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                You can use it for development, testing, fixtures, and compatible bcrypt workflows. Production authentication should generate and verify hashes inside the trusted application environment.
               </p>
             </div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            bcrypt hashing often connects with authentication systems, password
-            management workflows, API security, JWT authentication, and backend
-            application development.
-          </p>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/api-key-generator"
-              className="yoryantra-btn-outline"
-            >
-              API Key Generator
-            </Link>
-
-            <Link
-              href="/tools/jwt-decoder"
-              className="yoryantra-btn-outline"
-            >
-              JWT Decoder
-            </Link>
-
-            <Link
-              href="/tools/password-generator"
-              className="yoryantra-btn-outline"
-            >
+            <Link href="/tools/password-generator" className="yoryantra-btn-outline">
               Password Generator
             </Link>
-
-            <Link
-              href="/tools/hmac-generator"
-              className="yoryantra-btn-outline"
-            >
+            <Link href="/tools/hash-generator" className="yoryantra-btn-outline">
+              Hash Generator
+            </Link>
+            <Link href="/tools/hmac-generator" className="yoryantra-btn-outline">
               HMAC Generator
             </Link>
-
-            <Link
-              href="/tools/hash-generator"
-              className="yoryantra-btn-outline"
-            >
-              Hash Generator
+            <Link href="/tools/api-key-generator" className="yoryantra-btn-outline">
+              API Key Generator
+            </Link>
+            <Link href="/tools/jwt-decoder" className="yoryantra-btn-outline">
+              JWT Decoder
             </Link>
           </div>
         </div>

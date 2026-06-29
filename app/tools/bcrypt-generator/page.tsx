@@ -1,18 +1,21 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "bcrypt Generator Online Free | Yoryantra",
+  title: "bcrypt Hash Generator Online | Yoryantra",
 
   description:
-    "Generate secure bcrypt password hashes instantly with this free online bcrypt Generator.",
+    "Generate bcrypt password hashes online with selectable cost factors. Create salted bcrypt hashes locally in your browser for development and testing.",
 
   keywords: [
     "bcrypt generator",
     "bcrypt hash generator",
-    "password hash generator",
     "bcrypt online",
-    "bcrypt password generator",
-    "developer tools",
+    "bcrypt password hash generator",
+    "generate bcrypt hash",
+    "bcrypt password",
+    "bcrypt cost factor",
+    "bcrypt salt rounds",
+    "online password hash generator",
   ],
 
   alternates: {
@@ -21,10 +24,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "bcrypt Generator Online Free | Yoryantra",
+    title: "bcrypt Hash Generator Online | Yoryantra",
 
     description:
-      "Generate secure bcrypt password hashes instantly online.",
+      "Generate salted bcrypt password hashes online with selectable cost factors, directly in your browser.",
 
     url:
       "https://yoryantra.com/tools/bcrypt-generator",
@@ -41,7 +44,7 @@ export const metadata = {
       "bcrypt Generator Online Free | Yoryantra",
 
     description:
-      "Generate secure bcrypt password hashes instantly.",
+      "Generate salted bcrypt password hashes locally with selectable cost factors.",
   },
 };
 

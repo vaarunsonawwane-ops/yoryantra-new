@@ -174,12 +174,14 @@ export const tools = [
   category: "Security Tools",
   },
   
-  {
+{
   title: "bcrypt Generator",
-  description: "Generate bcrypt password hashes instantly.",
+  description:
+    "Generate salted bcrypt password hashes online with selectable cost factors for development and testing.",
   href: "/tools/bcrypt-generator",
   category: "Security Tools",
-  },
+},
+
   
   {
   title: "API Key Generator",
