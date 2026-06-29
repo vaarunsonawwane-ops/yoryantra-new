@@ -491,7 +491,7 @@ From: =?UTF-8?Q?Varoun_Sonawane?= <hello@yoryantra.com>`}</pre>
             <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">Base64 Encoder Decoder</Link>
             <Link href="/tools/quoted-printable-encoder-decoder" className="yoryantra-btn-outline">Quoted Printable Encoder Decoder</Link>
             <Link href="/tools/url-encoder-decoder" className="yoryantra-btn-outline">URL Encoder Decoder</Link>
-            <Link href="/tools/html-entity-encoder-decoder" className="yoryantra-btn-outline">HTML Entity Encoder Decoder</Link>
+            <Link href="/tools/html-escape-unescape" className="yoryantra-btn-outline">HTML Escape Unescape</Link>
             <Link href="/tools/unicode-escape-sequence-converter" className="yoryantra-btn-outline">Unicode Escape Sequence Converter</Link>
           </div>
         </div>
