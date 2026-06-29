@@ -95,7 +95,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Open Graph Preview Checker"
-      description="Check Open Graph tags, inspect social preview fields, and review Twitter card metadata from HTML source."
+      description="Check Open Graph tags from HTML, preview social sharing metadata, and inspect Twitter card fields directly in your browser."
     >
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -136,12 +136,12 @@ export default function ToolClient() {
       )}
 
       {preview && (
-        <div className="mt-8">
+        <div className="mt-8 min-w-0">
           <h3 className="text-lg font-semibold text-gray-900">
             Social Preview
           </h3>
 
-          <div className="mt-4 max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="mt-4 w-full max-w-xl min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div className="flex min-h-[180px] items-center justify-center bg-gray-100 px-6 text-center text-sm text-gray-500">
               {preview.image ? (
                 <span className="break-all">
@@ -176,8 +176,8 @@ export default function ToolClient() {
       )}
 
       {/* OUTPUT */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+      <div className="mt-8 min-w-0">
+        <div className="flex items-center justify-between gap-3 mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
             Open Graph Report
           </h3>
@@ -192,7 +192,7 @@ export default function ToolClient() {
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[260px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output min-h-[260px] min-w-0 overflow-auto whitespace-pre-wrap break-all text-sm">
           {output || "Open Graph check results will appear here."}
         </pre>
       </div>
@@ -201,50 +201,65 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking Open Graph Tags Before Sharing Pages
+            Check Open Graph Tags Before Sharing a Page
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Open Graph tags control how a page can appear when shared on social
-            platforms and messaging apps. Missing or weak values for og:title,
-            og:description, og:image, or og:url can make link previews look
-            incomplete or unclear.
+            Open Graph tags describe how a page may appear when its link is shared on social platforms, messaging apps, and other services that build link previews. Important fields include <span className="font-mono text-gray-800">og:title</span>, <span className="font-mono text-gray-800">og:description</span>, <span className="font-mono text-gray-800">og:image</span>, <span className="font-mono text-gray-800">og:url</span>, and <span className="font-mono text-gray-800">og:type</span>.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Open Graph Preview Checker helps you inspect Open Graph tags,
-            Twitter card metadata, social preview text, image URLs, and common
-            sharing tag issues directly in your browser before publishing or
-            sharing a page.
+            This Open Graph checker reads pasted HTML, extracts the available tags, creates a clean social preview, checks Twitter card metadata, and reports common missing or weak fields. Everything runs locally in your browser.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Reviewing Social Preview Metadata from HTML
+            How to Use the Open Graph Checker
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Copy the HTML source from the page you want to check.</li>
-            <li>Paste the HTML into the input box.</li>
-            <li>
-              Click <strong>Check Open Graph</strong>.
-            </li>
-            <li>Review the preview, extracted tags, warnings, and suggestions.</li>
+            <li>Copy the HTML source from the page you want to inspect.</li>
+            <li>Paste the source into the HTML input box.</li>
+            <li>Click <strong>Check Open Graph</strong>.</li>
+            <li>Review the social preview and extracted Open Graph fields.</li>
+            <li>Check the warnings and suggestions in the report.</li>
           </ol>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This tool checks pasted HTML only. It does not fetch a live URL, which keeps the source code in your browser.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Open Graph Checker Use Cases
+            Open Graph Tags Checked by This Tool
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking og:title and og:description before publishing pages.</li>
-            <li>Reviewing og:image URLs used for social link previews.</li>
-            <li>Checking Twitter card tags alongside Open Graph tags.</li>
-            <li>Finding missing or weak social preview metadata.</li>
-            <li>Reviewing shared link previews for SEO and content pages.</li>
+            <li><strong>og:title:</strong> the headline used for the shared page.</li>
+            <li><strong>og:description:</strong> the summary shown below the title.</li>
+            <li><strong>og:image:</strong> the image URL used in the link preview.</li>
+            <li><strong>og:url:</strong> the preferred sharing URL for the page.</li>
+            <li><strong>og:type:</strong> the content type, such as website or article.</li>
+            <li><strong>og:site_name:</strong> the website or brand name.</li>
+            <li><strong>Twitter card tags:</strong> card type, title, description, and image.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Common Open Graph Problems
+          </h2>
+
+          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>Missing og:title or og:description values.</li>
+            <li>No og:image for the social preview.</li>
+            <li>A relative image path instead of an absolute URL.</li>
+            <li>A title or description that is too long for a clear preview.</li>
+            <li>No og:url or og:type value.</li>
+            <li>Missing Twitter card metadata.</li>
+            <li>Preview text that does not match the actual page content.</li>
           </ul>
         </div>
 
@@ -262,6 +277,20 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
+            Why a Social Preview May Look Different
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Social platforms may crop images, shorten text, cache older metadata, or apply their own layout rules. This checker shows a practical browser preview based on the tags in your HTML, but it cannot guarantee an exact platform-specific result.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            After changing Open Graph tags on a live page, some platforms may continue showing an older cached preview until they refresh the page metadata.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
             Frequently Asked Questions
           </h2>
 
@@ -270,45 +299,53 @@ export default function ToolClient() {
               <h3 className="font-semibold text-gray-900">
                 What does an Open Graph checker do?
               </h3>
-
               <p className="mt-2 text-gray-600 leading-relaxed">
-                It reads HTML source and extracts Open Graph tags such as
-                og:title, og:description, og:image, og:url, og:type, and
-                og:site_name so you can review social preview metadata.
+                It reads HTML and extracts Open Graph metadata so you can inspect the title, description, image, URL, type, site name, and common issues.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this show an exact social media preview?
+                What is an Open Graph preview?
               </h3>
-
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. It gives a clean browser preview based on your tags. Actual
-                platforms may crop images or display text differently.
+                It is a visual representation of how a shared page may appear using its Open Graph title, description, image, site name, and URL.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Can this check Twitter card tags too?
+                Does this test a live URL?
               </h3>
-
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The report also checks common Twitter card tags such as
-                twitter:card, twitter:title, twitter:description, and
-                twitter:image.
+                No. Paste the page HTML into the tool. It does not make a request to the live website.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is my HTML uploaded to a server?
+                Can it check Twitter card tags?
               </h3>
-
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The Open Graph check happens directly in your browser. Your
-                HTML source is not uploaded to a server.
+                Yes. The report checks twitter:card, twitter:title, twitter:description, and twitter:image.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Why is my social image not appearing?
+              </h3>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                The tag may be missing, the image URL may be relative or inaccessible, or the platform may still be using cached metadata.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Is my HTML uploaded anywhere?
+              </h3>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. The Open Graph check runs directly in your browser.
               </p>
             </div>
           </div>
@@ -346,6 +383,13 @@ export default function ToolClient() {
               className="yoryantra-btn-outline"
             >
               Canonical URL Checker
+            </Link>
+
+            <Link
+              href="/tools/meta-description-length-checker"
+              className="yoryantra-btn-outline"
+            >
+              Meta Description Length Checker
             </Link>
           </div>
         </div>

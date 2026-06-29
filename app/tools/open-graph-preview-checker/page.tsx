@@ -1,21 +1,22 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "Open Graph Preview Checker | Check OG Tags Online | Yoryantra",
+  title: "Open Graph Checker & Social Preview Tool | Yoryantra",
 
   description:
-    "Check Open Graph tags from HTML, preview social sharing details, inspect og:title, og:description, og:image, og:url, and Twitter card tags in your browser.",
+    "Check Open Graph tags from HTML, preview social sharing metadata, and inspect og:title, og:description, og:image, og:url, and Twitter card tags.",
 
   keywords: [
-    "open graph preview checker",
     "open graph checker",
-    "og tag checker",
-    "og preview tool",
-    "social preview checker",
+    "open graph check",
+    "open graph tester",
+    "open graph preview checker",
+    "OG tag checker",
+    "OG preview tool",
+    "social media preview checker",
     "check open graph tags",
-    "twitter card checker",
+    "Twitter card checker",
     "open graph validator",
-    "seo tools",
   ],
 
   alternates: {
@@ -23,10 +24,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "Open Graph Preview Checker | Check OG Tags Online | Yoryantra",
+    title: "Open Graph Checker & Social Preview Tool | Yoryantra",
 
     description:
-      "Check Open Graph tags from HTML, preview social sharing details, inspect og:title, og:description, og:image, og:url, and Twitter card tags in your browser.",
+      "Check Open Graph tags from HTML, preview social sharing metadata, and inspect og:title, og:description, og:image, og:url, and Twitter card tags.",
 
     url: "https://yoryantra.com/tools/open-graph-preview-checker",
 
@@ -38,10 +39,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "Open Graph Preview Checker | Check OG Tags Online | Yoryantra",
+    title: "Open Graph Checker & Social Preview Tool | Yoryantra",
 
     description:
-      "Check Open Graph tags from HTML, preview social sharing details, inspect og:title, og:description, og:image, og:url, and Twitter card tags in your browser.",
+      "Check Open Graph tags from HTML, preview social sharing metadata, and inspect og:title, og:description, og:image, og:url, and Twitter card tags.",
   },
 };
 
