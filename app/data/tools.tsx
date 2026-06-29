@@ -1199,10 +1199,11 @@ export const tools = [
 {
   title: "CSP Report Analyzer",
   description:
-    "Analyze Content Security Policy violation reports, group blocked resources, inspect directives, and detect risky CSP patterns.",
+    "Analyze CSP violation reports, parse JSON or NDJSON, group blocked resources, inspect directives, and detect risky policy patterns.",
   href: "/tools/csp-report-analyzer",
   category: "Security Tools",
 },
+
 
 {
   title: "Title Tag Length Checker",

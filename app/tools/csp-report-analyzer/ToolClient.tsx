@@ -189,9 +189,9 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="CSP Report Analyzer"
-      description="Analyze Content Security Policy violation reports in your browser. Parse CSP report JSON, group blocked resources, inspect violated directives, detect risky sources, and create clean security reports."
+      description="Analyze CSP violation reports, parse JSON or NDJSON, group blocked resources, inspect directives, and detect risky Content Security Policy patterns."
     >
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
           CSP Report JSON
         </label>
@@ -211,7 +211,7 @@ export default function ToolClient() {
         </p>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-6 min-w-0 rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">Options</h3>
 
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
@@ -284,7 +284,7 @@ export default function ToolClient() {
       {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">{error}</div>}
 
       {result && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Reports" value={result.totalReports.toLocaleString()} />
           <SummaryCard label="Directives" value={result.directiveCount.toLocaleString()} />
           <SummaryCard label="Blocked URIs" value={result.blockedUriCount.toLocaleString()} />
@@ -293,11 +293,11 @@ export default function ToolClient() {
       )}
 
       {result && result.groups.length > 0 && (
-        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-8 min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">Grouped Violations</h3>
           <p className="mt-2 text-sm text-gray-500">The most common CSP violations grouped by the selected field.</p>
 
-          <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
+          <div className="mt-4 min-w-0 overflow-auto rounded-xl border border-gray-200">
             <table className="w-full min-w-[860px] text-left text-sm">
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
@@ -350,12 +350,12 @@ export default function ToolClient() {
         </div>
       )}
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+      <div className="mt-8 min-w-0">
+        <div className="flex items-center justify-between gap-3 mb-3">
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
           {output && <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">{copied ? "Copied" : "Copy"}</button>}
         </div>
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output min-h-[320px] min-w-0 overflow-auto whitespace-pre-wrap break-all text-sm">
           {output || "CSP report analysis output will appear here."}
         </pre>
       </div>
@@ -366,13 +366,13 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Analyzing Content Security Policy Violation Reports</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Analyze Content Security Policy Violation Reports</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">Content Security Policy reports help you understand what a browser blocked because of your CSP header. They are useful during CSP rollout because they show blocked scripts, styles, images, frames, connections, and inline code before you make a policy stricter.</p>
-          <p className="mt-4 text-gray-600 leading-relaxed">This CSP Report Analyzer parses violation report JSON, groups reports by directive or blocked resource, highlights risky patterns, and creates clean summaries you can use while debugging or tightening your policy.</p>
+          <p className="mt-4 text-gray-600 leading-relaxed">This CSP Report Analyzer parses common CSP report JSON and NDJSON formats, groups repeated violations, highlights risky patterns, and creates clean summaries for debugging or policy review.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the CSP Report Analyzer</h2>
+          <h2 className="text-xl font-semibold text-gray-900">How to Use the CSP Report Analyzer</h2>
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Paste a CSP violation report, JSON array, or NDJSON report export.</li>
             <li>Choose whether to group by directive, blocked URI, document URI, or source file.</li>
@@ -380,6 +380,16 @@ export default function ToolClient() {
             <li>Review high-risk findings such as inline script, eval, data/blob URLs, and insecure HTTP resources.</li>
             <li>Copy the summary, detailed report, Markdown table, JSON, or CSV output.</li>
           </ol>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Supported CSP Report Formats</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The analyzer supports a single legacy <span className="font-mono text-gray-800">csp-report</span> object, JSON arrays of reports, newer report objects with a <span className="font-mono text-gray-800">body</span> field, and NDJSON log exports with one JSON object per line.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            It reads fields such as document URI, blocked URI, violated directive, effective directive, source file, line number, column number, status code, disposition, and script sample when available.
+          </p>
         </div>
 
         <div>
@@ -418,6 +428,7 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
           <div className="mt-5 space-y-6">
             <Faq title="What is a CSP violation report?" text="It is a browser-generated report that describes a resource blocked by a Content Security Policy directive." />
+            <Faq title="Can I paste multiple CSP reports at once?" text="Yes. You can paste a JSON array, a reports array, or NDJSON with one report object per line." />
             <Faq title="Can this parse Report-To style CSP reports?" text="Yes. It supports common legacy csp-report payloads and newer report objects with a body field." />
             <Faq title="Why should query strings be redacted?" text="URLs in security reports can sometimes contain tokens, IDs, or private parameters. Redacting query strings makes reports safer to share." />
             <Faq title="Does this update my CSP policy automatically?" text="No. It analyzes reports and highlights patterns. You should review changes before updating a real CSP header." />
@@ -460,7 +471,7 @@ function Faq({ title, text }: { title: string; text: string }) {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="min-w-0 rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
     </div>
