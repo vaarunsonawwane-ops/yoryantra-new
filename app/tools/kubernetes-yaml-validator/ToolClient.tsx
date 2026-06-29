@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import yaml from "js-yaml";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] =
@@ -408,48 +408,7 @@ spec:
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Kubernetes YAML validation often connects with DevOps workflows,
-            cloud infrastructure management, Docker deployments, structured data
-            formatting, and automation systems.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/docker-compose-validator"
-              className="yoryantra-btn-outline"
-            >
-              Docker Compose Validator
-            </Link>
-
-            <Link
-              href="/tools/yaml-formatter"
-              className="yoryantra-btn-outline"
-            >
-              YAML Formatter
-            </Link>
-
-            <Link
-              href="/tools/yaml-to-json-converter"
-              className="yoryantra-btn-outline"
-            >
-              YAML to JSON Converter
-            </Link>
-
-            <Link
-              href="/tools/json-schema-validator"
-              className="yoryantra-btn-outline"
-            >
-              JSON Schema Validator
-            </Link>
-
-            <Link
-              href="/tools/json-to-yaml-converter"
-              className="yoryantra-btn-outline"
-            >
-              JSON to YAML Converter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/kubernetes-yaml-validator" />
         </div>
       </section>
     </ToolShell>

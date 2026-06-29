@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputFormat = "list" | "csv" | "json";
@@ -493,23 +493,7 @@ Usable addresses: 6`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/dns-lookup" className="yoryantra-btn-outline">
-              DNS Lookup
-            </Link>
-
-            <Link href="/tools/http-status-code-checker" className="yoryantra-btn-outline">
-              HTTP Status Code Checker
-            </Link>
-
-            <Link href="/tools/security-headers-checker" className="yoryantra-btn-outline">
-              Security Headers Checker
-            </Link>
-
-            <Link href="/tools/base64-encoder-decoder" className="yoryantra-btn-outline">
-              Base64 Encoder Decoder
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/cidr-range-expander" />
         </div>
       </section>
     </ToolShell>

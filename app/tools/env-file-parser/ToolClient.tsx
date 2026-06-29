@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] =
@@ -376,48 +376,7 @@ NEXT_PUBLIC_API_URL=https://api.example.com`}
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            .env parsing often connects with DevOps workflows, Docker
-            deployments, Kubernetes configuration, backend development, and API
-            security management.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-
-            <Link
-              href="/tools/docker-compose-validator"
-              className="yoryantra-btn-outline"
-            >
-              Docker Compose Validator
-            </Link>
-
-            <Link
-              href="/tools/kubernetes-yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              Kubernetes YAML Validator
-            </Link>
-
-            <Link
-              href="/tools/api-key-generator"
-              className="yoryantra-btn-outline"
-            >
-              API Key Generator
-            </Link>
-
-            <Link
-              href="/tools/curl-command-builder"
-              className="yoryantra-btn-outline"
-            >
-              CURL Command Builder
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/env-file-parser" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type DnsAnswer = {
@@ -478,48 +478,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            DNS checking often connects with SSL certificates, HTTP headers,
-            redirects, domain configuration, email setup, and infrastructure
-            debugging.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/http-headers-checker"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Checker
-            </Link>
-
-            <Link
-              href="/tools/redirect-checker"
-              className="yoryantra-btn-outline"
-            >
-              Redirect Checker
-            </Link>
-
-            <Link
-              href="/tools/security-headers-scanner"
-              className="yoryantra-btn-outline"
-            >
-              Security Headers Scanner
-            </Link>
-
-            <Link
-              href="/tools/ip-address-inspector"
-              className="yoryantra-btn-outline"
-            >
-              IP Address Inspector
-            </Link>
-
-            <Link
-              href="/categories/devops-tools"
-              className="yoryantra-btn-outline"
-            >
-              DevOps Tools
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/dns-records-checker" />
         </div>
       </section>
     </ToolShell>

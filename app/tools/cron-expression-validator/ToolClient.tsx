@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type CronIssue = {
   level: "Error" | "Warning" | "Suggestion";
@@ -309,35 +309,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/cron-expression-generator"
-              className="yoryantra-btn-outline"
-            >
-              Cron Expression Generator
-            </Link>
-
-            <Link
-              href="/tools/cron-expression-parser"
-              className="yoryantra-btn-outline"
-            >
-              Cron Expression Parser
-            </Link>
-
-            <Link
-              href="/tools/yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              YAML Validator
-            </Link>
-
-            <Link
-              href="/tools/kubernetes-yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              Kubernetes YAML Validator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/cron-expression-validator" />
         </div>
       </section>
     </ToolShell>

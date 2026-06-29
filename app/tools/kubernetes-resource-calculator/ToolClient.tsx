@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "json" | "table";
@@ -703,27 +703,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/kubernetes-yaml-validator" className="yoryantra-btn-outline">
-              Kubernetes YAML Validator
-            </Link>
-
-            <Link href="/tools/kubernetes-secret-decoder" className="yoryantra-btn-outline">
-              Kubernetes Secret Decoder
-            </Link>
-
-            <Link href="/tools/yaml-validator" className="yoryantra-btn-outline">
-              YAML Validator
-            </Link>
-
-            <Link href="/tools/docker-compose-validator" className="yoryantra-btn-outline">
-              Docker Compose Validator
-            </Link>
-
-            <Link href="/tools/github-actions-yaml-validator" className="yoryantra-btn-outline">
-              GitHub Actions YAML Validator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/kubernetes-resource-calculator" />
         </div>
       </section>
     </ToolShell>

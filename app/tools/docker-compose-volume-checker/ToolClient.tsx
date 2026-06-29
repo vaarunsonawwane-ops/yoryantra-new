@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type InputMode = "compose" | "volumesOnly" | "mixed";
@@ -705,27 +705,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/docker-compose-validator" className="yoryantra-btn-outline">
-              Docker Compose Validator
-            </Link>
-
-            <Link href="/tools/docker-compose-ports-checker" className="yoryantra-btn-outline">
-              Docker Compose Ports Checker
-            </Link>
-
-            <Link href="/tools/docker-environment-variable-checker" className="yoryantra-btn-outline">
-              Docker Environment Variable Checker
-            </Link>
-
-            <Link href="/tools/dockerfile-linter" className="yoryantra-btn-outline">
-              Dockerfile Linter
-            </Link>
-
-            <Link href="/tools/yaml-validator" className="yoryantra-btn-outline">
-              YAML Validator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/docker-compose-volume-checker" />
         </div>
       </section>
     </ToolShell>

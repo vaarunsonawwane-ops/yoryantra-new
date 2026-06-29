@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "resolvedCompose" | "variableReport" | "envTemplate" | "markdown" | "json" | "checklist";
@@ -491,17 +491,11 @@ environment:
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Docker Compose variable checks often connect with Compose validation, port review, dependency mapping, and environment file parsing.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/docker-compose-validator" className="yoryantra-btn-outline">Docker Compose Validator</Link>
-            <Link href="/tools/docker-compose-ports-checker" className="yoryantra-btn-outline">Docker Compose Ports Checker</Link>
-            <Link href="/tools/docker-environment-variable-checker" className="yoryantra-btn-outline">Docker Environment Variable Checker</Link>
-            <Link href="/tools/env-file-parser" className="yoryantra-btn-outline">.env File Parser</Link>
-            <Link href="/tools/docker-compose-service-dependency-visualizer" className="yoryantra-btn-outline">Docker Compose Service Dependency Visualizer</Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+
+          <YoryantraRelatedTools currentHref="/tools/docker-compose-environment-variable-resolver" />
         </div>
       </section>
     </ToolShell>

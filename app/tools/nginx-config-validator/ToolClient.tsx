@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type NginxIssue = {
   line: number;
@@ -247,35 +247,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/dockerfile-linter"
-              className="yoryantra-btn-outline"
-            >
-              Dockerfile Linter
-            </Link>
-
-            <Link
-              href="/tools/yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              YAML Validator
-            </Link>
-
-            <Link
-              href="/tools/http-headers-checker"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Checker
-            </Link>
-
-            <Link
-              href="/tools/security-headers-scanner"
-              className="yoryantra-btn-outline"
-            >
-              Security Headers Scanner
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/nginx-config-validator" />
         </div>
       </section>
     </ToolShell>

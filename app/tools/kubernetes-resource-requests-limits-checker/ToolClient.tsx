@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "table" | "json" | "markdown" | "csv" | "checklist";
@@ -493,15 +493,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/kubernetes-yaml-resource-summarizer" className="yoryantra-btn-outline">Kubernetes YAML Resource Summarizer</Link>
-            <Link href="/tools/kubernetes-image-tag-checker" className="yoryantra-btn-outline">Kubernetes Image Tag Checker</Link>
-            <Link href="/tools/kubernetes-service-port-mapper" className="yoryantra-btn-outline">Kubernetes Service Port Mapper</Link>
-            <Link href="/tools/yaml-validator" className="yoryantra-btn-outline">YAML Validator</Link>
-            <Link href="/tools/dockerfile-instruction-explainer" className="yoryantra-btn-outline">Dockerfile Instruction Explainer</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/kubernetes-resource-requests-limits-checker" />
         </div>
       </section>
     </ToolShell>

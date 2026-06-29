@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "matrix" | "job" | "json";
@@ -825,27 +825,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/github-actions-yaml-validator" className="yoryantra-btn-outline">
-              GitHub Actions YAML Validator
-            </Link>
-
-            <Link href="/tools/yaml-validator" className="yoryantra-btn-outline">
-              YAML Validator
-            </Link>
-
-            <Link href="/tools/dockerfile-linter" className="yoryantra-btn-outline">
-              Dockerfile Linter
-            </Link>
-
-            <Link href="/tools/docker-compose-validator" className="yoryantra-btn-outline">
-              Docker Compose Validator
-            </Link>
-
-            <Link href="/tools/environment-variable-diff-checker" className="yoryantra-btn-outline">
-              Environment Variable Diff Checker
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/github-actions-matrix-builder" />
         </div>
       </section>
     </ToolShell>

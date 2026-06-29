@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [minute, setMinute] =
@@ -429,47 +429,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Cron scheduling often connects with DevOps workflows, backend
-            automation, APIs, Linux servers, and infrastructure management.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/api-key-generator"
-              className="yoryantra-btn-outline"
-            >
-              API Key Generator
-            </Link>
-
-            <Link
-              href="/tools/bcrypt-generator"
-              className="yoryantra-btn-outline"
-            >
-              bcrypt Generator
-            </Link>
-
-            <Link
-              href="/tools/jwt-decoder"
-              className="yoryantra-btn-outline"
-            >
-              JWT Decoder
-            </Link>
-
-            <Link
-              href="/tools/hmac-generator"
-              className="yoryantra-btn-outline"
-            >
-              HMAC Generator
-            </Link>
-
-            <Link
-              href="/tools/yaml-formatter"
-              className="yoryantra-btn-outline"
-            >
-              YAML Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/cron-expression-generator" />
         </div>
       </section>
     </ToolShell>

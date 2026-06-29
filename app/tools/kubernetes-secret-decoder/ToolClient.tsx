@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type DecodedSecret = {
   key: string;
@@ -248,35 +248,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/kubernetes-yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              Kubernetes YAML Validator
-            </Link>
-
-            <Link
-              href="/tools/yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              YAML Validator
-            </Link>
-
-            <Link
-              href="/tools/base64-encoder-decoder"
-              className="yoryantra-btn-outline"
-            >
-              Base64 Encoder Decoder
-            </Link>
-
-            <Link
-              href="/tools/docker-compose-validator"
-              className="yoryantra-btn-outline"
-            >
-              Docker Compose Validator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/kubernetes-secret-decoder" />
         </div>
       </section>
     </ToolShell>

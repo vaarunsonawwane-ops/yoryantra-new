@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "json" | "patch";
@@ -664,27 +664,7 @@ LOG_LEVEL`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/env-file-parser" className="yoryantra-btn-outline">
-              .env File Parser
-            </Link>
-
-            <Link href="/tools/json-to-env-converter" className="yoryantra-btn-outline">
-              JSON to ENV Converter
-            </Link>
-
-            <Link href="/tools/env-to-json-converter" className="yoryantra-btn-outline">
-              ENV to JSON Converter
-            </Link>
-
-            <Link href="/tools/github-actions-yaml-validator" className="yoryantra-btn-outline">
-              GitHub Actions YAML Validator
-            </Link>
-
-            <Link href="/tools/docker-compose-validator" className="yoryantra-btn-outline">
-              Docker Compose Validator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/environment-variable-diff-checker" />
         </div>
       </section>
     </ToolShell>

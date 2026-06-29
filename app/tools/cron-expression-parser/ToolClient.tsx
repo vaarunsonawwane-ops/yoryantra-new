@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 const presets = [
   {
@@ -319,35 +319,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/cron-expression-generator"
-              className="yoryantra-btn-outline"
-            >
-              Cron Expression Generator
-            </Link>
-
-            <Link
-              href="/tools/yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              YAML Validator
-            </Link>
-
-            <Link
-              href="/tools/docker-compose-validator"
-              className="yoryantra-btn-outline"
-            >
-              Docker Compose Validator
-            </Link>
-
-            <Link
-              href="/tools/env-file-parser"
-              className="yoryantra-btn-outline"
-            >
-              .env File Parser
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/cron-expression-parser" />
         </div>
       </section>
     </ToolShell>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type LintIssue = {
   line: number;
@@ -238,35 +238,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/docker-compose-validator"
-              className="yoryantra-btn-outline"
-            >
-              Docker Compose Validator
-            </Link>
-
-            <Link
-              href="/tools/yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              YAML Validator
-            </Link>
-
-            <Link
-              href="/tools/kubernetes-yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              Kubernetes YAML Validator
-            </Link>
-
-            <Link
-              href="/tools/env-file-parser"
-              className="yoryantra-btn-outline"
-            >
-              .env File Parser
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/dockerfile-linter" />
         </div>
       </section>
     </ToolShell>

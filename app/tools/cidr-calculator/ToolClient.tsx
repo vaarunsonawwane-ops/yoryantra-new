@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type CIDRResult = {
   networkAddress: string;
@@ -373,37 +373,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-
-            <Link
-              href="/tools/dns-propagation-checker"
-              className="yoryantra-btn-outline"
-            >
-              DNS Propagation Checker
-            </Link>
-
-            <Link
-              href="/tools/http-headers-checker"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Checker
-            </Link>
-
-            <Link
-              href="/tools/redirect-checker"
-              className="yoryantra-btn-outline"
-            >
-              Redirect Checker
-            </Link>
-
-            <Link
-              href="/tools/yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              YAML Validator
-            </Link>
-
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/cidr-calculator" />
         </div>
 
       </section>

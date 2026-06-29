@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "json" | "steps";
@@ -695,27 +695,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/nginx-config-validator" className="yoryantra-btn-outline">
-              Nginx Config Validator
-            </Link>
-
-            <Link href="/tools/redirect-checker" className="yoryantra-btn-outline">
-              Redirect Checker
-            </Link>
-
-            <Link href="/tools/http-status-code-checker" className="yoryantra-btn-outline">
-              HTTP Status Code Checker
-            </Link>
-
-            <Link href="/tools/docker-compose-ports-checker" className="yoryantra-btn-outline">
-              Docker Compose Ports Checker
-            </Link>
-
-            <Link href="/tools/dns-records-checker" className="yoryantra-btn-outline">
-              DNS Records Checker
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/nginx-redirect-rule-tester" />
         </div>
       </section>
     </ToolShell>

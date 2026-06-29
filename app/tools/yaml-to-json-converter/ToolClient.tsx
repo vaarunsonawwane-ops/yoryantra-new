@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import yaml from "js-yaml";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -340,48 +340,7 @@ active: true`}
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            YAML conversion often connects with DevOps workflows, APIs,
-            configuration management, JSON formatting, and structured data
-            debugging.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/yaml-formatter"
-              className="yoryantra-btn-outline"
-            >
-              YAML Formatter
-            </Link>
-
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-
-            <Link
-              href="/tools/json-validator"
-              className="yoryantra-btn-outline"
-            >
-              JSON Validator
-            </Link>
-
-            <Link
-              href="/tools/xml-formatter"
-              className="yoryantra-btn-outline"
-            >
-              XML Formatter
-            </Link>
-
-            <Link
-              href="/tools/sql-formatter"
-              className="yoryantra-btn-outline"
-            >
-              SQL Formatter
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/yaml-to-json-converter" />
         </div>
       </section>
     </ToolShell>

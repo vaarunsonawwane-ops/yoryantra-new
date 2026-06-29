@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "mapping" | "json" | "markdown" | "csv" | "checklist";
@@ -525,15 +525,11 @@ selector: app=web`}
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/kubernetes-yaml-resource-summarizer" className="yoryantra-btn-outline">Kubernetes YAML Resource Summarizer</Link>
-            <Link href="/tools/yaml-validator" className="yoryantra-btn-outline">YAML Validator</Link>
-            <Link href="/tools/docker-compose-ports-checker" className="yoryantra-btn-outline">Docker Compose Ports Checker</Link>
-            <Link href="/tools/docker-compose-service-dependency-visualizer" className="yoryantra-btn-outline">Docker Compose Service Dependency Visualizer</Link>
-            <Link href="/tools/dockerfile-instruction-explainer" className="yoryantra-btn-outline">Dockerfile Instruction Explainer</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/kubernetes-service-port-mapper" />
         </div>
       </section>
     </ToolShell>

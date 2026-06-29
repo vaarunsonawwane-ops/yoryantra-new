@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -232,35 +232,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/yaml-formatter"
-              className="yoryantra-btn-outline"
-            >
-              YAML Formatter
-            </Link>
-
-            <Link
-              href="/tools/yaml-to-json-converter"
-              className="yoryantra-btn-outline"
-            >
-              YAML to JSON Converter
-            </Link>
-
-            <Link
-              href="/tools/json-to-yaml-converter"
-              className="yoryantra-btn-outline"
-            >
-              JSON to YAML Converter
-            </Link>
-
-            <Link
-              href="/tools/kubernetes-yaml-validator"
-              className="yoryantra-btn-outline"
-            >
-              Kubernetes YAML Validator
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/yaml-validator" />
         </div>
       </section>
     </ToolShell>

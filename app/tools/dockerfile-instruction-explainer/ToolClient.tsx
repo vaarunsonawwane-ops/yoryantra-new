@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "explanations" | "json" | "markdown" | "csv" | "checklist";
@@ -555,15 +555,11 @@ CMD ["npm", "start"]`}
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/docker-compose-validator" className="yoryantra-btn-outline">Docker Compose Validator</Link>
-            <Link href="/tools/docker-compose-ports-checker" className="yoryantra-btn-outline">Docker Compose Ports Checker</Link>
-            <Link href="/tools/docker-env-checker" className="yoryantra-btn-outline">Docker Env Checker</Link>
-            <Link href="/tools/env-to-json-converter" className="yoryantra-btn-outline">ENV to JSON Converter</Link>
-            <Link href="/tools/yaml-validator" className="yoryantra-btn-outline">YAML Validator</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/dockerfile-instruction-explainer" />
         </div>
       </section>
     </ToolShell>

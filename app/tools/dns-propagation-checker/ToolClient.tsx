@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type DNSRecordType = "A" | "AAAA" | "CNAME" | "MX" | "TXT" | "NS" | "SOA" | "CAA";
 
@@ -341,35 +341,7 @@ CAA    Certificate authority authorization records`}
             Related Tools
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/dns-records-checker"
-              className="yoryantra-btn-outline"
-            >
-              DNS Records Checker
-            </Link>
-
-            <Link
-              href="/tools/http-headers-checker"
-              className="yoryantra-btn-outline"
-            >
-              HTTP Headers Checker
-            </Link>
-
-            <Link
-              href="/tools/security-headers-scanner"
-              className="yoryantra-btn-outline"
-            >
-              Security Headers Scanner
-            </Link>
-
-            <Link
-              href="/tools/canonical-url-checker"
-              className="yoryantra-btn-outline"
-            >
-              Canonical URL Checker
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/dns-propagation-checker" />
         </div>
       </section>
     </ToolShell>
