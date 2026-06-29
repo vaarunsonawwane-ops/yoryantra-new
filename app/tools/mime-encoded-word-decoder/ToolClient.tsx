@@ -161,7 +161,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="MIME Encoded-Word Decoder"
-      description="Decode RFC 2047 encoded words in email subjects, sender names, and other message headers. Inspect charset, Base64 or Q encoding, folding, and decoded text locally."
+      description="Decode MIME and RFC 2047 encoded words in email subjects, sender names, and other headers. Read UTF-8 Base64 or Q encoded text locally."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="mb-4">
@@ -359,8 +359,8 @@ export default function ToolClient() {
       )}
 
       {result && (
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-8 grid min-w-0 gap-6 lg:grid-cols-2">
+          <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold text-gray-900">Decoded Text</h3>
               <button onClick={() => navigator.clipboard.writeText(result.decodedText)} className="yoryantra-btn-outline text-sm">Copy</button>
@@ -370,7 +370,7 @@ export default function ToolClient() {
             </pre>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
+          <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold text-gray-900">Encoded-Word Output</h3>
               <button onClick={() => navigator.clipboard.writeText(result.encodedText)} className="yoryantra-btn-outline text-sm">Copy</button>
@@ -400,17 +400,17 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Decoding MIME Encoded Words in Email Headers</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Decode MIME and RFC 2047 Email Headers</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Email headers were originally designed around plain ASCII text. When a subject line or sender name contains characters such as accented letters, emoji, Hindi text, Japanese text, or other non-ASCII characters, many mail systems represent that text using MIME encoded-word syntax.
+            Email subjects, sender names, and other message headers may appear as encoded text when they contain emoji, accented letters, Hindi, Japanese, or other non-ASCII characters. RFC 2047 represents this text as MIME encoded words so it can travel safely through email systems.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This MIME Encoded-Word Decoder reads patterns like <span className="font-mono text-gray-800">=?UTF-8?B?...?=</span> and <span className="font-mono text-gray-800">=?UTF-8?Q?...?=</span>, decodes the bytes, and shows the human-readable header text with useful debugging details.
+            This MIME decoder reads patterns such as <span className="font-mono text-gray-800">=?UTF-8?B?...?=</span> and <span className="font-mono text-gray-800">=?UTF-8?Q?...?=</span>. It converts them into readable text and shows the charset, encoding method, byte length, folding issues, and other useful details.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the MIME Encoded-Word Decoder</h2>
+          <h2 className="text-xl font-semibold text-gray-900">How to Decode a MIME Email Subject</h2>
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Paste an encoded subject, From name, folded raw header, or plain text string.</li>
             <li>Choose whether to decode, encode, analyze, or normalize the header.</li>
@@ -427,6 +427,16 @@ export default function ToolClient() {
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
             For short text with many ASCII letters, Q encoding can be easier to inspect. For emoji, non-Latin scripts, or mixed international text, Base64 is often cleaner and shorter.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">RFC 2047 Encoded-Word Format</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            An encoded word follows the structure <span className="font-mono text-gray-800">=?charset?encoding?encoded-text?=</span>. The charset identifies how the original text was stored, while the encoding value is normally <strong>B</strong> for Base64 or <strong>Q</strong> for Q encoding.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            These encoded words are commonly found in Subject, From, To, Cc, and comment fields. They are intended for email headers, not for encoding an entire email body.
           </p>
         </div>
 
@@ -456,6 +466,12 @@ From: =?UTF-8?Q?Varoun_Sonawane?= <hello@yoryantra.com>`}</pre>
             </Faq>
             <Faq title="Can this decode email subject lines?">
               Yes. Paste the full Subject header or only the encoded-word value, then run the decoder to get readable text.
+            </Faq>
+            <Faq title="Can it decode sender names in a From header?">
+              Yes. You can paste a full From header containing an encoded display name and keep the email address visible in the decoded result.
+            </Faq>
+            <Faq title="What is RFC 2047?">
+              RFC 2047 defines the encoded-word format used to place non-ASCII text inside email header fields.
             </Faq>
             <Faq title="What does =?UTF-8?B?...?= mean?">
               It means the header uses UTF-8 bytes and Base64 encoding. The encoded bytes can be decoded back into readable Unicode text.

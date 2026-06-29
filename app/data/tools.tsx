@@ -1402,10 +1402,12 @@ export const tools = [
 
 {
   title: "MIME Encoded-Word Decoder",
-  description: "Decode RFC 2047 email subjects, sender names, charsets, and MIME encoded-word headers locally.",
+  description:
+    "Decode MIME and RFC 2047 email subjects, sender names, UTF-8 Base64 words, Q encoding, charsets, and folded headers locally.",
   href: "/tools/mime-encoded-word-decoder",
   category: "Encoding Tools",
 },
+
 
 {
   title: "String Escape Sequence Converter",
