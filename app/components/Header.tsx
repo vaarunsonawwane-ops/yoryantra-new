@@ -82,7 +82,7 @@ export default function Header() {
           onClick={() =>
             setIsMobileMenuOpen((currentState) => !currentState)
           }
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-[var(--green)] transition hover:border-[var(--light-gold)] hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-[var(--light-gold)] focus:ring-offset-2 md:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-[var(--green)] transition hover:border-[var(--light-gold)] hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--light-gold)] focus-visible:ring-offset-2 md:hidden"
         >
           {isMobileMenuOpen ? (
             <svg
