@@ -82,7 +82,7 @@ export default function HomePage() {
 		    ✦ Built for you
 		  </p>
 
-          <h1 className="mt-8 text-4xl font-semibold tracking-tight text-gray-950 md:text-6xl md:leading-tight">
+          <h1 className="mt-8 text-4xl font-semibold tracking-tight text-gray-950 md:text-5xl md:leading-tight">
             Practical tools for everyday work — clean, fast, and easy to use.
           </h1>
 
