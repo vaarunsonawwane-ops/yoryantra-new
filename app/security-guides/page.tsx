@@ -7,9 +7,9 @@ const workflowGroups = [
       "Use the JWT tools according to the question you are trying to answer. Decoding, claim inspection, expiry checks, signature verification, and secret review are separate tasks.",
     steps: [
       {
-        title: "Read the token contents",
+        title: "Decode the token contents",
         detail:
-          "Start with JWT Decoder when you need to inspect the header and payload. Decoding does not verify that the token is trustworthy.",
+          "Start with JWT Decoder when you need to inspect the header and payload. Decoding alone does not verify that the token is trustworthy.",
         href: "/tools/jwt-decoder",
         linkLabel: "Open JWT Decoder",
       },
@@ -23,7 +23,7 @@ const workflowGroups = [
       {
         title: "Check time-based validity",
         detail:
-          "Use JWT Expiration Checker when the main problem is whether a token is expired, not active yet, or affected by clock differences.",
+          "Use JWT Expiration Checker when the main question is whether a token has expired, is not active yet, or is affected by clock differences.",
         href: "/tools/jwt-expiration-checker",
         linkLabel: "Open JWT Expiration Checker",
       },
@@ -49,14 +49,14 @@ const workflowGroups = [
         linkLabel: "Open CSP Generator",
       },
       {
-        title: "Configure directives in detail",
+        title: "Build a detailed policy",
         detail:
-          "CSP Policy Builder is better when you need directive-level controls, report-only mode, reporting settings, and deployment output.",
+          "Use CSP Policy Builder when you need directive-level controls, report-only mode, reporting settings, and deployment-ready output.",
         href: "/tools/csp-policy-builder",
         linkLabel: "Open CSP Policy Builder",
       },
       {
-        title: "Review an existing policy",
+        title: "Analyze an existing policy",
         detail:
           "CSP Analyzer inspects a policy that already exists and highlights missing protections or potentially unsafe values.",
         href: "/tools/csp-analyzer",
@@ -223,7 +223,7 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
-        <div className="mb-8 flex items-center text-sm text-gray-500">
+        <div className="mb-10 flex items-center text-sm text-gray-500">
           <Link
             href="/"
             className="transition-colors duration-200 hover:!text-[var(--light-gold)]"
@@ -241,17 +241,16 @@ export default function Page() {
             Practical security workflows
           </p>
 
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            Choose the Right Security Tool for the Task
+          <h1 className="mt-5 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
+            Choose the Right Security Tool for Each Task
           </h1>
 
-          <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            This page is not another list of every Security Tool. It explains
-            which tool to use, what each result can tell you, and where a quick
-            browser check stops being enough.
+          <p className="mt-7 max-w-3xl text-lg leading-8 text-gray-600">
+            This guide explains which security tool to use, what each result can
+            tell you, and where a browser-based check stops being enough.
           </p>
 
-          <div className="mt-7 flex flex-wrap gap-3">
+          <div className="mt-9 flex flex-wrap gap-3">
             <Link
               href="/categories/security-tools"
               className="yoryantra-btn-outline"
@@ -267,14 +266,14 @@ export default function Page() {
 
         <section className="mt-14 rounded-2xl border border-gray-200 bg-gray-50 p-7 md:p-8">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Before Using a Browser Security Tool
+            Before Using a Browser-Based Security Tool
           </h2>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {[
-              "Use sample or redacted values when a token, secret, private key, cookie, or certificate may be sensitive.",
-              "Decoding data does not verify its source, integrity, trust, or safety.",
-              "A generated header or policy is a starting point and still needs testing in the real application.",
+              "Use sample or redacted values when a token, secret, private key, cookie, or certificate may contain sensitive information.",
+              "Decoding data makes it readable, but it does not verify its source, integrity, trust, or safety.",
+              "A generated header or policy is only a starting point and still needs testing in the real application.",
               "Formatting a certificate or key does not prove that it is valid, correctly paired, or trusted.",
               "Hash identification is an estimate because different algorithms can produce similar-looking values.",
               "Production security still requires access control, dependency review, monitoring, patching, and human review.",
@@ -436,12 +435,12 @@ export default function Page() {
 
           <ol className="mt-6 space-y-4 text-gray-700">
             {[
-              "Identify the exact question: decode, inspect, generate, verify, compare, or analyze.",
+              "Identify the exact task: decode, inspect, generate, verify, compare, or analyze.",
               "Remove or replace sensitive production data before pasting input.",
               "Read the tool limitations before trusting the result.",
-              "Compare the output with the application, standard, or provider documentation that governs the real workflow.",
+              "Compare the output with the application requirements, relevant standard, or provider documentation that governs the real workflow.",
               "Test generated policies, headers, keys, or configuration in a controlled environment.",
-              "Record the final decision and review it again when the application or infrastructure changes.",
+              "Record the final decision and review it again when the application, dependencies, or infrastructure changes.",
             ].map((item, index) => (
               <li
                 key={item}
@@ -503,7 +502,7 @@ export default function Page() {
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Are the browser tools a replacement for a security review?
+                Are browser-based tools a replacement for a security review?
               </h3>
 
               <p className="mt-2 leading-relaxed text-gray-600">
@@ -521,7 +520,7 @@ export default function Page() {
             Continue With the Full Security Collection
           </h2>
 
-          <p className="mt-3 max-w-3xl leading-relaxed text-gray-600">
+          <p className="mt-4 max-w-3xl leading-7 text-gray-600">
             Use the Security Tools category when you already know the task and
             want to browse all available utilities. This guide remains focused
             on workflow, tool selection, limitations, and safe interpretation.
