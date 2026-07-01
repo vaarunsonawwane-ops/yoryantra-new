@@ -447,7 +447,7 @@ export default function Page() {
                 key={item}
                 className="flex gap-4 rounded-xl border border-gray-200 bg-white p-4"
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-900 text-xs font-semibold text-white">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-green-200 bg-green-50 text-xs font-semibold text-[var(--brand-green)]">
                   {index + 1}
                 </span>
 
