@@ -269,12 +269,12 @@ export default function Page() {
         </section>
 
         {/* WORKFLOWS */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
+        <section className="mt-16">
           <h2 className="text-2xl font-semibold text-gray-900">
             Practical Encoding Workflows
           </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="mt-7 grid gap-x-12 gap-y-6 md:grid-cols-2">
             {[
               "Encode or decode Base64 only when a system expects that representation.",
               "Use Base64URL for JWT segments and URL-safe API values.",
@@ -284,12 +284,15 @@ export default function Page() {
               "Create readable slugs and review collisions, language, and canonical URLs.",
               "Convert text case for labels, identifiers, content, and code preparation.",
               "Generate QR codes, then test the final destination and scan size.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
+            ].map((item, index) => (
+              <div key={item} className="flex items-start gap-4">
+                <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+
+                <p className="text-sm leading-6 text-gray-700">
+                  {item}
+                </p>
               </div>
             ))}
           </div>

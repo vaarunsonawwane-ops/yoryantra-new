@@ -270,12 +270,12 @@ export default function Page() {
         </section>
 
         {/* WORKFLOWS */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
+        <section className="mt-16">
           <h2 className="text-2xl font-semibold text-gray-900">
             Practical JSON Workflows
           </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="mt-7 grid gap-x-12 gap-y-6 md:grid-cols-2">
             {[
               "Format valid API responses before reading or debugging them.",
               "Validate syntax before sending or storing a JSON payload.",
@@ -285,12 +285,15 @@ export default function Page() {
               "Minify valid JSON when compact output is required.",
               "Convert JSON to YAML when a configuration workflow expects YAML.",
               "Convert XML to JSON while reviewing attributes, text nodes, and repeated elements.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
+            ].map((item, index) => (
+              <div key={item} className="flex items-start gap-4">
+                <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+
+                <p className="text-sm leading-6 text-gray-700">
+                  {item}
+                </p>
               </div>
             ))}
           </div>

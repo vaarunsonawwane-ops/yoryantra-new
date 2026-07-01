@@ -269,12 +269,12 @@ export default function Page() {
         </section>
 
         {/* WORKFLOWS */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
+        <section className="mt-16">
           <h2 className="text-2xl font-semibold text-gray-900">
             Practical Technical SEO Workflows
           </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="mt-7 grid gap-x-12 gap-y-6 md:grid-cols-2">
             {[
               "Create and review page titles and descriptions before publishing.",
               "Generate Open Graph tags, then inspect the final HTML and preview.",
@@ -284,12 +284,15 @@ export default function Page() {
               "Review canonical URLs together with redirects, internal links, and sitemaps.",
               "Generate sitemap entries from canonical, accessible URLs.",
               "Build UTM links for analytics without mixing them into canonical strategy.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
+            ].map((item, index) => (
+              <div key={item} className="flex items-start gap-4">
+                <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+
+                <p className="text-sm leading-6 text-gray-700">
+                  {item}
+                </p>
               </div>
             ))}
           </div>

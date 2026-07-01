@@ -1,12 +1,8 @@
 import Link from "next/link";
-import { tools } from "@/app/data/tools";
-import InfoCard from "@/app/components/InfoCard";
-import SectionCard from "@/app/components/SectionCard";
-import SectionMiniCard from "@/app/components/SectionMiniCard";
 
 const featuredCategories = [
   {
-    title: "Developer Utilities",
+    title: "Developer Tools",
     description:
       "Regex testing, timestamps, UUIDs, JWT decoding, and everyday debugging tools.",
     href: "/categories/developer-tools",
@@ -83,10 +79,10 @@ const popularTools = [
 ];
 
 export const metadata = {
-  title: "Developer Tools | Yoryantra",
+  title: "Developer Workflows and Practical Browser Tools | Yoryantra",
 
   description:
-    "Developer tools for debugging, APIs, JSON, encoding, timestamps, UUIDs, JWTs, and everyday workflows.",
+    "Use practical browser-based tools for JSON, APIs, JWTs, regex, timestamps, UUIDs, encoding, and everyday development checks.",
 
   keywords: [
     "developer utilities",
@@ -106,10 +102,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "Developer Utilities Online Free | Yoryantra",
+    title: "Developer Workflows and Practical Tools | Yoryantra",
 
     description:
-      "Free online developer utilities for debugging, JSON, JWTs, regex, encoding, timestamps, UUIDs, and API workflows.",
+      "Practical browser-based developer tools for JSON, JWTs, regex, encoding, timestamps, UUIDs, APIs, and debugging workflows.",
 
     url: "https://yoryantra.com/developers",
 
@@ -121,10 +117,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "Developer Utilities Online Free | Yoryantra",
+    title: "Developer Workflows and Practical Tools | Yoryantra",
 
     description:
-      "Explore free online developer tools for debugging, APIs, JSON, JWTs, regex, encoding, timestamps, and UUID workflows.",
+      "Explore practical developer tools for JSON, APIs, JWTs, regex, encoding, timestamps, UUIDs, and debugging work.",
   },
 };
 
@@ -151,46 +147,47 @@ export default function Page() {
         {/* HERO */}
         <div className="max-w-4xl">
           <h1 className="text-4xl font-semibold tracking-tight text-gray-950 md:text-6xl md:leading-tight">
-            Developer Utilities for Debugging, APIs, and Daily Workflows
+            Developer Workflows for Debugging, APIs, and Everyday Tasks
           </h1>
 
           <p className="mt-6 text-lg leading-relaxed text-gray-600">
-            Explore practical developer utilities for formatting JSON, decoding
-            JWT tokens, testing regex patterns, converting timestamps, generating
-            UUIDs, encoding data, and debugging API workflows without switching
-            between heavy tools.
+            Format data, inspect tokens, test patterns, convert timestamps,
+            generate identifiers, and debug API requests with focused tools
+            designed for small development tasks.
           </p>
         </div>
-
         {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-[var(--light-gold)] bg-[var(--cream)] p-7 md:p-8">
-            <h2 className="text-lg font-semibold leading-tight text-gray-900">
-              Built for Quick Debugging
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Inspect Data and API Payloads
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Check payloads, tokens, timestamps, identifiers, and structured data during development and debugging.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Format JSON, compare responses, validate schemas, and prepare
+              request data before it reaches an API.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[var(--light-gold)] bg-[var(--cream)] p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Useful Across Frontend and Backend Work
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Debug Tokens, Text, and Time
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Helpful for frontend work, APIs, authentication testing, backend checks, and day-to-day debugging.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Decode JWTs, test regex, inspect encoded values, and convert
+              timestamps while tracing application behaviour.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[var(--light-gold)] bg-[var(--cream)] p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Simple Browser-Based Utilities
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Generate Values for Development
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Most tools run directly in your browser for quick checks, clean outputs, and fast debugging.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Create UUIDs, tokens, keys, and request examples for local work,
+              testing, and temporary development data.
             </p>
           </div>
         </div>
@@ -199,12 +196,12 @@ export default function Page() {
         <section className="mt-16">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              Developer-Focused Tool Categories
+              Browse Developer Tool Categories
             </h2>
 
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with focused utility categories that cover debugging,
-              structured data, encoding, and security-related workflows.
+              Choose a category based on the task you are working on:
+              debugging, structured data, encoding, security, or deployment.
             </p>
           </div>
 
@@ -239,8 +236,8 @@ export default function Page() {
             </h2>
 
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Frequently used utilities for JSON, JWTs, regex, timestamps,
-              encoded values, identifiers, and API request debugging.
+              Start with commonly used tools for payloads, authentication,
+              text patterns, time values, identifiers, and API requests.
             </p>
           </div>
 
@@ -266,41 +263,46 @@ export default function Page() {
             ))}
           </div>
         </section>
+        {/* COMMON WORKFLOWS */}
+        <section className="mt-16">
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Practical Developer Workflows
+          </h2>
 
-			{/* COMMON WORKFLOWS */}
-			<SectionCard>
-			  <h2 className="text-2xl font-semibold text-gray-900">
-				Common Developer Workflows
-			  </h2>
+          <p className="mt-3 max-w-3xl text-gray-600 leading-relaxed">
+            Small development checks often happen between larger tasks. These
+            workflows show where a focused browser tool can save time.
+          </p>
 
-			  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
-				Small development tasks happen constantly — checking payloads, decoding values, testing patterns, comparing responses, and preparing data before it goes into APIs or applications.
-			  </p>
+          <div className="mt-7 grid gap-x-12 gap-y-6 md:grid-cols-2">
+            {[
+              "Format and validate JSON before sending it to an API.",
+              "Inspect JWT contents when authentication starts behaving unexpectedly.",
+              "Test a regular expression before adding it to application code.",
+              "Decode Base64 or URL-safe values while reviewing requests and responses.",
+              "Generate UUIDs for database records, fixtures, or temporary test data.",
+              "Convert timestamps while checking logs, events, and backend activity.",
+              "Compare API responses or structured data before accepting a change.",
+              "Prepare tokens, keys, signatures, or curl requests during testing.",
+            ].map((item, index) => (
+              <div key={item} className="flex items-start gap-4">
+                <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
 
-			  <div className="mt-8 grid gap-4 md:grid-cols-2">
-				{[
-				  "Clean up and validate JSON before sending it to APIs.",
-				  "Check JWT tokens when login or authentication starts behaving oddly.",
-				  "Try regex patterns before using them in real code.",
-				  "Decode Base64 or URL-safe values while debugging requests and responses.",
-				  "Generate UUIDs for databases, test data, or quick mock setups.",
-				  "Read timestamps while checking logs, events, or backend activity.",
-				  "Compare API responses and structured data side by side.",
-				  "Prepare tokens, keys, and signatures during development and testing.",
-				].map((item) => (
-				  <SectionMiniCard key={item}>
-					<p className="text-sm leading-relaxed text-gray-700">
-					  {item}
-					</p>
-				  </SectionMiniCard>
-				))}
-			  </div>
-			</SectionCard>
+                <p className="text-sm leading-6 text-gray-700">
+                  {item}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
 
         {/* WHY MATTERS */}
         <section className="mt-16">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Why Developer Utilities Matter
+            Where These Tools Fit in Daily Development
           </h2>
 
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
@@ -331,25 +333,25 @@ export default function Page() {
           <div className="mt-6 space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What are developer utilities?
+                What kinds of tasks are developer tools useful for?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Developer utilities are small tools that help with debugging,
-                formatting, validation, encoding, parsing, token inspection, and
-                everyday software development tasks.
+                They help with focused tasks such as formatting data, validating
+                syntax, inspecting tokens, testing patterns, converting values,
+                and preparing API requests.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Are these tools useful for API development?
+                Which tools are useful for API debugging?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. JSON formatting, JWT decoding, curl commands, timestamps,
-                schema validation, and encoding tools are commonly used during
-                API development and testing.
+                JSON formatters, schema validators, JWT tools, curl builders,
+                timestamp converters, encoders, and response comparison tools
+                are useful during API development and testing.
               </p>
             </div>
 
@@ -359,9 +361,9 @@ export default function Page() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Yoryantra tools are designed to work in the browser, so you
-                can use them quickly without installing desktop software or
-                browser extensions.
+                No. The tools are designed to work in the browser, so focused
+                checks can be completed without installing a separate desktop
+                application or browser extension.
               </p>
             </div>
 
@@ -371,9 +373,9 @@ export default function Page() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Most Yoryantra tools process data locally inside your browser.
-                Inputs are not uploaded unless a specific utility clearly needs
-                an external URL check.
+                Most tools process input locally in the browser. A tool that
+                needs to inspect an external URL or remote response should make
+                that behaviour clear on its page.
               </p>
             </div>
           </div>
@@ -382,7 +384,7 @@ export default function Page() {
         {/* RELATED */}
         <section className="mt-16 border-t border-gray-200 pt-10">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Related Pages
+            Continue Exploring Yoryantra
           </h2>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -390,7 +392,7 @@ export default function Page() {
               href="/categories/developer-tools"
               className="yoryantra-btn-outline"
             >
-              Developer Utilities
+              Developer Tools
             </Link>
 
             <Link
