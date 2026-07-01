@@ -153,50 +153,47 @@ export default function Page() {
           </h1>
 
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Use practical browser-based tools for formatting, validation,
-            comparison, schema checks, escaping, minifying, and converting JSON
-            used in APIs, backend systems, configuration files, and tests.
+            Format payloads, validate syntax, compare structured data, check
+            schemas, and convert JSON during API, backend, and configuration work.
           </p>
         </div>
 
         {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Choose the Right Tool for API Debugging
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Format and Validate JSON
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Format responses for readability, validate syntax, inspect
-              escaped strings, and compare payloads while debugging APIs,
-              webhooks, logs, and backend services.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Make JSON readable, find syntax errors, and prepare compact output when
+              smaller data is required.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Separate Syntax, Schema, and Data Checks
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Compare and Check Data Structure
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Valid JSON can still contain the wrong fields, types, or
-              required values. Use syntax validation, schema checks, and data
-              comparison for different parts of the review.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Review changed values and validate fields, types, and required data against
+              a schema.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Understand What a Browser Check Can Confirm
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Convert JSON for Other Systems
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Browser-based tools are useful for focused checks and local
-              transformations. Use sample or redacted data when a payload may
-              contain tokens, personal information, or production records.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Move data between JSON, YAML, XML, CSV, query strings, and other formats
+              while reviewing the output.
             </p>
           </div>
         </div>
+
 
         {/* FEATURED CATEGORIES */}
         <section className="mt-16">

@@ -153,50 +153,47 @@ export default function Page() {
           </h1>
 
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Use practical browser-based tools for Base64, Base64URL,
-            URL encoding, HTML entities, JSON strings, slugs, text conversion,
-            QR codes, and other web-safe text workflows.
+            Encode and decode URLs, Base64 values, HTML entities, JSON strings,
+            slugs, and other text formats used across web systems.
           </p>
         </div>
 
         {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Choose the Right Encoding for the Context
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Encode URLs and Web Text
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Use URL encoding for URLs and query values, HTML entities for
-              HTML text, JSON escaping for JSON strings, and Base64 variants
-              only where the receiving system expects them.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Handle URL components, query values, and text that must be represented
+              safely in a web address.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Separate Encoding from Encryption and Validation
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Work With Base64 and Base64URL
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Encoding changes representation. It does not encrypt data,
-              prove authenticity, validate meaning, or make untrusted content
-              safe in every context.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Encode or decode standard and URL-safe Base64 values used in files, APIs,
+              tokens, and debugging.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Understand What a Browser Tool Can Confirm
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Prepare JSON, HTML, and Slugs
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Browser tools are useful for focused transformations and
-              debugging. Use sample or redacted input when values may contain
-              credentials, personal data, or production information.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Escape text for JSON or HTML, convert letter case, and create readable slugs
+              for content and code.
             </p>
           </div>
         </div>
+
 
         {/* FEATURED CATEGORIES */}
         <section className="mt-16">

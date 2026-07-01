@@ -153,50 +153,47 @@ export default function Page() {
           </h1>
 
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Use practical browser-based tools for metadata, Open Graph
-            previews, hreflang, robots.txt, sitemaps, redirects, canonical
-            URLs, campaign tracking, and page-level technical checks.
+            Prepare metadata, review crawler instructions, test redirects, and check
+            canonical and hreflang signals before publishing or updating pages.
           </p>
         </div>
 
         {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Choose the Right Tool for the SEO Task
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Prepare Metadata and Social Tags
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Use separate tools for generating metadata, checking crawl
-              instructions, reviewing canonicals, testing redirects, and
-              validating international SEO signals.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Create page metadata and Open Graph tags, then review how the final HTML
+              presents them.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Connect Content, Code, and Search Signals
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Check Crawling and Indexing Signals
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Technical SEO often connects content, code, analytics, and
-              deployment. These tools help review the signals that must remain
-              consistent across those workflows.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Review robots.txt, sitemaps, hreflang, and page directives that guide search
+              engine discovery.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Understand What a Browser Check Can Confirm
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Review URLs, Redirects, and Canonicals
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Browser-based tools help review markup, URLs, files, and
-              generated output before publishing, but they do not guarantee
-              crawling, indexing, ranking, or a specific search preview.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Check redirect paths, preferred URLs, campaign parameters, and signals that
+              should stay consistent.
             </p>
           </div>
         </div>
+
 
         {/* FEATURED CATEGORIES */}
         <section className="mt-16">

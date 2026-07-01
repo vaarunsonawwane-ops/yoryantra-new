@@ -79,7 +79,7 @@ const popularSecurityTools = [
 ];
 
 export const metadata = {
-  title: "Security Workflows and Tool Selection for For Developers | Yoryantra",
+  title: "Security Workflows and Tool Selection for Developers | Yoryantra",
 
   description:
     "Follow practical security workflows for JWTs, HMAC signatures, hashes, RSA keys, PEM files, CSP headers, API keys, and authentication debugging.",
@@ -102,7 +102,7 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "Security Workflows and Tool Selection for For Developers | Yoryantra",
+    title: "Security Workflows and Tool Selection for Developers | Yoryantra",
 
     description:
       "Practical security workflows and tools for JWTs, HMAC signatures, hashes, RSA keys, PEM files, CSP headers, API keys, and authentication debugging.",
@@ -117,7 +117,7 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "Security Workflows and Tool Selection for For Developers | Yoryantra",
+    title: "Security Workflows and Tool Selection for Developers | Yoryantra",
 
     description:
       "Choose the right security tool for JWT debugging, hashing, signatures, keys, CSP headers, API keys, and authentication workflows.",
@@ -151,50 +151,48 @@ export default function Page() {
           </h1>
 
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Use practical browser-based tools for JWT debugging, HMAC
-            signatures, hashes, RSA keys, PEM files, random tokens, API keys,
-            CSP headers, and authentication checks during development.
+            Debug tokens, verify signatures, inspect certificates, and review
+            browser security configuration with focused tools for development and
+            testing.
           </p>
         </div>
 
         {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Choose the Right Tool for Authentication Debugging
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Debug Tokens and Authentication
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Decode token contents, inspect claims, verify signatures, and
-              generate test values for login systems, APIs, sessions, and
-              backend authentication flows.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Inspect JWT contents, claims, expiry, and signatures while troubleshooting
+              login, session, and API authentication.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Separate Hashes, Signatures, and Password Hashes
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Work With Hashes, Keys, and Signatures
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Use fast hashes for checksums, HMAC for keyed verification,
-              and bcrypt for password hashing. These values serve different
-              purposes and should not be used interchangeably.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Choose the correct tool for checksums, HMAC verification, password hashing,
+              RSA keys, and PEM files.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Understand What a Browser Check Can Confirm
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Review Headers and Browser Policies
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Browser tools can help inspect structure, formatting, and test
-              values, but they do not replace production validation, access
-              control, monitoring, or a complete security review.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Build and inspect CSP and security headers, then test the final
+              configuration in the real application.
             </p>
           </div>
         </div>
+
 
         {/* FEATURED CATEGORIES */}
         <section className="mt-16">

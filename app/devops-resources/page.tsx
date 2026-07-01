@@ -152,50 +152,47 @@ export default function Page() {
           </h1>
 
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Use practical browser-based tools for Docker Compose,
-            Kubernetes YAML, environment files, YAML formatting, cron
-            expressions, configuration conversion, and pre-deployment checks.
+            Review Docker, Kubernetes, YAML, environment files, and cron schedules
+            before configuration changes reach deployment.
           </p>
         </div>
 
         {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Choose the Right Tool for Configuration Checks
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Review Container Configuration
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Validate Docker Compose files, inspect Kubernetes manifests,
-              format YAML, parse environment variables, and review configuration
-              before deployment.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Check Docker Compose and Kubernetes files for syntax, structure, and common
+              configuration mistakes.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Separate Syntax Checks from Deployment Testing
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Check YAML and Environment Files
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Syntax and structure checks can catch common mistakes, but they
-              do not confirm that images, secrets, permissions, networks, storage,
-              or runtime behaviour are correct.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Format YAML, parse environment variables, and convert configuration data
+              when another format is needed.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Understand What a Browser Check Can Confirm
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-base font-semibold leading-snug text-gray-900">
+              Understand Schedules and Automation
             </h2>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Browser tools are useful for focused checks and conversions.
-              Production readiness still depends on real environments, logs,
-              access controls, backups, monitoring, and rollback plans.
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Build and read cron expressions before adding recurring jobs to deployment
+              or maintenance workflows.
             </p>
           </div>
         </div>
+
 
         {/* FEATURED CATEGORIES */}
         <section className="mt-16">
