@@ -1,128 +1,221 @@
 import Link from "next/link";
 
-const featuredCategories = [
+const workflowGroups = [
   {
-    title: "JSON & Data Tools",
+    title: "Clean and validate incoming JSON",
     description:
-      "JSON formatting, validation, schema checks, diff comparison, escaping, and conversions.",
-    href: "/categories/json-tools",
+      "Formatting, validation, minifying, and escaping solve different problems. Start by deciding whether you need readability, syntax checking, compact output, or a JSON-safe string.",
+    steps: [
+      {
+        title: "Make the payload readable",
+        detail:
+          "Use JSON Formatter when the data is valid but difficult to inspect because it is compressed or poorly indented.",
+        href: "/tools/json-formatter",
+        linkLabel: "Open JSON Formatter",
+      },
+      {
+        title: "Find syntax errors",
+        detail:
+          "Use JSON Validator when parsing fails or you need to locate invalid commas, quotes, brackets, or other structural problems.",
+        href: "/tools/json-validator",
+        linkLabel: "Open JSON Validator",
+      },
+      {
+        title: "Reduce unnecessary whitespace",
+        detail:
+          "Use JSON Minifier when the data is already valid and you need compact output for storage, transport, or a test fixture.",
+        href: "/tools/json-minifier",
+        linkLabel: "Open JSON Minifier",
+      },
+      {
+        title: "Prepare JSON for a string context",
+        detail:
+          "Use JSON Escape Unescape when JSON must be embedded inside logs, code, environment values, or another quoted string.",
+        href: "/tools/json-escape-unescape",
+        linkLabel: "Open JSON Escape Unescape",
+      },
+    ],
   },
   {
-    title: "Developer Utilities",
+    title: "Validate structure with JSON Schema",
     description:
-      "Debugging tools for APIs, tokens, timestamps, UUIDs, regex, and daily development.",
-    href: "/categories/developer-tools",
+      "Valid JSON can still contain the wrong fields, types, or required values. Schema tools help check structure rather than syntax alone.",
+    steps: [
+      {
+        title: "Create a starting schema",
+        detail:
+          "Use JSON Schema Generator to infer a draft schema from representative sample data.",
+        href: "/tools/json-schema-generator",
+        linkLabel: "Open JSON Schema Generator",
+      },
+      {
+        title: "Validate data against the schema",
+        detail:
+          "Use JSON Schema Validator to check required fields, value types, nested objects, arrays, and other declared rules.",
+        href: "/tools/json-schema-validator",
+        linkLabel: "Open JSON Schema Validator",
+      },
+      {
+        title: "Generate TypeScript types",
+        detail:
+          "Use JSON Schema to TypeScript Converter when a schema needs to become interfaces or types for application code.",
+        href: "/tools/json-schema-to-typescript-converter",
+        linkLabel: "Open JSON Schema to TypeScript Converter",
+      },
+      {
+        title: "Test exact locations",
+        detail:
+          "Use JSON Pointer Evaluator or JSONPath Tester when you need to inspect a specific value inside a large nested document.",
+        href: "/tools/json-pointer-evaluator",
+        linkLabel: "Open JSON Pointer Evaluator",
+      },
+    ],
   },
   {
-    title: "Encoding Tools",
+    title: "Compare, merge, and patch JSON safely",
     description:
-      "Base64, URL encoding, HTML entities, JSON-safe strings, and web text transformations.",
-    href: "/categories/encoding-tools",
-  },
-  {
-    title: "DevOps Tools",
-    description:
-      "YAML, Docker, Kubernetes, .env parsing, cron expressions, and configuration workflows.",
-    href: "/categories/devops-tools",
+      "A visual difference, a merged document, and a formal patch are separate outputs. Choose the tool that matches how the change will be reviewed or applied.",
+    steps: [
+      {
+        title: "Inspect differences",
+        detail:
+          "Use JSON Diff Checker to compare two documents and review added, removed, or changed values.",
+        href: "/tools/json-diff-checker",
+        linkLabel: "Open JSON Diff Checker",
+      },
+      {
+        title: "Combine documents",
+        detail:
+          "Use JSON Merge Tool when multiple objects need to be combined under a clear merge strategy.",
+        href: "/tools/json-merge-tool",
+        linkLabel: "Open JSON Merge Tool",
+      },
+      {
+        title: "Create patch operations",
+        detail:
+          "Use JSON Patch Generator to produce add, remove, and replace operations using JSON Pointer paths.",
+        href: "/tools/json-patch-generator",
+        linkLabel: "Open JSON Patch Generator",
+      },
+      {
+        title: "Normalize key order",
+        detail:
+          "Use JSON Sort Keys when stable ordering will make code review, snapshots, and comparisons easier.",
+        href: "/tools/json-sort-keys",
+        linkLabel: "Open JSON Sort Keys",
+      },
+    ],
   },
 ];
 
-const popularJsonTools = [
+const conversionTools = [
   {
-    title: "JSON Formatter",
+    title: "JSON to CSV",
     description:
-      "Format and beautify JSON data for easier reading and debugging.",
-    href: "/tools/json-formatter",
+      "Convert arrays of objects into rows and columns. Review nested values before assuming every JSON structure maps cleanly to a table.",
+    href: "/tools/json-to-csv",
   },
   {
-    title: "JSON Validator",
+    title: "CSV to JSON",
     description:
-      "Validate JSON syntax and find formatting errors quickly.",
-    href: "/tools/json-validator",
-  },
-  {
-    title: "JSON Minifier",
-    description:
-      "Minify JSON by removing whitespace and unnecessary formatting.",
-    href: "/tools/json-minifier",
-  },
-  {
-    title: "JSON Diff Checker",
-    description:
-      "Compare two JSON objects and inspect structural differences.",
-    href: "/tools/json-diff-checker",
-  },
-  {
-    title: "JSON Schema Validator",
-    description:
-      "Validate JSON data against schema rules for API and backend workflows.",
-    href: "/tools/json-schema-validator",
-  },
-  {
-    title: "JSON Escape Unescape",
-    description:
-      "Escape and unescape JSON strings for logs, scripts, and API payloads.",
-    href: "/tools/json-escape-unescape",
+      "Convert CSV rows into JSON objects while checking headers, quoting, empty cells, and type interpretation.",
+    href: "/tools/csv-to-json",
   },
   {
     title: "JSON to YAML Converter",
     description:
-      "Convert JSON data into readable YAML configuration.",
+      "Convert JSON into YAML for configuration and infrastructure workflows while preserving the underlying data structure.",
     href: "/tools/json-to-yaml-converter",
+  },
+  {
+    title: "YAML to JSON Converter",
+    description:
+      "Convert YAML into JSON when an API, script, or application expects strict JSON syntax.",
+    href: "/tools/yaml-to-json-converter",
   },
   {
     title: "XML to JSON Converter",
     description:
-      "Convert XML responses and structured data into JSON format.",
+      "Transform XML into JSON while reviewing attributes, repeated elements, text nodes, and other format differences.",
     href: "/tools/xml-to-json-converter",
+  },
+  {
+    title: "JSON to Form Data Converter",
+    description:
+      "Turn JSON values into FormData-style entries for browser requests, uploads, and API testing.",
+    href: "/tools/json-to-form-data-converter",
+  },
+];
+
+const largeDataTools = [
+  {
+    title: "NDJSON Formatter Validator",
+    description:
+      "Validate and format newline-delimited JSON where each line represents a separate JSON record.",
+    href: "/tools/ndjson-formatter-validator",
+  },
+  {
+    title: "JSON Lines to JSON Converter",
+    description:
+      "Convert JSON Lines or NDJSON records into a standard JSON array, or move a JSON array back into line-based records.",
+    href: "/tools/json-lines-to-json-converter",
+  },
+  {
+    title: "JSON Array Filter Tool",
+    description:
+      "Filter large arrays by conditions without manually editing or scanning every object.",
+    href: "/tools/json-array-filter-tool",
+  },
+  {
+    title: "JSON Array Group By Tool",
+    description:
+      "Group array items by a selected field to inspect categories, counts, and repeated values.",
+    href: "/tools/json-array-group-by-tool",
+  },
+  {
+    title: "JSON Key Extractor",
+    description:
+      "Collect object keys and paths from nested data when documenting or auditing an unknown payload.",
+    href: "/tools/json-key-extractor",
+  },
+  {
+    title: "JSON Flatten Unflatten Tool",
+    description:
+      "Flatten nested structures into path-based keys or rebuild nested JSON from flattened data.",
+    href: "/tools/json-flatten-unflatten-tool",
   },
 ];
 
 export const metadata = {
-  title: "JSON Guides for Developers and API Workflows | Yoryantra",
-
+  title: "JSON Workflows for Validation, Conversion, and APIs | Yoryantra",
   description:
-    "Explore practical JSON guides and free online tools for JSON formatting, validation, minifying, diff checking, schema validation, escaping, and JSON conversion workflows.",
-
+    "Follow practical JSON workflows for formatting, syntax validation, schema checks, comparison, patches, conversions, JSON Lines, arrays, and API payload debugging.",
   keywords: [
-    "json guides",
-    "json tools",
-    "json formatter",
-    "json validator",
-    "json minifier",
-    "json diff checker",
-    "json schema validator",
-    "json escape unescape",
-    "json to yaml converter",
-    "xml to json converter",
-    "api json tools",
-    "developer json tools",
+    "JSON workflow guide",
+    "JSON validation workflow",
+    "JSON schema guide",
+    "JSON comparison workflow",
+    "JSON conversion guide",
+    "JSON Lines tools",
+    "API JSON debugging",
+    "structured data workflow",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/json-guides",
   },
-
   openGraph: {
-    title: "JSON Guides for Developers and API Workflows | Yoryantra",
-
+    title: "JSON Workflows for Validation, Conversion, and APIs | Yoryantra",
     description:
-      "Practical JSON guides and free online tools for formatting, validation, minifying, diff checking, schema validation, escaping, and conversion workflows.",
-
+      "Practical workflows for choosing and using Yoryantra JSON tools for formatting, validation, schemas, comparison, patches, conversions, arrays, and API payloads.",
     url: "https://yoryantra.com/json-guides",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "JSON Guides for Developers and API Workflows | Yoryantra",
-
+    title: "JSON Workflows for Validation, Conversion, and APIs | Yoryantra",
     description:
-      "Explore free JSON tools and guides for APIs, formatting, validation, schema checks, diff comparison, escaping, and data conversion.",
+      "Choose the right Yoryantra JSON tool for formatting, validation, schemas, comparison, patching, conversions, arrays, and API debugging.",
   },
 };
 
@@ -130,126 +223,145 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
-        {/* BREADCRUMB */}
         <div className="mb-8 flex items-center text-sm text-gray-500">
           <Link
             href="/"
-            className="hover:!text-[var(--light-gold)] transition-colors duration-200"
+            className="transition-colors duration-200 hover:!text-[var(--light-gold)]"
           >
             Home
           </Link>
 
           <span className="mx-2">/</span>
 
-          <span className="text-gray-900">
-            JSON Guides
-          </span>
+          <span className="text-gray-900">JSON Guides</span>
         </div>
 
-        {/* HERO */}
-        <div className="max-w-3xl">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            JSON Guides for APIs, Validation, and Structured Data Workflows
+        <div className="max-w-4xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--light-gold)]">
+            Practical JSON workflows
+          </p>
+
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
+            Choose the Right JSON Tool for the Data Problem
           </h1>
 
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Explore practical JSON resources and browser-based utilities for
-            formatting, validation, minifying, diff checking, schema validation,
-            escaping, and converting structured data used in APIs, backend
-            systems, configuration files, and development workflows.
+            This guide explains when to format, validate, compare, merge,
+            patch, convert, filter, or inspect JSON during API debugging,
+            backend development, testing, and structured-data work.
           </p>
-        </div>
 
-        {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Built for API Debugging
-            </h2>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link href="/categories/json-tools" className="yoryantra-btn-outline">
+              Browse all JSON & Data Tools
+            </Link>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Format responses, validate payloads, inspect escaped strings, and
-              compare JSON objects while working with APIs, webhooks, logs, and
-              backend services.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Useful for Structured Data Checks
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              JSON guides and utilities help developers catch syntax problems,
-              schema mismatches, broken payloads, and conversion issues before
-              they create integration errors.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Practical Browser-Based Tools
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Most Yoryantra JSON tools run inside your browser, making them
-              fast for quick checks while keeping structured data private.
-            </p>
+            <Link href="/contact" className="yoryantra-btn-outline">
+              Report a tool issue
+            </Link>
           </div>
         </div>
 
-        {/* FEATURED CATEGORIES */}
-        <section className="mt-16">
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              JSON-Related Tool Categories
-            </h2>
+        <section className="mt-14 rounded-2xl border border-gray-200 bg-gray-50 p-7 md:p-8">
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Before Changing a JSON Payload
+          </h2>
 
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with categories that support structured data, API debugging,
-              encoding, configuration files, and developer workflows.
-            </p>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {featuredCategories.map((category) => (
-              <Link
-                key={category.href}
-                href={category.href}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {[
+              "Formatting changes whitespace and indentation, not the meaning of valid JSON.",
+              "Valid JSON can still be wrong for the application when fields, types, or required values do not match expectations.",
+              "Duplicate object keys are ambiguous because parsers may keep different values.",
+              "Large integers can lose precision in JavaScript-based workflows when they exceed the safe integer range.",
+              "JSON does not support comments, trailing commas, single-quoted property names, or undefined values.",
+              "Conversions between JSON, CSV, XML, YAML, and form data may be lossy when the formats express structure differently.",
+            ].map((item) => (
+              <div
+                key={item}
+                className="rounded-xl border border-gray-200 bg-white p-4 text-sm leading-relaxed text-gray-700"
               >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {category.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {category.description}
-                </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Explore category →
-                </span>
-              </Link>
+                {item}
+              </div>
             ))}
           </div>
         </section>
 
-        {/* POPULAR TOOLS */}
         <section className="mt-16">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              Popular JSON Tools
+              Three Common JSON Workflows
             </h2>
 
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              Frequently used tools for formatting JSON, validating payloads,
-              comparing data, escaping strings, checking schemas, and converting
-              structured formats.
+            <p className="mt-3 leading-relaxed text-gray-600">
+              Similar JSON tools exist because readability, syntax validation,
+              schema validation, comparison, merging, and patch generation are
+              different operations.
             </p>
           </div>
 
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {popularJsonTools.map((tool) => (
+          <div className="mt-8 space-y-8">
+            {workflowGroups.map((group) => (
+              <article
+                key={group.title}
+                className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:p-8"
+              >
+                <div className="max-w-3xl">
+                  <h3 className="text-2xl font-semibold text-gray-900">
+                    {group.title}
+                  </h3>
+
+                  <p className="mt-3 leading-relaxed text-gray-600">
+                    {group.description}
+                  </p>
+                </div>
+
+                <div className="mt-7 grid gap-5 md:grid-cols-2">
+                  {group.steps.map((step, index) => (
+                    <div
+                      key={step.href}
+                      className="rounded-xl border border-gray-200 bg-gray-50 p-5"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--light-gold)]">
+                        Step {index + 1}
+                      </p>
+
+                      <h4 className="mt-2 text-lg font-semibold text-gray-900">
+                        {step.title}
+                      </h4>
+
+                      <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                        {step.detail}
+                      </p>
+
+                      <Link
+                        href={step.href}
+                        className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)] transition-opacity hover:opacity-75"
+                      >
+                        {step.linkLabel} →
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-16">
+          <div className="max-w-3xl">
+            <h2 className="text-2xl font-semibold text-gray-900">
+              Converting JSON Into Other Formats
+            </h2>
+
+            <p className="mt-3 leading-relaxed text-gray-600">
+              Choose the destination format based on the next system. Always
+              review nested objects, arrays, empty values, dates, numbers, and
+              repeated elements because not every structure converts perfectly.
+            </p>
+          </div>
+
+          <div className="mt-7 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {conversionTools.map((tool) => (
               <Link
                 key={tool.href}
                 href={tool.href}
@@ -271,137 +383,144 @@ export default function Page() {
           </div>
         </section>
 
-        {/* WORKFLOWS */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Common JSON Workflows
-          </h2>
+        <section className="mt-16">
+          <div className="max-w-3xl">
+            <h2 className="text-2xl font-semibold text-gray-900">
+              Working With Large Arrays and JSON Lines
+            </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              "Formatting API responses before debugging.",
-              "Validating JSON payloads before sending requests.",
-              "Comparing two JSON objects during testing.",
-              "Checking JSON data against schema rules.",
-              "Escaping and unescaping JSON strings for logs and scripts.",
-              "Minifying JSON before storage or transmission.",
-              "Converting JSON into YAML configuration files.",
-              "Transforming XML responses into JSON for modern APIs.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
+            <p className="mt-3 leading-relaxed text-gray-600">
+              Line-based records and large arrays often need filtering,
+              grouping, key extraction, or flattening before they are useful for
+              debugging, import, reporting, or transformation.
+            </p>
+          </div>
+
+          <div className="mt-7 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {largeDataTools.map((tool) => (
+              <Link
+                key={tool.href}
+                href={tool.href}
+                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
-                {item}
-              </div>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
+                  {tool.title}
+                </h3>
+
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                  {tool.description}
+                </p>
+
+                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
+                  Open tool →
+                </span>
+              </Link>
             ))}
           </div>
         </section>
 
-        {/* WHY MATTERS */}
-        <section className="mt-16">
+        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-7 md:p-8">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Why JSON Guides Matter for Developers
+            A Practical JSON Review Checklist
           </h2>
 
-          <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
-            <p>
-              JSON is one of the most common data formats used across APIs,
-              frontend applications, backend services, logs, configuration
-              files, databases, and automation workflows.
-            </p>
+          <ol className="mt-6 space-y-4 text-gray-700">
+            {[
+              "Keep the original payload before formatting, sorting, merging, or converting it.",
+              "Validate JSON syntax before diagnosing application-level problems.",
+              "Check field types, required properties, and nested structure against the real contract or schema.",
+              "Review large numbers, dates, null values, empty strings, arrays, and duplicate keys carefully.",
+              "Compare the transformed output with the source before sending it to another system.",
+              "Use redacted or sample data when the payload contains secrets, personal information, tokens, or production records.",
+            ].map((item, index) => (
+              <li
+                key={item}
+                className="flex gap-4 rounded-xl border border-gray-200 bg-white p-4"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-green-200 bg-green-50 text-xs font-semibold text-[var(--brand-green)]">
+                  {index + 1}
+                </span>
 
-            <p>
-              Small JSON mistakes can break requests, fail validation, confuse
-              integrations, or create hard-to-read logs. Practical JSON guides
-              and browser-based tools help developers catch these issues faster
-              during everyday work.
-            </p>
-          </div>
+                <span className="pt-1 text-sm leading-relaxed">{item}</span>
+              </li>
+            ))}
+          </ol>
         </section>
 
-        {/* FAQ */}
         <section className="mt-16">
           <h2 className="text-2xl font-semibold text-gray-900">
             Frequently Asked Questions
           </h2>
 
-          <div className="mt-6 space-y-6">
+          <div className="mt-6 space-y-7">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What are JSON guides used for?
+                What is the difference between formatting and validating JSON?
               </h3>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                JSON guides help developers understand formatting, validation,
-                schema checks, escaping, minifying, diff comparison, and data
-                conversion workflows.
+              <p className="mt-2 leading-relaxed text-gray-600">
+                Formatting changes indentation and whitespace for readability.
+                Validation checks whether the text follows valid JSON syntax.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Are JSON tools useful for API development?
+                Why can valid JSON still fail in an API?
               </h3>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. JSON formatting, validation, schema validation, diff
-                checking, escaping, and conversion tools are commonly used while
-                building and debugging APIs.
+              <p className="mt-2 leading-relaxed text-gray-600">
+                The payload may use the wrong field names, value types,
+                required properties, nesting, enum values, or application rules
+                even though the JSON syntax is valid.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Can JSON be converted into YAML or XML-related formats?
+                Is JSON-to-CSV conversion always lossless?
               </h3>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Yoryantra includes tools for JSON to YAML conversion, YAML
-                to JSON conversion, and XML to JSON conversion workflows.
+              <p className="mt-2 leading-relaxed text-gray-600">
+                No. CSV is tabular, while JSON can contain nested objects and
+                arrays. Complex values may need flattening, string conversion,
+                or a custom mapping.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is JSON data uploaded while using these tools?
+                What is the difference between JSON and JSON Lines?
               </h3>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Most Yoryantra tools process data locally inside your browser,
-                so your JSON payloads are not uploaded unless a specific tool
-                clearly requires an external URL check.
+              <p className="mt-2 leading-relaxed text-gray-600">
+                Standard JSON can contain one complete value such as an object
+                or array. JSON Lines stores one independent JSON value per line,
+                which is useful for logs, streams, and large record sets.
               </p>
             </div>
           </div>
         </section>
 
-        {/* RELATED */}
         <section className="mt-16 border-t border-gray-200 pt-10">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Related Pages
+            Continue With the Full JSON & Data Collection
           </h2>
 
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/categories/json-tools"
-              className="yoryantra-btn-outline"
-            >
-              JSON & Data Tools
+          <p className="mt-3 max-w-3xl leading-relaxed text-gray-600">
+            Use the JSON & Data Tools category when you already know the task
+            and want to browse the complete collection. This guide remains
+            focused on workflow, tool selection, limitations, and data-quality
+            decisions.
+          </p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/categories/json-tools" className="yoryantra-btn-outline">
+              View all JSON & Data Tools
             </Link>
 
-            <Link
-              href="/developers"
-              className="yoryantra-btn-outline"
-            >
-              Developers
-            </Link>
-
-            <Link
-              href="/categories/developer-tools"
-              className="yoryantra-btn-outline"
-            >
-              Developer Utilities
+            <Link href="/developers" className="yoryantra-btn-outline">
+              For Developers
             </Link>
 
             <Link
