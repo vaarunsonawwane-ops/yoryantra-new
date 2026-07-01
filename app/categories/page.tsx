@@ -79,10 +79,10 @@ const categories = [
 ];
 
 export const metadata = {
-  title: "Tool Categories | Yoryantra",
+  title: "Browse Tools by Category | Yoryantra",
 
   description:
-    "Browse organized categories of developer, SEO, security, encoding, JSON, and DevOps tools on Yoryantra.",
+    "Browse Yoryantra tools by development, DevOps, security, SEO, JSON, and encoding category.",
 
   alternates: {
     canonical: "https://yoryantra.com/categories",
@@ -92,7 +92,7 @@ export const metadata = {
     title: "Tool Categories | Yoryantra",
 
     description:
-      "Browse organized categories of developer, SEO, security, encoding, JSON, and DevOps tools.",
+      "Find focused tools for development, DevOps, security, SEO, JSON, and encoding tasks.",
 
     url: "https://yoryantra.com/categories",
 
@@ -107,7 +107,7 @@ export const metadata = {
     title: "Tool Categories | Yoryantra",
 
     description:
-      "Explore developer, SEO, security, JSON, encoding, and DevOps utility categories.",
+      "Browse development, DevOps, security, SEO, JSON, and encoding tool categories.",
   },
 };
 
@@ -119,12 +119,12 @@ export default function Page() {
         {/* HERO */}
         <div className="max-w-4xl">
           <h1 className="text-4xl font-semibold tracking-tight text-gray-950 md:text-6xl md:leading-tight">
-            Explore Utility Categories Across SEO, Security, JSON, and Development
+            Browse Tools by What You Need to Do
           </h1>
 
           <p className="mt-6 text-lg leading-relaxed text-gray-600">
-            Browse useful tool categories for SEO, security, JSON, encoding,
-            development, DevOps, and everyday browser-based tasks.
+            Find focused tools for development, DevOps, security, SEO, JSON,
+            and encoding without searching through one long list.
           </p>
         </div>
 
@@ -154,27 +154,27 @@ export default function Page() {
 		{/* WHY CATEGORIES */}
 		<SectionCard>
 		  <h2 className="text-2xl font-semibold text-gray-900">
-			Why Utility Categories Exist on Yoryantra
+			Why Yoryantra Groups Tools by Category
 		  </h2>
 
 		  <div className="mt-5 space-y-5 text-gray-600 leading-relaxed">
 			<p>
-			  When you are working on a project, there are often small steps you
-			  need to handle quickly — formatting text, checking redirects,
-			  validating files, decoding values, cleaning data, or preparing
-			  information before using it.
+			  Different tasks often need different kinds of tools. A developer
+			  debugging an API, an SEO checking redirects, and someone validating
+			  configuration files should not have to search through the same
+			  unstructured list.
 			</p>
 
 			<p>
-			  Keeping tools grouped into focused categories makes them easier to
-			  find. Instead of going through unrelated pages, you can quickly
-			  browse tools that naturally belong together.
+			  Categories keep related tools together, making it easier to compare
+			  similar options and move between connected tasks such as formatting,
+			  validation, conversion, inspection, and generation.
 			</p>
 
 			<p>
-			  Yoryantra is organized to help you find what you are looking for
-			  faster and save time, without turning the site into a random
-			  collection of utilities.
+			  The categories are designed around practical workflows rather than
+			  random utility collections, so you can reach the right tool faster
+			  and understand where it fits in your work.
 			</p>
 		  </div>
 		</SectionCard>
