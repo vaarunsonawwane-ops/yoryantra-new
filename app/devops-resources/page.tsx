@@ -4,25 +4,25 @@ const featuredCategories = [
   {
     title: "DevOps Tools",
     description:
-      "Docker, Kubernetes, YAML, .env files, cron expressions, and infrastructure utilities.",
+      "Docker, Kubernetes, YAML, environment files, cron, and deployment workflows.",
     href: "/categories/devops-tools",
   },
   {
-    title: "Developer Utilities",
+    title: "Developer Tools",
     description:
-      "Debugging, timestamps, UUIDs, API checks, and daily developer workflows.",
+      "Developer tools for debugging, timestamps, UUIDs, APIs, and daily checks.",
     href: "/categories/developer-tools",
   },
   {
     title: "JSON & Data Tools",
     description:
-      "JSON formatting, validation, YAML conversion, schema checks, and structured data.",
+      "JSON, YAML, schema, validation, and structured-data workflows.",
     href: "/categories/json-tools",
   },
   {
     title: "Security Tools",
     description:
-      "Tokens, hashes, keys, CSP headers, signatures, and authentication utilities.",
+      "Security tools for tokens, hashes, keys, headers, and authentication checks.",
     href: "/categories/security-tools",
   },
 ];
@@ -31,62 +31,62 @@ const popularDevopsTools = [
   {
     title: "Docker Compose Validator",
     description:
-      "Validate Docker Compose YAML files before running container stacks.",
+      "Check Docker Compose syntax and common structure issues before running a stack.",
     href: "/tools/docker-compose-validator",
   },
   {
     title: "Kubernetes YAML Validator",
     description:
-      "Check Kubernetes manifests for YAML and configuration issues.",
+      "Check Kubernetes manifest syntax and common configuration problems.",
     href: "/tools/kubernetes-yaml-validator",
   },
   {
     title: ".env File Parser",
     description:
-      "Parse environment variables into readable structured output.",
+      "Parse environment files into readable key-value output.",
     href: "/tools/env-file-parser",
   },
   {
     title: "YAML Formatter",
     description:
-      "Format YAML files used in configuration and infrastructure workflows.",
+      "Format valid YAML for clearer review and debugging.",
     href: "/tools/yaml-formatter",
   },
   {
     title: "JSON to YAML Converter",
     description:
-      "Convert JSON data into readable YAML configuration files.",
+      "Convert JSON to YAML while preserving the underlying data structure.",
     href: "/tools/json-to-yaml-converter",
   },
   {
     title: "YAML to JSON Converter",
     description:
-      "Convert YAML configuration into structured JSON output.",
+      "Convert YAML to JSON for debugging, scripts, and API workflows.",
     href: "/tools/yaml-to-json-converter",
   },
   {
     title: "Cron Expression Generator",
     description:
-      "Build cron expressions for scheduled jobs and automation workflows.",
+      "Build cron expressions for scheduled jobs and automation.",
     href: "/tools/cron-expression-generator",
   },
   {
     title: "Cron Expression Parser",
     description:
-      "Read cron expressions and understand recurring schedules.",
+      "Interpret cron fields and review the resulting schedule.",
     href: "/tools/cron-expression-parser",
   },
 ];
 
 export const metadata = {
-  title: "DevOps Resources for Docker, Kubernetes, YAML, and Automation | Yoryantra",
+  title: "DevOps Workflows for Docker, Kubernetes, YAML, and Automation | Yoryantra",
 
   description:
-    "Explore practical DevOps resources and free online tools for Docker Compose, Kubernetes YAML, .env files, YAML formatting, cron expressions, JSON to YAML conversion, and infrastructure configuration.",
+    "Follow practical DevOps workflows for Docker Compose, Kubernetes YAML, environment files, YAML formatting, cron expressions, and configuration conversion.",
 
   keywords: [
-    "devops resources",
-    "devops tools",
+    "DevOps workflows",
+    "DevOps tool selection",
     "docker compose validator",
     "kubernetes yaml validator",
     "yaml formatter",
@@ -103,10 +103,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "DevOps Resources for Docker, Kubernetes, YAML, and Automation | Yoryantra",
+    title: "DevOps Workflows for Docker, Kubernetes, YAML, and Automation | Yoryantra",
 
     description:
-      "Practical DevOps resources and free tools for Docker Compose, Kubernetes YAML, .env files, YAML formatting, cron expressions, and infrastructure configuration.",
+      "Practical DevOps workflows and tools for Docker Compose, Kubernetes YAML, environment files, YAML formatting, cron expressions, and configuration checks.",
 
     url: "https://yoryantra.com/devops-resources",
 
@@ -118,10 +118,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "DevOps Resources for Docker, Kubernetes, YAML, and Automation | Yoryantra",
+    title: "DevOps Workflows for Docker, Kubernetes, YAML, and Automation | Yoryantra",
 
     description:
-      "Explore free DevOps tools and resources for Docker, Kubernetes, YAML, .env files, cron expressions, and deployment workflows.",
+      "Choose the right DevOps tool for Docker, Kubernetes, YAML, environment files, cron expressions, and deployment checks.",
   },
 };
 
@@ -148,14 +148,13 @@ export default function Page() {
         {/* HERO */}
         <div className="max-w-3xl">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            DevOps Resources for Docker, Kubernetes, YAML, and Automation
+            DevOps Workflows for Docker, Kubernetes, YAML, and Automation
           </h1>
 
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Explore practical DevOps resources and browser-based utilities for
-            Docker Compose validation, Kubernetes YAML checks, .env parsing,
-            YAML formatting, cron expressions, configuration conversion, and
-            infrastructure workflows before deployment.
+            Use practical browser-based tools for Docker Compose,
+            Kubernetes YAML, environment files, YAML formatting, cron
+            expressions, configuration conversion, and pre-deployment checks.
           </p>
         </div>
 
@@ -163,37 +162,37 @@ export default function Page() {
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <h2 className="text-lg font-semibold text-gray-900">
-              Built for Configuration Checks
+              Choose the Right Tool for Configuration Checks
             </h2>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Validate Docker Compose files, check Kubernetes manifests, format
-              YAML, parse environment variables, and review configuration files
-              before they slow down deployments.
+              Validate Docker Compose files, inspect Kubernetes manifests,
+              format YAML, parse environment variables, and review configuration
+              before deployment.
             </p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <h2 className="text-lg font-semibold text-gray-900">
-              Useful Before Deployment
+              Separate Syntax Checks from Deployment Testing
             </h2>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              DevOps issues often come from small syntax or configuration
-              mistakes. These resources help catch simple problems during local
-              development and release preparation.
+              Syntax and structure checks can catch common mistakes, but they
+              do not confirm that images, secrets, permissions, networks, storage,
+              or runtime behaviour are correct.
             </p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <h2 className="text-lg font-semibold text-gray-900">
-              Practical Browser-Based Utilities
+              Understand What a Browser Check Can Confirm
             </h2>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Yoryantra keeps infrastructure utilities lightweight and focused
-              so configuration checks can happen quickly without installing
-              extra software.
+              Browser tools are useful for focused checks and conversions.
+              Production readiness still depends on real environments, logs,
+              access controls, backups, monitoring, and rollback plans.
             </p>
           </div>
         </div>
@@ -202,12 +201,13 @@ export default function Page() {
         <section className="mt-16">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              DevOps-Related Tool Categories
+              Related Categories for DevOps Work
             </h2>
 
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with categories that support configuration, structured data,
-              deployment checks, security values, and developer workflows.
+              Use these categories when the task extends beyond one
+              configuration check into data conversion, security, debugging,
+              or deployment preparation.
             </p>
           </div>
 
@@ -238,13 +238,13 @@ export default function Page() {
         <section className="mt-16">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              Popular DevOps Tools
+              Common DevOps Tools and When to Use Them
             </h2>
 
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Frequently used utilities for Docker Compose, Kubernetes YAML,
-              environment variables, YAML formatting, conversion, automation,
-              and scheduled jobs.
+              Start with these tools for container configuration,
+              Kubernetes manifests, environment files, YAML conversion, and
+              scheduled jobs.
             </p>
           </div>
 
@@ -274,19 +274,19 @@ export default function Page() {
         {/* WORKFLOWS */}
         <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Common DevOps Workflows
+            Practical DevOps Workflows
           </h2>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {[
-              "Validating Docker Compose files before running containers.",
-              "Checking Kubernetes YAML manifests before applying changes.",
-              "Parsing .env files and reviewing environment variables.",
-              "Formatting YAML used in infrastructure configuration.",
-              "Converting JSON into YAML for configuration workflows.",
-              "Converting YAML back into JSON for debugging and automation.",
-              "Creating cron expressions for scheduled jobs.",
-              "Reading cron schedules before adding automation tasks.",
+              "Validate Docker Compose syntax and structure before running a stack.",
+              "Check Kubernetes YAML structure before applying changes to a cluster.",
+              "Parse environment files and review variable names and values.",
+              "Format YAML before reviewing configuration changes.",
+              "Convert JSON to YAML when a configuration workflow expects YAML.",
+              "Convert YAML to JSON for debugging, scripts, and API workflows.",
+              "Create cron expressions for scheduled jobs and automation.",
+              "Read cron schedules before adding or changing automation tasks.",
             ].map((item) => (
               <div
                 key={item}
@@ -301,21 +301,21 @@ export default function Page() {
         {/* WHY MATTERS */}
         <section className="mt-16">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Why DevOps Resources Matter
+            How to Interpret DevOps Tool Results
           </h2>
 
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              DevOps work often depends on compact configuration files that
-              control containers, services, environments, deployments,
-              scheduled jobs, and infrastructure behavior.
+              DevOps workflows often depend on small configuration files
+              that control containers, services, environments, deployments,
+              scheduled jobs, and infrastructure behaviour.
             </p>
 
             <p>
-              Small mistakes in YAML, Docker Compose, Kubernetes manifests,
-              environment variables, or cron expressions can create deployment
-              problems. Practical DevOps resources make it easier to review
-              these files before they reach production.
+              A file can be valid YAML and still be wrong for Docker,
+              Kubernetes, or the target environment. Review references, secrets,
+              ports, volumes, permissions, image tags, schedules, and runtime
+              behaviour before production use.
             </p>
           </div>
         </section>
@@ -329,48 +329,49 @@ export default function Page() {
           <div className="mt-6 space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What are DevOps resources used for?
+                How should I choose between similar DevOps tools?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                DevOps resources help developers and infrastructure teams review
-                configuration files, validate deployment settings, manage
-                environment variables, and prepare automation workflows.
+                Start with the exact task: format, parse, convert, validate,
+                generate, or interpret. Similar tools are separated because
+                those operations answer different questions.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Are these tools useful for Docker and Kubernetes?
+                Does valid YAML mean a Docker or Kubernetes file is correct?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Docker Compose Validator and Kubernetes YAML Validator help
-                review container and orchestration configuration before use.
+                No. Valid YAML only confirms the syntax. The file may still
+                contain unsupported fields, missing resources, incorrect names,
+                unavailable images, or environment-specific problems.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Can these tools help with YAML configuration?
+                Can a cron expression be valid but still run at the wrong time?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. YAML Formatter, JSON to YAML Converter, YAML to JSON
-                Converter, Docker Compose Validator, and Kubernetes YAML
-                Validator all support YAML-related workflows.
+                Yes. Time zones, daylight-saving changes, scheduler
+                differences, and day-of-month or day-of-week behaviour can
+                change when a job actually runs.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Do these tools replace full deployment testing?
+                Do browser-based checks replace deployment testing?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. These tools help with quick checks and formatting, but
-                production deployments still need proper testing, logs,
-                monitoring, backups, and infrastructure review.
+                No. They help with focused checks, formatting, and
+                conversions. Production deployments still need staging tests,
+                logs, monitoring, backups, access controls, and rollback plans.
               </p>
             </div>
           </div>
@@ -379,7 +380,7 @@ export default function Page() {
         {/* RELATED */}
         <section className="mt-16 border-t border-gray-200 pt-10">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Related Pages
+            Continue Exploring Yoryantra
           </h2>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -394,14 +395,14 @@ export default function Page() {
               href="/developers"
               className="yoryantra-btn-outline"
             >
-              Developers
+              For Developers
             </Link>
 
             <Link
               href="/categories/developer-tools"
               className="yoryantra-btn-outline"
             >
-              Developer Utilities
+              Developer Tools
             </Link>
 
             <Link

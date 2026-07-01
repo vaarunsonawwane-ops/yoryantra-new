@@ -4,25 +4,25 @@ const featuredCategories = [
   {
     title: "Encoding Tools",
     description:
-      "Base64, Base64URL, URL encoding, HTML entities, JSON escaping, slugs, and text conversion.",
+      "Base64, Base64URL, URLs, HTML entities, JSON strings, slugs, and text workflows.",
     href: "/categories/encoding-tools",
   },
   {
-    title: "Developer Utilities",
+    title: "Developer Tools",
     description:
-      "Debugging, formatting, timestamps, UUIDs, regex testing, and daily development tools.",
+      "Developer tools for debugging, formatting, timestamps, UUIDs, regex, and daily work.",
     href: "/categories/developer-tools",
   },
   {
     title: "JSON & Data Tools",
     description:
-      "JSON formatting, validation, escaping, schema checks, and structured data conversion.",
+      "JSON formatting, validation, escaping, schemas, and data conversion.",
     href: "/categories/json-tools",
   },
   {
     title: "SEO Tools",
     description:
-      "Slugs, metadata, URL checks, campaign links, redirects, and technical SEO workflows.",
+      "SEO tools for slugs, metadata, URLs, campaigns, redirects, and page checks.",
     href: "/categories/seo-tools",
   },
 ];
@@ -31,62 +31,62 @@ const popularEncodingTools = [
   {
     title: "Base64 Encoder Decoder",
     description:
-      "Encode and decode Base64 strings for data, APIs, and debugging.",
+      "Encode or decode Base64 text and binary data represented as text.",
     href: "/tools/base64-encoder-decoder",
   },
   {
     title: "Base64URL Encoder Decoder",
     description:
-      "Encode and decode URL-safe Base64URL strings used in JWTs and APIs.",
+      "Encode or decode URL-safe Base64 values used in JWTs and APIs.",
     href: "/tools/base64url-encoder-decoder",
   },
   {
     title: "URL Encoder Decoder",
     description:
-      "Encode and decode URLs, query strings, and special characters.",
+      "Encode or decode URL components, query values, and reserved characters.",
     href: "/tools/url-encoder-decoder",
   },
   {
     title: "HTML Encoder Decoder",
     description:
-      "Encode and decode HTML entities for safe webpage rendering.",
+      "Encode or decode HTML entities for text displayed in HTML.",
     href: "/tools/html-encoder-decoder",
   },
   {
     title: "JSON Escape Unescape",
     description:
-      "Escape and unescape JSON strings for logs, scripts, and API payloads.",
+      "Escape or unescape JSON strings for logs, code, and nested payloads.",
     href: "/tools/json-escape-unescape",
   },
   {
     title: "Text Case Converter",
     description:
-      "Convert text between uppercase, lowercase, title case, and more.",
+      "Convert text between common letter-case formats.",
     href: "/tools/text-case-converter",
   },
   {
     title: "Slug Generator",
     description:
-      "Create clean URL slugs for pages, posts, and SEO workflows.",
+      "Create readable URL slugs for pages, posts, and content systems.",
     href: "/tools/slug-generator",
   },
   {
     title: "QR Code Generator",
     description:
-      "Generate QR codes for links, text, campaign URLs, and quick sharing.",
+      "Generate QR codes for URLs or text, then test the final scan result.",
     href: "/tools/qr-code-generator",
   },
 ];
 
 export const metadata = {
-  title: "Encoding Guides for URLs, Base64, HTML, and Web Text | Yoryantra",
+  title: "Encoding Workflows for URLs, Base64, HTML, and Web Text | Yoryantra",
 
   description:
-    "Explore practical encoding guides and free online tools for Base64, Base64URL, URL encoding, HTML entities, JSON escaping, slugs, text conversion, and QR code workflows.",
+    "Follow practical encoding workflows for Base64, Base64URL, URL encoding, HTML entities, JSON escaping, slugs, text conversion, and QR codes.",
 
   keywords: [
-    "encoding guides",
-    "encoding tools",
+    "encoding workflows",
+    "encoding tool selection",
     "base64 encoder",
     "base64 decoder",
     "base64url encoder",
@@ -104,10 +104,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "Encoding Guides for URLs, Base64, HTML, and Web Text | Yoryantra",
+    title: "Encoding Workflows for URLs, Base64, HTML, and Web Text | Yoryantra",
 
     description:
-      "Practical encoding guides and free tools for Base64, Base64URL, URL encoding, HTML entities, JSON escaping, slugs, text conversion, and QR workflows.",
+      "Practical encoding workflows and tools for Base64, Base64URL, URLs, HTML entities, JSON escaping, slugs, text conversion, and QR codes.",
 
     url: "https://yoryantra.com/encoding-guides",
 
@@ -119,10 +119,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "Encoding Guides for URLs, Base64, HTML, and Web Text | Yoryantra",
+    title: "Encoding Workflows for URLs, Base64, HTML, and Web Text | Yoryantra",
 
     description:
-      "Explore free encoding tools and guides for Base64, URLs, HTML entities, JSON escaping, slugs, text conversion, and web-safe values.",
+      "Choose the right encoding tool for Base64, URLs, HTML entities, JSON strings, slugs, text conversion, and web-safe values.",
   },
 };
 
@@ -149,14 +149,13 @@ export default function Page() {
         {/* HERO */}
         <div className="max-w-3xl">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            Encoding Guides for URLs, Base64, HTML, and Web Text
+            Encoding Workflows for URLs, Base64, HTML, and Web Text
           </h1>
 
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Explore practical encoding resources and browser-based utilities for
-            Base64, Base64URL, URL encoding, HTML entities, JSON-safe strings,
-            slugs, text conversion, and web-safe values used in development,
-            APIs, content workflows, and SEO tasks.
+            Use practical browser-based tools for Base64, Base64URL,
+            URL encoding, HTML entities, JSON strings, slugs, text conversion,
+            QR codes, and other web-safe text workflows.
           </p>
         </div>
 
@@ -164,36 +163,37 @@ export default function Page() {
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <h2 className="text-lg font-semibold text-gray-900">
-              Built for Web Development
+              Choose the Right Encoding for the Context
             </h2>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Encode and decode common web formats used in URLs, HTML pages,
-              JavaScript strings, API payloads, JWTs, query strings, and
-              frontend debugging workflows.
+              Use URL encoding for URLs and query values, HTML entities for
+              HTML text, JSON escaping for JSON strings, and Base64 variants
+              only where the receiving system expects them.
             </p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <h2 className="text-lg font-semibold text-gray-900">
-              Useful for APIs and Structured Text
+              Separate Encoding from Encryption and Validation
             </h2>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Work with encoded values, JSON-safe strings, Base64 data,
-              URL-safe formats, and escaped content while testing APIs,
-              debugging logs, and preparing text for web systems.
+              Encoding changes representation. It does not encrypt data,
+              prove authenticity, validate meaning, or make untrusted content
+              safe in every context.
             </p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <h2 className="text-lg font-semibold text-gray-900">
-              Practical Browser-Based Utilities
+              Understand What a Browser Tool Can Confirm
             </h2>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Yoryantra encoding tools are lightweight and browser-based, making
-              quick transformations easy while keeping input values private.
+              Browser tools are useful for focused transformations and
+              debugging. Use sample or redacted input when values may contain
+              credentials, personal data, or production information.
             </p>
           </div>
         </div>
@@ -202,12 +202,13 @@ export default function Page() {
         <section className="mt-16">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              Encoding-Related Tool Categories
+              Related Categories for Encoding Work
             </h2>
 
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with categories that support web-safe text, API debugging,
-              structured data handling, SEO slugs, and developer workflows.
+              Use these categories when the task extends beyond one encoding
+              step into structured data, SEO, debugging, or general
+              development work.
             </p>
           </div>
 
@@ -238,13 +239,12 @@ export default function Page() {
         <section className="mt-16">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              Popular Encoding Tools
+              Common Encoding Tools and When to Use Them
             </h2>
 
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Frequently used tools for Base64, Base64URL, URL encoding, HTML
-              entities, JSON escaping, text conversion, slugs, and QR code
-              workflows.
+              Start with these tools for Base64, URL-safe Base64, URLs,
+              HTML entities, JSON strings, text conversion, slugs, and QR codes.
             </p>
           </div>
 
@@ -274,19 +274,19 @@ export default function Page() {
         {/* WORKFLOWS */}
         <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Common Encoding Workflows
+            Practical Encoding Workflows
           </h2>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {[
-              "Encoding and decoding Base64 strings during development.",
-              "Handling Base64URL values used in JWT and API workflows.",
-              "Encoding URLs and query strings safely before sharing or testing.",
-              "Escaping HTML entities before displaying raw code or content.",
-              "Preparing JSON-safe strings for scripts, logs, and payloads.",
-              "Creating clean URL slugs for pages, posts, and SEO workflows.",
-              "Converting text case for content, labels, and developer tasks.",
-              "Generating QR codes for links, campaigns, and quick mobile access.",
+              "Encode or decode Base64 only when a system expects that representation.",
+              "Use Base64URL for JWT segments and URL-safe API values.",
+              "Encode individual URL components instead of encoding an entire URL blindly.",
+              "Encode HTML characters when showing text inside HTML content.",
+              "Escape JSON strings before placing them inside JSON text.",
+              "Create readable slugs and review collisions, language, and canonical URLs.",
+              "Convert text case for labels, identifiers, content, and code preparation.",
+              "Generate QR codes, then test the final destination and scan size.",
             ].map((item) => (
               <div
                 key={item}
@@ -301,22 +301,21 @@ export default function Page() {
         {/* WHY MATTERS */}
         <section className="mt-16">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Why Encoding Guides Matter for Web Workflows
+            How to Interpret Encoding Tool Results
           </h2>
 
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              Web systems often move text through URLs, HTML pages, scripts,
-              JSON payloads, APIs, logs, authentication tokens, and databases.
-              Encoding helps keep those values readable, safe, and compatible
-              with the systems that handle them.
+              Web systems move text through URLs, HTML, JavaScript, JSON,
+              APIs, logs, tokens, and databases. Each context has different
+              escaping and encoding rules, so the same transformation should
+              not be reused everywhere.
             </p>
 
             <p>
-              Small encoding mistakes can break query strings, damage payloads,
-              create rendering issues, or make debugging harder. Practical
-              encoding guides and browser-based tools make these transformations
-              easier during everyday development and content work.
+              A successful conversion only confirms the transformation.
+              Review character encoding, padding, reserved characters, Unicode,
+              output context, and how the receiving system decodes the value.
             </p>
           </div>
         </section>
@@ -330,25 +329,25 @@ export default function Page() {
           <div className="mt-6 space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What are encoding guides used for?
+                How should I choose between similar encoding tools?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Encoding guides help developers understand how to safely convert
-                text, URLs, HTML entities, Base64 values, JSON strings, slugs,
-                and web-safe data formats.
+                Start with the destination context: URL, HTML, JSON,
+                Base64, Base64URL, slug, or QR code. Similar tools are separated
+                because each format has different rules.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Are encoding tools useful for API debugging?
+                Is Base64 a form of encryption?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Encoding and decoding are common while working with API
-                payloads, JWT values, query strings, logs, scripts, and
-                structured data.
+                No. Base64 is a reversible text representation. Anyone with
+                the encoded value can decode it, so it should not be used to
+                protect secrets.
               </p>
             </div>
 
@@ -358,21 +357,21 @@ export default function Page() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Base64URL is a URL-safe version of Base64 commonly used in JWTs,
-                web authentication, and systems where regular Base64 characters
-                may not be safe inside URLs.
+                Base64URL replaces characters that can cause problems in
+                URLs and may omit padding. It is commonly used in JWTs and
+                URL-safe API values.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Do these tools upload my encoded data?
+                Does encoding make untrusted text safe everywhere?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Most Yoryantra tools process data locally inside your browser,
-                so your encoded strings and text values are not uploaded unless
-                a specific tool clearly requires an external URL check.
+                No. Safety depends on where the value is used. HTML, URLs,
+                JSON, JavaScript, CSS, and command lines require different
+                escaping and validation rules.
               </p>
             </div>
           </div>
@@ -381,7 +380,7 @@ export default function Page() {
         {/* RELATED */}
         <section className="mt-16 border-t border-gray-200 pt-10">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Related Pages
+            Continue Exploring Yoryantra
           </h2>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -396,14 +395,14 @@ export default function Page() {
               href="/developers"
               className="yoryantra-btn-outline"
             >
-              Developers
+              For Developers
             </Link>
 
             <Link
               href="/categories/developer-tools"
               className="yoryantra-btn-outline"
             >
-              Developer Utilities
+              Developer Tools
             </Link>
 
             <Link
