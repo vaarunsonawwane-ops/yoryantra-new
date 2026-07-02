@@ -95,6 +95,17 @@ export default function AboutPage() {
           <strong>"Your Tools. Your Utilities. Your Digital Yantra."</strong>
         </div>
 
+        <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
+          You can also read{" "}
+          <a
+            href="/how-yoryantra-tools-are-built"
+            className="text-[#c89b3c] font-bold hover:underline"
+          >
+            how Yoryantra tools are selected, tested, and improved
+          </a>
+          .
+        </p>
+
         <div>
           <h1 className="text-[28px] md:text-[32px] font-bold text-[#111] mb-[30px]">
             About Me

@@ -127,6 +127,13 @@ export default function Footer() {
               >
                 Contact
               </Link>
+
+              <Link
+                href="/how-yoryantra-tools-are-built"
+                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+              >
+                How Tools Are Built
+              </Link>
             </div>
 
             {/* LEGAL */}
