@@ -1,10 +1,10 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "PEM Certificate Viewer | Decode PEM Certificates Online | Yoryantra",
+  title: "PEM Certificate Viewer and Block Inspector | Yoryantra",
 
   description:
-    "View PEM certificate details, inspect certificate blocks, decode readable certificate fields, and review PEM content directly in your browser.",
+    "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser."
 
   keywords: [
     "pem certificate viewer",
@@ -23,10 +23,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "PEM Certificate Viewer | Decode PEM Certificates Online | Yoryantra",
+    title: "PEM Certificate Viewer and Block Inspector | Yoryantra",
 
     description:
-      "View PEM certificate details, inspect certificate blocks, decode readable certificate fields, and review PEM content directly in your browser.",
+      "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser."
 
     url: "https://yoryantra.com/tools/pem-certificate-viewer",
 
@@ -38,10 +38,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "PEM Certificate Viewer | Decode PEM Certificates Online | Yoryantra",
+    title: "PEM Certificate Viewer and Block Inspector | Yoryantra",
 
     description:
-      "View PEM certificate details, inspect certificate blocks, decode readable certificate fields, and review PEM content directly in your browser.",
+      "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser."
   },
 };
 

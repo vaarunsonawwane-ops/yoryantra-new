@@ -6,23 +6,32 @@ import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type PEMBlock = {
   type: string;
-  body: string;
   decodedText: string;
   byteLength: number;
+  fingerprint: string;
   details: string[];
 };
 
 const samplePem = `-----BEGIN CERTIFICATE-----
-MIIDXTCCAkWgAwIBAgIJAKZ4YoryantraDemoOnlyMA0GCSqGSIb3DQEBCwUAMEUx
-CzAJBgNVBAYTAklOMRIwEAYDVQQKDAlZb3J5YW50cmExIjAgBgNVBAMMGXlvcnlh
-bnRyYS5leGFtcGxlIGRlbW8gY2VydDAeFw0yNjAxMDEwMDAwMDBaFw0yNzAxMDEw
-MDAwMDBaMEUxCzAJBgNVBAYTAklOMRIwEAYDVQQKDAlZb3J5YW50cmExIjAgBgNV
-BAMMGXlvcnlhbnRyYS5leGFtcGxlIGRlbW8gY2VydDCCASIwDQYJKoZIhvcNAQEB
-BQADggEPADCCAQoCggEBAKDemoCertificateForViewingOnlyDoNotUseInProd
-uctionYoryantraBrowserToolExampleCertificateDataOnly1234567890abcde
-fghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghij
-klmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZExampleCertificateContent
-ForPEMViewerToolOnlyDoNotUseAsRealCertificateDataYoryantraDemoCA==
+MIIDdzCCAl+gAwIBAgIUEWJo+4I40rD6MijWN5/vN4um3JkwDQYJKoZIhvcNAQEL
+BQAwSzEgMB4GA1UEAwwXZXhhbXBsZS55b3J5YW50cmEubG9jYWwxGjAYBgNVBAoM
+EVlvcnlhbnRyYSBFeGFtcGxlMQswCQYDVQQGEwJJTjAeFw0yNjA3MDIyMDMzNTZa
+Fw0zNjA2MjkyMDMzNTZaMEsxIDAeBgNVBAMMF2V4YW1wbGUueW9yeWFudHJhLmxv
+Y2FsMRowGAYDVQQKDBFZb3J5YW50cmEgRXhhbXBsZTELMAkGA1UEBhMCSU4wggEi
+MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDXBPmJlcJ99acPgtpgFSWSGiBU
+qW41piAf2hFgj2D4CfsHNHP7xrkClKTCHe7VKW+Bm5J33gIGw2UXZjCfjEzCnF7F
+ajEeqtCRy9apmKJajihrhOeniIrW44F0XnRILizDQUPpLw8YTHKMdICPHApF/uxZ
+ArRA+ImWuqkkZqEitEVM14FbtDbuuEqZOF9DuhnafD6SKRF/4NBZwATx6NhY3pYW
+Z1eeTJitnrH6YZb/9aSleYalHWVpoLW+GWnzR4QJmLKLLmWWCqNdjhVdF8DJcQ1K
+jzfrDurUlbRnSR8s25l3dTb/Di+dJ+JKw6Jv3nkxIDSCmZ+LYZv8YVd2vS+/AgMB
+AAGjUzBRMB0GA1UdDgQWBBQol4hxmGMZjhRIoqRh2IvowsrwszAfBgNVHSMEGDAW
+gBQol4hxmGMZjhRIoqRh2IvowsrwszAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3
+DQEBCwUAA4IBAQChXspLybcoenxVRqgZBki8bvjlOxfzgRjBNNvcfOPXNSdkR62N
+SxnoZCfn8w3bgpbgOkfX+gxY7760p4gcL/VmK4LF8TX49oF7jQCmlLSoZoM6rEdQ
+d94eRqyWszzY3Fx9CN+1U4RNwMi+p0gc85QNfjWBcMLhxzAvQ5AyjMMQCJeQ7sjX
+IQipn8aS8K8XRvO/zwuVh8v+66weuRStqrwwfuOyQ4g7DeAxDOeSX9B8blXKQagL
+NVS1jtHoGZMJA29gADtEXvncO44eiNxEdFntbntYfUtWRR1qoKRgXiZCZHL/NP6X
+CNWDOSynE/maGlKGXXKCaDeG025xqn2w/qxd
 -----END CERTIFICATE-----`;
 
 export default function ToolClient() {
@@ -30,7 +39,7 @@ export default function ToolClient() {
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
 
-  const inspectCertificate = () => {
+  const inspectCertificate = async () => {
     if (!input.trim()) {
       setError("Please enter PEM certificate content to inspect.");
       setOutput("");
@@ -38,7 +47,7 @@ export default function ToolClient() {
     }
 
     try {
-      const blocks = parsePEMBlocks(input);
+      const blocks = await parsePEMBlocks(input);
 
       if (!blocks.length) {
         setError("No PEM certificate blocks were found.");
@@ -74,7 +83,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="PEM Certificate Viewer"
-      description="Inspect PEM certificate blocks, decode readable certificate data, and review certificate content directly in your browser."
+      description="Inspect PEM block types, decoded byte size, SHA-256 fingerprints, and certificate boundaries directly in your browser."
     >
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -89,8 +98,8 @@ export default function ToolClient() {
         />
 
         <p className="mt-2 text-sm text-gray-500">
-          Paste a PEM certificate, certificate chain, public certificate block,
-          or certificate-like PEM content.
+          Paste a certificate, certificate chain, public key, CSR, or other
+          PEM block. Avoid private keys and sensitive production material.
         </p>
       </div>
 
@@ -118,7 +127,7 @@ export default function ToolClient() {
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Certificate Report
+            PEM Inspection Report
           </h3>
 
           {output && (
@@ -137,9 +146,10 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This tool is for quick PEM inspection in the browser. Do not paste
-        private keys or sensitive production secrets into tools unless you are
-        sure what they contain.
+        This tool checks PEM structure and decoded bytes. It does not fully
+        parse X.509 fields, verify a certificate chain, match a private key,
+        confirm hostname coverage, or establish trust. Avoid private keys and
+        sensitive production material.
       </div>
 
       {/* SEO CONTENT */}
@@ -150,17 +160,17 @@ export default function ToolClient() {
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            PEM files are commonly used for SSL certificates, certificate
-            chains, public keys, private keys, and X.509 certificate data. When
-            working with HTTPS, APIs, proxies, servers, or security headers, it
-            is useful to quickly check what kind of PEM block you have.
+            PEM is a text wrapper around Base64-encoded binary data. It is used
+            for certificates, certificate requests, public keys, private keys,
+            and other security material. The BEGIN and END labels identify the
+            intended block type.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This PEM Certificate Viewer helps you inspect PEM blocks, check
-            certificate boundaries, estimate decoded size, identify certificate
-            block types, and review readable decoded content directly in your
-            browser before using the certificate in configuration or debugging.
+            This viewer validates the Base64 body, reports the decoded byte
+            size, calculates a SHA-256 fingerprint, and shows a limited readable
+            byte preview. It is a structure inspector rather than a complete
+            X.509 certificate parser.
           </p>
         </div>
 
@@ -174,8 +184,8 @@ export default function ToolClient() {
             <li>
               Click <strong>Inspect Certificate</strong>.
             </li>
-            <li>Review detected PEM block types, decoded size, and readable fields.</li>
-            <li>Use the report to check certificate content before configuration work.</li>
+            <li>Review block types, decoded size, fingerprints, and readable byte previews.</li>
+            <li>Use the report as an initial check before using a dedicated X.509 or chain validator.</li>
           </ol>
         </div>
 
@@ -189,7 +199,7 @@ export default function ToolClient() {
             <li>Inspecting certificate-like content copied from configuration files.</li>
             <li>Reviewing PEM boundaries such as BEGIN CERTIFICATE and END CERTIFICATE.</li>
             <li>Checking certificate chains before server or proxy configuration.</li>
-            <li>Inspecting decoded certificate text during HTTPS debugging.</li>
+            <li>Comparing SHA-256 fingerprints while moving certificate files between systems.</li>
           </ul>
         </div>
 
@@ -217,9 +227,9 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                A PEM Certificate Viewer reads PEM blocks and shows useful
-                details such as block type, decoded size, detected certificate
-                boundaries, and readable decoded content when available.
+                It reads PEM boundaries, validates the Base64 body, identifies
+                the block label, reports decoded size, and calculates a SHA-256
+                fingerprint for the decoded bytes.
               </p>
             </div>
 
@@ -229,9 +239,9 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                This browser tool provides quick PEM inspection and readable
-                decoded content where possible. Full ASN.1/X.509 field parsing
-                can require a dedicated certificate parser.
+                No. This tool does not fully parse ASN.1 or display every subject,
+                issuer, validity, extension, SAN, or signature field. Use a
+                dedicated X.509 parser for those details.
               </p>
             </div>
 
@@ -272,9 +282,9 @@ export default function ToolClient() {
   );
 }
 
-function parsePEMBlocks(source: string): PEMBlock[] {
+async function parsePEMBlocks(source: string): Promise<PEMBlock[]> {
   const pattern =
-    /-----BEGIN ([A-Z0-9 ]+)-----([\s\S]*?)-----END \1-----/g;
+    /-----BEGIN ([A-Z0-9][A-Z0-9 -]*[A-Z0-9])-----([\s\S]*?)-----END \1-----/g;
 
   const blocks: PEMBlock[] = [];
   let match: RegExpExecArray | null;
@@ -284,18 +294,29 @@ function parsePEMBlocks(source: string): PEMBlock[] {
     const body = match[2].replace(/\s+/g, "");
 
     if (!body) {
-      continue;
+      throw new Error(`The ${type} block does not contain Base64 data.`);
     }
 
-    const decoded = decodeBase64ToText(body);
-    const byteLength = estimateByteLength(body);
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(body) || body.length % 4 === 1) {
+      throw new Error(`The ${type} block contains invalid Base64 data.`);
+    }
+
+    const bytes = decodeBase64(body);
+    const fingerprint = await sha256Fingerprint(bytes);
+    const decodedText = readablePreview(bytes);
 
     blocks.push({
       type,
-      body,
-      decodedText: decoded,
-      byteLength,
-      details: buildBlockDetails(type, body, decoded, byteLength),
+      decodedText,
+      byteLength: bytes.byteLength,
+      fingerprint,
+      details: buildBlockDetails(
+        type,
+        body.length,
+        bytes.byteLength,
+        fingerprint,
+        decodedText
+      ),
     });
   }
 
@@ -304,41 +325,46 @@ function parsePEMBlocks(source: string): PEMBlock[] {
 
 function buildBlockDetails(
   type: string,
-  body: string,
-  decodedText: string,
-  byteLength: number
+  base64Length: number,
+  byteLength: number,
+  fingerprint: string,
+  decodedText: string
 ) {
   const details = [
     `Type: ${type}`,
-    `Base64 characters: ${body.length}`,
-    `Estimated decoded size: ${byteLength} bytes`,
+    `Base64 characters: ${base64Length}`,
+    `Decoded size: ${byteLength} bytes`,
+    `SHA-256 fingerprint: ${fingerprint}`,
   ];
 
   if (type === "CERTIFICATE") {
     details.push("Block kind: X.509 certificate or certificate chain item");
   } else if (type.includes("PRIVATE KEY")) {
     details.push("Block kind: Private key");
-    details.push("Warning: private keys should be handled carefully.");
+    details.push("Warning: avoid sharing private key material.");
   } else if (type.includes("PUBLIC KEY")) {
     details.push("Block kind: Public key");
-  } else if (type.includes("CERTIFICATE REQUEST")) {
+  } else if (
+    type.includes("CERTIFICATE REQUEST") ||
+    type.includes("NEW CERTIFICATE REQUEST")
+  ) {
     details.push("Block kind: Certificate signing request");
   } else {
-    details.push("Block kind: PEM encoded data");
+    details.push("Block kind: PEM-encoded data");
   }
 
-  if (decodedText.trim()) {
-    details.push("Readable decoded text: detected");
-  } else {
-    details.push("Readable decoded text: not detected");
-  }
+  details.push(
+    decodedText.trim()
+      ? "Readable byte preview: available"
+      : "Readable byte preview: not available"
+  );
 
   return details;
 }
 
 function formatReport(blocks: PEMBlock[]) {
   const lines = [
-    "PEM certificate inspection completed.",
+    "PEM inspection completed.",
     "",
     `PEM blocks found: ${blocks.length}`,
     "",
@@ -352,50 +378,59 @@ function formatReport(blocks: PEMBlock[]) {
 
     if (block.decodedText.trim()) {
       lines.push("");
-      lines.push("Readable decoded preview:");
-      lines.push(block.decodedText.slice(0, 800));
+      lines.push("Readable byte preview:");
+      lines.push(block.decodedText);
     }
 
     lines.push("");
   });
 
+  lines.push(
+    "Note: This report does not validate certificate trust, hostname coverage, expiry, chain order, or private-key pairing."
+  );
+
   return lines.join("\n").trim();
 }
 
-function decodeBase64ToText(value: string) {
+function decodeBase64(value: string) {
   try {
     const binary = atob(value);
-    const text = Array.from(binary)
-      .map((char) => {
-        const code = char.charCodeAt(0);
 
-        if (code >= 32 && code <= 126) {
-          return char;
-        }
-
-        if (code === 10 || code === 13 || code === 9) {
-          return char;
-        }
-
-        return ".";
-      })
-      .join("");
-
-    const readableCount = text
-      .split("")
-      .filter((char) => /[A-Za-z0-9\s:.,/_=-]/.test(char)).length;
-
-    if (readableCount < text.length * 0.45) {
-      return "";
-    }
-
-    return text;
+    return Uint8Array.from(binary, (character) =>
+      character.charCodeAt(0)
+    );
   } catch {
-    throw new Error("Invalid base64 content inside one or more PEM blocks.");
+    throw new Error("Invalid Base64 content inside a PEM block.");
   }
 }
 
-function estimateByteLength(value: string) {
-  const padding = (value.match(/=+$/)?.[0].length || 0);
-  return Math.max(0, Math.floor((value.length * 3) / 4) - padding);
+function readablePreview(bytes: Uint8Array) {
+  const preview = Array.from(bytes.slice(0, 800))
+    .map((byte) => {
+      if (byte >= 32 && byte <= 126) {
+        return String.fromCharCode(byte);
+      }
+
+      if (byte === 10 || byte === 13 || byte === 9) {
+        return String.fromCharCode(byte);
+      }
+
+      return ".";
+    })
+    .join("");
+
+  const readableCount = [...preview].filter((character) =>
+    /[A-Za-z0-9\s:.,/_=+-]/.test(character)
+  ).length;
+
+  return readableCount >= preview.length * 0.45 ? preview : "";
+}
+
+async function sha256Fingerprint(bytes: Uint8Array) {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hex = Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0").toUpperCase()
+  ).join("");
+
+  return hex.match(/.{2}/g)?.join(":") || hex;
 }

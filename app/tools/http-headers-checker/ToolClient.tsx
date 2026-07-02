@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import ToolShell from "@/app/components/ToolShell";
 
 type HeaderRow = {
@@ -21,57 +21,76 @@ export default function ToolClient() {
     const trimmed = value.trim();
 
     if (!trimmed) {
-      return "";
+      throw new Error("Please enter a website URL.");
     }
 
-    if (
-      trimmed.startsWith("http://") ||
-      trimmed.startsWith("https://")
-    ) {
-      return trimmed;
+    const candidate = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+
+    let parsed: URL;
+
+    try {
+      parsed = new URL(candidate);
+    } catch {
+      throw new Error("Enter a valid HTTP or HTTPS URL.");
     }
 
-    return `https://${trimmed}`;
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      throw new Error("Only HTTP and HTTPS URLs are supported.");
+    }
+
+    return parsed.toString();
   };
 
   const checkHeaders = async () => {
-    const targetUrl = normalizeUrl(url);
-
-    if (!targetUrl) {
-      setError("Please enter a website URL.");
-      setStatusCode("");
-      setFinalUrl("");
-      setHeaders([]);
-      return;
-    }
-
     setLoading(true);
     setError("");
     setStatusCode("");
     setFinalUrl("");
     setHeaders([]);
 
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(
+      () => controller.abort(),
+      12000
+    );
+
     try {
+      const targetUrl = normalizeUrl(url);
+
       const response = await fetch(targetUrl, {
         method: "GET",
         redirect: "follow",
+        signal: controller.signal,
+        cache: "no-store",
       });
 
-      const headerRows = Array.from(response.headers.entries()).map(
-        ([name, value]) => ({
-          name,
-          value,
-        })
-      );
+      const headerRows = Array.from(response.headers.entries())
+        .map(([name, value]) => ({ name, value }))
+        .sort((left, right) => left.name.localeCompare(right.name));
 
-      setStatusCode(String(response.status));
-      setFinalUrl(response.url);
+      setStatusCode(
+        `${response.status}${response.statusText ? ` ${response.statusText}` : ""}`
+      );
+      setFinalUrl(response.url || targetUrl);
       setHeaders(headerRows);
-    } catch {
+
+      if (!headerRows.length) {
+        setError(
+          "The request completed, but the browser did not expose any response headers. Cross-origin response rules may be limiting access."
+        );
+      }
+    } catch (err) {
       setError(
-        "Unable to fetch headers from this URL. The site may block browser requests, require server-side checking, or have CORS restrictions."
+        err instanceof DOMException && err.name === "AbortError"
+          ? "The request timed out after 12 seconds."
+          : err instanceof Error
+            ? err.message
+            : "Unable to inspect this URL from the browser."
       );
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -103,7 +122,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HTTP Headers Checker"
-      description="Check HTTP response headers, status codes, redirects, cache headers, and security headers with this free online HTTP Headers Checker."
+      description="Inspect browser-visible HTTP response headers, the final status, final URL, cache directives, content type, and security-related headers."
     >
       {/* INPUT */}
       <div>
@@ -234,10 +253,11 @@ export default function ToolClient() {
         </h3>
 
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          This checker runs from your browser. Some websites block browser-based
-          cross-origin requests, so a URL may fail even when the website is
-          online. For blocked sites, server-side header checking gives more
-          complete results.
+          This checker sends a browser request to the URL you enter. The target
+          site receives that request, and CORS rules decide which headers the
+          browser exposes. A failed or incomplete result does not prove the site
+          is offline or missing those headers. Redirect chains and non-exposed
+          response details require a server-side checker.
         </p>
       </div>
 
@@ -245,21 +265,21 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking HTTP Headers for SEO, Security, and Debugging
+            Inspecting Browser-Visible HTTP Response Headers
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            HTTP headers show important information about how a server responds
-            to a request. Developers, SEO teams, security reviewers, and site
-            owners use response headers to inspect status codes, redirects,
-            caching rules, content types, security policies, and server behavior.
+            Response headers can describe content type, caching, browser
+            security policies, server behaviour, and the final response status.
+            They are useful while debugging websites, APIs, CDN behaviour, and
+            technical SEO issues.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This HTTP Headers Checker helps you review visible response headers
-            from a URL directly in your browser. It is useful for quick checks
-            while debugging websites, validating SEO signals, reviewing cache
-            behavior, or checking common security-related headers.
+            This tool shows only the headers that the browser is allowed to
+            expose for the final response. It does not display the complete
+            redirect chain, hidden cross-origin headers, request headers, or
+            server-side network details.
           </p>
         </div>
 
@@ -285,7 +305,7 @@ export default function ToolClient() {
             <li>Status codes such as 200, 301, 302, 404, and 500.</li>
             <li>Cache headers like Cache-Control, Expires, and ETag.</li>
             <li>Content-Type and charset values.</li>
-            <li>Redirect and final destination behavior.</li>
+            <li>The final URL after browser-followed redirects.</li>
             <li>Security headers such as CSP, HSTS, X-Frame-Options, and Referrer-Policy.</li>
             <li>Server and platform-related response details.</li>
           </ul>
@@ -300,7 +320,7 @@ export default function ToolClient() {
             <ul className="space-y-3">
               <li>
                 <strong>SEO debugging:</strong>{" "}
-                Status codes, redirects, canonical behavior, and caching can affect how pages are crawled and indexed.
+                Final status, final URL, content type, and caching can help explain crawl or delivery problems. Canonical tags are HTML signals and are not confirmed by this tool.
               </li>
 
               <li>
@@ -357,9 +377,9 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes, if the browser is allowed to read the response. Common
-                security headers include Content-Security-Policy,
-                Strict-Transport-Security, X-Frame-Options, and Referrer-Policy.
+                It can display security-related headers only when the browser
+                exposes them. Their presence does not prove that the complete
+                application security configuration is correct.
               </p>
             </div>
 
@@ -381,32 +401,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            HTTP header checks often connect with redirects, security headers,
-            API debugging, technical SEO, and website response testing.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/redirect-checker" className="yoryantra-btn-outline">
-              Redirect Checker
-            </Link>
-
-            <Link href="/tools/csp-generator" className="yoryantra-btn-outline">
-              CSP Generator
-            </Link>
-
-            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline">
-              Canonical URL Checker
-            </Link>
-
-            <Link href="/tools/curl-command-builder" className="yoryantra-btn-outline">
-              Curl Command Builder
-            </Link>
-
-            <Link href="/categories/seo-tools" className="yoryantra-btn-outline">
-              SEO Tools
-            </Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/http-headers-checker" />
         </div>
       </section>
     </ToolShell>

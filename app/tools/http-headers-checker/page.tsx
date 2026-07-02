@@ -1,10 +1,10 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "HTTP Headers Checker Online Free | Yoryantra",
+  title: "HTTP Response Headers Checker | Yoryantra",
 
   description:
-    "Check HTTP response headers, status codes, redirects, security headers, cache headers, and server response details with this free online HTTP Headers Checker.",
+    "Inspect browser-visible HTTP response headers, final status, final URL, cache directives, content type, and security-related headers."
 
   keywords: [
     "http headers checker",
@@ -23,10 +23,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "HTTP Headers Checker Online Free | Yoryantra",
+    title: "HTTP Response Headers Checker | Yoryantra",
 
     description:
-      "Check HTTP response headers, status codes, redirects, security headers, cache headers, and server response details online.",
+      "Inspect browser-visible response headers, final status, final URL, cache directives, and security-related headers."
 
     url: "https://yoryantra.com/tools/http-headers-checker",
 
@@ -38,10 +38,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "HTTP Headers Checker Online Free | Yoryantra",
+    title: "HTTP Response Headers Checker | Yoryantra",
 
     description:
-      "Free online HTTP Headers Checker for response headers, status codes, redirects, cache headers, and security headers.",
+      "Check browser-visible HTTP response headers, final status, cache directives, and security-related headers."
   },
 };
 

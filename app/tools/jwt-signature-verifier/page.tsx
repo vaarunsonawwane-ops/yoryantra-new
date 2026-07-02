@@ -1,7 +1,7 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "JWT Signature Verifier Online Free | Yoryantra",
+  title: "JWT HS256 Signature Verifier | Yoryantra",
 
   description:
     "Verify JWT signatures using a secret key instantly with this free online JWT Signature Verifier.",

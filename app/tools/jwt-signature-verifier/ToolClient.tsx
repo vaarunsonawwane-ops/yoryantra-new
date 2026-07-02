@@ -4,6 +4,43 @@ import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
+function decodeBase64Url(value: string) {
+  const normalized = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+
+  const padded =
+    normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+
+  const binary = atob(padded);
+
+  return Uint8Array.from(binary, (character) =>
+    character.charCodeAt(0)
+  );
+}
+
+function decodeJWTHeader(value: string) {
+  try {
+    const bytes = decodeBase64Url(value);
+    const text = new TextDecoder().decode(bytes);
+    const header = JSON.parse(text) as { alg?: unknown; typ?: unknown };
+
+    if (
+      !header ||
+      typeof header !== "object" ||
+      Array.isArray(header)
+    ) {
+      throw new Error();
+    }
+
+    return header;
+  } catch {
+    throw new Error(
+      "The JWT header is not valid Base64URL-encoded JSON."
+    );
+  }
+}
+
 export default function ToolClient() {
   const [token, setToken] = useState("");
   const [secret, setSecret] = useState("");
@@ -12,69 +49,87 @@ export default function ToolClient() {
 
   const verifyJWT = async () => {
     try {
-      if (!token.trim()) {
-        setError("Please enter a JWT token.");
-        setOutput("");
-        return;
+      const cleanedToken = token.trim();
+      const cleanedSecret = secret;
+
+      if (!cleanedToken) {
+        throw new Error("Please enter a JWT token.");
       }
 
-      if (!secret.trim()) {
-        setError("Please enter a secret key.");
-        setOutput("");
-        return;
+      if (!cleanedSecret) {
+        throw new Error("Please enter the expected HS256 secret.");
       }
 
-      const parts = token.split(".");
+      const parts = cleanedToken.split(".");
 
-      if (parts.length !== 3) {
-        setError("Invalid JWT format.");
-        setOutput("");
-        return;
+      if (parts.length !== 3 || parts.some((part) => !part)) {
+        throw new Error(
+          "Enter a compact JWT with three dot-separated sections."
+        );
+      }
+
+      const header = decodeJWTHeader(parts[0]);
+
+      if (header.alg !== "HS256") {
+        throw new Error(
+          `This tool verifies HS256 tokens only. The JWT header declares ${
+            typeof header.alg === "string" ? header.alg : "no supported algorithm"
+          }.`
+        );
       }
 
       const encoder = new TextEncoder();
-
       const key = await crypto.subtle.importKey(
         "raw",
-        encoder.encode(secret),
+        encoder.encode(cleanedSecret),
         {
           name: "HMAC",
           hash: "SHA-256",
         },
         false,
-        ["sign"]
+        ["verify"]
       );
 
-      const data = `${parts[0]}.${parts[1]}`;
+      let signature: Uint8Array;
 
-      const signatureBuffer =
-        await crypto.subtle.sign(
-          "HMAC",
-          key,
-          encoder.encode(data)
-        );
+      try {
+        signature = decodeBase64Url(parts[2]);
+      } catch {
+        throw new Error("The JWT signature is not valid Base64URL data.");
+      }
 
-      const generatedSignature = btoa(
-        String.fromCharCode(
-          ...new Uint8Array(signatureBuffer)
-        )
-      )
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-
-      const isValid =
-        generatedSignature === parts[2];
+      const isValid = await crypto.subtle.verify(
+        "HMAC",
+        key,
+        signature,
+        encoder.encode(`${parts[0]}.${parts[1]}`)
+      );
 
       setOutput(
         isValid
-          ? "JWT signature is valid."
-          : "JWT signature verification failed."
+          ? [
+              "Signature verification passed.",
+              "",
+              "Algorithm: HS256",
+              "The signature matches the token header and payload for the secret you entered.",
+              "",
+              "This result does not confirm claim validity, expiry, issuer, audience, or whether the application should accept the token.",
+            ].join("\n")
+          : [
+              "Signature verification failed.",
+              "",
+              "The signature does not match the token header and payload for the secret you entered.",
+              "Check the secret, token value, and signing algorithm.",
+            ].join("\n")
       );
 
       setError("");
-    } catch {
-      setError("Unable to verify JWT signature.");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to verify this JWT signature."
+      );
       setOutput("");
     }
   };
@@ -89,7 +144,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JWT Signature Verifier"
-      description="Verify JWT signatures instantly using HS256 secret keys with this free online JWT Signature Verifier."
+      description="Verify whether an HS256 JWT signature matches the token header and payload for the shared secret you enter."
     >
       {/* TOKEN */}
       <div>
@@ -114,12 +169,14 @@ export default function ToolClient() {
         </label>
 
         <input
-          type="text"
+          type="password"
           value={secret}
           onChange={(e) =>
             setSecret(e.target.value)
           }
-          placeholder="Enter JWT secret key..."
+          placeholder="Enter the expected HS256 secret..."
+          autoComplete="off"
+          spellCheck={false}
           className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
@@ -167,7 +224,7 @@ export default function ToolClient() {
           )}
         </div>
 
-        <div className="yoryantra-output min-h-[140px] flex items-center text-sm break-words">
+        <div className="yoryantra-output min-h-[160px] text-sm whitespace-pre-wrap break-words">
           {output ||
             "JWT verification result will appear here..."}
         </div>
@@ -180,8 +237,10 @@ export default function ToolClient() {
         </h3>
 
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          JWT verification happens locally inside your browser. Tokens and
-          secret keys are not uploaded or stored on any server.
+          Verification happens locally inside your browser. Avoid using live
+          production tokens or secrets unless you understand the risk. A valid
+          signature confirms integrity for the supplied secret, not that the
+          claims are acceptable or the token should be trusted.
         </p>
       </div>
 
@@ -193,25 +252,21 @@ export default function ToolClient() {
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JWT signature verification helps confirm whether a JSON Web Token
-            was signed using the expected secret key and whether the token
-            contents may have been modified. JWT verification is commonly used
-            in authentication systems, APIs, session handling, OAuth flows, and
-            secure backend applications.
+            HS256 uses one shared secret to create and verify an HMAC-SHA256
+            signature. Verification checks whether the encoded header and
+            payload match the signature for the secret you provide.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            During authentication debugging and API testing, developers often
-            need to validate whether a token signature matches the expected
-            secret. This JWT Signature Verifier helps verify HS256-signed JWT
-            tokens directly inside your browser without manually calculating
-            HMAC signatures.
+            This tool reads the algorithm declared in the JWT header and only
+            proceeds when it is exactly HS256. Tokens using RS256, ES256, none,
+            or another algorithm require a different verification method.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool is useful for backend development, API debugging, session
-            inspection, authentication troubleshooting, token validation, and
-            security-focused development workflows.
+            A successful signature check does not validate exp, nbf, iss, aud,
+            permissions, revocation, or application policy. Those checks must be
+            performed separately.
           </p>
         </div>
 
@@ -301,7 +356,7 @@ export default function ToolClient() {
 {`1. Paste JWT token
 2. Enter secret key
 3. Verify signature
-4. Confirm token authenticity`}
+4. Review claims and application rules separately`}
             </pre>
           </div>
         </div>
@@ -318,9 +373,8 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                JWT signature verification checks whether the token signature
-                matches the expected secret key and whether the token content
-                may have been modified.
+                It checks whether the JWT signature matches the encoded header
+                and payload for the shared HS256 secret you entered.
               </p>
             </div>
 
