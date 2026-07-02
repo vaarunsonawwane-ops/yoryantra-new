@@ -300,7 +300,7 @@ export default function ToolClient() {
             </li>
 
             <li>
-              Review the verification result instantly.
+              Review the result, then validate the token claims and application rules separately.
             </li>
           </ol>
         </div>
