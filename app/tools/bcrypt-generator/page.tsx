@@ -1,10 +1,10 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "bcrypt Hash Generator Online | Yoryantra",
+  title: "bcrypt Hash Generator for Testing | Yoryantra",
 
   description:
-    "Generate bcrypt password hashes online with selectable cost factors. Create salted bcrypt hashes locally in your browser for development and testing.",
+    "Generate salted bcrypt hashes with selectable cost factors in your browser. Includes byte-length checks and clear guidance for development and testing.",
 
   keywords: [
     "bcrypt generator",
@@ -24,10 +24,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "bcrypt Hash Generator Online | Yoryantra",
+    title: "bcrypt Hash Generator for Testing | Yoryantra",
 
     description:
-      "Generate salted bcrypt password hashes online with selectable cost factors, directly in your browser.",
+      "Generate salted bcrypt hashes with selectable cost factors directly in your browser for development and testing.",
 
     url:
       "https://yoryantra.com/tools/bcrypt-generator",
@@ -41,7 +41,7 @@ export const metadata = {
     card: "summary_large_image",
 
     title:
-      "bcrypt Generator Online Free | Yoryantra",
+      "bcrypt Hash Generator for Testing | Yoryantra",
 
     description:
       "Generate salted bcrypt password hashes locally with selectable cost factors.",

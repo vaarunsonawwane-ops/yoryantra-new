@@ -28,23 +28,110 @@ export default function ToolClient() {
   const [frameSrc, setFrameSrc] =
     useState("");
 
-  const generatedCSP = useMemo(() => {
-    const policies = [
-      `default-src ${defaultSrc}`,
-      `script-src ${scriptSrc}`,
-      `style-src ${styleSrc}`,
-      `img-src ${imgSrc}`,
-      `connect-src ${connectSrc}`,
-      `font-src ${fontSrc}`,
-    ];
+  const [objectSrc, setObjectSrc] =
+    useState("'none'");
 
-    if (frameSrc.trim()) {
-      policies.push(
-        `frame-src ${frameSrc}`
+  const [baseUri, setBaseUri] =
+    useState("'self'");
+
+  const [frameAncestors, setFrameAncestors] =
+    useState("'none'");
+
+  const [formAction, setFormAction] =
+    useState("'self'");
+
+  const { generatedCSP, warnings } = useMemo(() => {
+    const normalizeSources = (value: string) =>
+      value
+        .replace(/[;\r\n]+/g, " ")
+        .trim()
+        .replace(/\s+/g, " ");
+
+    const directiveEntries = [
+      ["default-src", defaultSrc],
+      ["script-src", scriptSrc],
+      ["style-src", styleSrc],
+      ["img-src", imgSrc],
+      ["connect-src", connectSrc],
+      ["font-src", fontSrc],
+      ["frame-src", frameSrc],
+      ["object-src", objectSrc],
+      ["base-uri", baseUri],
+      ["frame-ancestors", frameAncestors],
+      ["form-action", formAction],
+    ] as const;
+
+    const policies = directiveEntries
+      .map(([name, value]) => [name, normalizeSources(value)] as const)
+      .filter(([, value]) => Boolean(value))
+      .map(([name, value]) => `${name} ${value}`);
+
+    const policyValue = policies.length
+      ? `${policies.join("; ")};`
+      : "";
+
+    const warningItems: string[] = [];
+    const normalizedScript = normalizeSources(scriptSrc);
+    const normalizedStyle = normalizeSources(styleSrc);
+
+    if (!normalizeSources(defaultSrc)) {
+      warningItems.push(
+        "default-src is empty. Add a fallback policy unless every resource type is covered separately."
       );
     }
 
-    return policies.join("; ");
+    if (normalizedScript.includes("'unsafe-inline'")) {
+      warningItems.push(
+        "script-src contains 'unsafe-inline'. Prefer nonces or hashes for inline scripts."
+      );
+    }
+
+    if (normalizedScript.includes("'unsafe-eval'")) {
+      warningItems.push(
+        "script-src contains 'unsafe-eval', which weakens protection against injected code."
+      );
+    }
+
+    if (normalizedStyle.includes("'unsafe-inline'")) {
+      warningItems.push(
+        "style-src contains 'unsafe-inline'. Confirm that inline styles are required."
+      );
+    }
+
+    if (
+      directiveEntries.some(([, value]) =>
+        normalizeSources(value).split(" ").includes("*")
+      )
+    ) {
+      warningItems.push(
+        "A wildcard source allows resources from any matching origin. Narrow it where possible."
+      );
+    }
+
+    if (!normalizeSources(objectSrc)) {
+      warningItems.push(
+        "object-src is empty. Setting object-src 'none' is a common hardening step when plugins are not needed."
+      );
+    }
+
+    if (!normalizeSources(baseUri)) {
+      warningItems.push(
+        "base-uri is empty. Restricting it can reduce abuse of injected base elements."
+      );
+    }
+
+    if (!normalizeSources(frameAncestors)) {
+      warningItems.push(
+        "frame-ancestors is empty. Add it when you need to control which sites may embed the page."
+      );
+    }
+
+    return {
+      generatedCSP: policyValue
+        ? `Content-Security-Policy: ${policyValue}`
+        : "",
+      warnings: warningItems,
+    };
   }, [
     defaultSrc,
     scriptSrc,
@@ -53,6 +140,10 @@ export default function ToolClient() {
     connectSrc,
     fontSrc,
     frameSrc,
+    objectSrc,
+    baseUri,
+    frameAncestors,
+    formAction,
   ]);
 
   const resetAll = () => {
@@ -65,12 +156,16 @@ export default function ToolClient() {
     setConnectSrc("'self'");
     setFontSrc("'self'");
     setFrameSrc("");
+    setObjectSrc("'none'");
+    setBaseUri("'self'");
+    setFrameAncestors("'none'");
+    setFormAction("'self'");
   };
 
   return (
     <ToolShell
       title="CSP Generator"
-      description="Generate Content Security Policy headers instantly with this free online CSP Generator."
+      description="Build a Content-Security-Policy header with common directives, cleaned source values, and warnings for risky settings."
     >
       {/* GRID */}
       <div className="grid gap-6 md:grid-cols-2">
@@ -196,14 +291,61 @@ export default function ToolClient() {
         />
       </div>
 
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-700">
+            object-src
+          </label>
+          <input
+            type="text"
+            value={objectSrc}
+            onChange={(e) => setObjectSrc(e.target.value)}
+            className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-700">
+            base-uri
+          </label>
+          <input
+            type="text"
+            value={baseUri}
+            onChange={(e) => setBaseUri(e.target.value)}
+            className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-700">
+            frame-ancestors
+          </label>
+          <input
+            type="text"
+            value={frameAncestors}
+            onChange={(e) => setFrameAncestors(e.target.value)}
+            className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-700">
+            form-action
+          </label>
+          <input
+            type="text"
+            value={formAction}
+            onChange={(e) => setFormAction(e.target.value)}
+            className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          />
+        </div>
+      </div>
+
       {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
         <button
-          onClick={() =>
-            navigator.clipboard.writeText(
-              generatedCSP
-            )
-          }
+          onClick={() => navigator.clipboard.writeText(generatedCSP)}
+          disabled={!generatedCSP}
           className="yoryantra-btn"
         >
           Copy CSP Header
@@ -230,6 +372,19 @@ export default function ToolClient() {
         </div>
       </div>
 
+      {warnings.length > 0 && (
+        <div className="mt-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+          <h3 className="text-sm font-semibold text-yellow-900">
+            Review Before Deployment
+          </h3>
+          <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-relaxed text-yellow-800">
+            {warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* PRIVACY */}
       <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
         <h3 className="text-sm font-semibold text-yellow-900">
@@ -237,9 +392,10 @@ export default function ToolClient() {
         </h3>
 
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          CSP header generation happens locally inside your browser. Your
-          security policies, allowed domains, and configuration values are not
-          uploaded, stored, or processed on any external server.
+          CSP generation happens locally inside your browser. The generated
+          policy is a starting point, not proof of a secure deployment. Test it
+          with Content-Security-Policy-Report-Only first where practical, inspect
+          violations, and confirm every required resource still works.
         </p>
       </div>
 
@@ -251,24 +407,23 @@ export default function ToolClient() {
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            CSP generation helps developers create secure Content Security
-            Policy headers for websites, APIs, frontend applications, SaaS
-            platforms, dashboards, authentication systems, and production
-            deployments.
+            A Content Security Policy tells supporting browsers which resource
+            locations may be used by a page. A carefully tested policy can reduce
+            the impact of some injection attacks and unwanted resource loading.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Content Security Policy is a browser security mechanism that controls
-            which resources websites are allowed to load. Proper CSP rules help
-            reduce security risks such as cross-site scripting attacks,
-            malicious third-party scripts, injected content, and unsafe browser
-            behavior.
+            CSP is defense in depth. It does not replace output encoding, safe
+            DOM handling, dependency updates, authentication controls, or other
+            application security work. An overly broad or untested policy can
+            provide little protection or break legitimate features.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This CSP Generator creates customizable Content Security Policy
-            headers directly inside your browser without requiring backend
-            processing or external security tools.
+            This generator covers common fetch directives and several document
+            directives. It normalizes extra whitespace and highlights a few risky
+            values, but it cannot understand every resource or runtime behaviour
+            in your application.
           </p>
         </div>
 
@@ -288,12 +443,12 @@ export default function ToolClient() {
             </li>
 
             <li>
-              Copy the generated Content Security Policy header instantly.
+              Review any warnings and copy the generated header.
             </li>
 
             <li>
-              Add the generated CSP header to your server or framework
-              configuration.
+              Test with Report-Only where practical before enforcing it in
+              production.
             </li>
           </ol>
         </div>
@@ -337,7 +492,8 @@ export default function ToolClient() {
 
               <li>
                 <strong>frame-src:</strong>{" "}
-                Allowed embedded iframes and external frame content.
+                Allowed sources for frames loaded by the page. This differs from
+                frame-ancestors, which controls who may embed your page.
               </li>
             </ul>
           </div>
@@ -350,15 +506,15 @@ export default function ToolClient() {
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>
-              Improving frontend website security.
+              Building and testing a browser resource-loading policy.
             </li>
 
             <li>
-              Preventing cross-site scripting attacks.
+              Reducing the impact of some script-injection attacks.
             </li>
 
             <li>
-              Securing production deployments.
+              Reviewing a policy before production enforcement.
             </li>
 
             <li>
@@ -366,11 +522,11 @@ export default function ToolClient() {
             </li>
 
             <li>
-              Hardening Next.js and React applications.
+              Restricting resource sources in Next.js and React applications.
             </li>
 
             <li>
-              Creating CSP headers for APIs and dashboards.
+              Creating CSP headers for web applications and dashboards.
             </li>
 
             <li>
@@ -386,12 +542,7 @@ export default function ToolClient() {
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <pre className="whitespace-pre-wrap break-words">
-{`Content-Security-Policy:
-default-src 'self';
-script-src 'self';
-style-src 'self' 'unsafe-inline';
-img-src 'self' data:;
-connect-src 'self';`}
+{`Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';`}
             </pre>
           </div>
         </div>
@@ -404,23 +555,23 @@ connect-src 'self';`}
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <ul className="space-y-3">
               <li>
-                <strong>Better security:</strong>{" "}
-                Reduce browser-based attack surfaces.
+                <strong>Resource control:</strong>{" "}
+                Limit where supported browsers may load content from.
               </li>
 
               <li>
-                <strong>Safer scripts:</strong>{" "}
-                Restrict unauthorized JavaScript execution.
+                <strong>Script restrictions:</strong>{" "}
+                Limit approved script sources and inline execution patterns.
               </li>
 
               <li>
-                <strong>Cleaner deployments:</strong>{" "}
-                Control third-party integrations more safely.
+                <strong>Third-party review:</strong>{" "}
+                Make external script, style, image, and frame sources explicit.
               </li>
 
               <li>
-                <strong>Modern frontend protection:</strong>{" "}
-                Improve website security posture for production systems.
+                <strong>Report-Only testing:</strong>{" "}
+                Find policy violations before switching to enforcement.
               </li>
             </ul>
           </div>
@@ -450,9 +601,9 @@ connect-src 'self';`}
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                CSP headers help reduce security risks such as cross-site
-                scripting attacks, malicious scripts, and unauthorized resource
-                loading.
+                A well-designed CSP can reduce the impact of some cross-site
+                scripting and resource-injection attacks. It is an additional
+                browser control, not a complete security solution.
               </p>
             </div>
 
@@ -473,8 +624,20 @@ connect-src 'self';`}
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. CSP headers are commonly used to secure Next.js, React,
-                frontend dashboards, APIs, and production web applications.
+                Yes. CSP headers are commonly used with Next.js, React, frontend
+                dashboards, and other browser-delivered web applications.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Should I use Report-Only first?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                For an existing site, Report-Only can help reveal blocked
+                resources before enforcement. Review reports carefully because
+                report collection and browser coverage vary.
               </p>
             </div>
 

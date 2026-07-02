@@ -16,30 +16,55 @@ export default function ToolClient() {
   const [hash, setHash] =
     useState("");
 
-  const generateHash =
-    async () => {
-      if (!password.trim())
-        return;
+  const [error, setError] =
+    useState("");
 
-      const result =
-        await bcrypt.hash(
-          password,
-          rounds
-        );
+  const [loading, setLoading] =
+    useState(false);
 
+  const generateHash = async () => {
+    if (!password.length) {
+      setError("Enter a password or sample value to hash.");
+      setHash("");
+      return;
+    }
+
+    const byteLength = new TextEncoder().encode(password).byteLength;
+
+    if (byteLength > 72) {
+      setError(
+        `bcrypt uses only the first 72 UTF-8 bytes. This input is ${byteLength} bytes, so shorten it before generating a hash.`
+      );
+      setHash("");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await bcrypt.hash(password, rounds);
       setHash(result);
-    };
+    } catch {
+      setError("Unable to generate the bcrypt hash.");
+      setHash("");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const resetAll = () => {
     setPassword("");
     setRounds(10);
     setHash("");
+    setError("");
+    setLoading(false);
   };
 
   return (
     <ToolShell
       title="bcrypt Hash Generator"
-      description="Generate salted bcrypt password hashes online with selectable cost factors. Hashing runs locally in your browser for development and testing."
+      description="Generate a salted bcrypt hash with a selectable cost factor. The tool checks bcrypt’s 72-byte input limit and runs locally in your browser."
     >
       {/* PASSWORD */}
       <div>
@@ -49,6 +74,8 @@ export default function ToolClient() {
 
         <textarea
           value={password}
+          autoComplete="off"
+          spellCheck={false}
           onChange={(e) =>
             setPassword(
               e.target.value
@@ -74,19 +101,19 @@ export default function ToolClient() {
           }
           options={[
             {
-              label: "8",
+              label: "8 — Faster",
               value: "8",
             },
             {
-              label: "10 Recommended",
+              label: "10 — Moderate",
               value: "10",
             },
             {
-              label: "12 Stronger",
+              label: "12 — Slower",
               value: "12",
             },
             {
-              label: "14 High Security",
+              label: "14 — Very Slow",
               value: "14",
             },
           ]}
@@ -97,9 +124,10 @@ export default function ToolClient() {
       <div className="mt-5 flex flex-wrap gap-3">
         <button
           onClick={generateHash}
+          disabled={loading}
           className="yoryantra-btn"
         >
-          Generate bcrypt Hash
+          {loading ? "Generating..." : "Generate bcrypt Hash"}
         </button>
 
         <button
@@ -109,6 +137,12 @@ export default function ToolClient() {
           Reset
         </button>
       </div>
+
+      {error && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* OUTPUT */}
       <div className="mt-8 min-w-0">
@@ -144,8 +178,9 @@ export default function ToolClient() {
         </h3>
 
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          bcrypt hashing happens locally inside your browser. Passwords are not
-          uploaded, stored, or transmitted to any server.
+          bcrypt hashing happens locally inside your browser. Use sample values
+          rather than real account passwords. Production applications should
+          generate and verify password hashes inside their trusted backend.
         </p>
       </div>
 
@@ -165,7 +200,9 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Avoid entering a real production password into any online tool, even when processing happens locally. Use sample credentials when testing.
+            bcrypt processes at most 72 bytes of input. This tool blocks longer
+            UTF-8 input instead of silently hashing only the first 72 bytes.
+            Use sample values rather than real account passwords.
           </p>
         </div>
 
@@ -194,9 +231,9 @@ export default function ToolClient() {
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <ul className="space-y-3">
               <li><strong>8 rounds:</strong> Faster output for lightweight local testing.</li>
-              <li><strong>10 rounds:</strong> A practical starting point for many test environments.</li>
+              <li><strong>10 rounds:</strong> A common comparison point for local development and testing.</li>
               <li><strong>12 rounds:</strong> More computational work and slower generation.</li>
-              <li><strong>14 rounds:</strong> Significantly slower and useful for performance comparison.</li>
+              <li><strong>14 rounds:</strong> Much slower in the browser and useful mainly for performance comparison.</li>
             </ul>
           </div>
         </div>
@@ -276,6 +313,15 @@ export default function ToolClient() {
               <h3 className="font-semibold text-gray-900">What bcrypt rounds should I choose?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Choose a cost that your application can calculate within an acceptable login time. Test it in the real deployment environment rather than relying on one universal value.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">Why is bcrypt limited to 72 bytes?</h3>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                bcrypt only uses the first 72 bytes of a password. Some Unicode
+                characters use more than one UTF-8 byte, so character count and
+                byte count are not always the same.
               </p>
             </div>
 

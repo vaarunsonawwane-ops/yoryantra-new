@@ -1,10 +1,10 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "CSP Generator Online Free | Yoryantra",
+  title: "Content Security Policy Header Generator | Yoryantra",
 
   description:
-    "Generate Content Security Policy headers instantly with this free online CSP Generator.",
+    "Build a Content-Security-Policy header with common fetch and document directives, source cleanup, and warnings for risky values.",
 
   keywords: [
     "csp generator",
@@ -23,10 +23,10 @@ export const metadata = {
 
   openGraph: {
     title:
-      "CSP Generator Online Free | Yoryantra",
+      "Content Security Policy Header Generator | Yoryantra",
 
     description:
-      "Generate Content Security Policy headers instantly online.",
+      "Build a Content-Security-Policy header and review warnings for risky source values.",
 
     url:
       "https://yoryantra.com/tools/csp-generator",
@@ -40,10 +40,10 @@ export const metadata = {
     card: "summary_large_image",
 
     title:
-      "CSP Generator Online Free | Yoryantra",
+      "Content Security Policy Header Generator | Yoryantra",
 
     description:
-      "Generate Content Security Policy headers instantly.",
+      "Build a Content-Security-Policy header with common directives and safety warnings."
   },
 };
 

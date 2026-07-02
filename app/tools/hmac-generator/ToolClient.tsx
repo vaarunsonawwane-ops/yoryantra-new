@@ -21,66 +21,63 @@ export default function ToolClient() {
   const [error, setError] =
     useState("");
 
-  const generateHMAC =
-    async () => {
-      try {
-        if (!secret.trim()) {
-          setError(
-            "Secret key is required."
-          );
+  const [loading, setLoading] =
+    useState(false);
 
-          setOutput("");
-          return;
-        }
+  const generateHMAC = async () => {
+    if (!secret.length) {
+      setError("Enter the shared secret key.");
+      setOutput("");
+      return;
+    }
 
-        const encoder =
-          new TextEncoder();
+    setLoading(true);
+    setError("");
 
-        const key =
-          await crypto.subtle.importKey(
-            "raw",
-            encoder.encode(secret),
-            {
-              name: "HMAC",
-              hash: algorithm,
-            },
-            false,
-            ["sign"]
-          );
+    try {
+      const encoder = new TextEncoder();
+      const secretBytes = encoder.encode(secret);
+      const messageBytes = encoder.encode(message);
 
-        const signature =
-          await crypto.subtle.sign(
-            "HMAC",
-            key,
-            encoder.encode(message)
-          );
+      const secretBuffer = secretBytes.buffer.slice(
+        secretBytes.byteOffset,
+        secretBytes.byteOffset + secretBytes.byteLength
+      ) as ArrayBuffer;
 
-        const hashArray =
-          Array.from(
-            new Uint8Array(
-              signature
-            )
-          );
+      const messageBuffer = messageBytes.buffer.slice(
+        messageBytes.byteOffset,
+        messageBytes.byteOffset + messageBytes.byteLength
+      ) as ArrayBuffer;
 
-        const hashHex =
-          hashArray
-            .map((b) =>
-              b
-                .toString(16)
-                .padStart(2, "0")
-            )
-            .join("");
+      const key = await crypto.subtle.importKey(
+        "raw",
+        secretBuffer,
+        {
+          name: "HMAC",
+          hash: algorithm,
+        },
+        false,
+        ["sign"]
+      );
 
-        setOutput(hashHex);
-        setError("");
-      } catch {
-        setError(
-          "Unable to generate HMAC signature."
-        );
+      const signature = await crypto.subtle.sign(
+        "HMAC",
+        key,
+        messageBuffer
+      );
 
-        setOutput("");
-      }
-    };
+      const hashHex = Array.from(new Uint8Array(signature))
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("");
+
+      setOutput(hashHex);
+    } catch {
+      setError("Unable to generate the HMAC value.");
+      setOutput("");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const resetAll = () => {
     setMessage("");
@@ -88,12 +85,13 @@ export default function ToolClient() {
     setAlgorithm("SHA-256");
     setOutput("");
     setError("");
+    setLoading(false);
   };
 
   return (
     <ToolShell
       title="HMAC Generator"
-      description="Generate secure HMAC SHA signatures instantly with this free online HMAC Generator."
+      description="Generate an HMAC SHA-256, SHA-384, or SHA-512 value from UTF-8 text and a shared secret directly in your browser."
     >
       {/* MESSAGE */}
       <div>
@@ -102,6 +100,7 @@ export default function ToolClient() {
         </label>
 
         <textarea
+          spellCheck={false}
           className="w-full h-40 rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
           placeholder="Enter message, request body, or payload..."
           value={message}
@@ -120,8 +119,10 @@ export default function ToolClient() {
         </label>
 
         <input
-          type="text"
+          type="password"
           value={secret}
+          autoComplete="off"
+          spellCheck={false}
           onChange={(e) =>
             setSecret(
               e.target.value
@@ -152,9 +153,10 @@ export default function ToolClient() {
       <div className="mt-5 flex flex-wrap gap-3">
         <button
           onClick={generateHMAC}
+          disabled={loading}
           className="yoryantra-btn"
         >
-          Generate HMAC
+          {loading ? "Generating..." : "Generate HMAC"}
         </button>
 
         <button
@@ -207,8 +209,9 @@ export default function ToolClient() {
 
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
           HMAC generation happens locally inside your browser using the Web
-          Crypto API. Your payloads and secret keys are not uploaded or stored
-          on any server.
+          Crypto API. Avoid using live production secrets in browser tools.
+          Matching another system also requires the same text encoding, exact
+          message bytes, secret bytes, algorithm, and output format.
         </p>
       </div>
 
@@ -220,22 +223,23 @@ export default function ToolClient() {
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            HMAC generation helps developers create secure request signatures
-            for APIs, webhooks, backend services, payment gateways,
-            authentication systems, and message verification workflows.
+            HMAC values are commonly used when APIs, webhook providers, and
+            backend services need to detect message changes using a shared
+            secret.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            HMAC stands for Hash-based Message Authentication Code. It combines
-            a cryptographic hash function with a secret key to verify both the
-            authenticity and integrity of data being transmitted between
-            systems.
+            HMAC stands for Hash-based Message Authentication Code. A verifier
+            can recalculate the value with the same secret and message bytes.
+            A match supports integrity and shared-secret authentication, but it
+            does not encrypt the message.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This HMAC Generator supports SHA-256, SHA-384, and SHA-512
-            algorithms directly inside your browser without requiring external
-            APIs or backend processing.
+            This generator treats the message and secret as UTF-8 text and returns
+            lowercase hexadecimal output. Other systems may expect Base64,
+            binary keys, canonicalized JSON, timestamps, or prefixed request
+            data, so follow the exact signing specification you are testing.
           </p>
         </div>
 
@@ -307,7 +311,7 @@ export default function ToolClient() {
             </li>
 
             <li>
-              Creating secure request signatures.
+              Generating request authentication codes for testing.
             </li>
 
             <li>
@@ -351,7 +355,7 @@ export default function ToolClient() {
             </p>
 
             <pre className="mt-2 whitespace-pre-wrap break-words">
-{`8f5c7e7d0f1f4a2e7d6f1b0b0d8c5c9f1a7d6c2e5f8a1d3b4c6e9f0a1b2c3d4`}
+{`ab5b21516c2ad6eb5f6bd3ec23f9c026a8bb782a1ffa44d322b3e9412575f98e`}
             </pre>
           </div>
         </div>
@@ -364,8 +368,9 @@ export default function ToolClient() {
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <ul className="space-y-3">
               <li>
-                <strong>Message authenticity:</strong> HMAC helps verify who
-                generated a request or payload.
+                <strong>Shared-secret authentication:</strong> A matching HMAC
+                shows that the sender had access to the same secret, assuming the
+                secret has remained private.
               </li>
 
               <li>
@@ -400,7 +405,7 @@ export default function ToolClient() {
               <p className="mt-2 text-gray-600 leading-relaxed">
                 HMAC stands for Hash-based Message Authentication Code. It uses
                 a secret key together with a hashing algorithm to create a
-                secure signature.
+                message authentication code.
               </p>
             </div>
 
@@ -411,7 +416,7 @@ export default function ToolClient() {
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Yes. Many APIs and webhook systems use HMAC signatures to
-                verify authenticity and prevent tampering.
+                check message integrity and confirm that the sender had access to the shared secret.
               </p>
             </div>
 
@@ -421,8 +426,21 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                HMAC SHA-256 is the most commonly used option for modern API and
-                authentication workflows.
+                Follow the algorithm required by the API or system you are testing.
+                HMAC SHA-256 is common, but the verifier and generator must use
+                the same algorithm.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Why does my HMAC not match another service?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                The message bytes, secret bytes, algorithm, and output encoding
+                must match exactly. This tool uses UTF-8 text and lowercase
+                hexadecimal output.
               </p>
             </div>
 
@@ -432,8 +450,9 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. HMAC signatures are generated locally using browser
-                cryptography APIs without sending your data externally.
+                Generation runs locally with the browser Web Crypto API. Still,
+                avoid entering live production secrets, and compare results with
+                the exact signing rules used by the target system.
               </p>
             </div>
 
