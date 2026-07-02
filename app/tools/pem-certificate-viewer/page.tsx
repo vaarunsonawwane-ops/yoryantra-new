@@ -4,7 +4,7 @@ export const metadata = {
   title: "PEM Certificate Viewer and Block Inspector | Yoryantra",
 
   description:
-    "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser."
+    "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser.",
 
   keywords: [
     "pem certificate viewer",
@@ -26,7 +26,7 @@ export const metadata = {
     title: "PEM Certificate Viewer and Block Inspector | Yoryantra",
 
     description:
-      "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser."
+      "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser.",
 
     url: "https://yoryantra.com/tools/pem-certificate-viewer",
 
@@ -41,7 +41,7 @@ export const metadata = {
     title: "PEM Certificate Viewer and Block Inspector | Yoryantra",
 
     description:
-      "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser."
+      "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser.",
   },
 };
 

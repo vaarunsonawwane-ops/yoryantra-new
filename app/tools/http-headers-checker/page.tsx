@@ -4,7 +4,7 @@ export const metadata = {
   title: "HTTP Response Headers Checker | Yoryantra",
 
   description:
-    "Inspect browser-visible HTTP response headers, final status, final URL, cache directives, content type, and security-related headers."
+    "Inspect browser-visible HTTP response headers, final status, final URL, cache directives, content type, and security-related headers.",
 
   keywords: [
     "http headers checker",
@@ -26,7 +26,7 @@ export const metadata = {
     title: "HTTP Response Headers Checker | Yoryantra",
 
     description:
-      "Inspect browser-visible response headers, final status, final URL, cache directives, and security-related headers."
+      "Inspect browser-visible response headers, final status, final URL, cache directives, and security-related headers.",
 
     url: "https://yoryantra.com/tools/http-headers-checker",
 
@@ -41,7 +41,7 @@ export const metadata = {
     title: "HTTP Response Headers Checker | Yoryantra",
 
     description:
-      "Check browser-visible HTTP response headers, final status, cache directives, and security-related headers."
+      "Check browser-visible HTTP response headers, final status, cache directives, and security-related headers.",
   },
 };
 
