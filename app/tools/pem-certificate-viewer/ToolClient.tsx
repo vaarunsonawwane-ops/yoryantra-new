@@ -427,7 +427,13 @@ function readablePreview(bytes: Uint8Array) {
 }
 
 async function sha256Fingerprint(bytes: Uint8Array) {
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const buffer = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength
+  ) as ArrayBuffer;
+
+  const digest = await crypto.subtle.digest("SHA-256", buffer);
+
   const hex = Array.from(new Uint8Array(digest), (byte) =>
     byte.toString(16).padStart(2, "0").toUpperCase()
   ).join("");
