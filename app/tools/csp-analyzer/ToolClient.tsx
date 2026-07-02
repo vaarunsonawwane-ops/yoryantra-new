@@ -66,7 +66,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="CSP Analyzer"
-      description="Analyze Content Security Policy headers, inspect CSP directives, and find common unsafe values or missing protections."
+      description="Inspect CSP directives, source values, duplicate rules, unsafe keywords, and common policy gaps before testing the policy in a real application."
     >
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -148,10 +148,10 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This CSP Analyzer helps you inspect CSP directives, review source
-            values, find unsafe-inline or unsafe-eval usage, check missing
-            protections, and review common Content Security Policy issues
-            directly in your browser.
+            This analyzer parses a policy and highlights common review points
+            such as duplicate directives, wildcard sources, unsafe keywords,
+            missing fallback protections, and source values that deserve closer
+            inspection.
           </p>
         </div>
 
@@ -208,10 +208,9 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                A CSP analyzer checks Content Security Policy directives,
-                source values, unsafe keywords, missing fallback directives, and
-                common policy patterns that are useful to review before
-                deployment.
+                It checks the policy text for common structural and source-list
+                concerns. It does not load your application, observe runtime
+                requests, or prove that the policy blocks every unwanted action.
               </p>
             </div>
 
@@ -233,9 +232,9 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool gives practical checks and suggestions. A final
-                CSP should be tested against the actual application behavior,
-                browser console errors, and security requirements.
+                No. The report is a static review of the policy text. Test the
+                policy with the actual application, preferably in report-only
+                mode first, and inspect browser violations and required sources.
               </p>
             </div>
 
@@ -266,7 +265,10 @@ export default function ToolClient() {
 
 function parseCSP(source: string): CSPDirective[] {
   const cleaned = source
-    .replace(/^content-security-policy:\s*/i, "")
+    .replace(
+      /^content-security-policy(?:-report-only)?:\s*/i,
+      ""
+    )
     .replace(/\r?\n/g, " ")
     .trim();
 
@@ -299,6 +301,19 @@ function analyzeDirectives(directives: CSPDirective[]) {
   const issues: CSPIssue[] = [];
   const names = directives.map((directive) => directive.name);
   const directiveMap = new Map(directives.map((item) => [item.name, item]));
+
+  const duplicateDirectives = names.filter(
+    (name, index) => names.indexOf(name) !== index
+  );
+
+  if (duplicateDirectives.length) {
+    issues.push({
+      level: "Warning",
+      message: `Duplicate directives found: ${[
+        ...new Set(duplicateDirectives),
+      ].join(", ")}. Browsers may ignore later duplicate directives.`,
+    });
+  }
 
   const requiredSuggestions = [
     {
@@ -339,6 +354,13 @@ function analyzeDirectives(directives: CSPDirective[]) {
       issues.push({
         level: "Warning",
         message: `${directive.name} has no source values.`,
+      });
+    }
+
+    if (values.includes("'none'") && values.length > 1) {
+      issues.push({
+        level: "Warning",
+        message: `${directive.name} combines 'none' with other source values. 'none' should be used by itself.`,
       });
     }
 

@@ -4,6 +4,32 @@ import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
+function decodeBase64UrlJSON(
+  value: string,
+  sectionName: "header" | "payload"
+) {
+  try {
+    const normalized = value
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    const padded =
+      normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (character) =>
+      character.charCodeAt(0)
+    );
+    const decoded = new TextDecoder().decode(bytes);
+
+    return JSON.parse(decoded);
+  } catch {
+    throw new Error(
+      `The JWT ${sectionName} is not valid Base64URL-encoded JSON.`
+    );
+  }
+}
+
 export default function ToolClient() {
   const [token, setToken] = useState("");
   const [output, setOutput] = useState("");
@@ -13,29 +39,27 @@ export default function ToolClient() {
 
   const decodeJWT = () => {
     try {
-      const parts = token.split(".");
+      const cleanedToken = token.trim();
+      const parts = cleanedToken.split(".");
 
-      if (parts.length !== 3) {
-        setError("Invalid JWT token.");
-        setOutput("");
-        setHeaderOutput("");
-        return;
+      if (parts.length !== 3 || parts.some((part) => !part)) {
+        throw new Error(
+          "Enter a compact JWT with three dot-separated sections."
+        );
       }
 
-      const header = JSON.parse(atob(parts[0]));
-      const payload = JSON.parse(atob(parts[1]));
+      const header = decodeBase64UrlJSON(parts[0], "header");
+      const payload = decodeBase64UrlJSON(parts[1], "payload");
 
-      setHeaderOutput(
-        JSON.stringify(header, null, 2)
-      );
-
-      setOutput(
-        JSON.stringify(payload, null, 2)
-      );
-
+      setHeaderOutput(JSON.stringify(header, null, 2));
+      setOutput(JSON.stringify(payload, null, 2));
       setError("");
-    } catch {
-      setError("Unable to decode JWT token.");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to decode this JWT."
+      );
       setOutput("");
       setHeaderOutput("");
     }
@@ -51,7 +75,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JWT Decoder"
-      description="Decode JWT tokens instantly and inspect payload data securely with this free online JWT Decoder."
+      description="Decode JWT header and payload data in your browser. Decoding makes claims readable but does not verify the signature or trust the token."
     >
       {/* INPUT */}
       <div>
@@ -152,8 +176,9 @@ export default function ToolClient() {
         </h3>
 
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          JWT tokens are decoded locally inside your browser. Your token data
-          is not uploaded, stored, or processed on any server.
+          Decoding happens locally inside your browser. Avoid pasting live
+          production tokens because decoded claims may still contain sensitive
+          account, role, or session information.
         </p>
       </div>
 
@@ -161,28 +186,27 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Reading JWT Tokens Without Guessing the Payload
+            Inspecting JWT Header and Payload Claims
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JWT tokens are commonly used for authentication, authorization,
-            API access, session handling, identity systems, and secure web
-            application workflows. A JSON Web Token usually contains encoded
-            header information, payload claims, and a signature section.
+            A compact JSON Web Token contains three dot-separated sections:
+            a Base64URL-encoded header, a Base64URL-encoded payload, and a
+            signature. Decoding the first two sections makes their JSON content
+            readable.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            During API development and debugging, JWT payloads often contain
-            useful information such as user IDs, permissions, roles, issuer
-            details, expiration timestamps, and session metadata. This JWT
-            Decoder helps inspect token contents instantly without manually
-            decoding Base64 values.
+            The payload may include subject, issuer, audience, roles, scopes,
+            issued-at time, not-before time, and expiration time. This tool is
+            useful when you need to inspect those claims while debugging an
+            authentication or API flow.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool is useful for frontend debugging, authentication systems,
-            API testing, OAuth workflows, developer troubleshooting, and
-            session inspection directly inside your browser.
+            Decoding is not validation. A readable token may still be expired,
+            signed with an unexpected key or algorithm, issued by the wrong
+            service, or unacceptable to the application.
           </p>
         </div>
 
@@ -218,7 +242,7 @@ export default function ToolClient() {
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Inspecting JWT payload claims during debugging.</li>
 
-            <li>Checking token expiration timestamps.</li>
+            <li>Reading exp, nbf, and iat claims before checking their meaning.</li>
 
             <li>Debugging API authentication issues.</li>
 
@@ -228,7 +252,7 @@ export default function ToolClient() {
 
             <li>Testing frontend authentication flows.</li>
 
-            <li>Analyzing token structure during development.</li>
+            <li>Comparing token claims with the application requirements.</li>
           </ul>
         </div>
 

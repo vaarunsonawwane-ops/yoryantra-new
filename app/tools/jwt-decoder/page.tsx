@@ -1,10 +1,10 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "JWT Decoder Online Free | Yoryantra",
+  title: "JWT Decoder for Header and Payload Inspection | Yoryantra",
 
   description:
-    "Decode and inspect JWT tokens instantly with this free online JWT Decoder. View JWT header, payload, and token data securely in a fast and clean interface.",
+    "Decode JWT header and payload data in your browser. Inspect claims and token structure without verifying the signature.",
 
   keywords: [
     "jwt decoder",
@@ -22,10 +22,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "JWT Decoder Online Free | Yoryantra",
+    title: "JWT Decoder for Header and Payload Inspection | Yoryantra",
 
     description:
-      "Decode JWT tokens instantly and inspect header and payload data online.",
+      "Decode JWT header and payload data in your browser without verifying the token signature.",
 
     url: "https://yoryantra.com/tools/jwt-decoder",
 
@@ -37,10 +37,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "JWT Decoder Online Free | Yoryantra",
+    title: "JWT Decoder for Header and Payload Inspection | Yoryantra",
 
     description:
-      "Free online JWT Decoder to inspect token header and payload data instantly.",
+      "Inspect JWT header, payload, and claims in your browser. Decoding does not verify trust.",
   },
 };
 

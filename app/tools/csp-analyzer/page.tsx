@@ -1,10 +1,10 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "CSP Analyzer | Check Content Security Policy Online | Yoryantra",
+  title: "CSP Analyzer for Directives and Source Review | Yoryantra",
 
   description:
-    "Analyze Content Security Policy headers, check CSP directives, find unsafe values, missing directives, and common CSP security issues in your browser.",
+    "Inspect Content Security Policy directives, source values, duplicate rules, unsafe keywords, and common configuration gaps in your browser.",
 
   keywords: [
     "csp analyzer",
@@ -22,10 +22,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "CSP Analyzer | Check Content Security Policy Online | Yoryantra",
+    title: "CSP Analyzer for Directives and Source Review | Yoryantra",
 
     description:
-      "Analyze Content Security Policy headers, check CSP directives, find unsafe values, missing directives, and common CSP security issues in your browser.",
+      "Inspect Content Security Policy directives, source values, duplicate rules, unsafe keywords, and common configuration gaps in your browser.",
 
     url: "https://yoryantra.com/tools/csp-analyzer",
 
@@ -37,10 +37,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "CSP Analyzer | Check Content Security Policy Online | Yoryantra",
+    title: "CSP Analyzer for Directives and Source Review | Yoryantra",
 
     description:
-      "Analyze Content Security Policy headers, check CSP directives, find unsafe values, missing directives, and common CSP security issues in your browser.",
+      "Inspect Content Security Policy directives, source values, duplicate rules, unsafe keywords, and common configuration gaps in your browser.",
   },
 };
 

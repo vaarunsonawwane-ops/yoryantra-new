@@ -1,10 +1,10 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "JSON Schema Validator Online Free | Yoryantra",
+  title: "JSON Schema Validator for Common Validation Rules | Yoryantra",
 
   description:
-    "Validate JSON data against a JSON schema instantly with this free online JSON Schema Validator.",
+    "Validate JSON data against common JSON Schema rules including types, required fields, properties, arrays, enums, ranges, and patterns.",
 
   keywords: [
     "json schema validator",
@@ -23,10 +23,10 @@ export const metadata = {
 
   openGraph: {
     title:
-      "JSON Schema Validator Online Free | Yoryantra",
+      "JSON Schema Validator for Common Validation Rules | Yoryantra",
 
     description:
-      "Validate JSON data against a JSON schema instantly online.",
+      "Validate JSON against common schema rules directly in your browser.",
 
     url:
       "https://yoryantra.com/tools/json-schema-validator",
@@ -40,10 +40,10 @@ export const metadata = {
     card: "summary_large_image",
 
     title:
-      "JSON Schema Validator Online Free | Yoryantra",
+      "JSON Schema Validator for Common Validation Rules | Yoryantra",
 
     description:
-      "Validate JSON against schemas instantly.",
+      "Check JSON against common schema rules in your browser.",
   },
 };
 
