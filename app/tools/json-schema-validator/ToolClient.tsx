@@ -46,7 +46,41 @@ function valueType(value: JSONValue): string {
 }
 
 function deepEqual(left: JSONValue, right: JSONValue): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  if (Object.is(left, right)) {
+    return true;
+  }
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return (
+      left.length === right.length &&
+      left.every((item, index) => deepEqual(item, right[index]))
+    );
+  }
+
+  if (
+    left !== null &&
+    right !== null &&
+    typeof left === "object" &&
+    typeof right === "object" &&
+    !Array.isArray(left) &&
+    !Array.isArray(right)
+  ) {
+    const leftObject = left as Record<string, JSONValue>;
+    const rightObject = right as Record<string, JSONValue>;
+    const leftKeys = Object.keys(leftObject);
+    const rightKeys = Object.keys(rightObject);
+
+    return (
+      leftKeys.length === rightKeys.length &&
+      leftKeys.every(
+        (key) =>
+          Object.prototype.hasOwnProperty.call(rightObject, key) &&
+          deepEqual(leftObject[key], rightObject[key])
+      )
+    );
+  }
+
+  return false;
 }
 
 function validateValue(
@@ -170,12 +204,14 @@ function validateValue(
       );
     }
 
-    if (
-      schema.uniqueItems &&
-      new Set(value.map((item) => JSON.stringify(item))).size !==
-        value.length
-    ) {
-      errors.push(`${path}: array items must be unique.`);
+    if (schema.uniqueItems) {
+      const hasDuplicate = value.some((item, index) =>
+        value.slice(index + 1).some((other) => deepEqual(item, other))
+      );
+
+      if (hasDuplicate) {
+        errors.push(`${path}: array items must be unique.`);
+      }
     }
 
     if (schema.items) {
@@ -219,39 +255,39 @@ function validateValue(
       }
     });
 
-    if (schema.properties) {
-      Object.entries(schema.properties).forEach(
-        ([propertyName, propertySchema]) => {
-          if (
-            Object.prototype.hasOwnProperty.call(
-              objectValue,
-              propertyName
-            )
-          ) {
-            errors.push(
-              ...validateValue(
-                objectValue[propertyName],
-                propertySchema,
-                `${path}.${propertyName}`
-              )
-            );
-          }
-        }
-      );
+    const definedProperties = schema.properties ?? {};
 
-      if (schema.additionalProperties === false) {
-        keys
-          .filter(
-            (key) =>
-              !Object.prototype.hasOwnProperty.call(
-                schema.properties,
-                key
-              )
+    Object.entries(definedProperties).forEach(
+      ([propertyName, propertySchema]) => {
+        if (
+          Object.prototype.hasOwnProperty.call(
+            objectValue,
+            propertyName
           )
-          .forEach((key) => {
-            errors.push(`${path}.${key}: additional property is not allowed.`);
-          });
+        ) {
+          errors.push(
+            ...validateValue(
+              objectValue[propertyName],
+              propertySchema,
+              `${path}.${propertyName}`
+            )
+          );
+        }
       }
+    );
+
+    if (schema.additionalProperties === false) {
+      keys
+        .filter(
+          (key) =>
+            !Object.prototype.hasOwnProperty.call(
+              definedProperties,
+              key
+            )
+        )
+        .forEach((key) => {
+          errors.push(`${path}.${key}: additional property is not allowed.`);
+        });
     }
   }
 

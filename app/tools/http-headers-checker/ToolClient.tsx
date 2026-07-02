@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import ToolShell from "@/app/components/ToolShell";
 
@@ -16,6 +16,7 @@ export default function ToolClient() {
   const [headers, setHeaders] = useState<HeaderRow[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const activeRequest = useRef<AbortController | null>(null);
 
   const normalizeUrl = (value: string) => {
     const trimmed = value.trim();
@@ -44,13 +45,17 @@ export default function ToolClient() {
   };
 
   const checkHeaders = async () => {
+    activeRequest.current?.abort();
+
+    const controller = new AbortController();
+    activeRequest.current = controller;
+
     setLoading(true);
     setError("");
     setStatusCode("");
     setFinalUrl("");
     setHeaders([]);
 
-    const controller = new AbortController();
     const timeoutId = window.setTimeout(
       () => controller.abort(),
       12000
@@ -91,11 +96,18 @@ export default function ToolClient() {
       );
     } finally {
       window.clearTimeout(timeoutId);
-      setLoading(false);
+
+      if (activeRequest.current === controller) {
+        activeRequest.current = null;
+        setLoading(false);
+      }
     }
   };
 
   const resetAll = () => {
+    activeRequest.current?.abort();
+    activeRequest.current = null;
+
     setUrl("");
     setStatusCode("");
     setFinalUrl("");

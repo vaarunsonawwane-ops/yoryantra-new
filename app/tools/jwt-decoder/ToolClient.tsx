@@ -9,6 +9,10 @@ function decodeBase64UrlJSON(
   sectionName: "header" | "payload"
 ) {
   try {
+    if (!/^[A-Za-z0-9_-]+$/.test(value)) {
+      throw new Error();
+    }
+
     const normalized = value
       .replace(/-/g, "+")
       .replace(/_/g, "/");
@@ -20,9 +24,18 @@ function decodeBase64UrlJSON(
     const bytes = Uint8Array.from(binary, (character) =>
       character.charCodeAt(0)
     );
-    const decoded = new TextDecoder().decode(bytes);
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    const parsed = JSON.parse(decoded);
 
-    return JSON.parse(decoded);
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
+      throw new Error();
+    }
+
+    return parsed;
   } catch {
     throw new Error(
       `The JWT ${sectionName} is not valid Base64URL-encoded JSON.`

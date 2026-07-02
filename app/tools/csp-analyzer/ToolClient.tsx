@@ -300,7 +300,13 @@ function parseCSP(source: string): CSPDirective[] {
 function analyzeDirectives(directives: CSPDirective[]) {
   const issues: CSPIssue[] = [];
   const names = directives.map((directive) => directive.name);
-  const directiveMap = new Map(directives.map((item) => [item.name, item]));
+  const directiveMap = new Map<string, CSPDirective>();
+
+  directives.forEach((directive) => {
+    if (!directiveMap.has(directive.name)) {
+      directiveMap.set(directive.name, directive);
+    }
+  });
 
   const duplicateDirectives = names.filter(
     (name, index) => names.indexOf(name) !== index

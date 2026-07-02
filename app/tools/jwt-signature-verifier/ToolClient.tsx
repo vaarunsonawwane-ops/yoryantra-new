@@ -5,6 +5,10 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 function decodeBase64Url(value: string) {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) {
+    throw new Error("Invalid Base64URL data.");
+  }
+
   const normalized = value
     .replace(/-/g, "+")
     .replace(/_/g, "/");
@@ -66,6 +70,10 @@ export default function ToolClient() {
         throw new Error(
           "Enter a compact JWT with three dot-separated sections."
         );
+      }
+
+      if (!/^[A-Za-z0-9_-]+$/.test(parts[1])) {
+        throw new Error("The JWT payload is not valid Base64URL data.");
       }
 
       const header = decodeJWTHeader(parts[0]);
