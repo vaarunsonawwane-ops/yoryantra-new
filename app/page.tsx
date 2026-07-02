@@ -1,10 +1,10 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Yoryantra | Practical Tools for Everyday Work",
+  title: "Yoryantra | Practical Browser Tools for Everyday Work",
 
   description:
-    "Simple browser tools to help you format, convert, check, clean, validate, and prepare things quickly — without unnecessary clutter.",
+    "Practical browser tools for development, DevOps, security, SEO, JSON, encoding, and everyday technical work.",
 
   alternates: {
     canonical: "https://yoryantra.com",
@@ -37,37 +37,37 @@ const categories = [
   {
     title: "Developer Tools",
     description:
-      "Useful tools for JSON, regex, UUIDs, timestamps, debugging, tokens, and daily development work.",
+      "Work with JSON, regex, UUIDs, timestamps, tokens, API requests, and everyday debugging tasks.",
     href: "/categories/developer-tools",
   },
   {
     title: "Encoding Tools",
     description:
-      "Encode, decode, escape, clean, translate, and prepare values quickly.",
+      "Encode and decode Base64, URLs, HTML entities, JSON strings, slugs, and web text.",
     href: "/categories/encoding-tools",
   },
   {
     title: "JSON & Data Tools",
     description:
-      "Format, validate, compare, convert, and prepare structured data without confusion.",
+      "Format, validate, compare, convert, and inspect structured data used in APIs and applications.",
     href: "/categories/json-tools",
   },
   {
     title: "Security Tools",
     description:
-      "Check headers, inspect tokens, generate hashes, and prepare safer values during development.",
+      "Inspect tokens, work with hashes and signatures, review headers, and prepare security-related values.",
     href: "/categories/security-tools",
   },
   {
     title: "SEO Tools",
     description:
-      "Prepare metadata, check redirects, create previews, and handle everyday SEO related work.",
+      "Prepare metadata, review redirects and canonicals, check crawl signals, and build campaign URLs.",
     href: "/categories/seo-tools",
   },
   {
     title: "DevOps Tools",
     description:
-      "Work with cron expressions, YAML, environment files, timestamps, and infrastructure related values.",
+      "Review YAML, Docker, Kubernetes, environment files, cron schedules, and deployment configuration.",
     href: "/categories/devops-tools",
   },
 ];
@@ -83,24 +83,25 @@ export default function HomePage() {
 		  </p>
 
           <h1 className="mt-8 text-4xl font-semibold tracking-tight text-gray-950 md:text-5xl md:leading-tight">
-            Practical tools for everyday work — clean, fast, and easy to use.
+            Practical browser tools for everyday technical work.
           </h1>
 
 			<div className="mt-8 max-w-4xl space-y-5 text-lg leading-relaxed text-gray-600">
 			  <p>
-				Yoryantra is a growing collection of browser-based tools created
-				to help you find what you are looking for quickly and save your time.
+				Yoryantra is a growing collection of focused browser tools for
+				development, DevOps, security, SEO, JSON, encoding, and related
+				technical tasks.
 			  </p>
 
 			  <p>
-				Whether it is formatting, converting, checking, cleaning, validating,
-				encoding, decoding, or preparing something quickly — everything is
-				built to be clean, fast, and easy to use.
+				Use them to format data, validate files, inspect values, convert
+				text, check configuration, and prepare information for another
+				system.
 			  </p>
 
 			  <p>
-				When you need a tool, you should be able to open it, use it, and
-				move on without unnecessary clutter.
+				The idea is simple: open the tool, complete the task, understand
+				the result, and continue your work without unnecessary clutter.
 			  </p>
 			</div>
 
@@ -127,12 +128,12 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="max-w-3xl">
             <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
-              Explore by category
+              Browse tools by category
             </h2>
 
             <p className="mt-4 leading-relaxed text-gray-600">
-              Find tools based on what you are looking for — development,
-              encoding, JSON and data, security, SEO, DevOps, and more.
+              Start with the type of task you need to complete, then move
+              through related tools without searching through one long list.
             </p>
           </div>
 
@@ -164,19 +165,30 @@ export default function HomePage() {
       <section className="mx-auto max-w-7xl px-6 py-20">
         <div className="max-w-4xl">
           <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
-            Why Yoryantra
+            Why Yoryantra Exists
           </h2>
 
 			<div className="mt-6 space-y-5 text-gray-600 leading-relaxed">
 			  <p>
-			    Yoryantra was created because many utility websites make small things
-			    feel harder than they need to be.
+			    Yoryantra was created because many utility websites make small
+			    technical tasks feel harder than they need to be.
 			  </p>
 
 			  <p>
-			    Sometimes you just need to quickly format something, check a value,
-			    convert text, test something small, or get one thing done without
-			    extra noise around it.
+			    Sometimes you only need to format a payload, inspect a token,
+			    validate a file, convert a value, or check a configuration before
+			    moving back to the main task.
+			  </p>
+
+			  <p>
+			    You can also read{" "}
+			    <Link
+			      href="/how-yoryantra-tools-are-built"
+			      className="font-semibold text-[var(--light-gold)] hover:underline"
+			    >
+			      how Yoryantra tools are selected, tested, and improved
+			    </Link>
+			    .
 			  </p>
 			</div>
 
