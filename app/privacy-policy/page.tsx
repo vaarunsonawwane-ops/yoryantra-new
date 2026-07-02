@@ -1,7 +1,7 @@
 export const metadata = {
   title: "Privacy Policy | Yoryantra",
   description:
-    "Privacy policy for Yoryantra tools and website usage.",
+    "Learn how Yoryantra handles tool inputs, analytics, advertising, and website usage data.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -11,22 +11,28 @@ export default function PrivacyPolicyPage() {
 
       <div className="space-y-6 text-gray-700 leading-8">
         <p>
-          Yoryantra respects your privacy and is committed to keeping your
-          data safe.
+          Yoryantra respects your privacy and aims to keep data collection
+          limited to what is needed to operate and improve the website.
         </p>
 
         <p>
-          Most tools on this website process data directly in your browser.
-          Your input is not stored or sent to any server.
+          Most tools process input directly in your browser. Tools that need
+          to inspect an external URL or remote response may send the required
+          request over the internet, and that behaviour should be clear on the
+          relevant tool page.
         </p>
 
         <p>
-          We use basic analytics tools to understand usage patterns and improve performance.
-		  In the future, we may also use third-party services such as analytics or advertising networks.
+          We may use analytics services to understand general usage patterns
+          and improve performance. We may also use advertising services to
+          support the website. These providers may process limited technical
+          information according to their own privacy policies.
         </p>
 
         <p>
-          We do not sell, rent, or share user data with third parties.
+          We do not sell or rent personal information. Limited technical data
+          may be processed by service providers that help with analytics,
+          advertising, hosting, security, or website operation.
         </p>
       </div>
     </div>
