@@ -98,11 +98,22 @@ export default function ToolClient() {
         throw new Error("The JWT signature is not valid Base64URL data.");
       }
 
+      const signatureBuffer = signature.buffer.slice(
+        signature.byteOffset,
+        signature.byteOffset + signature.byteLength
+      ) as ArrayBuffer;
+
+      const data = encoder.encode(`${parts[0]}.${parts[1]}`);
+      const dataBuffer = data.buffer.slice(
+        data.byteOffset,
+        data.byteOffset + data.byteLength
+      ) as ArrayBuffer;
+
       const isValid = await crypto.subtle.verify(
         "HMAC",
         key,
-        signature,
-        encoder.encode(`${parts[0]}.${parts[1]}`)
+        signatureBuffer,
+        dataBuffer
       );
 
       setOutput(
