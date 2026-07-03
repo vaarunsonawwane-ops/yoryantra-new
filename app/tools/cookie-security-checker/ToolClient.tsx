@@ -52,7 +52,8 @@ type CookieNote = {
 const sampleCookies = `Set-Cookie: sessionId=abc123; Path=/; HttpOnly; Secure; SameSite=Lax
 Set-Cookie: analytics_id=track-789; Path=/; Max-Age=31536000; SameSite=None
 Set-Cookie: __Host-auth=token-value; Path=/; Secure; HttpOnly; SameSite=Strict
-Set-Cookie: preferences=dark; Domain=.example.com; Path=/; Expires=Wed, 21 Oct 2026 07:28:00 GMT`;
+Set-Cookie: preferences=dark; Domain=.example.com; Path=/; Expires=Wed, 21 Oct 2026 07:28:00 GMT
+Set-Cookie: third_party_id=chip-123; Path=/; SameSite=None; Partitioned`;
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -148,7 +149,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Cookie Security Checker"
-      description="Check Set-Cookie headers for common security issues. Review HttpOnly, Secure, SameSite, expiry, domain, path, prefix rules, and risky cookie settings directly in your browser."
+      description="Review Set-Cookie headers for common security issues. Check Secure, HttpOnly, SameSite, expiry, Domain, Path, cookie prefixes, Partitioned cookies, and risky settings in your browser."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -334,8 +335,8 @@ export default function ToolClient() {
           </p>
 
           <div className="mt-4 space-y-4">
-            {result.cookies.map((cookie) => (
-              <div key={cookie.name} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            {result.cookies.map((cookie, index) => (
+              <div key={`${cookie.name}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-gray-900">
                     {cookie.name || "(unnamed cookie)"}
@@ -454,7 +455,8 @@ export default function ToolClient() {
           <p className="mt-4 text-gray-600 leading-relaxed">
             This Cookie Security Checker reviews Set-Cookie headers for common
             issues such as missing Secure, missing HttpOnly, weak SameSite
-            settings, risky domain scope, long expiry, and prefix rule mistakes.
+            settings, risky domain scope, long expiry, Partitioned cookie
+            requirements, and prefix rule mistakes.
           </p>
         </div>
 
@@ -481,7 +483,8 @@ export default function ToolClient() {
             <li>Checking session cookies for Secure and HttpOnly flags.</li>
             <li>Reviewing SameSite settings before deploying login flows.</li>
             <li>Finding cookies that are scoped too broadly with Domain.</li>
-            <li>Checking __Host- and __Secure- cookie prefix rules.</li>
+            <li>Checking __Host-, __Secure-, __Http-, and __Host-Http- cookie prefix rules.</li>
+            <li>Reviewing Partitioned cookies that must also use Secure.</li>
             <li>Reviewing Set-Cookie headers from curl, devtools, or API responses.</li>
             <li>Preparing safer cookie settings for web apps and APIs.</li>
           </ul>
@@ -513,7 +516,8 @@ export default function ToolClient() {
 
           <p className="mt-4 text-gray-600 leading-relaxed">
             Use this tool to catch common mistakes, then review the final header
-            with your real login, API, and browser behavior in mind.
+            with your real login, API, JavaScript access, cross-site behavior,
+            and browser support in mind.
           </p>
         </div>
 
@@ -530,7 +534,8 @@ export default function ToolClient() {
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 It checks Set-Cookie headers for common security settings like
-                Secure, HttpOnly, SameSite, Domain, Path, expiry, and prefix rules.
+                Secure, HttpOnly, SameSite, Domain, Path, expiry, Partitioned
+                cookies, and prefix rules.
               </p>
             </div>
 
@@ -564,6 +569,18 @@ export default function ToolClient() {
               <p className="mt-2 text-gray-600 leading-relaxed">
                 No. Omitting Domain usually keeps the cookie scoped to the exact
                 host, which is often safer for sensitive cookies.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                What should Partitioned cookies include?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Partitioned cookies must use Secure. For safer host scoping, a
+                __Host- or __Host-Http- prefix is often a good fit when your app
+                can use it.
               </p>
             </div>
 
@@ -772,6 +789,9 @@ function getCookieIssues({
 }) {
   const issues: CookieIssue[] = [];
   const lowerName = name.toLowerCase();
+  const sameSite = flags.sameSite.toLowerCase();
+  const hasHostPrefix = name.startsWith("__Host-") || name.startsWith("__Host-Http-");
+  const hasHttpPrefix = name.startsWith("__Http-") || name.startsWith("__Host-Http-");
   const sensitive =
     options.treatSessionAsSensitive &&
     /(session|auth|token|jwt|sid|login|csrf|xsrf)/i.test(name);
@@ -800,6 +820,14 @@ function getCookieIssues({
     });
   }
 
+  if (flags.secure && options.cookieContext === "http") {
+    issues.push({
+      severity: "info",
+      title: "Secure cookie on HTTP context",
+      message: "Secure cookies are meant for HTTPS. For plain HTTP testing, browser behavior may differ from production.",
+    });
+  }
+
   if (!flags.httpOnly && sensitive) {
     issues.push({
       severity: "high",
@@ -822,7 +850,7 @@ function getCookieIssues({
     });
   }
 
-  if (flags.sameSite && !["lax", "strict", "none"].includes(flags.sameSite.toLowerCase())) {
+  if (flags.sameSite && !["lax", "strict", "none"].includes(sameSite)) {
     issues.push({
       severity: "warning",
       title: "Unknown SameSite value",
@@ -830,11 +858,27 @@ function getCookieIssues({
     });
   }
 
-  if (flags.sameSite.toLowerCase() === "none" && !flags.secure) {
+  if (sameSite === "none" && !flags.secure) {
     issues.push({
       severity: "high",
       title: "SameSite=None without Secure",
       message: "Browsers require SameSite=None cookies to also use Secure.",
+    });
+  }
+
+  if (flags.partitioned && !flags.secure) {
+    issues.push({
+      severity: "high",
+      title: "Partitioned cookie missing Secure",
+      message: "Partitioned cookies must be set with Secure.",
+    });
+  }
+
+  if (flags.partitioned && !hasHostPrefix) {
+    issues.push({
+      severity: "info",
+      title: "Partitioned cookie without host prefix",
+      message: "A __Host- or __Host-Http- prefix can help keep a Partitioned cookie bound to the hostname.",
     });
   }
 
@@ -854,6 +898,22 @@ function getCookieIssues({
     });
   }
 
+  if (flags.maxAge && !isValidMaxAge(flags.maxAge)) {
+    issues.push({
+      severity: "warning",
+      title: "Invalid Max-Age",
+      message: "Max-Age should be a valid number of seconds.",
+    });
+  }
+
+  if (flags.expires && Number.isNaN(Date.parse(flags.expires))) {
+    issues.push({
+      severity: "warning",
+      title: "Invalid Expires date",
+      message: "Expires should be a valid HTTP date value.",
+    });
+  }
+
   if (options.warnLongExpiry && isLongLived(flags.maxAge, flags.expires)) {
     issues.push({
       severity: sensitive ? "high" : "warning",
@@ -862,14 +922,12 @@ function getCookieIssues({
     });
   }
 
-  if (name.startsWith("__Host-")) {
-    if (!flags.secure || flags.domain || flags.path !== "/") {
-      issues.push({
-        severity: "high",
-        title: "__Host- prefix rule issue",
-        message: "__Host- cookies must use Secure, Path=/, and must not use Domain.",
-      });
-    }
+  if (hasHostPrefix && (!flags.secure || flags.domain || flags.path !== "/")) {
+    issues.push({
+      severity: "high",
+      title: "__Host- prefix rule issue",
+      message: "__Host- and __Host-Http- cookies must use Secure, Path=/, and must not use Domain.",
+    });
   }
 
   if (name.startsWith("__Secure-") && !flags.secure) {
@@ -880,7 +938,15 @@ function getCookieIssues({
     });
   }
 
-  if (lowerName.includes("csrf") && flags.sameSite.toLowerCase() === "none") {
+  if (hasHttpPrefix && (!flags.secure || !flags.httpOnly)) {
+    issues.push({
+      severity: "high",
+      title: "__Http- prefix rule issue",
+      message: "__Http- and __Host-Http- cookies must use both Secure and HttpOnly.",
+    });
+  }
+
+  if (lowerName.includes("csrf") && sameSite === "none") {
     issues.push({
       severity: "warning",
       title: "CSRF cookie uses SameSite=None",
@@ -889,6 +955,25 @@ function getCookieIssues({
   }
 
   return issues;
+}
+
+function isValidMaxAge(maxAge: string) {
+  const seconds = Number(maxAge);
+  return Number.isFinite(seconds) && Number.isInteger(seconds);
+}
+
+function normalizeSameSite(sameSite: string) {
+  const value = sameSite.toLowerCase();
+
+  if (value === "strict") {
+    return "Strict";
+  }
+
+  if (value === "none") {
+    return "None";
+  }
+
+  return "Lax";
 }
 
 function isLongLived(maxAge: string, expires: string) {
@@ -935,29 +1020,19 @@ function buildSuggestedHeader({
   attributes: Record<string, string | true>;
   flags: ParsedCookie["flags"];
 }) {
+  const hasHostPrefix = name.startsWith("__Host-") || name.startsWith("__Host-Http-");
   const parts = [`${name}=${value}`];
-  const path = flags.path || "/";
-  const sameSite = flags.sameSite || "Lax";
+  const path = hasHostPrefix ? "/" : flags.path || "/";
+  const sameSite = normalizeSameSite(flags.sameSite);
 
   parts.push(`Path=${path}`);
-
-  if (!flags.secure) {
-    parts.push("Secure");
-  } else {
-    parts.push("Secure");
-  }
-
-  if (!flags.httpOnly) {
-    parts.push("HttpOnly");
-  } else {
-    parts.push("HttpOnly");
-  }
-
+  parts.push("Secure");
+  parts.push("HttpOnly");
   parts.push(`SameSite=${sameSite}`);
 
-  if (flags.maxAge) {
-    parts.push(`Max-Age=${flags.maxAge}`);
-  } else if (flags.expires) {
+  if (flags.maxAge && isValidMaxAge(flags.maxAge)) {
+    parts.push(`Max-Age=${Math.trunc(Number(flags.maxAge))}`);
+  } else if (flags.expires && !Number.isNaN(Date.parse(flags.expires))) {
     parts.push(`Expires=${flags.expires}`);
   }
 

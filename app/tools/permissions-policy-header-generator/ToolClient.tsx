@@ -154,6 +154,54 @@ const defaultFeatures: FeatureSetting[] = [
     origins: "",
     enabled: true,
   },
+  {
+    key: "autoplay",
+    label: "Autoplay",
+    description: "Controls autoplay for audio and video media.",
+    mode: "none",
+    origins: "",
+    enabled: true,
+  },
+  {
+    key: "encrypted-media",
+    label: "Encrypted Media",
+    description: "Controls Encrypted Media Extensions for protected media.",
+    mode: "none",
+    origins: "",
+    enabled: true,
+  },
+  {
+    key: "picture-in-picture",
+    label: "Picture in Picture",
+    description: "Controls picture-in-picture video behavior.",
+    mode: "self",
+    origins: "",
+    enabled: true,
+  },
+  {
+    key: "publickey-credentials-get",
+    label: "Passkey / WebAuthn Get",
+    description: "Controls reading public-key credentials with WebAuthn.",
+    mode: "self",
+    origins: "",
+    enabled: true,
+  },
+  {
+    key: "screen-wake-lock",
+    label: "Screen Wake Lock",
+    description: "Controls whether the page can keep the screen awake.",
+    mode: "none",
+    origins: "",
+    enabled: true,
+  },
+  {
+    key: "xr-spatial-tracking",
+    label: "XR Spatial Tracking",
+    description: "Controls spatial tracking for WebXR experiences.",
+    mode: "none",
+    origins: "",
+    enabled: true,
+  },
 ];
 
 export default function ToolClient() {
@@ -213,7 +261,9 @@ export default function ToolClient() {
           mode:
             feature.key === "fullscreen" ||
             feature.key === "clipboard-write" ||
-            feature.key === "web-share"
+            feature.key === "web-share" ||
+            feature.key === "picture-in-picture" ||
+            feature.key === "publickey-credentials-get"
               ? "self"
               : "none",
           origins: "",
@@ -230,7 +280,9 @@ export default function ToolClient() {
             feature.key === "camera" ||
             feature.key === "microphone" ||
             feature.key === "fullscreen" ||
-            feature.key === "clipboard-write"
+            feature.key === "clipboard-write" ||
+            feature.key === "autoplay" ||
+            feature.key === "picture-in-picture"
               ? "self"
               : "none",
           origins: "",
@@ -304,7 +356,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Permissions Policy Header Generator"
-      description="Generate Permissions-Policy headers for browser features like camera, microphone, geolocation, fullscreen, payment, USB, clipboard, and more directly in your browser."
+      description="Generate Permissions-Policy headers for browser features like camera, microphone, geolocation, fullscreen, payment, USB, clipboard, autoplay, and more directly in your browser."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
@@ -380,7 +432,8 @@ export default function ToolClient() {
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
           Permissions-Policy controls which browser features are allowed on your
-          page and in embedded frames.
+          page and in embedded frames. Browser support can vary, so test the
+          final header on the pages that use these APIs.
         </p>
       </div>
 
@@ -607,10 +660,11 @@ export default function ToolClient() {
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Blocking camera and microphone on pages that do not need them.</li>
             <li>Disabling geolocation for privacy-sensitive pages.</li>
-            <li>Allowing fullscreen only for the same origin.</li>
+            <li>Allowing fullscreen, picture-in-picture, or WebAuthn only for the same origin.</li>
             <li>Limiting payment, USB, serial, and Bluetooth APIs.</li>
             <li>Creating safer defaults for embedded frames.</li>
             <li>Preparing a modern browser security header for a website.</li>
+            <li>Testing a policy before adding it to a CDN or hosting provider.</li>
           </ul>
         </div>
 
@@ -638,9 +692,11 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Some features may behave differently across browsers. Test the final
-            header on the pages that use browser APIs, especially if your site
-            embeds third-party frames or media tools.
+            Some directives may behave differently across browsers because
+            Permissions-Policy support is still not equal everywhere. Test the
+            final header on the pages that use browser APIs, especially if your
+            site embeds third-party frames, payments, sign-in flows, or media
+            tools.
           </p>
         </div>
 
@@ -657,7 +713,8 @@ export default function ToolClient() {
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 It is a browser response header that controls which browser
-                features a page or embedded frame is allowed to use.
+                features a page or embedded frame is allowed to use. The header
+                can contain one directive or many comma-separated directives.
               </p>
             </div>
 
@@ -690,6 +747,18 @@ export default function ToolClient() {
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 It allows fullscreen only for the same origin.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Does every browser support every directive?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. Support can vary by directive and browser version. Use the
+                generated header as a starting point, then test the pages that
+                actually use those browser APIs.
               </p>
             </div>
 
@@ -842,8 +911,22 @@ function buildPermissionsPolicy({
       warnings.push(`${feature.label} is allowed for all origins.`);
     }
 
-    if (feature.mode === "custom" && !feature.origins.trim()) {
-      warnings.push(`${feature.label} uses custom origins but no origin was entered.`);
+    if (feature.mode === "custom") {
+      const origins = parseOrigins(feature.origins);
+
+      if (origins.length === 0) {
+        warnings.push(`${feature.label} uses custom origins but no origin was entered.`);
+      }
+
+      if (origins.includes("*")) {
+        warnings.push(`${feature.label} custom origins include *, which should be used alone.`);
+      }
+
+      origins
+        .filter((origin) => origin !== "self" && origin !== "*" && !/^https?:\/\//i.test(origin))
+        .forEach((origin) => {
+          warnings.push(`${feature.label} has a custom origin that may not be a valid origin: ${origin}`);
+        });
     }
 
     return `${feature.key}=${value}`;
@@ -851,9 +934,7 @@ function buildPermissionsPolicy({
 
   const separator = oneDirectivePerLine ? ",\n  " : ", ";
   const headerValue = directives.join(separator);
-  const fullHeader = oneDirectivePerLine
-    ? `Permissions-Policy: ${headerValue}`
-    : `Permissions-Policy: ${headerValue}`;
+  const fullHeader = `Permissions-Policy: ${headerValue}`;
   const enabledCount = selected.length;
   const blockedCount = selected.filter((feature) => feature.mode === "none").length;
   const customCount = selected.filter((feature) => feature.mode === "custom").length;
@@ -889,22 +970,31 @@ function formatAllowList(feature: FeatureSetting) {
   }
 
   if (feature.mode === "all") {
-    return "(*)";
+    return "*";
   }
 
-  const origins = feature.origins
-    .split(/\s+/)
-    .map((origin) => origin.trim())
-    .filter(Boolean)
-    .map((origin) => {
-      if (origin === "self" || origin === "*") {
-        return origin;
-      }
+  const rawOrigins = parseOrigins(feature.origins);
 
-      return `"${origin}"`;
-    });
+  if (rawOrigins.includes("*")) {
+    return "*";
+  }
+
+  const origins = rawOrigins.map((origin) => {
+    if (origin === "self") {
+      return origin;
+    }
+
+    return `"${origin}"`;
+  });
 
   return origins.length > 0 ? `(${origins.join(" ")})` : "()";
+}
+
+function parseOrigins(value: string) {
+  return value
+    .split(/\s+/)
+    .map((origin) => origin.trim().replace(/^"|"$/g, ""))
+    .filter(Boolean);
 }
 
 function formatOutput({
@@ -972,7 +1062,7 @@ function getPolicyNotes(result: PolicyResult): PolicyNote[] {
     });
   }
 
-  if (result.blockedCount >= 8) {
+  if (result.blockedCount >= 10) {
     notes.push({
       title: "Restrictive policy",
       message:

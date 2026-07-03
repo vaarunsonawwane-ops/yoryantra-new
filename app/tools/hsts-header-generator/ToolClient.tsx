@@ -114,7 +114,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HSTS Header Generator"
-      description="Generate Strict-Transport-Security headers for HTTPS sites. Configure max-age, includeSubDomains, preload readiness, and copy clean HSTS headers directly in your browser."
+      description="Generate Strict-Transport-Security headers for HTTPS sites. Configure max-age, includeSubDomains, preload, rollout warnings, and copy clean HSTS output in your browser."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
@@ -361,7 +361,8 @@ export default function ToolClient() {
             This HSTS Header Generator creates a clean
             Strict-Transport-Security header with max-age, includeSubDomains, and
             preload options. It also gives practical warnings so you do not lock
-            yourself into a setting before your HTTPS setup is ready.
+            yourself into a setting before your HTTPS setup is ready. It also
+            treats max-age=0 as a removal value, not a normal protection value.
           </p>
         </div>
 
@@ -373,7 +374,7 @@ export default function ToolClient() {
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Choose a max-age value. Start small while testing.</li>
             <li>Enable includeSubDomains only if all subdomains support HTTPS.</li>
-            <li>Add preload only when you understand the preload requirements.</li>
+            <li>Add preload only when the root domain and all included subdomains are ready.</li>
             <li>Generate the header and review the warnings.</li>
             <li>Copy the output for your server, CDN, or hosting provider.</li>
           </ol>
@@ -388,7 +389,8 @@ export default function ToolClient() {
             <li>Adding a Strict-Transport-Security header to an HTTPS site.</li>
             <li>Preparing Nginx or Apache header configuration.</li>
             <li>Testing short max-age values before a longer rollout.</li>
-            <li>Checking whether a header looks ready for preload.</li>
+            <li>Checking whether a header meets common preload-style requirements.</li>
+            <li>Creating a max-age=0 header when you intentionally need to remove HSTS.</li>
             <li>Creating CDN or hosting provider header values.</li>
             <li>Reviewing includeSubDomains before enabling it site-wide.</li>
           </ul>
@@ -420,7 +422,9 @@ export default function ToolClient() {
           <p className="mt-4 text-gray-600 leading-relaxed">
             Before using includeSubDomains or preload, check that every affected
             hostname can serve HTTPS correctly. Start with a short value while
-            testing, then increase it after you are confident.
+            testing, then increase it after you are confident. Use max-age=0
+            only when you intentionally need browsers to forget an existing HSTS
+            policy after receiving the response over HTTPS.
           </p>
         </div>
 
@@ -472,6 +476,17 @@ export default function ToolClient() {
                 Preload is a stronger setup where browsers can know your site
                 should use HTTPS before the first visit. It should be used only
                 when you are sure the whole domain is ready.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Can I use max-age=0?
+              </h3>
+
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                Yes, but it is normally used to remove an existing HSTS policy.
+                It must still be sent over HTTPS for browsers to apply it.
               </p>
             </div>
 
@@ -531,7 +546,7 @@ function buildHSTSHeader({
   const maxAge = presetMode === "custom" ? Number(customMaxAge) : presetSeconds[presetMode];
 
   if (!Number.isFinite(maxAge) || maxAge < 0) {
-    throw new Error("Max-age must be a positive number of seconds.");
+    throw new Error("Max-age must be 0 or a positive number of seconds.");
   }
 
   const parts = [`max-age=${Math.floor(maxAge)}`];
@@ -550,7 +565,9 @@ function buildHSTSHeader({
   const warnings: string[] = [];
   const notes: string[] = [];
 
-  if (maxAge < 86400) {
+  if (maxAge === 0) {
+    notes.push("max-age=0 is used to remove an existing HSTS policy after the browser receives it over HTTPS.");
+  } else if (maxAge < 86400) {
     notes.push("Short max-age is useful for testing but too short for long-term HSTS protection.");
   }
 
@@ -558,12 +575,16 @@ function buildHSTSHeader({
     notes.push("Long max-age is suitable only after HTTPS is stable.");
   }
 
-  if (includeSubDomains) {
+  if (includeSubDomains && maxAge > 0) {
     warnings.push("includeSubDomains affects every subdomain. Make sure they all support HTTPS.");
   }
 
+  if (includeSubDomains && maxAge === 0) {
+    notes.push("With max-age=0, includeSubDomains does not extend protection. It is normally used only when removing a policy.");
+  }
+
   if (preload && !preloadReady) {
-    warnings.push("Preload usually expects max-age of at least 1 year, includeSubDomains, and preload directive.");
+    warnings.push("Preload expects max-age of at least 1 year, includeSubDomains, and the preload directive.");
   }
 
   if (preload) {
@@ -696,7 +717,13 @@ function getHSTSNotes(result: HeaderResult): HSTSNote[] {
     });
   }
 
-  if (result.maxAge < 86400) {
+  if (result.maxAge === 0) {
+    notes.push({
+      title: "Removal value",
+      message:
+        "max-age=0 asks browsers to remove the HSTS policy after receiving the header over HTTPS.",
+    });
+  } else if (result.maxAge < 86400) {
     notes.push({
       title: "Testing value",
       message:
