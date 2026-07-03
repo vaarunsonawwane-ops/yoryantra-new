@@ -1,11 +1,11 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "DNS Propagation Checker | Check DNS Records Online | Yoryantra",
+  title: "DNS Propagation Checker Across Public Resolvers | Yoryantra",
 
   description:
-    "Check DNS propagation for A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA records across public DNS resolvers directly in your browser.",
-
+    "Compare A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA answers from selected public DNS-over-HTTPS resolvers in your browser."
+,
   keywords: [
     "dns propagation checker",
     "dns checker",
@@ -24,11 +24,11 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "DNS Propagation Checker | Check DNS Records Online | Yoryantra",
+    title: "DNS Propagation Checker Across Public Resolvers | Yoryantra",
 
     description:
-      "Check DNS propagation for A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA records across public DNS resolvers directly in your browser.",
-
+      "Compare A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA answers from selected public DNS-over-HTTPS resolvers in your browser."
+,
     url: "https://yoryantra.com/tools/dns-propagation-checker",
 
     siteName: "Yoryantra",
@@ -39,10 +39,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "DNS Propagation Checker | Check DNS Records Online | Yoryantra",
+    title: "DNS Propagation Checker Across Public Resolvers | Yoryantra",
 
     description:
-      "Check DNS propagation for A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA records across public DNS resolvers directly in your browser.",
+      "Compare A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA answers from selected public DNS-over-HTTPS resolvers in your browser.",
   },
 };
 

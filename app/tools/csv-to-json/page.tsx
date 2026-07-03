@@ -1,11 +1,11 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "CSV to JSON Converter Online Free | Yoryantra",
+  title: "CSV to JSON Converter with Quoted Field Support | Yoryantra",
 
   description:
-    "Convert CSV data into JSON format instantly with this free online CSV to JSON Converter.",
-
+    "Convert CSV rows into a JSON array while preserving quoted commas, escaped quotes, multiline fields, empty values, and UTF-8 text in your browser."
+,
   keywords: [
     "csv to json",
     "csv json converter",
@@ -20,11 +20,11 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "CSV to JSON Converter Online Free | Yoryantra",
+    title: "CSV to JSON Converter with Quoted Field Support | Yoryantra",
 
     description:
-      "Convert CSV data into JSON format instantly with this free online CSV to JSON Converter.",
-
+      "Convert CSV rows into a JSON array while preserving quoted commas, escaped quotes, multiline fields, empty values, and UTF-8 text in your browser."
+,
     url: "https://yoryantra.com/tools/csv-to-json",
 
     siteName: "Yoryantra",
@@ -35,10 +35,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "CSV to JSON Converter Online Free | Yoryantra",
+    title: "CSV to JSON Converter with Quoted Field Support | Yoryantra",
 
     description:
-      "Convert CSV data into JSON instantly with this fast online converter.",
+      "Convert CSV rows to JSON with quoted-field and multiline-field support in your browser.",
   },
 };
 

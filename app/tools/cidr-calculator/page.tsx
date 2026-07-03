@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "CIDR Calculator | Calculate Subnets, Hosts & IP Ranges",
+  title: "IPv4 CIDR Calculator for Subnets and Host Ranges | Yoryantra",
 
   description:
-    "Calculate CIDR ranges, subnet masks, broadcast addresses, wildcard masks, usable IP ranges, and host counts instantly.",
-
+    "Calculate IPv4 network and broadcast addresses, subnet and wildcard masks, address ranges, and /31 or /32 host behavior from CIDR notation."
+,
   keywords: [
     "CIDR Calculator",
     "Subnet Calculator",
