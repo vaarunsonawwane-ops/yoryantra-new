@@ -5,260 +5,214 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
+type CopyTarget = "public" | "private" | null;
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += 1) {
+    binary += String.fromCharCode(bytes[index]);
+  }
+
+  return window.btoa(binary);
+}
+
+function formatPem(base64: string, type: "PUBLIC KEY" | "PRIVATE KEY") {
+  const lines = base64.match(/.{1,64}/g)?.join("\n") || base64;
+  return `-----BEGIN ${type}-----\n${lines}\n-----END ${type}-----`;
+}
+
 export default function ToolClient() {
-  const [keySize, setKeySize] =
-    useState(2048);
+  const [keySize, setKeySize] = useState(2048);
+  const [publicKey, setPublicKey] = useState("");
+  const [privateKey, setPrivateKey] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState<CopyTarget>(null);
 
-  const [publicKey, setPublicKey] =
-    useState("");
+  const generateKeys = async () => {
+    if (![2048, 3072, 4096].includes(keySize)) {
+      setError("Choose a supported RSA modulus length.");
+      return;
+    }
 
-  const [privateKey, setPrivateKey] =
-    useState("");
+    setLoading(true);
+    setError("");
+    setPublicKey("");
+    setPrivateKey("");
+    setCopied(null);
 
-  const [loading, setLoading] =
-    useState(false);
+    try {
+      const keyPair = (await window.crypto.subtle.generateKey(
+        {
+          name: "RSASSA-PKCS1-v1_5",
+          modulusLength: keySize,
+          publicExponent: new Uint8Array([1, 0, 1]),
+          hash: "SHA-256",
+        },
+        true,
+        ["sign", "verify"]
+      )) as CryptoKeyPair;
 
-  const arrayBufferToBase64 = (
-    buffer: ArrayBuffer
-  ) => {
-    const bytes =
-      new Uint8Array(buffer);
+      const [exportedPublicKey, exportedPrivateKey] = await Promise.all([
+        window.crypto.subtle.exportKey("spki", keyPair.publicKey),
+        window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey),
+      ]);
 
-    let binary = "";
-
-    bytes.forEach((b) => {
-      binary +=
-        String.fromCharCode(b);
-    });
-
-    return window.btoa(binary);
+      setPublicKey(
+        formatPem(arrayBufferToBase64(exportedPublicKey), "PUBLIC KEY")
+      );
+      setPrivateKey(
+        formatPem(arrayBufferToBase64(exportedPrivateKey), "PRIVATE KEY")
+      );
+    } catch {
+      setError(
+        "Your browser could not generate or export this RSA key pair. Try another supported key size or browser."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const formatPEM = (
-    base64: string,
-    type:
-      | "PUBLIC KEY"
-      | "PRIVATE KEY"
-  ) => {
-    const lines = base64
-      .match(/.{1,64}/g)
-      ?.join("\n") || base64;
-
-    return `-----BEGIN ${type}-----\n${lines}\n-----END ${type}-----`;
+  const copyValue = async (value: string, target: Exclude<CopyTarget, null>) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(target);
+      window.setTimeout(() => setCopied(null), 1400);
+    } catch {
+      setError("Copy failed. Select the PEM value and copy it manually.");
+    }
   };
-
-  const generateKeys =
-    async () => {
-      try {
-        setLoading(true);
-
-        const keyPair =
-          await window.crypto.subtle.generateKey(
-            {
-              name: "RSASSA-PKCS1-v1_5",
-              modulusLength:
-                keySize,
-              publicExponent:
-                new Uint8Array([
-                  1, 0, 1,
-                ]),
-              hash: "SHA-256",
-            },
-            true,
-            ["sign", "verify"]
-          );
-
-        const exportedPublicKey =
-          await window.crypto.subtle.exportKey(
-            "spki",
-            keyPair.publicKey
-          );
-
-        const exportedPrivateKey =
-          await window.crypto.subtle.exportKey(
-            "pkcs8",
-            keyPair.privateKey
-          );
-
-        const publicPem =
-          formatPEM(
-            arrayBufferToBase64(
-              exportedPublicKey
-            ),
-            "PUBLIC KEY"
-          );
-
-        const privatePem =
-          formatPEM(
-            arrayBufferToBase64(
-              exportedPrivateKey
-            ),
-            "PRIVATE KEY"
-          );
-
-        setPublicKey(publicPem);
-
-        setPrivateKey(
-          privatePem
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
 
   const resetAll = () => {
     setKeySize(2048);
     setPublicKey("");
     setPrivateKey("");
+    setLoading(false);
+    setError("");
+    setCopied(null);
   };
 
   return (
     <ToolShell
       title="RSA Key Generator"
-      description="Generate RSA public and private key pairs instantly with this free online RSA Key Generator."
+      description="Generate extractable RSA signing key pairs locally and export SPKI public keys and unencrypted PKCS8 private keys in PEM format."
     >
-      {/* INPUT */}
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
-          RSA Key Size
+          RSA Modulus Length
         </label>
 
         <YoryantraSelect
           value={String(keySize)}
-          onChange={(value) =>
-            setKeySize(
-              Number(value)
-            )
-          }
+          onChange={(value: string) => setKeySize(Number(value))}
           options={[
-            {
-              label: "1024",
-              value: "1024",
-            },
-            {
-              label: "2048 Recommended",
-              value: "2048",
-            },
-            {
-              label: "4096 High Security",
-              value: "4096",
-            },
+            { label: "2048-bit", value: "2048" },
+            { label: "3072-bit", value: "3072" },
+            { label: "4096-bit", value: "4096" },
           ]}
         />
       </div>
 
-      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
         <button
           onClick={generateKeys}
           className="yoryantra-btn"
           disabled={loading}
         >
-          {loading
-            ? "Generating..."
-            : "Generate RSA Keys"}
+          {loading ? "Generating..." : "Generate RSA Signing Keys"}
         </button>
 
         <button
           onClick={resetAll}
           className="yoryantra-btn-outline"
+          disabled={loading}
         >
           Reset
         </button>
       </div>
 
-      {/* PUBLIC KEY */}
+      {error && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Public Key
+            Public Key — SPKI PEM
           </h3>
 
           {publicKey && (
             <button
-              onClick={() =>
-                navigator.clipboard.writeText(
-                  publicKey
-                )
-              }
+              onClick={() => copyValue(publicKey, "public")}
               className="yoryantra-btn-outline text-sm"
             >
-              Copy
+              {copied === "public" ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <div className="yoryantra-output min-h-[180px] text-sm whitespace-pre-wrap break-words overflow-auto">
-          {publicKey ||
-            "Generated RSA public key will appear here..."}
-        </div>
+        <pre className="yoryantra-output min-h-[180px] overflow-auto whitespace-pre-wrap break-all text-sm">
+          {publicKey || "Generated SPKI public key will appear here."}
+        </pre>
       </div>
 
-      {/* PRIVATE KEY */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Private Key
+            Private Key — Unencrypted PKCS8 PEM
           </h3>
 
           {privateKey && (
             <button
-              onClick={() =>
-                navigator.clipboard.writeText(
-                  privateKey
-                )
-              }
+              onClick={() => copyValue(privateKey, "private")}
               className="yoryantra-btn-outline text-sm"
             >
-              Copy
+              {copied === "private" ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <div className="yoryantra-output min-h-[220px] text-sm whitespace-pre-wrap break-words overflow-auto">
-          {privateKey ||
-            "Generated RSA private key will appear here..."}
-        </div>
+        <pre className="yoryantra-output min-h-[220px] overflow-auto whitespace-pre-wrap break-all text-sm">
+          {privateKey || "Generated PKCS8 private key will appear here."}
+        </pre>
       </div>
 
-      {/* PRIVACY */}
       <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
         <h3 className="text-sm font-semibold text-yellow-900">
-          Privacy Note
+          Private Key Warning
         </h3>
 
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          RSA key generation happens locally inside your browser using the Web
-          Crypto API. Your keys are never uploaded, stored, or processed on any
-          external server.
+          Generation and export happen locally with Web Crypto. The private key
+          is extractable and exported without password-based encryption. Do not
+          use a browser-generated private key in a sensitive production system
+          unless your security process explicitly allows this workflow. Copying
+          the key places it on the clipboard.
         </p>
       </div>
 
-      {/* SEO CONTENT */}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Generating RSA Keys for JWTs, APIs, and Certificates
+            Generating RSA Signing Keys in Browser-Compatible Formats
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            RSA key generation helps developers create secure public and private
-            key pairs for JWT authentication, SSL certificates, API security,
-            SSH access, digital signatures, encrypted communication, OAuth
-            workflows, and backend authentication systems.
+            This tool asks Web Crypto to create an RSASSA-PKCS1-v1_5 key pair
+            configured with SHA-256 and public exponent 65537. The public key is
+            exported as SubjectPublicKeyInfo (SPKI), while the private key is
+            exported as unencrypted PKCS8.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            RSA is one of the most widely used public-key cryptography
-            algorithms in modern infrastructure. Applications use public keys
-            for verification and encryption, while private keys remain secret
-            for signing and authentication operations.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This RSA Key Generator creates PEM-formatted RSA keys directly
-            inside your browser using the Web Crypto API without requiring
-            backend services or external APIs.
+            These outputs can help with local testing, signature experiments,
+            and systems that explicitly accept these formats. They are not SSH
+            key files, certificate requests, certificates, or encrypted private
+            keys.
           </p>
         </div>
 
@@ -268,156 +222,40 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Select the RSA key size.
-            </li>
-
-            <li>
-              Click{" "}
-              <strong>
-                Generate RSA Keys
-              </strong>.
-            </li>
-
-            <li>
-              Review the generated
-              public and private keys.
-            </li>
-
-            <li>
-              Copy the PEM-formatted
-              keys for your security
-              workflow.
-            </li>
+            <li>Select a modulus length supported by the tool.</li>
+            <li>Click <strong>Generate RSA Signing Keys</strong>.</li>
+            <li>Copy the SPKI public key only where a public key is expected.</li>
+            <li>Handle the unencrypted PKCS8 private key as sensitive material.</li>
           </ol>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
+            Output and Algorithm Details
+          </h2>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <ul className="space-y-3">
+              <li><strong>Algorithm:</strong> RSASSA-PKCS1-v1_5 with SHA-256.</li>
+              <li><strong>Public exponent:</strong> 65537.</li>
+              <li><strong>Public output:</strong> SPKI PEM labelled PUBLIC KEY.</li>
+              <li><strong>Private output:</strong> Unencrypted PKCS8 PEM labelled PRIVATE KEY.</li>
+              <li><strong>Key usage:</strong> Signing and signature verification.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Important Format Boundaries
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Generating RSA keys for
-              JWT signing.
-            </li>
-
-            <li>
-              Creating SSH and
-              encryption key pairs.
-            </li>
-
-            <li>
-              Building secure API
-              authentication systems.
-            </li>
-
-            <li>
-              Testing public-key
-              cryptography workflows.
-            </li>
-
-            <li>
-              Generating keys for SSL
-              certificates.
-            </li>
-
-            <li>
-              Creating signing keys
-              for OAuth systems.
-            </li>
-
-            <li>
-              Learning RSA encryption
-              and verification
-              workflows.
-            </li>
+            <li>The output is not an OpenSSH private or public key.</li>
+            <li>The tool does not create a certificate or certificate signing request.</li>
+            <li>The private key is not protected by a passphrase.</li>
+            <li>A system expecting RSA-PSS or RSA-OAEP may require a different algorithm configuration.</li>
           </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Recommended RSA Key Sizes
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>
-                  1024-bit:
-                </strong>{" "}
-                Older systems and
-                testing only.
-              </li>
-
-              <li>
-                <strong>
-                  2048-bit:
-                </strong>{" "}
-                Recommended for most
-                applications and APIs.
-              </li>
-
-              <li>
-                <strong>
-                  4096-bit:
-                </strong>{" "}
-                Higher security but
-                slower cryptographic
-                operations.
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Why RSA Keys Matter in Security Workflows
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>
-                  Secure authentication:
-                </strong>{" "}
-                RSA keys are widely
-                used for JWT signing
-                and identity
-                verification.
-              </li>
-
-              <li>
-                <strong>
-                  Safer APIs:
-                </strong>{" "}
-                Public-key encryption
-                improves API security
-                workflows.
-              </li>
-
-              <li>
-                <strong>
-                  SSL and certificates:
-                </strong>{" "}
-                RSA remains common in
-                HTTPS and certificate
-                management systems.
-              </li>
-
-              <li>
-                <strong>
-                  Modern infrastructure:
-                </strong>{" "}
-                Cloud platforms,
-                DevOps systems, and
-                authentication
-                providers rely heavily
-                on RSA cryptography.
-              </li>
-            </ul>
-          </div>
         </div>
 
         <div>
@@ -427,67 +265,37 @@ export default function ToolClient() {
 
           <div className="mt-5 space-y-6">
             <div>
-              <h3 className="font-semibold text-gray-900">
-                What is RSA?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">Can I use these keys for SSH?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                RSA is a public-key cryptography algorithm used for encryption,
-                authentication, and digital signatures.
+                Not directly. SSH commonly expects OpenSSH-specific formats and metadata. Use an SSH-focused key-generation tool for that workflow.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900">
-                What is the difference between public and private keys?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">Does this create an SSL or TLS certificate?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Public keys can be shared openly for verification and
-                encryption, while private keys must remain secret for signing
-                and authentication.
+                No. It creates only an RSA key pair. A certificate also contains identity, validity, extensions, and a certificate-authority signature.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this RSA Key Generator secure?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">Why is 1024-bit unavailable?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Key generation happens directly inside your browser using
-                the Web Crypto API.
+                The tool excludes 1024-bit generation because it is too small for new general-purpose security deployments.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900">
-                Which RSA key size should I choose?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">Are the private keys encrypted?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                2048-bit RSA is recommended for most modern applications.
-                4096-bit provides stronger security but may be slower.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are generated keys uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. RSA key generation happens entirely inside your browser.
+                No. The PKCS8 output is unencrypted. Store it only through a process designed for sensitive private-key material.
               </p>
             </div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/rsa-key-generator" />
         </div>
       </section>

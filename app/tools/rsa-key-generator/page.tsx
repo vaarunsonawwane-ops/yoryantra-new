@@ -1,49 +1,34 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "RSA Key Generator Online Free | Yoryantra",
-
+  title: "RSA Signing Key Generator in SPKI and PKCS8 PEM | Yoryantra",
   description:
-    "Generate RSA public and private key pairs instantly with this free online RSA Key Generator.",
-
+    "Generate extractable RSA signing key pairs with Web Crypto and export the public key as SPKI PEM and private key as unencrypted PKCS8 PEM.",
   keywords: [
     "rsa key generator",
+    "rsa signing key generator",
     "rsa public private key generator",
-    "generate rsa keys",
-    "rsa private key generator",
-    "rsa public key generator",
+    "pkcs8 private key generator",
+    "spki public key generator",
     "pem key generator",
     "developer tools",
   ],
-
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/rsa-key-generator",
+    canonical: "https://yoryantra.com/tools/rsa-key-generator",
   },
-
   openGraph: {
-    title:
-      "RSA Key Generator Online Free | Yoryantra",
-
+    title: "RSA Signing Key Generator in SPKI and PKCS8 PEM | Yoryantra",
     description:
-      "Generate RSA public and private key pairs instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/rsa-key-generator",
-
+      "Generate RSA signing key pairs locally with Web Crypto and export SPKI and unencrypted PKCS8 PEM files.",
+    url: "https://yoryantra.com/tools/rsa-key-generator",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "RSA Key Generator Online Free | Yoryantra",
-
+    title: "RSA Signing Key Generator in SPKI and PKCS8 PEM | Yoryantra",
     description:
-      "Generate RSA public and private keys instantly.",
+      "Generate RSA signing key pairs locally and export SPKI and PKCS8 PEM.",
   },
 };
 
