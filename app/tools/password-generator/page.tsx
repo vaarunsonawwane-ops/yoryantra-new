@@ -1,44 +1,35 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Password Generator Online Free | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Random Password Generator | Yoryantra",
   description:
-    "Generate strong random passwords instantly with this free online Password Generator.",
-
+    "Generate a random password locally with uppercase and lowercase letters, numbers, and symbols. Uses the browser cryptography API and avoids modulo-biased character selection.",
   keywords: [
     "password generator",
     "random password generator",
-    "secure password generator",
     "strong password generator",
-    "online password generator",
-    "developer utilities",
+    "secure password generator",
+    "browser password generator",
+    "cryptographic password generator",
+    "developer security tools",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/password-generator",
   },
-
   openGraph: {
-    title: "Password Generator Online Free | Yoryantra",
-
+    title: "Random Password Generator | Yoryantra",
     description:
-      "Generate strong random passwords instantly with this free online Password Generator.",
-
+      "Generate random passwords locally in your browser with letters, numbers, and symbols.",
     url: "https://yoryantra.com/tools/password-generator",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Password Generator Online Free | Yoryantra",
-
+    title: "Random Password Generator | Yoryantra",
     description:
-      "Generate secure random passwords instantly with this free Password Generator.",
+      "Generate random passwords locally using the browser cryptography API.",
   },
 };
 

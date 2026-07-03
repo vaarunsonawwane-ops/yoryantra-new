@@ -116,7 +116,13 @@ export default function ToolClient() {
     }
 
     try {
-      const schema = JSON.parse(input) as SchemaNode;
+      const parsed = JSON.parse(input) as unknown;
+
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("The root JSON Schema must be a JSON object.");
+      }
+
+      const schema = parsed as SchemaNode;
       const nextResult = convertJsonSchemaToTypeScript(schema, {
         rootName,
         outputStyle,
@@ -152,12 +158,18 @@ export default function ToolClient() {
       return;
     }
 
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
 
-    window.setTimeout(() => {
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 1400);
+    } catch {
+      setError("The TypeScript output could not be copied. Select and copy it manually.");
       setCopied(false);
-    }, 1400);
+    }
   };
 
   const loadExample = () => {
@@ -197,7 +209,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Schema to TypeScript Converter"
-      description="Convert JSON Schema to TypeScript interfaces and types. Supports objects, arrays, enums, required fields, nullable values, nested schemas, and comments directly in your browser."
+      description="Convert common JSON Schema structures into TypeScript interfaces or type aliases and review warnings for rules that do not map directly to TypeScript."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -382,8 +394,8 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          This converter creates practical TypeScript from common JSON Schema
-          patterns. Review complex schemas with refs or advanced composition.
+          This converter handles common schema patterns. Review warnings and
+          test the generated code before using it in a production project.
         </p>
       </div>
 
@@ -461,8 +473,8 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        JSON Schema to TypeScript conversion happens directly in your browser.
-        Your schema is not uploaded to a server.
+        Conversion happens directly in your browser. Your schema is not uploaded
+        to a server by this tool.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
@@ -479,10 +491,10 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON Schema to TypeScript Converter turns common schema patterns
-            into readable TypeScript interfaces or type aliases. It handles
-            objects, arrays, enums, required fields, nullable values, nested
-            schemas, comments, and additional properties.
+            This converter handles common objects, arrays, enums, required fields,
+            nullable values, nested schemas, descriptions, and additional
+            properties. It also reports warnings when a schema feature needs
+            manual review.
           </p>
         </div>
 
@@ -597,8 +609,9 @@ export default function ToolClient() {
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                It handles simple local definition names, but complex references
-                and advanced schema composition should be reviewed manually.
+                No. References are reported as warnings and converted to the selected
+                fallback type so the output does not contain an undeclared name.
+                Add local or external referenced declarations manually.
               </p>
             </div>
 
@@ -676,6 +689,8 @@ function convertJsonSchemaToTypeScript(schema: SchemaNode, options: ConvertOptio
     },
   };
   const rootTypeName = cleanTypeName(schema.title || options.rootName || "GeneratedType");
+  context.usedNames.add(rootTypeName);
+  collectUnsupportedKeywordWarnings(schema, context);
   const rootType = schemaToTs(schema, rootTypeName, context, 0);
   const prefix = options.exportTypes ? "export " : "";
 
@@ -697,6 +712,11 @@ function convertJsonSchemaToTypeScript(schema: SchemaNode, options: ConvertOptio
 }
 
 function schemaToTs(schema: SchemaNode, nameHint: string, context: ConvertContext, depth: number): string {
+  if (depth > 40) {
+    context.warnings.push(`Schema nesting is too deep near ${nameHint}. A fallback type was used.`);
+    return fallbackType(context);
+  }
+
   if (schema.$ref) {
     return refToTypeName(schema.$ref, context);
   }
@@ -712,11 +732,26 @@ function schemaToTs(schema: SchemaNode, nameHint: string, context: ConvertContex
 
   if (schema.anyOf || schema.oneOf) {
     const list = schema.anyOf || schema.oneOf || [];
-    return list.map((item, index) => schemaToTs(item, `${nameHint}${index + 1}`, context, depth + 1)).join(" | ");
+
+    if (list.length === 0) {
+      context.warnings.push(`${schema.anyOf ? "anyOf" : "oneOf"} is empty near ${nameHint}. A fallback type was used.`);
+      return fallbackType(context);
+    }
+
+    return list
+      .map((item, index) => schemaToTs(item, `${nameHint}${index + 1}`, context, depth + 1))
+      .join(" | ");
   }
 
   if (schema.allOf) {
-    return schema.allOf.map((item, index) => schemaToTs(item, `${nameHint}${index + 1}`, context, depth + 1)).join(" & ");
+    if (schema.allOf.length === 0) {
+      context.warnings.push(`allOf is empty near ${nameHint}. A fallback type was used.`);
+      return fallbackType(context);
+    }
+
+    return schema.allOf
+      .map((item, index) => schemaToTs(item, `${nameHint}${index + 1}`, context, depth + 1))
+      .join(" & ");
   }
 
   const schemaType = schema.type || (schema.properties ? "object" : schema.items ? "array" : "unknown");
@@ -730,12 +765,32 @@ function schemaToTs(schema: SchemaNode, nameHint: string, context: ConvertContex
 
 function typeToTs(type: string, schema: SchemaNode, nameHint: string, context: ConvertContext, depth: number): string {
   if (type === "object") {
+    if (
+      (!schema.properties || Object.keys(schema.properties).length === 0) &&
+      schema.additionalProperties === false
+    ) {
+      return "Record<string, never>";
+    }
+
     return objectToTs(schema, nameHint, context, depth);
   }
 
   if (type === "array") {
-    const itemSchema = Array.isArray(schema.items) ? schema.items[0] : schema.items;
-    const itemType = itemSchema ? schemaToTs(itemSchema, `${nameHint}Item`, context, depth + 1) : fallbackType(context);
+    if (Array.isArray(schema.items)) {
+      if (schema.items.length === 0) {
+        return "[]";
+      }
+
+      context.warnings.push(`Tuple items were generated near ${nameHint}. Review draft-specific tuple rules manually.`);
+      return `[${schema.items
+        .map((item, index) => schemaToTs(item, `${nameHint}Item${index + 1}`, context, depth + 1))
+        .join(", ")}]`;
+    }
+
+    const itemType = schema.items
+      ? schemaToTs(schema.items, `${nameHint}Item`, context, depth + 1)
+      : fallbackType(context);
+
     return context.arrayStyle === "generic" ? `Array<${itemType}>` : `${wrapArrayItem(itemType)}[]`;
   }
 
@@ -762,15 +817,27 @@ function objectToTs(schema: SchemaNode, nameHint: string, context: ConvertContex
   const properties = schema.properties || {};
   const required = new Set(schema.required || []);
   const lines: string[] = ["{"];
+  const generatedKeys = new Set<string>();
+  const knownPropertyTypes: string[] = [];
 
   Object.entries(properties).forEach(([rawKey, childSchema]) => {
-    const key = context.propertyStyle === "camel" ? toCamelCase(rawKey) : rawKey;
+    const preferredKey = context.propertyStyle === "camel" ? toCamelCase(rawKey) : rawKey;
+    const key = generatedKeys.has(preferredKey) ? rawKey : preferredKey;
+
+    if (generatedKeys.has(preferredKey)) {
+      context.warnings.push(
+        `Property name conversion created a collision for ${rawKey} in ${nameHint}. The original key was preserved.`
+      );
+    }
+
+    generatedKeys.add(key);
     const safeKey = formatPropertyName(key);
     const optional = shouldOptional(rawKey, required, schema, context) ? "?" : "";
     const childName = cleanTypeName(`${nameHint}${capitalize(key)}`);
     const childType = schemaToTs(childSchema, childName, context, depth + 1);
+    knownPropertyTypes.push(childType);
     const comment = context.includeComments && childSchema.description
-      ? `  /** ${String(childSchema.description).replace(/\*\//g, "* /")} */\n`
+      ? `  /** ${formatComment(String(childSchema.description))} */\n`
       : "";
 
     lines.push(`${comment}  ${safeKey}${optional}: ${childType};`);
@@ -780,12 +847,17 @@ function objectToTs(schema: SchemaNode, nameHint: string, context: ConvertContex
     const additionalType = typeof schema.additionalProperties === "object"
       ? schemaToTs(schema.additionalProperties as SchemaNode, `${nameHint}Value`, context, depth + 1)
       : fallbackType(context);
-    lines.push(`  [key: string]: ${additionalType};`);
+
+    const indexType = [...new Set([additionalType, ...knownPropertyTypes])].join(" | ");
+    lines.push(`  [key: string]: ${indexType};`);
   }
 
-  if (Object.keys(properties).length === 0 && !schema.additionalProperties) {
+  if (
+    Object.keys(properties).length === 0 &&
+    schema.additionalProperties === undefined
+  ) {
     lines.push(`  [key: string]: ${fallbackType(context)};`);
-    context.warnings.push(`Object ${nameHint} has no properties. A fallback index signature was added.`);
+    context.warnings.push(`Object ${nameHint} has no properties or additionalProperties rule. A fallback index signature was added.`);
   }
 
   lines.push("}");
@@ -825,8 +897,10 @@ function refToTypeName(ref: string, context: ConvertContext) {
     return fallbackType(context);
   }
 
-  context.warnings.push(`Reference ${ref} was converted to ${cleanTypeName(name)}. Check it manually.`);
-  return cleanTypeName(name);
+  context.warnings.push(
+    `Reference ${ref} is not resolved by this converter. A fallback type was used; add the referenced declaration manually.`
+  );
+  return fallbackType(context);
 }
 
 function literalType(value: unknown) {
@@ -843,6 +917,74 @@ function literalType(value: unknown) {
   }
 
   return "unknown";
+}
+
+function formatComment(value: string) {
+  return value
+    .replace(/\*\//g, "* /")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function collectUnsupportedKeywordWarnings(schema: SchemaNode, context: ConvertContext) {
+  const validationOnlyKeywords = [
+    "minimum",
+    "maximum",
+    "exclusiveMinimum",
+    "exclusiveMaximum",
+    "multipleOf",
+    "minLength",
+    "maxLength",
+    "pattern",
+    "format",
+    "minItems",
+    "maxItems",
+    "uniqueItems",
+    "contains",
+    "minProperties",
+    "maxProperties",
+    "dependentRequired",
+    "dependentSchemas",
+    "if",
+    "then",
+    "else",
+    "not",
+    "unevaluatedProperties",
+    "unevaluatedItems",
+    "prefixItems",
+    "propertyNames",
+  ];
+  const found = new Set<string>();
+  const seen = new WeakSet<object>();
+
+  const visit = (value: unknown) => {
+    if (!value || typeof value !== "object" || Array.isArray(value) || seen.has(value as object)) {
+      if (Array.isArray(value)) {
+        value.forEach(visit);
+      }
+      return;
+    }
+
+    seen.add(value as object);
+    const record = value as Record<string, unknown>;
+
+    validationOnlyKeywords.forEach((keyword) => {
+      if (keyword in record) {
+        found.add(keyword);
+      }
+    });
+
+    Object.values(record).forEach(visit);
+  };
+
+  visit(schema);
+
+  if (found.size > 0) {
+    context.warnings.push(
+      `Validation-only keywords are not represented in TypeScript: ${Array.from(found).sort().join(", ")}.`
+    );
+  }
 }
 
 function fallbackType(context: { preferUnknown: boolean }) {

@@ -4,54 +4,77 @@ import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
+const UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
+const NUMBERS = "0123456789";
+const SYMBOLS = "!@#$%^&*()_+-=[]{}:,.?";
+const ALL_CHARACTERS = UPPERCASE + LOWERCASE + NUMBERS + SYMBOLS;
+
 export default function ToolClient() {
   const [password, setPassword] = useState("");
   const [length, setLength] = useState(16);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const generatePassword = () => {
-    const safeLength = Math.min(
-      Math.max(length, 4),
-      64
-    );
-
-    const chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
-
-    const randomValues =
-      new Uint32Array(safeLength);
-
-    window.crypto.getRandomValues(
-      randomValues
-    );
-
-    let result = "";
-
-    for (
-      let i = 0;
-      i < safeLength;
-      i++
-    ) {
-      result +=
-        chars[
-          randomValues[i] %
-            chars.length
-        ];
+    if (!Number.isFinite(length)) {
+      setError("Enter a password length between 4 and 64.");
+      setPassword("");
+      return;
     }
 
-    setPassword(result);
+    const safeLength = Math.floor(length);
+
+    if (safeLength < 4 || safeLength > 64) {
+      setError("Password length must be between 4 and 64 characters.");
+      setPassword("");
+      return;
+    }
+
+    const characters = [
+      randomCharacter(UPPERCASE),
+      randomCharacter(LOWERCASE),
+      randomCharacter(NUMBERS),
+      randomCharacter(SYMBOLS),
+    ];
+
+    while (characters.length < safeLength) {
+      characters.push(randomCharacter(ALL_CHARACTERS));
+    }
+
+    secureShuffle(characters);
+    setLength(safeLength);
+    setPassword(characters.join(""));
+    setError("");
+    setCopied(false);
+  };
+
+  const copyPassword = async () => {
+    if (!password) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("The password could not be copied. Select and copy it manually.");
+    }
   };
 
   const resetAll = () => {
     setPassword("");
     setLength(16);
+    setError("");
+    setCopied(false);
   };
 
   return (
     <ToolShell
       title="Password Generator"
-      description="Generate strong random passwords instantly with this free online Password Generator."
+      description="Generate a random password locally with uppercase and lowercase letters, numbers, and symbols."
     >
-      {/* LENGTH */}
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Password Length
@@ -61,273 +84,180 @@ export default function ToolClient() {
           type="number"
           min="4"
           max="64"
+          step="1"
           value={length}
-          onChange={(e) =>
-            setLength(
-              Number(e.target.value)
-            )
-          }
+          onChange={(event) => {
+            setLength(Number(event.target.value));
+            setPassword("");
+            setError("");
+            setCopied(false);
+          }}
           className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
+
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          The generator includes at least one uppercase letter, lowercase letter,
+          number, and symbol. Very short passwords are available for testing but
+          may not be suitable for real accounts.
+        </p>
       </div>
 
-      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={generatePassword}
-          className="yoryantra-btn"
-        >
+        <button onClick={generatePassword} className="yoryantra-btn">
           Generate Password
         </button>
 
         <button
-          onClick={resetAll}
+          onClick={copyPassword}
+          disabled={!password}
           className="yoryantra-btn-outline"
         >
+          {copied ? "Copied" : "Copy Password"}
+        </button>
+
+        <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Generated Password
-          </h3>
-
-          {password && (
-            <button
-              onClick={() =>
-                navigator.clipboard.writeText(
-                  password
-                )
-              }
-              className="yoryantra-btn-outline text-sm"
-            >
-              Copy
-            </button>
-          )}
+      {error && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
         </div>
+      )}
+
+      <div className="mt-8">
+        <h3 className="mb-3 text-lg font-semibold text-gray-900">
+          Generated Password
+        </h3>
 
         <pre className="yoryantra-output overflow-auto text-sm min-h-[160px] whitespace-pre-wrap break-words">
-          {password ||
-            "Generated password will appear here..."}
+          {password || "Generated password will appear here."}
         </pre>
       </div>
 
-      {/* PRIVACY NOTE */}
       <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
-          Privacy Note
-        </h3>
-
+        <h3 className="text-sm font-semibold text-yellow-900">Privacy and Handling Note</h3>
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Password generation happens locally inside your browser using secure
-          browser cryptography APIs. Generated passwords are not uploaded,
-          stored, or transmitted to any server.
+          Generation happens locally with crypto.getRandomValues. This tool does
+          not send the generated password to a server. The password can still be
+          exposed through your screen, clipboard history, browser extensions, or
+          the device itself, so store and share it carefully.
         </p>
       </div>
 
-      {/* SEO CONTENT */}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Generating Strong Passwords Without Reusing Old Ones
+            Creating a Unique Random Password
           </h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Password generation helps create strong random passwords for online
-            accounts, applications, databases, admin dashboards, developer
-            tools, cloud services, authentication systems, and security-focused
-            workflows.
+            Reusing one password across services allows a breach at one service to
+            affect other accounts. A randomly generated password can help you use
+            a different credential for each account, system, or test environment.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Weak or reused passwords increase the risk of unauthorized access,
-            credential leaks, and account compromise. Strong passwords are
-            typically longer, unpredictable, and include a combination of
-            uppercase letters, lowercase letters, numbers, and symbols.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Password Generator creates secure random passwords instantly
-            inside your browser without sending sensitive data to external
-            servers or APIs.
+            This generator uses the browser cryptography API, selects characters
+            without modulo bias, includes all four character groups, and shuffles
+            the final result. A website may still reject some symbols or impose a
+            different maximum length.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the Password Generator
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">How to Generate a Password</h2>
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Select the desired password length.
-            </li>
-
-            <li>
-              Click <strong>Generate Password</strong>.
-            </li>
-
-            <li>
-              Copy the generated password instantly.
-            </li>
-
-            <li>
-              Use the password securely for accounts, applications, or testing.
-            </li>
+            <li>Choose a length from 4 to 64 characters.</li>
+            <li>Generate a new random value.</li>
+            <li>Check that the destination accepts the included symbols and length.</li>
+            <li>Copy the password and save it in a trusted password manager or approved secret store.</li>
+            <li>Generate another value instead of reusing the same password elsewhere.</li>
           </ol>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Where Random Passwords Are Useful</h2>
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Creating secure passwords for online accounts.
-            </li>
-
-            <li>
-              Generating admin dashboard credentials.
-            </li>
-
-            <li>
-              Creating temporary passwords for testing environments.
-            </li>
-
-            <li>
-              Improving security practices across applications.
-            </li>
-
-            <li>
-              Generating strong passwords for databases and servers.
-            </li>
-
-            <li>
-              Creating unique credentials for cloud services.
-            </li>
-
-            <li>
-              Avoiding password reuse across multiple platforms.
-            </li>
+            <li>Creating a unique login credential for an online account.</li>
+            <li>Generating temporary values for local development or testing.</li>
+            <li>Replacing a reused password during an account-security review.</li>
+            <li>Creating database, dashboard, or service credentials when passwords are supported.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Strong Password
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`G7#pL2!xQ9@wT4zK`}
-            </pre>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Important Limits</h2>
+          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li>A generated password is not safe if it is stored or shared insecurely.</li>
+            <li>Some systems use passkeys, API keys, tokens, or key pairs instead of passwords.</li>
+            <li>Account protection also depends on phishing resistance, recovery controls, and multi-factor authentication.</li>
+            <li>A four-character password may be useful for testing but should not be described as strong.</li>
+          </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Why Strong Passwords Matter
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>Better account protection:</strong> Random passwords are
-                harder to guess or brute-force.
-              </li>
-
-              <li>
-                <strong>Reduced credential reuse:</strong> Unique passwords help
-                isolate security risks across platforms.
-              </li>
-
-              <li>
-                <strong>Improved security practices:</strong> Strong passwords
-                reduce exposure to common attacks.
-              </li>
-
-              <li>
-                <strong>Safer development workflows:</strong> Random credentials
-                are useful during testing and staging.
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
           <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What makes a password strong?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Strong passwords are typically long, random, and contain a mix
-                of uppercase letters, lowercase letters, numbers, and symbols.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this Password Generator secure?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Passwords are generated locally inside your browser using
-                cryptographically secure random values.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can I choose password length?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. You can select custom password lengths between 4 and 64
-                characters.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should I reuse the same password everywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Using unique passwords for different services improves
-                overall account security.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is password generation processed on the server?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Password generation happens entirely inside your browser.
-              </p>
-            </div>
+            <Faq
+              question="How does the generator choose characters?"
+              answer="It uses crypto.getRandomValues and rejection sampling so every character in the selected set has an equal chance of being chosen."
+            />
+            <Faq
+              question="Does every generated password contain each character group?"
+              answer="Yes. For lengths of four or more, the result includes at least one uppercase letter, lowercase letter, number, and symbol."
+            />
+            <Faq
+              question="Is the generated password uploaded?"
+              answer="No. Generation happens in your browser. Copying or storing the password may still expose it through the clipboard, device, browser extensions, or another application."
+            />
+            <Faq
+              question="What length should I choose?"
+              answer="Use the longest unique password the destination accepts and that your password manager can store reliably. Required length and character rules vary by system."
+            />
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/password-generator" />
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function randomCharacter(characters: string) {
+  return characters[randomIndex(characters.length)];
+}
+
+function randomIndex(limit: number) {
+  if (!Number.isInteger(limit) || limit <= 0) {
+    throw new Error("The character set must not be empty.");
+  }
+
+  const range = 0x100000000;
+  const maximumAccepted = range - (range % limit);
+  const randomValue = new Uint32Array(1);
+
+  do {
+    crypto.getRandomValues(randomValue);
+  } while (randomValue[0] >= maximumAccepted);
+
+  return randomValue[0] % limit;
+}
+
+function secureShuffle(values: string[]) {
+  for (let index = values.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomIndex(index + 1);
+    [values[index], values[swapIndex]] = [values[swapIndex], values[index]];
+  }
+}
+
+function Faq({ question, answer }: { question: string; answer: string }) {
+  return (
+    <div>
+      <h3 className="font-semibold text-gray-900">{question}</h3>
+      <p className="mt-2 text-gray-600 leading-relaxed">{answer}</p>
+    </div>
   );
 }
