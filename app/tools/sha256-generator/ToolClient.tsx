@@ -4,62 +4,73 @@ import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
+type Sha256Result = {
+  hash: string;
+  inputBytes: number;
+  warnings: string[];
+};
+
+function bufferToHex(buffer: ArrayBuffer) {
+  return Array.from(new Uint8Array(buffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function getWarnings(input: string) {
+  const warnings = [
+    "SHA-256 is one-way hashing, not encryption. It cannot be decoded back to the original text.",
+    "Exact input matters. Case, spaces, Unicode characters, and line endings change the hash.",
+    "Plain SHA-256 is not a password-storage method by itself. Use a dedicated password hashing function for passwords.",
+  ];
+
+  if (/password|secret|token|api[_-]?key/i.test(input)) {
+    warnings.push(
+      "The input looks like it may contain sensitive text. This tool runs locally, but live secrets should still be handled carefully.",
+    );
+  }
+
+  return warnings;
+}
+
 export default function ToolClient() {
-  const [input, setInput] =
-    useState("");
+  const [input, setInput] = useState("");
+  const [result, setResult] = useState<Sha256Result | null>(null);
+  const [error, setError] = useState("");
 
-  const [output, setOutput] =
-    useState("");
+  const generateSHA256 = async () => {
+    if (!input.length) {
+      setError("Enter text before generating a SHA-256 hash.");
+      setResult(null);
+      return;
+    }
 
-  const generateSHA256 =
-    async () => {
-      if (!input.trim()) {
-        setOutput("");
-        return;
-      }
+    try {
+      const data = new TextEncoder().encode(input);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
 
-      const encoder =
-        new TextEncoder();
-
-      const data =
-        encoder.encode(input);
-
-      const hashBuffer =
-        await crypto.subtle.digest(
-          "SHA-256",
-          data
-        );
-
-      const hashArray =
-        Array.from(
-          new Uint8Array(
-            hashBuffer
-          )
-        );
-
-      const hashHex =
-        hashArray
-          .map((b) =>
-            b
-              .toString(16)
-              .padStart(2, "0")
-          )
-          .join("");
-
-      setOutput(hashHex);
-    };
+      setResult({
+        hash: bufferToHex(hashBuffer),
+        inputBytes: data.byteLength,
+        warnings: getWarnings(input),
+      });
+      setError("");
+    } catch {
+      setError("Unable to generate a SHA-256 hash in this browser.");
+      setResult(null);
+    }
+  };
 
   const resetAll = () => {
     setInput("");
-    setOutput("");
+    setResult(null);
+    setError("");
   };
 
   return (
     <ToolShell
       title="SHA256 Generator"
-      description="Generate SHA256 hashes from text instantly with this free online SHA256 Generator."
+      description="Generate SHA-256 hashes from text locally in your browser and check the output safely."
     >
-      {/* INPUT */}
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
           Text Input
@@ -67,49 +78,37 @@ export default function ToolClient() {
 
         <textarea
           value={input}
-          onChange={(e) =>
-            setInput(
-              e.target.value
-            )
-          }
-          placeholder="Enter text to generate SHA256 hash..."
-          className="w-full min-h-[160px] rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="Enter the exact text you want to hash..."
+          className="w-full min-h-[180px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
 
-      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={
-            generateSHA256
-          }
-          className="yoryantra-btn"
-        >
-          Generate SHA256
+        <button onClick={generateSHA256} className="yoryantra-btn">
+          Generate SHA-256
         </button>
 
-        <button
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
+        <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
 
-      {/* OUTPUT */}
+      {error && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
+          {error}
+        </div>
+      )}
+
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Generated SHA256 Hash
+            Generated SHA-256 Hash
           </h3>
 
-          {output && (
+          {result?.hash && (
             <button
-              onClick={() =>
-                navigator.clipboard.writeText(
-                  output
-                )
-              }
+              onClick={() => navigator.clipboard.writeText(result.hash)}
               className="yoryantra-btn-outline text-sm"
             >
               Copy
@@ -117,50 +116,79 @@ export default function ToolClient() {
           )}
         </div>
 
-        <div className="yoryantra-output min-h-[160px] flex items-center text-sm break-words whitespace-pre-wrap overflow-auto">
-          {output ||
-            "Generated SHA256 hash will appear here..."}
+        <div className="yoryantra-output min-h-[160px] text-sm break-words whitespace-pre-wrap overflow-auto">
+          {result?.hash || "Generated SHA-256 hash will appear here..."}
         </div>
       </div>
 
-      {/* PRIVACY */}
+      {result && (
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h3 className="text-sm font-semibold text-gray-900">Hash Details</h3>
+            <dl className="mt-3 space-y-2 text-sm text-gray-700">
+              <div className="flex justify-between gap-4">
+                <dt>Algorithm</dt>
+                <dd className="font-mono">SHA-256</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Output size</dt>
+                <dd>256 bits</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Hex length</dt>
+                <dd>{result.hash.length} characters</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Input bytes</dt>
+                <dd>{result.inputBytes}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+            <h3 className="text-sm font-semibold text-yellow-900">Important</h3>
+            <ul className="mt-2 list-disc list-inside space-y-1 text-sm text-yellow-800 leading-relaxed">
+              {result.warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
-          Privacy Note
-        </h3>
+        <h3 className="text-sm font-semibold text-yellow-900">Privacy Note</h3>
 
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          SHA256 hash generation happens locally inside your browser using the
-          Web Crypto API. Your text, secrets, and generated hashes are not
-          uploaded, stored, or processed on any external server.
+          SHA-256 hash generation happens locally inside your browser using the
+          Web Crypto API. Your text is not uploaded by this tool. Still, avoid
+          pasting live passwords, production API keys, or private tokens unless
+          you understand the risk.
         </p>
       </div>
 
-      {/* SEO CONTENT */}
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Generating SHA256 Hashes for Text and API Checks
+            Generating SHA-256 Hashes for Text and Verification
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            SHA256 hash generation helps developers create cryptographic hashes
-            for API verification, authentication systems, file integrity checks,
-            blockchain workflows, digital signatures, webhook validation,
-            security testing, and backend verification systems.
+            SHA-256 turns text into a 256-bit hash value. Developers use this
+            kind of digest for integrity checks, API examples, webhook debugging,
+            content fingerprints, and comparison workflows where exact input
+            matching matters.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            SHA256 is one of the most widely used cryptographic hashing
-            algorithms in modern infrastructure and security workflows. The same
-            input always generates the same 256-bit hash, while even tiny input
-            changes create completely different outputs.
+            The same input produces the same SHA-256 hash. A small change, such
+            as one extra space or a different line ending, produces a different
+            hash. This is useful for checking whether two inputs match exactly.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This SHA256 Generator creates hashes directly inside your browser
-            using the Web Crypto API without requiring backend processing or
-            external APIs.
+            This tool creates SHA-256 hashes directly inside your browser. It is
+            a hashing tool, not an encryption tool and not a full security audit.
           </p>
         </div>
 
@@ -170,138 +198,63 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Enter the text you want
-              to hash.
-            </li>
-
-            <li>
-              Click{" "}
-              <strong>
-                Generate SHA256
-              </strong>.
-            </li>
-
-            <li>
-              Review the generated
-              SHA256 hash instantly.
-            </li>
-
-            <li>
-              Copy the generated hash
-              for your workflow.
-            </li>
+            <li>Enter the exact text you want to hash.</li>
+            <li>Click <strong>Generate SHA-256</strong>.</li>
+            <li>Review the 64-character hexadecimal output.</li>
+            <li>Copy the hash for your test, comparison, or documentation workflow.</li>
+            <li>Keep whitespace and line endings unchanged when comparing hashes.</li>
           </ol>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Common Use Cases</h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Generating SHA256 hashes
-              for API verification.
-            </li>
-
-            <li>
-              Checking file and text
-              integrity.
-            </li>
-
-            <li>
-              Creating cryptographic
-              fingerprints.
-            </li>
-
-            <li>
-              Verifying webhook
-              payloads and signatures.
-            </li>
-
-            <li>
-              Learning cryptographic
-              hashing workflows.
-            </li>
-
-            <li>
-              Comparing hashed values
-              during testing.
-            </li>
-
-            <li>
-              Building secure backend
-              validation systems.
-            </li>
+            <li>Generating SHA-256 examples for API documentation.</li>
+            <li>Checking whether two text values match exactly.</li>
+            <li>Creating content fingerprints for debugging.</li>
+            <li>Comparing payloads in webhook and signing workflows.</li>
+            <li>Learning how one-way hash output changes with small input edits.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example SHA256 Hash
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Example SHA-256 Hash</h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <p className="font-medium text-gray-900">
-              Input text:
-            </p>
+            <p className="font-medium text-gray-900">Input text:</p>
+            <pre className="mt-2 whitespace-pre-wrap break-words">{`hello-world`}</pre>
 
+            <p className="mt-4 font-medium text-gray-900">SHA-256 hash:</p>
             <pre className="mt-2 whitespace-pre-wrap break-words">
-{`hello-world`}
-            </pre>
-
-            <p className="mt-4 font-medium text-gray-900">
-              SHA256 hash:
-            </p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">
-{`afa27b44d43b02a9fea41d13be5b47ab`}
+{`afa27b44d43b02a9fea41d13cedc2e4016cfcf87c5dbf990e593669aa8ce286d`}
             </pre>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Why SHA256 Hashing Matters
+            SHA-256 Security Limits
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <ul className="space-y-3">
               <li>
-                <strong>
-                  Data integrity:
-                </strong>{" "}
-                Detect changes in files,
-                payloads, and structured
-                data.
+                <strong>Not reversible:</strong> SHA-256 is designed as a
+                one-way hash. It is not meant to be decoded.
               </li>
-
               <li>
-                <strong>
-                  API security:
-                </strong>{" "}
-                SHA256 is widely used in
-                authentication and
-                verification workflows.
+                <strong>Not password storage by itself:</strong> Password
+                storage needs a slow password hashing method with a salt.
               </li>
-
               <li>
-                <strong>
-                  Deterministic output:
-                </strong>{" "}
-                The same input always
-                produces the same hash.
+                <strong>Not a signature alone:</strong> Webhook and API
+                signatures usually need HMAC or another keyed signing method,
+                not only a plain hash.
               </li>
-
               <li>
-                <strong>
-                  Modern cryptography:
-                </strong>{" "}
-                SHA256 remains heavily
-                used across blockchain,
-                APIs, and security
-                systems.
+                <strong>Exact bytes matter:</strong> Encoding, whitespace, and
+                line endings affect the result.
               </li>
             </ul>
           </div>
@@ -314,66 +267,54 @@ export default function ToolClient() {
 
           <div className="mt-5 space-y-6">
             <div>
-              <h3 className="font-semibold text-gray-900">
-                What is SHA256?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">What is SHA-256?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                SHA256 is a cryptographic hashing algorithm that converts data
-                into a fixed-length 256-bit hash value.
+                SHA-256 is a cryptographic hash algorithm that creates a
+                fixed-length 256-bit digest from input data.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">Is SHA-256 encryption?</h3>
+              <p className="mt-2 text-gray-600 leading-relaxed">
+                No. Encryption is designed to be decrypted with a key. SHA-256
+                is one-way hashing and is used for comparison and verification.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is SHA256 reversible?
+                Can SHA-256 store passwords safely?
               </h3>
-
               <p className="mt-2 text-gray-600 leading-relaxed">
-                No. SHA256 is a one-way hashing algorithm and cannot be directly
-                reversed back into the original input.
+                Plain SHA-256 is not enough for password storage. Use a proper
+                password hashing function such as bcrypt, scrypt, Argon2, or a
+                platform-approved equivalent.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Why does a small input change create a different hash?
+                Why did my hash change after a tiny edit?
               </h3>
-
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Cryptographic hashing algorithms are designed so tiny input
-                changes generate completely different outputs.
+                Hash algorithms are sensitive to exact input bytes. A changed
+                space, letter case, or line ending changes the output.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this SHA256 Generator secure?
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">Does this run locally?</h3>
               <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. SHA256 hashes are generated directly inside your browser
-                using the Web Crypto API.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are generated hashes uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. SHA256 generation happens entirely inside your browser.
+                Yes. SHA-256 generation runs inside your browser using the Web
+                Crypto API.
               </p>
             </div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/sha256-generator" />
         </div>
       </section>
