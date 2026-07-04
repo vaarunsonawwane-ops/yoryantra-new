@@ -11,10 +11,10 @@ const securityTools = tools.filter(
 const featuredTools = securityTools.slice(0, 6);
 
 export const metadata = {
-  title: "Security Tools Online Free | Yoryantra",
+  title: "Security Tools for Tokens, Headers, Hashes, and API Workflows | Yoryantra",
 
   description:
-    "Use free online security tools for JWT decoding, HMAC signatures, SHA256 hashes, bcrypt, RSA keys, PEM formatting, CSP headers, API keys, and token workflows.",
+    "Use practical security tools for JWTs, HMAC signatures, SHA hashes, bcrypt, RSA keys, PEM files, CSP headers, API keys, CORS, and token workflows.",
 
   keywords: [
     "security tools",
@@ -36,10 +36,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "Security Tools Online Free | Yoryantra",
+    title: "Security Tools for Tokens, Headers, Hashes, and API Workflows | Yoryantra",
 
     description:
-      "Free online security utilities for JWTs, HMAC signatures, SHA256 hashes, bcrypt, RSA keys, PEM files, CSP headers, API keys, and tokens.",
+      "Practical security utilities for JWTs, HMAC signatures, hashes, bcrypt, RSA keys, PEM files, CSP headers, API keys, CORS, and tokens.",
 
     url: "https://yoryantra.com/categories/security-tools",
 
@@ -51,10 +51,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "Security Tools Online Free | Yoryantra",
+    title: "Security Tools for Tokens, Headers, Hashes, and API Workflows | Yoryantra",
 
     description:
-      "Free online security tools for authentication, hashing, tokens, signatures, keys, and secure development workflows.",
+      "Security tools for tokens, headers, hashes, signatures, keys, CORS, and secure API development workflows.",
   },
 };
 

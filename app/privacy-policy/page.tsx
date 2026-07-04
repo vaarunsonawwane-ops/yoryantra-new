@@ -1,7 +1,7 @@
 export const metadata = {
   title: "Privacy Policy | Yoryantra",
   description:
-    "Learn how Yoryantra handles tool inputs, analytics, advertising, and website usage data.",
+    "Learn how Yoryantra handles tool inputs, analytics, advertising, cookies, and website usage data.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -28,6 +28,28 @@ export default function PrivacyPolicyPage() {
           support the website. These providers may process limited technical
           information according to their own privacy policies.
         </p>
+
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-3">
+            Advertising and cookies
+          </h2>
+
+          <p>
+            Yoryantra may use Google AdSense or other advertising services to
+            show limited, non-intrusive ads that help support the website.
+            Third-party vendors, including Google, may use cookies or similar
+            technologies to serve ads based on a user&apos;s prior visits to
+            this website or other websites.
+          </p>
+
+          <p className="mt-4">
+            These cookies may help with ad delivery, ad measurement, fraud
+            prevention, frequency limits, and ad personalization where allowed.
+            Users can manage cookies in their browser settings and can review
+            Google&apos;s ad personalization choices through Google&apos;s own
+            ad settings.
+          </p>
+        </div>
 
         <p>
           We do not sell or rent personal information. Limited technical data

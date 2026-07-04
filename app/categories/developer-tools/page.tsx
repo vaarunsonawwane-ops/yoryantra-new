@@ -13,10 +13,10 @@ const featuredTools =
 
 export const metadata = {
   title:
-    "Developer Tools Online Free | Yoryantra",
+    "Developer Tools for Debugging and API Workflows | Yoryantra",
 
   description:
-    "Use free online developer tools for regex testing, JWT decoding, JSON formatting, Base64 encoding, timestamps, UUID generation, and debugging workflows.",
+    "Use practical developer tools for regex testing, JWT inspection, JSON formatting, Base64 encoding, timestamps, UUIDs, API debugging, and everyday development workflows.",
 
   keywords: [
     "developer tools",
@@ -38,10 +38,10 @@ export const metadata = {
 
   openGraph: {
     title:
-      "Developer Tools Online Free | Yoryantra",
+      "Developer Tools for Debugging and API Workflows | Yoryantra",
 
     description:
-      "Free online developer utilities for debugging, encoding, JSON formatting, JWT inspection, timestamps, and regex testing.",
+      "Practical developer utilities for debugging APIs, formatting data, inspecting tokens, testing regex patterns, and everyday development work.",
 
     url:
       "https://yoryantra.com/categories/developer-tools",
@@ -55,10 +55,10 @@ export const metadata = {
     card: "summary_large_image",
 
     title:
-      "Developer Tools Online Free | Yoryantra",
+      "Developer Tools for Debugging and API Workflows | Yoryantra",
 
     description:
-      "Free online developer utilities for debugging, formatting, encoding, and testing workflows.",
+      "Developer tools for API debugging, formatting, encoding, timestamps, UUIDs, JWT inspection, and regex workflows.",
   },
 };
 

@@ -11,14 +11,14 @@ const seoTools = tools.filter(
 const featuredTools = seoTools.slice(0, 6);
 
 export const metadata = {
-  title: "SEO Tools Online Free | Yoryantra",
+  title: "SEO Tools for Metadata, Indexing, Redirects, and Technical SEO | Yoryantra",
 
   description:
-    "Use free online SEO tools for meta tags, Open Graph, hreflang, robots.txt, sitemaps, redirects, UTM links, and technical SEO workflows.",
+    "Use practical SEO tools for meta tags, Open Graph, hreflang, robots.txt, sitemaps, redirects, UTM links, indexing checks, and technical SEO workflows.",
 
   keywords: [
     "seo tools",
-    "free seo tools",
+    "seo audit tools",
     "technical seo tools",
     "online seo tools",
     "meta tag generator",
@@ -34,10 +34,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "SEO Tools Online Free | Yoryantra",
+    title: "SEO Tools for Metadata, Indexing, Redirects, and Technical SEO | Yoryantra",
 
     description:
-      "Use free online SEO tools for metadata, indexing, redirects, hreflang, sitemaps, and campaign tracking.",
+      "Practical SEO tools for metadata, indexing, redirects, hreflang, sitemaps, robots rules, and campaign tracking workflows.",
 
     url: "https://yoryantra.com/categories/seo-tools",
 
@@ -49,10 +49,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "SEO Tools Online Free | Yoryantra",
+    title: "SEO Tools for Metadata, Indexing, Redirects, and Technical SEO | Yoryantra",
 
     description:
-      "Free online SEO tools for technical SEO, metadata, indexing, redirects, and campaign tracking.",
+      "SEO tools for technical SEO, metadata, indexing, redirects, sitemaps, robots rules, and campaign tracking.",
   },
 };
 

@@ -11,10 +11,10 @@ const jsonTools = tools.filter(
 const featuredTools = jsonTools.slice(0, 6);
 
 export const metadata = {
-  title: "JSON Tools Online Free | Yoryantra",
+  title: "JSON & Data Tools for Formatting, Validation, and Conversion | Yoryantra",
 
   description:
-    "Use free online JSON tools for formatting, validation, minifying, diff checking, schema validation, JSON escaping, and JSON conversion workflows.",
+    "Use practical JSON and data tools for formatting, validation, minifying, diff checks, schema validation, JSON escaping, and data conversion workflows.",
 
   keywords: [
     "json tools",
@@ -34,10 +34,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "JSON Tools Online Free | Yoryantra",
+    title: "JSON & Data Tools for Formatting, Validation, and Conversion | Yoryantra",
 
     description:
-      "Free online JSON utilities for formatting, validation, minifying, comparing, schema checks, escaping, and data conversion.",
+      "Practical JSON and data utilities for formatting, validation, minifying, comparing, schema checks, escaping, and conversion work.",
 
     url: "https://yoryantra.com/categories/json-tools",
 
@@ -49,10 +49,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "JSON Tools Online Free | Yoryantra",
+    title: "JSON & Data Tools for Formatting, Validation, and Conversion | Yoryantra",
 
     description:
-      "Free online JSON tools for formatting, validation, schema checks, diff comparison, escaping, and conversion workflows.",
+      "JSON and data tools for formatting, validation, schema checks, diff comparison, escaping, and conversion workflows.",
   },
 };
 

@@ -11,10 +11,10 @@ const encodingTools = tools.filter(
 const featuredTools = encodingTools.slice(0, 6);
 
 export const metadata = {
-  title: "Encoding Tools Online Free | Yoryantra",
+  title: "Encoding Tools for Base64, URLs, HTML, Unicode, and Text | Yoryantra",
 
   description:
-    "Use free online encoding tools for Base64, Base64URL, URL encoding, HTML entities, JSON escaping, text conversion, slugs, and QR code workflows.",
+    "Use practical encoding tools for Base64, Base64URL, URL encoding, HTML entities, Unicode escapes, JSON strings, slugs, and text conversion workflows.",
 
   keywords: [
     "encoding tools",
@@ -34,10 +34,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "Encoding Tools Online Free | Yoryantra",
+    title: "Encoding Tools for Base64, URLs, HTML, Unicode, and Text | Yoryantra",
 
     description:
-      "Free online encoding utilities for Base64, Base64URL, URL encoding, HTML entities, JSON escaping, text conversion, slugs, and QR codes.",
+      "Practical encoding utilities for Base64, Base64URL, URLs, HTML entities, Unicode escapes, JSON strings, slugs, and text conversion.",
 
     url: "https://yoryantra.com/categories/encoding-tools",
 
@@ -49,10 +49,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "Encoding Tools Online Free | Yoryantra",
+    title: "Encoding Tools for Base64, URLs, HTML, Unicode, and Text | Yoryantra",
 
     description:
-      "Free online encoding tools for Base64, URLs, HTML entities, JSON escaping, slugs, text conversion, and QR workflows.",
+      "Encoding tools for Base64, URLs, HTML entities, Unicode escapes, JSON strings, slugs, and text conversion workflows.",
   },
 };
 

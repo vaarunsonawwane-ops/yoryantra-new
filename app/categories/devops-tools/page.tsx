@@ -11,10 +11,10 @@ const devopsTools = tools.filter(
 const featuredTools = devopsTools.slice(0, 6);
 
 export const metadata = {
-  title: "DevOps Tools Online Free | Yoryantra",
+  title: "DevOps Tools for YAML, Docker, Kubernetes, and Config Checks | Yoryantra",
 
   description:
-    "Use free online DevOps tools for Docker Compose validation, Kubernetes YAML checks, .env parsing, YAML formatting, cron expressions, and configuration workflows.",
+    "Use practical DevOps tools for Docker Compose checks, Kubernetes YAML, .env parsing, YAML validation, cron schedules, and infrastructure configuration workflows.",
 
   keywords: [
     "devops tools",
@@ -33,10 +33,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "DevOps Tools Online Free | Yoryantra",
+    title: "DevOps Tools for YAML, Docker, Kubernetes, and Config Checks | Yoryantra",
 
     description:
-      "Free online DevOps utilities for Docker, Kubernetes, YAML, .env files, cron expressions, and infrastructure configuration.",
+      "Practical DevOps utilities for Docker, Kubernetes, YAML, .env files, cron schedules, and infrastructure configuration checks.",
 
     url: "https://yoryantra.com/categories/devops-tools",
 
@@ -48,10 +48,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "DevOps Tools Online Free | Yoryantra",
+    title: "DevOps Tools for YAML, Docker, Kubernetes, and Config Checks | Yoryantra",
 
     description:
-      "Free online DevOps tools for configuration, containers, YAML, Kubernetes, Docker, and cron workflows.",
+      "DevOps tools for YAML, Docker, Kubernetes, .env files, cron schedules, and configuration workflows.",
   },
 };
 
