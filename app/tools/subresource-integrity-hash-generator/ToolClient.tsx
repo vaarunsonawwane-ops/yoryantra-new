@@ -303,7 +303,7 @@ export default function ToolClient() {
           </h3>
 
           <p className="mt-2 text-sm text-gray-500">
-            Copy the integrity value into your script or stylesheet tag.
+            Copy the integrity value into the exact script or stylesheet tag that loads this content.
           </p>
 
           <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
@@ -407,7 +407,7 @@ export default function ToolClient() {
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Subresource Integrity helps browsers verify that an external script or stylesheet has not changed unexpectedly. When you add an integrity attribute, the browser checks the downloaded file against the expected hash before using it.
+            Subresource Integrity helps browsers verify that an external script or stylesheet has not changed unexpectedly. When you add an integrity attribute, the browser checks the downloaded file against the expected hash before executing the script or applying the stylesheet.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -421,7 +421,7 @@ export default function ToolClient() {
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste the exact JavaScript or CSS content served by the CDN.</li>
+            <li>Paste the exact final JavaScript or CSS bytes as text, including the same line endings and minification.</li>
             <li>Enter the resource URL if you want a full HTML snippet.</li>
             <li>Choose SHA-384 for a common secure default, or generate all hashes.</li>
             <li>Copy the integrity attribute or complete script/link tag.</li>
@@ -449,7 +449,7 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Loading third-party scripts from a CDN.</li>
+            <li>Loading third-party scripts from a CDN with a fixed version URL.</li>
             <li>Loading shared CSS frameworks from external hosts.</li>
             <li>Pinning a known fixed version of a library.</li>
             <li>Reducing risk from unexpected CDN file changes.</li>
@@ -490,7 +490,7 @@ export default function ToolClient() {
             </Faq>
 
             <Faq title="Should I use crossorigin with SRI?">
-              For cross-origin resources, crossorigin=&quot;anonymous&quot; is commonly used with SRI so the browser can perform the integrity check correctly.
+              Yes for cross-origin resources. The CDN also needs to allow CORS, often with an Access-Control-Allow-Origin response header.
             </Faq>
 
             <Faq title="Is anything uploaded when I generate a hash?">
@@ -671,28 +671,53 @@ function getIssues(
   hashes: SriHash[]
 ): Issue[] {
   const issues: Issue[] = [];
+  const trimmedUrl = options.resourceUrl.trim();
 
-  if (hashes.some((hash) => hash.algorithm === "SHA-256")) {
+  if (hashes.some((hash) => hash.algorithm === "SHA-256") && !hashes.some((hash) => hash.algorithm === "SHA-384" || hash.algorithm === "SHA-512")) {
     issues.push({
       severity: "info",
-      title: "SHA-384 is often preferred",
-      message: "SHA-256 is supported, but SHA-384 is commonly used for SRI examples and CDN snippets.",
+      title: "SHA-384 or SHA-512 can also be used",
+      message: "SHA-256 is supported for SRI, but SHA-384 is a common practical default for CDN snippets.",
     });
   }
 
-  if (options.warnAboutDynamicFiles && /(latest|current|main|master|nightly|dev|snapshot)/i.test(options.resourceUrl)) {
+  if (hashes.length > 1) {
+    issues.push({
+      severity: "info",
+      title: "Multiple hashes are allowed",
+      message: "The integrity attribute may contain a space-separated list. Browsers use the strongest supported hash set present.",
+    });
+  }
+
+  if (options.warnAboutDynamicFiles && /(latest|current|main|master|nightly|dev|snapshot|edge|canary|unstable)/i.test(trimmedUrl)) {
     issues.push({
       severity: "warning",
       title: "Possibly dynamic resource URL",
-      message: "This URL looks like it may change over time. SRI works best with pinned file versions.",
+      message: "This URL looks like it may change over time. SRI works best with pinned, versioned files because any byte change breaks the hash.",
     });
   }
 
-  if (options.resourceUrl && !/^https:\/\//i.test(options.resourceUrl)) {
+  if (trimmedUrl && !/^https:\/\//i.test(trimmedUrl)) {
     issues.push({
       severity: "warning",
       title: "Resource URL is not HTTPS",
-      message: "External scripts and styles should usually be loaded over HTTPS.",
+      message: "External scripts and styles should usually be loaded over HTTPS before adding SRI.",
+    });
+  }
+
+  if (/^https:\/\//i.test(trimmedUrl)) {
+    issues.push({
+      severity: "info",
+      title: "Cross-origin resources need CORS",
+      message: "For CDN files on another origin, use crossorigin=\"anonymous\" and make sure the CDN allows the request with an Access-Control-Allow-Origin response header.",
+    });
+  }
+
+  if (/\r\n|\r/.test(options.content)) {
+    issues.push({
+      severity: "info",
+      title: "Line endings affect the hash",
+      message: "SRI uses exact bytes. Different CRLF/LF line endings between your pasted content and the served file will produce a different hash.",
     });
   }
 
@@ -708,7 +733,7 @@ function getIssues(
     issues.push({
       severity: "info",
       title: "SRI hash generated",
-      message: "Copy the integrity value into the matching script or stylesheet tag.",
+      message: "Copy the integrity value into the matching script or stylesheet tag and update it whenever the file changes.",
     });
   }
 
@@ -746,13 +771,13 @@ function getNotes(result: SriResult) {
 
   notes.push({
     title: "Hash must match exact content",
-    message: "SRI checks the exact bytes delivered to the browser. Minification, CDN updates, or different line endings can change the hash.",
+    message: "SRI checks the exact bytes delivered to the browser. Minification, CDN updates, character encoding differences, or different line endings can change the hash.",
   });
 
   if (result.recommendedIntegrity.includes("sha384")) {
     notes.push({
       title: "SHA-384 selected",
-      message: "SHA-384 is a common practical default for SRI snippets.",
+      message: "SHA-384 is a common practical default for SRI snippets, while SHA-256 and SHA-512 are also valid SRI prefixes.",
     });
   }
 

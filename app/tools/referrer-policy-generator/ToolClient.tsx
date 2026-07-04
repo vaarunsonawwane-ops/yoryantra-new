@@ -91,7 +91,7 @@ const policies: PolicyInfo[] = [
     label: "strict-origin-when-cross-origin",
     privacy: "medium",
     compatibility: "high",
-    summary: "A practical modern default: full same-origin URL, origin cross-origin, no downgrade referrer.",
+    summary: "Modern browser default: full same-origin URL, origin only for same-security cross-origin requests, and no HTTPS-to-HTTP downgrade referrer.",
   },
   {
     value: "unsafe-url",
@@ -344,7 +344,7 @@ export default function ToolClient() {
           </h3>
 
           <p className="mt-2 text-sm text-gray-500">
-            These examples show the kind of referrer information a browser may send with this policy.
+            These examples follow the standard behavior for a page starting from https://example.com/account/settings?tab=billing.
           </p>
 
           <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
@@ -478,7 +478,7 @@ export default function ToolClient() {
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>strict-origin-when-cross-origin</strong> is a practical modern default for many websites.</li>
+            <li><strong>strict-origin-when-cross-origin</strong> is the modern default in browsers and a practical explicit setting for many websites.</li>
             <li><strong>no-referrer</strong> is privacy-focused and sends no referrer information.</li>
             <li><strong>same-origin</strong> sends referrer data only within the same origin.</li>
             <li><strong>origin</strong> sends only scheme, host, and port.</li>
@@ -523,7 +523,7 @@ export default function ToolClient() {
             </Faq>
 
             <Faq title="Which Referrer-Policy should I use?">
-              strict-origin-when-cross-origin is a good default for many websites. Sensitive pages may prefer no-referrer or same-origin.
+              strict-origin-when-cross-origin is a good explicit default for many websites. Sensitive pages may prefer no-referrer or same-origin.
             </Faq>
 
             <Faq title="Is unsafe-url safe to use?">
@@ -531,7 +531,7 @@ export default function ToolClient() {
             </Faq>
 
             <Faq title="Can I use a meta tag instead of a header?">
-              Yes, but an HTTP header is usually cleaner and applies earlier. Meta tags can be useful when header control is limited.
+              Yes, but an HTTP header is usually cleaner and applies before the page body is parsed. Meta tags can be useful when header control is limited.
             </Faq>
 
             <Faq title="Will this break analytics?">
@@ -722,7 +722,7 @@ function buildFindings(policy: PolicyValue, scenario: Scenario, warnAboutUnsafeU
     findings.push({
       severity: "warning",
       title: "Weak cross-origin privacy",
-      message: "This policy can still send full URL paths to HTTPS third-party destinations.",
+      message: "This older policy can still send full URL paths and query strings to HTTPS third-party destinations.",
     });
   }
 
@@ -746,7 +746,7 @@ function buildFindings(policy: PolicyValue, scenario: Scenario, warnAboutUnsafeU
     findings.push({
       severity: "info",
       title: "Balanced modern default",
-      message: "This policy is a practical choice for many websites because it avoids full cross-origin URL leakage.",
+      message: "This policy is also the modern browser default. Setting it explicitly keeps behavior clearer across deployments.",
     });
   }
 
@@ -777,6 +777,7 @@ function formatOutput(
   }
 ) {
   const meta = `<meta name="referrer" content="${result.policy}" />`;
+  const plainNotes = explanationText(result);
 
   if (options.outputMode === "json") {
     return JSON.stringify(result, null, 2);
@@ -785,23 +786,23 @@ function formatOutput(
   if (options.outputMode === "nginx") {
     return joinOptional([
       `add_header Referrer-Policy "${result.policy}" always;`,
-      options.includeMetaTag ? meta : "",
-      options.includeExplanation ? explanationText(result) : "",
+      options.includeMetaTag ? commentBlock(["Optional HTML fallback if you cannot set headers on a page:", meta], "#") : "",
+      options.includeExplanation ? commentBlock(plainNotes.split("\n"), "#") : "",
     ]);
   }
 
   if (options.outputMode === "apache") {
     return joinOptional([
       `Header always set Referrer-Policy "${result.policy}"`,
-      options.includeMetaTag ? meta : "",
-      options.includeExplanation ? explanationText(result) : "",
+      options.includeMetaTag ? commentBlock(["Optional HTML fallback if you cannot set headers on a page:", meta], "#") : "",
+      options.includeExplanation ? commentBlock(plainNotes.split("\n"), "#") : "",
     ]);
   }
 
   if (options.outputMode === "html") {
     return joinOptional([
       meta,
-      options.includeExplanation ? explanationText(result) : "",
+      options.includeExplanation ? `<!--\n${plainNotes}\n-->` : "",
     ]);
   }
 
@@ -825,7 +826,7 @@ function formatOutput(
   return joinOptional([
     result.headerValue,
     options.includeMetaTag ? meta : "",
-    options.includeExplanation ? explanationText(result) : "",
+    options.includeExplanation ? plainNotes : "",
   ]);
 }
 
@@ -836,7 +837,6 @@ function explanationText(result: {
   compatibilityScore: number;
 }) {
   return [
-    "",
     "Notes:",
     `Privacy score: ${result.privacyScore}/100`,
     `Compatibility score: ${result.compatibilityScore}/100`,
@@ -847,6 +847,10 @@ function explanationText(result: {
     "Findings:",
     ...result.findings.map((finding) => `- ${finding.title}: ${finding.message}`),
   ].join("\n");
+}
+
+function commentBlock(lines: string[], prefix: "#") {
+  return lines.map((line) => (line ? `${prefix} ${line}` : prefix)).join("\n");
 }
 
 function joinOptional(parts: string[]) {
@@ -870,7 +874,7 @@ function getNotes(result: Result) {
   if (result.policy === "strict-origin-when-cross-origin") {
     notes.push({
       title: "Good general-purpose choice",
-      message: "This policy is commonly suitable for public websites and many apps because it balances privacy with referrer usefulness.",
+      message: "This policy is commonly suitable for public websites and many apps because it balances privacy with referrer usefulness, and it is the current default in modern browsers.",
     });
   }
 

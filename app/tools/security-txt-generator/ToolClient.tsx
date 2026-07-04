@@ -344,7 +344,7 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          The generated file is usually placed at <span className="font-mono">/.well-known/security.txt</span> on your domain.
+          For web-based services, publish the file at <span className="font-mono">/.well-known/security.txt</span> over HTTPS with text/plain; charset=utf-8.
         </p>
       </div>
 
@@ -504,11 +504,11 @@ Preferred-Languages: en`}
             </Faq>
 
             <Faq title="Where should I publish security.txt?">
-              The common location is /.well-known/security.txt on your domain.
+              The standard web location is /.well-known/security.txt on your domain. A top-level /security.txt can redirect there for legacy compatibility.
             </Faq>
 
             <Faq title="Is Expires required?">
-              Yes, Expires is an important field because it tells readers when the file should be considered outdated.
+              Yes. RFC 9116 requires exactly one Expires field, and the value should be a future RFC3339 date-time.
             </Faq>
 
             <Faq title="Should I include a Policy URL?">
@@ -604,6 +604,23 @@ function buildSecurityTxt(options: {
   const siteUrl = normalizeSiteUrl(options.domain);
   const canonicalUrl = `${siteUrl}/.well-known/security.txt`;
   const expiryDate = getExpiryDate(options.expiryPreset, options.customExpiry);
+  const contactEmail = options.contactEmail.trim();
+  const contactUrl = options.contactUrl.trim()
+    ? normalizeAbsoluteUrl(options.contactUrl.trim(), siteUrl)
+    : "";
+  const policyUrl = options.policyUrl.trim()
+    ? normalizeAbsoluteUrl(options.policyUrl.trim(), siteUrl)
+    : "";
+  const encryptionUrl = options.encryptionUrl.trim()
+    ? normalizeSecurityTxtUri(options.encryptionUrl.trim(), siteUrl)
+    : "";
+  const acknowledgmentsUrl = options.acknowledgmentsUrl.trim()
+    ? normalizeAbsoluteUrl(options.acknowledgmentsUrl.trim(), siteUrl)
+    : "";
+  const hiringUrl = options.hiringUrl.trim()
+    ? normalizeAbsoluteUrl(options.hiringUrl.trim(), siteUrl)
+    : "";
+  const preferredLanguages = normalizePreferredLanguages(options.preferredLanguages);
   const lines: string[] = [];
 
   if (options.includeCommentHeader) {
@@ -613,11 +630,11 @@ function buildSecurityTxt(options: {
   }
 
   if (options.contactType === "email" || options.contactType === "both") {
-    lines.push(`Contact: mailto:${options.contactEmail.trim()}`);
+    lines.push(`Contact: mailto:${encodeMailtoAddress(contactEmail)}`);
   }
 
   if (options.contactType === "url" || options.contactType === "both") {
-    lines.push(`Contact: ${normalizeAbsoluteUrl(options.contactUrl.trim(), siteUrl)}`);
+    lines.push(`Contact: ${contactUrl}`);
   }
 
   lines.push(`Expires: ${expiryDate}`);
@@ -626,35 +643,39 @@ function buildSecurityTxt(options: {
     lines.push(`Canonical: ${canonicalUrl}`);
   }
 
-  if (options.includePolicy && options.policyUrl.trim()) {
-    lines.push(`Policy: ${normalizeAbsoluteUrl(options.policyUrl.trim(), siteUrl)}`);
+  if (options.includePolicy && policyUrl) {
+    lines.push(`Policy: ${policyUrl}`);
   }
 
-  if (options.encryptionUrl.trim()) {
-    lines.push(`Encryption: ${normalizeAbsoluteUrl(options.encryptionUrl.trim(), siteUrl)}`);
+  if (encryptionUrl) {
+    lines.push(`Encryption: ${encryptionUrl}`);
   }
 
-  if (options.acknowledgmentsUrl.trim()) {
-    lines.push(`Acknowledgments: ${normalizeAbsoluteUrl(options.acknowledgmentsUrl.trim(), siteUrl)}`);
+  if (acknowledgmentsUrl) {
+    lines.push(`Acknowledgments: ${acknowledgmentsUrl}`);
   }
 
-  if (options.includePreferredLanguages && options.preferredLanguages.trim()) {
-    lines.push(`Preferred-Languages: ${options.preferredLanguages.trim()}`);
+  if (options.includePreferredLanguages && preferredLanguages) {
+    lines.push(`Preferred-Languages: ${preferredLanguages}`);
   }
 
-  if (options.hiringUrl.trim()) {
-    lines.push(`Hiring: ${normalizeAbsoluteUrl(options.hiringUrl.trim(), siteUrl)}`);
+  if (hiringUrl) {
+    lines.push(`Hiring: ${hiringUrl}`);
   }
 
   const securityTxt = `${lines.join("\n")}\n`;
   const issues = buildIssues({
-    contactEmail: options.contactEmail,
-    contactUrl: options.contactUrl,
+    contactEmail,
+    contactUrl,
     contactType: options.contactType,
-    policyUrl: options.policyUrl,
-    encryptionUrl: options.encryptionUrl,
+    policyUrl,
+    encryptionUrl,
+    acknowledgmentsUrl,
+    hiringUrl,
+    preferredLanguages,
     expiryDate,
     canonicalUrl,
+    expiryPreset: options.expiryPreset,
     warnMissingPolicy: options.warnMissingPolicy,
   });
   const fieldCount = lines.filter((line) => line.includes(":") && !line.startsWith("#")).length;
@@ -681,8 +702,12 @@ function buildIssues(options: {
   contactType: ContactType;
   policyUrl: string;
   encryptionUrl: string;
+  acknowledgmentsUrl: string;
+  hiringUrl: string;
+  preferredLanguages: string;
   expiryDate: string;
   canonicalUrl: string;
+  expiryPreset: ExpiryPreset;
   warnMissingPolicy: boolean;
 }) {
   const issues: Issue[] = [];
@@ -695,11 +720,11 @@ function buildIssues(options: {
     });
   }
 
-  if ((options.contactType === "url" || options.contactType === "both") && !/^https?:\/\//i.test(options.contactUrl.trim())) {
+  if ((options.contactType === "url" || options.contactType === "both") && !isHttpsWebUrl(options.contactUrl)) {
     issues.push({
       severity: "warning",
-      title: "Contact URL should be absolute",
-      message: "Use a full HTTPS URL for contact pages.",
+      title: "Contact URL should use HTTPS",
+      message: "RFC 9116 requires web URIs in Contact fields to begin with https://.",
     });
   }
 
@@ -711,11 +736,46 @@ function buildIssues(options: {
     });
   }
 
+  if (options.policyUrl && !isHttpsWebUrl(options.policyUrl)) {
+    issues.push({
+      severity: "warning",
+      title: "Policy URL should use HTTPS",
+      message: "Web URIs in Policy fields must begin with https://.",
+    });
+  }
+
   if (!options.encryptionUrl.trim()) {
     issues.push({
       severity: "info",
       title: "Encryption field missing",
-      message: "An encryption key URL is optional but useful if you want encrypted vulnerability reports.",
+      message: "An encryption key URI is optional but useful if you want encrypted vulnerability reports.",
+    });
+  } else if (isHttpWebUrl(options.encryptionUrl) && !isHttpsWebUrl(options.encryptionUrl)) {
+    issues.push({
+      severity: "warning",
+      title: "Encryption URL should use HTTPS",
+      message: "Web URIs in Encryption fields must begin with https://. Non-web schemes such as dns: or openpgp4fpr: can also be valid for this field.",
+    });
+  }
+
+  for (const [label, value] of [
+    ["Acknowledgments", options.acknowledgmentsUrl],
+    ["Hiring", options.hiringUrl],
+  ] as const) {
+    if (value && !isHttpsWebUrl(value)) {
+      issues.push({
+        severity: "warning",
+        title: `${label} URL should use HTTPS`,
+        message: `Web URIs in ${label} fields must begin with https://.`,
+      });
+    }
+  }
+
+  if (options.preferredLanguages && !/^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})?(,\s*[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})?)*$/.test(options.preferredLanguages)) {
+    issues.push({
+      severity: "warning",
+      title: "Preferred languages should use language tags",
+      message: "Use RFC 5646-style language tags such as en, hi, en-US, or en, es, fr.",
     });
   }
 
@@ -725,7 +785,7 @@ function buildIssues(options: {
     issues.push({
       severity: "high",
       title: "Invalid expiry date",
-      message: "Expires should be a valid ISO date/time.",
+      message: "Expires should be a valid RFC3339 date-time such as 2027-06-01T00:00:00Z.",
     });
   } else if (expiryTime <= Date.now()) {
     issues.push({
@@ -735,11 +795,22 @@ function buildIssues(options: {
     });
   }
 
+  const msUntilExpiry = Number.isFinite(expiryTime) ? expiryTime - Date.now() : 0;
+  const daysUntilExpiry = msUntilExpiry / 86400000;
+
+  if (daysUntilExpiry >= 365 || options.expiryPreset === "365") {
+    issues.push({
+      severity: "info",
+      title: "Review before one year",
+      message: "RFC 9116 recommends an Expires value less than one year in the future to avoid stale contact information.",
+    });
+  }
+
   if (!/^https:\/\//i.test(options.canonicalUrl)) {
     issues.push({
       severity: "warning",
       title: "Canonical should use HTTPS",
-      message: "Publish security.txt over HTTPS when possible.",
+      message: "Publish security.txt over HTTPS at the well-known path.",
     });
   }
 
@@ -747,7 +818,7 @@ function buildIssues(options: {
     issues.push({
       severity: "info",
       title: "Security.txt looks ready",
-      message: "The generated file includes the main required fields and practical optional fields.",
+      message: "The generated file includes Contact, Expires, and practical optional fields. Publish it as text/plain; charset=utf-8 over HTTPS.",
     });
   }
 
@@ -760,6 +831,14 @@ function getExpiryDate(preset: ExpiryPreset, customExpiry: string) {
 
     if (!trimmed) {
       throw new Error("Please enter a custom expiry date.");
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return `${trimmed}T00:00:00Z`;
+    }
+
+    if (!Number.isFinite(Date.parse(trimmed))) {
+      throw new Error("Please enter a valid RFC3339 expiry date, for example 2027-06-01T00:00:00Z.");
     }
 
     return trimmed;
@@ -794,6 +873,34 @@ function normalizeAbsoluteUrl(value: string, siteUrl: string) {
   }
 
   return `${siteUrl}/${value}`;
+}
+
+function normalizeSecurityTxtUri(value: string, siteUrl: string) {
+  if (/^(dns|openpgp4fpr):/i.test(value)) {
+    return value;
+  }
+
+  return normalizeAbsoluteUrl(value, siteUrl);
+}
+
+function normalizePreferredLanguages(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
+function encodeMailtoAddress(value: string) {
+  return value.trim().replace(/\s+/g, "");
+}
+
+function isHttpWebUrl(value: string) {
+  return /^https?:\/\//i.test(value);
+}
+
+function isHttpsWebUrl(value: string) {
+  return /^https:\/\//i.test(value);
 }
 
 function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
@@ -836,6 +943,7 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
       "# Place the generated security.txt file at: /var/www/html/.well-known/security.txt",
       "location = /.well-known/security.txt {",
       "  default_type text/plain;",
+      "  charset utf-8;",
       "  try_files $uri =404;",
       "}",
       "",
@@ -847,8 +955,8 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
     return [
       "# Place the generated security.txt file at: /.well-known/security.txt",
       "# Apache usually serves this as a static text file.",
-      "# Optional content type:",
-      "AddType text/plain .txt",
+      "# Optional content type with UTF-8 charset:",
+      "AddType \"text/plain; charset=utf-8\" .txt",
       "",
       result.securityTxt.trim(),
     ].join("\n");
