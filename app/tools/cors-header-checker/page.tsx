@@ -1,49 +1,34 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "CORS Header Checker Online Free | Yoryantra",
-
+  title: "CORS Header Checker | Yoryantra",
   description:
-    "Analyze and validate CORS headers instantly with this free online CORS Header Checker.",
-
+    "Check CORS response headers for allowed origins, credentials, methods, request headers, preflight behavior, and common browser issues.",
   keywords: [
     "cors header checker",
     "cors checker",
-    "analyze cors headers",
-    "cors validator",
     "access control allow origin checker",
-    "cors debugging tool",
-    "developer security tools",
+    "cors validator",
+    "cors preflight checker",
+    "access control allow credentials",
+    "api cors debugging tool",
   ],
-
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/cors-header-checker",
+    canonical: "https://yoryantra.com/tools/cors-header-checker",
   },
-
   openGraph: {
-    title:
-      "CORS Header Checker Online Free | Yoryantra",
-
+    title: "CORS Header Checker | Yoryantra",
     description:
-      "Analyze and validate CORS headers instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/cors-header-checker",
-
+      "Check CORS response headers for origins, credentials, methods, request headers, and browser preflight issues.",
+    url: "https://yoryantra.com/tools/cors-header-checker",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "CORS Header Checker Online Free | Yoryantra",
-
+    title: "CORS Header Checker | Yoryantra",
     description:
-      "Analyze and validate CORS headers instantly.",
+      "Check CORS response headers and find common browser CORS configuration issues.",
   },
 };
 

@@ -1,49 +1,34 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "Random Token Generator Online Free | Yoryantra",
-
+  title: "Random Token Generator | Yoryantra",
   description:
-    "Generate random tokens, secret strings, and secure identifiers instantly with this free online Random Token Generator.",
-
+    "Generate browser-based random tokens for API keys, webhook secrets, session IDs, and testing with Base64URL, alphanumeric, or hex output.",
   keywords: [
     "random token generator",
     "secure token generator",
     "secret token generator",
-    "access token generator",
-    "random string generator",
-    "authentication token generator",
-    "developer tools",
+    "api token generator",
+    "webhook secret generator",
+    "base64url token generator",
+    "hex token generator",
   ],
-
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/random-token-generator",
+    canonical: "https://yoryantra.com/tools/random-token-generator",
   },
-
   openGraph: {
-    title:
-      "Random Token Generator Online Free | Yoryantra",
-
+    title: "Random Token Generator | Yoryantra",
     description:
-      "Generate random tokens and secure identifiers instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/random-token-generator",
-
+      "Generate browser-based random tokens for API keys, webhook secrets, session IDs, and testing.",
+    url: "https://yoryantra.com/tools/random-token-generator",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "Random Token Generator Online Free | Yoryantra",
-
+    title: "Random Token Generator | Yoryantra",
     description:
-      "Generate random tokens and secret strings instantly.",
+      "Generate browser-based random tokens in Base64URL, alphanumeric, or hex formats.",
   },
 };
 

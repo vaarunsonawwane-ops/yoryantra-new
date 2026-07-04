@@ -1,11 +1,9 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "PEM Formatter Online Free | Yoryantra",
-
+  title: "PEM Formatter | Yoryantra",
   description:
-    "Format PEM public keys, private keys, and certificates instantly with this free online PEM Formatter.",
-
+    "Format PEM certificates, public keys, private keys, CSRs, and multiple PEM blocks with 64-character Base64 line wrapping.",
   keywords: [
     "pem formatter",
     "pem key formatter",
@@ -13,37 +11,24 @@ export const metadata = {
     "public key formatter",
     "pem certificate formatter",
     "rsa pem formatter",
-    "developer tools",
+    "pem line wrap tool",
   ],
-
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/pem-formatter",
+    canonical: "https://yoryantra.com/tools/pem-formatter",
   },
-
   openGraph: {
-    title:
-      "PEM Formatter Online Free | Yoryantra",
-
+    title: "PEM Formatter | Yoryantra",
     description:
-      "Format PEM keys and certificates instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/pem-formatter",
-
+      "Format PEM certificates, keys, CSRs, and multiple PEM blocks with safer label checks and clean line wrapping.",
+    url: "https://yoryantra.com/tools/pem-formatter",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "PEM Formatter Online Free | Yoryantra",
-
+    title: "PEM Formatter | Yoryantra",
     description:
-      "Format PEM public keys, private keys, and certificates instantly.",
+      "Format PEM certificates, keys, CSRs, and PEM blocks in your browser.",
   },
 };
 
