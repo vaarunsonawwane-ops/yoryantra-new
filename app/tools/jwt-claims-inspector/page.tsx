@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "JWT Claims Inspector | Check exp iat nbf aud iss Claims | Yoryantra",
   description:
-    "Inspect JWT claims and check expiration, issued-at, not-before, issuer, audience, subject, scopes, roles, and common token claim issues directly in your browser.",
+    "Inspect JWT claims locally and check exp, iat, nbf, issuer, audience, subject, scopes, roles, lifetime, NumericDate values, and common claim issues without verifying the signature.",
   keywords: [
     "JWT Claims Inspector",
     "JWT claims checker",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "JWT Claims Inspector | Check exp iat nbf aud iss Claims | Yoryantra",
     description:
-      "Inspect JWT claims and check expiration, issued-at, not-before, issuer, audience, subject, scopes, roles, and common token claim issues directly in your browser.",
+      "Inspect JWT claims locally and check exp, iat, nbf, issuer, audience, subject, scopes, roles, lifetime, NumericDate values, and common claim issues without verifying the signature.",
     url: "https://yoryantra.com/tools/jwt-claims-inspector",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "JWT Claims Inspector | Check exp iat nbf aud iss Claims | Yoryantra",
     description:
-      "Inspect JWT claims and check expiration, issued-at, not-before, issuer, audience, subject, scopes, roles, and common token claim issues directly in your browser.",
+      "Inspect JWT claims locally and check exp, iat, nbf, issuer, audience, subject, scopes, roles, lifetime, NumericDate values, and common claim issues without verifying the signature.",
   },
 };
 

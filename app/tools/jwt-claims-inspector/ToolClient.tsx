@@ -48,7 +48,7 @@ type ClaimNote = {
 };
 
 const sampleJwt =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiissIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwiYXVkIjoieW9yeWFudHJhLWFwaSIsIm5hbWUiOiJZb3J5YW50cmEgVXNlciIsInNjb3BlIjoicmVhZDp0b29scyB3cml0ZTp0b29scyIsInJvbGVzIjpbImVkaXRvciIsImFkbWluIl0sImlhdCI6MTcxNzA3NTIwMCwibmJmIjoxNzE3MDc1MjAwLCJleHAiOjQxMDI0NDQ4MDB9.signature-placeholder";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImRlbW8ta2V5LTEifQ.eyJzdWIiOiIxMjM0NTY3ODkwIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwiYXVkIjoieW9yeWFudHJhLWFwaSIsIm5hbWUiOiJZb3J5YW50cmEgVXNlciIsInNjb3BlIjoicmVhZDp0b29scyB3cml0ZTp0b29scyIsInJvbGVzIjpbImVkaXRvciIsImFkbWluIl0sImlhdCI6MTcxNzA3NTIwMCwibmJmIjoxNzE3MDc1MjAwLCJleHAiOjQxMDI0NDQ4MDB9.signature-placeholder";
 
 export default function ToolClient() {
   const [token, setToken] = useState("");
@@ -160,7 +160,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JWT Claims Inspector"
-      description="Inspect JWT claims and check expiration, issued-at, not-before, issuer, audience, subject, scopes, roles, and common token claim issues directly in your browser."
+      description="Inspect JWT claims locally and check expiration, issued-at, not-before, issuer, audience, subject, scopes, roles, lifetime, and common claim issues. This tool does not verify signatures."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -181,8 +181,8 @@ export default function ToolClient() {
         />
 
         <p className="mt-2 text-sm text-gray-500">
-          Paste a JWT access token, ID token, or test token. This tool reads
-          claims but does not verify the signature.
+          Paste a JWT access token, ID token, or test token. This tool decodes
+          claims locally, but it does not verify the signature or trust the token.
         </p>
       </div>
 
@@ -782,6 +782,10 @@ function inspectJwtClaims(
 
 function decodeJwtPart(part: string, label: string) {
   try {
+    if (!/^[A-Za-z0-9_-]*$/.test(part)) {
+      throw new Error();
+    }
+
     const padded = addPadding(part.replace(/-/g, "+").replace(/_/g, "/"));
     const binary = atob(padded);
     const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
@@ -879,7 +883,49 @@ function getClaimIssues({
     issues.push({
       severity: "warning",
       title: "Long token lifetime",
-      message: "The token lifetime is longer than 24 hours.",
+      message: "The token lifetime is longer than 24 hours. That may be valid for some systems, but short-lived access tokens are usually safer.",
+    });
+  }
+
+  if (exp !== null && iat !== null && exp <= iat) {
+    issues.push({
+      severity: "high",
+      title: "Expiration is not after issued-at",
+      message: "The exp claim should be later than the iat claim.",
+    });
+  }
+
+  if (exp !== null && nbf !== null && nbf > exp) {
+    issues.push({
+      severity: "high",
+      title: "Not-before is after expiration",
+      message: "The nbf claim is later than exp, so the token may never be usable.",
+    });
+  }
+
+  ["exp", "iat", "nbf"].forEach((claimName) => {
+    if (payload[claimName] !== undefined && getNumberClaim(payload[claimName]) === null) {
+      issues.push({
+        severity: "warning",
+        title: `Invalid ${claimName} claim type`,
+        message: `${claimName} should be a numeric Unix timestamp in seconds, not a string, date, or object.`,
+      });
+    }
+  });
+
+  if (Array.isArray(payload.aud) && !payload.aud.every((item) => typeof item === "string")) {
+    issues.push({
+      severity: "warning",
+      title: "Audience array has non-string values",
+      message: "The aud claim should be a string or an array of strings.",
+    });
+  }
+
+  if (header.crit !== undefined) {
+    issues.push({
+      severity: "info",
+      title: "Critical header present",
+      message: "The JWT header has a crit field. This inspector does not evaluate custom critical header rules.",
     });
   }
 
@@ -940,7 +986,7 @@ function audienceMatches(aud: unknown, expected: string) {
   }
 
   if (Array.isArray(aud)) {
-    return aud.includes(expected);
+    return aud.some((item) => typeof item === "string" && item === expected);
   }
 
   return false;
@@ -980,19 +1026,19 @@ function buildClaimRows(
     },
     {
       name: "exp",
-      value: options.exp ? formatUnixTime(options.exp, options.timeMode) : "(missing)",
+      value: options.exp !== null ? formatUnixTime(options.exp, options.timeMode) : "(missing)",
       label: "Expiration",
       note: "When the token expires.",
     },
     {
       name: "iat",
-      value: options.iat ? formatUnixTime(options.iat, options.timeMode) : "(missing)",
+      value: options.iat !== null ? formatUnixTime(options.iat, options.timeMode) : "(missing)",
       label: "Issued At",
       note: "When the token was issued.",
     },
     {
       name: "nbf",
-      value: options.nbf ? formatUnixTime(options.nbf, options.timeMode) : "(missing)",
+      value: options.nbf !== null ? formatUnixTime(options.nbf, options.timeMode) : "(missing)",
       label: "Not Before",
       note: "Before this time, the token should not be accepted.",
     },
@@ -1147,7 +1193,7 @@ function getClaimNotes(inspection: JWTInspection): ClaimNote[] {
   notes.push({
     title: "Signature not verified here",
     message:
-      "This tool inspects JWT claims only. It does not verify the token signature.",
+      "This tool inspects JWT claims only. Treat the result as informational until your server verifies the signature, allowed algorithm, issuer, audience, and time claims.",
   });
 
   return notes;

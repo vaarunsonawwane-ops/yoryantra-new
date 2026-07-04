@@ -45,7 +45,7 @@ type HashNote = {
 const sampleHashes = `5d41402abc4b2a76b9719d911017c592
 2aae6c35c94fcfb415dbe95f408b9ce91ee846ed
 a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447
-$2y$10$abcdefghijklmnopqrstuuJg6kCz3Wr2WlZEVW31KqZ8p.9JZ9L6
+$2b$12$abcdefghijklmnopqrstuuJg6kCz3Wr2WlZEVW31KqZ8p.9JZ9L6
 $argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$hashvaluehere`;
 
 const knownPatterns: Array<{
@@ -64,7 +64,7 @@ const knownPatterns: Array<{
     confidence: "medium",
     reason: "32 hexadecimal characters is a common MD5 digest shape.",
     example: "5d41402abc4b2a76b9719d911017c592",
-    securityNote: "MD5 is not suitable for password storage or collision-resistant security use.",
+    securityNote: "MD5 is a legacy hash and is not suitable for password storage, signatures, or collision-resistant security use.",
   },
   {
     name: "SHA-1",
@@ -73,7 +73,7 @@ const knownPatterns: Array<{
     confidence: "medium",
     reason: "40 hexadecimal characters is a common SHA-1 digest shape.",
     example: "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed",
-    securityNote: "SHA-1 is considered weak for collision-resistant security use.",
+    securityNote: "SHA-1 is legacy for collision-resistant use and should be replaced in security-sensitive systems.",
   },
   {
     name: "SHA-224",
@@ -82,7 +82,7 @@ const knownPatterns: Array<{
     confidence: "medium",
     reason: "56 hexadecimal characters is a common SHA-224 digest shape.",
     example: "d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f",
-    securityNote: "SHA-224 is uncommon compared with SHA-256 and SHA-512.",
+    securityNote: "SHA-224 is uncommon compared with SHA-256 and SHA-512, and this shape can overlap with other 224-bit digests.",
   },
   {
     name: "SHA-256",
@@ -91,7 +91,7 @@ const knownPatterns: Array<{
     confidence: "medium",
     reason: "64 hexadecimal characters is a common SHA-256 digest shape.",
     example: "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
-    securityNote: "SHA-256 is fast. Do not use raw SHA-256 alone for password storage.",
+    securityNote: "SHA-256 is fast. It can be fine for integrity checks, but raw SHA-256 alone is not suitable for password storage.",
   },
   {
     name: "SHA-384",
@@ -109,7 +109,25 @@ const knownPatterns: Array<{
     confidence: "medium",
     reason: "128 hexadecimal characters is a common SHA-512 digest shape.",
     example: "hex string with 128 characters",
-    securityNote: "SHA-512 is fast. Do not use raw SHA-512 alone for password storage.",
+    securityNote: "SHA-512 is fast. It can be fine for integrity checks, but raw SHA-512 alone is not suitable for password storage.",
+  },
+  {
+    name: "SHA3-256 or another 256-bit hex digest",
+    family: "Fast hash",
+    test: (value) => /^[a-f0-9]{64}$/i.test(value),
+    confidence: "low",
+    reason: "64 hexadecimal characters can also represent SHA3-256, BLAKE2s-256, SHA-512/256, or another 256-bit digest.",
+    example: "hex string with 64 characters",
+    securityNote: "Length alone cannot prove which 256-bit hash algorithm produced the value.",
+  },
+  {
+    name: "SHA3-512 or another 512-bit hex digest",
+    family: "Fast hash",
+    test: (value) => /^[a-f0-9]{128}$/i.test(value),
+    confidence: "low",
+    reason: "128 hexadecimal characters can also represent SHA3-512, BLAKE2b-512, or another 512-bit digest.",
+    example: "hex string with 128 characters",
+    securityNote: "Length alone cannot prove which 512-bit hash algorithm produced the value.",
   },
   {
     name: "bcrypt",
@@ -279,7 +297,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Hash Algorithm Identifier"
-      description="Identify possible hash algorithms from a hash string. Check length, character set, common formats, MD5, SHA1, SHA256, SHA512, bcrypt, Argon2, UUID-like values, and more directly in your browser."
+      description="Identify possible hash algorithms from a pasted value. Check length, character set, common digest shapes, password-hash prefixes, token-like values, and ambiguity warnings locally in your browser."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -918,15 +936,15 @@ function getWarnings(
   const warnings: string[] = [];
 
   if (matches.length === 0) {
-    warnings.push("No common hash format matched this value.");
+    warnings.push("No common hash format matched this value. It may be custom, truncated, encoded, salted, or not a hash.");
   }
 
   if (matches.length > 1) {
-    warnings.push("More than one format matched. Hash identification is not always exact.");
+    warnings.push("More than one format matched. Length and character set cannot prove the exact hash algorithm.");
   }
 
   if (includeWeakHashWarnings && matches.some((match) => ["MD5", "SHA-1", "NTLM"].includes(match.name))) {
-    warnings.push("This value may be a weak legacy hash type.");
+    warnings.push("This value may be a weak legacy hash type. Do not reuse MD5, SHA-1, or NTLM for modern password or signature security.");
   }
 
   if (value.length < 16) {
