@@ -4,7 +4,7 @@ export const metadata = {
   title: "JWT HS256 Signature Verifier | Yoryantra",
 
   description:
-    "Verify JWT signatures using a secret key instantly with this free online JWT Signature Verifier.",
+    "Verify HS256 JWT signatures with a shared secret and check whether the token header and payload match the signature.",
 
   keywords: [
     "jwt signature verifier",
@@ -23,10 +23,10 @@ export const metadata = {
 
   openGraph: {
     title:
-      "JWT Signature Verifier Online Free | Yoryantra",
+      "JWT HS256 Signature Verifier | Yoryantra",
 
     description:
-      "Verify JWT signatures using a secret key instantly online.",
+      "Verify HS256 JWT signatures locally with a shared secret and review signature-match results before checking token claims separately.",
 
     url:
       "https://yoryantra.com/tools/jwt-signature-verifier",
@@ -40,10 +40,10 @@ export const metadata = {
     card: "summary_large_image",
 
     title:
-      "JWT Signature Verifier Online Free | Yoryantra",
+      "JWT HS256 Signature Verifier | Yoryantra",
 
     description:
-      "Verify JWT signatures instantly.",
+      "Verify HS256 JWT signatures locally with a shared secret.",
   },
 };
 

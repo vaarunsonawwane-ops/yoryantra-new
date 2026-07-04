@@ -15,7 +15,7 @@ export const tools = [
 
   {
   title: "JWT Decoder",
-  description: "Decode JWT tokens and inspect payload data easily.",
+  description: "Decode JWT header and payload data locally, inspect claims, and review token structure without verifying the signature.",
   href: "/tools/jwt-decoder",
   category: "Security Tools",
   },
@@ -86,7 +86,7 @@ export const tools = [
   
   {
   title: "Password Generator",
-  description: "Generate strong random passwords instantly.",
+  description: "Generate browser-based random passwords with selectable length, letters, numbers, symbols, and safer randomness.",
   href: "/tools/password-generator",
   category: "Security Tools",
   },
@@ -203,21 +203,21 @@ export const tools = [
 
   {
   title: "JWT Expiration Checker",
-  description: "Check JWT token expiration, issued time, and validity instantly.",
+  description: "Check JWT exp, nbf, and iat timestamps, convert token times, and review expiration or not-before issues.",
   href: "/tools/jwt-expiration-checker",
   category: "Security Tools",
   },
 
   {
   title: "Random Token Generator",
-  description: "Generate random tokens, secret strings, and secure identifiers instantly.",
+  description: "Generate browser-based random tokens for API keys, webhook secrets, session IDs, and testing with Base64URL, alphanumeric, hex, or numeric output.",
   href: "/tools/random-token-generator",
   category: "Security Tools",
   },
 
   {
   title: "SHA256 Generator",
-  description: "Generate SHA256 hashes from text instantly.",
+  description: "Generate SHA-256 hashes from text and review one-way hashing, exact input matching, and safe usage limits.",
   href: "/tools/sha256-generator",
   category: "Security Tools",
   },
@@ -238,7 +238,7 @@ export const tools = [
 
   {
   title: "RSA Key Generator",
-  description: "Generate RSA public and private key pairs instantly.",
+  description: "Generate RSA signing key pairs in your browser and export public and private keys as SPKI and PKCS8 PEM.",
   href: "/tools/rsa-key-generator",
   category: "Security Tools",
   },
@@ -253,7 +253,7 @@ export const tools = [
 
   {
   title: "PEM Formatter",
-  description: "Format PEM public keys, private keys, and certificates instantly.",
+  description: "Format PEM certificates, public keys, private keys, CSRs, and multiple PEM blocks with label checks and line wrapping.",
   href: "/tools/pem-formatter",
   category: "Security Tools",
   },
@@ -331,7 +331,7 @@ export const tools = [
 
   {
   title: "JWT Signature Verifier",
-  description: "Verify JWT signatures using a secret key instantly.",
+  description: "Verify HS256 JWT signatures with a shared secret and check whether the token header and payload match the signature.",
   href: "/tools/jwt-signature-verifier",
   category: "Security Tools"
   },
@@ -346,7 +346,7 @@ export const tools = [
 
   {
   title: "JSON Schema Validator",
-  description: "Validate JSON data against a JSON schema instantly.",
+  description: "Validate JSON data against JSON Schema rules for types, required fields, properties, arrays, enums, ranges, and patterns.",
   href: "/tools/json-schema-validator",
   category: "JSON & Data Tools"
   },
@@ -440,7 +440,7 @@ export const tools = [
   {
   title: "Security Headers Scanner",
   description:
-    "Scan website security headers including CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP, COEP, and related headers.",
+    "Review browser-visible CSP, HSTS, framing, MIME, referrer, permissions, and cross-origin response headers with scanner-limit notes.",
   href: "/tools/security-headers-scanner",
   category: "Security Tools",
   },
@@ -672,7 +672,7 @@ export const tools = [
 {
   title: "Security Header Generator",
   description:
-    "Generate HTTP security headers, review recommended values, and prepare website security header snippets.",
+    "Generate HTTP security header snippets and review recommended values for CSP, HSTS, X-Frame-Options, Referrer-Policy, and more.",
   href: "/tools/security-header-generator",
   category: "Security Tools",
 },
@@ -680,7 +680,7 @@ export const tools = [
 {
   title: "PEM Certificate Viewer",
   description:
-    "Inspect PEM certificate blocks, decode readable certificate content, and review certificate details in your browser.",
+    "Inspect PEM certificate blocks, fingerprints, decoded size, certificate boundaries, and readable byte previews in your browser.",
   href: "/tools/pem-certificate-viewer",
   category: "Security Tools",
 },
@@ -1052,7 +1052,7 @@ export const tools = [
 {
   title: "JWT Claims Inspector",
   description:
-    "Inspect JWT claims and check expiration, issuer, audience, subject, scopes, roles, and common token issues.",
+    "Inspect JWT claims like exp, nbf, iat, issuer, audience, subject, scopes, roles, and token lifetime without verifying signatures.",
   href: "/tools/jwt-claims-inspector",
   category: "Security Tools",
 },
@@ -1232,7 +1232,7 @@ export const tools = [
 {
   title: "SEO Slug Analyzer",
   description:
-    "Analyze URL slugs for length, target keyword, hyphens, underscores, uppercase letters, stop words, special characters, and clean URL readability.",
+    "Analyze URL slugs for readability, keyword use, casing, separators, length, repeated characters, and clean URL suggestions.",
   href: "/tools/seo-slug-analyzer",
   category: "SEO Tools",
 },
@@ -1273,7 +1273,7 @@ export const tools = [
 {
   title: "JWT Secret Strength Checker",
   description:
-    "Check JWT and HMAC signing secrets for length, entropy estimate, weak/default words, repeated patterns, and risky secret formats.",
+    "Check JWT and HMAC signing secrets for entropy, length, weak words, repeated patterns, UUID-like values, and risky formats.",
   href: "/tools/jwt-secret-strength-checker",
   category: "Security Tools",
 },
@@ -1281,7 +1281,7 @@ export const tools = [
 {
   title: "Security.txt Generator",
   description:
-    "Generate /.well-known/security.txt content with Contact, Expires, Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring fields.",
+    "Generate security.txt content with Contact, Expires, Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring fields.",
   href: "/tools/security-txt-generator",
   category: "Security Tools",
 },
@@ -1289,7 +1289,7 @@ export const tools = [
 {
   title: "TLS Certificate Expiry Reminder Generator",
   description:
-    "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans for domains and teams.",
+    "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans from a known expiry date.",
   href: "/tools/tls-certificate-expiry-reminder-generator",
   category: "Security Tools",
 },
