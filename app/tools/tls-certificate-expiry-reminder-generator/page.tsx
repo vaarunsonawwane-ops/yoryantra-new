@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "TLS Certificate Expiry Reminder Generator | SSL Renewal Checklist | Yoryantra",
   description:
-    "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans for domains, environments, issuers, and certificate owners.",
+    "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans from a known expiry date.",
   keywords: [
     "TLS Certificate Expiry Reminder Generator",
     "SSL certificate expiry reminder",
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "certificate expiry reminder",
     "TLS certificate renewal",
     "SSL certificate renewal",
-    "certificate monitoring checklist",
+    "certificate renewal checklist",
     "security tools",
     "DevOps security tools",
   ],
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "TLS Certificate Expiry Reminder Generator | SSL Renewal Checklist | Yoryantra",
     description:
-      "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans for domains, environments, issuers, and certificate owners.",
+      "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans from a known expiry date.",
     url: "https://yoryantra.com/tools/tls-certificate-expiry-reminder-generator",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "TLS Certificate Expiry Reminder Generator | SSL Renewal Checklist | Yoryantra",
     description:
-      "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans for domains, environments, issuers, and certificate owners.",
+      "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans from a known expiry date.",
   },
 };
 

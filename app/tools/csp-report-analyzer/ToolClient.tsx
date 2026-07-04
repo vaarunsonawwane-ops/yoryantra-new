@@ -50,6 +50,8 @@ type AnalysisResult = {
   inlineCount: number;
   evalCount: number;
   dataBlobCount: number;
+  reportOnlyCount: number;
+  enforcedCount: number;
 };
 
 const sampleInput = `[
@@ -289,6 +291,7 @@ export default function ToolClient() {
           <SummaryCard label="Directives" value={result.directiveCount.toLocaleString()} />
           <SummaryCard label="Blocked URIs" value={result.blockedUriCount.toLocaleString()} />
           <SummaryCard label="High Risk" value={result.highRiskCount.toLocaleString()} />
+          <SummaryCard label="Report-Only" value={result.reportOnlyCount.toLocaleString()} />
         </div>
       )}
 
@@ -367,8 +370,8 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Analyze Content Security Policy Violation Reports</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">Content Security Policy reports help you understand what a browser blocked because of your CSP header. They are useful during CSP rollout because they show blocked scripts, styles, images, frames, connections, and inline code before you make a policy stricter.</p>
-          <p className="mt-4 text-gray-600 leading-relaxed">This CSP Report Analyzer parses common CSP report JSON and NDJSON formats, groups repeated violations, highlights risky patterns, and creates clean summaries for debugging or policy review.</p>
+          <p className="mt-4 text-gray-600 leading-relaxed">Content Security Policy reports help you understand what a browser blocked or would have blocked because of your CSP header. They are useful during CSP rollout because they show blocked scripts, styles, images, frames, connections, and inline code before you make a policy stricter.</p>
+          <p className="mt-4 text-gray-600 leading-relaxed">This CSP Report Analyzer parses common CSP report JSON and NDJSON formats, groups repeated violations, highlights risky patterns, and creates clean summaries for debugging or policy review. It does not automatically prove that every report is an attack, because reports can also come from browser extensions, old cached pages, third-party widgets, or rollout testing.</p>
         </div>
 
         <div>
@@ -377,7 +380,7 @@ export default function ToolClient() {
             <li>Paste a CSP violation report, JSON array, or NDJSON report export.</li>
             <li>Choose whether to group by directive, blocked URI, document URI, or source file.</li>
             <li>Keep query-string redaction enabled if reports may contain private URL parameters.</li>
-            <li>Review high-risk findings such as inline script, eval, data/blob URLs, and insecure HTTP resources.</li>
+            <li>Review high-risk findings such as inline script, eval, data/blob URLs, insecure HTTP resources, and report-only versus enforced behavior.</li>
             <li>Copy the summary, detailed report, Markdown table, JSON, or CSV output.</li>
           </ol>
         </div>
@@ -388,7 +391,7 @@ export default function ToolClient() {
             The analyzer supports a single legacy <span className="font-mono text-gray-800">csp-report</span> object, JSON arrays of reports, newer report objects with a <span className="font-mono text-gray-800">body</span> field, and NDJSON log exports with one JSON object per line.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            It reads fields such as document URI, blocked URI, violated directive, effective directive, source file, line number, column number, status code, disposition, and script sample when available.
+            It reads fields such as document URI, blocked URI, violated directive, effective directive, source file, line number, column number, status code, disposition, raw report type, and script sample when available.
           </p>
         </div>
 
@@ -420,14 +423,14 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Report-Only CSP vs Enforced CSP</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">A report-only CSP lets browsers send violation reports without actually blocking the resource. This is useful when testing a new policy. An enforced CSP blocks resources that violate the policy, so it should be deployed carefully after reviewing reports.</p>
+          <p className="mt-4 text-gray-600 leading-relaxed">A report-only CSP lets browsers send violation reports without actually blocking the resource. This is useful when testing a new policy. An enforced CSP blocks resources that violate the policy, so it should be deployed carefully after reviewing reports and testing important user flows.</p>
           <p className="mt-4 text-gray-600 leading-relaxed">When reports look clean and expected resources are allowed intentionally, you can gradually tighten the policy and move from report-only mode to enforcement.</p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
           <div className="mt-5 space-y-6">
-            <Faq title="What is a CSP violation report?" text="It is a browser-generated report that describes a resource blocked by a Content Security Policy directive." />
+            <Faq title="What is a CSP violation report?" text="It is a browser-generated report that describes a resource blocked, or in report-only mode would have been blocked, by a Content Security Policy directive." />
             <Faq title="Can I paste multiple CSP reports at once?" text="Yes. You can paste a JSON array, a reports array, or NDJSON with one report object per line." />
             <Faq title="Can this parse Report-To style CSP reports?" text="Yes. It supports common legacy csp-report payloads and newer report objects with a body field." />
             <Faq title="Why should query strings be redacted?" text="URLs in security reports can sometimes contain tokens, IDs, or private parameters. Redacting query strings makes reports safer to share." />
@@ -504,6 +507,8 @@ function analyzeCspReports(
     inlineCount: violations.filter((item) => isInlineBlocked(item.blockedUri)).length,
     evalCount: violations.filter(isEvalLike).length,
     dataBlobCount: violations.filter((item) => isDataOrBlob(item.blockedUri)).length,
+    reportOnlyCount: violations.filter(isReportOnly).length,
+    enforcedCount: violations.filter((item) => item.disposition.toLowerCase() === "enforce").length,
   };
   const output = formatOutput(base, options);
   return { ...base, output };
@@ -548,7 +553,7 @@ function normalizeReport(value: unknown, redactQueryStrings: boolean): CspViolat
   const columnNumber = readString(source, ["column-number", "columnNumber"]);
   const statusCode = readString(source, ["status-code", "statusCode"]);
   const sample = readString(source, ["script-sample", "sample"]);
-  const disposition = readString(source, ["disposition"]);
+  const disposition = readString(source, ["disposition", "effectiveDisposition"]) || readString(objectValue, ["disposition"]);
   const rawType = readString(objectValue, ["type"]) || (legacy ? "csp-report" : "unknown");
   return {
     documentUri: cleanUrl(documentUri, redactQueryStrings),
@@ -621,10 +626,16 @@ function getFindings(violations: CspViolation[], options: { warnInlineAndEval: b
   if (options.warnInlineAndEval && evalCount > 0) findings.push({ severity: "high", title: "Eval-like behavior blocked", message: `${evalCount} report${evalCount === 1 ? "" : "s"} may involve eval, wasm eval, or unsafe dynamic script behavior.` });
   if (options.warnInsecureHttp && httpCount > 0) findings.push({ severity: "high", title: "Insecure HTTP resource blocked", message: `${httpCount} blocked resource${httpCount === 1 ? " uses" : "s use"} http://. Prefer HTTPS resources on secure pages.` });
   if (dataBlobCount > 0) findings.push({ severity: "warning", title: "data: or blob: resource blocked", message: `${dataBlobCount} report${dataBlobCount === 1 ? "" : "s"} involved data: or blob: URLs. Allow these only when truly needed.` });
-  if (options.warnThirdParty && thirdPartyCount > 0) findings.push({ severity: "info", title: "Third-party resources blocked", message: `${thirdPartyCount} report${thirdPartyCount === 1 ? "" : "s"} appear to involve third-party resources. Review whether each source is trusted and necessary.` });
+  if (options.warnThirdParty && thirdPartyCount > 0) findings.push({ severity: "info", title: "Third-party resources blocked", message: `${thirdPartyCount} report${thirdPartyCount === 1 ? "" : "s"} appear to involve third-party resources. Review whether each source is trusted and necessary before allowing it.` });
+  const reportOnlyCount = violations.filter(isReportOnly).length;
+  if (reportOnlyCount > 0) findings.push({ severity: "info", title: "Report-only reports found", message: `${reportOnlyCount} report${reportOnlyCount === 1 ? " is" : "s are"} marked as report-only or came from a report-only style header. Treat these as testing signals, not proof that a user-facing resource was blocked.` });
   if (missingDirectiveCount > 0) findings.push({ severity: "info", title: "Some reports are missing directive fields", message: `${missingDirectiveCount} report${missingDirectiveCount === 1 ? " is" : "s are"} missing violated/effective directive fields.` });
   if (findings.length === 0) findings.push({ severity: "info", title: "No high-risk CSP patterns found", message: "The pasted reports did not trigger the selected high-risk pattern checks." });
   return findings;
+}
+
+function isReportOnly(violation: CspViolation) {
+  return violation.disposition.toLowerCase() === "report" || violation.rawType.toLowerCase().includes("report-only");
 }
 
 function isInlineBlocked(value: string) {
@@ -666,17 +677,18 @@ function formatOutput(result: Omit<AnalysisResult, "output">, options: { outputM
       if (options.includeRawSamples && item.sample) lines.push(`   sample: ${item.sample}`);
       return lines.join("\n");
     });
-    return ["CSP Report Analysis", "-------------------", `Reports: ${result.totalReports}`, `Unique directives: ${result.directiveCount}`, `Unique blocked URIs: ${result.blockedUriCount}`, `High-risk findings: ${result.highRiskCount}`, `Inline violations: ${result.inlineCount}`, `Eval-like violations: ${result.evalCount}`, `data/blob violations: ${result.dataBlobCount}`, "", "Findings:", ...findings, "", "Sample reports:", ...(reports.length ? reports : ["No reports found."])].join("\n");
+    return ["CSP Report Analysis", "-------------------", `Reports: ${result.totalReports}`, `Unique directives: ${result.directiveCount}`, `Unique blocked URIs: ${result.blockedUriCount}`, `High-risk findings: ${result.highRiskCount}`, `Inline violations: ${result.inlineCount}`, `Eval-like violations: ${result.evalCount}`, `data/blob violations: ${result.dataBlobCount}`, `Report-only reports: ${result.reportOnlyCount}`, `Enforced reports: ${result.enforcedCount}`, "", "Findings:", ...findings, "", "Sample reports:", ...(reports.length ? reports : ["No reports found."])].join("\n");
   }
   const findings = result.findings.map((finding) => `- [${finding.severity}] ${finding.title}: ${finding.message}`);
   const topGroups = result.groups.slice(0, 10).map((group) => `- ${group.key}: ${group.count}`);
-  return ["CSP Report Summary", "------------------", `Reports: ${result.totalReports}`, `Unique directives: ${result.directiveCount}`, `Unique blocked URIs: ${result.blockedUriCount}`, `High-risk findings: ${result.highRiskCount}`, `Inline violations: ${result.inlineCount}`, `Eval-like violations: ${result.evalCount}`, `data/blob violations: ${result.dataBlobCount}`, "", "Top groups:", ...(topGroups.length ? topGroups : ["- No groups found."]), "", "Findings:", ...findings].join("\n");
+  return ["CSP Report Summary", "------------------", `Reports: ${result.totalReports}`, `Unique directives: ${result.directiveCount}`, `Unique blocked URIs: ${result.blockedUriCount}`, `High-risk findings: ${result.highRiskCount}`, `Inline violations: ${result.inlineCount}`, `Eval-like violations: ${result.evalCount}`, `data/blob violations: ${result.dataBlobCount}`, `Report-only reports: ${result.reportOnlyCount}`, `Enforced reports: ${result.enforcedCount}`, "", "Top groups:", ...(topGroups.length ? topGroups : ["- No groups found."]), "", "Findings:", ...findings].join("\n");
 }
 
 function getCspNotes(result: AnalysisResult) {
   const notes: { title: string; message: string }[] = [];
   if (result.highRiskCount > 0) notes.push({ title: "Fix high-risk patterns first", message: "Prioritize insecure HTTP resources, eval-like behavior, and broad inline code problems before tightening enforcement." });
   if (result.inlineCount > 0) notes.push({ title: "Inline reports need careful review", message: "Inline script and style reports can come from app code, third-party widgets, browser extensions, or injected markup." });
+  if (result.reportOnlyCount > 0) notes.push({ title: "Report-only is a testing signal", message: "Report-only results help test a policy, but they do not mean the browser blocked a live resource for users." });
   if (result.totalReports > 0) notes.push({ title: "Group before changing policy", message: "Repeated violations are usually more important than one-off noise. Review grouped results before allowing new sources." });
   return notes;
 }

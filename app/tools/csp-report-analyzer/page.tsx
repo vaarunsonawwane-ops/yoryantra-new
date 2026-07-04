@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "CSP Report Analyzer – Parse Violation Reports | Yoryantra",
   description:
-    "Analyze CSP violation reports, parse report JSON or NDJSON, group blocked resources, inspect directives, and detect risky Content Security Policy patterns.",
+    "Analyze CSP violation reports, parse report JSON or NDJSON, group blocked resources, inspect directives, and review report-only or enforced Content Security Policy signals.",
   keywords: [
     "CSP report analyzer",
     "Content Security Policy report analyzer",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "CSP Report Analyzer – Parse Violation Reports | Yoryantra",
     description:
-      "Analyze CSP violation reports, parse report JSON or NDJSON, group blocked resources, inspect directives, and detect risky Content Security Policy patterns.",
+      "Analyze CSP violation reports, parse report JSON or NDJSON, group blocked resources, inspect directives, and review report-only or enforced Content Security Policy signals.",
     url: "https://yoryantra.com/tools/csp-report-analyzer",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "CSP Report Analyzer – Parse Violation Reports | Yoryantra",
     description:
-      "Analyze CSP violation reports, parse report JSON or NDJSON, group blocked resources, inspect directives, and detect risky Content Security Policy patterns.",
+      "Analyze CSP violation reports, parse report JSON or NDJSON, group blocked resources, inspect directives, and review report-only or enforced Content Security Policy signals.",
   },
 };
 

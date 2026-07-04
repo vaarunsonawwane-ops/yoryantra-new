@@ -302,7 +302,7 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          This tool does not scan live certificates. Enter the expiry date from your certificate dashboard, hosting provider, browser certificate view, or certificate monitoring system.
+          This tool does not scan live certificates or renew anything. Enter the expiry date from your certificate dashboard, hosting provider, browser certificate view, OpenSSL output, or certificate monitoring system.
         </p>
       </div>
 
@@ -442,7 +442,7 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This TLS Certificate Expiry Reminder Generator creates reminder dates, renewal checklists, calendar notes, and action plans from a domain, expiry date, owner, environment, issuer, and renewal method.
+            This TLS Certificate Expiry Reminder Generator creates reminder dates, renewal checklists, calendar notes, and action plans from a domain, expiry date, owner, environment, issuer, and renewal method. It is a planning helper, not a live certificate scanner.
           </p>
         </div>
 
@@ -454,7 +454,7 @@ export default function ToolClient() {
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Enter the domain or certificate name.</li>
             <li>Add issuer, owner, environment, and renewal method if known.</li>
-            <li>Enter the certificate expiry date.</li>
+            <li>Enter the certificate expiry date exactly as shown by your provider or certificate viewer.</li>
             <li>Choose reminder days and checklist options.</li>
             <li>Copy the reminder plan, checklist, calendar notes, JSON, Markdown, or CSV output.</li>
           </ol>
@@ -467,8 +467,8 @@ export default function ToolClient() {
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Renew or replace the certificate before the final week.</li>
-            <li>Confirm the full certificate chain is served correctly.</li>
-            <li>Check all load balancers, CDN edges, reverse proxies, and origin servers.</li>
+            <li>Confirm the full certificate chain, SAN names, issuer, and hostname match are served correctly.</li>
+            <li>Check all load balancers, CDN edges, reverse proxies, API gateways, and origin servers.</li>
             <li>Verify HTTP to HTTPS redirects and HSTS behavior after renewal.</li>
             <li>Confirm monitoring alerts reset after the new certificate is active.</li>
             <li>Document owner, issuer, renewal method, and next expiry date.</li>
@@ -496,7 +496,7 @@ Post-renewal: verify browser, chain, CDN, load balancer, and monitoring checks`}
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Automatic renewal tools are helpful, but they can fail because of DNS changes, rate limits, account issues, expired tokens, firewall rules, changed validation methods, or broken deployment hooks.
+            Automatic renewal tools are helpful, but they can fail because of DNS changes, CAA restrictions, rate limits, account issues, expired tokens, firewall rules, changed validation methods, or broken deployment hooks.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -515,7 +515,7 @@ Post-renewal: verify browser, chain, CDN, load balancer, and monitoring checks`}
             </Faq>
 
             <Faq title="Does this tool scan my live certificate?">
-              No. It uses the expiry date you enter and generates reminders locally in your browser.
+              No. It uses the expiry date you enter and generates reminders locally in your browser. Use your hosting provider, certificate manager, browser certificate view, OpenSSL, or monitoring tool to confirm the live expiry date.
             </Faq>
 
             <Faq title="How early should I renew a TLS certificate?">
@@ -993,9 +993,19 @@ function buildReminder(options: {
 }
 
 function parseDate(value: string) {
-  const date = new Date(`${value}T00:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error("Please enter the expiry date in YYYY-MM-DD format.");
+  }
 
-  if (!Number.isFinite(date.getTime())) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    !Number.isFinite(date.getTime()) ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
     throw new Error("Please enter a valid expiry date.");
   }
 
@@ -1015,9 +1025,14 @@ function parseAlertDays(value: string) {
   const numbers = value
     .split(/[,\n]/)
     .map((item) => Number(item.trim()))
-    .filter((item) => Number.isFinite(item) && item >= 0);
+    .filter((item) => Number.isFinite(item) && item >= 0 && item <= 398);
 
   const unique = Array.from(new Set(numbers));
+
+  if (unique.length === 0) {
+    throw new Error("Enter at least one reminder day, such as 30 or 7.");
+  }
+
   return unique.sort((a, b) => b - a);
 }
 
@@ -1033,12 +1048,15 @@ function buildReminders(options: {
     date.setUTCDate(date.getUTCDate() - days);
 
     const ownerText = options.owner ? ` Owner: ${options.owner}.` : "";
+    const passed = startOfUtcDay(date).getTime() < startOfUtcDay(new Date()).getTime();
 
     return {
       label: `${days} day${days === 1 ? "" : "s"} before expiry`,
       date: formatDate(date),
       daysBeforeExpiry: days,
-      message: `${options.domain} TLS certificate expires in ${days} day${days === 1 ? "" : "s"}.${ownerText}`,
+      message: passed
+        ? `${options.domain} TLS certificate reminder for ${days} day${days === 1 ? "" : "s"} before expiry has already passed.${ownerText}`
+        : `${options.domain} TLS certificate expires in ${days} day${days === 1 ? "" : "s"}.${ownerText}`,
     };
   });
 }
@@ -1071,7 +1089,7 @@ function buildChecklist(options: {
   }
 
   if (options.renewalMethod === "automatic") {
-    checklist.push("Check automatic renewal job, validation method, and deployment hook.");
+    checklist.push("Check automatic renewal job, ACME or provider validation method, and deployment hook.");
   } else if (options.renewalMethod === "manual") {
     checklist.push("Schedule manual renewal and deployment before the final week.");
   } else if (options.renewalMethod === "managed") {
@@ -1085,11 +1103,11 @@ function buildChecklist(options: {
   }
 
   if (options.includeDnsChecks) {
-    checklist.push("Verify DNS validation records, CAA records, CDN settings, and load balancer certificate attachments.");
+    checklist.push("Verify DNS validation records, CAA records, CDN settings, API gateways, and load balancer certificate attachments.");
   }
 
   if (options.includePostRenewalChecks) {
-    checklist.push("After renewal, verify browser lock icon, certificate chain, SAN names, expiry date, and HTTPS redirect behavior.");
+    checklist.push("After renewal, verify browser lock icon, hostname match, certificate chain, SAN names, issuer, expiry date, and HTTPS redirect behavior.");
   }
 
   if (options.includeMonitoringChecks) {
@@ -1156,6 +1174,22 @@ function buildIssues(options: {
       severity: "info",
       title: "Add earlier production reminders",
       message: "Production certificates are safer with reminders at least 30 to 60 days before expiry.",
+    });
+  }
+
+  if (options.daysUntilExpiry >= 0 && options.alertNumbers.some((day) => day > options.daysUntilExpiry)) {
+    issues.push({
+      severity: "info",
+      title: "Some reminder dates have already passed",
+      message: "One or more selected reminder windows are earlier than today. Keep them for records or remove them from the active calendar notes.",
+    });
+  }
+
+  if (options.alertNumbers.some((day) => day === 0)) {
+    issues.push({
+      severity: "warning",
+      title: "Expiry-day reminder included",
+      message: "A reminder on the expiry day is a last safety net, not a renewal plan. Keep earlier reminders too.",
     });
   }
 

@@ -23,6 +23,7 @@ type TokenInfo = {
   looksJwt: boolean;
   jwtParts: number;
   hasWhitespace: boolean;
+  hasControlCharacters: boolean;
   hasBearerPrefix: boolean;
   redactedToken: string;
 };
@@ -245,7 +246,7 @@ export default function ToolClient() {
                 { label: "Bearer token", value: "bearer" },
                 { label: "JWT bearer token", value: "jwt" },
                 { label: "Opaque access token", value: "opaque" },
-                { label: "Custom token value", value: "custom" },
+                { label: "Custom Bearer value", value: "custom" },
               ]}
             />
 
@@ -420,7 +421,7 @@ export default function ToolClient() {
             Many APIs use Bearer tokens in the HTTP Authorization header. The final header usually looks like <code className="rounded bg-gray-100 px-1 py-0.5">Authorization: Bearer YOUR_TOKEN</code>. It is simple, but small formatting mistakes can cause authentication failures.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool helps format Bearer token headers and request snippets for documentation, API testing, and debugging. It can trim accidental whitespace, remove duplicate Bearer prefixes, redact token values, and generate cURL, fetch, raw HTTP, JSON, or Markdown output.
+            This tool helps format Bearer token headers and request snippets for documentation, API testing, and debugging. It can trim accidental whitespace, remove duplicate Authorization or Bearer prefixes, warn about plain HTTP endpoints, redact token values, and generate cURL, fetch, raw HTTP, JSON, or Markdown output.
           </p>
         </div>
 
@@ -441,7 +442,7 @@ export default function ToolClient() {
             <li>Choose the output format: header, cURL, fetch, raw HTTP, JSON, Markdown, or checklist.</li>
             <li>Set the endpoint URL and request method if you are generating a request snippet.</li>
             <li>Enable redaction before copying output that might be shared outside your local machine.</li>
-            <li>Review warnings about whitespace, duplicate prefixes, JWT shape, and token sharing.</li>
+            <li>Review warnings about whitespace, duplicate prefixes, HTTP endpoints, JWT shape, and token sharing.</li>
           </ol>
         </div>
 
@@ -476,7 +477,7 @@ curl -X GET "https://api.example.com/v1/profile" \\
               Only use tools you trust and avoid sharing real tokens. This tool runs locally in your browser, but placeholders are safer for examples.
             </Faq>
             <Faq title="Why remove an existing Bearer prefix?">
-              If you paste “Bearer abc123” and the generator adds another prefix, the result becomes “Bearer Bearer abc123”. Removing the existing prefix prevents that.
+              If you paste “Bearer abc123” or “Authorization: Bearer abc123” and the generator adds another prefix, the result can become invalid. Removing the existing prefix prevents duplicate Authorization text.
             </Faq>
             <Faq title="Is anything uploaded while generating headers?">
               No. Tokens, URLs, and request body text stay in your browser.
@@ -536,20 +537,31 @@ function buildResult(options: {
 
 function prepareToken(token: string, options: { trimToken: boolean; removeExistingBearerPrefix: boolean }) {
   let cleanedToken = options.trimToken ? token.trim() : token;
+  const hadAuthorizationPrefix = /^authorization\s*:/i.test(cleanedToken);
+
+  if (options.removeExistingBearerPrefix && hadAuthorizationPrefix) {
+    cleanedToken = cleanedToken.replace(/^authorization\s*:\s*/i, "");
+  }
+
   const hadBearerPrefix = /^bearer\s+/i.test(cleanedToken);
 
   if (options.removeExistingBearerPrefix && hadBearerPrefix) {
     cleanedToken = cleanedToken.replace(/^bearer\s+/i, "");
   }
 
-  return { cleanedToken, hadBearerPrefix };
+  if (options.trimToken) {
+    cleanedToken = cleanedToken.trim();
+  }
+
+  return { cleanedToken, hadBearerPrefix, hadAuthorizationPrefix };
 }
 
 function inspectToken(token: string, redactionMode: RedactionMode, originalToken: string): TokenInfo {
   const parts = token.split(".");
   const looksJwt = parts.length === 3 && parts.every(Boolean);
   const hasWhitespace = /\s/.test(token);
-  const hasBearerPrefix = /^bearer\s+/i.test(originalToken.trim());
+  const hasControlCharacters = /[\u0000-\u001F\u007F]/.test(token);
+  const hasBearerPrefix = /^(authorization\s*:\s*)?bearer\s+/i.test(originalToken.trim());
 
   return {
     tokenLength: token.length,
@@ -557,6 +569,7 @@ function inspectToken(token: string, redactionMode: RedactionMode, originalToken
     looksJwt,
     jwtParts: parts.length,
     hasWhitespace,
+    hasControlCharacters,
     hasBearerPrefix,
     redactedToken: redactToken(token, redactionMode),
   };
@@ -598,19 +611,38 @@ function buildHeaders(options: {
 function buildIssues(options: {
   token: string;
   tokenType: TokenType;
+  endpointUrl: string;
+  requestMethod: RequestMethod;
+  includeRequestBody: boolean;
   warnWhitespace: boolean;
   warnBearerPrefix: boolean;
   warnJwtShape: boolean;
   warnSensitiveSharing: boolean;
   redactTokenInOutput: boolean;
-}, tokenInfo: TokenInfo, preparedToken: { cleanedToken: string; hadBearerPrefix: boolean }) {
+}, tokenInfo: TokenInfo, preparedToken: { cleanedToken: string; hadBearerPrefix: boolean; hadAuthorizationPrefix: boolean }) {
   const issues: Issue[] = [];
 
   if (options.warnWhitespace && tokenInfo.hasWhitespace) {
     issues.push({
       severity: "warning",
       title: "Whitespace inside token",
-      message: "The token contains whitespace. Access tokens usually should not contain spaces or line breaks.",
+      message: "The token contains whitespace. Bearer credentials are normally sent as one token value after the Bearer scheme, not as multiple space-separated words or lines.",
+    });
+  }
+
+  if (tokenInfo.hasControlCharacters) {
+    issues.push({
+      severity: "warning",
+      title: "Control characters detected",
+      message: "The token contains control characters or line breaks. Clean the value before using it in an Authorization header.",
+    });
+  }
+
+  if (options.warnBearerPrefix && preparedToken.hadAuthorizationPrefix) {
+    issues.push({
+      severity: "info",
+      title: "Authorization header prefix detected",
+      message: "The pasted value looked like a full Authorization header. The generator removed the header name before rebuilding the output.",
     });
   }
 
@@ -627,6 +659,22 @@ function buildIssues(options: {
       severity: "warning",
       title: "Token does not look like a JWT",
       message: "JWTs usually have three dot-separated parts. This token may be opaque or incomplete.",
+    });
+  }
+
+  if (options.endpointUrl.trim().toLowerCase().startsWith("http://")) {
+    issues.push({
+      severity: "high",
+      title: "HTTP endpoint URL",
+      message: "Bearer tokens should be sent over HTTPS. Avoid sending access tokens to plain http:// endpoints.",
+    });
+  }
+
+  if ((options.requestMethod === "GET" || options.requestMethod === "DELETE") && options.includeRequestBody) {
+    issues.push({
+      severity: "info",
+      title: "Request body with method",
+      message: `${options.requestMethod} requests usually do not need a body. Check the API documentation before sending one.`,
     });
   }
 
@@ -703,7 +751,7 @@ function formatOutput(options: {
     "",
     `- [x] Authorization header generated.`,
     `- [${tokenInfo.hasWhitespace ? " " : "x"}] Token does not contain whitespace.`,
-    `- [${tokenInfo.hasBearerPrefix ? " " : "x"}] Token value does not include a duplicate Bearer prefix.`,
+    `- [${tokenInfo.hasBearerPrefix ? " " : "x"}] Token value does not include a duplicate Bearer or Authorization prefix.`,
     `- [${issues.every((issue) => issue.severity !== "high") ? "x" : " "}] Output is safe to share.`,
   ];
 

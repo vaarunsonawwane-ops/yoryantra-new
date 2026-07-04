@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "Bearer Token Header Generator | Build Authorization Headers Safely",
   description:
-    "Generate Bearer token Authorization headers, cURL snippets, fetch examples, and safe redacted reports for API testing without sending tokens anywhere.",
+    "Generate Bearer token Authorization headers, cURL snippets, fetch examples, redacted reports, and safety checks for API testing without sending tokens anywhere.",
   keywords: [
     "bearer token header generator",
     "authorization bearer header",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Bearer Token Header Generator | Yoryantra",
     description:
-      "Build Bearer token Authorization headers, cURL commands, and fetch examples locally with redaction and safety checks.",
+      "Build Bearer token Authorization headers, cURL commands, and fetch examples locally with redaction, duplicate-prefix cleanup, and safety checks.",
     url: "https://yoryantra.com/tools/bearer-token-header-generator",
     siteName: "Yoryantra",
     type: "website",
