@@ -34,6 +34,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <meta
+          name="google-adsense-account"
+          content="ca-pub-8539316928632466"
+        />
+
         {/* Google Tag Manager */}
         <Script id="google-tag-manager" strategy="beforeInteractive">
           {`
