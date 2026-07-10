@@ -62,7 +62,7 @@ export default function AboutPage() {
         </p>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
-          And yes, in a subtle way, we might show you a very minimal number of ads, and that too only to support the platform.
+          Yoryantra may show a small number of non-intrusive ads to help cover hosting, maintenance, and ongoing improvement costs.
         </p>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
