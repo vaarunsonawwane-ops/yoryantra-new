@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "PEM Certificate Decoder & Encoder Online | Yoryantra",
+  title: "PEM Certificate Encoder Decoder – PEM & Base64 | Yoryantra",
   description:
-    "Decode, encode, parse, and normalize PEM certificates, keys, CSRs, CRLs, and Base64 bodies. Inspect PEM blocks and fix line wrapping locally.",
+    "Parse PEM certificates, keys, CSRs and CRLs, extract or rebuild Base64, and normalize RFC 7468 wrapping locally. Formatting only; no trust validation.",
   keywords: [
     "PEM certificate decoder",
     "PEM certificate encoder",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/pem-certificate-encoder-decoder",
   },
   openGraph: {
-    title: "PEM Certificate Decoder & Encoder Online | Yoryantra",
+    title: "PEM Certificate Encoder Decoder – PEM & Base64 | Yoryantra",
     description:
-      "Decode, encode, parse, and normalize PEM certificates, keys, CSRs, CRLs, and Base64 bodies. Inspect PEM blocks and fix line wrapping locally.",
+      "Parse PEM certificates, keys, CSRs and CRLs, extract or rebuild Base64, and normalize RFC 7468 wrapping locally. Formatting only; no trust validation.",
     url: "https://yoryantra.com/tools/pem-certificate-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "PEM Certificate Decoder & Encoder Online | Yoryantra",
+    title: "PEM Certificate Encoder Decoder – PEM & Base64 | Yoryantra",
     description:
-      "Decode, encode, parse, and normalize PEM certificates, keys, CSRs, CRLs, and Base64 bodies. Inspect PEM blocks and fix line wrapping locally.",
+      "Parse PEM certificates, keys, CSRs and CRLs, extract or rebuild Base64, and normalize RFC 7468 wrapping locally. Formatting only; no trust validation.",
   },
 };
 

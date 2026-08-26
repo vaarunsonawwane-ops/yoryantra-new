@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -52,7 +52,6 @@ export default function ToolClient() {
   const [outputMode, setOutputMode] = useState<OutputMode>("summary");
   const [pemLabel, setPemLabel] = useState<PemLabel>("CERTIFICATE");
   const [lineBreakMode, setLineBreakMode] = useState<LineBreakMode>("lf");
-  const [lineLength, setLineLength] = useState("64");
   const [trimInput, setTrimInput] = useState(true);
   const [removeBlankLines, setRemoveBlankLines] = useState(true);
   const [uppercaseLabels, setUppercaseLabels] = useState(true);
@@ -82,21 +81,13 @@ export default function ToolClient() {
       return;
     }
 
-    const numericLineLength = Number.parseInt(lineLength, 10);
-    if (!Number.isFinite(numericLineLength) || numericLineLength < 32 || numericLineLength > 128) {
-      setError("PEM line length should be between 32 and 128 characters.");
-      setResult(null);
-      setOutput("");
-      return;
-    }
-
     const next = buildResult({
       input,
       actionMode,
       outputMode,
       pemLabel,
       lineBreakMode,
-      lineLength: numericLineLength,
+      lineLength: 64,
       trimInput,
       removeBlankLines,
       uppercaseLabels,
@@ -125,7 +116,6 @@ export default function ToolClient() {
     setOutputMode("summary");
     setPemLabel("CERTIFICATE");
     setLineBreakMode("lf");
-    setLineLength("64");
     setTrimInput(true);
     setRemoveBlankLines(true);
     setUppercaseLabels(true);
@@ -142,7 +132,6 @@ export default function ToolClient() {
     setOutputMode("summary");
     setPemLabel("CERTIFICATE");
     setLineBreakMode("lf");
-    setLineLength("64");
     setTrimInput(true);
     setRemoveBlankLines(true);
     setUppercaseLabels(true);
@@ -247,16 +236,6 @@ export default function ToolClient() {
                 { label: "LF", value: "lf" },
                 { label: "CRLF", value: "crlf" },
               ]}
-            />
-
-            <InputField
-              label="PEM Line Length"
-              value={lineLength}
-              onChange={(value) => {
-                setLineLength(value);
-                clearResult();
-              }}
-              placeholder="64"
             />
 
             <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
@@ -403,82 +382,51 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the PEM Certificate Decoder and Encoder</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a PEM block, certificate chain, public key, private key, CSR, CRL, or Base64 body.</li>
-            <li>Choose whether to parse, extract Base64, rebuild PEM, normalize formatting, or inspect content.</li>
-            <li>Select the PEM label when converting raw Base64 into a PEM block.</li>
-            <li>Review detected block types, body length, estimated bytes, and warnings.</li>
-            <li>Copy PEM, Base64, JSON, Markdown, CSV, or checklist output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Convert PEM to Base64 or Base64 to PEM</h2>
+          <h2 className="text-xl font-semibold text-gray-900">PEM Is a Text Wrapper Around Binary Data</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            To convert PEM to Base64, choose <strong>Extract Base64 body</strong>. The tool removes the BEGIN and END lines, blank lines, and line breaks while keeping the encoded body.
+            A PEM block does not make a certificate or key human-readable by itself. The text between the BEGIN and END boundaries is Base64-encoded binary data. The label tells another program what kind of object it should expect, such as a certificate, public key, private key, CSR, or CRL.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            To convert Base64 to PEM, paste the raw Base64 text, choose <strong>Base64 body to PEM</strong>, select the correct PEM label, and set the required line length and line-break style.
+            This tool works at that wrapper level: it can extract the Base64 body, rebuild the boundaries, normalize line wrapping, count blocks, and flag obvious formatting problems. It does not parse the ASN.1 fields inside an X.509 certificate or prove that the encoded object is cryptographically valid.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common PEM Block Types</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Why 64-Character Lines Are Used</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            RFC 7468 requires generators to wrap the Base64 body at exactly 64 characters per line, except for the final shorter line. Parsers are often more tolerant, but producing the standard form avoids needless compatibility problems when a certificate or key moves between command-line tools, servers, CI systems, and configuration files.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Normalize mode therefore writes 64-character lines and matching BEGIN/END labels. You can still choose LF or CRLF line endings because real systems use both newline conventions.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">A Certificate Chain Is More Than Several PEM Blocks</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Files often contain more than one CERTIFICATE block. That may be a leaf certificate followed by one or more intermediates, but the tool cannot infer or verify the trust path from formatting alone. If you are preparing a chain for a web server, keep the expected order and verify it with certificate-aware tooling before deployment.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Private Keys Need Different Handling</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A private-key PEM block is a secret, even though it looks like ordinary Base64 text. Reformatting it does not make it safer. Avoid putting real private keys into screenshots, tickets, shared chat threads, public repositories, or logs. This page runs locally, but the safest workflow is still to use non-production material whenever possible.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Encrypted private keys are also outside this tool’s scope. It can preserve and normalize the wrapper, but it does not decrypt the key or verify that the key matches a certificate.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">What to Verify After Formatting</h2>
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>CERTIFICATE</strong> for X.509 certificates.</li>
-            <li><strong>PUBLIC KEY</strong> for public key material.</li>
-            <li><strong>PRIVATE KEY</strong>, <strong>RSA PRIVATE KEY</strong>, and <strong>EC PRIVATE KEY</strong> for private key material.</li>
-            <li><strong>CERTIFICATE REQUEST</strong> for CSRs.</li>
-            <li><strong>X509 CRL</strong> for certificate revocation lists.</li>
-            <li><strong>OPENSSH PRIVATE KEY</strong> for OpenSSH key format.</li>
+            <li>The BEGIN and END labels match exactly.</li>
+            <li>The selected label matches the object you actually have.</li>
+            <li>A certificate is unexpired and valid for the intended hostname or use.</li>
+            <li>A chain contains the right intermediates in the order expected by the target system.</li>
+            <li>A private key is stored and transferred as a secret.</li>
           </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example PEM Format</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`-----BEGIN CERTIFICATE-----
-MIIDXTCCAkWgAwIBAgI...
------END CERTIFICATE-----`}</pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">PEM Decoding Is Not Certificate Validation</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Extracting or reformatting PEM text only changes how the data is represented. It does not prove that a certificate is trusted, unexpired, issued by the right authority, or valid for a domain.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use this tool for formatting and inspection. For trust decisions, use proper TLS validation, certificate chain checks, expiry checks, and key management processes.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What does a PEM encoder decoder do?">
-              It parses PEM text, extracts the Base64 body, rebuilds PEM blocks, and normalizes line wrapping for certificates and keys.
-            </Faq>
-            <Faq title="Can this validate a certificate?">
-              No. It only processes PEM text. It does not validate certificate chains, expiry, hostname matching, or signatures.
-            </Faq>
-            <Faq title="Can this decode a private key?">
-              It can parse and reformat private key PEM blocks, but it does not decrypt encrypted keys or verify key correctness.
-            </Faq>
-            <Faq title="What line length should PEM use?">
-              PEM bodies are commonly wrapped at 64 characters per line. This tool uses 64 by default.
-            </Faq>
-            <Faq title="How do I convert PEM to Base64?">
-              Choose Extract Base64 body. The tool removes the PEM header, footer, spaces, and line breaks and returns only the Base64 content.
-            </Faq>
-            <Faq title="How do I convert Base64 to a PEM certificate?">
-              Paste the Base64 body, choose Base64 body to PEM, select CERTIFICATE as the label, and process the input.
-            </Faq>
-            <Faq title="Is anything uploaded when I process PEM text?">
-              No. PEM handling runs directly in your browser.
-            </Faq>
-          </div>
         </div>
 
         <div>
@@ -490,22 +438,6 @@ MIIDXTCCAkWgAwIBAgI...
         </div>
       </section>
     </ToolShell>
-  );
-}
-
-function InputField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
-  return (
-    <div>
-      <label className="block mb-2 text-sm font-medium text-gray-700">{label}</label>
-      <input
-        type="text"
-        inputMode="numeric"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-      />
-    </div>
   );
 }
 
@@ -523,15 +455,6 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
-    </div>
-  );
-}
-
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
     </div>
   );
 }
@@ -579,7 +502,7 @@ function buildResult(options: {
 }
 
 function parsePemBlocks(input: string, removeBlankLines: boolean): PemBlock[] {
-  const regex = /-----BEGIN ([^-]+)-----([\s\S]*?)(?:-----END ([^-]+)-----|$)/g;
+  const regex = /-----BEGIN ([^\r\n]+?)-----([\s\S]*?)(?:-----END ([^\r\n]+?)-----|$)/g;
   const blocks: PemBlock[] = [];
   let match: RegExpExecArray | null;
 
@@ -607,7 +530,9 @@ function parsePemBlocks(input: string, removeBlankLines: boolean): PemBlock[] {
 }
 
 function cleanBase64Body(value: string, removeBlankLines: boolean) {
-  const withoutPem = value.replace(/-----BEGIN [^-]+-----/g, "").replace(/-----END [^-]+-----/g, "");
+  const withoutPem = value
+    .replace(/-----BEGIN [^\r\n]+?-----/g, "")
+    .replace(/-----END [^\r\n]+?-----/g, "");
   const lines = withoutPem.split(/\r?\n/).map((line) => line.trim());
   const filtered = removeBlankLines ? lines.filter(Boolean) : lines;
   return filtered.join("").replace(/\s/g, "");
@@ -645,6 +570,22 @@ function classifyPem(type: string) {
   return "PEM block";
 }
 
+function getBase64Problem(value: string) {
+  const clean = value.replace(/\s/g, "");
+  if (!clean) return "";
+  if (/[^A-Za-z0-9+/=]/.test(clean)) return "The body contains characters outside the standard Base64 alphabet.";
+  if (/=/.test(clean.slice(0, -2))) return "Base64 padding appears before the end of the body.";
+  if ((clean.match(/=/g) || []).length > 2) return "Base64 uses more than two padding characters.";
+  if (clean.length % 4 === 1) return "The Base64 length cannot be valid because it leaves a one-character remainder.";
+  try {
+    const padded = clean + "=".repeat((4 - (clean.length % 4)) % 4);
+    atob(padded);
+  } catch {
+    return "The Base64 body could not be decoded by the browser.";
+  }
+  return "";
+}
+
 function buildIssues(blocks: PemBlock[], activeBase64: string, options: {
   warnPrivateKeys: boolean;
   warnInvalidBase64: boolean;
@@ -670,11 +611,12 @@ function buildIssues(blocks: PemBlock[], activeBase64: string, options: {
     });
   }
 
-  if (options.warnInvalidBase64 && clean && /[^A-Za-z0-9+/=]/.test(clean)) {
+  const base64Problem = options.warnInvalidBase64 ? getBase64Problem(clean) : "";
+  if (base64Problem) {
     issues.push({
       severity: "warning",
-      title: "Invalid Base64 characters found",
-      message: "The PEM body contains characters outside the standard Base64 alphabet.",
+      title: "Base64 body needs review",
+      message: base64Problem,
     });
   }
 
@@ -697,11 +639,11 @@ function buildIssues(blocks: PemBlock[], activeBase64: string, options: {
     });
   }
 
-  if (clean && clean.length % 4 !== 0) {
+  if (!base64Problem && clean && clean.length % 4 !== 0) {
     issues.push({
       severity: "info",
-      title: "Base64 length is not divisible by 4",
-      message: "The body may be missing padding or may use a format where padding was removed.",
+      title: "Base64 padding is omitted",
+      message: "The body length is not divisible by 4. Some decoders accept omitted trailing padding, but check the source if exact round-tripping matters.",
     });
   }
 
@@ -728,7 +670,14 @@ function formatOutput(params: {
   const { actionMode, outputMode, blocks, activeBase64, generatedPem, issues, input } = params;
   const primary = selectPrimary(actionMode, blocks, activeBase64, generatedPem, input);
 
-  if (outputMode === "pem") return generatedPem;
+  if (outputMode === "pem") {
+    if (blocks.length > 0 && actionMode !== "wrap") {
+      return blocks
+        .map((block) => buildPem(block.base64Body, block.type, 64, "lf", true))
+        .join("\n");
+    }
+    return generatedPem;
+  }
   if (outputMode === "base64") return activeBase64;
   if (outputMode === "json") return JSON.stringify({ action: actionMode, blocks, base64Body: activeBase64, generatedPem, issues }, null, 2);
 

@@ -33,6 +33,8 @@ type ParsedResponse = {
   location: string;
   server: string;
   contentLength: number;
+  bodyBytes: number;
+  parseWarnings: string[];
 };
 
 type ResponseNote = {
@@ -287,7 +289,7 @@ export default function ToolClient() {
           />
           <SummaryCard
             label="Body Size"
-            value={`${parsedResponse.contentLength.toLocaleString()} chars`}
+            value={`${parsedResponse.bodyBytes.toLocaleString()} bytes`}
           />
         </div>
       )}
@@ -489,128 +491,50 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Cleaning Up an HTTP Response
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a raw HTTP response into the input box.</li>
-            <li>Choose how the response body should be formatted.</li>
-            <li>Keep cookie values hidden if you plan to share the output.</li>
-            <li>Review the status, headers, cookies, and body preview.</li>
-            <li>Copy the formatted response, summary, or headers-only output.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">What a Raw HTTP/1.x Response Contains</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A textual HTTP/1.x response starts with a status line, followed by header field lines, a blank line, and then an optional message body. That boundary is important when you paste a response from a proxy trace or log: a missing blank line can make body text look like another header.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The formatter keeps duplicate headers instead of collapsing them, because fields such as <span className="font-mono text-gray-800">Set-Cookie</span> can legitimately appear more than once. Cookie values stay hidden by default in the rendered table and copied output.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common HTTP Response Formatter Use Cases
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Reason Phrases Are Useful for Reading, Not for Logic</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            In an HTTP/1.1 status line such as <span className="font-mono text-gray-800">HTTP/1.1 404 Not Found</span>, the numeric status code is the reliable part. RFC 9112 says clients should ignore the reason phrase for program logic because intermediaries can change or remove it. This tool displays the phrase when present, but classifies the response from the status code.
+          </p>
+        </div>
 
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Body Size, Content-Length, and Transfer Encoding Are Different Things</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The Body Size card reports the UTF-8 byte size of the text you pasted into this page. It is not a reconstructed wire length. A real HTTP message can be framed with <span className="font-mono text-gray-800">Content-Length</span>, transfer coding, or connection framing, and logs may already have decoded or transformed the body before you copy it.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            When a Content-Length header is present, compare it with the original capture rather than assuming a mismatch in pasted text proves the server sent a bad response.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">What This Formatter Does Not Validate</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This is a parser and formatter for textual response captures. It does not replay the request, verify TLS, evaluate cache correctness, decompress transfer encodings, or parse the binary framing used by HTTP/2 and HTTP/3. Some tools print HTTP/2 responses in an HTTP/1-like text form for humans; that text can be inspected here, but it is not the actual wire format.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            If you are investigating request smuggling, response splitting, proxy disagreement, or another parser-sensitive security issue, use the raw capture and protocol-aware security tooling. A forgiving formatter should not be treated as an authority on ambiguous bytes.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Before Sharing a Response</h2>
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Formatting API responses copied from logs or proxy tools.</li>
-            <li>Cleaning JSON response bodies before sharing them.</li>
-            <li>Checking status codes, content type, redirects, and cache headers.</li>
-            <li>Inspecting Set-Cookie values and cookie attributes.</li>
-            <li>Preparing a cleaner response example for tickets or notes.</li>
-            <li>Debugging why an API response behaves differently than expected.</li>
+            <li>Keep Set-Cookie values hidden unless the recipient truly needs them.</li>
+            <li>Remove bearer tokens, API keys, signed URLs, user identifiers, and private response data.</li>
+            <li>Check redirects and Location values before posting a capture publicly.</li>
+            <li>Replace production examples with safe test values when possible.</li>
           </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example HTTP Response
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`HTTP/1.1 200 OK
-Content-Type: application/json
-Set-Cookie: session_id=abc123; Path=/; HttpOnly; Secure
-
-{"success":true,"items":[1,2,3]}`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Cookies, Headers, and Shared Debug Notes
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            HTTP responses can include Set-Cookie headers with real session
-            values. This tool hides cookie values by default so copied output is
-            safer to paste into a ticket, note, or chat message.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            If the response contains private user data, tokens, or production
-            values, replace them with safe examples before sharing the output
-            with anyone else.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does an HTTP response formatter do?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It formats a raw HTTP response into a cleaner view with status,
-                headers, cookies, and body content separated.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this format JSON response bodies?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Auto mode detects JSON content types and JSON-looking
-                bodies, then formats the body when possible.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this send the response anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The response is formatted directly in your browser.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why are cookie values hidden?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Cookie values may contain session data. Hiding them makes copied
-                output safer to share.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my HTTP response uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Formatting happens directly in your browser, and your
-                response data is not uploaded to a server.
-              </p>
-            </div>
-          </div>
         </div>
 
         <div>
@@ -710,7 +634,7 @@ function parseHttpResponse(
     bodyFormatMode: BodyFormatMode;
   }
 ): ParsedResponse {
-  const normalizedInput = input.replace(/\r\n/g, "\n");
+  const normalizedInput = input.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const [headPart, ...bodyParts] = normalizedInput.split(/\n\n/);
   const body = bodyParts.join("\n\n");
   const headLines = headPart.split("\n").filter((line) => line.trim() !== "");
@@ -721,17 +645,17 @@ function parseHttpResponse(
 
   const statusLine = headLines[0].trim();
   const statusMatch = statusLine.match(
-    /^(HTTP\/\d(?:\.\d)?)\s+(\d{3})(?:\s+(.*))?$/
+    /^(HTTP\/(?:1\.0|1\.1|2|3))\s+(\d{3})(?:\s+(.*))?$/
   );
 
   if (!statusMatch) {
-    throw new Error("Status line should look like HTTP/1.1 200 OK.");
+    throw new Error("Status line should look like HTTP/1.1 200 OK or a human-readable HTTP/2 200 capture.");
   }
 
   const protocol = statusMatch[1];
   const statusCode = Number(statusMatch[2]);
   const statusText = statusMatch[3] || "";
-  const headers = parseHeaders(headLines.slice(1));
+  const { headers, warnings } = parseHeaders(headLines.slice(1));
   const cookies = parseSetCookieHeaders(headers);
   const contentType = getHeaderValue(headers, "content-type");
   const formattedBody = formatResponseBody(body, contentType, options.bodyFormatMode);
@@ -752,16 +676,20 @@ function parseHttpResponse(
     location: getHeaderValue(headers, "location"),
     server: getHeaderValue(headers, "server"),
     contentLength: body.length,
+    bodyBytes: new TextEncoder().encode(body).length,
+    parseWarnings: warnings,
   };
 }
 
-function parseHeaders(lines: string[]): ParsedHeader[] {
+function parseHeaders(lines: string[]) {
   const headers: ParsedHeader[] = [];
+  const warnings: string[] = [];
   let currentHeader: ParsedHeader | null = null;
 
   lines.forEach((line, index) => {
-    if (/^\s/.test(line) && currentHeader) {
+    if (/^[ \t]/.test(line) && currentHeader) {
       currentHeader.value = `${currentHeader.value} ${line.trim()}`;
+      warnings.push(`Header line ${index + 2} uses obsolete line folding and was unfolded for display.`);
       return;
     }
 
@@ -771,22 +699,27 @@ function parseHeaders(lines: string[]): ParsedHeader[] {
       throw new Error(`Header line ${index + 2} is missing a colon.`);
     }
 
-    const name = line.slice(0, colonIndex).trim();
+    const rawName = line.slice(0, colonIndex);
+    const name = rawName.trim();
     const value = line.slice(colonIndex + 1).trim();
 
     if (!name) {
       throw new Error(`Header line ${index + 2} has an empty name.`);
     }
 
-    currentHeader = {
-      name,
-      value,
-    };
+    if (/\s$/.test(rawName)) {
+      warnings.push(`Header line ${index + 2} has whitespace before the colon, which is not valid HTTP/1.1 field syntax.`);
+    }
 
+    if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(name)) {
+      warnings.push(`Header line ${index + 2} contains characters that are not valid in an HTTP field name.`);
+    }
+
+    currentHeader = { name, value };
     headers.push(currentHeader);
   });
 
-  return headers;
+  return { headers, warnings };
 }
 
 function parseSetCookieHeaders(headers: ParsedHeader[]): ParsedCookie[] {
@@ -908,7 +841,7 @@ function formatParsedResponse(
       `Headers: ${response.headers.length}`,
       `Cookies: ${response.cookies.length}`,
       `Body type: ${response.bodyType}`,
-      `Body size: ${response.contentLength.toLocaleString()} characters`,
+      `Body size: ${response.bodyBytes.toLocaleString()} UTF-8 bytes`,
       response.contentType ? `Content-Type: ${response.contentType}` : "",
       response.location ? `Location: ${response.location}` : "",
       response.cacheControl ? `Cache-Control: ${response.cacheControl}` : "",
@@ -937,6 +870,13 @@ function formatParsedResponse(
 
 function getResponseNotes(response: ParsedResponse): ResponseNote[] {
   const notes: ResponseNote[] = [];
+  response.parseWarnings.forEach((warning) => {
+    notes.push({
+      title: "Header syntax note",
+      message: warning,
+    });
+  });
+
 
   if (response.statusCode >= 300 && response.statusCode < 400 && !response.location) {
     notes.push({

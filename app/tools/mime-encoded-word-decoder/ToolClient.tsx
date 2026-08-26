@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -410,79 +410,44 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Decode a MIME Email Subject</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste an encoded subject, From name, folded raw header, or plain text string.</li>
-            <li>Choose whether to decode, encode, analyze, or normalize the header.</li>
-            <li>Keep unfolding enabled when you paste raw multiline headers from an email source.</li>
-            <li>Review the detected charset, encoding method, decoded preview, and warnings.</li>
-            <li>Copy plain text, encoded-word syntax, JSON, Markdown, CSV, or a review checklist.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Base64 B Encoding and Q Encoding</h2>
+          <h2 className="text-xl font-semibold text-gray-900">What B and Q Actually Mean</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            MIME encoded words normally use either <strong>B</strong> encoding or <strong>Q</strong> encoding. B encoding stores the header bytes as Base64. Q encoding is similar to quoted-printable and often keeps readable letters visible while escaping special bytes with equals signs.
+            The middle letter in an encoded-word tells you how the original bytes were made safe for an email header. <strong>B</strong> means Base64. <strong>Q</strong> is the RFC 2047 Q form, where an underscore represents a space and bytes can be written as hexadecimal values such as <span className="font-mono text-gray-800">=E2</span>.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            For short text with many ASCII letters, Q encoding can be easier to inspect. For emoji, non-Latin scripts, or mixed international text, Base64 is often cleaner and shorter.
+            The charset matters just as much as B or Q. A Base64 string can decode into the wrong characters when the bytes are interpreted with the wrong charset, which is why this tool shows both values instead of returning only the final text.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">RFC 2047 Encoded-Word Format</h2>
+          <h2 className="text-xl font-semibold text-gray-900">The 75-Character Rule Matters When Encoding</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            An encoded word follows the structure <span className="font-mono text-gray-800">=?charset?encoding?encoded-text?=</span>. The charset identifies how the original text was stored, while the encoding value is normally <strong>B</strong> for Base64 or <strong>Q</strong> for Q encoding.
+            RFC 2047 limits one encoded-word to 75 characters, including the charset and delimiters. Longer text has to be split into multiple complete encoded-words; cutting a Base64 or Q string in the middle produces a broken header. When wrapping is enabled, this encoder creates separate encoded-words and folds them onto continuation lines instead of slicing through one encoded-word.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            These encoded words are commonly found in Subject, From, To, Cc, and comment fields. They are intended for email headers, not for encoding an entire email body.
+            Whitespace between adjacent encoded-words is ignored when a mail reader displays the header. The decoder follows that rule only between adjacent encoded-words and leaves ordinary spaces elsewhere in the header alone.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Encoded Header</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Example: What You See in a Raw Message</h2>
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <pre className="whitespace-pre-wrap break-words">{`Subject: =?UTF-8?B?WW9yeWFudHJhIOKcqCBFbWFpbCBIZWFkZXIgVGVzdA==?=
 From: =?UTF-8?Q?Varoun_Sonawane?= <hello@yoryantra.com>`}</pre>
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Why Email Headers Look Broken</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Raw message views, logs, CRM exports, support ticket systems, SMTP traces, and webhook payloads can show the encoded header instead of the decoded value. That does not always mean the email is broken. It usually means you are seeing the transport-safe representation of the header.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Problems usually happen when the encoded-word is split incorrectly, uses the wrong charset, mixes spaces badly between adjacent encoded words, or is copied from a folded header without proper unfolding.
+            Seeing text like this in an SMTP trace, webhook, CRM export, support ticket, or raw-message view does not automatically mean the email is damaged. It is often just the transport form that a normal mail client would decode before display.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What is a MIME encoded-word?">
-              It is an email header format used to represent non-ASCII text inside fields such as Subject, From, To, Cc, and comments.
-            </Faq>
-            <Faq title="Can this decode email subject lines?">
-              Yes. Paste the full Subject header or only the encoded-word value, then run the decoder to get readable text.
-            </Faq>
-            <Faq title="Can it decode sender names in a From header?">
-              Yes. You can paste a full From header containing an encoded display name and keep the email address visible in the decoded result.
-            </Faq>
-            <Faq title="What is RFC 2047?">
-              RFC 2047 defines the encoded-word format used to place non-ASCII text inside email header fields.
-            </Faq>
-            <Faq title="What does =?UTF-8?B?...?= mean?">
-              It means the header uses UTF-8 bytes and Base64 encoding. The encoded bytes can be decoded back into readable Unicode text.
-            </Faq>
-            <Faq title="What does =?UTF-8?Q?...?= mean?">
-              It means the header uses UTF-8 bytes and Q encoding, where underscores often represent spaces and equals signs introduce hex byte values.
-            </Faq>
-            <Faq title="Is anything uploaded when I decode a header?">
-              No. The decoder runs in your browser and does not send your pasted header text anywhere.
-            </Faq>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Where This Decoder Has Limits</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This tool handles RFC 2047 encoded-words in pasted header text. It is not a complete MIME message parser, does not decode message bodies or attachments, and cannot guarantee that a damaged header can be reconstructed exactly as the sender intended.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Legacy charsets are another edge case. Browser text decoders support many common labels, but not every historical charset. When a charset is unavailable, the tool keeps the encoded-word visible in its analysis and reports the fallback instead of pretending the result is exact.
+          </p>
         </div>
 
         <div>
@@ -511,15 +476,6 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
-    </div>
-  );
-}
-
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
     </div>
   );
 }
@@ -603,27 +559,31 @@ function parseEncodedWords(input: string, options: { warnUnsupportedCharset: boo
 }
 
 function decodeHeaderText(input: string, parts: EncodedWordPart[], options: { joinAdjacentWords: boolean; preserveHeaderNames: boolean }) {
-  if (parts.length === 0) return input;
+  if (parts.length === 0) {
+    const plain = options.preserveHeaderNames
+      ? input
+      : input.replace(/^[A-Za-z0-9-]+:\s*/, "");
+    return plain.trim();
+  }
 
   let decoded = "";
   let cursor = 0;
 
-  parts.forEach((part) => {
-    decoded += input.slice(cursor, part.start);
+  parts.forEach((part, index) => {
+    const between = input.slice(cursor, part.start);
+    const previousPart = index > 0 ? parts[index - 1] : null;
+    const isOnlyWhitespaceBetweenEncodedWords =
+      Boolean(previousPart) && /^\s+$/.test(between);
+
+    if (!(options.joinAdjacentWords && isOnlyWhitespaceBetweenEncodedWords)) {
+      decoded += between;
+    }
+
     decoded += part.decodedText;
     cursor = part.end;
   });
 
   decoded += input.slice(cursor);
-
-  if (options.joinAdjacentWords) {
-    decoded = decoded.replace(/([^\S\r\n]+)(?=[^\s]*?)/g, "$1");
-    decoded = decoded.replace(/([\p{L}\p{N}\p{P}\p{S}])\s+([\p{L}\p{N}\p{P}\p{S}])/gu, (match, left: string, right: string) => {
-      if (/[,:;<>@()[\]{}]/.test(left) || /[,:;<>@()[\]{}]/.test(right)) return match;
-      return `${left} ${right}`;
-    });
-    decoded = decoded.replace(/\s{2,}/g, " ");
-  }
 
   if (!options.preserveHeaderNames) {
     decoded = decoded.replace(/^[A-Za-z0-9-]+:\s*/, "");
@@ -715,24 +675,26 @@ function bytesToLatin1(bytes: Uint8Array) {
 }
 
 function encodeHeaderText(input: string, options: { encodingMode: EncodingMode; charsetMode: CharsetMode; headerKind: HeaderKind; wrapEncodedLines: boolean; preserveHeaderNames: boolean }) {
-  const { headerName, body } = splitHeaderName(input, options.preserveHeaderNames);
+  const { headerName, body } = splitHeaderName(input, options.preserveHeaderNames, options.headerKind);
   const cleanBody = body.trim();
   if (!cleanBody) return headerName ? `${headerName}:` : "";
 
   const selectedEncoding = options.encodingMode === "auto" ? chooseEncoding(cleanBody) : options.encodingMode;
-  const encodedWord = selectedEncoding === "q"
-    ? buildQEncodedWord(cleanBody, options.charsetMode)
-    : buildBase64EncodedWord(cleanBody, options.charsetMode);
-  const maybeWrapped = options.wrapEncodedLines ? wrapHeaderValue(encodedWord, headerName) : encodedWord;
+  const firstLineBudget = options.wrapEncodedLines
+    ? Math.max(20, Math.min(75, 76 - (headerName ? headerName.length + 2 : 0)))
+    : 75;
+  const words = buildEncodedWords(cleanBody, options.charsetMode, selectedEncoding, firstLineBudget);
+  const encodedValue = options.wrapEncodedLines
+    ? words.map((word, index) => (index === 0 ? word : `\r\n ${word}`)).join("")
+    : words.join(" ");
 
-  if (!headerName) return maybeWrapped;
-  return `${headerName}: ${maybeWrapped}`;
+  return headerName ? `${headerName}: ${encodedValue}` : encodedValue;
 }
 
-function splitHeaderName(input: string, preserveHeaderNames: boolean) {
+function splitHeaderName(input: string, preserveHeaderNames: boolean, headerKind: HeaderKind) {
   if (!preserveHeaderNames) return { headerName: "", body: input };
   const match = input.match(/^([A-Za-z0-9-]+):\s*([\s\S]*)$/);
-  if (!match) return { headerName: defaultHeaderName("generic"), body: input };
+  if (!match) return { headerName: defaultHeaderName(headerKind), body: input };
   return { headerName: match[1], body: match[2] };
 }
 
@@ -747,6 +709,34 @@ function chooseEncoding(text: string): "base64" | "q" {
   const nonAscii = Array.from(text).filter((char) => char.charCodeAt(0) > 127).length;
   const spaces = (text.match(/\s/g) || []).length;
   return nonAscii > Math.max(2, spaces) ? "base64" : "q";
+}
+
+function buildEncodedWords(text: string, charset: CharsetMode, encoding: "base64" | "q", firstMaxLength: number) {
+  const words: string[] = [];
+  let chunk = "";
+  let maxLength = firstMaxLength;
+
+  const encode = (value: string) =>
+    encoding === "q"
+      ? buildQEncodedWord(value, charset)
+      : buildBase64EncodedWord(value, charset);
+
+  for (const char of Array.from(text)) {
+    const candidate = chunk + char;
+    const encodedCandidate = encode(candidate);
+
+    if (chunk && encodedCandidate.length > maxLength) {
+      words.push(encode(chunk));
+      chunk = char;
+      maxLength = 75;
+      continue;
+    }
+
+    chunk = candidate;
+  }
+
+  if (chunk) words.push(encode(chunk));
+  return words;
 }
 
 function buildBase64EncodedWord(text: string, charset: CharsetMode) {
@@ -768,40 +758,88 @@ function buildQEncodedWord(text: string, charset: CharsetMode) {
 }
 
 function encodeTextBytes(text: string, charset: CharsetMode) {
-  if (charset === "utf-8" || charset === "us-ascii") {
+  if (charset === "utf-8") {
     return new TextEncoder().encode(text);
   }
 
-  const bytes = new Uint8Array(text.length);
-  for (let index = 0; index < text.length; index += 1) {
-    const code = text.charCodeAt(index);
-    bytes[index] = code <= 255 ? code : 63;
+  const bytes: number[] = [];
+  for (const char of Array.from(text)) {
+    const codePoint = char.codePointAt(0) ?? 63;
+
+    if (charset === "us-ascii") {
+      bytes.push(codePoint <= 0x7f ? codePoint : 0x3f);
+      continue;
+    }
+
+    if (charset === "iso-8859-1") {
+      bytes.push(codePoint <= 0xff ? codePoint : 0x3f);
+      continue;
+    }
+
+    bytes.push(encodeWindows1252CodePoint(codePoint));
   }
-  return bytes;
+
+  return new Uint8Array(bytes);
 }
 
-function wrapHeaderValue(value: string, headerName: string) {
-  const max = 76;
-  if ((headerName ? headerName.length + 2 : 0) + value.length <= max) return value;
+function encodeWindows1252CodePoint(codePoint: number) {
+  const extra: Record<number, number> = {
+    0x20ac: 0x80,
+    0x201a: 0x82,
+    0x0192: 0x83,
+    0x201e: 0x84,
+    0x2026: 0x85,
+    0x2020: 0x86,
+    0x2021: 0x87,
+    0x02c6: 0x88,
+    0x2030: 0x89,
+    0x0160: 0x8a,
+    0x2039: 0x8b,
+    0x0152: 0x8c,
+    0x017d: 0x8e,
+    0x2018: 0x91,
+    0x2019: 0x92,
+    0x201c: 0x93,
+    0x201d: 0x94,
+    0x2022: 0x95,
+    0x2013: 0x96,
+    0x2014: 0x97,
+    0x02dc: 0x98,
+    0x2122: 0x99,
+    0x0161: 0x9a,
+    0x203a: 0x9b,
+    0x0153: 0x9c,
+    0x017e: 0x9e,
+    0x0178: 0x9f,
+  };
 
-  const chunks: string[] = [];
-  for (let index = 0; index < value.length; index += 60) {
-    chunks.push(value.slice(index, index + 60));
-  }
+  if (codePoint in extra) return extra[codePoint];
+  if (codePoint <= 0xff) return codePoint;
+  return 0x3f;
+}
 
-  if (chunks.length <= 1) return value;
-  return chunks.map((chunk, index) => (index === 0 ? chunk : `\n ${chunk}`)).join("");
+function canRepresentText(text: string, charset: CharsetMode) {
+  if (charset === "utf-8") return true;
+
+  return Array.from(text).every((char) => {
+    const codePoint = char.codePointAt(0) ?? 0;
+    if (charset === "us-ascii") return codePoint <= 0x7f;
+    if (charset === "iso-8859-1") return codePoint <= 0xff;
+    return encodeWindows1252CodePoint(codePoint) !== 0x3f || codePoint === 0x3f;
+  });
 }
 
 function buildIssues(input: string, decodedText: string, parts: EncodedWordPart[], options: {
   warnUnsupportedCharset: boolean;
   warnBrokenWords: boolean;
   warnLongHeaderLines: boolean;
+  actionMode?: ActionMode;
+  charsetMode?: CharsetMode;
 }) {
   const issues: Issue[] = [];
   const lines = input.split(/\r?\n/);
 
-  if (parts.length === 0) {
+  if (parts.length === 0 && options.actionMode !== "encode") {
     issues.push({
       severity: "info",
       title: "No encoded-word found",
@@ -835,6 +873,26 @@ function buildIssues(input: string, decodedText: string, parts: EncodedWordPart[
         message: "The input contains something that looks like the start of an encoded word but does not match the full MIME pattern.",
       });
     }
+  }
+
+  if (parts.some((part) => part.raw.length > 75)) {
+    issues.push({
+      severity: "warning",
+      title: "Encoded-word exceeds RFC 2047 length",
+      message: "At least one encoded-word is longer than 75 characters, including its charset and delimiters.",
+    });
+  }
+
+  if (
+    options.actionMode === "encode" &&
+    options.charsetMode &&
+    !canRepresentText(decodedText, options.charsetMode)
+  ) {
+    issues.push({
+      severity: "warning",
+      title: `${options.charsetMode.toUpperCase()} cannot represent every character`,
+      message: "Characters outside the selected charset are replaced with ? during encoding. Use UTF-8 when you need to preserve the text exactly.",
+    });
   }
 
   if (options.warnLongHeaderLines && lines.some((line) => line.length > 998)) {

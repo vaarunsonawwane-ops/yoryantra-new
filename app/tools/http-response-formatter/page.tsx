@@ -1,10 +1,11 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "HTTP Response Formatter | Format Raw HTTP Responses Online | Yoryantra",
+export const metadata: Metadata = {
+  title: "HTTP Response Formatter – Inspect Raw Responses | Yoryantra",
 
   description:
-    "Format raw HTTP responses, inspect status codes, headers, content type, cookies, redirects, and response body data directly in your browser.",
+    "Format textual HTTP response captures, inspect status lines, headers, Set-Cookie attributes, redirects and JSON bodies, and surface syntax notes locally.",
 
   keywords: [
     "http response formatter",
@@ -23,10 +24,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "HTTP Response Formatter | Format Raw HTTP Responses Online | Yoryantra",
+    title: "HTTP Response Formatter – Inspect Raw Responses | Yoryantra",
 
     description:
-      "Format raw HTTP responses, inspect status codes, headers, content type, cookies, redirects, and response body data directly in your browser.",
+      "Format textual HTTP response captures, inspect status lines, headers, Set-Cookie attributes, redirects and JSON bodies, and surface syntax notes locally.",
 
     url: "https://yoryantra.com/tools/http-response-formatter",
 
@@ -38,10 +39,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "HTTP Response Formatter | Format Raw HTTP Responses Online | Yoryantra",
+    title: "HTTP Response Formatter – Inspect Raw Responses | Yoryantra",
 
     description:
-      "Format raw HTTP responses, inspect status codes, headers, content type, cookies, redirects, and response body data directly in your browser.",
+      "Format textual HTTP response captures, inspect status lines, headers, Set-Cookie attributes, redirects and JSON bodies, and surface syntax notes locally.",
   },
 };
 
