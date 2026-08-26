@@ -1,46 +1,36 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "HTTP Request Formatter | Format Raw HTTP Requests Online | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "HTTP Request Formatter | Parse Raw HTTP Requests",
   description:
-    "Format raw HTTP requests, inspect methods, URLs, headers, query parameters, and request body data directly in your browser.",
-
+    "Format and inspect raw HTTP requests, request lines, headers, query parameters, JSON or form bodies, Content-Length, and common request issues locally in your browser.",
   keywords: [
     "http request formatter",
     "raw http request formatter",
-    "format http request",
+    "parse http request",
     "http request parser",
     "http headers formatter",
     "api request formatter",
-    "parse http request",
-    "developer tools",
+    "raw http parser",
+    "http request analyzer",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/http-request-formatter",
   },
-
   openGraph: {
-    title: "HTTP Request Formatter | Format Raw HTTP Requests Online | Yoryantra",
-
+    title: "HTTP Request Formatter | Yoryantra",
     description:
-      "Format raw HTTP requests, inspect methods, URLs, headers, query parameters, and request body data directly in your browser.",
-
+      "Parse a raw HTTP request into method, target, headers, query parameters, body details, and practical diagnostics.",
     url: "https://yoryantra.com/tools/http-request-formatter",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "HTTP Request Formatter | Format Raw HTTP Requests Online | Yoryantra",
-
+    card: "summary",
+    title: "HTTP Request Formatter | Yoryantra",
     description:
-      "Format raw HTTP requests, inspect methods, URLs, headers, query parameters, and request body data directly in your browser.",
+      "Format raw HTTP requests and inspect headers, query parameters, body content, and request diagnostics locally.",
   },
 };
 

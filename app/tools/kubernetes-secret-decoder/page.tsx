@@ -1,46 +1,35 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Kubernetes Secret Decoder | Decode K8s Secrets Online | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Kubernetes Secret Decoder | Decode K8s Secret YAML",
   description:
-    "Decode Kubernetes Secret YAML values, inspect base64 encoded data, and review Kubernetes secret content directly in your browser.",
-
+    "Decode base64 values from Kubernetes Secret YAML, inspect data and stringData fields, identify invalid values, and review secret metadata locally in your browser.",
   keywords: [
     "kubernetes secret decoder",
     "k8s secret decoder",
     "decode kubernetes secret",
-    "decode k8s secret",
-    "kubernetes secret yaml",
-    "base64 secret decoder",
-    "kubernetes base64 decoder",
-    "devops tools",
+    "decode k8s secret yaml",
+    "kubernetes secret base64 decoder",
+    "kubernetes secret data decoder",
+    "kubectl secret decode",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/kubernetes-secret-decoder",
   },
-
   openGraph: {
-    title: "Kubernetes Secret Decoder | Decode K8s Secrets Online | Yoryantra",
-
+    title: "Kubernetes Secret Decoder | Yoryantra",
     description:
-      "Decode Kubernetes Secret YAML values, inspect base64 encoded data, and review Kubernetes secret content directly in your browser.",
-
+      "Decode Kubernetes Secret data values, inspect stringData, and review secret metadata locally in your browser.",
     url: "https://yoryantra.com/tools/kubernetes-secret-decoder",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "Kubernetes Secret Decoder | Decode K8s Secrets Online | Yoryantra",
-
+    card: "summary",
+    title: "Kubernetes Secret Decoder | Yoryantra",
     description:
-      "Decode Kubernetes Secret YAML values, inspect base64 encoded data, and review Kubernetes secret content directly in your browser.",
+      "Decode base64 values from Kubernetes Secret YAML and inspect data and stringData fields locally.",
   },
 };
 

@@ -5,7 +5,7 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
-type OutputMode = "pairs" | "urlencoded" | "curl" | "multipart" | "json" | "markdown" | "checklist";
+type OutputMode = "pairs" | "formdata-js" | "urlencoded" | "curl" | "multipart" | "json" | "markdown" | "checklist";
 type KeyStyle = "dot" | "bracket" | "repeat" | "indexed";
 type ArrayMode = "repeat" | "brackets" | "indexed" | "json";
 type ValueMode = "string" | "json" | "preserve";
@@ -205,6 +205,7 @@ export default function ToolClient() {
               }}
               options={[
                 { label: "Form field pairs", value: "pairs" },
+                { label: "JavaScript FormData code", value: "formdata-js" },
                 { label: "x-www-form-urlencoded", value: "urlencoded" },
                 { label: "cURL form parameters", value: "curl" },
                 { label: "Multipart-style preview", value: "multipart" },
@@ -238,8 +239,8 @@ export default function ToolClient() {
               }}
               options={[
                 { label: "Repeat same key", value: "repeat" },
-                { label: "Use empty brackets", value: "brackets" },
-                { label: "Use indexed brackets", value: "indexed" },
+                { label: "Add empty array segment", value: "brackets" },
+                { label: "Add numeric array index", value: "indexed" },
                 { label: "Keep array as JSON text", value: "json" },
               ]}
             />
@@ -340,7 +341,7 @@ export default function ToolClient() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-                <p className="mt-1 text-sm text-gray-500">Generated form fields, encoded body, cURL snippet, or report.</p>
+                <p className="mt-1 text-sm text-gray-500">Generated FormData code, form fields, encoded body, cURL snippet, multipart preview, or report.</p>
               </div>
               <button
                 type="button"
@@ -414,76 +415,99 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Converting JSON Payloads Into Form Fields</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">JSON to FormData Without Guessing the Field Shape</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            APIs do not always accept raw JSON. Some endpoints expect form-data fields, URL encoded form bodies, or cURL parameters instead. This converter helps flatten a JSON object into request-ready field names and values without manually rewriting each key.
+            A JavaScript object and a form submission do not have the same data model. JSON keeps nested objects, arrays, booleans, numbers, and null values as typed structures. FormData is a set of field names and values, and ordinary FormData values are strings or Blob/File objects. That means a JSON payload usually needs an explicit rule for flattening nested keys and arrays before it can be sent as form data.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            It is useful when moving between JSON bodies, HTML forms, backend handlers, Postman examples, cURL commands, and API documentation. You can choose how nested keys and arrays should be represented before copying the final output.
+            This converter makes those rules visible. You can compare dot paths, bracket paths, repeated array keys, indexed arrays, stringified arrays, URL encoded bodies, JavaScript <span className="font-mono">FormData.append()</span> calls, and cURL form parameters before choosing the representation your backend actually accepts.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This JSON to Form Data Converter Helps</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Preparing fields for APIs that accept application/x-www-form-urlencoded or multipart/form-data instead of JSON.</p>
-            <p className="mt-2">Flattening frontend form state into key-value pairs for debugging backend request handlers.</p>
-            <p className="mt-2">Creating cURL snippets from a JSON object while checking how nested objects and arrays are represented.</p>
-            <p className="mt-2">Comparing dot notation, bracket notation, repeated keys, and indexed keys before sending data to an API.</p>
+          <h2 className="text-xl font-semibold text-gray-900">Choose the Output That Matches the Request You Are Building</h2>
+          <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50 text-left text-gray-600">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Output</th>
+                  <th className="px-4 py-3 font-semibold">Best used for</th>
+                  <th className="px-4 py-3 font-semibold">Important detail</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-gray-700">
+                <tr><td className="px-4 py-3">JavaScript FormData</td><td className="px-4 py-3">fetch, XHR, frontend request code</td><td className="px-4 py-3">Generates explicit <span className="font-mono">append()</span> calls for every field</td></tr>
+                <tr><td className="px-4 py-3">x-www-form-urlencoded</td><td className="px-4 py-3">Traditional form endpoints and OAuth-style token requests</td><td className="px-4 py-3">Spaces are encoded with <span className="font-mono">+</span>, matching form URL encoding</td></tr>
+                <tr><td className="px-4 py-3">cURL form parameters</td><td className="px-4 py-3">Terminal testing and API examples</td><td className="px-4 py-3">Uses <span className="font-mono">--form-string</span> so pasted JSON text is treated as literal field data rather than a file path</td></tr>
+                <tr><td className="px-4 py-3">Multipart preview</td><td className="px-4 py-3">Understanding how multipart fields are separated</td><td className="px-4 py-3">A readable preview only; the browser or HTTP client creates the real boundary when sending</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the JSON to Form Data Converter</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a JSON object into the input box.</li>
-            <li>Choose the output format: field pairs, URL encoded body, cURL parameters, multipart preview, or report.</li>
-            <li>Select how nested keys and arrays should be written.</li>
-            <li>Review warnings about nested objects, arrays, empty values, or file-like fields.</li>
-            <li>Copy the generated form output into your request tool, code sample, or notes.</li>
+          <h2 className="text-xl font-semibold text-gray-900">Nested Objects and Arrays Need a Backend-Specific Convention</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            There is no universal form-field syntax that recreates every JSON structure. A nested value might be sent as <span className="font-mono">user.name</span>, <span className="font-mono">user[name]</span>, or a JSON string stored in one field. Arrays might repeat the same key, add empty brackets, include numeric indexes, or stay JSON-encoded. Frameworks and APIs parse these patterns differently, so the API contract should decide the setting rather than habit.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">A Common FormData Mistake: Setting multipart Content-Type Yourself</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            When you pass a real <span className="font-mono">FormData</span> object to <span className="font-mono">fetch()</span> or XMLHttpRequest, do not manually set a bare <span className="font-mono">Content-Type: multipart/form-data</span> header. The browser needs to add the boundary parameter that separates the parts. Manually overriding the header can leave the request body and Content-Type boundary out of sync.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Files Are Different From JSON Strings</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            FormData can append a <span className="font-mono">File</span> or <span className="font-mono">Blob</span>, but pasted JSON cannot contain the actual bytes of a local file unless you deliberately encode those bytes into the JSON. A property such as <span className="font-mono">avatar: "photo.jpg"</span> is only text. This tool flags file-like field names because converting that string does not create a real upload.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Practical Workflow</h2>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-gray-600 leading-relaxed">
+            <li>Paste the JSON object you are starting from.</li>
+            <li>Choose JavaScript FormData, URL encoded, cURL, or another output based on the endpoint.</li>
+            <li>Match nested-key and array handling to the server framework or API documentation.</li>
+            <li>Review generated field names before copying the output, especially when objects or arrays are present.</li>
+            <li>If the request includes a real file, attach the File/Blob separately in your application code rather than treating a filename string as the upload.</li>
           </ol>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example URL Encoded Output</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`name=Yoryantra&category=JSON%20%26%20Data&active=true&tags=api&tags=forms&owner.name=Varoun`}</pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Form Data Is Not Always a Perfect JSON Replacement</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Reference</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON can represent nested objects and arrays clearly. Form fields are flatter, and different servers expect different naming styles. Bracket notation, repeated keys, indexed arrays, and JSON-stringified fields can all be valid depending on the backend. Always match the API documentation before sending real requests.
+            MDN documents the browser FormData interface, the behavior of <span className="font-mono">append()</span>, repeated field names, automatic string conversion, and the multipart boundary warning when FormData is sent with browser APIs.
           </p>
+          <div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-[var(--green)]">
+            <a href="https://developer.mozilla.org/en-US/docs/Web/API/FormData" target="_blank" rel="noreferrer" className="hover:underline">FormData reference ↗</a>
+            <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects" target="_blank" rel="noreferrer" className="hover:underline">Using FormData objects ↗</a>
+          </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Common Questions</h2>
           <div className="mt-5 space-y-6">
-            <Faq title="What does this JSON to form-data converter do?">
-              It flattens a JSON object into form-style key-value fields and can output pairs, URL encoded text, multipart-style previews, cURL form parameters, and reports.
+            <Faq title="Does FormData preserve JSON numbers and booleans as typed values?">
+              Ordinary non-Blob values appended to FormData are converted to strings. If your backend needs a typed nested structure, sending a JSON field or a JSON request body may be more appropriate.
             </Faq>
-            <Faq title="Can this create real file uploads?">
-              No. It can warn about file-like values, but it does not read local files or create binary multipart uploads. It only converts pasted JSON text.
+            <Faq title="Why do repeated array keys sometimes work better than indexes?">
+              Some form parsers treat repeated field names as a list automatically, while others expect brackets or indexes. The correct choice depends on the server-side parser and API contract.
             </Faq>
-            <Faq title="Which key style should I use?">
-              Use the style your backend expects. Dot paths are readable, bracket notation is common in form parsers, and repeated keys are common for simple arrays.
+            <Faq title="Can this tool create a real multipart file upload?">
+              No. It converts pasted JSON text into form-style fields and code. Real uploads require a File or Blob supplied by your application or HTTP client.
             </Faq>
-            <Faq title="Is x-www-form-urlencoded the same as multipart/form-data?">
-              No. URL encoded forms are a single encoded text body. Multipart form-data uses separated parts and is often used for file uploads. This tool gives a text preview, not a network request.
-            </Faq>
-            <Faq title="Is anything uploaded while converting JSON to form data?">
-              No. The conversion runs entirely inside your browser.
+            <Faq title="Is the JSON uploaded while converting it?">
+              No. The conversion code runs in your browser and does not send the pasted JSON to an API.
             </Faq>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/json-to-form-data-converter" />
         </div>
       </section>
@@ -535,6 +559,8 @@ function buildResult(options: {
 
   if (options.outputMode === "pairs") {
     output = buildPairs(fields);
+  } else if (options.outputMode === "formdata-js") {
+    output = buildFormDataJs(fields);
   } else if (options.outputMode === "urlencoded") {
     output = buildUrlEncoded(fields, options);
   } else if (options.outputMode === "curl") {
@@ -674,13 +700,21 @@ function buildPairs(fields: FieldRow[]) {
   return fields.map((field) => `${field.key}: ${field.value}`).join("\n");
 }
 
+function buildFormDataJs(fields: FieldRow[]) {
+  const lines = ["const formData = new FormData();"];
+  fields.forEach((field) => {
+    lines.push(`formData.append(${JSON.stringify(field.key)}, ${JSON.stringify(field.value)});`);
+  });
+  return lines.join("\n");
+}
+
 function buildUrlEncoded(fields: FieldRow[], options: {
   encodeKeys: boolean;
   encodeValues: boolean;
 }) {
   return fields.map((field) => {
-    const key = options.encodeKeys ? encodeURIComponent(field.key) : field.key;
-    const value = options.encodeValues ? encodeURIComponent(field.value) : field.value;
+    const key = options.encodeKeys ? formUrlEncodeComponent(field.key) : field.key;
+    const value = options.encodeValues ? formUrlEncodeComponent(field.value) : field.value;
     return `${key}=${value}`;
   }).join("&");
 }
@@ -691,10 +725,10 @@ function buildCurl(fields: FieldRow[], options: {
 }) {
   const parts = ["curl -X POST"];
   if (options.includeCurlUrl) {
-    parts.push(`"${options.curlUrl || "https://api.example.com/submit"}"`);
+    parts.push(shellQuote(options.curlUrl || "https://api.example.com/submit"));
   }
   fields.forEach((field) => {
-    parts.push(`  -F ${shellQuote(`${field.key}=${field.value}`)}`);
+    parts.push(`  --form-string ${shellQuote(`${field.key}=${field.value}`)}`);
   });
   return parts.join(" \\\n");
 }
@@ -707,7 +741,12 @@ function buildMultipartPreview(fields: FieldRow[]) {
     "",
     field.value,
   ].join("\n"));
-  return [...parts, `--${boundary}--`].join("\n");
+  return [
+    `Content-Type: multipart/form-data; boundary=${boundary}`,
+    "",
+    ...parts,
+    `--${boundary}--`,
+  ].join("\n");
 }
 
 function buildMarkdown(fields: FieldRow[], issues: Issue[]) {
@@ -819,6 +858,12 @@ function hasArray(value: unknown): boolean {
   if (Array.isArray(value)) return true;
   if (!value || typeof value !== "object") return false;
   return Object.values(value as Record<string, unknown>).some(hasArray);
+}
+
+function formUrlEncodeComponent(value: string) {
+  return encodeURIComponent(value)
+    .replace(/%20/g, "+")
+    .replace(/[!'()~]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
 function shellQuote(value: string) {
