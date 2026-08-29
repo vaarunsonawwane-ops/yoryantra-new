@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Array Filter Tool | Filter JSON Records by Key and Value",
+  title: "JSON Array Filter Tool – Filter Records by Key or Value | Yoryantra",
   description:
-    "Filter JSON array records by key, value, comparison rule, and dot path. Preview matching records and export filtered JSON, Markdown, CSV, or checklist output locally.",
+    "Filter JSON array records by key, value, number, boolean, regex, missing field, or nested dot path while preserving the original record structure.",
   keywords: [
     "json array filter tool",
     "filter json array",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/json-array-filter-tool",
   },
   openGraph: {
-    title: "JSON Array Filter Tool | Yoryantra",
+    title: "JSON Array Filter Tool – Filter Records by Key or Value | Yoryantra",
     description:
-      "Filter JSON array records by key, value, condition, and dot path without uploading your data.",
+    "Filter JSON array records by key, value, number, boolean, regex, missing field, or nested dot path while preserving the original record structure.",
     url: "https://yoryantra.com/tools/json-array-filter-tool",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "JSON Array Filter Tool | Yoryantra",
+    title: "JSON Array Filter Tool – Filter Records by Key or Value | Yoryantra",
     description:
-      "Filter JSON array records locally by key, value, comparison rule, and dot path.",
+    "Filter JSON array records by key, value, number, boolean, regex, missing field, or nested dot path while preserving the original record structure.",
   },
 };
 

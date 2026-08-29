@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -413,24 +413,23 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What does string escaping mean?">
-              String escaping converts special characters into escape sequences so the value can safely appear inside code, JSON, logs, config files, or copied text.
-            </Faq>
-            <Faq title="What does unescaping do?">
-              Unescaping converts escaped string sequences back into readable text.
-            </Faq>
-            <Faq title="Why do backslashes appear in escaped strings?">
-              Backslashes are used to represent characters such as quotes, newlines, tabs, Unicode values, and other special characters.
-            </Faq>
-            <Faq title="Is this useful for API debugging?">
-              Yes. It helps when copied API responses, JSON payloads, webhook bodies, logs, or debug output contain escaped values that are hard to read directly.
-            </Faq>
-            <Faq title="Is anything uploaded while converting escaped strings?">
-              No. The conversion runs entirely inside your browser.
-            </Faq>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Choose the Escape Style Before You Trust the Output</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Similar-looking escape syntax is not interchangeable. JSON accepts escapes such as <code className="rounded bg-gray-100 px-1 py-0.5">\n</code>, <code className="rounded bg-gray-100 px-1 py-0.5">\t</code>, and <code className="rounded bg-gray-100 px-1 py-0.5">\uXXXX</code>, but it does not accept JavaScript-style <code className="rounded bg-gray-100 px-1 py-0.5">\xHH</code>, <code className="rounded bg-gray-100 px-1 py-0.5">\v</code>, <code className="rounded bg-gray-100 px-1 py-0.5">\0</code>, or braced <code className="rounded bg-gray-100 px-1 py-0.5">\u{'{'}1F680{'}'}</code> escapes. When JSON is selected, this tool keeps those invalid forms visible and warns instead of silently decoding them as if they were valid JSON.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Non-BMP characters such as many emoji need special handling in JSON. If non-ASCII escaping is enabled, JSON output uses a UTF-16 surrogate pair such as <code className="rounded bg-gray-100 px-1 py-0.5">\uD83D\uDE80</code> rather than JavaScript&apos;s braced form.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">A Useful Debugging Habit</h2>
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            If a copied API value looks double-escaped, decode once and inspect the result before decoding again. Repeated unescaping can change literal backslashes that were meant to remain part of the data. The character table is useful for spotting real control characters, Unicode code points, and invisible line breaks before you paste a value back into code or configuration.
+          </p>
+          <a href="https://www.rfc-editor.org/rfc/rfc8259.html#section-7" target="_blank" rel="noreferrer" className="mt-3 inline-flex font-medium text-[var(--green)] hover:underline">
+            JSON string escaping in RFC 8259 →
+          </a>
         </div>
 
         <div>
@@ -466,7 +465,7 @@ function buildResult(options: {
 
   let convertedText = prepared;
   if (options.actionMode === "decode") {
-    const decoded = decodeEscapes(prepared, options.warnInvalidEscapes);
+    const decoded = decodeEscapes(prepared, options.escapeStyle, options.warnInvalidEscapes);
     convertedText = decoded.text;
     issues.push(...decoded.issues);
   } else if (options.actionMode === "encode") {
@@ -477,7 +476,7 @@ function buildResult(options: {
       uppercaseHex: options.uppercaseHex,
     });
   } else if (options.actionMode === "normalize") {
-    const decoded = decodeEscapes(prepared, options.warnInvalidEscapes);
+    const decoded = decodeEscapes(prepared, options.escapeStyle, options.warnInvalidEscapes);
     const normalizedDecoded = applyNewlineMode(decoded.text, options.newlineMode);
     convertedText = encodeEscapes(normalizedDecoded, options.escapeStyle, {
       escapeNonAscii: options.escapeNonAscii,
@@ -544,9 +543,17 @@ function prepareInput(input: string, trimInput: boolean, unwrapQuotes: boolean) 
   return value;
 }
 
-function decodeEscapes(input: string, warnInvalidEscapes: boolean): { text: string; issues: Issue[] } {
+function decodeEscapes(
+  input: string,
+  style: EscapeStyle,
+  warnInvalidEscapes: boolean,
+): { text: string; issues: Issue[] } {
   const issues: Issue[] = [];
   let output = "";
+
+  const warn = (title: string, message: string, severity: Issue["severity"] = "warning") => {
+    if (warnInvalidEscapes) issues.push({ severity, title, message });
+  };
 
   for (let index = 0; index < input.length; index += 1) {
     const current = input[index];
@@ -557,28 +564,35 @@ function decodeEscapes(input: string, warnInvalidEscapes: boolean): { text: stri
 
     const next = input[index + 1];
     if (next === undefined) {
-      output += current;
-      if (warnInvalidEscapes) {
-        issues.push({ severity: "warning", title: "Trailing backslash", message: "The input ends with a single backslash, so it was kept as-is." });
-      }
+      output += "\\";
+      warn("Trailing backslash", "The input ends with a single backslash, so it was kept as-is.");
       continue;
     }
 
-    const simple: Record<string, string> = {
+    const jsonSimple: Record<string, string> = {
+      "\"": "\"",
+      "\\": "\\",
+      "/": "/",
+      b: "\b",
+      f: "\f",
       n: "\n",
       r: "\r",
       t: "\t",
-      b: "\b",
-      f: "\f",
-      v: "\v",
-      "0": "\0",
-      "\\": "\\",
-      "\"": "\"",
-      "'": "'",
-      "`": "`",
-      "/": "/",
     };
 
+    const commonSimple: Record<string, string> = {
+      ...jsonSimple,
+      v: "\v",
+      "0": "\0",
+      "'": "'",
+      "`": "`",
+    };
+
+    const simple = style === "json"
+      ? jsonSimple
+      : style === "c"
+        ? { ...commonSimple, a: "\x07" }
+        : commonSimple;
     if (Object.prototype.hasOwnProperty.call(simple, next)) {
       output += simple[next];
       index += 1;
@@ -587,14 +601,22 @@ function decodeEscapes(input: string, warnInvalidEscapes: boolean): { text: stri
 
     if (next === "x") {
       const hex = input.slice(index + 2, index + 4);
+      if (style === "json" || style === "unicode") {
+        const raw = input.slice(index, Math.min(index + 4, input.length));
+        output += raw;
+        warn(
+          "Escape is not valid for the selected style",
+          `\\x escapes are not valid ${style === "json" ? "JSON string" : "Unicode-only"} escapes. The sequence was kept unchanged.`,
+        );
+        index += raw.length - 1;
+        continue;
+      }
       if (/^[0-9a-fA-F]{2}$/.test(hex)) {
         output += String.fromCharCode(Number.parseInt(hex, 16));
         index += 3;
       } else {
-        output += `\\${next}`;
-        if (warnInvalidEscapes) {
-          issues.push({ severity: "warning", title: "Invalid hex escape", message: `\\x at position ${index} does not have two valid hex digits.` });
-        }
+        output += "\\x";
+        warn("Invalid hex escape", `\\x at position ${index} does not have two valid hex digits.`);
         index += 1;
       }
       continue;
@@ -604,24 +626,34 @@ function decodeEscapes(input: string, warnInvalidEscapes: boolean): { text: stri
       if (input[index + 2] === "{") {
         const closeIndex = input.indexOf("}", index + 3);
         const body = closeIndex > -1 ? input.slice(index + 3, closeIndex) : "";
+        const raw = closeIndex > -1 ? input.slice(index, closeIndex + 1) : "\\u{";
+
+        if (style === "json" || style === "c") {
+          output += raw;
+          warn(
+            "Braced Unicode escape is not valid for the selected style",
+            `\\u{...} is not valid in ${style === "json" ? "JSON strings" : "C universal character names"}. Use \\uXXXX${style === "c" ? " or \\UXXXXXXXX" : " (including a surrogate pair for non-BMP characters)"}.`,
+          );
+          if (closeIndex > -1) index = closeIndex;
+          else index += 2;
+          continue;
+        }
+
         if (/^[0-9a-fA-F]{1,6}$/.test(body)) {
           const codePoint = Number.parseInt(body, 16);
           if (codePoint <= 0x10ffff) {
             output += String.fromCodePoint(codePoint);
             index = closeIndex;
           } else {
-            output += `\\u{${body}}`;
-            if (warnInvalidEscapes) {
-              issues.push({ severity: "warning", title: "Unicode code point too large", message: `\\u{${body}} is above U+10FFFF.` });
-            }
+            output += raw;
+            warn("Unicode code point too large", `\\u{${body}} is above U+10FFFF.`);
             index = closeIndex;
           }
         } else {
-          output += "\\u";
-          if (warnInvalidEscapes) {
-            issues.push({ severity: "warning", title: "Invalid braced Unicode escape", message: `A braced Unicode escape near position ${index} is incomplete or invalid.` });
-          }
-          index += 1;
+          output += raw;
+          warn("Invalid braced Unicode escape", `A braced Unicode escape near position ${index} is incomplete or invalid.`);
+          if (closeIndex > -1) index = closeIndex;
+          else index += 2;
         }
       } else {
         const hex = input.slice(index + 2, index + 6);
@@ -630,19 +662,49 @@ function decodeEscapes(input: string, warnInvalidEscapes: boolean): { text: stri
           index += 5;
         } else {
           output += "\\u";
-          if (warnInvalidEscapes) {
-            issues.push({ severity: "warning", title: "Invalid Unicode escape", message: `\\u at position ${index} does not have four valid hex digits.` });
-          }
+          warn("Invalid Unicode escape", `\\u at position ${index} does not have four valid hex digits.`);
           index += 1;
         }
       }
       continue;
     }
 
-    output += `\\${next}`;
-    if (warnInvalidEscapes) {
-      issues.push({ severity: "info", title: "Unknown escape kept", message: `\\${next} at position ${index} was kept unchanged.` });
+    if (next === "U") {
+      const hex = input.slice(index + 2, index + 10);
+      if (style !== "c") {
+        const raw = input.slice(index, Math.min(index + 10, input.length));
+        output += raw;
+        warn(
+          "Escape is not valid for the selected style",
+          "\\UXXXXXXXX is a C-style universal character name, not a JavaScript or JSON escape. The sequence was kept unchanged.",
+        );
+        index += raw.length - 1;
+        continue;
+      }
+      if (/^[0-9a-fA-F]{8}$/.test(hex)) {
+        const codePoint = Number.parseInt(hex, 16);
+        if (codePoint <= 0x10ffff) {
+          output += String.fromCodePoint(codePoint);
+          index += 9;
+        } else {
+          output += `\\U${hex}`;
+          warn("Unicode code point too large", `\\U${hex} is above U+10FFFF.`);
+          index += 9;
+        }
+      } else {
+        output += "\\U";
+        warn("Invalid C Unicode escape", `\\U at position ${index} does not have eight valid hex digits.`);
+        index += 1;
+      }
+      continue;
     }
+
+    output += `\\${next}`;
+    warn(
+      style === "json" ? "Invalid JSON escape" : "Unknown escape kept",
+      `\\${next} at position ${index} is not a recognized ${styleLabel(style)} escape, so it was kept unchanged.`,
+      style === "json" ? "warning" : "info",
+    );
     index += 1;
   }
 
@@ -671,9 +733,10 @@ function encodeEscapes(
     else if (char === "/") output += options.escapeSlashes ? "\\/" : char;
     else if (style === "unicode" && codePoint > 0x7e) output += unicodeEscape(codePoint, options.uppercaseHex);
     else if (style === "hex" && codePoint <= 0xff && (options.escapeNonAscii || codePoint < 0x20 || codePoint > 0x7e)) output += `\\x${hex.padStart(2, "0")}`;
-    else if (style === "c" && (codePoint < 0x20 || codePoint > 0x7e || (options.escapeNonAscii && codePoint > 0x7e))) output += codePoint <= 0xffff ? `\\u${hex.padStart(4, "0")}` : `\\U${hex.padStart(8, "0")}`;
+    else if (style === "c" && options.escapeNonAscii && codePoint > 0x7e) output += cUnicodeEscape(codePoint, options.uppercaseHex);
+    else if (style === "json" && options.escapeNonAscii && codePoint > 0x7e) output += jsonUnicodeEscape(codePoint, options.uppercaseHex);
     else if (options.escapeNonAscii && codePoint > 0x7e) output += unicodeEscape(codePoint, options.uppercaseHex);
-    else if (codePoint < 0x20) output += unicodeEscape(codePoint, options.uppercaseHex);
+    else if (codePoint < 0x20) output += style === "json" ? jsonUnicodeEscape(codePoint, options.uppercaseHex) : unicodeEscape(codePoint, options.uppercaseHex);
     else output += char;
   }
   return output;
@@ -683,6 +746,29 @@ function unicodeEscape(codePoint: number, uppercaseHex: boolean) {
   const hex = formatHex(codePoint, uppercaseHex);
   if (codePoint <= 0xffff) return `\\u${hex.padStart(4, "0")}`;
   return `\\u{${hex}}`;
+}
+
+function jsonUnicodeEscape(codePoint: number, uppercaseHex: boolean) {
+  if (codePoint <= 0xffff) {
+    return `\\u${formatHex(codePoint, uppercaseHex).padStart(4, "0")}`;
+  }
+  const adjusted = codePoint - 0x10000;
+  const high = 0xd800 + (adjusted >> 10);
+  const low = 0xdc00 + (adjusted & 0x3ff);
+  return `\\u${formatHex(high, uppercaseHex).padStart(4, "0")}\\u${formatHex(low, uppercaseHex).padStart(4, "0")}`;
+}
+
+function cUnicodeEscape(codePoint: number, uppercaseHex: boolean) {
+  const hex = formatHex(codePoint, uppercaseHex);
+  return codePoint <= 0xffff ? `\\u${hex.padStart(4, "0")}` : `\\U${hex.padStart(8, "0")}`;
+}
+
+function styleLabel(style: EscapeStyle) {
+  if (style === "javascript") return "JavaScript";
+  if (style === "json") return "JSON";
+  if (style === "unicode") return "Unicode";
+  if (style === "hex") return "hex";
+  return "C-style";
 }
 
 function formatHex(value: number, uppercase: boolean) {
@@ -844,15 +930,6 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-gray-200 bg-white p-5">
       <p className="text-sm text-gray-500">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-gray-900">{value}</p>
-    </div>
-  );
-}
-
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
     </div>
   );
 }

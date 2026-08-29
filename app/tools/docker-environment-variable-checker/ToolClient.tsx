@@ -25,6 +25,7 @@ type EnvEntry = {
   empty: boolean;
   duplicate: boolean;
   interpolated: boolean;
+  valueOmitted: boolean;
   likelySecret: boolean;
   validName: boolean;
   issues: EnvIssue[];
@@ -175,7 +176,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Docker Environment Variable Checker"
-      description="Check Docker environment variables from .env files and docker-compose.yml snippets. Find missing values, duplicate keys, invalid names, empty variables, quoted values, and risky secrets exposure."
+      description="Review Docker .env values and Compose environment blocks for duplicates, empty or omitted values, interpolation, invalid names, required keys, and secret-like entries."
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -555,148 +556,121 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking Docker Environment Variables Before Deployment
+            Docker Environment Variables Have More Than One Source
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Docker apps often depend on environment variables for ports,
-            database URLs, API keys, feature flags, and runtime configuration.
-            One missing or duplicated variable can make a container fail at
-            startup or behave differently than expected.
+            A Docker Compose project can get values from the shell, a project
+            <code> .env </code> file, files passed with <code>--env-file</code>,
+            a service <code>environment</code> block, a service
+            <code>env_file</code>, and values baked into the image. Those sources
+            are related, but they are not interchangeable.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Docker Environment Variable Checker reviews .env files and
-            docker-compose environment blocks for common problems, including
-            duplicate keys, empty values, invalid names, unresolved interpolation,
-            placeholder secrets, and missing required variables.
+            This checker is useful before deployment because it makes the obvious
+            mistakes visible: duplicate keys, explicit empty values, omitted
+            values, suspicious secret placeholders, invalid names, and Compose
+            interpolation that deserves a second look.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Using the Docker Env Checker
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a Docker .env file, Compose environment block, or mixed variable list.</li>
-            <li>Optionally enter required variable names, one per line.</li>
-            <li>Choose the input type, output format, and checking style.</li>
-            <li>Run the checker and review duplicates, empty values, and risky entries.</li>
-            <li>Copy a clean report, JSON, Markdown table, or normalized .env output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Docker Environment Variable Issues
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Duplicate variables where the later value silently wins.</li>
-            <li>Required variables missing from a deployment environment.</li>
-            <li>Empty values such as API_KEY= or YAML keys without values.</li>
-            <li>Invalid variable names with spaces, dashes, or unsupported characters.</li>
-            <li>Placeholder secrets such as change-me, example, test, or dummy.</li>
-            <li>Unresolved Compose interpolation like ${"{DATABASE_URL}"}.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Docker .env Input
+            Empty Value and Omitted Value Are Different
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`APP_ENV=production
-APP_PORT=3000
-DATABASE_URL=postgres://app:password@db:5432/app
-JWT_SECRET=change-me
-API_KEY=`}
-            </pre>
+            <pre className="whitespace-pre-wrap break-words">{`API_KEY=
+DEBUG
+environment:
+  FEATURE_FLAG:
+  - WORKER_COUNT=2
+  - LOG_LEVEL`}</pre>
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            .env Files and Compose Environment Blocks Are Different
-          </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A .env file usually uses KEY=value lines. Docker Compose environment
-            blocks can use YAML map style or list style. These formats look
-            similar, but quoting, interpolation, and empty values can behave
-            differently.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool is designed for quick review and debugging. For production
-            deployments, still verify behavior in the actual Docker, Compose, or
-            platform environment where the containers will run.
+            <code>API_KEY=</code> explicitly supplies an empty value. A Compose
+            environment entry written as only <code>LOG_LEVEL</code>, or a map
+            key without a value, can instead be resolved from the environment;
+            if Compose cannot resolve it, the variable is not added to the
+            container environment. The checker reports these cases separately.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Interpolation Can Have Defaults and Required Values
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a Docker Environment Variable Checker do?
-              </h3>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Compose supports direct interpolation such as
+            <code> ${"${TAG}"}</code>, defaults such as
+            <code> ${"${TAG:-latest}"}</code>, and required forms such as
+            <code> ${"${DATABASE_URL:?set DATABASE_URL}"}</code>. A variable
+            reference is not automatically an error; the important question is
+            how it resolves in the environment where Compose runs.
+          </p>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks .env and Compose-style environment values for missing,
-                empty, duplicate, invalid, or risky variables before deployment.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            When the final resolved value matters, run
+            <code> docker compose config</code>. Docker also provides
+            <code> docker compose config --environment</code> to show the
+            environment used for interpolation.
+          </p>
+        </div>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this parse docker-compose.yml files?
-              </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Do Not Treat Environment Variables as a Secret Store
+          </h2>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It can parse common environment sections and mixed snippets, but
-                it is not a full YAML parser for every Compose feature.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Names containing words such as <code>SECRET</code>,
+            <code>TOKEN</code>, <code>PASSWORD</code>, or
+            <code>DATABASE_URL</code> are flagged because they often carry
+            credentials. The checker cannot know whether a value is actually
+            sensitive, but it can remind you to avoid committing real production
+            credentials and to consider Docker secrets or your deployment
+            platform&apos;s secret-management mechanism.
+          </p>
+        </div>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should I paste real secrets here?
-              </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Static Review Is Not the Same as Compose Resolution
+          </h2>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                The checker runs in your browser, but it is still safer to mask
-                production secrets when you do not need to inspect the exact value.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This tool reads common <code>.env</code>, Compose map, and Compose
+            list syntax in the browser. It does not merge multiple Compose files,
+            load your shell environment, read external <code>env_file</code>
+            files, or reproduce Docker&apos;s full precedence rules. Use the
+            report to find things worth checking, then verify the final model
+            with Docker Compose itself.
+          </p>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does an empty variable always mean an error?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Not always. Some apps intentionally use empty values. But empty
-                secrets, URLs, and required variables are common deployment issues.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I check env values?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The check happens directly in your browser.
-              </p>
-            </div>
-          </div>
+          <p className="mt-4 text-sm leading-relaxed text-gray-500">
+            References:{" "}
+            <a
+              href="https://docs.docker.com/compose/how-tos/environment-variables/"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="font-medium text-[var(--green)] hover:underline"
+            >
+              Docker Compose environment variables
+            </a>
+            {" "}and{" "}
+            <a
+              href="https://docs.docker.com/reference/cli/docker/compose/config/"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="font-medium text-[var(--green)] hover:underline"
+            >
+              docker compose config
+            </a>
+            .
+          </p>
         </div>
 
         <div>
@@ -787,8 +761,53 @@ function analyzeEnvironmentVariables(
 function parseEnvironmentInput(input: string, inputMode: InputMode): EnvEntry[] {
   const lines = input.split(/\r?\n/);
   const entries: EnvEntry[] = [];
+  const hasEnvironmentHeader = lines.some((line) => /^\s*environment:\s*$/.test(line));
+  let inEnvironmentBlock = false;
+  let environmentIndent = -1;
 
   lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    const indent = line.match(/^\s*/)?.[0].length || 0;
+
+    if (/^\s*environment:\s*$/.test(line)) {
+      inEnvironmentBlock = true;
+      environmentIndent = indent;
+      return;
+    }
+
+    if (
+      inEnvironmentBlock &&
+      trimmed &&
+      !trimmed.startsWith("#") &&
+      indent <= environmentIndent
+    ) {
+      inEnvironmentBlock = false;
+    }
+
+    if (inEnvironmentBlock) {
+      const parsed = parseLine(line, index + 1, "compose");
+      if (parsed) entries.push(parsed);
+      return;
+    }
+
+    if (inputMode === "compose" && hasEnvironmentHeader) {
+      return;
+    }
+
+    if (inputMode === "mixed" && hasEnvironmentHeader) {
+      const looksLikeDotenv =
+        /^(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*=/.test(trimmed) ||
+        /^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed);
+
+      if (!looksLikeDotenv) {
+        return;
+      }
+
+      const parsed = parseLine(line, index + 1, "env");
+      if (parsed) entries.push(parsed);
+      return;
+    }
+
     const parsed = parseLine(line, index + 1, inputMode);
 
     if (parsed) {
@@ -812,23 +831,37 @@ function parseLine(line: string, lineNumber: number, inputMode: InputMode): EnvE
 
   let key = "";
   let value = "";
+  let valueOmitted = false;
   let source: EnvEntry["source"] = inputMode === "env" ? "env" : inputMode === "compose" ? "compose" : "list";
 
   const listMatch = trimmed.match(/^-\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+  const listKeyOnlyMatch = trimmed.match(/^-\s*([A-Za-z_][A-Za-z0-9_]*)\s*$/);
   const mapMatch = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$/);
   const envMatch = trimmed.match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+  const envKeyOnlyMatch = trimmed.match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*$/);
 
   if (listMatch) {
     key = listMatch[1];
     value = listMatch[2] || "";
     source = "list";
+  } else if (listKeyOnlyMatch && inputMode !== "env") {
+    key = listKeyOnlyMatch[1];
+    value = "";
+    valueOmitted = true;
+    source = "list";
   } else if (mapMatch && inputMode !== "env") {
     key = mapMatch[1];
     value = mapMatch[2] || "";
+    valueOmitted = value.trim() === "";
     source = "compose";
   } else if (envMatch) {
     key = envMatch[1];
     value = envMatch[2] || "";
+    source = "env";
+  } else if (envKeyOnlyMatch && inputMode !== "compose") {
+    key = envKeyOnlyMatch[1];
+    value = "";
+    valueOmitted = true;
     source = "env";
   } else {
     const loose = trimmed.match(/^([^\s:=]+)\s*[:=]\s*(.*)$/);
@@ -845,8 +878,9 @@ function parseLine(line: string, lineNumber: number, inputMode: InputMode): EnvE
   const quoted = isQuoted(cleanValue);
   const unquotedValue = removeQuotes(cleanValue);
   const likelySecret = riskyKeyPattern.test(key);
-  const empty = unquotedValue.length === 0;
-  const interpolated = /\$\{[^}]+}/.test(unquotedValue);
+  const empty = unquotedValue.length === 0 && !valueOmitted;
+  const interpolationText = unquotedValue.replace(/\$\$/g, "");
+  const interpolated = /\$(?:\{[^}]+\}|[A-Za-z_][A-Za-z0-9_]*)/.test(interpolationText);
   const validName = /^[A-Za-z_][A-Za-z0-9_]*$/.test(key);
 
   return {
@@ -859,6 +893,7 @@ function parseLine(line: string, lineNumber: number, inputMode: InputMode): EnvE
     empty,
     duplicate: false,
     interpolated,
+    valueOmitted,
     likelySecret,
     validName,
     issues: [],
@@ -939,6 +974,17 @@ function getEntryIssues(
     });
   }
 
+  if (entry.valueOmitted) {
+    issues.push({
+      severity: "info",
+      title: "Value omitted",
+      message:
+        entry.source === "env"
+          ? "A bare variable name does not set an explicit empty string. In Docker env-file syntax, an omitted value is treated as unset."
+          : "Compose can resolve a key declared without a value from the environment. If it cannot be resolved, the variable is removed from the container environment.",
+    });
+  }
+
   if (options.warnEmptyValues && entry.empty) {
     issues.push({
       severity: entry.likelySecret ? "high" : "warning",
@@ -975,7 +1021,7 @@ function getEntryIssues(
     issues.push({
       severity: "info",
       title: "Interpolated value",
-      message: "This value uses ${...} interpolation. Confirm the referenced variable exists in the target environment.",
+      message: "This value uses Compose interpolation. Confirm how it resolves in the target environment; default and required forms can intentionally handle missing variables.",
     });
   }
 
@@ -1050,7 +1096,7 @@ function formatOutput(
 
   if (outputMode === "dotenv") {
     return result.entries
-      .map((entry) => `${entry.key}=${formatDotenvValue(entry.value)}`)
+      .map((entry) => entry.valueOmitted ? entry.key : `${entry.key}=${formatDotenvValue(entry.value)}`)
       .join("\n");
   }
 
@@ -1059,7 +1105,7 @@ function formatOutput(
       "| Key | Value | Source | Line | Issues |",
       "| --- | --- | --- | --- | --- |",
       ...result.entries.map((entry) =>
-        `| ${escapeMarkdown(entry.key)} | ${escapeMarkdown(entry.likelySecret && entry.value ? maskValue(entry.value) : entry.value || "(empty)")} | ${entry.source} | ${entry.line} | ${entry.issues.length} |`
+        `| ${escapeMarkdown(entry.key)} | ${escapeMarkdown(entry.valueOmitted ? "(value omitted)" : entry.likelySecret && entry.value ? maskValue(entry.value) : entry.value || "(empty)")} | ${entry.source} | ${entry.line} | ${entry.issues.length} |`
       ),
     ].join("\n");
   }
@@ -1076,12 +1122,13 @@ function formatOutput(
           "-".repeat(Math.max(8, entry.key.length || 8)),
           `Line: ${entry.line}`,
           `Source: ${entry.source}`,
-          `Value: ${entry.likelySecret && entry.value ? maskValue(entry.value) : entry.value || "(empty)"}`,
+          `Value: ${entry.valueOmitted ? "(value omitted)" : entry.likelySecret && entry.value ? maskValue(entry.value) : entry.value || "(empty)"}`,
           `Flags: ${[
             entry.duplicate ? "duplicate" : "",
             entry.empty ? "empty" : "",
             entry.quoted ? "quoted" : "",
             entry.interpolated ? "interpolated" : "",
+            entry.valueOmitted ? "value-omitted" : "",
             entry.likelySecret ? "secret-like" : "",
           ].filter(Boolean).join(", ") || "none"}`,
           "",

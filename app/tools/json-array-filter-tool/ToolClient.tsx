@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -123,7 +123,7 @@ export default function ToolClient() {
       return;
     }
 
-    if (!filterKey.trim() && !["truthy", "falsy"].includes(operator)) {
+    if (!filterKey.trim()) {
       setError("Please enter a key or dot path to filter by.");
       setResult(null);
       setOutput("");
@@ -499,79 +499,97 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Filtering JSON Arrays Without Writing a Script</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Filter the Records You Need Without Rewriting the Data
+          </h2>
+
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON arrays from APIs, logs, exports, and test data often contain more records than you need. Filtering by a key, status, category, number, boolean flag, or nested path helps you quickly isolate the records that matter.
+            API responses and exported JSON often contain dozens or hundreds of
+            records when you only need a small subset. This tool lets you filter
+            an array by a field or nested dot path, inspect why each record
+            matched, and keep the original record structure in the result.
           </p>
+
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool filters an array of JSON objects locally in your browser. You can match text, numbers, booleans, missing fields, regex patterns, ranges, and nested dot paths before copying the filtered JSON or exporting a report.
+            Nested objects can be flattened for lookup, but the filtered output
+            still preserves the original nested JSON. That matters when you want
+            to test a condition such as <code>user.role</code> without turning
+            the returned record into a different shape.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This JSON Array Filter Helps</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Filtering API response records by status, category, owner, region, environment, feature flag, or error type.</p>
-            <p className="mt-2">Finding records where a field is missing, empty, truthy, falsy, above a number, or inside a range.</p>
-            <p className="mt-2">Creating a smaller JSON sample before converting it to CSV, Markdown, or a bug report.</p>
-            <p className="mt-2">Testing dot-path filters such as user.role, meta.source, or product.category before writing code.</p>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Text, Number, Boolean, Missing-Field, and Regex Checks
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Use text operators for exact or partial matches, numeric operators
+            for ranges and thresholds, and Exists or Missing when the presence
+            of a field is the thing you are investigating. Truthy and Falsy are
+            useful for flags, but JavaScript truthiness also treats values such
+            as <code>0</code>, an empty string, <code>null</code>, and
+            <code>false</code> as falsy.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Regex matching is helpful for quick inspection, but a regular
+            expression is not the same as a schema or type check. If the data
+            mixes strings and numbers, review the preview before relying on an
+            auto-coerced comparison.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the JSON Array Filter Tool</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a JSON array of objects into the input box.</li>
-            <li>Enter the key or dot path you want to filter by.</li>
-            <li>Select a condition such as equals, contains, greater than, between, missing, or regex.</li>
-            <li>Choose the output format and whether to keep matching or non-matching records.</li>
-            <li>Review the filter preview and copy the filtered output.</li>
-          </ol>
-        </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Example: Filter a Nested API Response
+          </h2>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Filter</h2>
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`Filter key:
-category
+            <pre className="whitespace-pre-wrap break-words">{`Filter key: user.role
+Condition: equals
+Value: admin
 
-Condition:
-equals
-
-Value:
-JSON & Data
+Input record:
+{
+  "id": 17,
+  "user": {
+    "role": "admin",
+    "name": "Asha"
+  }
+}
 
 Result:
-Only records where category is "JSON & Data" are kept.`}</pre>
+The record matches, and the original nested "user" object is kept in the output.`}</pre>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Filtering Is Best for Small and Medium JSON Samples</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Keep Browser Filtering for Review-Sized Data
+          </h2>
+
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This browser tool is useful for pasted API responses, examples, exports, and moderate JSON samples. Very large datasets are better filtered in a database, command-line tool, or local script because browser previews can become hard to review at scale.
+            This is a review and debugging tool for pasted JSON, API samples,
+            exports, fixtures, and test data. For very large datasets, repeated
+            filters, or production data pipelines, a local script, jq, database
+            query, or application-level filter is usually easier to reproduce
+            and audit.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What does this JSON array filter tool do?">
-              It filters records in a JSON array by a selected key, value, comparison condition, and optional nested dot path.
-            </Faq>
-            <Faq title="Can I filter nested fields?">
-              Yes. Enable flattening and use dot paths such as user.role, meta.source, or product.category.
-            </Faq>
-            <Faq title="Can I filter numbers and booleans?">
-              Yes. Use the value type setting to compare text, numbers, booleans, or auto-detected values.
-            </Faq>
-            <Faq title="Can I find records where a key is missing?">
-              Yes. Choose the Missing condition to find records that do not contain the selected key or dot path.
-            </Faq>
-            <Faq title="Is anything uploaded while filtering JSON?">
-              No. The filtering runs entirely inside your browser.
-            </Faq>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            What the Tool Does Not Change
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Filtering does not validate the records against a JSON Schema, fix
+            malformed values, or infer missing data. It only evaluates the
+            condition you choose. Original record indexes and match reasons are
+            optional annotations in generated reports; disable them when you
+            need clean records only.
+          </p>
         </div>
 
         <div>
@@ -619,8 +637,33 @@ function buildResult(options: {
     return emptyResult("__ERROR__:Please paste a JSON array. This tool filters arrays of records.", options.input.length);
   }
 
-  const records = parsed.map((record) => options.flattenNestedObjects ? flattenRecord(record) : record);
-  const rows = records.map((record, index) => evaluateRecord(record, index, options));
+  const needsFilterValue = !["exists", "missing", "truthy", "falsy"].includes(options.operator);
+  const usesNumericComparison = ["greaterThan", "lessThan", "between"].includes(options.operator);
+
+  if (needsFilterValue && options.valueMode === "number" && !isFiniteNumberText(options.filterValue)) {
+    return emptyResult("__ERROR__:Enter a valid number for the filter value.", options.input.length);
+  }
+
+  if (usesNumericComparison && !isFiniteNumberText(options.filterValue)) {
+    return emptyResult("__ERROR__:Numeric comparisons need a valid numeric filter value.", options.input.length);
+  }
+
+  if (options.operator === "between" && !isFiniteNumberText(options.secondValue)) {
+    return emptyResult("__ERROR__:Between needs a valid second numeric value.", options.input.length);
+  }
+
+  if (
+    needsFilterValue &&
+    options.valueMode === "boolean" &&
+    !/^(true|false)$/i.test(options.filterValue.trim())
+  ) {
+    return emptyResult("__ERROR__:Boolean filter values must be true or false.", options.input.length);
+  }
+
+  const rows = parsed.map((record, index) => {
+    const lookupRecord = options.flattenNestedObjects ? flattenRecord(record) : record;
+    return evaluateRecord(lookupRecord, record, index, options);
+  });
   const selected = options.matchMode === "keepMatches" ? rows.filter((row) => row.matched) : rows.filter((row) => !row.matched);
   const sorted = sortRows(selected, options);
   const limited = options.limitOutputRows ? sorted.slice(0, 100) : sorted;
@@ -652,7 +695,7 @@ function emptyResult(output: string, inputLength: number): Result {
   };
 }
 
-function evaluateRecord(record: unknown, index: number, options: {
+function evaluateRecord(lookupRecord: unknown, originalRecord: unknown, index: number, options: {
   filterKey: string;
   filterValue: string;
   secondValue: string;
@@ -661,7 +704,7 @@ function evaluateRecord(record: unknown, index: number, options: {
   caseSensitive: boolean;
   trimValues: boolean;
 }) {
-  const value = readPath(record, options.filterKey);
+  const value = readPath(lookupRecord, options.filterKey);
   const exists = value !== undefined;
   const expected = coerceValue(options.filterValue, options.valueMode);
   const second = coerceValue(options.secondValue, options.valueMode);
@@ -721,7 +764,7 @@ function evaluateRecord(record: unknown, index: number, options: {
     matched,
     value,
     reason,
-    record,
+    record: originalRecord,
   };
 }
 
@@ -730,6 +773,11 @@ function normalizeText(value: unknown, options: { caseSensitive: boolean; trimVa
   if (options.trimValues) text = text.trim();
   if (!options.caseSensitive) text = text.toLowerCase();
   return text;
+}
+
+function isFiniteNumberText(value: string) {
+  const trimmed = value.trim();
+  return trimmed !== "" && Number.isFinite(Number(trimmed));
 }
 
 function coerceValue(value: string, mode: ValueMode): unknown {
@@ -952,15 +1000,6 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-gray-200 bg-white p-5">
       <p className="text-sm text-gray-500">{label}</p>
       <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
-    </div>
-  );
-}
-
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
     </div>
   );
 }
