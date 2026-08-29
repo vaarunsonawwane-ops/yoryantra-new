@@ -2,40 +2,38 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Sitemap URL Extractor | Extract URLs From XML Sitemaps Online | Yoryantra",
+  title: "Sitemap URL Extractor | XML Sitemap Parser | Yoryantra",
   description:
-    "Extract URLs from XML sitemaps and sitemap indexes. Parse loc, lastmod, changefreq, priority, image URLs, and export clean URL lists directly in your browser.",
+    "Extract page, child-sitemap, and image URLs from XML sitemaps. Review lastmod, limits, malformed URLs, duplicates, and export clean lists locally.",
   keywords: [
-    "Sitemap URL Extractor",
+    "sitemap URL extractor",
     "extract URLs from sitemap",
-    "XML sitemap URL extractor",
-    "sitemap parser",
-    "sitemap URL list",
+    "XML sitemap parser",
     "sitemap index extractor",
-    "extract loc from sitemap",
-    "technical SEO tools",
-    "SEO tools",
-    "developer tools",
+    "sitemap loc extractor",
+    "image sitemap URL extractor",
+    "sitemap lastmod checker",
+    "technical SEO sitemap tool",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/sitemap-url-extractor",
   },
   openGraph: {
-    title: "Sitemap URL Extractor | Extract URLs From XML Sitemaps Online | Yoryantra",
+    title: "Sitemap URL Extractor | XML Sitemap Parser | Yoryantra",
     description:
-      "Extract URLs from XML sitemaps and sitemap indexes. Parse loc, lastmod, changefreq, priority, image URLs, and export clean URL lists directly in your browser.",
+      "Extract and review URLs from pasted XML sitemaps and sitemap indexes, including image URLs and common protocol warnings.",
     url: "https://yoryantra.com/tools/sitemap-url-extractor",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sitemap URL Extractor | Extract URLs From XML Sitemaps Online | Yoryantra",
+    title: "Sitemap URL Extractor | XML Sitemap Parser | Yoryantra",
     description:
-      "Extract URLs from XML sitemaps and sitemap indexes. Parse loc, lastmod, changefreq, priority, image URLs, and export clean URL lists directly in your browser.",
+      "Extract page, sitemap, and image URLs from XML sitemap content and review common sitemap issues locally.",
   },
 };
 
-export default function SitemapURLExtractorPage() {
+export default function SitemapUrlExtractorPage() {
   return <ToolClient />;
 }

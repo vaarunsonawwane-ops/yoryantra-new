@@ -1,52 +1,39 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Canonical URL Checker Online Free | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Canonical URL Checker | Compare Canonical Tags | Yoryantra",
   description:
-    "Check and validate canonical URLs instantly with this free online Canonical URL Checker.",
-
+    "Compare a page URL with its canonical target and review host, path, query, fragment, relative URL, HTTPS, and tracking-parameter differences locally.",
   keywords: [
-    "canonical url checker",
+    "canonical URL checker",
     "canonical tag checker",
-    "canonical url validator",
-    "seo canonical checker",
-    "check canonical url",
-    "technical seo tools",
-    "canonical tag validator",
+    "rel canonical checker",
+    "canonical URL validator",
+    "self canonical checker",
+    "cross domain canonical checker",
+    "technical SEO canonical",
+    "canonical URL comparison",
   ],
-
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/canonical-url-checker",
+    canonical: "https://yoryantra.com/tools/canonical-url-checker",
   },
-
   openGraph: {
-    title:
-      "Canonical URL Checker Online Free | Yoryantra",
-
+    title: "Canonical URL Checker | Compare Canonical Tags | Yoryantra",
     description:
-      "Check and validate canonical URLs instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/canonical-url-checker",
-
+      "Compare page and canonical URLs, inspect important differences, and catch common canonicalization mistakes without fetching the page.",
+    url: "https://yoryantra.com/tools/canonical-url-checker",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "Canonical URL Checker Online Free | Yoryantra",
-
+    title: "Canonical URL Checker | Compare Canonical Tags | Yoryantra",
     description:
-      "Validate canonical URLs instantly.",
+      "Review self-referencing, alternate, relative, cross-domain, fragment, and parameter canonical URLs locally.",
   },
 };
 
-export default function Page() {
+export default function CanonicalUrlCheckerPage() {
   return <ToolClient />;
 }

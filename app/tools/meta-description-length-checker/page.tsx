@@ -2,39 +2,34 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Meta Description Checker – Length & SERP Preview | Yoryantra",
+  title: "Meta Description Length Checker | SERP Preview | Yoryantra",
   description:
-    "Check meta description length, estimated pixel width, truncation risk, keyword use, duplicate text, and Google-style desktop or mobile snippet previews.",
+    "Review meta description length, approximate visual width, duplicates, target-topic use, generic wording, and desktop or mobile snippet previews locally.",
   keywords: [
-    "Meta Description Length Checker",
-    "meta description checker",
-    "meta description check",
-    "meta description length",
     "meta description length checker",
-    "check meta description",
-    "meta desc checker",
-    "Google meta description length",
-    "SEO description checker",
+    "meta description checker",
+    "meta description length",
     "SERP description preview",
-    "meta tag description checker",
-    "SEO snippet checker",
+    "duplicate meta description checker",
+    "SEO snippet description checker",
+    "meta description character count",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/meta-description-length-checker",
   },
   openGraph: {
-    title: "Meta Description Checker – Length & SERP Preview | Yoryantra",
+    title: "Meta Description Length Checker | SERP Preview | Yoryantra",
     description:
-      "Check meta description length, estimated pixel width, truncation risk, keyword use, duplicate text, and Google-style desktop or mobile snippet previews.",
+      "Review meta description length, duplicates, wording, and illustrative search-snippet previews without uploading the text.",
     url: "https://yoryantra.com/tools/meta-description-length-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Meta Description Checker – Length & SERP Preview | Yoryantra",
+    title: "Meta Description Length Checker | SERP Preview | Yoryantra",
     description:
-      "Check meta description length, estimated pixel width, truncation risk, keyword use, duplicate text, and Google-style desktop or mobile snippet previews.",
+      "Check description length, duplicates, target-topic use, and snippet-preview risk locally.",
   },
 };
 

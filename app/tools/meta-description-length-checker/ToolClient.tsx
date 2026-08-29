@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "report" | "json" | "markdown" | "csv";
 type DeviceMode = "desktop" | "mobile";
 type CheckingStyle = "balanced" | "strict" | "relaxed";
+type Status = "within-review-range" | "brief" | "long" | "empty";
 
 type Issue = {
   severity: "info" | "warning" | "high";
@@ -17,12 +18,11 @@ type Issue = {
 
 type DescriptionRow = {
   description: string;
-  url: string;
-  keyword: string;
   length: number;
+  wordCount: number;
   estimatedPixels: number;
-  status: "good" | "short" | "long" | "empty";
-  score: number;
+  status: Status;
+  keywordCount: number;
   issues: Issue[];
 };
 
@@ -31,19 +31,18 @@ type Result = {
   issues: Issue[];
   output: string;
   totalDescriptions: number;
-  goodCount: number;
-  shortCount: number;
+  withinRangeCount: number;
+  briefCount: number;
   longCount: number;
   emptyCount: number;
   duplicateCount: number;
   averageLength: number;
-  averageScore: number;
 };
 
-const sampleDescriptions = `Check SEO title tag length, truncation risk, keyword placement, brand placement, separators, duplicates, and SERP-style title preview directly in your browser.
-Analyze canonical URL tags and URL variants for SEO issues before publishing pages.
-Simple online tools for developers and SEO work.
-This is a very long meta description example that keeps going with extra wording, repeated phrases, and too many details, so it may be truncated in search results before the important part is fully visible to users.`;
+const sampleDescriptions = `Extract URLs from XML sitemaps and sitemap indexes, review lastmod values, find image URLs, and export clean lists for technical SEO work.
+Compare a page URL with its canonical target and review host, path, query, fragment, and tracking-parameter differences before publishing.
+Simple tools for everything.
+This is an intentionally long example description with repeated context and extra explanation placed near the end so you can see how a verbose summary may lose its most useful wording when a search result snippet is shortened for the available space.`;
 
 export default function ToolClient() {
   const [descriptions, setDescriptions] = useState("");
@@ -55,7 +54,6 @@ export default function ToolClient() {
   const [oneDescriptionPerLine, setOneDescriptionPerLine] = useState(true);
   const [checkKeywordUsage, setCheckKeywordUsage] = useState(true);
   const [checkDuplicates, setCheckDuplicates] = useState(true);
-  const [checkCallToAction, setCheckCallToAction] = useState(true);
   const [checkThinDescriptions, setCheckThinDescriptions] = useState(true);
   const [result, setResult] = useState<Result | null>(null);
   const [output, setOutput] = useState("");
@@ -83,23 +81,20 @@ export default function ToolClient() {
       const next = analyzeDescriptions({
         descriptions,
         targetKeyword,
-        pageTitle,
         outputMode,
         deviceMode,
         checkingStyle,
         oneDescriptionPerLine,
         checkKeywordUsage,
         checkDuplicates,
-        checkCallToAction,
         checkThinDescriptions,
       });
-
       setResult(next);
       setOutput(next.output);
       setError("");
       setCopied(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to check these meta descriptions.");
+      setError(err instanceof Error ? err.message : "Unable to review these meta descriptions.");
       setResult(null);
       setOutput("");
     }
@@ -114,15 +109,14 @@ export default function ToolClient() {
 
   const loadExample = () => {
     setDescriptions(sampleDescriptions);
-    setTargetKeyword("meta description length checker");
-    setPageTitle("Meta Description Length Checker");
+    setTargetKeyword("sitemap");
+    setPageTitle("Sitemap URL Extractor");
     setOutputMode("summary");
     setDeviceMode("desktop");
     setCheckingStyle("balanced");
     setOneDescriptionPerLine(true);
     setCheckKeywordUsage(true);
     setCheckDuplicates(true);
-    setCheckCallToAction(true);
     setCheckThinDescriptions(true);
     clearResult();
   };
@@ -137,7 +131,6 @@ export default function ToolClient() {
     setOneDescriptionPerLine(true);
     setCheckKeywordUsage(true);
     setCheckDuplicates(true);
-    setCheckCallToAction(true);
     setCheckThinDescriptions(true);
     clearResult();
   };
@@ -145,13 +138,10 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Meta Description Length Checker"
-      description="Check meta description length, estimated pixel width, truncation risk, keyword use, duplicate text, and Google-style desktop or mobile snippet previews."
+      description="Review meta description length, approximate visual width, duplicate text, target-topic use, generic wording, and illustrative desktop or mobile search-snippet previews."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Meta Descriptions
-        </label>
-
+        <label className="block mb-2 text-sm font-medium text-gray-700">Meta Descriptions</label>
         <textarea
           value={descriptions}
           onChange={(event) => {
@@ -161,38 +151,30 @@ export default function ToolClient() {
           placeholder={sampleDescriptions}
           className="w-full min-h-[330px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Paste one meta description per line. Use the options below to review character length, estimated display width, keyword use, duplicates, and snippet appearance.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          With line-by-line mode on, each line is reviewed separately. Blank lines between descriptions are retained as empty rows so missing descriptions are visible in a batch check.
         </p>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Target Keyword
-          </label>
-
+          <label className="block mb-2 text-sm font-medium text-gray-700">Target Topic or Phrase</label>
           <input
             value={targetKeyword}
             onChange={(event) => {
               setTargetKeyword(event.target.value);
               clearResult();
             }}
-            placeholder="meta description length checker"
+            placeholder="meta description"
             className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
-
           <p className="mt-2 text-sm text-gray-500">
-            Optional. Used to check whether the description naturally includes the main topic.
+            Optional. This is a wording check, not a requirement that an exact keyword must appear in every description.
           </p>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Page Title
-          </label>
-
+          <label className="block mb-2 text-sm font-medium text-gray-700">Page Title for Preview</label>
           <input
             value={pageTitle}
             onChange={(event) => {
@@ -202,16 +184,12 @@ export default function ToolClient() {
             placeholder="Meta Description Length Checker"
             className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
-
-          <p className="mt-2 text-sm text-gray-500">
-            Optional. Used for the SERP-style preview only.
-          </p>
+          <p className="mt-2 text-sm text-gray-500">Optional. Used only in the illustrative snippet preview.</p>
         </div>
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Options</h3>
-
+        <h3 className="text-lg font-semibold text-gray-900">Review Settings</h3>
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
           <YoryantraSelect
             label="Preview"
@@ -221,22 +199,22 @@ export default function ToolClient() {
               clearResult();
             }}
             options={[
-              { label: "Desktop", value: "desktop" },
-              { label: "Mobile", value: "mobile" },
+              { label: "Desktop-style", value: "desktop" },
+              { label: "Mobile-style", value: "mobile" },
             ]}
           />
 
           <YoryantraSelect
-            label="Checking Style"
+            label="Review Sensitivity"
             value={checkingStyle}
             onChange={(value) => {
               setCheckingStyle(value as CheckingStyle);
               clearResult();
             }}
             options={[
-              { label: "Balanced", value: "balanced" },
-              { label: "Strict", value: "strict" },
-              { label: "Relaxed", value: "relaxed" },
+              { label: "Balanced heuristic", value: "balanced" },
+              { label: "Strict heuristic", value: "strict" },
+              { label: "Relaxed heuristic", value: "relaxed" },
             ]}
           />
 
@@ -256,94 +234,65 @@ export default function ToolClient() {
             ]}
           />
 
-          <div className="md:col-span-2 space-y-3">
-            <CheckboxRow checked={oneDescriptionPerLine} label="Treat each line as one description" onChange={(checked) => { setOneDescriptionPerLine(checked); clearResult(); }} />
-            <CheckboxRow checked={checkKeywordUsage} label="Check target keyword usage" onChange={(checked) => { setCheckKeywordUsage(checked); clearResult(); }} />
-            <CheckboxRow checked={checkDuplicates} label="Check duplicate descriptions" onChange={(checked) => { setCheckDuplicates(checked); clearResult(); }} />
-            <CheckboxRow checked={checkCallToAction} label="Check for action/helpful wording" onChange={(checked) => { setCheckCallToAction(checked); clearResult(); }} />
-            <CheckboxRow checked={checkThinDescriptions} label="Warn about thin or generic descriptions" onChange={(checked) => { setCheckThinDescriptions(checked); clearResult(); }} />
+          <div className="md:col-span-2 grid gap-3 md:grid-cols-2">
+            <Toggle checked={oneDescriptionPerLine} label="Treat each line as a separate description" onChange={(checked) => { setOneDescriptionPerLine(checked); clearResult(); }} />
+            <Toggle checked={checkKeywordUsage} label="Review target-topic usage" onChange={(checked) => { setCheckKeywordUsage(checked); clearResult(); }} />
+            <Toggle checked={checkDuplicates} label="Find duplicate descriptions" onChange={(checked) => { setCheckDuplicates(checked); clearResult(); }} />
+            <Toggle checked={checkThinDescriptions} label="Flag very brief or generic wording" onChange={(checked) => { setCheckThinDescriptions(checked); clearResult(); }} />
           </div>
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Google may rewrite meta descriptions. This checker helps catch common description problems, but it cannot guarantee exact SERP text.
+        <p className="mt-4 text-sm leading-relaxed text-gray-500">
+          The length ranges are user-selectable review heuristics, not Google limits. Google says meta descriptions have no fixed length limit and truncates snippets as needed for the available device width.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={checkDescriptions} className="yoryantra-btn">
-          Check Meta Descriptions
-        </button>
-
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
-          {copied ? "Copied" : "Copy Output"}
-        </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
-          Load Example
-        </button>
-
-        <button onClick={resetAll} className="yoryantra-btn-outline">
-          Reset
-        </button>
+        <button type="button" onClick={checkDescriptions} className="yoryantra-btn">Review Descriptions</button>
+        <button type="button" onClick={copyOutput} className="yoryantra-btn" disabled={!output}>{copied ? "Copied" : "Copy Output"}</button>
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">Load Example</button>
+        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
-          {error}
-        </div>
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">{error}</div>
       )}
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Descriptions" value={result.totalDescriptions.toLocaleString()} />
-          <SummaryCard label="Good" value={result.goodCount.toLocaleString()} />
-          <SummaryCard label="Long" value={result.longCount.toLocaleString()} />
-          <SummaryCard label="Average Score" value={`${result.averageScore}/100`} />
+          <SummaryCard label="Within Review Range" value={result.withinRangeCount.toLocaleString()} />
+          <SummaryCard label="Long / Truncation Risk" value={result.longCount.toLocaleString()} />
+          <SummaryCard label="Duplicate Groups" value={result.duplicateCount.toLocaleString()} />
         </div>
       )}
 
       {result && result.rows.length > 0 && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">Description Review</h3>
-
-          <p className="mt-2 text-sm text-gray-500">
-            Description length, estimated display width, status, score, and issue count.
-          </p>
-
+          <p className="mt-2 text-sm text-gray-500">Character count, word count, approximate visual width, heuristic status, target-phrase count, and findings.</p>
           <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
-            <table className="w-full min-w-[920px] text-left text-sm">
+            <table className="w-full min-w-[960px] text-left text-sm">
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Description</th>
-                  <th className="px-4 py-3 font-semibold">Length</th>
-                  <th className="px-4 py-3 font-semibold">Pixels</th>
+                  <th className="px-4 py-3 font-semibold">Chars</th>
+                  <th className="px-4 py-3 font-semibold">Words</th>
+                  <th className="px-4 py-3 font-semibold">Approx px</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Score</th>
-                  <th className="px-4 py-3 font-semibold">Issues</th>
+                  <th className="px-4 py-3 font-semibold">Topic Uses</th>
+                  <th className="px-4 py-3 font-semibold">Findings</th>
                 </tr>
               </thead>
-
               <tbody className="divide-y divide-gray-100">
                 {result.rows.slice(0, 100).map((row, index) => (
                   <tr key={`${row.description}-${index}`}>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-800">
-                      <span className="block max-w-[460px] break-words">{row.description || "(empty)"}</span>
-                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-800"><span className="block max-w-[430px] break-words">{row.description || "(empty line)"}</span></td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-700">{row.length}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{row.wordCount}</td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-700">{row.estimatedPixels}</td>
-                    <td className="px-4 py-3 text-gray-700">
-                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                        row.status === "good"
-                          ? "bg-green-50 text-green-700"
-                          : row.status === "long"
-                            ? "bg-amber-50 text-amber-700"
-                            : "bg-red-50 text-red-700"
-                      }`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{row.score}</td>
+                    <td className="px-4 py-3 text-gray-700"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusClass(row.status)}`}>{statusLabel(row.status)}</span></td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{row.keywordCount}</td>
                     <td className="px-4 py-3 text-gray-700">{row.issues.length}</td>
                   </tr>
                 ))}
@@ -355,20 +304,16 @@ export default function ToolClient() {
 
       {result && result.rows.length > 0 && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">SERP-Style Preview</h3>
-
+          <h3 className="text-lg font-semibold text-gray-900">Illustrative Search Snippet Preview</h3>
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+            This is a visual drafting aid, not a prediction of Google's exact snippet. Google may use page content instead of the meta description and can show different snippets for different searches.
+          </p>
           <div className="mt-4 space-y-4">
-            {result.rows.slice(0, 5).map((row, index) => (
-              <div key={`${row.description}-preview-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className={`font-medium text-blue-700 ${deviceMode === "mobile" ? "text-base" : "text-lg"}`}>
-                  {pageTitle || "Example Page Title"}
-                </p>
-                <p className="mt-1 text-sm text-green-700">
-                  {row.url || "https://example.com/page"}
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-gray-700">
-                  {truncateDescription(row.description, deviceMode)}
-                </p>
+            {result.rows.filter((row) => row.description).slice(0, 5).map((row, index) => (
+              <div key={`${row.description}-preview-${index}`} className={`rounded-xl border border-gray-200 bg-gray-50 p-4 ${deviceMode === "mobile" ? "max-w-md" : "max-w-2xl"}`}>
+                <p className={`font-medium text-blue-700 ${deviceMode === "mobile" ? "text-base" : "text-lg"}`}>{pageTitle || "Example Page Title"}</p>
+                <p className="mt-1 text-sm text-green-700">https://example.com/page</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-700">{previewDescription(row.description, checkingStyle, deviceMode)}</p>
               </div>
             ))}
           </div>
@@ -377,10 +322,9 @@ export default function ToolClient() {
 
       {result && result.issues.length > 0 && (
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Description findings</h3>
-
+          <h3 className="text-sm font-semibold text-amber-900">Description Findings</h3>
           <div className="mt-3 space-y-3">
-            {result.issues.slice(0, 20).map((issue, index) => (
+            {result.issues.slice(0, 24).map((issue, index) => (
               <div key={`${issue.title}-${index}`}>
                 <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
                 <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
@@ -392,8 +336,7 @@ export default function ToolClient() {
 
       {notes.length > 0 && (
         <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Meta description guidance</h3>
-
+          <h3 className="text-sm font-semibold text-blue-900">Review Notes</h3>
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
@@ -406,186 +349,73 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between gap-3 mb-3">
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-
-          {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
-              {copied ? "Copied" : "Copy"}
-            </button>
-          )}
+          {output && <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">{copied ? "Copied" : "Copy"}</button>}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
-          {output || "Meta description check output will appear here."}
-        </pre>
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">{output || "Meta description review output will appear here."}</pre>
       </div>
 
       <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Meta description checking happens directly in your browser. Your description text is not uploaded to a server.
+        The descriptions are analyzed in your browser. The text you paste is not sent to a server by this tool.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Check Meta Description Length Before Publishing
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Length Is a Review Signal, Not a Google Rule</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A useful meta description explains the page clearly and gives searchers a reason to visit it. This meta description checker reviews character count, estimated pixel width, truncation risk, keyword use, duplicate text, empty descriptions, and snippet wording.
+            Google does not publish a fixed maximum length for the meta description element. Search snippets are shortened as needed for the available device width, and the text shown can change by query. That makes a rigid “155 characters is correct” test misleading.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            You can check one description or review many descriptions together. Everything runs in your browser, so the text you paste is not sent to a server.
+            This checker uses practical, selectable length ranges to flag descriptions worth rereading. The approximate pixel value is another comparison aid, not a promise about where a real search result will truncate.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the Meta Description Checker
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste one meta description per line.</li>
-            <li>Optionally add the target keyword and page title.</li>
-            <li>Choose a desktop or mobile preview.</li>
-            <li>Select balanced, strict, or relaxed checking.</li>
-            <li>Review the length, estimated pixels, status, score, and snippet preview.</li>
-            <li>Copy the summary or export a detailed report, JSON, Markdown, or CSV result.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Meta Description Character Count and Pixel Width
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Meta descriptions are often discussed by character count, but search snippets are displayed within a visual width. Wide letters can use more space than narrow letters, so two descriptions with the same number of characters may not occupy the same width.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool checks both character length and an estimated pixel width. The estimate is a practical warning signal rather than a promise that Google will display the full description.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            What Is a Good Meta Description Length?
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Many clear descriptions fit within roughly 120 to 160 characters, but there is no guaranteed character limit. The best description is long enough to explain the page and short enough to keep the most useful wording visible.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Put the main topic and strongest benefit near the beginning. Avoid filling the description with repeated keywords, vague claims, or wording that does not match the page.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Meta Description Problems
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">What Matters More Than Hitting a Number</h2>
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>A missing or empty meta description.</li>
-            <li>A description that is too short to explain the page.</li>
-            <li>A long description that may be truncated in search results.</li>
-            <li>The same description reused across several pages.</li>
-            <li>The main topic missing from the description.</li>
-            <li>Generic wording that does not explain the page clearly.</li>
-            <li>Important information placed too late in the description.</li>
+            <li>Accurately summarize the specific page instead of describing the whole website.</li>
+            <li>Use distinct descriptions where pages offer meaningfully different content.</li>
+            <li>Put useful, page-specific information early enough to survive a shortened snippet.</li>
+            <li>Avoid keyword lists and repeated phrases that do not read naturally.</li>
+            <li>For large database-driven sites, programmatic descriptions can be appropriate when they remain readable and page-specific.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Meta Description Example
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Check meta description length, estimated pixel width, truncation risk, keyword use, duplicates, and Google-style snippet previews in your browser.`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Why Google May Show Different Description Text
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Why the Preview May Not Match Google</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Google may create a different search snippet from the visible page content when it believes that text matches a search query more closely. A well-written meta description is still useful because it gives Google a clear summary to consider.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Treat length as one part of the review. Accuracy, relevance, readability, and alignment with the page matter more than reaching an exact number.
+            Google's primary source for a snippet is the page content itself. It may use the meta description when that description is a better summary, and it may create different snippets for different searches. A preview is therefore best used to edit your wording, not to predict a guaranteed SERP layout.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Batch Review Without Fake SEO Scores</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The output reports measurable or explainable findings—length, duplicate text, empty rows, repeated target phrases, approximate width, and generic wording—rather than assigning an arbitrary SEO score. A description can be short and excellent, or long and still useful, depending on the page and query.
+          </p>
+        </div>
 
-          <div className="mt-5 space-y-6">
-            <Faq title="What does a meta description checker do?">
-              It checks description length, estimated display width, truncation risk, keyword use, duplicate text, empty descriptions, and common snippet-quality issues.
-            </Faq>
-
-            <Faq title="How long should a meta description be?">
-              Many descriptions work well at about 120 to 160 characters, but there is no fixed length that guarantees the full text will appear in Google.
-            </Faq>
-
-            <Faq title="Does Google use pixels or characters for meta descriptions?">
-              Search results are displayed within a visual width, so character count alone cannot predict truncation perfectly. Estimated pixel width can provide another useful warning.
-            </Faq>
-
-            <Faq title="Can Google rewrite a meta description?">
-              Yes. Google may use text from the page when it believes another passage answers the search query more clearly.
-            </Faq>
-
-            <Faq title="Should every page have a unique meta description?">
-              Important indexable pages should normally have descriptions that accurately explain what makes each page different.
-            </Faq>
-
-            <Faq title="Can I check multiple meta descriptions together?">
-              Yes. Paste one description per line to compare lengths, statuses, scores, duplicates, and other findings in one report.
-            </Faq>
-
-            <Faq title="Is my description text uploaded anywhere?">
-              No. The checker runs directly in your browser.
-            </Faq>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Reference</h2>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a className="yoryantra-btn-outline" href="https://developers.google.com/search/docs/appearance/snippet" target="_blank" rel="noreferrer">Google snippet guidance</a>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/title-tag-length-checker" className="yoryantra-btn-outline">Title Tag Length Checker</Link>
-            <Link href="/tools/meta-tags-checker" className="yoryantra-btn-outline">Meta Tags Checker</Link>
-            <Link href="/tools/serp-snippet-preview-tool" className="yoryantra-btn-outline">SERP Snippet Preview Tool</Link>
-            <Link href="/tools/meta-tag-generator" className="yoryantra-btn-outline">Meta Tag Generator</Link>
-            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline">Canonical URL Checker</Link>
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/meta-description-length-checker" />
         </div>
       </section>
     </ToolShell>
   );
 }
 
-function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
+function Toggle({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
   return (
     <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 accent-[var(--light-gold)]"
-      />
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-[var(--light-gold)]" />
       {label}
     </label>
   );
@@ -600,323 +430,238 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
+function statusClass(status: Status) {
+  if (status === "within-review-range") return "bg-green-50 text-green-700";
+  if (status === "long") return "bg-amber-50 text-amber-700";
+  return "bg-red-50 text-red-700";
+}
+
+function statusLabel(status: Status) {
+  if (status === "within-review-range") return "review range";
+  if (status === "brief") return "brief";
+  if (status === "long") return "long";
+  return "empty";
 }
 
 function analyzeDescriptions(options: {
   descriptions: string;
   targetKeyword: string;
-  pageTitle: string;
   outputMode: OutputMode;
   deviceMode: DeviceMode;
   checkingStyle: CheckingStyle;
   oneDescriptionPerLine: boolean;
   checkKeywordUsage: boolean;
   checkDuplicates: boolean;
-  checkCallToAction: boolean;
   checkThinDescriptions: boolean;
 }): Result {
-  const rows = parseRows(options.descriptions, options.oneDescriptionPerLine).map((row) => analyzeRow(row, options));
+  const rows = parseRows(options.descriptions, options.oneDescriptionPerLine).map((description) => analyzeRow(description, options));
   const duplicateIssues = options.checkDuplicates ? getDuplicateIssues(rows) : [];
   const issues = [...rows.flatMap((row) => row.issues), ...duplicateIssues];
-  const totalScore = rows.reduce((sum, row) => sum + row.score, 0);
   const totalLength = rows.reduce((sum, row) => sum + row.length, 0);
 
   const base = {
     rows,
     issues,
     totalDescriptions: rows.length,
-    goodCount: rows.filter((row) => row.status === "good").length,
-    shortCount: rows.filter((row) => row.status === "short").length,
+    withinRangeCount: rows.filter((row) => row.status === "within-review-range").length,
+    briefCount: rows.filter((row) => row.status === "brief").length,
     longCount: rows.filter((row) => row.status === "long").length,
     emptyCount: rows.filter((row) => row.status === "empty").length,
     duplicateCount: duplicateIssues.length,
     averageLength: rows.length ? Math.round(totalLength / rows.length) : 0,
-    averageScore: rows.length ? Math.round(totalScore / rows.length) : 0,
   };
-  const output = formatOutput(base, options.outputMode);
 
-  return {
-    ...base,
-    output,
-  };
+  return { ...base, output: formatOutput(base, options.outputMode) };
 }
 
 function parseRows(input: string, oneDescriptionPerLine: boolean) {
-  const lines = input.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-
-  if (oneDescriptionPerLine) {
-    return lines.map((line) => ({ description: line, url: "", keyword: "" }));
+  if (!oneDescriptionPerLine) {
+    return [input.replace(/\s*\r?\n\s*/g, " ").trim()];
   }
 
-  const rows: { description: string; url: string; keyword: string }[] = [];
-
-  for (let index = 0; index < lines.length; index += 2) {
-    rows.push({
-      description: lines[index] || "",
-      url: lines[index + 1] || "",
-      keyword: "",
-    });
-  }
-
-  return rows;
+  return input.trim().split(/\r?\n/).map((line) => line.trim());
 }
 
-function analyzeRow(row: { description: string; url: string; keyword: string }, options: {
+function analyzeRow(descriptionInput: string, options: {
   targetKeyword: string;
   deviceMode: DeviceMode;
   checkingStyle: CheckingStyle;
   checkKeywordUsage: boolean;
-  checkCallToAction: boolean;
   checkThinDescriptions: boolean;
 }): DescriptionRow {
-  const description = row.description.trim();
-  const length = description.length;
+  const description = descriptionInput.trim();
+  const length = Array.from(description).length;
+  const wordCount = description ? description.split(/\s+/).filter(Boolean).length : 0;
   const estimatedPixels = estimatePixels(description);
   const limits = getLimits(options.deviceMode, options.checkingStyle);
   const issues: Issue[] = [];
-  let status: DescriptionRow["status"] = "good";
+  let status: Status = "within-review-range";
 
   if (!description) {
     status = "empty";
-    issues.push({
-      severity: "high",
-      title: "Empty description",
-      message: "The meta description is empty or missing.",
-    });
+    issues.push({ severity: "high", title: "Empty description row", message: "This row has no meta description text." });
   } else if (length < limits.minChars) {
-    status = "short";
-    issues.push({
-      severity: "warning",
-      title: "Description may be too short",
-      message: `This description has ${length} characters. It may not explain the page clearly enough.`,
-    });
-  } else if (length > limits.maxChars || estimatedPixels > limits.maxPixels) {
+    status = "brief";
+    issues.push({ severity: "info", title: "Brief description", message: `This description has ${length} characters. Short text is not automatically wrong, but check that it gives enough page-specific information.` });
+  } else if (length > limits.maxChars) {
     status = "long";
-    issues.push({
-      severity: "warning",
-      title: "Description may be too long",
-      message: `This description has ${length} characters and an estimated width of ${estimatedPixels}px. It may be truncated.`,
-    });
+    issues.push({ severity: "warning", title: "Long description", message: `This description has ${length} characters. It is more likely to be shortened in a search snippet, so keep the most useful information near the beginning.` });
   }
 
-  if (options.checkKeywordUsage && options.targetKeyword.trim()) {
-    const keyword = options.targetKeyword.trim().toLowerCase();
-    const index = description.toLowerCase().indexOf(keyword);
+  const keyword = options.targetKeyword.trim().toLowerCase();
+  const keywordCount = options.checkKeywordUsage && keyword ? countPhrase(description.toLowerCase(), keyword) : 0;
 
+  if (options.checkKeywordUsage && keyword && description) {
+    const index = description.toLowerCase().indexOf(keyword);
     if (index === -1) {
-      issues.push({
-        severity: "info",
-        title: "Target keyword missing",
-        message: "The target keyword was not found in the description.",
-      });
-    } else if (index > 110) {
-      issues.push({
-        severity: "info",
-        title: "Target keyword appears late",
-        message: "The target keyword appears late in the description. Important wording is often stronger earlier.",
-      });
+      issues.push({ severity: "info", title: "Target phrase not used", message: "The optional target phrase does not appear verbatim. This is a wording check, not an SEO requirement; synonyms may be completely appropriate." });
+    } else if (keywordCount > 2) {
+      issues.push({ severity: "warning", title: "Target phrase repeated", message: `The target phrase appears ${keywordCount} times. Repetition can make a short description read like a keyword list rather than a useful summary.` });
+    } else if (index > Math.max(100, Math.floor(description.length * 0.7))) {
+      issues.push({ severity: "info", title: "Target phrase appears late", message: "The target phrase appears near the end. If it describes the main page topic, consider whether the opening wording communicates that topic clearly enough." });
     }
   }
 
-  if (options.checkCallToAction && description && !hasActionLanguage(description)) {
-    issues.push({
-      severity: "info",
-      title: "Could be more action-focused",
-      message: "The description does not include clear action or benefit wording. This is not always required, but it can improve clarity.",
-    });
-  }
-
   if (options.checkThinDescriptions && isGenericDescription(description)) {
-    issues.push({
-      severity: "warning",
-      title: "Generic description",
-      message: "This description looks generic. Make it more specific to the page content.",
-    });
+    issues.push({ severity: "warning", title: "Very brief or generic wording", message: "This description gives little page-specific information. Add concrete details that distinguish this page from other pages on the site." });
   }
 
-  const score = scoreDescription(issues, status);
+  if (description && estimatedPixels > limits.widthReviewPixels) {
+    issues.push({ severity: "info", title: "High approximate visual width", message: `The text measures about ${estimatedPixels}px using this tool's character-width estimate. Treat this as a comparison signal only; real snippets wrap and truncate according to Google's layout.` });
+  }
 
-  return {
-    ...row,
-    description,
-    length,
-    estimatedPixels,
-    status,
-    score,
-    issues,
-  };
+  return { description, length, wordCount, estimatedPixels, status, keywordCount, issues };
 }
 
 function getLimits(deviceMode: DeviceMode, style: CheckingStyle) {
   const base = deviceMode === "mobile"
-    ? { minChars: 70, maxChars: 165, maxPixels: 920 }
-    : { minChars: 70, maxChars: 160, maxPixels: 900 };
+    ? { minChars: 65, maxChars: 160, widthReviewPixels: 900 }
+    : { minChars: 70, maxChars: 165, widthReviewPixels: 940 };
 
-  if (style === "strict") {
-    return {
-      minChars: base.minChars + 15,
-      maxChars: base.maxChars - 10,
-      maxPixels: base.maxPixels - 80,
-    };
-  }
-
-  if (style === "relaxed") {
-    return {
-      minChars: base.minChars - 20,
-      maxChars: base.maxChars + 20,
-      maxPixels: base.maxPixels + 120,
-    };
-  }
-
+  if (style === "strict") return { minChars: base.minChars + 15, maxChars: base.maxChars - 15, widthReviewPixels: base.widthReviewPixels - 90 };
+  if (style === "relaxed") return { minChars: Math.max(30, base.minChars - 25), maxChars: base.maxChars + 25, widthReviewPixels: base.widthReviewPixels + 130 };
   return base;
 }
 
 function estimatePixels(description: string) {
   return Array.from(description).reduce((sum, char) => {
-    if (/[A-ZMW]/.test(char)) return sum + 10;
-    if (/[ilI.,'!|]/.test(char)) return sum + 4;
+    if (/[MW@%&]/.test(char)) return sum + 10;
+    if (/[A-Z]/.test(char)) return sum + 8;
+    if (/[ilI.,'!|:;]/.test(char)) return sum + 4;
     if (/\s/.test(char)) return sum + 4;
-    if (/[^\x00-\x7F]/.test(char)) return sum + 11;
+    if (/[^\x00-\x7F]/.test(char)) return sum + 10;
     return sum + 7;
   }, 0);
 }
 
-function hasActionLanguage(description: string) {
-  return /\b(check|learn|find|compare|create|generate|analyze|preview|fix|discover|use|get|review|test|validate|build)\b/i.test(description);
+function countPhrase(text: string, phrase: string) {
+  if (!phrase) return 0;
+  let count = 0;
+  let from = 0;
+  while (from <= text.length) {
+    const index = text.indexOf(phrase, from);
+    if (index === -1) break;
+    count += 1;
+    from = index + phrase.length;
+  }
+  return count;
 }
 
 function isGenericDescription(description: string) {
-  return /^(welcome to|home page|this page|best website|click here|learn more about our|we provide|we offer)/i.test(description) ||
-    description.length > 0 && description.split(/\s+/).length < 8;
+  if (!description) return false;
+  const words = description.split(/\s+/).filter(Boolean);
+  return words.length < 8 || /^(welcome to|home page|this page|best website|click here|learn more|we provide|we offer)(\b|\s)/i.test(description);
 }
 
 function getDuplicateIssues(rows: DescriptionRow[]) {
-  const counts = new Map<string, number>();
+  const groups = new Map<string, { count: number; sample: string }>();
 
   rows.forEach((row) => {
-    const key = row.description.toLowerCase().trim();
+    const key = normalizeForDuplicate(row.description);
     if (!key) return;
-    counts.set(key, (counts.get(key) || 0) + 1);
+    const current = groups.get(key);
+    groups.set(key, { count: (current?.count || 0) + 1, sample: current?.sample || row.description });
   });
 
-  return Array.from(counts.entries())
-    .filter(([, count]) => count > 1)
-    .map(([description, count]) => ({
+  return Array.from(groups.values())
+    .filter((group) => group.count > 1)
+    .map((group) => ({
       severity: "warning" as const,
       title: "Duplicate description",
-      message: `${count} rows use the same description: ${description}`,
+      message: `${group.count} rows use the same description after case and whitespace normalization: ${group.sample}`,
     }));
 }
 
-function scoreDescription(issues: Issue[], status: DescriptionRow["status"]) {
-  let score = 100;
-
-  if (status === "empty") score -= 70;
-  if (status === "short") score -= 18;
-  if (status === "long") score -= 18;
-
-  issues.forEach((issue) => {
-    if (issue.severity === "high") score -= 25;
-    else if (issue.severity === "warning") score -= 10;
-    else score -= 4;
-  });
-
-  return Math.max(0, score);
+function normalizeForDuplicate(value: string) {
+  return value.toLowerCase().trim().replace(/\s+/g, " ");
 }
 
-function truncateDescription(description: string, deviceMode: DeviceMode) {
-  const max = deviceMode === "mobile" ? 170 : 160;
-  return description.length > max ? `${description.slice(0, max - 1)}…` : description;
+function previewDescription(description: string, style: CheckingStyle, deviceMode: DeviceMode) {
+  const limits = getLimits(deviceMode, style);
+  const max = limits.maxChars;
+  if (Array.from(description).length <= max) return description;
+  return `${Array.from(description).slice(0, Math.max(1, max - 1)).join("")}…`;
 }
 
 function formatOutput(result: Omit<Result, "output">, outputMode: OutputMode) {
-  if (outputMode === "json") {
-    return JSON.stringify(result, null, 2);
-  }
+  if (outputMode === "json") return JSON.stringify(result, null, 2);
 
   if (outputMode === "csv") {
     const rows = [
-      ["description", "length", "estimatedPixels", "status", "score", "issues"],
-      ...result.rows.map((row) => [
-        row.description,
-        String(row.length),
-        String(row.estimatedPixels),
-        row.status,
-        String(row.score),
-        String(row.issues.length),
-      ]),
+      ["description", "characters", "words", "estimated_pixels", "status", "target_phrase_uses", "findings"],
+      ...result.rows.map((row) => [row.description, String(row.length), String(row.wordCount), String(row.estimatedPixels), row.status, String(row.keywordCount), String(row.issues.length)]),
     ];
-
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
 
   if (outputMode === "markdown") {
     return [
-      "| Description | Length | Pixels | Status | Score | Issues |",
-      "| --- | ---: | ---: | --- | ---: | ---: |",
-      ...result.rows.map((row) =>
-        `| ${escapeMarkdown(row.description || "-")} | ${row.length} | ${row.estimatedPixels} | ${row.status} | ${row.score} | ${row.issues.length} |`
-      ),
+      "| Description | Chars | Words | Approx px | Status | Topic uses | Findings |",
+      "| --- | ---: | ---: | ---: | --- | ---: | ---: |",
+      ...result.rows.map((row) => `| ${escapeMarkdown(row.description || "(empty)")} | ${row.length} | ${row.wordCount} | ${row.estimatedPixels} | ${statusLabel(row.status)} | ${row.keywordCount} | ${row.issues.length} |`),
     ].join("\n");
   }
 
   if (outputMode === "report") {
-    return result.rows
-      .map((row, index) => {
-        const issues = row.issues.length
-          ? row.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`)
-          : ["- No common meta description issues found."];
-
-        return [
-          `Description ${index + 1}`,
-          "-------------",
-          `Text: ${row.description || "(empty)"}`,
-          `Length: ${row.length}`,
-          `Estimated pixels: ${row.estimatedPixels}`,
-          `Status: ${row.status}`,
-          `Score: ${row.score}/100`,
-          "",
-          "Findings:",
-          ...issues,
-        ].join("\n");
-      })
-      .join("\n\n");
+    return result.rows.map((row, index) => [
+      `Description ${index + 1}`,
+      "-------------",
+      `Text: ${row.description || "(empty)"}`,
+      `Characters: ${row.length}`,
+      `Words: ${row.wordCount}`,
+      `Approximate width: ${row.estimatedPixels}px`,
+      `Status: ${statusLabel(row.status)}`,
+      `Target phrase uses: ${row.keywordCount}`,
+      "",
+      "Findings:",
+      ...(row.issues.length ? row.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`) : ["- No selected heuristic findings for this row."]),
+    ].join("\n")).join("\n\n");
   }
 
   const issues = result.issues.length
-    ? result.issues.slice(0, 15).map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`)
-    : ["- No common meta description issues found."];
+    ? result.issues.slice(0, 18).map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`)
+    : ["- No selected heuristic findings."];
 
   return [
-    "Meta Description Length Summary",
+    "Meta Description Review Summary",
     "-------------------------------",
     `Descriptions checked: ${result.totalDescriptions}`,
-    `Good descriptions: ${result.goodCount}`,
-    `Short descriptions: ${result.shortCount}`,
-    `Long descriptions: ${result.longCount}`,
-    `Empty descriptions: ${result.emptyCount}`,
-    `Duplicate description groups: ${result.duplicateCount}`,
-    `Average length: ${result.averageLength}`,
-    `Average score: ${result.averageScore}/100`,
+    `Within review range: ${result.withinRangeCount}`,
+    `Brief: ${result.briefCount}`,
+    `Long: ${result.longCount}`,
+    `Empty rows: ${result.emptyCount}`,
+    `Duplicate groups: ${result.duplicateCount}`,
+    `Average character length: ${result.averageLength}`,
     "",
     "Findings:",
     ...issues,
+    "",
+    "Reminder: these ranges are editing heuristics, not Google meta-description limits.",
   ].join("\n");
 }
 
 function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-
-  return value;
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
 function escapeMarkdown(value: string) {
@@ -925,27 +670,8 @@ function escapeMarkdown(value: string) {
 
 function getNotes(result: Result) {
   const notes: { title: string; message: string }[] = [];
-
-  if (result.longCount > 0) {
-    notes.push({
-      title: "Review long descriptions first",
-      message: "Long descriptions may be truncated. Keep the clearest benefit and page topic near the beginning.",
-    });
-  }
-
-  if (result.duplicateCount > 0) {
-    notes.push({
-      title: "Duplicate descriptions found",
-      message: "Unique descriptions help users understand how each page is different before clicking.",
-    });
-  }
-
-  if (result.averageScore >= 85) {
-    notes.push({
-      title: "Mostly clean description set",
-      message: "The description set looks healthy overall. Review individual warnings before publishing.",
-    });
-  }
-
+  if (result.longCount > 0) notes.push({ title: "Read the opening first", message: "Long descriptions are more likely to be shortened. Check whether the first sentence or clause still explains the page if later wording disappears." });
+  if (result.duplicateCount > 0) notes.push({ title: "Duplicate groups found", message: "Identical descriptions are not automatically a penalty, but page-specific descriptions are more useful when the pages are meaningfully different." });
+  if (result.emptyCount > 0) notes.push({ title: "Empty rows retained", message: "Blank lines between pasted descriptions are shown as empty rows in line-by-line mode, which can help when reviewing an exported list with missing descriptions." });
   return notes;
 }
