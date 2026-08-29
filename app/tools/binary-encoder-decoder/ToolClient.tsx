@@ -2,386 +2,322 @@
 
 import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
-import {
-  ToolContent,
-  ToolExampleCard,
-  ToolInsightBox,
-} from "@/app/components/ToolContent";
+
+type BinaryLayout = "spaced" | "continuous" | "prefixed";
+
+type Diagnostics = {
+  mode: "encode" | "decode";
+  bytes: number;
+  asciiBytes: number;
+  nonAsciiBytes: number;
+};
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
+  const [layout, setLayout] = useState<BinaryLayout>("spaced");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
+  const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const layoutLabel = useMemo(() => {
+    if (layout === "continuous") return "continuous bits";
+    if (layout === "prefixed") return "0b-prefixed bytes";
+    return "space-separated bytes";
+  }, [layout]);
+
+  const clearResult = () => {
+    setOutput("");
+    setError("");
+    setDiagnostics(null);
+    setCopied(false);
+  };
 
   const encodeBinary = () => {
-    if (!input.trim()) {
+    if (input.length === 0) {
       setError("Please enter text to encode.");
       setOutput("");
+      setDiagnostics(null);
       return;
     }
 
     try {
-      const encoded = Array.from(new TextEncoder().encode(input))
-        .map((byte) => byte.toString(2).padStart(8, "0"))
-        .join(" ");
+      const bytes = new TextEncoder().encode(input);
+      const groups = Array.from(bytes, (byte) => byte.toString(2).padStart(8, "0"));
 
-      setOutput(encoded);
+      setOutput(formatBinaryGroups(groups, layout));
+      setDiagnostics(buildDiagnostics("encode", bytes));
       setError("");
+      setCopied(false);
     } catch {
-      setError("Unable to encode this text to binary.");
+      setError("Unable to encode this text as UTF-8 binary bytes.");
       setOutput("");
+      setDiagnostics(null);
     }
   };
 
   const decodeBinary = () => {
-    const cleaned = input.trim();
-
-    if (!cleaned) {
-      setError("Please enter binary values to decode.");
+    if (!input.trim()) {
+      setError("Please enter binary bytes to decode.");
       setOutput("");
-      return;
-    }
-
-    const values = cleaned
-      .split(/[\s,]+/)
-      .filter(Boolean);
-
-    const invalidValue = values.find((value) => !/^[01]+$/.test(value));
-
-    if (invalidValue) {
-      setError("Binary input can only contain 0 and 1 values.");
-      setOutput("");
-      return;
-    }
-
-    const invalidLength = values.find((value) => value.length !== 8);
-
-    if (invalidLength) {
-      setError("Each binary byte should contain exactly 8 bits.");
-      setOutput("");
+      setDiagnostics(null);
       return;
     }
 
     try {
-      const bytes = new Uint8Array(
-        values.map((value) => parseInt(value, 2))
-      );
-
-      const decoded = new TextDecoder().decode(bytes);
+      const bytes = parseBinaryBytes(input);
+      const decoder = new TextDecoder("utf-8", { fatal: true });
+      const decoded = decoder.decode(bytes);
 
       setOutput(decoded);
+      setDiagnostics(buildDiagnostics("decode", bytes));
       setError("");
-    } catch {
-      setError("Unable to decode this binary value.");
+      setCopied(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to decode this binary input.");
       setOutput("");
+      setDiagnostics(null);
     }
   };
 
   const copyOutput = async () => {
     if (!output) return;
-
     await navigator.clipboard.writeText(output);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
   };
 
   const loadExample = () => {
     setInput("01011001 01101111 01110010 01111001 01100001 01101110 01110100 01110010 01100001");
-    setOutput("");
-    setError("");
+    setLayout("spaced");
+    clearResult();
   };
 
   const resetAll = () => {
     setInput("");
-    setOutput("");
-    setError("");
+    setLayout("spaced");
+    clearResult();
   };
-
-  const stats = useMemo(() => {
-    return {
-      inputLength: input.length,
-      outputLength: output.length,
-    };
-  }, [input, output]);
 
   return (
     <ToolShell
       title="Binary Encoder Decoder"
-      description="Encode text to binary and decode binary values back into readable text for debugging, learning, encoding workflows, and data inspection."
+      description="Convert UTF-8 text to 8-bit binary bytes, or decode grouped and continuous binary bytes back into text with strict UTF-8 validation."
     >
-      {/* INPUT */}
       <div>
         <label className="mb-2 block text-sm font-medium text-gray-700">
-          Input Text or Binary
+          Input Text or Binary Bytes
         </label>
 
         <textarea
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(event: { target: { value: string } }) => {
+            setInput(event.target.value);
+            clearResult();
+          }}
           rows={7}
-          placeholder="Example: 01011001 01101111 01110010 01111001 01100001 01101110 01110100 01110010 01100001"
+          placeholder="Example: 01011001 01101111 01110010 01111001"
           className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        />
+
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          Decoding accepts 8-bit groups separated by spaces, commas, or line breaks; 0b-prefixed bytes; and continuous bit strings whose length is a multiple of 8.
+        </p>
+      </div>
+
+      <div className="mt-6 max-w-md">
+        <YoryantraSelect
+          label="Encoded binary layout"
+          value={layout}
+          onChange={(value: string) => {
+            setLayout(value as BinaryLayout);
+            clearResult();
+          }}
+          options={[
+            { label: "Space-separated bytes", value: "spaced" },
+            { label: "Continuous bits", value: "continuous" },
+            { label: "0b-prefixed bytes", value: "prefixed" },
+          ]}
         />
       </div>
 
-      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={decodeBinary}
-          className="yoryantra-btn"
-        >
+        <button onClick={decodeBinary} className="yoryantra-btn">
           Decode Binary
         </button>
-
-        <button
-          onClick={encodeBinary}
-          className="yoryantra-btn-outline"
-        >
-          Encode to Binary
+        <button onClick={encodeBinary} className="yoryantra-btn-outline">
+          Encode Text
         </button>
-
-        <button
-          onClick={copyOutput}
-          disabled={!output}
-          className="yoryantra-btn-outline"
-        >
-          Copy Output
+        <button onClick={copyOutput} disabled={!output} className="yoryantra-btn-outline">
+          {copied ? "Copied" : "Copy Output"}
         </button>
-
-        <button
-          onClick={loadExample}
-          className="yoryantra-btn-outline"
-        >
+        <button onClick={loadExample} className="yoryantra-btn-outline">
           Load Example
         </button>
-
-        <button
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
+        <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
 
-      {/* ERROR */}
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       )}
 
-		{/* OUTPUT */}
-		<div className="mt-8">
-		  <div className="flex items-center justify-between mb-3">
-			<div>
-			  <h3 className="text-lg font-semibold text-gray-900">
-				Converted Output
-			  </h3>
+      {diagnostics && (
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <SummaryCard label="Mode" value={diagnostics.mode === "encode" ? "Text → UTF-8 bytes" : "UTF-8 bytes → Text"} />
+          <SummaryCard label="Bytes" value={String(diagnostics.bytes)} />
+          <SummaryCard label="Bytes ≥ 128" value={String(diagnostics.nonAsciiBytes)} />
+        </div>
+      )}
 
-			  <p className="mt-1 text-sm text-gray-500">
-				{output
-				  ? `${stats.outputLength} output character${
-					  stats.outputLength === 1 ? "" : "s"
-					}`
-				  : "Output will appear below"}
-			  </p>
-			</div>
+      <div className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Converted Output</h3>
+          {diagnostics?.mode === "encode" && (
+            <span className="text-xs text-gray-500">Layout: {layoutLabel}</span>
+          )}
+        </div>
 
-			{output && (
-			  <button
-				onClick={() =>
-				  navigator.clipboard.writeText(
-					output
-				  )
-				}
-				className="yoryantra-btn-outline text-sm"
-			  >
-				Copy
-			  </button>
-			)}
-		  </div>
+        <pre className="yoryantra-output min-h-[240px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Binary conversion output will appear here."}
+        </pre>
+      </div>
 
-		  <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
-			{output ||
-			  "Binary conversion output will appear here."}
-		  </pre>
-		</div>
+      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+        Encoding and decoding happen in your browser. This tool does not send your text or byte sequence to a server.
+      </div>
 
-      {/* SEO CONTENT */}
-      <ToolContent>
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Reading Binary Values as Text
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Binary values appear in computer science examples, byte-level
-            debugging, encoded text, learning material, and simple data
-            inspection workflows. They are useful for understanding how text can
-            be represented as bytes, but long binary strings are difficult to
-            read without conversion.
+          <h2 className="text-2xl font-semibold text-gray-900">The Binary Output Represents UTF-8 Bytes</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A binary string such as 01000001 is just one byte written with 0s and 1s. For ASCII text, one character often maps to one byte. For modern Unicode text, UTF-8 may use two, three, or four bytes for a single character.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Binary Encoder Decoder converts readable text into 8-bit binary
-            bytes and decodes binary bytes back into normal text.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            That is why an emoji produces several 8-bit groups rather than one oversized “binary character.” The encoder first turns the text into UTF-8 bytes, then prints each byte in binary.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the Binary Encoder Decoder
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste text or binary bytes into the input box.</li>
-            <li>Use <strong>Decode Binary</strong> when binary should become readable text.</li>
-            <li>Use <strong>Encode to Binary</strong> when text should become 8-bit binary output.</li>
-            <li>Copy the result for notes, examples, debugging, or learning material.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Binary Byte Examples You Can Recognize
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool expects binary text in 8-bit byte groups. Spaces or commas
-            can separate each byte.
-          </p>
-
-          <ToolExampleCard>
-            <div className="text-sm leading-7 text-gray-700">
-              <p>
-                <strong>01001000 01100101 01101100 01101100 01101111</strong> → Hello
-              </p>
-
-              <p className="mt-3">
-                <strong>01000001 01010000 01001001</strong> → API
-              </p>
-
-              <p className="mt-3">
-                <strong>01011001 01101111 01110010 01111001 01100001 01101110 01110100 01110010 01100001</strong> → Yoryantra
-              </p>
-            </div>
-          </ToolExampleCard>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Where Binary Conversion Helps
-          </h2>
-
-          <ToolInsightBox>
-            <ul className="space-y-3">
-              <li>
-                Decoding binary strings copied from examples, lessons, or notes.
-              </li>
-
-              <li>
-                Turning short text into binary for teaching or demonstration.
-              </li>
-
-              <li>
-                Checking byte-level output while learning encoding concepts.
-              </li>
-
-              <li>
-                Comparing binary, ASCII, hex, and Unicode representations.
-              </li>
-            </ul>
-          </ToolInsightBox>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Reading Binary Input Correctly
-          </h2>
-
-          <ToolInsightBox>
-            <ul className="space-y-3">
-              <li>
-                <strong>8-bit groups:</strong>{" "}
-                Each binary byte should contain exactly eight 0 or 1 characters.
-              </li>
-
-              <li>
-                <strong>Separators:</strong>{" "}
-                Use spaces or commas between bytes for cleaner decoding.
-              </li>
-
-              <li>
-                <strong>Text output:</strong>{" "}
-                Decoding uses UTF-8 so common text characters can be read correctly.
-              </li>
-
-              <li>
-                <strong>Invalid input:</strong>{" "}
-                Any character other than 0 or 1 will be rejected for decoding.
-              </li>
-            </ul>
-          </ToolInsightBox>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is binary encoding?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Binary encoding represents data using 0 and 1 values. Text can
-                be represented as bytes, where each byte is commonly shown as an
-                8-bit binary group.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why does each binary value need 8 bits?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                This tool decodes binary as bytes. A byte contains 8 bits, so
-                each group should contain exactly eight 0 or 1 characters.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this decode comma-separated binary?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Binary values can be separated by spaces or commas.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this upload my text?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Encoding and decoding happen directly in your browser.
-              </p>
-            </div>
+          <h2 className="text-xl font-semibold text-gray-900">Grouped and Continuous Input</h2>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-7 text-gray-700">
+            <p><strong>Grouped:</strong> 01001000 01101001 → Hi</p>
+            <p><strong>Continuous:</strong> 0100100001101001 → Hi</p>
+            <p><strong>Prefixed:</strong> 0b01001000 0b01101001 → Hi</p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Valid Bytes Are Not Always Valid UTF-8 Text</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A sequence can be perfectly valid as raw bytes and still be invalid UTF-8. For example, FF is a byte value but cannot start a valid UTF-8 character. This decoder uses strict UTF-8 validation instead of silently replacing bad input with the replacement character �.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            If you are inspecting arbitrary binary data such as compressed files, images, encrypted data, or protocol frames, use a hex or byte-oriented tool instead of assuming the bytes are text.
+          </p>
+        </div>
 
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Whitespace Is Data When Encoding Text</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Spaces, tabs, and line breaks all have UTF-8 byte values, so the encoder preserves them. A text input containing only spaces is still meaningful data and is encoded rather than treated as empty.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">UTF-8 Reference</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The browser TextEncoder and TextDecoder behavior used here follows the Encoding Standard, including fatal decoding when a byte sequence is not valid UTF-8.
+          </p>
+          <a
+            href="https://encoding.spec.whatwg.org/"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex text-sm font-semibold text-[var(--green)] underline underline-offset-4"
+          >
+            WHATWG Encoding Standard
+          </a>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/binary-encoder-decoder" />
         </div>
-      </ToolContent>
+      </section>
     </ToolShell>
   );
+}
+
+function SummaryCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="mt-1 break-words font-mono text-sm font-semibold text-gray-900">{value}</div>
+    </div>
+  );
+}
+
+function formatBinaryGroups(groups: string[], layout: BinaryLayout) {
+  if (layout === "continuous") return groups.join("");
+  if (layout === "prefixed") return groups.map((group) => `0b${group}`).join(" ");
+  return groups.join(" ");
+}
+
+function parseBinaryBytes(input: string) {
+  const trimmed = input.trim();
+
+  if (/0b/i.test(trimmed)) {
+    const tokens = trimmed.split(/[\s,]+/).filter(Boolean);
+
+    if (tokens.some((token) => !/^0b[01]{8}$/i.test(token))) {
+      throw new Error("When 0b prefixes are used, each byte must look like 0b01000001 and contain exactly 8 bits.");
+    }
+
+    return new Uint8Array(tokens.map((token) => Number.parseInt(token.slice(2), 2)));
+  }
+
+  if (/[^01\s,]/.test(trimmed)) {
+    throw new Error("Binary input can contain only 0, 1, whitespace, commas, or 0b-prefixed 8-bit bytes.");
+  }
+
+  const compact = trimmed.replace(/[\s,]+/g, "");
+
+  if (!compact) {
+    throw new Error("Please enter binary bytes to decode.");
+  }
+
+  if (compact.length % 8 !== 0) {
+    throw new Error(`The binary input contains ${compact.length} bits. UTF-8 decoding requires complete 8-bit bytes.`);
+  }
+
+  const values: number[] = [];
+  for (let index = 0; index < compact.length; index += 8) {
+    values.push(Number.parseInt(compact.slice(index, index + 8), 2));
+  }
+
+  const bytes = new Uint8Array(values);
+
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    const hex = Array.from(bytes, (byte) => byte.toString(16).toUpperCase().padStart(2, "0")).join(" ");
+    throw new Error(`These are complete bytes, but they are not valid UTF-8 text. Byte sequence: ${hex}.`);
+  }
+
+  return bytes;
+}
+
+function buildDiagnostics(mode: Diagnostics["mode"], bytes: Uint8Array): Diagnostics {
+  const asciiBytes = Array.from(bytes).filter((byte) => byte < 128).length;
+  return {
+    mode,
+    bytes: bytes.length,
+    asciiBytes,
+    nonAsciiBytes: bytes.length - asciiBytes,
+  };
 }

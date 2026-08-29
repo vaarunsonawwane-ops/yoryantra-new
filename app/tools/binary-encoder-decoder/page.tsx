@@ -1,51 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title:
-    "Binary Encoder Decoder – Convert Text to Binary & Binary to Text | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Binary Encoder Decoder – UTF-8 Text & Binary | Yoryantra",
   description:
-    "Encode text to binary and decode binary values back into readable text for debugging, learning, encoding workflows, and data inspection.",
-
-  keywords: [
-    "binary encoder decoder",
-    "binary decoder",
-    "binary encoder",
-    "text to binary",
-    "binary to text",
-    "binary converter",
-    "decode binary",
-    "encode binary",
-    "binary translator",
-    "encoding tools",
-  ],
-
+    "Convert UTF-8 text to 8-bit binary bytes and decode grouped or continuous binary back to text, with invalid byte and UTF-8 checks in your browser.",
   alternates: {
     canonical: "https://yoryantra.com/tools/binary-encoder-decoder",
   },
-
   openGraph: {
-    title:
-      "Binary Encoder Decoder – Convert Text to Binary & Binary to Text | Yoryantra",
-
+    title: "Binary Encoder Decoder – UTF-8 Text & Binary | Yoryantra",
     description:
-      "Encode text to binary and decode binary values back into readable text for debugging, learning, and encoding workflows.",
-
+      "Convert UTF-8 text to binary bytes and decode grouped, prefixed, or continuous binary back to text with strict UTF-8 validation.",
     url: "https://yoryantra.com/tools/binary-encoder-decoder",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "Binary Encoder Decoder – Convert Text to Binary & Binary to Text | Yoryantra",
-
+    title: "Binary Encoder Decoder – UTF-8 Text & Binary | Yoryantra",
     description:
-      "Free Binary Encoder Decoder for converting text to binary and binary back to readable text.",
+      "Convert UTF-8 text to 8-bit binary bytes and decode binary bytes back to text with validation.",
   },
 };
 

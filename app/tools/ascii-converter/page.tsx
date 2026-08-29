@@ -1,52 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title:
-    "ASCII Converter – Convert Text to ASCII & ASCII to Text | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "ASCII Converter – Text to ASCII & ASCII to Text | Yoryantra",
   description:
-    "Convert text to ASCII codes and decode ASCII values back into readable text for debugging, logs, scripts, encoding workflows, and development checks.",
-
-  keywords: [
-    "ascii converter",
-    "text to ascii",
-    "ascii to text",
-    "ascii encoder decoder",
-    "ascii decoder",
-    "ascii encoder",
-    "ascii code converter",
-    "character code converter",
-    "decode ascii values",
-    "encoding tools",
-    "developer tools",
-  ],
-
+    "Convert text to ASCII values and decode decimal, hex, or binary ASCII codes from 0–127. Non-ASCII characters are identified instead of mislabelled.",
   alternates: {
     canonical: "https://yoryantra.com/tools/ascii-converter",
   },
-
   openGraph: {
-    title:
-      "ASCII Converter – Convert Text to ASCII & ASCII to Text | Yoryantra",
-
+    title: "ASCII Converter – Text to ASCII & ASCII to Text | Yoryantra",
     description:
-      "Convert text to ASCII codes and decode ASCII values back into readable text for debugging, logs, scripts, and encoding workflows.",
-
+      "Convert text to standard ASCII values and decode decimal, hexadecimal, or binary ASCII codes from 0–127 in your browser.",
     url: "https://yoryantra.com/tools/ascii-converter",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "ASCII Converter – Convert Text to ASCII & ASCII to Text | Yoryantra",
-
+    title: "ASCII Converter – Text to ASCII & ASCII to Text | Yoryantra",
     description:
-      "Free ASCII Converter for text, character codes, logs, debugging, scripts, and encoding workflows.",
+      "Convert text to ASCII values or decode decimal, hex, and binary ASCII codes from 0–127.",
   },
 };
 

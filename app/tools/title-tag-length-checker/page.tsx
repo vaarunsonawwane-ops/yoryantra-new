@@ -2,37 +2,25 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Title Tag Length Checker | Check SEO Title Length Online | Yoryantra",
+  title: "Title Tag Length Checker – Preview SEO Titles | Yoryantra",
   description:
-    "Check SEO title tag length, truncation risk, keyword placement, brand placement, separators, duplicates, and SERP-style title preview directly in your browser.",
-  keywords: [
-    "Title Tag Length Checker",
-    "SEO title checker",
-    "title tag checker",
-    "meta title length checker",
-    "SEO title length",
-    "SERP title preview",
-    "title tag analyzer",
-    "technical SEO tools",
-    "SEO tools",
-    "Google title length checker",
-  ],
+    "Review title tag text, estimated display width, duplicate titles, target phrase and brand placement, separators, and SERP-style previews in your browser.",
   alternates: {
     canonical: "https://yoryantra.com/tools/title-tag-length-checker",
   },
   openGraph: {
-    title: "Title Tag Length Checker | Check SEO Title Length Online | Yoryantra",
+    title: "Title Tag Length Checker – Preview SEO Titles | Yoryantra",
     description:
-      "Check SEO title tag length, truncation risk, keyword placement, brand placement, separators, duplicates, and SERP-style title preview directly in your browser.",
+      "Review title text, estimated display width, duplicate patterns, target phrases, brand placement, separators, and SERP-style previews.",
     url: "https://yoryantra.com/tools/title-tag-length-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Title Tag Length Checker | Check SEO Title Length Online | Yoryantra",
+    title: "Title Tag Length Checker – Preview SEO Titles | Yoryantra",
     description:
-      "Check SEO title tag length, truncation risk, keyword placement, brand placement, separators, duplicates, and SERP-style title preview directly in your browser.",
+      "Review title length, estimated display width, duplicates, target phrases, brand placement, and SERP-style previews.",
   },
 };
 
