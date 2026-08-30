@@ -1,49 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "JSON Validator Online Free | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "JSON Validator | Check Syntax, Errors & Duplicate Keys",
   description:
-    "Validate JSON syntax and find JSON errors instantly with this free online JSON Validator.",
-
-  keywords: [
-    "json validator",
-    "validate json",
-    "json syntax checker",
-    "json error checker",
-    "json parser",
-    "json validation tool",
-    "developer tools",
-  ],
-
+    "Validate JSON syntax, locate parser errors, flag duplicate object keys and risky number values, and format valid JSON without rewriting source tokens.",
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/json-validator",
+    canonical: "https://yoryantra.com/tools/json-validator",
   },
-
   openGraph: {
-    title:
-      "JSON Validator Online Free | Yoryantra",
-
+    title: "JSON Validator | Yoryantra",
     description:
-      "Validate JSON syntax and detect JSON errors instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/json-validator",
-
+      "Check JSON syntax, parser errors, duplicate keys, root value type, and formatted structure directly in your browser.",
+    url: "https://yoryantra.com/tools/json-validator",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title:
-      "JSON Validator Online Free | Yoryantra",
-
+    card: "summary",
+    title: "JSON Validator | Yoryantra",
     description:
-      "Validate JSON syntax and find errors instantly.",
+      "Validate JSON syntax and inspect duplicate keys, parser locations, and formatted output locally in your browser.",
   },
 };
 

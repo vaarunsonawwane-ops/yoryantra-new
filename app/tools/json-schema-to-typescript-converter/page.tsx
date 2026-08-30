@@ -2,37 +2,25 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Schema to TypeScript Converter | Yoryantra",
+  title: "JSON Schema to TypeScript Converter | Interfaces & Types",
   description:
-    "Convert common JSON Schema structures into TypeScript interfaces or type aliases. Review warnings for references, composition, tuples, and validation rules that TypeScript cannot represent.",
-  keywords: [
-    "JSON Schema to TypeScript",
-    "JSON Schema TypeScript converter",
-    "convert JSON Schema to TypeScript",
-    "JSON Schema to interface",
-    "generate TypeScript from JSON Schema",
-    "JSON Schema types generator",
-    "TypeScript interface generator",
-    "JSON tools",
-    "data tools",
-    "developer tools",
-  ],
+    "Convert JSON Schema to TypeScript interfaces or type aliases with local refs, enums, nullable types, objects, arrays, modern tuples, and review warnings.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-schema-to-typescript-converter",
   },
   openGraph: {
     title: "JSON Schema to TypeScript Converter | Yoryantra",
     description:
-      "Convert common JSON Schema structures into TypeScript interfaces or type aliases. Review warnings for references, composition, tuples, and validation rules that TypeScript cannot represent.",
+      "Generate TypeScript from common JSON Schema structures and review warnings for validation rules that TypeScript cannot represent directly.",
     url: "https://yoryantra.com/tools/json-schema-to-typescript-converter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "JSON Schema to TypeScript Converter | Yoryantra",
     description:
-      "Convert common JSON Schema structures into TypeScript interfaces or type aliases. Review warnings for references, composition, tuples, and validation rules that TypeScript cannot represent.",
+      "Convert common JSON Schema structures into TypeScript and review local refs, tuples, extra keys, and unsupported validation rules.",
   },
 };
 

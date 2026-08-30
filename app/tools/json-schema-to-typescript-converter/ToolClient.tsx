@@ -10,23 +10,29 @@ type PropertyStyle = "preserve" | "camel";
 type ArrayStyle = "array" | "generic";
 type AdditionalMode = "record" | "ignore";
 
+type SchemaValue = SchemaNode | boolean;
+
 type SchemaNode = {
   type?: string | string[];
   title?: string;
   description?: string;
-  properties?: Record<string, SchemaNode>;
+  properties?: Record<string, SchemaValue>;
+  patternProperties?: Record<string, SchemaValue>;
   required?: string[];
-  items?: SchemaNode | SchemaNode[];
+  minItems?: number;
+  items?: SchemaValue | SchemaValue[];
+  prefixItems?: SchemaValue[];
+  additionalItems?: SchemaValue;
   enum?: unknown[];
   const?: unknown;
-  anyOf?: SchemaNode[];
-  oneOf?: SchemaNode[];
-  allOf?: SchemaNode[];
+  anyOf?: SchemaValue[];
+  oneOf?: SchemaValue[];
+  allOf?: SchemaValue[];
   format?: string;
-  additionalProperties?: boolean | SchemaNode;
+  additionalProperties?: SchemaValue;
   $ref?: string;
-  $defs?: Record<string, SchemaNode>;
-  definitions?: Record<string, SchemaNode>;
+  $defs?: Record<string, SchemaValue>;
+  definitions?: Record<string, SchemaValue>;
   [key: string]: unknown;
 };
 
@@ -118,11 +124,11 @@ export default function ToolClient() {
     try {
       const parsed = JSON.parse(input) as unknown;
 
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        throw new Error("The root JSON Schema must be a JSON object.");
+      if (typeof parsed !== "boolean" && (!parsed || typeof parsed !== "object" || Array.isArray(parsed))) {
+        throw new Error("A JSON Schema must be an object or a boolean schema.");
       }
 
-      const schema = parsed as SchemaNode;
+      const schema = parsed as SchemaValue;
       const nextResult = convertJsonSchemaToTypeScript(schema, {
         rootName,
         outputStyle,
@@ -209,7 +215,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Schema to TypeScript Converter"
-      description="Convert common JSON Schema structures into TypeScript interfaces or type aliases and review warnings for rules that do not map directly to TypeScript."
+      description="Convert common JSON Schema structures into TypeScript interfaces or type aliases, resolve local JSON Pointer refs, handle modern tuple syntax, and review rules that TypeScript cannot enforce."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -230,7 +236,7 @@ export default function ToolClient() {
         />
 
         <p className="mt-2 text-sm text-gray-500">
-          Paste a JSON Schema object. The TypeScript output is generated locally
+          Paste a JSON Schema object or boolean schema. The TypeScript output is generated locally
           in your browser.
         </p>
       </div>
@@ -319,7 +325,7 @@ export default function ToolClient() {
               setCopied(false);
             }}
             options={[
-              { label: "Add Record field", value: "record" },
+              { label: "Represent extra keys", value: "record" },
               { label: "Ignore", value: "ignore" },
             ]}
           />
@@ -427,7 +433,7 @@ export default function ToolClient() {
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Types" value={result.typeCount.toLocaleString()} />
           <SummaryCard label="Interfaces" value={result.interfaceCount.toLocaleString()} />
-          <SummaryCard label="Enums" value={result.enumCount.toLocaleString()} />
+          <SummaryCard label="Enum unions" value={result.enumCount.toLocaleString()} />
           <SummaryCard label="Warnings" value={result.warnings.length.toLocaleString()} />
         </div>
       )}
@@ -479,159 +485,62 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Converting JSON Schema Into TypeScript Types
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Where JSON Schema and TypeScript Line Up</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Schema describes the shape of JSON data. TypeScript types help
-            you work with that same data safely inside your code. When an API or
-            config file already has a schema, converting it into TypeScript can
-            save time and reduce mistakes.
+            TypeScript can represent many structural parts of JSON Schema well: object properties, required versus optional fields, primitive types, arrays, nullable unions, enums, const values, nested objects, and common anyOf/allOf shapes. This converter turns those parts into readable interfaces or type aliases and reports the places where the mapping is only an approximation.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This converter handles common objects, arrays, enums, required fields,
-            nullable values, nested schemas, descriptions, and additional
-            properties. It also reports warnings when a schema feature needs
-            manual review.
+            The converter also resolves local JSON Pointer references such as #/$defs/User and #/definitions/User. External references are intentionally not fetched, so a schema cannot cause this browser-only tool to request another document.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Creating TypeScript From a Schema
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your JSON Schema into the input box.</li>
-            <li>Choose interface or type alias output.</li>
-            <li>Pick property, array, export, and comment options.</li>
-            <li>Convert the schema and review any warnings.</li>
-            <li>Copy the generated TypeScript into your project.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common JSON Schema to TypeScript Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Generating interfaces from API request or response schemas.</li>
-            <li>Creating config file types from JSON Schema.</li>
-            <li>Turning generated schemas into developer-friendly types.</li>
-            <li>Documenting schema fields with TypeScript comments.</li>
-            <li>Creating starter types before editing them manually.</li>
-            <li>Keeping API contracts and TypeScript code easier to compare.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example TypeScript Output
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`export interface User {
-  id: number;
-  name: string;
-  email?: string;
-  tags: string[];
-}`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Review Advanced Schemas Manually
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Draft 2020-12 Arrays and Tuples</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Schema can express many validation rules that do not map
-            perfectly to TypeScript. Things like pattern, minimum, maximum,
-            conditional schemas, dependent schemas, and complex refs may need
-            manual review.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use this converter as a practical starting point. For strict
-            production contracts, review the output and adjust the types for how
-            your real application uses the data.
+            Draft 2020-12 uses prefixItems for position-specific tuple entries and items for the remaining entries. The converter handles that form, including closed tuples with items: false and open tuples with a typed or unconstrained remainder. Older schemas that use an array in items are treated as legacy tuple syntax and are flagged for review.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a JSON Schema to TypeScript converter do?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It reads JSON Schema and creates TypeScript interfaces or type
-                aliases that match the schema structure.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this different from JSON to TypeScript?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. JSON to TypeScript uses sample JSON. JSON Schema to
-                TypeScript uses an existing schema with types, required fields,
-                enums, and validation hints.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this support required fields?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Fields listed in required are generated as required
-                TypeScript properties. Other fields are optional.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this fully support refs?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. References are reported as warnings and converted to the selected
-                fallback type so the output does not contain an undeclared name.
-                Add local or external referenced declarations manually.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my schema uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Conversion happens directly in your browser.
-              </p>
-            </div>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Extra Object Keys Need Care in TypeScript</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            JSON Schema allows additional properties unless a schema explicitly forbids them. When extra-key output is enabled, unconstrained additional properties become an unknown or any index signature. A schema that constrains only additional keys is harder to mirror exactly because a TypeScript string index signature also applies to named properties; the converter reports when it has to broaden that index type.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Validation Rules Do Not Become TypeScript Runtime Checks</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Rules such as minimum, maximum, pattern, format, minLength, uniqueItems, contains, conditional schemas, dependent schemas, and unevaluatedProperties describe runtime validation. A normal TypeScript type cannot enforce most of those rules, so the converter lists them as warnings instead of pretending the generated type is a validator.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            oneOf is another important approximation: a TypeScript union can describe the possible shapes, but it does not enforce JSON Schema&apos;s “exactly one matching branch” rule. Recursive local references and dynamic/external reference behavior can also require manual modeling.
+          </p>
+        </div>
 
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Boolean Schemas</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            JSON Schema allows true and false as complete schemas. true accepts every instance and maps to the selected fallback type (unknown by default); false accepts no instance and maps naturally to TypeScript never.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Use the Output as a Structural Starting Point</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Generated TypeScript is most useful for editor hints, API models, configuration types, and a first pass at application contracts. Review warnings before committing the output, especially when a schema uses refs, composition, typed additional properties, draft-specific tuple features, or validation-only keywords. TypeScript types disappear at runtime; keep schema validation in place when runtime guarantees matter.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Browser-Local Conversion</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Conversion runs in your browser. Local references are resolved only inside the pasted schema and external refs are not fetched by this page.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/json-schema-to-typescript-converter" />
         </div>
       </section>
@@ -666,9 +575,12 @@ type ConvertOptions = {
 };
 
 type ConvertContext = ConvertOptions & {
+  rootSchema: SchemaValue;
   declarations: string[];
   usedNames: Set<string>;
   warnings: string[];
+  resolvingRefs: Set<string>;
+  refTypeCache: Map<string, string>;
   counters: {
     typeCount: number;
     interfaceCount: number;
@@ -676,20 +588,25 @@ type ConvertContext = ConvertOptions & {
   };
 };
 
-function convertJsonSchemaToTypeScript(schema: SchemaNode, options: ConvertOptions): ConvertResult {
+function convertJsonSchemaToTypeScript(schema: SchemaValue, options: ConvertOptions): ConvertResult {
+  const objectSchema = isSchemaObject(schema) ? schema : null;
+  const requestedName = options.rootName.trim();
+  const rootTypeName = cleanTypeName(
+    requestedName && requestedName !== "GeneratedType"
+      ? requestedName
+      : objectSchema?.title || requestedName || "GeneratedType"
+  );
   const context: ConvertContext = {
     ...options,
+    rootSchema: schema,
     declarations: [],
-    usedNames: new Set<string>(),
+    usedNames: new Set<string>([rootTypeName]),
     warnings: [],
-    counters: {
-      typeCount: 0,
-      interfaceCount: 0,
-      enumCount: 0,
-    },
+    resolvingRefs: new Set<string>(),
+    refTypeCache: new Map<string, string>(),
+    counters: { typeCount: 0, interfaceCount: 0, enumCount: 0 },
   };
-  const rootTypeName = cleanTypeName(schema.title || options.rootName || "GeneratedType");
-  context.usedNames.add(rootTypeName);
+
   collectUnsupportedKeywordWarnings(schema, context);
   const rootType = schemaToTs(schema, rootTypeName, context, 0);
   const prefix = options.exportTypes ? "export " : "";
@@ -707,40 +624,52 @@ function convertJsonSchemaToTypeScript(schema: SchemaNode, options: ConvertOptio
     typeCount: context.counters.typeCount,
     interfaceCount: context.counters.interfaceCount,
     enumCount: context.counters.enumCount,
-    warnings: context.warnings,
+    warnings: [...new Set(context.warnings)],
   };
 }
 
-function schemaToTs(schema: SchemaNode, nameHint: string, context: ConvertContext, depth: number): string {
+function schemaToTs(schema: SchemaValue, nameHint: string, context: ConvertContext, depth: number): string {
   if (depth > 40) {
     context.warnings.push(`Schema nesting is too deep near ${nameHint}. A fallback type was used.`);
     return fallbackType(context);
   }
 
+  if (schema === true) return fallbackType(context);
+  if (schema === false) return "never";
+
   if (schema.$ref) {
-    return refToTypeName(schema.$ref, context);
+    const refSiblings = Object.keys(schema).filter(
+      (key) => !["$ref", "$id", "$schema", "$comment", "title", "description", "default", "examples"].includes(key)
+    );
+    if (refSiblings.length > 0) {
+      context.warnings.push(
+        `$ref near ${nameHint} has sibling schema keywords (${refSiblings.join(", ")}). This converter resolves the reference but does not merge sibling constraints; review that field manually.`
+      );
+    }
+    return refToType(schema.$ref, nameHint, context, depth);
   }
 
   if (schema.const !== undefined) {
-    return literalType(schema.const);
+    return literalType(schema.const, context, `const near ${nameHint}`);
   }
 
   if (schema.enum) {
     context.counters.enumCount += 1;
-    return schema.enum.map(literalType).join(" | ") || fallbackType(context);
+    const enumTypes = schema.enum.map((value) => literalType(value, context, `enum near ${nameHint}`));
+    return [...new Set(enumTypes)].join(" | ") || fallbackType(context);
   }
 
   if (schema.anyOf || schema.oneOf) {
-    const list = schema.anyOf || schema.oneOf || [];
-
+    const keyword = schema.oneOf ? "oneOf" : "anyOf";
+    const list = schema.oneOf || schema.anyOf || [];
     if (list.length === 0) {
-      context.warnings.push(`${schema.anyOf ? "anyOf" : "oneOf"} is empty near ${nameHint}. A fallback type was used.`);
+      context.warnings.push(`${keyword} is empty near ${nameHint}. A fallback type was used.`);
       return fallbackType(context);
     }
-
-    return list
-      .map((item, index) => schemaToTs(item, `${nameHint}${index + 1}`, context, depth + 1))
-      .join(" | ");
+    if (schema.oneOf) {
+      context.warnings.push(`oneOf near ${nameHint} is represented as a TypeScript union. TypeScript does not enforce the exactly-one-match rule.`);
+    }
+    return [...new Set(list.map((item, index) => schemaToTs(item, `${nameHint}${index + 1}`, context, depth + 1)))].join(" | ");
   }
 
   if (schema.allOf) {
@@ -748,69 +677,89 @@ function schemaToTs(schema: SchemaNode, nameHint: string, context: ConvertContex
       context.warnings.push(`allOf is empty near ${nameHint}. A fallback type was used.`);
       return fallbackType(context);
     }
-
-    return schema.allOf
-      .map((item, index) => schemaToTs(item, `${nameHint}${index + 1}`, context, depth + 1))
-      .join(" & ");
+    return [...new Set(schema.allOf.map((item, index) => schemaToTs(item, `${nameHint}${index + 1}`, context, depth + 1)))].join(" & ");
   }
 
-  const schemaType = schema.type || (schema.properties ? "object" : schema.items ? "array" : "unknown");
-
+  const schemaType = schema.type || inferSchemaType(schema);
   if (Array.isArray(schemaType)) {
-    return schemaType.map((item) => typeToTs(item, schema, nameHint, context, depth)).join(" | ");
+    if (schemaType.length === 0) {
+      context.warnings.push(`An empty type array was found near ${nameHint}. A fallback type was used.`);
+      return fallbackType(context);
+    }
+    return [...new Set(schemaType.map((item) => typeToTs(item, schema, nameHint, context, depth)))].join(" | ");
   }
 
   return typeToTs(schemaType, schema, nameHint, context, depth);
 }
 
+function inferSchemaType(schema: SchemaNode) {
+  if (schema.properties || schema.patternProperties || schema.additionalProperties !== undefined) return "object";
+  if (schema.items !== undefined || schema.prefixItems) return "array";
+  return "unknown";
+}
+
 function typeToTs(type: string, schema: SchemaNode, nameHint: string, context: ConvertContext, depth: number): string {
   if (type === "object") {
-    if (
-      (!schema.properties || Object.keys(schema.properties).length === 0) &&
-      schema.additionalProperties === false
-    ) {
+    if ((!schema.properties || Object.keys(schema.properties).length === 0) && schema.additionalProperties === false) {
       return "Record<string, never>";
     }
-
     return objectToTs(schema, nameHint, context, depth);
   }
 
   if (type === "array") {
-    if (Array.isArray(schema.items)) {
-      if (schema.items.length === 0) {
-        return "[]";
-      }
-
-      context.warnings.push(`Tuple items were generated near ${nameHint}. Review draft-specific tuple rules manually.`);
-      return `[${schema.items
-        .map((item, index) => schemaToTs(item, `${nameHint}Item${index + 1}`, context, depth + 1))
-        .join(", ")}]`;
+    if (schema.prefixItems || Array.isArray(schema.items)) {
+      return tupleToTs(schema, nameHint, context, depth);
     }
 
-    const itemType = schema.items
-      ? schemaToTs(schema.items, `${nameHint}Item`, context, depth + 1)
-      : fallbackType(context);
+    const itemSchema = schema.items;
+    const itemType = itemSchema === undefined || itemSchema === true
+      ? fallbackType(context)
+      : itemSchema === false
+      ? "never"
+      : schemaToTs(itemSchema, `${nameHint}Item`, context, depth + 1);
 
     return context.arrayStyle === "generic" ? `Array<${itemType}>` : `${wrapArrayItem(itemType)}[]`;
   }
 
-  if (type === "integer" || type === "number") {
-    return "number";
-  }
-
-  if (type === "string") {
-    return "string";
-  }
-
-  if (type === "boolean") {
-    return "boolean";
-  }
-
-  if (type === "null") {
-    return "null";
-  }
-
+  if (type === "integer" || type === "number") return "number";
+  if (type === "string") return "string";
+  if (type === "boolean") return "boolean";
+  if (type === "null") return "null";
   return fallbackType(context);
+}
+
+function tupleToTs(schema: SchemaNode, nameHint: string, context: ConvertContext, depth: number) {
+  const isModern = Array.isArray(schema.prefixItems);
+  const prefixSchemas = isModern ? schema.prefixItems || [] : (Array.isArray(schema.items) ? schema.items : []);
+
+  if (!isModern) {
+    context.warnings.push(`Legacy tuple syntax using an array in items was found near ${nameHint}. Draft 2020-12 uses prefixItems instead.`);
+  }
+
+  const rawPrefixTypes = prefixSchemas.map((item, index) => schemaToTs(item, `${nameHint}Item${index + 1}`, context, depth + 1));
+  const minItems = Number.isInteger(schema.minItems) && (schema.minItems as number) > 0 ? (schema.minItems as number) : 0;
+  const requiredPrefixCount = Math.min(rawPrefixTypes.length, minItems);
+  const prefixTypes = rawPrefixTypes.map((type, index) => (index < requiredPrefixCount ? type : `${type}?`));
+  const remainder = isModern ? schema.items : schema.additionalItems;
+
+  if (minItems > rawPrefixTypes.length) {
+    context.warnings.push(`minItems near ${nameHint} requires more items than the fixed tuple prefix. The generated rest element does not enforce that minimum length.`);
+  }
+
+  if (remainder === false) return `[${prefixTypes.join(", ")}]`;
+
+  const remainderType = remainder === undefined || remainder === true
+    ? fallbackType(context)
+    : Array.isArray(remainder)
+    ? fallbackType(context)
+    : schemaToTs(remainder, `${nameHint}Rest`, context, depth + 1);
+
+  if (Array.isArray(remainder)) {
+    context.warnings.push(`Unexpected array-valued tuple remainder near ${nameHint}. A fallback rest type was used.`);
+  }
+
+  const rest = `...${wrapArrayItem(remainderType)}[]`;
+  return `[${[...prefixTypes, rest].join(", ")}]`;
 }
 
 function objectToTs(schema: SchemaNode, nameHint: string, context: ConvertContext, depth: number): string {
@@ -820,14 +769,19 @@ function objectToTs(schema: SchemaNode, nameHint: string, context: ConvertContex
   const generatedKeys = new Set<string>();
   const knownPropertyTypes: string[] = [];
 
+  [...required].filter((key) => !(key in properties)).forEach((key) => {
+    context.warnings.push(`required includes ${JSON.stringify(key)} near ${nameHint}, but no matching properties schema was provided. Add that property manually if it belongs in the TypeScript shape.`);
+  });
+
   Object.entries(properties).forEach(([rawKey, childSchema]) => {
     const preferredKey = context.propertyStyle === "camel" ? toCamelCase(rawKey) : rawKey;
+    if (context.propertyStyle === "camel" && preferredKey !== rawKey) {
+      context.warnings.push(`Property ${JSON.stringify(rawKey)} was renamed to ${JSON.stringify(preferredKey)} near ${nameHint}. The TypeScript key no longer matches the raw JSON property unless your application transforms it.`);
+    }
     const key = generatedKeys.has(preferredKey) ? rawKey : preferredKey;
 
     if (generatedKeys.has(preferredKey)) {
-      context.warnings.push(
-        `Property name conversion created a collision for ${rawKey} in ${nameHint}. The original key was preserved.`
-      );
+      context.warnings.push(`Property name conversion created a collision for ${rawKey} in ${nameHint}. The original key was preserved.`);
     }
 
     generatedKeys.add(key);
@@ -836,40 +790,39 @@ function objectToTs(schema: SchemaNode, nameHint: string, context: ConvertContex
     const childName = cleanTypeName(`${nameHint}${capitalize(key)}`);
     const childType = schemaToTs(childSchema, childName, context, depth + 1);
     knownPropertyTypes.push(childType);
-    const comment = context.includeComments && childSchema.description
-      ? `  /** ${formatComment(String(childSchema.description))} */\n`
+    const childDescription = isSchemaObject(childSchema) ? childSchema.description : undefined;
+    const comment = context.includeComments && childDescription
+      ? `  /** ${formatComment(String(childDescription))} */\n`
       : "";
 
     lines.push(`${comment}  ${safeKey}${optional}: ${childType};`);
   });
 
-  if (schema.additionalProperties && context.additionalMode === "record") {
-    const additionalType = typeof schema.additionalProperties === "object"
-      ? schemaToTs(schema.additionalProperties as SchemaNode, `${nameHint}Value`, context, depth + 1)
-      : fallbackType(context);
+  if (context.additionalMode === "record" && schema.additionalProperties !== false) {
+    const additional = schema.additionalProperties;
+    const additionalType = additional === undefined || additional === true
+      ? fallbackType(context)
+      : schemaToTs(additional, `${nameHint}AdditionalValue`, context, depth + 1);
 
-    const indexType = [...new Set([additionalType, ...knownPropertyTypes])].join(" | ");
-    lines.push(`  [key: string]: ${indexType};`);
+    if (knownPropertyTypes.length === 0 || additionalType === "unknown" || additionalType === "any") {
+      lines.push(`  [key: string]: ${additionalType};`);
+    } else {
+      const indexType = [...new Set([additionalType, ...knownPropertyTypes])].join(" | ");
+      lines.push(`  [key: string]: ${indexType};`);
+      context.warnings.push(`Typed additionalProperties near ${nameHint} was broadened in the TypeScript index signature so named properties remain assignable. Review extra-key typing manually if the distinction matters.`);
+    }
   }
 
-  if (
-    Object.keys(properties).length === 0 &&
-    schema.additionalProperties === undefined
-  ) {
-    lines.push(`  [key: string]: ${fallbackType(context)};`);
-    context.warnings.push(`Object ${nameHint} has no properties or additionalProperties rule. A fallback index signature was added.`);
+  if (schema.patternProperties && Object.keys(schema.patternProperties).length > 0) {
+    context.warnings.push(`patternProperties near ${nameHint} cannot be represented exactly by a normal TypeScript string index signature.`);
   }
 
   lines.push("}");
   const body = lines.join("\n");
-
-  if (depth === 0) {
-    return body;
-  }
+  if (depth === 0) return body;
 
   const typeName = uniqueName(cleanTypeName(nameHint), context.usedNames);
   const prefix = context.exportTypes ? "export " : "";
-
   if (context.outputStyle === "interface") {
     context.declarations.push(`${prefix}interface ${typeName} ${body}`);
     context.counters.interfaceCount += 1;
@@ -877,113 +830,110 @@ function objectToTs(schema: SchemaNode, nameHint: string, context: ConvertContex
     context.declarations.push(`${prefix}type ${typeName} = ${body};`);
     context.counters.typeCount += 1;
   }
-
   return typeName;
 }
 
 function shouldOptional(key: string, required: Set<string>, schema: SchemaNode, context: ConvertContext) {
-  if (!schema.required && context.optionalWhenRequiredMissing) {
-    return true;
-  }
-
+  if (!schema.required && context.optionalWhenRequiredMissing) return true;
   return !required.has(key);
 }
 
-function refToTypeName(ref: string, context: ConvertContext) {
-  const name = ref.split("/").filter(Boolean).pop();
-
-  if (!name) {
-    context.warnings.push(`Could not read reference ${ref}.`);
+function refToType(ref: string, nameHint: string, context: ConvertContext, depth: number) {
+  if (!ref.startsWith("#")) {
+    context.warnings.push(`External reference ${ref} is not fetched. A fallback type was used.`);
     return fallbackType(context);
   }
 
-  context.warnings.push(
-    `Reference ${ref} is not resolved by this converter. A fallback type was used; add the referenced declaration manually.`
-  );
+  const cached = context.refTypeCache.get(ref);
+  if (cached) return cached;
+
+  if (context.resolvingRefs.has(ref)) {
+    context.warnings.push(`Recursive local reference ${ref} was not expanded near ${nameHint}. A fallback type was used to avoid an infinite declaration loop.`);
+    return fallbackType(context);
+  }
+
+  const resolved = resolveLocalRef(context.rootSchema, ref);
+  if (resolved === undefined) {
+    context.warnings.push(`Local reference ${ref} could not be resolved. A fallback type was used.`);
+    return fallbackType(context);
+  }
+
+  context.resolvingRefs.add(ref);
+  const pointerName = ref === "#" ? nameHint : cleanTypeName(ref.split("/").pop() || nameHint);
+  const resolvedType = schemaToTs(resolved, pointerName, context, depth + 1);
+  context.resolvingRefs.delete(ref);
+  context.refTypeCache.set(ref, resolvedType);
+  return resolvedType;
+}
+
+function resolveLocalRef(root: SchemaValue, ref: string): SchemaValue | undefined {
+  if (ref === "#") return root;
+  if (!ref.startsWith("#/")) return undefined;
+
+  let pointer: string;
+  try {
+    pointer = decodeURIComponent(ref.slice(2));
+  } catch {
+    return undefined;
+  }
+
+  const parts = pointer.split("/").map((part) => part.replace(/~1/g, "/").replace(/~0/g, "~"));
+  let current: unknown = root;
+
+  for (const part of parts) {
+    if (!current || typeof current !== "object" || Array.isArray(current) || !(part in current)) return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+
+  return isSchemaValue(current) ? current : undefined;
+}
+
+function literalType(value: unknown, context: ConvertContext, location: string) {
+  if (typeof value === "string") return JSON.stringify(value);
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      context.warnings.push(`A non-finite numeric literal appeared in ${location}. A fallback type was used.`);
+      return fallbackType(context);
+    }
+    return String(value);
+  }
+  if (typeof value === "boolean") return String(value);
+  if (value === null) return "null";
+  context.warnings.push(`A non-primitive literal appeared in ${location}. TypeScript literal output is approximated with a fallback type.`);
   return fallbackType(context);
 }
 
-function literalType(value: unknown) {
-  if (typeof value === "string") {
-    return JSON.stringify(value);
-  }
-
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-
-  if (value === null) {
-    return "null";
-  }
-
-  return "unknown";
-}
-
 function formatComment(value: string) {
-  return value
-    .replace(/\*\//g, "* /")
-    .replace(/[\r\n]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return value.replace(/\*\//g, "* /").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function collectUnsupportedKeywordWarnings(schema: SchemaNode, context: ConvertContext) {
+function collectUnsupportedKeywordWarnings(schema: SchemaValue, context: ConvertContext) {
   const validationOnlyKeywords = [
-    "minimum",
-    "maximum",
-    "exclusiveMinimum",
-    "exclusiveMaximum",
-    "multipleOf",
-    "minLength",
-    "maxLength",
-    "pattern",
-    "format",
-    "minItems",
-    "maxItems",
-    "uniqueItems",
-    "contains",
-    "minProperties",
-    "maxProperties",
-    "dependentRequired",
-    "dependentSchemas",
-    "if",
-    "then",
-    "else",
-    "not",
-    "unevaluatedProperties",
-    "unevaluatedItems",
-    "prefixItems",
-    "propertyNames",
+    "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
+    "minLength", "maxLength", "pattern", "format", "minItems", "maxItems",
+    "uniqueItems", "contains", "minContains", "maxContains", "minProperties",
+    "maxProperties", "dependentRequired", "dependentSchemas", "if", "then", "else",
+    "not", "unevaluatedProperties", "unevaluatedItems", "propertyNames",
+    "contentEncoding", "contentMediaType", "contentSchema", "$dynamicRef", "$recursiveRef",
   ];
   const found = new Set<string>();
-  const seen = new WeakSet<object>();
 
   const visit = (value: unknown) => {
-    if (!value || typeof value !== "object" || Array.isArray(value) || seen.has(value as object)) {
-      if (Array.isArray(value)) {
-        value.forEach(visit);
-      }
+    if (Array.isArray(value)) {
+      value.forEach(visit);
       return;
     }
-
-    seen.add(value as object);
+    if (!value || typeof value !== "object") return;
     const record = value as Record<string, unknown>;
-
     validationOnlyKeywords.forEach((keyword) => {
-      if (keyword in record) {
-        found.add(keyword);
-      }
+      if (keyword in record) found.add(keyword);
     });
-
     Object.values(record).forEach(visit);
   };
 
   visit(schema);
-
   if (found.size > 0) {
-    context.warnings.push(
-      `Validation-only keywords are not represented in TypeScript: ${Array.from(found).sort().join(", ")}.`
-    );
+    context.warnings.push(`Validation or advanced keywords are not represented as runtime TypeScript constraints: ${Array.from(found).sort().join(", ")}.`);
   }
 }
 
@@ -992,15 +942,8 @@ function fallbackType(context: { preferUnknown: boolean }) {
 }
 
 function cleanTypeName(value: string) {
-  const cleaned = value
-    .replace(/[^A-Za-z0-9_]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean)
-    .map(capitalize)
-    .join("");
-
+  const cleaned = value.replace(/[^A-Za-z0-9_]/g, " ").split(/\s+/).filter(Boolean).map(capitalize).join("");
   const fallback = cleaned || "GeneratedType";
-
   return /^[A-Za-z_]/.test(fallback) ? fallback : `Type${fallback}`;
 }
 
@@ -1009,22 +952,15 @@ function uniqueName(name: string, usedNames: Set<string>) {
     usedNames.add(name);
     return name;
   }
-
   let index = 2;
-
-  while (usedNames.has(`${name}${index}`)) {
-    index += 1;
-  }
-
+  while (usedNames.has(`${name}${index}`)) index += 1;
   const next = `${name}${index}`;
   usedNames.add(next);
   return next;
 }
 
 function toCamelCase(value: string) {
-  return value
-    .replace(/[-_\s]+(.)?/g, (_match, char: string) => (char ? char.toUpperCase() : ""))
-    .replace(/^(.)/, (char) => char.toLowerCase());
+  return value.replace(/[-_\s]+(.)?/g, (_match, char: string) => (char ? char.toUpperCase() : "")).replace(/^(.)/, (char) => char.toLowerCase());
 }
 
 function capitalize(value: string) {
@@ -1041,6 +977,14 @@ function wrapArrayItem(value: string) {
 
 function isObjectBody(value: string) {
   return value.trim().startsWith("{");
+}
+
+function isSchemaObject(value: SchemaValue): value is SchemaNode {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isSchemaValue(value: unknown): value is SchemaValue {
+  return typeof value === "boolean" || (typeof value === "object" && value !== null && !Array.isArray(value));
 }
 
 function getConverterNotes(result: ConvertResult): ConverterNote[] {

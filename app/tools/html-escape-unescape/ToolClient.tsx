@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -13,6 +13,7 @@ type Result = {
   inputLength: number;
   outputLength: number;
   convertedCount: number;
+  convertedLabel: string;
   mode: Mode;
 };
 
@@ -41,7 +42,7 @@ export default function ToolClient() {
   };
 
   const convertHtml = () => {
-    if (!input.trim()) {
+    if (input.length === 0) {
       setError(mode === "escape" ? "Please enter HTML or text to escape." : "Please enter HTML entities to unescape.");
       setOutput("");
       setResult(null);
@@ -51,16 +52,29 @@ export default function ToolClient() {
 
     try {
       const source = trimInput ? input.trim() : input;
+      if (source.length === 0) {
+        setError("The input is empty after trimming outer whitespace.");
+        setOutput("");
+        setResult(null);
+        setCopied(false);
+        return;
+      }
+
       const nextOutput =
         mode === "escape"
           ? escapeHtml(source, { escapeStyle, escapeQuotes, escapeApostrophes })
           : unescapeHtml(source);
+      const convertedCount =
+        mode === "escape"
+          ? countEscapedCharacters(source, { escapeQuotes, escapeApostrophes })
+          : countDecodedReferences(source);
 
       const nextResult: Result = {
         output: nextOutput,
         inputLength: source.length,
         outputLength: nextOutput.length,
-        convertedCount: countChangedCharacters(source, nextOutput, mode),
+        convertedCount,
+        convertedLabel: mode === "escape" ? "Characters escaped" : "References decoded",
         mode,
       };
 
@@ -101,7 +115,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HTML Escape Unescape"
-      description="Escape HTML online, unescape HTML entities, encode special characters, and decode entity-heavy text for frontend, API, CMS, and content workflows."
+      description="Escape HTML special characters or decode HTML character references for literal text, debugging, CMS content, APIs, and documentation. Review the output context before using escaped text in application code."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="mb-4">
@@ -140,18 +154,24 @@ export default function ToolClient() {
             ]}
           />
 
-          <YoryantraSelect
-            label="Escape Style"
-            value={escapeStyle}
-            onChange={(value) => {
-              setEscapeStyle(value as EscapeStyle);
-              clearResult();
-            }}
-            options={[
-              { label: "Named entities", value: "named" },
-              { label: "Numeric entities", value: "numeric" },
-            ]}
-          />
+          {mode === "escape" ? (
+            <YoryantraSelect
+              label="Escape Style"
+              value={escapeStyle}
+              onChange={(value) => {
+                setEscapeStyle(value as EscapeStyle);
+                clearResult();
+              }}
+              options={[
+                { label: "Common named references", value: "named" },
+                { label: "Decimal numeric references", value: "numeric" },
+              ]}
+            />
+          ) : (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+              Unescape mode uses the browser&apos;s HTML character-reference parser, including supported named and numeric references.
+            </div>
+          )}
         </div>
       </div>
 
@@ -159,13 +179,19 @@ export default function ToolClient() {
         <h3 className="text-lg font-semibold text-gray-900">Options</h3>
 
         <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
-          <Toggle checked={escapeQuotes} onChange={setEscapeQuotes} label="Escape double quotes" />
-          <Toggle checked={escapeApostrophes} onChange={setEscapeApostrophes} label="Escape apostrophes" />
+          {mode === "escape" ? (
+            <>
+              <Toggle checked={escapeQuotes} onChange={setEscapeQuotes} label="Escape double quotes" />
+              <Toggle checked={escapeApostrophes} onChange={setEscapeApostrophes} label="Escape apostrophes" />
+            </>
+          ) : null}
           <Toggle checked={trimInput} onChange={setTrimInput} label="Trim outer whitespace before converting" />
         </div>
 
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          Escaping converts characters like &lt;, &gt;, &, quotes, and apostrophes into entities so they can be displayed as text.
+          {mode === "escape"
+            ? "Ampersands and angle brackets are escaped for literal HTML display. Quote options are useful when you are preparing text for a quoted HTML attribute, but output encoding must always match the final context."
+            : "Decoding changes character references back to characters. The decoded result may contain markup-looking text, so do not insert untrusted output into innerHTML without an appropriate HTML sanitizer."}
         </p>
       </div>
 
@@ -219,120 +245,67 @@ export default function ToolClient() {
             <StatCard label="Input length" value={`${result.inputLength.toLocaleString()} chars`} />
             <StatCard label="Output length" value={`${result.outputLength.toLocaleString()} chars`} />
             <StatCard label="Mode" value={result.mode === "escape" ? "Escape" : "Unescape"} />
-            <StatCard label="Changed" value={`${result.convertedCount.toLocaleString()} item${result.convertedCount === 1 ? "" : "s"}`} />
+            <StatCard label={result.convertedLabel} value={result.convertedCount.toLocaleString()} />
           </div>
         </div>
       ) : null}
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Escaping HTML Text for Safe Display</h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">HTML Escaping Is Context-Specific Output Encoding</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            HTML escaping turns characters like angle brackets, quotes, and ampersands into HTML entities so browsers show them as text instead of reading them as markup. It is useful when you need to display code snippets, user-entered text, CMS content, or raw HTML safely.
+            HTML character references let special characters appear as text instead of being parsed as HTML syntax. For example, &amp;lt; represents a literal less-than sign and &amp;amp; represents an ampersand. This is useful for code samples, user-entered text, CMS fields, logs, and other values that should be displayed rather than treated as markup.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            HTML unescaping works in the other direction. It turns entity-heavy text copied from templates, feeds, APIs, databases, CMS fields, or logs back into readable characters.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool keeps the flow simple: paste text, choose escape or unescape, convert, and copy the result.
+            The correct encoding depends on where a value will be inserted. HTML text, quoted attributes, JavaScript, CSS, and URLs are different parsing contexts. This tool performs HTML character-reference escaping; it is not a JavaScript, CSS, or URL encoder.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This HTML Escape Unescape Tool Helps</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Showing raw HTML snippets on a page without letting the browser render them.</p>
-            <p className="mt-2">Encoding user-facing text before placing it into an HTML context.</p>
-            <p className="mt-2">Decoding entity-encoded text copied from CMS fields, templates, feeds, or APIs.</p>
-            <p className="mt-2">Debugging content that looks broken because entities are mixed with normal text.</p>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the HTML Escape Unescape Tool</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste text, HTML, or entity-encoded content into the input box.</li>
-            <li>Choose <strong>Escape HTML</strong> when markup should be displayed as text.</li>
-            <li>Choose <strong>Unescape HTML</strong> when entities should become readable characters.</li>
-            <li>Adjust quote and apostrophe options if needed.</li>
-            <li>Copy the output for frontend code, CMS content, API debugging, or documentation.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example HTML Escape and Unescape</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <p className="font-medium text-gray-900">Before escaping:</p>
-            <pre className="mt-2 whitespace-pre-wrap break-words">{`<div class="message">Yoryantra & tools</div>`}</pre>
-
-            <p className="mt-4 font-medium text-gray-900">After escaping:</p>
-            <pre className="mt-2 whitespace-pre-wrap break-words">{`&lt;div class=&quot;message&quot;&gt;Yoryantra &amp; tools&lt;/div&gt;`}</pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">HTML Characters Commonly Escaped</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            These characters often need escaping because browsers may otherwise interpret them as markup, attributes, or entity syntax.
-          </p>
-
-          <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900">What the Escape Options Change</h2>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
             <ul className="space-y-3">
-              <li><strong>&amp;lt;</strong> represents &lt;</li>
-              <li><strong>&amp;gt;</strong> represents &gt;</li>
-              <li><strong>&amp;amp;</strong> represents &amp;</li>
-              <li><strong>&amp;quot;</strong> represents a double quote</li>
-              <li><strong>&amp;#39;</strong> represents an apostrophe</li>
+              <li><strong>Ampersand and angle brackets:</strong> escaped by default so markup-looking text can be displayed literally.</li>
+              <li><strong>Double quote:</strong> optional because it matters most when a value is placed inside a quoted HTML attribute.</li>
+              <li><strong>Apostrophe:</strong> optional for the same reason when single-quoted attributes are involved.</li>
+              <li><strong>Named vs numeric:</strong> changes the representation, not the decoded character. Both forms are HTML character references.</li>
             </ul>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Escaping Is Not the Same as Full HTML Sanitizing</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Escaping is useful when text should be shown safely as text. Sanitizing is a broader security step that removes or restricts unsafe HTML. If you are accepting untrusted HTML from users, use a proper sanitizing approach in your application.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-
-          <div className="mt-5 space-y-6">
-            <Faq title="What does HTML escaping do?">
-              HTML escaping converts special characters such as &lt;, &gt;, &, quotes, and apostrophes into HTML entities so they can be safely displayed as text.
-            </Faq>
-
-            <Faq title="What does HTML unescaping do?">
-              HTML unescaping decodes entities like &amp;lt;, &amp;gt;, and &amp;amp; back into readable characters.
-            </Faq>
-
-            <Faq title="Is escaping the same as sanitizing HTML?">
-              No. Escaping converts special characters into entities. Sanitizing is a broader security process that removes or limits unsafe markup.
-            </Faq>
-
-            <Faq title="Can I decode HTML entities online without uploading the text?">
-              Yes. Escaping and unescaping happen directly in your browser, so pasted text is not sent to a server.
-            </Faq>
-
-            <Faq title="When should I escape HTML?">
-              Escape HTML when you want markup-like text to appear as text instead of being interpreted by the browser.
-            </Faq>
+          <h2 className="text-xl font-semibold text-gray-900">Example</h2>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <p className="font-medium text-gray-900">Literal markup-like text:</p>
+            <pre className="mt-2 whitespace-pre-wrap break-words">{`<div class="message">Yoryantra & tools</div>`}</pre>
+            <p className="mt-4 font-medium text-gray-900">Escaped with common references:</p>
+            <pre className="mt-2 whitespace-pre-wrap break-words">{`&lt;div class=&quot;message&quot;&gt;Yoryantra &amp; tools&lt;/div&gt;`}</pre>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Unescaping Can Produce Markup-Looking Output</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Unescape mode uses the browser&apos;s HTML character-reference behavior, so named references such as &amp;copy; and numeric references such as &amp;#169; can become their corresponding characters. The output box renders the result as text. If you later pass decoded, untrusted content to an HTML sink such as innerHTML, decoding has not made that content safe.
+          </p>
+        </div>
 
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Escaping Is Not HTML Sanitization</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Escaping is appropriate when untrusted data should remain plain text in a known output context. Sanitization is different: it is used when you intentionally allow some HTML and need to remove or restrict unsafe markup. For user-authored rich HTML, use a maintained sanitizer and keep framework auto-escaping enabled where possible.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Browser-Local Conversion</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Escaping and unescaping on this page run in your browser. The tool does not send pasted text to an encoding or decoding API.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/html-escape-unescape" />
         </div>
       </section>
@@ -360,12 +333,24 @@ function unescapeHtml(value: string) {
   return textarea.value;
 }
 
-function countChangedCharacters(input: string, output: string, mode: Mode) {
-  if (mode === "escape") {
-    return (input.match(/[&<>"']/g) || []).length;
+function countEscapedCharacters(
+  input: string,
+  options: { escapeQuotes: boolean; escapeApostrophes: boolean }
+) {
+  let count = 0;
+  for (const character of input) {
+    if (character === "&" || character === "<" || character === ">") count += 1;
+    else if (character === '"' && options.escapeQuotes) count += 1;
+    else if (character === "'" && options.escapeApostrophes) count += 1;
   }
+  return count;
+}
 
-  return (output.match(/[&<>"']/g) || []).length;
+function countDecodedReferences(input: string) {
+  const candidates = input.match(/&(?:#(?:x[0-9a-f]+|\d+)|[a-z][a-z0-9]+);?/gi) || [];
+  return candidates.reduce((count, candidate) => {
+    return count + (unescapeHtml(candidate) !== candidate ? 1 : 0);
+  }, 0);
 }
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
@@ -387,15 +372,6 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-gray-200 bg-white p-5">
       <p className="text-sm text-gray-500">{label}</p>
       <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
-    </div>
-  );
-}
-
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
     </div>
   );
 }
