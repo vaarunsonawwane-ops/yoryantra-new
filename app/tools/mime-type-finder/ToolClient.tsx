@@ -4,311 +4,236 @@ import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
-const mimeTypes: Record<string, string> = {
-  html: "text/html",
-  css: "text/css",
-  js: "application/javascript",
-  json: "application/json",
-  xml: "application/xml",
-  txt: "text/plain",
-  csv: "text/csv",
-  pdf: "application/pdf",
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  gif: "image/gif",
-  svg: "image/svg+xml",
-  webp: "image/webp",
-  mp3: "audio/mpeg",
-  mp4: "video/mp4",
-  zip: "application/zip",
-  gz: "application/gzip",
-  wasm: "application/wasm",
+type MediaEntry = {
+  type: string;
+  extensions: string[];
+  note: string;
+  aliases?: string[];
+  registryNote?: string;
 };
 
+const MEDIA_ENTRIES: MediaEntry[] = [
+  { type: "text/html", extensions: ["html", "htm"], note: "HTML documents." },
+  { type: "text/css", extensions: ["css"], note: "CSS stylesheets." },
+  { type: "text/javascript", extensions: ["js", "mjs", "cjs"], note: "JavaScript. application/javascript is obsolete in favor of text/javascript.", aliases: ["application/javascript"] },
+  { type: "application/json", extensions: ["json"], note: "JSON documents and API payloads." },
+  { type: "application/ld+json", extensions: ["jsonld"], note: "JSON-LD linked-data documents." },
+  { type: "application/manifest+json", extensions: ["webmanifest"], note: "Web application manifests." },
+  { type: "application/xml", extensions: ["xml"], note: "XML documents. text/xml is also registered; the best Content-Type depends on the protocol and content." },
+  { type: "application/yaml", extensions: ["yaml", "yml"], note: "YAML documents; application/yaml is the registered media type." },
+  { type: "text/plain", extensions: ["txt", "log"], note: "Plain text." },
+  { type: "text/csv", extensions: ["csv"], note: "Comma-separated values." },
+  { type: "text/markdown", extensions: ["md", "markdown"], note: "Markdown text." },
+  { type: "text/calendar", extensions: ["ics"], note: "iCalendar data." },
+  { type: "text/vcard", extensions: ["vcf"], note: "vCard contact data." },
+  { type: "application/pdf", extensions: ["pdf"], note: "PDF documents." },
+  { type: "application/rtf", extensions: ["rtf"], note: "Rich Text Format." },
+  { type: "application/zip", extensions: ["zip"], note: "ZIP archives." },
+  { type: "application/gzip", extensions: ["gz", "gzip"], note: "Gzip-compressed data. A name such as archive.tar.gz is still gzip at the outer file layer." },
+  { type: "application/wasm", extensions: ["wasm"], note: "WebAssembly binary modules." },
+  { type: "application/msword", extensions: ["doc"], note: "Legacy Microsoft Word documents." },
+  { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", extensions: ["docx"], note: "Office Open XML Word documents." },
+  { type: "application/vnd.ms-excel", extensions: ["xls"], note: "Legacy Microsoft Excel workbooks." },
+  { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", extensions: ["xlsx"], note: "Office Open XML Excel workbooks." },
+  { type: "application/vnd.ms-powerpoint", extensions: ["ppt"], note: "Legacy Microsoft PowerPoint presentations." },
+  { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation", extensions: ["pptx"], note: "Office Open XML PowerPoint presentations." },
+  { type: "image/png", extensions: ["png"], note: "PNG images." },
+  { type: "image/jpeg", extensions: ["jpg", "jpeg", "jpe"], note: "JPEG images." },
+  { type: "image/gif", extensions: ["gif"], note: "GIF images." },
+  { type: "image/svg+xml", extensions: ["svg"], note: "SVG vector images." },
+  { type: "image/webp", extensions: ["webp"], note: "WebP images." },
+  { type: "image/avif", extensions: ["avif"], note: "AVIF images." },
+  { type: "image/heic", extensions: ["heic"], note: "HEIC images." },
+  { type: "image/bmp", extensions: ["bmp"], note: "BMP images." },
+  { type: "image/vnd.microsoft.icon", extensions: ["ico"], note: "Microsoft icon files." },
+  { type: "image/tiff", extensions: ["tif", "tiff"], note: "TIFF images." },
+  { type: "audio/mpeg", extensions: ["mp3"], note: "MPEG audio, commonly MP3." },
+  { type: "audio/aac", extensions: ["aac"], note: "AAC audio." },
+  { type: "audio/vnd.wave", extensions: ["wav"], note: "Registered WAVE media type. The unregistered audio/wav spelling is also common in browser tooling.", registryNote: "IANA-registered vendor-tree type" },
+  { type: "audio/ogg", extensions: ["oga", "ogg"], note: "Ogg audio container." },
+  { type: "video/mp4", extensions: ["mp4", "m4v"], note: "MP4 video." },
+  { type: "video/webm", extensions: ["webm"], note: "Common WebM media type used by browsers and web servers.", registryNote: "Common web value; not listed in the IANA Media Types registry used for this review" },
+  { type: "video/ogg", extensions: ["ogv"], note: "Ogg video." },
+  { type: "font/woff", extensions: ["woff"], note: "WOFF web fonts." },
+  { type: "font/woff2", extensions: ["woff2"], note: "WOFF2 web fonts." },
+  { type: "font/ttf", extensions: ["ttf"], note: "TrueType fonts." },
+  { type: "font/otf", extensions: ["otf"], note: "OpenType fonts." },
+];
+
+function extractExtension(input: string): string {
+  const withoutQuery = input.split(/[?#]/)[0].trim();
+  const normalizedPath = withoutQuery.replace(/\\/g, "/");
+  const fileName = normalizedPath.split("/").pop() || normalizedPath;
+
+  if (fileName.charAt(0) === "." && fileName.indexOf(".", 1) === -1) {
+    return fileName.slice(1).toLowerCase();
+  }
+
+  const dot = fileName.lastIndexOf(".");
+  if (dot >= 0 && dot < fileName.length - 1) return fileName.slice(dot + 1).toLowerCase();
+  return fileName.replace(/^\./, "").toLowerCase();
+}
+
+function findByExtension(extension: string): MediaEntry | null {
+  for (const entry of MEDIA_ENTRIES) {
+    if (entry.extensions.indexOf(extension) !== -1) return entry;
+  }
+  return null;
+}
+
+function findByMediaType(type: string): { entry: MediaEntry; alias: boolean } | null {
+  const cleaned = type.split(";", 1)[0].trim().toLowerCase();
+  for (const entry of MEDIA_ENTRIES) {
+    if (entry.type === cleaned) return { entry, alias: false };
+    if (entry.aliases && entry.aliases.indexOf(cleaned) !== -1) return { entry, alias: true };
+  }
+  return null;
+}
+
 export default function ToolClient() {
-  const [extension, setExtension] = useState("");
+  const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
 
   const findMimeType = () => {
-    const cleaned = extension
-      .trim()
-      .replace(".", "")
-      .toLowerCase();
-
-    if (!cleaned) {
+    const raw = input.trim();
+    if (!raw) {
       setOutput("");
       return;
     }
 
+    if (/^[^\s/]+\/[^\s/]+(?:\s*;.*)?$/i.test(raw)) {
+      const foundType = findByMediaType(raw);
+      if (!foundType) {
+        setOutput("Media type not found in this bundled common-type table. The IANA registry is much larger, so an unknown result here does not mean the media type is invalid.");
+        return;
+      }
+
+      const entry = foundType.entry;
+      const lines = [
+        foundType.alias ? "Known obsolete/alias media type" : "Known media type",
+        "",
+        "Media type: " + entry.type,
+        "Common extensions: " + entry.extensions.map((extension) => "." + extension).join(", "),
+        "Note: " + entry.note,
+      ];
+      if (entry.registryNote) lines.push("Registry note: " + entry.registryNote);
+      if (foundType.alias) lines.push("Input note: " + raw.split(";", 1)[0].trim() + " is retained as an alias/obsolete form; prefer " + entry.type + ".");
+      setOutput(lines.join("\n"));
+      return;
+    }
+
+    const extension = extractExtension(raw);
+    if (!extension || !/^[a-z0-9][a-z0-9+_-]*$/i.test(extension)) {
+      setOutput("Could not extract a simple file extension. Enter something like .json, app.js, archive.tar.gz, or application/json.");
+      return;
+    }
+
+    const entry = findByExtension(extension);
+    if (!entry) {
+      setOutput(
+        "No common mapping found for ." +
+          extension +
+          ". Extension lookup is only a convention table; it does not inspect file bytes or prove the actual Content-Type."
+      );
+      return;
+    }
+
     setOutput(
-      mimeTypes[cleaned] ||
-        "MIME type not found in common list."
+      [
+        "Common extension mapping",
+        "",
+        "Input extension: ." + extension,
+        "Media type: " + entry.type,
+        "Other common extensions: " + entry.extensions.map((item) => "." + item).join(", "),
+        "Note: " + entry.note,
+        ...(entry.registryNote ? ["Registry note: " + entry.registryNote] : []),
+        "",
+        "Important: a filename extension cannot verify the file's real contents. Server configuration or content inspection can produce a different result.",
+      ].join("\n")
     );
   };
 
   const resetAll = () => {
-    setExtension("");
+    setInput("");
     setOutput("");
   };
 
   return (
     <ToolShell
       title="MIME Type Finder"
-      description="Find MIME types by file extension instantly with this free online MIME Type Finder."
+      description="Look up common media types from file names or extensions, or reverse-check a known media type."
     >
-      {/* INPUT */}
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
-          File Extension
+          File Name, Extension, or Media Type
         </label>
-
         <input
-          value={extension}
-          onChange={(e) =>
-            setExtension(e.target.value)
-          }
-          placeholder="json"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="app.js or application/json"
           className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
 
-      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={findMimeType}
-          className="yoryantra-btn"
-        >
-          Find MIME Type
-        </button>
-
-        <button
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
-          Reset
-        </button>
+        <button onClick={findMimeType} className="yoryantra-btn">Find Media Type</button>
+        <button onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
       </div>
 
-      {/* OUTPUT */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            MIME Type Result
-          </h3>
-
+          <h3 className="text-lg font-semibold text-gray-900">Media Type Result</h3>
           {output && (
             <button
-              onClick={() =>
-                navigator.clipboard.writeText(output)
-              }
+              onClick={() => navigator.clipboard.writeText(output)}
               className="yoryantra-btn-outline text-sm"
             >
               Copy
             </button>
           )}
         </div>
-
-        <div className="yoryantra-output min-h-[140px] flex items-center text-sm break-words">
-          {output ||
-            "MIME type result will appear here..."}
+        <div className="yoryantra-output min-h-[180px] text-sm whitespace-pre-wrap break-words overflow-auto">
+          {output || "Extension or media type details will appear here."}
         </div>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Why Browsers Need MIME Types
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Extension Lookup Is a Hint, Not File Detection</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            MIME types help browsers, APIs, servers, CDNs, and applications
-            understand what kind of content is being transferred. They tell
-            browsers whether a file should be displayed as HTML, downloaded as
-            a document, rendered as an image, executed as JavaScript, or parsed
-            as JSON.
+            A media type (historically called a MIME type) describes the format of transferred content, such as <code>application/json</code>, <code>text/css</code>, or <code>image/png</code>. This tool maps common filename extensions to practical Content-Type values and can reverse-check media types that are in its bundled table.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            During development workflows, incorrect MIME types can cause broken
-            scripts, failed API responses, rendering issues, blocked assets,
-            download problems, and browser security errors. This finder helps
-            quickly identify the correct Content-Type values for common file
-            extensions.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool is useful for debugging HTTP response headers, configuring
-            servers, validating uploads, working with APIs, CDN setups,
-            frontend assets, and browser content handling directly inside your
-            browser.
+            The mapping is intentionally described as a convention. A file named <code>photo.jpg</code> can still contain something other than JPEG data, and a server can send any configured Content-Type. Upload validation and security checks should inspect trusted metadata and, where appropriate, the file contents instead of trusting the extension alone.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the MIME Type Finder
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter a file extension into the input field.</li>
-
-            <li>
-              Click <strong>Find MIME Type</strong>.
-            </li>
-
-            <li>
-              Review the detected MIME type for the file extension.
-            </li>
-
-            <li>
-              Copy the MIME type for use in APIs, uploads, or HTTP headers.
-            </li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">A Few Modern Details That Matter</h2>
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking HTTP Content-Type response headers.</li>
-
-            <li>Debugging file upload validation systems.</li>
-
-            <li>Configuring CDN and server asset handling.</li>
-
-            <li>Working with API response content types.</li>
-
-            <li>Inspecting browser media rendering behavior.</li>
-
-            <li>Finding MIME types for static frontend assets.</li>
-
-            <li>Debugging download and file rendering issues.</li>
+            <li><code>.js</code> maps to <code>text/javascript</code>; IANA lists <code>application/javascript</code> as obsolete in favor of it.</li>
+            <li><code>.yaml</code> and <code>.yml</code> use the registered <code>application/yaml</code> media type.</li>
+            <li>Web fonts use the <code>font/*</code> top-level types such as <code>font/woff2</code> and <code>font/ttf</code>.</li>
+            <li>A compound filename such as <code>backup.tar.gz</code> is looked up by its outer <code>.gz</code> extension; the tool does not unpack archives.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example MIME Types
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`json → application/json
-html → text/html
-png → image/png
-pdf → application/pdf
-css → text/css
-svg → image/svg+xml`}
-            </pre>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">When to Use the Result</h2>
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            The lookup is useful when checking an HTTP <code>Content-Type</code> header, configuring static assets, reviewing CDN rules, preparing upload allowlists, or debugging a browser that refuses to load a resource because its declared type does not match the expected context.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Content-Type Headers
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>application/json</strong> is commonly used for APIs and
-                structured data responses.
-              </li>
-
-              <li>
-                <strong>text/html</strong> tells browsers to render HTML pages.
-              </li>
-
-              <li>
-                <strong>image/png</strong> identifies PNG image files.
-              </li>
-
-              <li>
-                <strong>application/pdf</strong> is used for PDF documents and
-                downloads.
-              </li>
-
-              <li>
-                <strong>text/css</strong> identifies CSS stylesheet files.
-              </li>
-            </ul>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Reference and Limits</h2>
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            IANA registrations are the primary reference for media type names in this table. A small number of common web values are labeled when they are widely used but are not present in the IANA registry reviewed for this release. The registry contains far more types than this practical extension table, and extension associations are not a universal one-to-one standard. No file is uploaded or sniffed by this page.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a MIME type?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                A MIME type identifies the format and nature of content
-                transferred between browsers, APIs, servers, and applications.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why are MIME types important?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Correct MIME types help browsers render files properly, improve
-                security, support downloads, and ensure APIs return expected
-                content formats.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is the Content-Type header?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                The Content-Type HTTP header specifies the MIME type of a
-                response body so browsers and applications know how the content
-                should be processed.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why do browsers block incorrect MIME types?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Browsers may block files with invalid MIME types to prevent
-                security risks, rendering problems, or incorrect script
-                execution.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is MIME type lookup processed on the server?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. MIME type lookup happens entirely inside your browser.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/mime-type-finder" />
         </div>
       </section>
