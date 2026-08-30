@@ -1,36 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: ".env File Parser Online Free | Yoryantra",
-
+  title: ".env File Parser | Inspect Environment Variables Safely",
   description:
-    "Parse and format .env files instantly with this free online .env File Parser.",
-
-  keywords: [
-    "env file parser",
-    ".env parser",
-    "environment variable parser",
-    "parse env file",
-    "env to json",
-    "developer tools",
-  ],
-
+    "Parse Node-style .env text with quoted and multiline values, comments, export prefixes, duplicate-key warnings, and optional masking for likely secrets.",
   alternates: {
     canonical: "https://yoryantra.com/tools/env-file-parser",
   },
-
   openGraph: {
-    title: ".env File Parser Online Free | Yoryantra",
-    description: "Parse .env files into readable JSON instantly online.",
+    title: ".env File Parser | Inspect Environment Variables Safely",
+    description:
+      "Inspect Node-style dotenv entries, duplicates, comments, multiline quoted values, and likely secrets locally in your browser.",
     url: "https://yoryantra.com/tools/env-file-parser",
     siteName: "Yoryantra",
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-    title: ".env File Parser Online Free | Yoryantra",
-    description: "Parse and format .env files instantly.",
+    title: ".env File Parser | Inspect Environment Variables Safely",
+    description:
+      "Parse Node-style .env content with diagnostics and optional secret masking.",
   },
 };
 

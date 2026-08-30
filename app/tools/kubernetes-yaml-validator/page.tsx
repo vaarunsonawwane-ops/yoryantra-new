@@ -1,50 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title:
-    "Kubernetes YAML Validator Online Free | Yoryantra",
-
+  title: "Kubernetes YAML Validator | Multi-Document Manifest Checks",
   description:
-    "Validate Kubernetes YAML manifests instantly with this free online Kubernetes YAML Validator.",
-
-  keywords: [
-    "kubernetes yaml validator",
-    "kubernetes manifest validator",
-    "k8s yaml validator",
-    "validate kubernetes yaml",
-    "kubernetes deployment validator",
-    "devops tools",
-    "kubernetes tools",
-  ],
-
+    "Inspect Kubernetes YAML manifests document by document for required object fields and practical workload structure before using kubectl or the API server.",
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/kubernetes-yaml-validator",
+    canonical: "https://yoryantra.com/tools/kubernetes-yaml-validator",
   },
-
   openGraph: {
-    title:
-      "Kubernetes YAML Validator Online Free | Yoryantra",
-
+    title: "Kubernetes YAML Validator | Multi-Document Manifest Checks",
     description:
-      "Validate Kubernetes YAML manifests instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/kubernetes-yaml-validator",
-
+      "Check Kubernetes manifest structure, multiple YAML documents, workload templates, selectors, and common required fields locally.",
+    url: "https://yoryantra.com/tools/kubernetes-yaml-validator",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "Kubernetes YAML Validator Online Free | Yoryantra",
-
+    title: "Kubernetes YAML Validator | Multi-Document Manifest Checks",
     description:
-      "Validate Kubernetes YAML manifests instantly.",
+      "Inspect Kubernetes YAML structure before authoritative kubectl or API-server validation.",
   },
 };
 

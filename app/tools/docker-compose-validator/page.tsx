@@ -1,50 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title:
-    "Docker Compose Validator Online Free | Yoryantra",
-
+  title: "Docker Compose Validator | Structural YAML Checks",
   description:
-    "Validate Docker Compose YAML files instantly with this free online Docker Compose Validator.",
-
-  keywords: [
-    "docker compose validator",
-    "docker compose yaml validator",
-    "docker compose checker",
-    "validate docker compose",
-    "docker yaml validator",
-    "devops tools",
-    "docker tools",
-  ],
-
+    "Inspect Docker Compose YAML for syntax, service structure, common type mistakes, references, and obsolete version usage before running Docker Compose.",
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/docker-compose-validator",
+    canonical: "https://yoryantra.com/tools/docker-compose-validator",
   },
-
   openGraph: {
-    title:
-      "Docker Compose Validator Online Free | Yoryantra",
-
+    title: "Docker Compose Validator | Structural YAML Checks",
     description:
-      "Validate Docker Compose YAML files instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/docker-compose-validator",
-
+      "Inspect Compose YAML structure, services, common field types, references, and version warnings in your browser.",
+    url: "https://yoryantra.com/tools/docker-compose-validator",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "Docker Compose Validator Online Free | Yoryantra",
-
+    title: "Docker Compose Validator | Structural YAML Checks",
     description:
-      "Validate Docker Compose YAML files instantly.",
+      "Check Compose YAML structure and common configuration mistakes before using the Docker Compose CLI.",
   },
 };
 
