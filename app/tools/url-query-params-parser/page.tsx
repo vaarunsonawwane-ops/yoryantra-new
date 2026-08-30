@@ -1,38 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "URL Query Params Parser Online Free | Yoryantra",
-
+  title: "URL Query Params Parser | Repeated Query Values | Yoryantra",
   description:
-    "Parse URL query parameters instantly with this free online URL Query Params Parser.",
-
-  keywords: [
-    "url query params parser",
-    "query string parser",
-    "parse url parameters",
-    "url params parser",
-    "query params to json",
-    "utm parser",
-    "developer tools",
-  ],
-
+    "Parse full URLs or raw query strings while preserving repeated parameters, blank values, raw encoding, decoded values, and parameter order.",
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/url-query-params-parser",
+    canonical: "https://yoryantra.com/tools/url-query-params-parser",
   },
-
   openGraph: {
-    title: "URL Query Params Parser Online Free | Yoryantra",
-    description: "Parse URL query parameters instantly online.",
+    title: "URL Query Params Parser | Repeated Query Values | Yoryantra",
+    description:
+      "Inspect URL query parameters without overwriting repeated keys or hiding raw encoding.",
     url: "https://yoryantra.com/tools/url-query-params-parser",
     siteName: "Yoryantra",
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-    title: "URL Query Params Parser Online Free | Yoryantra",
-    description: "Parse URL query parameters instantly.",
+    title: "URL Query Params Parser | Yoryantra",
+    description:
+      "Parse ordered query parameters with repeated-key and percent-decoding diagnostics.",
   },
 };
 

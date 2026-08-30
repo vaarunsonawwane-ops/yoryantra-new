@@ -1,49 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "HTTP Headers Parser Online Free | Yoryantra",
-
+  title: "HTTP Headers Parser | Preserve Repeated Fields | Yoryantra",
   description:
-    "Parse and format HTTP headers instantly with this free online HTTP Headers Parser.",
-
-  keywords: [
-    "http headers parser",
-    "parse http headers",
-    "http header parser",
-    "http headers to json",
-    "request headers parser",
-    "api header parser",
-    "developer tools",
-  ],
-
+    "Parse HTTP request or response headers into ordered structured data while preserving repeated fields, start lines, and parsing diagnostics.",
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/http-headers-parser",
+    canonical: "https://yoryantra.com/tools/http-headers-parser",
   },
-
   openGraph: {
-    title:
-      "HTTP Headers Parser Online Free | Yoryantra",
-
+    title: "HTTP Headers Parser | Preserve Repeated Fields | Yoryantra",
     description:
-      "Parse and format HTTP headers instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/http-headers-parser",
-
+      "Inspect raw HTTP header blocks without silently overwriting duplicate field lines.",
+    url: "https://yoryantra.com/tools/http-headers-parser",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "HTTP Headers Parser Online Free | Yoryantra",
-
+    title: "HTTP Headers Parser | Yoryantra",
     description:
-      "Parse and format HTTP headers instantly.",
+      "Parse raw HTTP headers, preserve repeated fields, and surface malformed lines for debugging.",
   },
 };
 

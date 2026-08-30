@@ -1,36 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "Cookie Parser Online Free | Yoryantra",
-
+  title: "Cookie Parser | Cookie & Set-Cookie Inspector | Yoryantra",
   description:
-    "Parse HTTP cookies into readable key-value pairs instantly with this free online Cookie Parser.",
-
-  keywords: [
-    "cookie parser",
-    "http cookie parser",
-    "parse cookies",
-    "cookie header parser",
-    "cookies to json",
-    "developer tools",
-  ],
-
+    "Parse Cookie request headers and Set-Cookie response headers while preserving duplicate names, attributes, raw values, and diagnostics.",
   alternates: {
     canonical: "https://yoryantra.com/tools/cookie-parser",
   },
-
   openGraph: {
-    title: "Cookie Parser Online Free | Yoryantra",
-    description: "Parse HTTP cookie headers instantly online.",
+    title: "Cookie Parser | Cookie & Set-Cookie Inspector | Yoryantra",
+    description:
+      "Inspect Cookie and Set-Cookie headers with ordered values, attributes, and practical diagnostics.",
     url: "https://yoryantra.com/tools/cookie-parser",
     siteName: "Yoryantra",
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-    title: "Cookie Parser Online Free | Yoryantra",
-    description: "Parse HTTP cookies instantly.",
+    title: "Cookie Parser | Cookie & Set-Cookie Inspector | Yoryantra",
+    description:
+      "Parse request cookies and Set-Cookie response headers without losing repeated values or attributes.",
   },
 };
 
