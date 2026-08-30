@@ -1,49 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "User Agent Parser Online Free | Yoryantra",
-
+  title: "User Agent Parser | Browser, OS & Device Heuristics | Yoryantra",
   description:
-    "Parse browser and device user agents instantly with this free online User Agent Parser.",
-
-  keywords: [
-    "user agent parser",
-    "parse user agent",
-    "browser user agent parser",
-    "device detector",
-    "ua parser",
-    "user agent analyzer",
-    "developer tools",
-  ],
-
+    "Inspect a User-Agent string for browser family, version, operating system, device type, engine, bot signals, and reduction limitations.",
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/user-agent-parser",
+    canonical: "https://yoryantra.com/tools/user-agent-parser",
   },
-
   openGraph: {
-    title:
-      "User Agent Parser Online Free | Yoryantra",
-
+    title: "User Agent Parser | Browser, OS & Device Heuristics",
     description:
-      "Parse browser and device user agents instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/user-agent-parser",
-
+      "Inspect browser, OS, device, engine, bot, and reduced User-Agent signals locally in your browser.",
+    url: "https://yoryantra.com/tools/user-agent-parser",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "User Agent Parser Online Free | Yoryantra",
-
+    title: "User Agent Parser | Yoryantra",
     description:
-      "Parse browser and device user agents instantly.",
+      "Inspect browser, OS, device, engine, bot, and User-Agent reduction signals.",
   },
 };
 

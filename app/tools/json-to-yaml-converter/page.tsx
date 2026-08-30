@@ -1,49 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "JSON to YAML Converter Online Free | Yoryantra",
-
+  title: "JSON to YAML Converter | Indent & Quote Controls | Yoryantra",
   description:
-    "Convert JSON to YAML instantly with this free online JSON to YAML Converter.",
-
-  keywords: [
-    "json to yaml",
-    "json yaml converter",
-    "convert json to yaml",
-    "json to yaml online",
-    "json yaml parser",
-    "devops yaml converter",
-    "developer tools",
-  ],
-
+    "Convert JSON to YAML with indentation, line-width, quoting, and key-order controls plus diagnostics for JavaScript number precision.",
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/json-to-yaml-converter",
+    canonical: "https://yoryantra.com/tools/json-to-yaml-converter",
   },
-
   openGraph: {
-    title:
-      "JSON to YAML Converter Online Free | Yoryantra",
-
+    title: "JSON to YAML Converter | Indent & Quote Controls",
     description:
-      "Convert JSON to YAML instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/json-to-yaml-converter",
-
+      "Convert JSON values to readable YAML with practical formatting controls and precision warnings.",
+    url: "https://yoryantra.com/tools/json-to-yaml-converter",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "JSON to YAML Converter Online Free | Yoryantra",
-
+    title: "JSON to YAML Converter | Yoryantra",
     description:
-      "Convert JSON to YAML instantly.",
+      "Convert JSON to YAML with indentation, wrapping, quoting, and precision diagnostics.",
   },
 };
 

@@ -1,49 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "UTM Builder Online Free | Yoryantra",
-
+  title: "UTM Builder | Campaign URL Generator | Yoryantra",
   description:
-    "Generate UTM tracking URLs instantly with this free online UTM Builder.",
-
-  keywords: [
-    "utm builder",
-    "utm generator",
-    "utm url builder",
-    "google analytics utm builder",
-    "campaign url builder",
-    "utm tracking url generator",
-    "marketing tools",
-  ],
-
+    "Build campaign URLs with Google Analytics UTM parameters while preserving existing query parameters and URL fragments.",
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/utm-builder",
+    canonical: "https://yoryantra.com/tools/utm-builder",
   },
-
   openGraph: {
-    title:
-      "UTM Builder Online Free | Yoryantra",
-
+    title: "UTM Builder | Campaign URL Generator",
     description:
-      "Generate UTM tracking URLs instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/utm-builder",
-
+      "Create consistent campaign URLs with UTM source, medium, campaign, ID, term, content, and newer GA4 parameters.",
+    url: "https://yoryantra.com/tools/utm-builder",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "UTM Builder Online Free | Yoryantra",
-
+    title: "UTM Builder | Yoryantra",
     description:
-      "Generate UTM tracking URLs instantly.",
+      "Build campaign URLs with current Google Analytics UTM parameters.",
   },
 };
 
