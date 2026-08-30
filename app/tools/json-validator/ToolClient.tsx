@@ -515,7 +515,8 @@ function scanValidJson(source: string) {
 
     if (/^-?(?:0|[1-9]\d*)$/.test(token)) {
       try {
-        const absolute = BigInt(token) < 0n ? -BigInt(token) : BigInt(token);
+        const numeric = BigInt(token);
+        const absolute = numeric < BigInt(0) ? -numeric : numeric;
         if (absolute > BigInt(Number.MAX_SAFE_INTEGER)) {
           numberFindings.push({ token, ...location, kind: "unsafe-integer" });
         }
