@@ -1,44 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "XML Formatter Online Free | Yoryantra",
-
+  title: "XML Formatter | Pretty Print Well-Formed XML | Yoryantra",
   description:
-    "Format and beautify XML instantly with this free online XML Formatter. Improve readability and validate XML structure easily.",
-
-  keywords: [
-    "xml formatter",
-    "format xml",
-    "xml beautifier",
-    "pretty print xml",
-    "xml validator",
-    "developer utilities",
-  ],
-
+    "Pretty print well-formed XML with conservative handling for mixed text, CDATA, comments, namespaces, processing instructions, and xml:space-sensitive content.",
   alternates: {
     canonical: "https://yoryantra.com/tools/xml-formatter",
   },
-
   openGraph: {
-    title: "XML Formatter Online Free | Yoryantra",
-
+    title: "XML Formatter | Pretty Print XML | Yoryantra",
     description:
-      "Format and beautify XML instantly with this free online XML Formatter.",
-
+      "Pretty print well-formed XML while preserving mixed-content and xml:space-sensitive elements from added indentation.",
     url: "https://yoryantra.com/tools/xml-formatter",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "XML Formatter Online Free | Yoryantra",
-
+    title: "XML Formatter | Yoryantra",
     description:
-      "Beautify and format XML instantly with this clean online XML Formatter.",
+      "Format well-formed XML with conservative mixed-content and whitespace handling.",
   },
 };
 

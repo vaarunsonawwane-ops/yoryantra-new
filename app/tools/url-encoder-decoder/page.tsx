@@ -1,46 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "URL Encoder Decoder Online Free | Yoryantra",
-
+  title: "URL Encoder Decoder | Percent-Encoding Tool | Yoryantra",
   description:
-    "Encode and decode URLs instantly with this free online URL Encoder Decoder. Convert special characters safely for web URLs, APIs, query strings, and browser-safe encoding.",
-
-  keywords: [
-    "url encoder",
-    "url decoder",
-    "url encode decode",
-    "encode url online",
-    "decode url online",
-    "url encoding tool",
-    "query string encoder",
-    "developer utilities",
-  ],
-
+    "Encode and decode full URLs, URL components, and form-style query values with clear handling for reserved characters, UTF-8 percent encoding, %20, and + spaces.",
   alternates: {
     canonical: "https://yoryantra.com/tools/url-encoder-decoder",
   },
-
   openGraph: {
-    title: "URL Encoder Decoder Online Free | Yoryantra",
-
+    title: "URL Encoder Decoder | Percent-Encoding Tool | Yoryantra",
     description:
-      "Free online URL Encoder Decoder for safely encoding and decoding URLs instantly.",
-
+      "Encode and decode full URLs, URL components, and form-style values with the correct percent-encoding behavior for each case.",
     url: "https://yoryantra.com/tools/url-encoder-decoder",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "URL Encoder Decoder Online Free | Yoryantra",
-
+    title: "URL Encoder Decoder | Yoryantra",
     description:
-      "Encode and decode URLs instantly with this fast and clean URL utility tool.",
+      "Encode or decode full URLs, URL components, and form-style query values.",
   },
 };
 
