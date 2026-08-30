@@ -1,49 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "XML to JSON Converter Online Free | Yoryantra",
-
+  title: "XML to JSON Converter | Mapping XML Structure | Yoryantra",
   description:
-    "Convert XML to JSON instantly with this free online XML to JSON Converter.",
-
-  keywords: [
-    "xml to json",
-    "xml json converter",
-    "convert xml to json",
-    "xml parser",
-    "xml to json online",
-    "xml json formatter",
-    "developer tools",
-  ],
-
+    "Convert XML to JSON with explicit compact or ordered mappings for attributes, repeated elements, namespaces, CDATA, and mixed-content workflows.",
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/xml-to-json-converter",
+    canonical: "https://yoryantra.com/tools/xml-to-json-converter",
   },
-
   openGraph: {
-    title:
-      "XML to JSON Converter Online Free | Yoryantra",
-
+    title: "XML to JSON Converter | Mapping XML Structure | Yoryantra",
     description:
-      "Convert XML to JSON instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/xml-to-json-converter",
-
+      "Convert well-formed XML using compact or ordered JSON mappings that make attributes, repeated elements, and mixed content explicit.",
+    url: "https://yoryantra.com/tools/xml-to-json-converter",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "XML to JSON Converter Online Free | Yoryantra",
-
+    title: "XML to JSON Converter | Mapping XML Structure | Yoryantra",
     description:
-      "Convert XML to JSON instantly.",
+      "Convert XML with explicit compact or ordered mappings for attributes and mixed content.",
   },
 };
 

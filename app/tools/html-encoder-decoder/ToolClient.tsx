@@ -1,338 +1,315 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
+
+type Mode = "encode" | "decode";
+type ReferenceStyle = "named" | "decimal" | "hex";
+type EncodeScope = "syntax" | "non-ascii";
+
+type Result = {
+  output: string;
+  convertedCount: number;
+  mode: Mode;
+  inputLength: number;
+  outputLength: number;
+};
+
+const encodeExample = `<p title="AT&T © 2026">5 < 8 — café</p>`;
+const decodeExample = `&lt;p&gt;Price: &euro;25 &amp; tax &#x2014; caf&#233;&lt;/p&gt;`;
+
+const namedReferences: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+  "\u00a0": "&nbsp;",
+  "©": "&copy;",
+  "®": "&reg;",
+  "€": "&euro;",
+};
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
+  const [mode, setMode] = useState<Mode>("encode");
+  const [referenceStyle, setReferenceStyle] = useState<ReferenceStyle>("named");
+  const [encodeScope, setEncodeScope] = useState<EncodeScope>("syntax");
+  const [result, setResult] = useState<Result | null>(null);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
-  const encodeHTML = () => {
-    const encoded = input
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+  const placeholder = useMemo(
+    () => (mode === "encode" ? encodeExample : decodeExample),
+    [mode]
+  );
 
-    setOutput(encoded);
+  const clearResult = () => {
+    setResult(null);
+    setError("");
+    setCopied(false);
   };
 
-  const decodeHTML = () => {
-    const decoded = input
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&amp;/g, "&");
+  const convert = () => {
+    if (input.length === 0) {
+      setError(mode === "encode" ? "Please enter text or HTML to encode." : "Please enter HTML character references to decode.");
+      setResult(null);
+      return;
+    }
 
-    setOutput(decoded);
+    try {
+      if (mode === "encode") {
+        const encoded = encodeCharacterReferences(input, referenceStyle, encodeScope);
+        setResult({
+          output: encoded.output,
+          convertedCount: encoded.convertedCount,
+          mode,
+          inputLength: input.length,
+          outputLength: encoded.output.length,
+        });
+      } else {
+        const output = decodeCharacterReferences(input);
+        setResult({
+          output,
+          convertedCount: countDecodedReferences(input),
+          mode,
+          inputLength: input.length,
+          outputLength: output.length,
+        });
+      }
+
+      setError("");
+      setCopied(false);
+    } catch {
+      setError(mode === "encode" ? "Unable to encode this text." : "Unable to decode these HTML character references.");
+      setResult(null);
+    }
+  };
+
+  const loadExample = () => {
+    setInput(mode === "encode" ? encodeExample : decodeExample);
+    clearResult();
   };
 
   const resetAll = () => {
     setInput("");
-    setOutput("");
+    setMode("encode");
+    setReferenceStyle("named");
+    setEncodeScope("syntax");
+    clearResult();
+  };
+
+  const copyOutput = async () => {
+    if (!result?.output) return;
+    await navigator.clipboard.writeText(result.output);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
   };
 
   return (
     <ToolShell
       title="HTML Encoder Decoder"
-      description="Encode and decode HTML entities instantly with this free online HTML Encoder Decoder."
+      description="Convert text to HTML character references or decode named and numeric references. Choose minimal HTML-syntax encoding or encode non-ASCII characters for entity-heavy content and debugging."
     >
-      {/* INPUT */}
-      <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          HTML Input
-        </label>
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-gray-900">Input</label>
+          <p className="mt-1 text-sm leading-relaxed text-gray-500">
+            Paste plain text, HTML snippets, CMS content, or text containing HTML character references.
+          </p>
+        </div>
 
         <textarea
-          className="w-full h-64 rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-          placeholder="Paste HTML or text here..."
           value={input}
-          onChange={(e) =>
-            setInput(e.target.value)
-          }
+          onChange={(event: { target: { value: string } }) => {
+            setInput(event.target.value);
+            clearResult();
+          }}
+          placeholder={placeholder}
+          spellCheck={false}
+          className="w-full min-h-[300px] rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
       </div>
 
-      {/* ACTIONS */}
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={encodeHTML}
-          className="yoryantra-btn"
-        >
-          Encode HTML
-        </button>
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+        <h3 className="text-lg font-semibold text-gray-900">Conversion Settings</h3>
 
-        <button
-          onClick={decodeHTML}
-          className="yoryantra-btn-outline"
-        >
-          Decode HTML
-        </button>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <YoryantraSelect
+            label="Mode"
+            value={mode}
+            onChange={(value: string) => {
+              setMode(value as Mode);
+              clearResult();
+            }}
+            options={[
+              { label: "Encode references", value: "encode" },
+              { label: "Decode references", value: "decode" },
+            ]}
+          />
 
-        <button
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
-          Reset
-        </button>
-      </div>
+          {mode === "encode" ? (
+            <>
+              <YoryantraSelect
+                label="Reference Format"
+                value={referenceStyle}
+                onChange={(value: string) => {
+                  setReferenceStyle(value as ReferenceStyle);
+                  clearResult();
+                }}
+                options={[
+                  { label: "Named where common", value: "named" },
+                  { label: "Decimal numeric", value: "decimal" },
+                  { label: "Hexadecimal numeric", value: "hex" },
+                ]}
+              />
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Output
-          </h3>
-
-          {output && (
-            <button
-              onClick={() =>
-                navigator.clipboard.writeText(
-                  output
-                )
-              }
-              className="yoryantra-btn-outline text-sm"
-            >
-              Copy
-            </button>
+              <YoryantraSelect
+                label="Characters to Encode"
+                value={encodeScope}
+                onChange={(value: string) => {
+                  setEncodeScope(value as EncodeScope);
+                  clearResult();
+                }}
+                options={[
+                  { label: "HTML syntax characters", value: "syntax" },
+                  { label: "Syntax + non-ASCII", value: "non-ascii" },
+                ]}
+              />
+            </>
+          ) : (
+            <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+              Decode mode uses the browser&apos;s HTML character-reference parser, so supported named references and decimal or hexadecimal numeric references are decoded together.
+            </div>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
-          {output ||
-            "Encoded or decoded HTML will appear here..."}
-        </pre>
       </div>
 
-      {/* PRIVACY NOTE */}
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
-          Privacy Note
-        </h3>
-
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          HTML encoding and decoding happen locally inside your browser. Your
-          content is not uploaded, stored, or processed on any server.
-        </p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button type="button" onClick={convert} className="yoryantra-btn">
+          {mode === "encode" ? "Encode HTML References" : "Decode HTML References"}
+        </button>
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">Load Example</button>
+        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      {error ? (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+      ) : null}
+
+      {result ? (
+        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Output</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Unknown named references remain unchanged when decoding.
+                </p>
+              </div>
+              <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+                {copied ? "Copied" : "Copy Output"}
+              </button>
+            </div>
+
+            <pre className="mt-4 yoryantra-output min-h-[220px] overflow-auto whitespace-pre-wrap break-words text-sm">
+              {result.output}
+            </pre>
+          </div>
+
+          <div className="space-y-4">
+            <StatCard label="Mode" value={result.mode === "encode" ? "Encode" : "Decode"} />
+            <StatCard label={result.mode === "encode" ? "Characters encoded" : "References decoded"} value={result.convertedCount.toLocaleString()} />
+            <StatCard label="Input length" value={`${result.inputLength.toLocaleString()} chars`} />
+            <StatCard label="Output length" value={`${result.outputLength.toLocaleString()} chars`} />
+          </div>
+        </div>
+      ) : null}
+
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Encoding and Decoding HTML Entities Safely
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Character References, Not General-Purpose Sanitization</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            HTML encoding helps convert reserved characters into safe HTML
-            entities so they can be displayed correctly inside webpages,
-            templates, CMS systems, APIs, forms, frontend applications, and
-            user-generated content platforms.
+            HTML supports named references such as &amp;amp; and numeric references such as &amp;#38; or &amp;#x26;. They are useful when text needs an explicit character-reference representation, when inspecting encoded CMS or API content, or when converting non-ASCII characters for compatibility testing.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Raw HTML characters such as angle brackets, quotes, and ampersands
-            can break layouts or create rendering issues when inserted directly
-            into webpages. This HTML Encoder Decoder helps safely encode and
-            decode HTML entities instantly inside your browser.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool is useful for frontend debugging, content management,
-            security testing, template handling, escaped HTML inspection,
-            JavaScript workflows, and displaying raw HTML safely.
+            The default encoding scope converts the characters that commonly participate in HTML syntax: ampersand, angle brackets, and quotes. The non-ASCII option also converts characters above U+007E. This tool does not sanitize HTML and does not make arbitrary markup safe to insert with innerHTML.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the HTML Encoder Decoder
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Paste HTML or plain text into the editor.
-            </li>
-
-            <li>
-              Click <strong>Encode HTML</strong> to convert characters into HTML
-              entities.
-            </li>
-
-            <li>
-              Click <strong>Decode HTML</strong> to convert entities back into
-              readable HTML.
-            </li>
-
-            <li>
-              Copy the converted output instantly.
-            </li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">Why This Differs from HTML Escape Unescape</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            HTML Escape Unescape is aimed at minimal output escaping and context-aware safety guidance. This encoder/decoder is aimed at character-reference conversion: choosing named, decimal, or hexadecimal output and optionally representing non-ASCII characters as references. Use the escape tool when your main question is how to display untrusted text safely in an HTML context; use this tool when you need to inspect or transform entity notation itself.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Escaping HTML before displaying raw code snippets.
-            </li>
-
-            <li>
-              Preventing HTML rendering inside content editors.
-            </li>
-
-            <li>
-              Debugging encoded HTML entities.
-            </li>
-
-            <li>
-              Working with CMS and user-generated content.
-            </li>
-
-            <li>
-              Inspecting escaped HTML responses from APIs.
-            </li>
-
-            <li>
-              Encoding special characters safely in templates.
-            </li>
-
-            <li>
-              Testing frontend rendering workflows.
-            </li>
+          <h2 className="text-xl font-semibold text-gray-900">Reference Behavior</h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-gray-600 leading-relaxed">
+            <li>Named-reference decoding follows the browser&apos;s HTML parser and therefore recognizes the HTML Living Standard&apos;s supported character references.</li>
+            <li>Decimal references use forms such as <code>&amp;#169;</code>; hexadecimal references use forms such as <code>&amp;#xA9;</code>.</li>
+            <li>Named output uses familiar names where this tool has a clear common mapping and falls back to a decimal reference for other encoded characters.</li>
+            <li>Raw tags already present in the input are preserved during decoding rather than rendered in the page.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example HTML Encoding
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <p className="font-medium text-gray-900">
-              Original HTML:
-            </p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">
-{`<h1>Hello World</h1>`}
-            </pre>
-
-            <p className="mt-4 font-medium text-gray-900">
-              Encoded output:
-            </p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">
-{`&lt;h1&gt;Hello World&lt;/h1&gt;`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Why HTML Encoding Matters
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>Safer rendering:</strong> Encoded HTML prevents raw tags
-                from rendering unintentionally.
-              </li>
-
-              <li>
-                <strong>Cleaner debugging:</strong> Developers can inspect raw
-                HTML content more easily.
-              </li>
-
-              <li>
-                <strong>Better content handling:</strong> Escaped HTML works
-                safely inside CMS systems and editors.
-              </li>
-
-              <li>
-                <strong>Frontend reliability:</strong> Proper encoding helps
-                reduce rendering and formatting issues.
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is HTML encoding?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                HTML encoding converts reserved characters such as angle
-                brackets and quotes into safe HTML entities.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is HTML decoding?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                HTML decoding converts HTML entities back into readable text and
-                HTML characters.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why are HTML entities important?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                HTML entities help display special characters safely without
-                breaking webpage rendering.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this HTML Encoder Decoder secure?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. All encoding and decoding happen locally inside your
-                browser.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is HTML processing handled on the server?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. HTML processing happens locally inside your browser.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/html-encoder-decoder" />
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function encodeCharacterReferences(value: string, style: ReferenceStyle, scope: EncodeScope) {
+  let output = "";
+  let convertedCount = 0;
+
+  for (const character of value) {
+    const codePoint = character.codePointAt(0) || 0;
+    const isHtmlSyntax = character === "&" || character === "<" || character === ">" || character === '"' || character === "'";
+    const shouldEncode = isHtmlSyntax || (scope === "non-ascii" && codePoint > 0x7f);
+
+    if (!shouldEncode) {
+      output += character;
+      continue;
+    }
+
+    convertedCount += 1;
+    output += formatReference(character, codePoint, style);
+  }
+
+  return { output, convertedCount };
+}
+
+function formatReference(character: string, codePoint: number, style: ReferenceStyle) {
+  if (style === "named" && namedReferences[character]) return namedReferences[character];
+  if (style === "hex") return `&#x${codePoint.toString(16).toUpperCase()};`;
+  return `&#${codePoint};`;
+}
+
+function decodeCharacterReferences(value: string) {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return textarea.value;
+}
+
+function countDecodedReferences(value: string) {
+  const candidates = value.match(/&(?:#(?:x[0-9a-f]+|\d+)|[a-z][a-z0-9]+);?/gi) || [];
+  return candidates.reduce((count, candidate) => {
+    return count + (decodeCharacterReferences(candidate) !== candidate ? 1 : 0);
+  }, 0);
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
+    </div>
   );
 }

@@ -1,45 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "HTML Encoder Decoder Online Free | Yoryantra",
-
+  title: "HTML Encoder Decoder | Character References | Yoryantra",
   description:
-    "Encode and decode HTML entities instantly with this free online HTML Encoder Decoder.",
-
-  keywords: [
-    "html encoder",
-    "html decoder",
-    "html entity encoder",
-    "html entity decoder",
-    "encode html online",
-    "decode html online",
-    "developer utilities",
-  ],
-
+    "Encode text as named, decimal, or hexadecimal HTML character references and decode HTML entities for debugging, CMS content, and web data.",
   alternates: {
     canonical: "https://yoryantra.com/tools/html-encoder-decoder",
   },
-
   openGraph: {
-    title: "HTML Encoder Decoder Online Free | Yoryantra",
-
+    title: "HTML Encoder Decoder | Character References | Yoryantra",
     description:
-      "Encode and decode HTML entities instantly with this free online HTML Encoder Decoder.",
-
+      "Convert text to HTML character references or decode named and numeric HTML entities for debugging, CMS content, and web workflows.",
     url: "https://yoryantra.com/tools/html-encoder-decoder",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "HTML Encoder Decoder Online Free | Yoryantra",
-
+    title: "HTML Encoder Decoder | Character References | Yoryantra",
     description:
-      "Encode and decode HTML entities instantly with this free online utility.",
+      "Encode or decode named, decimal, and hexadecimal HTML character references.",
   },
 };
 
