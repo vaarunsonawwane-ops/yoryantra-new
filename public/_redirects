@@ -1,1 +1,6 @@
-/tools/data-uri-encoder-decoder  /tools/data-uri-generator  301
+/tools/data-uri-encoder-decoder  /tools/data-uri-generator  301/tools/docker-env-checker /tools/docker-environment-variable-checker 301
+/tools/csv-to-json-converter /tools/csv-to-json 301
+/tools/html-entity-encoder-decoder /tools/html-encoder-decoder 301
+/tools/meta-tags-generator /tools/meta-tag-generator 301
+/tools/security-headers-checker /tools/security-headers-scanner 301
+/tools/random-password-generator /tools/password-generator 301
