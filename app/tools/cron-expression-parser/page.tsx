@@ -1,51 +1,28 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "Cron Expression Parser | Read Cron Schedules Online | Yoryantra",
-
+  title: "Cron Expression Parser | Read 5-Field Cron Schedules | Yoryantra",
   description:
-    "Parse cron expressions and understand cron schedules in simple language. Read cron syntax, check schedules, and review cron timing directly in your browser.",
-
-  keywords: [
-    "cron expression parser",
-    "cron parser",
-    "read cron expression",
-    "cron schedule reader",
-    "cron expression meaning",
-    "parse cron schedule",
-    "cron syntax checker",
-    "understand cron expression",
-    "cron schedule tool",
-    "devops tools",
-  ],
-
+    "Parse traditional five-field cron expressions with ranges, lists, steps, month and weekday names, and understand important day-of-month and weekday behavior.",
   alternates: {
     canonical: "https://yoryantra.com/tools/cron-expression-parser",
   },
-
   openGraph: {
-    title: "Cron Expression Parser | Read Cron Schedules Online | Yoryantra",
-
+    title: "Cron Expression Parser | Read 5-Field Cron Schedules | Yoryantra",
     description:
-      "Parse cron expressions and understand cron schedules in simple language. Read cron syntax, check schedules, and review cron timing directly in your browser.",
-
+      "Read traditional five-field cron schedules with ranges, lists, steps, month names, weekday names, and field-by-field explanations.",
     url: "https://yoryantra.com/tools/cron-expression-parser",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Cron Expression Parser | Read Cron Schedules Online | Yoryantra",
-
+    title: "Cron Expression Parser | Read 5-Field Cron Schedules | Yoryantra",
     description:
-      "Parse cron expressions and understand cron schedules in simple language. Read cron syntax, check schedules, and review cron timing directly in your browser.",
+      "Parse five-field Unix cron syntax and understand each schedule field.",
   },
 };
 
-export default function CronExpressionParserPage() {
+export default function Page() {
   return <ToolClient />;
 }

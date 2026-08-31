@@ -1,50 +1,28 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "Meta Tags Checker | Check Page Meta Tags Online | Yoryantra",
-
+  title: "Meta Tags Checker | Inspect SEO, Canonical & Social Tags | Yoryantra",
   description:
-    "Check HTML meta tags, title tags, meta descriptions, canonical links, Open Graph tags, and Twitter card tags directly in your browser.",
-
-  keywords: [
-    "meta tags checker",
-    "check meta tags",
-    "meta tag checker",
-    "title tag checker",
-    "meta description checker",
-    "open graph checker",
-    "twitter card checker",
-    "canonical tag checker",
-    "seo tools",
-  ],
-
+    "Inspect pasted HTML for title, meta description, robots, canonical, Open Graph, X/Twitter Card, charset, viewport, language, and duplicate metadata.",
   alternates: {
     canonical: "https://yoryantra.com/tools/meta-tags-checker",
   },
-
   openGraph: {
-    title: "Meta Tags Checker | Check Page Meta Tags Online | Yoryantra",
-
+    title: "Meta Tags Checker | Inspect SEO, Canonical & Social Tags | Yoryantra",
     description:
-      "Check HTML meta tags, title tags, meta descriptions, canonical links, Open Graph tags, and Twitter card tags directly in your browser.",
-
+      "Inspect HTML metadata without fetching a page: title, description, robots, canonical, Open Graph, social cards, and technical head tags.",
     url: "https://yoryantra.com/tools/meta-tags-checker",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Meta Tags Checker | Check Page Meta Tags Online | Yoryantra",
-
+    title: "Meta Tags Checker | Inspect SEO, Canonical & Social Tags | Yoryantra",
     description:
-      "Check HTML meta tags, title tags, meta descriptions, canonical links, Open Graph tags, and Twitter card tags directly in your browser.",
+      "Review pasted HTML for search metadata, canonical annotations, Open Graph, social-card tags, and duplicate declarations.",
   },
 };
 
-export default function MetaTagsCheckerPage() {
+export default function Page() {
   return <ToolClient />;
 }

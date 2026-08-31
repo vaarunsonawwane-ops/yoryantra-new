@@ -1,52 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title:
-    "Unicode Encoder Decoder – Encode & Decode Unicode Escapes | Yoryantra",
-
+  title: "Unicode Encoder Decoder | JavaScript & JSON Escapes | Yoryantra",
   description:
-    "Encode and decode Unicode escape sequences for JavaScript, JSON, APIs, logs, debugging, and encoded text with this free Unicode Encoder Decoder.",
-
-  keywords: [
-    "unicode encoder decoder",
-    "unicode decoder",
-    "unicode encoder",
-    "unicode escape decoder",
-    "unicode escape encoder",
-    "unicode converter",
-    "unicode escape sequence",
-    "javascript unicode decoder",
-    "json unicode decoder",
-    "decode unicode text",
-    "encoding tools",
-  ],
-
+    "Encode and decode Unicode as JavaScript code-point escapes, JSON-compatible UTF-16 escapes, or U+ code-point notation with surrogate-pair checks.",
   alternates: {
     canonical: "https://yoryantra.com/tools/unicode-encoder-decoder",
   },
-
   openGraph: {
-    title:
-      "Unicode Encoder Decoder – Encode & Decode Unicode Escapes | Yoryantra",
-
+    title: "Unicode Encoder Decoder | JavaScript & JSON Escapes | Yoryantra",
     description:
-      "Encode and decode Unicode escape sequences for JavaScript, JSON, APIs, logs, debugging, and encoded text.",
-
+      "Convert text between JavaScript Unicode escapes, JSON-compatible UTF-16 escapes, U+ code points, and readable Unicode text.",
     url: "https://yoryantra.com/tools/unicode-encoder-decoder",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "Unicode Encoder Decoder – Encode & Decode Unicode Escapes | Yoryantra",
-
+    title: "Unicode Encoder Decoder | JavaScript & JSON Escapes | Yoryantra",
     description:
-      "Free Unicode Encoder Decoder for JavaScript, JSON, APIs, logs, debugging, and encoded text.",
+      "Work with JavaScript code-point escapes, JSON UTF-16 escapes, Unicode code points, and readable text.",
   },
 };
 

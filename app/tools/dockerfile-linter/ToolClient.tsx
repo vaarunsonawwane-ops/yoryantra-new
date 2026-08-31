@@ -4,83 +4,95 @@ import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
+type LintLevel = "Warning" | "Suggestion" | "Info";
+
 type LintIssue = {
   line: number;
-  level: "Warning" | "Suggestion";
+  level: LintLevel;
+  rule: string;
   message: string;
 };
 
-const sampleDockerfile = `FROM node:20-alpine
+type Instruction = {
+  keyword: string;
+  value: string;
+  raw: string;
+  startLine: number;
+  endLine: number;
+};
+
+const sampleDockerfile = `# syntax=docker/dockerfile:1
+FROM node:22-alpine
 
 WORKDIR /app
-
 COPY package*.json ./
-RUN npm install
-
+RUN npm ci --omit=dev
 COPY . .
 
-EXPOSE 3000
-
-CMD ["npm", "start"]`;
+USER node
+CMD ["node", "server.js"]`;
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
+  const [issues, setIssues] = useState<LintIssue[] | null>(null);
   const [error, setError] = useState("");
 
-  const lintDockerfile = () => {
+  const lint = () => {
     if (!input.trim()) {
-      setError("Please enter Dockerfile content to check.");
-      setOutput("");
+      setError("Paste Dockerfile content to review.");
+      setIssues(null);
       return;
     }
 
-    const issues = checkDockerfile(input);
-    const result = formatLintResult(input, issues);
-
-    setOutput(result);
-    setError("");
+    try {
+      setIssues(checkDockerfile(input));
+      setError("");
+    } catch (err) {
+      setIssues(null);
+      setError(
+        err instanceof Error ? err.message : "Unable to review this Dockerfile."
+      );
+    }
   };
 
   const loadExample = () => {
     setInput(sampleDockerfile);
-    setOutput("");
+    setIssues(null);
     setError("");
   };
 
   const resetAll = () => {
     setInput("");
-    setOutput("");
+    setIssues(null);
     setError("");
   };
+
+  const report = issues ? formatLintReport(input, issues) : "";
 
   return (
     <ToolShell
       title="Dockerfile Linter"
-      description="Check Dockerfile content for common issues, risky patterns, and basic Dockerfile best practices in your browser."
+      description="Review Dockerfile text for common package-install, cache, base-image, secret, COPY, ADD, USER, CMD, ENTRYPOINT, and shell-pattern issues."
     >
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Dockerfile Input
+        <label className="mb-2 block text-sm font-medium text-gray-700">
+          Dockerfile
         </label>
-
         <textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder={sampleDockerfile}
-          className="w-full min-h-[260px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="w-full min-h-[320px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={lintDockerfile} className="yoryantra-btn">
-          Check Dockerfile
+        <button onClick={lint} className="yoryantra-btn">
+          Lint Dockerfile
         </button>
-
         <button onClick={loadExample} className="yoryantra-btn-outline">
           Load Example
         </button>
-
         <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
@@ -92,152 +104,147 @@ export default function ToolClient() {
         </div>
       )}
 
-      {/* OUTPUT */}
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">
-            Lint Result
+            Dockerfile Review
           </h3>
-
-          {output && (
+          {report && (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              onClick={() => navigator.clipboard.writeText(report)}
               className="yoryantra-btn-outline text-sm"
             >
-              Copy
+              Copy Report
             </button>
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
-          {output || "Dockerfile lint result will appear here."}
-        </pre>
+        {issues ? (
+          <div className="yoryantra-output">
+            <div className="grid gap-4 md:grid-cols-3">
+              <CountCard
+                label="Warnings"
+                value={issues.filter((issue) => issue.level === "Warning").length}
+              />
+              <CountCard
+                label="Suggestions"
+                value={issues.filter((issue) => issue.level === "Suggestion").length}
+              />
+              <CountCard
+                label="Informational"
+                value={issues.filter((issue) => issue.level === "Info").length}
+              />
+            </div>
+
+            {issues.length ? (
+              <div className="mt-6 space-y-4">
+                {issues.map((issue, index) => (
+                  <div
+                    key={`${issue.rule}-${issue.line}-${index}`}
+                    className="rounded-xl border border-gray-200 bg-white p-5"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                        {issue.level}
+                      </span>
+                      <span className="text-xs font-medium text-gray-500">
+                        {issue.rule}
+                      </span>
+                      {issue.line > 0 && (
+                        <span className="text-xs text-gray-500">
+                          line {issue.line}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-gray-700">
+                      {issue.message}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-6 text-sm leading-relaxed text-gray-700">
+                No issues from this tool&apos;s rule set were found. That does
+                not prove the Dockerfile builds or that the resulting image is
+                secure.
+              </p>
+            )}
+          </div>
+        ) : (
+          <pre className="yoryantra-output min-h-[220px] overflow-auto whitespace-pre-wrap break-words text-sm">
+            Dockerfile findings will appear here.
+          </pre>
+        )}
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking Dockerfiles for Common Issues Before Building Images
+            A Browser Linter Cannot Replace a Docker Build
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Dockerfiles are used to define how container images are built.
-            Small mistakes in a Dockerfile can create larger images, slower
-            builds, missing runtime files, security risks, or deployment
-            problems later.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Dockerfile Linter helps you check Dockerfile content for common
-            issues such as missing base images, risky root usage, unpinned base
-            images, unnecessary cache files, exposed secrets, and basic Docker
-            best practice problems directly in your browser.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This tool reads Dockerfile text and flags practical patterns. It
+            does not execute the Dockerfile, resolve base images, evaluate
+            BuildKit features, inspect files from your build context, or prove
+            that commands succeed. Use a real Docker or BuildKit build for
+            syntax and build verification.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Reviewing Dockerfile Syntax and Build Instructions
+            Package Installation and Build Cache
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your Dockerfile content into the input box.</li>
-            <li>
-              Click <strong>Check Dockerfile</strong>.
-            </li>
-            <li>Review the warnings and suggestions in the output.</li>
-            <li>Update your Dockerfile before building or deploying the image.</li>
-          </ol>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            For Debian and Ubuntu style images, Docker recommends keeping
+            <code> apt-get update</code> and <code>apt-get install</code> in
+            the same RUN instruction so an old cached update layer does not
+            leave later installs using stale package metadata. This linter also
+            checks for common package-cache cleanup patterns and Alpine&apos;s
+            <code> apk add --no-cache</code> form.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Dockerfile Lint Checks
+            Secrets Need More Than a Text Scan
           </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking whether a Dockerfile has a <strong>FROM</strong> instruction.</li>
-            <li>Finding unpinned base images such as <strong>latest</strong>.</li>
-            <li>Reviewing risky package installation patterns.</li>
-            <li>Checking whether a non-root user is configured.</li>
-            <li>Finding possible secret values copied into the image.</li>
-            <li>Reviewing common Dockerfile best practice suggestions.</li>
-          </ul>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            ENV or ARG instructions containing names such as PASSWORD, TOKEN,
+            SECRET, or API_KEY deserve review because build arguments and image
+            layers are not a safe secret store. Modern Dockerfile syntax also
+            supports BuildKit secret mounts for build-time secrets. The linter
+            can flag suspicious text, but it cannot know what files are copied
+            by a broad COPY instruction.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example Dockerfile to Check
+            Docker References
           </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{sampleDockerfile}
-            </pre>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href="https://docs.docker.com/build/building/best-practices/"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="yoryantra-btn-outline"
+            >
+              Docker build best practices
+            </a>
+            <a
+              href="https://docs.docker.com/reference/dockerfile/"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="yoryantra-btn-outline"
+            >
+              Dockerfile reference
+            </a>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a Dockerfile linter check?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                A Dockerfile linter checks Dockerfile content for common issues,
-                risky patterns, missing instructions, and basic best practice
-                problems that may affect image builds or deployments.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this tool replace a full Docker build?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool is meant for quick checks before building an
-                image. A real Docker build is still needed to confirm that the
-                image builds and runs correctly.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why should I avoid using latest in Docker images?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                The latest tag can change over time. Pinning a more specific
-                image version makes builds easier to repeat and reduces
-                unexpected changes.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this Dockerfile checker upload my file?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The Dockerfile check happens directly in your browser. Your
-                Dockerfile content is not uploaded to a server.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/dockerfile-linter" />
         </div>
       </section>
@@ -245,181 +252,408 @@ export default function ToolClient() {
   );
 }
 
+function CountCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </p>
+      <p className="mt-2 text-lg font-semibold text-gray-900">{value}</p>
+    </div>
+  );
+}
+
 function checkDockerfile(source: string) {
-  const lines = source.split(/\r?\n/);
+  const instructions = parseInstructions(source);
   const issues: LintIssue[] = [];
-  const normalizedLines = lines.map((line) => line.trim());
-  const nonEmptyLines = normalizedLines.filter(Boolean);
 
-  const hasFrom = normalizedLines.some((line) => /^FROM\s+/i.test(line));
-  const hasWorkdir = normalizedLines.some((line) => /^WORKDIR\s+/i.test(line));
-  const hasCmdOrEntrypoint = normalizedLines.some((line) =>
-    /^(CMD|ENTRYPOINT)\s+/i.test(line)
-  );
-  const hasUser = normalizedLines.some((line) => /^USER\s+/i.test(line));
-  const hasCopyDot = normalizedLines.some((line) => /^COPY\s+\.\s+/i.test(line));
-  const hasAptInstall = normalizedLines.some((line) =>
-    /apt(-get)?\s+install/i.test(line)
-  );
-  const hasApkAdd = normalizedLines.some((line) => /apk\s+add/i.test(line));
+  if (!instructions.length) {
+    return [
+      {
+        line: 0,
+        level: "Warning" as const,
+        rule: "empty-file",
+        message: "No Dockerfile instructions were found.",
+      },
+    ];
+  }
 
-  if (!nonEmptyLines.length) {
+  const fromInstructions = instructions.filter(
+    (instruction) => instruction.keyword === "FROM"
+  );
+
+  if (!fromInstructions.length) {
     issues.push({
       line: 0,
       level: "Warning",
-      message: "Dockerfile content is empty.",
-    });
-
-    return issues;
-  }
-
-  if (!hasFrom) {
-    issues.push({
-      line: 0,
-      level: "Warning",
-      message: "Missing FROM instruction. A Dockerfile should start from a base image.",
-    });
-  }
-
-  if (!hasWorkdir) {
-    issues.push({
-      line: 0,
-      level: "Suggestion",
-      message: "Consider adding WORKDIR to make file paths clearer inside the image.",
-    });
-  }
-
-  if (!hasCmdOrEntrypoint) {
-    issues.push({
-      line: 0,
-      level: "Suggestion",
-      message: "Consider adding CMD or ENTRYPOINT to define the default container command.",
-    });
-  }
-
-  if (!hasUser) {
-    issues.push({
-      line: 0,
-      level: "Suggestion",
-      message: "Consider using a non-root USER when possible for safer containers.",
-    });
-  }
-
-  if (hasCopyDot) {
-    issues.push({
-      line: findLine(lines, /^COPY\s+\.\s+/i),
-      level: "Suggestion",
-      message: "COPY . can include unnecessary files. Use a .dockerignore file to keep images smaller.",
-    });
-  }
-
-  if (hasAptInstall) {
-    issues.push({
-      line: findLine(lines, /apt(-get)?\s+install/i),
-      level: "Suggestion",
+      rule: "missing-from",
       message:
-        "For apt installs, consider using --no-install-recommends and cleaning apt cache in the same layer.",
+        "No FROM instruction was found. Normal Dockerfile build stages start from FROM unless a specialized frontend changes the grammar.",
     });
   }
 
-  if (hasApkAdd) {
-    issues.push({
-      line: findLine(lines, /apk\s+add/i),
-      level: "Suggestion",
-      message:
-        "For Alpine images, consider using apk add --no-cache to avoid keeping package cache.",
-    });
-  }
+  fromInstructions.forEach((instruction) => {
+    const image = getFromImage(instruction.value);
+    if (!image) return;
 
-  lines.forEach((line, index) => {
-    const trimmed = line.trim();
+    const imageTail = image.split("/").pop() || image;
+    const usesLatest = /:latest$/i.test(imageTail);
+    const hasExplicitTag = imageTail.includes(":");
+    const hasDigest = image.includes("@");
+    const isVariableImage = image.includes("$");
 
-    if (/^FROM\s+.+:latest$/i.test(trimmed) || /^FROM\s+[^:\s]+$/i.test(trimmed)) {
+    if (!isVariableImage && (usesLatest || (!hasExplicitTag && !hasDigest))) {
       issues.push({
-        line: index + 1,
+        line: instruction.startLine,
         level: "Suggestion",
+        rule: "base-image-tag",
         message:
-          "Consider pinning the base image version instead of relying on latest or an implicit tag.",
-      });
-    }
-
-    if (/^(ADD)\s+/i.test(trimmed)) {
-      issues.push({
-        line: index + 1,
-        level: "Suggestion",
-        message:
-          "Use COPY instead of ADD unless you specifically need ADD behavior such as archive extraction or remote URLs.",
-      });
-    }
-
-    if (/password|secret|token|api[_-]?key/i.test(trimmed)) {
-      issues.push({
-        line: index + 1,
-        level: "Warning",
-        message:
-          "Possible secret value found. Avoid copying passwords, tokens, or API keys into Docker images.",
-      });
-    }
-
-    if (/^RUN\s+.*sudo\s+/i.test(trimmed)) {
-      issues.push({
-        line: index + 1,
-        level: "Suggestion",
-        message:
-          "Avoid sudo inside Dockerfiles. Docker build steps usually run as root unless changed.",
-      });
-    }
-
-    if (/^RUN\s+.*(curl|wget)\s+.*\|\s*(sh|bash)/i.test(trimmed)) {
-      issues.push({
-        line: index + 1,
-        level: "Warning",
-        message:
-          "Piping downloaded scripts directly to sh/bash can be risky. Review and verify scripts before running them.",
+          "The base image uses latest or an implicit latest tag. Consider a deliberate version tag or digest when reproducibility matters.",
       });
     }
   });
 
-  return issues;
-}
+  const finalStageStart =
+    fromInstructions.length > 0
+      ? fromInstructions[fromInstructions.length - 1].startLine
+      : 1;
+  const finalStage = instructions.filter(
+    (instruction) => instruction.startLine >= finalStageStart
+  );
 
-function formatLintResult(source: string, issues: LintIssue[]) {
-  const lines = source.split(/\r?\n/).filter((line) => line.trim());
-  const warningCount = issues.filter((issue) => issue.level === "Warning").length;
-  const suggestionCount = issues.filter(
-    (issue) => issue.level === "Suggestion"
-  ).length;
-
-  if (!issues.length) {
-    return [
-      "No common Dockerfile issues found.",
-      "",
-      `Checked ${lines.length} non-empty line${lines.length === 1 ? "" : "s"}.`,
-      "",
-      "This does not replace a real Docker build, but the Dockerfile passed the basic checks in this browser tool.",
-    ].join("\n");
+  if (!finalStage.some((instruction) => instruction.keyword === "WORKDIR")) {
+    issues.push({
+      line: finalStageStart,
+      level: "Suggestion",
+      rule: "workdir",
+      message:
+        "No WORKDIR was found in the final stage. An explicit working directory usually makes COPY, RUN, CMD, and ENTRYPOINT paths easier to reason about.",
+    });
   }
 
-  const result = [
-    "Dockerfile check completed.",
-    "",
-    `Warnings: ${warningCount}`,
-    `Suggestions: ${suggestionCount}`,
-    "",
-    "Issues found:",
+  if (!finalStage.some((instruction) => instruction.keyword === "USER")) {
+    issues.push({
+      line: finalStageStart,
+      level: "Suggestion",
+      rule: "non-root-user",
+      message:
+        "No USER instruction was found in the final stage. Where the application allows it, running as a non-root user reduces container privileges.",
+    });
+  }
+
+  if (
+    !finalStage.some(
+      (instruction) =>
+        instruction.keyword === "CMD" || instruction.keyword === "ENTRYPOINT"
+    )
+  ) {
+    issues.push({
+      line: finalStageStart,
+      level: "Info",
+      rule: "default-command",
+      message:
+        "The final stage has no CMD or ENTRYPOINT. That can be intentional for base images, but application images often define a default process.",
+    });
+  }
+
+  instructions.forEach((instruction) => {
+    const { keyword, value, raw, startLine } = instruction;
+
+    if (keyword === "MAINTAINER") {
+      issues.push({
+        line: startLine,
+        level: "Suggestion",
+        rule: "maintainer",
+        message:
+          "MAINTAINER is deprecated. Use a LABEL such as org.opencontainers.image.authors instead.",
+      });
+    }
+
+    if (keyword === "ADD" && looksLikeSimpleLocalAdd(value)) {
+      issues.push({
+        line: startLine,
+        level: "Suggestion",
+        rule: "add-vs-copy",
+        message:
+          "This ADD appears to copy local content without using ADD-specific behavior. COPY communicates that intent more clearly.",
+      });
+    }
+
+    if (keyword === "COPY" && copiesWholeContext(value)) {
+      issues.push({
+        line: startLine,
+        level: "Suggestion",
+        rule: "copy-context",
+        message:
+          "COPY . can include more build-context files than intended. Review .dockerignore and consider copying dependency files before application source to improve cache reuse.",
+      });
+    }
+
+    if (keyword === "RUN") {
+      lintRunInstruction(instruction, issues);
+    }
+
+    if (keyword === "ENV" || keyword === "ARG") {
+      const names = getAssignmentNames(value);
+      names.forEach((name) => {
+        if (/(password|passwd|secret|token|api[_-]?key|private[_-]?key|credential)/i.test(name)) {
+          issues.push({
+            line: startLine,
+            level: "Warning",
+            rule: "possible-secret",
+            message:
+              `${keyword} defines a secret-looking name "${name}". Do not bake sensitive values into image metadata or layers; use an appropriate runtime secret mechanism or BuildKit secret mount.`,
+          });
+        }
+      });
+
+      if (keyword === "ENV" && looksLikeLegacyEnvSyntax(value)) {
+        issues.push({
+          line: startLine,
+          level: "Suggestion",
+          rule: "env-syntax",
+          message:
+            "This ENV instruction appears to use the legacy space-separated key/value form. Prefer ENV key=value for clearer parsing.",
+        });
+      }
+    }
+
+    if (
+      (keyword === "COPY" || keyword === "ADD") &&
+      /(^|[\s"'\/])(\.env|id_rsa|id_ed25519|credentials(?:\.json)?|.*\.pem)(?=$|[\s"'\/])/i.test(
+        raw
+      )
+    ) {
+      issues.push({
+        line: startLine,
+        level: "Warning",
+        rule: "sensitive-copy",
+        message:
+          "This instruction appears to copy a potentially sensitive file. Confirm that credentials, private keys, and .env files are excluded from the image and build context when they are not intentionally required.",
+      });
+    }
+
+    if (
+      (keyword === "CMD" || keyword === "ENTRYPOINT") &&
+      !value.trim().startsWith("[")
+    ) {
+      issues.push({
+        line: startLine,
+        level: "Info",
+        rule: "shell-form-command",
+        message:
+          `${keyword} uses shell form. JSON exec form can make signal handling and argument boundaries more predictable for application processes.`,
+      });
+    }
+  });
+
+  return dedupeIssues(issues);
+}
+
+function parseInstructions(source: string) {
+  const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  const instructions: Instruction[] = [];
+  let buffer = "";
+  let startLine = 0;
+
+  const flush = (endLine: number) => {
+    const raw = buffer.trim();
+    buffer = "";
+    if (!raw) return;
+
+    const match = raw.match(/^([A-Za-z]+)\s+([\s\S]*)$/);
+    if (!match) return;
+
+    instructions.push({
+      keyword: match[1].toUpperCase(),
+      value: match[2].trim(),
+      raw,
+      startLine,
+      endLine,
+    });
+  };
+
+  lines.forEach((line, index) => {
+    const lineNumber = index + 1;
+    const trimmed = line.trim();
+
+    if (!buffer && (!trimmed || trimmed.startsWith("#"))) return;
+
+    if (!buffer) startLine = lineNumber;
+
+    const continued = /\\\s*$/.test(line);
+    const piece = continued ? line.replace(/\\\s*$/, "") : line;
+    buffer += `${buffer ? " " : ""}${piece.trim()}`;
+
+    if (!continued) flush(lineNumber);
+  });
+
+  if (buffer) flush(lines.length);
+
+  return instructions;
+}
+
+function lintRunInstruction(instruction: Instruction, issues: LintIssue[]) {
+  const text = instruction.value;
+  const lower = text.toLowerCase();
+
+  if (/\bsudo\b/.test(lower)) {
+    issues.push({
+      line: instruction.startLine,
+      level: "Suggestion",
+      rule: "sudo",
+      message:
+        "RUN uses sudo. Docker build steps normally run as the current build user, so sudo is usually unnecessary and may not exist in the image.",
+    });
+  }
+
+  if (/\b(curl|wget)\b[\s\S]*\|\s*(sh|bash)\b/i.test(text)) {
+    issues.push({
+      line: instruction.startLine,
+      level: "Warning",
+      rule: "remote-script-pipe",
+      message:
+        "A downloaded script is piped directly into a shell. Review integrity, version pinning, and verification instead of executing remote content blindly.",
+    });
+  }
+
+  if (/\bapt-get\s+install\b/i.test(text)) {
+    if (!/\bapt-get\s+update\b/i.test(text)) {
+      issues.push({
+        line: instruction.startLine,
+        level: "Warning",
+        rule: "apt-update-install",
+        message:
+          "apt-get install appears without apt-get update in the same RUN instruction. Docker recommends combining them to avoid stale cached package indexes.",
+      });
+    }
+
+    if (!/--no-install-recommends\b/i.test(text)) {
+      issues.push({
+        line: instruction.startLine,
+        level: "Suggestion",
+        rule: "apt-recommends",
+        message:
+          "Consider --no-install-recommends when recommended packages are not required by the image.",
+      });
+    }
+
+    if (!/rm\s+-rf\s+\/var\/lib\/apt\/lists\/\*/i.test(text)) {
+      issues.push({
+        line: instruction.startLine,
+        level: "Suggestion",
+        rule: "apt-lists",
+        message:
+          "Consider removing /var/lib/apt/lists/* in the same RUN instruction after apt package installation to avoid retaining package-list data in that layer.",
+      });
+    }
+  }
+
+  if (/\bapt-get\s+update\b/i.test(text) && !/\bapt-get\s+install\b/i.test(text)) {
+    issues.push({
+      line: instruction.startLine,
+      level: "Warning",
+      rule: "apt-update-alone",
+      message:
+        "apt-get update is in a separate RUN instruction. Docker documents cache problems with this pattern; combine update and install when they belong to the same package-install step.",
+    });
+  }
+
+  if (/\bapk\s+add\b/i.test(text) && !/\bapk\s+add\b[\s\S]*--no-cache\b/i.test(text)) {
+    issues.push({
+      line: instruction.startLine,
+      level: "Suggestion",
+      rule: "apk-cache",
+      message:
+        "Consider apk add --no-cache when package-index caching is not needed in the image layer.",
+    });
+  }
+}
+
+function getFromImage(value: string) {
+  const tokens = value.split(/\s+/);
+  let index = 0;
+  while (tokens[index]?.startsWith("--")) index += 1;
+  return tokens[index] || "";
+}
+
+function copiesWholeContext(value: string) {
+  const compact = value.replace(/\s+/g, " ").trim();
+
+  if (compact.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(compact) as unknown;
+      return (
+        Array.isArray(parsed) &&
+        parsed.length >= 2 &&
+        parsed.slice(0, -1).some((item) => item === ".")
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  const tokens = compact.split(/\s+/).filter(Boolean);
+  const withoutOptions = tokens.filter((token) => !token.startsWith("--"));
+  return withoutOptions.slice(0, -1).includes(".");
+}
+
+function looksLikeSimpleLocalAdd(value: string) {
+  return !/https?:\/\//i.test(value) && !/\.tar(\.(gz|bz2|xz))?\b/i.test(value);
+}
+
+function getAssignmentNames(value: string) {
+  const names: string[] = [];
+  const matches = value.match(/[A-Za-z_][A-Za-z0-9_]*(?=\s*=)/g);
+  if (matches) names.push(...matches);
+
+  if (!names.length) {
+    const first = value.trim().split(/\s+/)[0];
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(first)) names.push(first);
+  }
+
+  return names;
+}
+
+function looksLikeLegacyEnvSyntax(value: string) {
+  return /^[A-Za-z_][A-Za-z0-9_]*\s+[^=]/.test(value.trim());
+}
+
+function dedupeIssues(issues: LintIssue[]) {
+  const seen = new Set<string>();
+  return issues.filter((issue) => {
+    const key = `${issue.line}|${issue.rule}|${issue.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function formatLintReport(source: string, issues: LintIssue[]) {
+  const instructionCount = parseInstructions(source).length;
+  const lines = [
+    `Instructions reviewed: ${instructionCount}`,
+    `Warnings: ${issues.filter((issue) => issue.level === "Warning").length}`,
+    `Suggestions: ${issues.filter((issue) => issue.level === "Suggestion").length}`,
+    `Informational: ${issues.filter((issue) => issue.level === "Info").length}`,
     "",
   ];
 
+  if (!issues.length) {
+    lines.push(
+      "No issues from this browser rule set were found.",
+      "A real Docker/BuildKit build is still required to validate the Dockerfile and build context."
+    );
+    return lines.join("\n");
+  }
+
   issues.forEach((issue, index) => {
-    result.push(
-      `${index + 1}. ${issue.level}${issue.line ? ` on line ${issue.line}` : ""}: ${issue.message}`
+    lines.push(
+      `${index + 1}. ${issue.level}${issue.line ? ` · line ${issue.line}` : ""} · ${issue.rule}`,
+      `   ${issue.message}`,
+      ""
     );
   });
 
-  return result.join("\n");
-}
-
-function findLine(lines: string[], pattern: RegExp) {
-  const index = lines.findIndex((line) => pattern.test(line.trim()));
-  return index >= 0 ? index + 1 : 0;
+  return lines.join("\n").trim();
 }
