@@ -6,50 +6,59 @@ import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type NginxIssue = {
   line: number;
-  level: "Warning" | "Suggestion";
+  level: "Warning" | "Note";
   message: string;
 };
 
+type Directive = {
+  line: number;
+  name: string;
+  args: string[];
+  kind: "simple" | "block";
+  context: string[];
+};
+
+type ScanResult = {
+  directives: Directive[];
+  issues: NginxIssue[];
+  blockCount: number;
+};
+
 const sampleConfig = `server {
-  listen 80;
-  server_name example.com www.example.com;
+    listen 80;
+    server_name example.com www.example.com;
 
-  location / {
-    proxy_pass http://localhost:3000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-  }
-
-  location /static/ {
-    root /var/www/example;
-  }
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
 }`;
 
 export default function ToolClient() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(sampleConfig);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
 
-  const validateConfig = () => {
+  const validate = () => {
     if (!input.trim()) {
-      setError("Please enter an Nginx configuration snippet to check.");
+      setError("Paste an Nginx configuration or snippet to inspect.");
       setOutput("");
       return;
     }
 
-    const issues = checkNginxConfig(input);
-    setOutput(formatReport(input, issues));
-    setError("");
-  };
-
-  const loadExample = () => {
-    setInput(sampleConfig);
-    setOutput("");
-    setError("");
+    try {
+      const result = scanNginx(input);
+      setOutput(formatNginxReport(result));
+      setError("");
+    } catch (err) {
+      setOutput("");
+      setError(err instanceof Error ? err.message : "Unable to inspect this Nginx configuration.");
+    }
   };
 
   const resetAll = () => {
-    setInput("");
+    setInput(sampleConfig);
     setOutput("");
     setError("");
   };
@@ -57,35 +66,39 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Nginx Config Validator"
-      description="Check Nginx configuration snippets for common syntax issues, server block mistakes, proxy settings, and missing braces."
+      description="Statically inspect Nginx configuration text for braces, semicolons, quoted values, block structure, and selected common directive mistakes."
     >
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Nginx Configuration
+        <label className="block text-sm font-medium text-gray-700">
+          Nginx configuration
         </label>
-
         <textarea
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event: { target: { value: string } }) => setInput(event.target.value)}
+          rows={16}
           placeholder={sampleConfig}
-          className="w-full min-h-[280px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Paste an Nginx server block, location block, or configuration snippet
-          to check common issues before deployment.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          This is a static browser inspector. It cannot load include files,
+          installed modules, certificates, filesystem paths, DNS, or upstreams.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={validateConfig} className="yoryantra-btn">
-          Check Config
+        <button onClick={validate} className="yoryantra-btn">
+          Inspect Nginx Config
         </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button
+          onClick={() => {
+            setInput(sampleConfig);
+            setOutput("");
+            setError("");
+          }}
+          className="yoryantra-btn-outline"
+        >
           Load Example
         </button>
-
         <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
@@ -97,13 +110,11 @@ export default function ToolClient() {
         </div>
       )}
 
-      {/* OUTPUT */}
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Validation Report
+            Static inspection report
           </h3>
-
           {output && (
             <button
               onClick={() => navigator.clipboard.writeText(output)}
@@ -113,140 +124,53 @@ export default function ToolClient() {
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[260px] whitespace-pre-wrap break-words">
-          {output || "Nginx configuration check results will appear here."}
+        <pre className="yoryantra-output mt-3 min-h-[320px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Nginx configuration findings will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This browser tool checks common Nginx configuration patterns. Always run
-        <strong> nginx -t</strong> on the actual server before reloading Nginx.
-      </div>
-
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking Nginx Configuration Before Reloading Servers
+            A static inspector is useful, but nginx -t is authoritative
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Nginx configuration files often include server blocks, location
-            rules, redirects, proxy settings, headers, SSL settings, and static
-            file paths. A small missing brace, missing semicolon, or incorrect
-            directive can stop Nginx from reloading correctly.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Nginx configuration syntax is built from simple directives ending in
+            semicolons and block directives enclosed in braces. This tool scans
+            those structural boundaries while respecting quoted text and
+            comments, then applies a small set of high-confidence checks.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Nginx Config Validator helps you check Nginx configuration
-            snippets for common syntax issues, brace mismatches, missing
-            semicolons, duplicate server names, proxy settings, and basic
-            server block mistakes directly in your browser.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            It does not know which modules are installed or whether an included
+            file, certificate, path, resolver, variable, or upstream exists.
+            Nginx itself must perform those checks.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Reviewing Server Blocks, Locations, and Proxy Rules
+            Before reloading production Nginx
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste an Nginx configuration snippet into the input box.</li>
-            <li>
-              Click <strong>Check Config</strong>.
-            </li>
-            <li>Review warnings and suggestions in the validation report.</li>
-            <li>Run <strong>nginx -t</strong> on your server before applying changes.</li>
-          </ol>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Run <span className="font-mono">nginx -t</span> against the actual
+            configuration. Nginx documents that option as checking configuration
+            syntax and trying to open files referenced by the configuration.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Nginx Config Validator Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking server blocks before adding them to production.</li>
-            <li>Finding missing semicolons in Nginx directives.</li>
-            <li>Reviewing reverse proxy settings such as <strong>proxy_pass</strong>.</li>
-            <li>Checking brace balance in nested location blocks.</li>
-            <li>Reviewing redirects, server names, and header directives.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">Reference</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            See the official{" "}
+            <a href="https://nginx.org/en/docs/switches.html" target="_blank" rel="noreferrer" className="font-medium underline">
+              Nginx command-line parameter documentation
+            </a>
+            . This browser tool does not send the configuration anywhere.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Nginx Configuration
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{sampleConfig}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does an Nginx config validator check?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks Nginx configuration text for common issues such as
-                missing braces, missing semicolons, empty blocks, duplicate
-                server names, and risky or incomplete proxy settings.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this replace nginx -t?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool is useful for quick browser checks while editing.
-                You should still run <strong>nginx -t</strong> on the actual
-                server before reloading Nginx.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can I check reverse proxy configuration here?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. You can paste server blocks with proxy directives such as
-                <strong> proxy_pass</strong> and
-                <strong> proxy_set_header</strong> to review common patterns.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my Nginx configuration uploaded to a server?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The Nginx configuration check happens directly in your
-                browser. Your configuration text is not uploaded to a server.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/nginx-config-validator" />
         </div>
       </section>
@@ -254,275 +178,361 @@ export default function ToolClient() {
   );
 }
 
-function checkNginxConfig(source: string) {
-  const lines = source.split(/\r?\n/);
+function scanNginx(source: string): ScanResult {
+  const directives: Directive[] = [];
   const issues: NginxIssue[] = [];
-  const serverNames = new Map<string, number>();
-  let braceBalance = 0;
-  let hasServerBlock = false;
-  let hasListen = false;
-  let hasServerName = false;
-  let hasLocation = false;
-  let hasProxyPass = false;
+  const context: Array<{ name: string; line: number }> = [];
+  let buffer = "";
+  let statementLine = 1;
+  let line = 1;
+  let quote: "'" | '"' | "" = "";
+  let escaped = false;
+  let inComment = false;
+  let blockCount = 0;
 
-  lines.forEach((line, index) => {
-    const lineNumber = index + 1;
-    const trimmed = stripComment(line).trim();
+  const startBufferIfNeeded = (char: string) => {
+    if (!buffer.trim() && !/\s/.test(char)) statementLine = line;
+  };
 
-    if (!trimmed) {
-      return;
+  const flush = (kind: "simple" | "block") => {
+    const statement = buffer.trim();
+    buffer = "";
+    if (!statement) return null;
+
+    const parts = splitArguments(statement);
+    if (!parts.length) return null;
+
+    const directive: Directive = {
+      line: statementLine,
+      name: parts[0].toLowerCase(),
+      args: parts.slice(1),
+      kind,
+      context: context.map((item) => item.name),
+    };
+    directives.push(directive);
+    return directive;
+  };
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (inComment) {
+      if (char === "\n") {
+        inComment = false;
+        line += 1;
+        if (buffer && !buffer.endsWith(" ")) buffer += " ";
+      }
+      continue;
     }
 
-    const openCount = countMatches(trimmed, "{");
-    const closeCount = countMatches(trimmed, "}");
-
-    braceBalance += openCount - closeCount;
-
-    if (braceBalance < 0) {
-      issues.push({
-        line: lineNumber,
-        level: "Warning",
-        message: "Closing brace found without a matching opening brace.",
-      });
-
-      braceBalance = 0;
+    if (escaped) {
+      startBufferIfNeeded(char);
+      buffer += char;
+      escaped = false;
+      if (char === "\n") line += 1;
+      continue;
     }
 
-    if (/^server\s*\{$/i.test(trimmed)) {
-      hasServerBlock = true;
+    if (char === "\\" && quote) {
+      startBufferIfNeeded(char);
+      buffer += char;
+      escaped = true;
+      continue;
     }
 
-    if (/^listen\s+/i.test(trimmed)) {
-      hasListen = true;
+    if (quote) {
+      buffer += char;
+      if (char === quote) quote = "";
+      if (char === "\n") line += 1;
+      continue;
     }
 
-    if (/^server_name\s+/i.test(trimmed)) {
-      hasServerName = true;
-      const names = trimmed
-        .replace(/;$/, "")
-        .replace(/^server_name\s+/i, "")
-        .split(/\s+/)
-        .filter(Boolean);
-
-      names.forEach((name) => {
-        if (serverNames.has(name)) {
-          issues.push({
-            line: lineNumber,
-            level: "Suggestion",
-            message: `Duplicate server_name value "${name}" also appears on line ${serverNames.get(name)}.`,
-          });
-        } else {
-          serverNames.set(name, lineNumber);
-        }
-      });
+    if (char === "'" || char === '"') {
+      startBufferIfNeeded(char);
+      quote = char;
+      buffer += char;
+      continue;
     }
 
-    if (/^location\s+/i.test(trimmed)) {
-      hasLocation = true;
+    if (char === "#") {
+      inComment = true;
+      continue;
+    }
 
-      if (!trimmed.includes("{")) {
+    if (char === "\n") {
+      line += 1;
+      if (buffer && !buffer.endsWith(" ")) buffer += " ";
+      continue;
+    }
+
+    if (char === "{") {
+      const directive = flush("block");
+      if (!directive) {
         issues.push({
-          line: lineNumber,
+          line,
           level: "Warning",
-          message: "Location block should include an opening brace.",
+          message: "Opening brace has no block directive before it.",
         });
+      } else {
+        context.push({ name: directive.name, line: directive.line });
+        blockCount += 1;
+        inspectDirective(directive, issues);
       }
+      continue;
     }
 
-    if (/^proxy_pass\s+/i.test(trimmed)) {
-      hasProxyPass = true;
-
-      if (!/^proxy_pass\s+https?:\/\//i.test(trimmed)) {
+    if (char === ";") {
+      const directive = flush("simple");
+      if (!directive) {
         issues.push({
-          line: lineNumber,
-          level: "Suggestion",
-          message: "proxy_pass usually points to an http:// or https:// upstream.",
+          line,
+          level: "Note",
+          message: "Empty directive terminator found.",
         });
+      } else {
+        inspectDirective(directive, issues);
       }
+      continue;
     }
 
-    if (
-      shouldEndWithSemicolon(trimmed) &&
-      !trimmed.endsWith(";") &&
-      !trimmed.endsWith("{") &&
-      !trimmed.endsWith("}")
-    ) {
-      issues.push({
-        line: lineNumber,
-        level: "Warning",
-        message: "This directive may be missing a semicolon.",
-      });
+    if (char === "}") {
+      if (buffer.trim()) {
+        issues.push({
+          line: statementLine,
+          level: "Warning",
+          message: `Directive "${buffer.trim()}" reaches a closing brace without a semicolon.`,
+        });
+        buffer = "";
+      }
+
+      if (!context.length) {
+        issues.push({
+          line,
+          level: "Warning",
+          message: "Closing brace has no matching opening block.",
+        });
+      } else {
+        context.pop();
+      }
+      continue;
     }
 
-    if (/root\s+\/$/i.test(trimmed)) {
-      issues.push({
-        line: lineNumber,
-        level: "Suggestion",
-        message: "Review root path. Using the filesystem root as a web root is usually not intended.",
-      });
-    }
+    startBufferIfNeeded(char);
+    buffer += char;
+  }
 
-    if (/ssl\s+on;/i.test(trimmed)) {
-      issues.push({
-        line: lineNumber,
-        level: "Suggestion",
-        message: "The ssl on directive is old. Modern configs usually use listen 443 ssl.",
-      });
-    }
+  if (quote) {
+    issues.push({
+      line: statementLine,
+      level: "Warning",
+      message: "Quoted value is not closed before end of input.",
+    });
+  }
 
-    if (/proxy_set_header\s+Host\s+\$http_host/i.test(trimmed)) {
-      issues.push({
-        line: lineNumber,
-        level: "Suggestion",
-        message: "Consider whether $host is more appropriate than $http_host for Host forwarding.",
-      });
-    }
+  if (buffer.trim()) {
+    issues.push({
+      line: statementLine,
+      level: "Warning",
+      message: `Directive "${buffer.trim()}" reaches end of input without a semicolon or block opening brace.`,
+    });
+  }
 
-    if (/add_header\s+/i.test(trimmed) && !/\salways;?$/i.test(trimmed)) {
-      issues.push({
-        line: lineNumber,
-        level: "Suggestion",
-        message: "Security headers may need the always flag so they apply to error responses too.",
-      });
-    }
+  context.forEach((block) => {
+    issues.push({
+      line: block.line,
+      level: "Warning",
+      message: `Block "${block.name}" does not have a matching closing brace.`,
+    });
   });
 
-  if (braceBalance > 0) {
+  const hasInclude = directives.some((directive) => directive.name === "include");
+  if (hasInclude) {
     issues.push({
       line: 0,
-      level: "Warning",
-      message: "One or more opening braces do not have matching closing braces.",
+      level: "Note",
+      message: "include directives are present. This browser check does not load or inspect included files.",
     });
   }
 
-  if (!hasServerBlock) {
-    issues.push({
-      line: 0,
-      level: "Suggestion",
-      message: "No server block found. This may be fine for snippets, but full site configs usually include one.",
-    });
+  const serverBlocks = directives.filter(
+    (directive) => directive.kind === "block" && directive.name === "server"
+  );
+  if (serverBlocks.length) {
+    const hasListen = directives.some(
+      (directive) =>
+        directive.name === "listen" && directive.context.includes("server")
+    );
+    if (!hasListen) {
+      issues.push({
+        line: 0,
+        level: "Note",
+        message: "A server block was found but no listen directive was detected inside a server context.",
+      });
+    }
   }
 
-  if (hasServerBlock && !hasListen) {
-    issues.push({
-      line: 0,
-      level: "Suggestion",
-      message: "Server block does not appear to include a listen directive.",
-    });
-  }
-
-  if (hasServerBlock && !hasServerName) {
-    issues.push({
-      line: 0,
-      level: "Suggestion",
-      message: "Server block does not appear to include server_name.",
-    });
-  }
-
-  if (hasProxyPass && !source.includes("proxy_set_header")) {
-    issues.push({
-      line: 0,
-      level: "Suggestion",
-      message: "proxy_pass is used, but no proxy_set_header directives were found.",
-    });
-  }
-
-  if (!hasLocation && hasServerBlock) {
-    issues.push({
-      line: 0,
-      level: "Suggestion",
-      message: "No location block found inside the server configuration.",
-    });
-  }
-
-  return issues;
+  return {
+    directives,
+    issues: dedupeIssues(issues),
+    blockCount,
+  };
 }
 
-function formatReport(source: string, issues: NginxIssue[]) {
-  const nonEmptyLines = source
-    .split(/\r?\n/)
-    .filter((line) => line.trim()).length;
+function inspectDirective(directive: Directive, issues: NginxIssue[]) {
+  const { name, args, line, kind } = directive;
 
-  const warningCount = issues.filter((issue) => issue.level === "Warning").length;
-  const suggestionCount = issues.filter(
-    (issue) => issue.level === "Suggestion"
-  ).length;
-
-  if (!issues.length) {
-    return [
-      "Nginx configuration check completed.",
-      "",
-      `Checked ${nonEmptyLines} non-empty line${nonEmptyLines === 1 ? "" : "s"}.`,
-      "",
-      "No common issues found in this browser check.",
-      "",
-      "Reminder: run nginx -t on the actual server before reloading Nginx.",
-    ].join("\n");
+  if (kind === "block" && ["location", "upstream", "map"].includes(name) && !args.length) {
+    issues.push({
+      line,
+      level: "Warning",
+      message: `${name} block is missing the argument/name that normally follows the directive.`,
+    });
   }
 
+  if (name === "listen" && !args.length) {
+    issues.push({ line, level: "Warning", message: "listen has no address or port argument." });
+  }
+
+  if (name === "proxy_pass") {
+    if (!args.length) {
+      issues.push({ line, level: "Warning", message: "proxy_pass has no destination." });
+    } else if (args.length > 1) {
+      issues.push({
+        line,
+        level: "Note",
+        message: "proxy_pass usually takes one destination value. Review the parsed arguments.",
+      });
+    }
+  }
+
+  if (name === "ssl" && args[0]?.toLowerCase() === "on") {
+    issues.push({
+      line,
+      level: "Note",
+      message: 'Legacy "ssl on;" syntax was found. Modern configurations normally enable SSL on the listen directive.',
+    });
+  }
+
+  if (name === "root" && args.length === 1 && args[0] === "/") {
+    issues.push({
+      line,
+      level: "Warning",
+      message: "The filesystem root / is configured as a web root. Confirm this is intentional.",
+    });
+  }
+
+  if (name === "add_header" && args.length) {
+    const securityHeaders = new Set([
+      "content-security-policy",
+      "strict-transport-security",
+      "x-frame-options",
+      "x-content-type-options",
+      "referrer-policy",
+      "permissions-policy",
+    ]);
+    if (
+      securityHeaders.has(args[0].toLowerCase()) &&
+      !args.some((arg) => arg.toLowerCase() === "always")
+    ) {
+      issues.push({
+        line,
+        level: "Note",
+        message: `${args[0]} is added without the "always" parameter. Review whether it should also be present on error responses.`,
+      });
+    }
+  }
+}
+
+function splitArguments(statement: string) {
+  const result: string[] = [];
+  let current = "";
+  let quote: "'" | '"' | "" = "";
+  let escaped = false;
+
+  for (let index = 0; index < statement.length; index += 1) {
+    const char = statement[index];
+
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\" && quote) {
+      current += char;
+      escaped = true;
+      continue;
+    }
+
+    if (quote) {
+      current += char;
+      if (char === quote) quote = "";
+      continue;
+    }
+
+    if (char === "'" || char === '"') {
+      quote = char;
+      current += char;
+      continue;
+    }
+
+    if (/\s/.test(char)) {
+      if (current) {
+        result.push(current);
+        current = "";
+      }
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current) result.push(current);
+  return result;
+}
+
+function formatNginxReport(result: ScanResult) {
+  const warnings = result.issues.filter((issue) => issue.level === "Warning").length;
+  const notes = result.issues.filter((issue) => issue.level === "Note").length;
+  const names = Array.from(new Set(result.directives.map((directive) => directive.name)));
+
   const lines = [
-    "Nginx configuration check completed.",
+    "Nginx static inspection completed.",
     "",
-    `Checked lines: ${nonEmptyLines}`,
-    `Warnings: ${warningCount}`,
-    `Suggestions: ${suggestionCount}`,
+    `Parsed directives: ${result.directives.length}`,
+    `Blocks opened: ${result.blockCount}`,
+    `Directive names: ${names.length ? names.join(", ") : "None"}`,
+    `Warnings: ${warnings}`,
+    `Notes: ${notes}`,
     "",
-    "Issues found:",
-    "",
+    "Findings:",
   ];
 
-  issues.forEach((issue, index) => {
-    lines.push(
-      `${index + 1}. ${issue.level}${issue.line ? ` on line ${issue.line}` : ""}: ${issue.message}`
-    );
-  });
+  if (!result.issues.length) {
+    lines.push("No structural issues found by this static browser check.");
+  } else {
+    result.issues.forEach((issue, index) => {
+      lines.push(
+        `${index + 1}. ${issue.level}${issue.line ? ` on line ${issue.line}` : ""}: ${issue.message}`
+      );
+    });
+  }
 
   lines.push("");
-  lines.push("Reminder: run nginx -t on the actual server before reloading Nginx.");
+  lines.push(
+    "Not checked here: installed modules, include file contents, referenced files, certificates, filesystem permissions, DNS, upstream availability, or runtime behavior."
+  );
+  lines.push("Before reload, run nginx -t against the real configuration.");
 
   return lines.join("\n");
 }
 
-function stripComment(line: string) {
-  let inSingleQuote = false;
-  let inDoubleQuote = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-
-    if (char === "'" && !inDoubleQuote) {
-      inSingleQuote = !inSingleQuote;
-    }
-
-    if (char === '"' && !inSingleQuote) {
-      inDoubleQuote = !inDoubleQuote;
-    }
-
-    if (char === "#" && !inSingleQuote && !inDoubleQuote) {
-      return line.slice(0, index);
-    }
-  }
-
-  return line;
-}
-
-function countMatches(value: string, character: string) {
-  return value.split(character).length - 1;
-}
-
-function shouldEndWithSemicolon(line: string) {
-  const blockStarters = [
-    "server",
-    "location",
-    "upstream",
-    "http",
-    "events",
-    "stream",
-    "map",
-    "if",
-  ];
-
-  return !blockStarters.some((starter) =>
-    new RegExp(`^${starter}\\b`, "i").test(line)
-  );
+function dedupeIssues(issues: NginxIssue[]) {
+  const seen = new Set<string>();
+  return issues.filter((issue) => {
+    const key = `${issue.line}|${issue.level}|${issue.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

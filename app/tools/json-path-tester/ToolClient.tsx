@@ -9,131 +9,118 @@ type PathResult = {
   value: unknown;
 };
 
+type Segment = {
+  kind: "child" | "descendant";
+  selectors: Selector[];
+};
+
+type Selector =
+  | { kind: "name"; name: string }
+  | { kind: "wildcard" }
+  | { kind: "index"; index: number }
+  | { kind: "slice"; start?: number; end?: number; step: number }
+  | { kind: "filter"; expression: string };
+
 const sampleJson = `{
-  "user": {
-    "id": 101,
-    "name": "Yoryantra User",
-    "email": "user@example.com",
-    "roles": ["admin", "editor"]
-  },
-  "orders": [
-    {
-      "id": "ord_001",
-      "total": 49.99,
-      "status": "paid"
-    },
-    {
-      "id": "ord_002",
-      "total": 19.5,
-      "status": "pending"
-    }
-  ],
-  "active": true
+  "store": {
+    "book": [
+      { "title": "Book A", "price": 8.95, "inStock": true },
+      { "title": "Book B", "price": 12.5, "inStock": false },
+      { "title": "Book C", "price": 7.25, "inStock": true }
+    ],
+    "bicycle": { "price": 19.95 }
+  }
 }`;
 
-const samplePath = "$.orders[0].total";
-
 export default function ToolClient() {
-  const [jsonInput, setJsonInput] = useState("");
-  const [pathInput, setPathInput] = useState("");
+  const [jsonInput, setJsonInput] = useState(sampleJson);
+  const [pathInput, setPathInput] = useState("$.store.book[?@.price < 10].title");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
 
-  const testJsonPath = () => {
+  const testPath = () => {
     if (!jsonInput.trim()) {
-      setError("Please enter JSON data to test.");
+      setError("Paste JSON data to query.");
       setOutput("");
       return;
     }
 
     if (!pathInput.trim()) {
-      setError("Please enter a JSON path to test.");
+      setError("Enter a JSONPath expression.");
       setOutput("");
       return;
     }
 
     try {
-      const parsedJson = JSON.parse(jsonInput);
-      const results = evaluateJsonPath(parsedJson, pathInput.trim());
-
-      setOutput(formatResults(pathInput.trim(), results));
+      const data = JSON.parse(jsonInput) as unknown;
+      const results = evaluateJsonPath(data, pathInput.trim());
+      setOutput(formatPathResults(pathInput.trim(), results));
       setError("");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Unable to test this JSON path.";
-
-      setError(message);
       setOutput("");
+      setError(err instanceof Error ? err.message : "Unable to evaluate this JSONPath.");
     }
   };
 
-  const loadExample = () => {
-    setJsonInput(sampleJson);
-    setPathInput(samplePath);
-    setOutput("");
-    setError("");
-  };
-
   const resetAll = () => {
-    setJsonInput("");
-    setPathInput("");
+    setJsonInput(sampleJson);
+    setPathInput("$.store.book[?@.price < 10].title");
     setOutput("");
     setError("");
   };
 
   return (
     <ToolShell
-      title="JSON Path Tester"
-      description="Test JSON paths against JSON data, inspect nested values, and check array results directly in your browser."
+      title="JSONPath Tester"
+      description="Test common RFC 9535 JSONPath selectors against JSON data, including child names, wildcards, indices, slices, descendants, unions, and basic filters."
     >
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          JSON Data
+        <label className="block text-sm font-medium text-gray-700">
+          JSON data
         </label>
-
         <textarea
           value={jsonInput}
-          onChange={(event) => setJsonInput(event.target.value)}
+          onChange={(event: { target: { value: string } }) => setJsonInput(event.target.value)}
+          rows={14}
           placeholder={sampleJson}
-          className="w-full min-h-[260px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Paste JSON data from an API response, log entry, configuration file,
-          or test payload.
-        </p>
       </div>
 
-      <div className="mt-6">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          JSON Path
+      <div className="mt-5">
+        <label className="block text-sm font-medium text-gray-700">
+          JSONPath
         </label>
-
         <input
           value={pathInput}
-          onChange={(event) => setPathInput(event.target.value)}
-          placeholder="$.orders[0].total"
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          onChange={(event: { target: { value: string } }) => setPathInput(event.target.value)}
+          placeholder="$.store.book[*].title"
+          className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Supports common paths like <strong>$.user.name</strong>,{" "}
-          <strong>$.orders[0]</strong>, <strong>$.orders[*].id</strong>, and{" "}
-          <strong>$..id</strong>.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          Examples: <span className="font-mono">$['store']['book'][0]</span>,{" "}
+          <span className="font-mono">$.store.book[-1]</span>,{" "}
+          <span className="font-mono">$.store.book[0:2]</span>,{" "}
+          <span className="font-mono">$..price</span>,{" "}
+          <span className="font-mono">$.store.book[?@.price &lt; 10]</span>.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={testJsonPath} className="yoryantra-btn">
-          Test JSON Path
+        <button onClick={testPath} className="yoryantra-btn">
+          Test JSONPath
         </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button
+          onClick={() => {
+            setJsonInput(sampleJson);
+            setPathInput("$.store.book[?@.price < 10].title");
+            setOutput("");
+            setError("");
+          }}
+          className="yoryantra-btn-outline"
+        >
           Load Example
         </button>
-
         <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
@@ -145,13 +132,11 @@ export default function ToolClient() {
         </div>
       )}
 
-      {/* OUTPUT */}
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            JSON Path Result
+            JSONPath results
           </h3>
-
           {output && (
             <button
               onClick={() => navigator.clipboard.writeText(output)}
@@ -161,137 +146,54 @@ export default function ToolClient() {
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[260px] whitespace-pre-wrap break-words">
-          {output || "Matched JSON path values will appear here."}
+        <pre className="yoryantra-output mt-3 min-h-[320px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Matched values and normalized result paths will appear here."}
         </pre>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Testing JSON Paths Against API Responses and Nested Data
+            JSONPath now has an IETF standard
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON paths are useful when you need to pull a specific value from an
-            API response, nested object, array, log payload, or configuration
-            file. Small path mistakes can return the wrong value or no result at
-            all.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON Path Tester helps you test JSON paths, inspect matched
-            values, check nested keys, query arrays, and review JSON path output
-            directly in your browser before using the path in code or
-            automation.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 9535 defines JSONPath selectors such as name selectors, array
+            indices, wildcards, slices, filters, and descendant segments. This
+            tool follows that model for the common selectors implemented here
+            instead of treating an arbitrary dot-path syntax as JSONPath.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Checking Nested JSON Values in the Browser
+            Supported in this browser implementation
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste JSON data into the input box.</li>
-            <li>Enter the JSON path you want to test.</li>
-            <li>
-              Click <strong>Test JSON Path</strong>.
-            </li>
-            <li>Review the matched values and their result paths.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common JSON Path Tester Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Testing paths against API response data.</li>
-            <li>Finding nested values inside JSON objects.</li>
-            <li>Checking array item paths such as <strong>$.items[0]</strong>.</li>
-            <li>Extracting repeated values with wildcard paths.</li>
-            <li>Debugging JSON queries before adding them to code or automation.</li>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Root $, dot-name shorthand, bracketed quoted names, and selector unions.</li>
+            <li>Array indices including negative indices, wildcards, and start:end:step slices.</li>
+            <li>Descendant names and descendant wildcards.</li>
+            <li>Basic filter existence tests and primitive comparisons using @ relative paths.</li>
           </ul>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC function extensions and the complete filter-expression grammar
+            are not implemented. Unsupported syntax is rejected rather than
+            guessed.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example JSON Paths
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`$.user.name        Get the user name
-$.orders[0].total  Get the first order total
-$.orders[*].id     Get all order IDs
-$..id              Find all id values recursively`}
-            </pre>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Reference</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Selector behavior is based on{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc9535.html" target="_blank" rel="noreferrer" className="font-medium underline">
+              RFC 9535: JSONPath
+            </a>
+            . JSON and paths stay in your browser.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a JSON Path Tester do?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                A JSON Path Tester checks a JSON path against JSON data and
-                shows the values that match the path. It helps you confirm that
-                your path points to the correct nested value or array item.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Which JSON path patterns are supported?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                This tool supports common patterns such as root paths, dot
-                notation, bracket array indexes, wildcards, and recursive key
-                lookup using paths like <strong>$..id</strong>.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can I test JSON paths from API responses?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Paste an API response into the JSON input box, add the path
-                you want to test, and review the matched output.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my JSON data uploaded to a server?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The JSON path check happens directly in your browser. Your
-                JSON data is not uploaded to a server.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/json-path-tester" />
         </div>
       </section>
@@ -299,77 +201,30 @@ $..id              Find all id values recursively`}
   );
 }
 
-function evaluateJsonPath(data: unknown, path: string): PathResult[] {
-  if (!path.startsWith("$")) {
-    throw new Error("JSON path should start with $.");
-  }
-
-  if (path === "$") {
-    return [{ path: "$", value: data }];
-  }
-
-  if (path.startsWith("$..")) {
-    const key = path.slice(3).trim();
-
-    if (!key || /[.[\]*]/.test(key)) {
-      throw new Error("Recursive lookup should look like $..id or $..name.");
-    }
-
-    const results: PathResult[] = [];
-    findRecursiveValues(data, key, "$", results);
-
-    return results;
-  }
-
-  const tokens = tokenizePath(path);
+function evaluateJsonPath(data: unknown, expression: string): PathResult[] {
+  const segments = parseJsonPath(expression);
   let current: PathResult[] = [{ path: "$", value: data }];
 
-  tokens.forEach((token) => {
+  segments.forEach((segment) => {
     const next: PathResult[] = [];
 
-    current.forEach((item) => {
-      if (token === "*") {
-        if (Array.isArray(item.value)) {
-          item.value.forEach((value, index) => {
-            next.push({
-              path: `${item.path}[${index}]`,
-              value,
-            });
-          });
-        } else if (isRecord(item.value)) {
-          Object.entries(item.value).forEach(([key, value]) => {
-            next.push({
-              path: `${item.path}.${key}`,
-              value,
-            });
-          });
-        }
-
-        return;
-      }
-
-      if (/^\d+$/.test(token)) {
-        if (Array.isArray(item.value)) {
-          const index = Number(token);
-
-          if (index in item.value) {
-            next.push({
-              path: `${item.path}[${index}]`,
-              value: item.value[index],
-            });
-          }
-        }
-
-        return;
-      }
-
-      if (isRecord(item.value) && token in item.value) {
-        next.push({
-          path: `${item.path}.${token}`,
-          value: item.value[token],
+    if (segment.kind === "child") {
+      current.forEach((node) => {
+        segment.selectors.forEach((selector) => {
+          next.push(...applySelector(node, selector));
         });
-      }
-    });
+      });
+    } else {
+      current.forEach((node) => {
+        const visited: PathResult[] = [];
+        visitNodeAndDescendants(node, visited);
+        visited.forEach((candidate) => {
+          segment.selectors.forEach((selector) => {
+            next.push(...applySelector(candidate, selector));
+          });
+        });
+      });
+    }
 
     current = next;
   });
@@ -377,118 +232,578 @@ function evaluateJsonPath(data: unknown, path: string): PathResult[] {
   return current;
 }
 
-function tokenizePath(path: string) {
-  const body = path.slice(1);
-  const tokens: string[] = [];
-  let index = 0;
+function parseJsonPath(expression: string): Segment[] {
+  if (!expression.startsWith("$")) {
+    throw new Error("A JSONPath expression must start with the root identifier $.");
+  }
 
-  while (index < body.length) {
-    const char = body[index];
+  if (expression === "$") return [];
 
-    if (char === ".") {
+  const segments: Segment[] = [];
+  let index = 1;
+
+  while (index < expression.length) {
+    while (index < expression.length && /\s/.test(expression[index])) index += 1;
+    if (index >= expression.length) break;
+
+    if (expression.startsWith("..", index)) {
+      index += 2;
+      const parsed = parseSegmentSelectors(expression, index, true);
+      segments.push({ kind: "descendant", selectors: parsed.selectors });
+      index = parsed.nextIndex;
+      continue;
+    }
+
+    if (expression[index] === ".") {
       index += 1;
-      let key = "";
-
-      while (index < body.length && /[A-Za-z0-9_$-]/.test(body[index])) {
-        key += body[index];
-        index += 1;
-      }
-
-      if (!key) {
-        throw new Error("Invalid dot notation in JSON path.");
-      }
-
-      tokens.push(key);
+      const parsed = parseShorthandSelector(expression, index);
+      segments.push({ kind: "child", selectors: [parsed.selector] });
+      index = parsed.nextIndex;
       continue;
     }
 
-    if (char === "[") {
-      const closeIndex = body.indexOf("]", index);
-
-      if (closeIndex === -1) {
-        throw new Error("Missing closing bracket in JSON path.");
-      }
-
-      const content = body.slice(index + 1, closeIndex).trim();
-
-      if (content === "*") {
-        tokens.push("*");
-      } else if (/^\d+$/.test(content)) {
-        tokens.push(content);
-      } else if (
-        (content.startsWith("'") && content.endsWith("'")) ||
-        (content.startsWith('"') && content.endsWith('"'))
-      ) {
-        tokens.push(content.slice(1, -1));
-      } else {
-        throw new Error(
-          "Bracket notation should use an index, wildcard, or quoted key."
-        );
-      }
-
-      index = closeIndex + 1;
-      continue;
-    }
-
-    throw new Error("Unsupported JSON path syntax.");
-  }
-
-  return tokens;
-}
-
-function findRecursiveValues(
-  value: unknown,
-  key: string,
-  currentPath: string,
-  results: PathResult[]
-) {
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => {
-      findRecursiveValues(item, key, `${currentPath}[${index}]`, results);
-    });
-
-    return;
-  }
-
-  if (!isRecord(value)) {
-    return;
-  }
-
-  Object.entries(value).forEach(([objectKey, objectValue]) => {
-    const nextPath = `${currentPath}.${objectKey}`;
-
-    if (objectKey === key) {
-      results.push({
-        path: nextPath,
-        value: objectValue,
+    if (expression[index] === "[") {
+      const parsed = readBracket(expression, index);
+      segments.push({
+        kind: "child",
+        selectors: parseSelectorList(parsed.content),
       });
+      index = parsed.nextIndex;
+      continue;
     }
 
-    findRecursiveValues(objectValue, key, nextPath, results);
-  });
-}
-
-function formatResults(path: string, results: PathResult[]) {
-  if (!results.length) {
-    return [
-      "JSON path tested.",
-      "",
-      `Path: ${path}`,
-      "Matches found: 0",
-      "",
-      "No values matched this JSON path.",
-    ].join("\n");
+    throw new Error(`Unsupported JSONPath syntax near "${expression.slice(index, index + 12)}".`);
   }
 
+  return segments;
+}
+
+function parseSegmentSelectors(
+  expression: string,
+  index: number,
+  descendant: boolean
+) {
+  if (expression[index] === "[") {
+    const parsed = readBracket(expression, index);
+    return {
+      selectors: parseSelectorList(parsed.content),
+      nextIndex: parsed.nextIndex,
+    };
+  }
+
+  const parsed = parseShorthandSelector(expression, index);
+  if (
+    descendant &&
+    parsed.selector.kind !== "name" &&
+    parsed.selector.kind !== "wildcard"
+  ) {
+    throw new Error("Descendant shorthand supports a member name or wildcard.");
+  }
+
+  return { selectors: [parsed.selector], nextIndex: parsed.nextIndex };
+}
+
+function parseShorthandSelector(expression: string, index: number) {
+  if (expression[index] === "*") {
+    return {
+      selector: { kind: "wildcard" } as Selector,
+      nextIndex: index + 1,
+    };
+  }
+
+  let name = "";
+  let cursor = index;
+
+  while (cursor < expression.length && isShorthandNameChar(expression[cursor], name.length === 0)) {
+    name += expression[cursor];
+    cursor += 1;
+  }
+
+  if (!name) {
+    throw new Error("Expected a JSONPath member name or wildcard.");
+  }
+
+  return {
+    selector: { kind: "name", name } as Selector,
+    nextIndex: cursor,
+  };
+}
+
+function readBracket(expression: string, start: number) {
+  let quote = "";
+  let escaped = false;
+
+  for (let index = start + 1; index < expression.length; index += 1) {
+    const char = expression[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\" && quote) {
+      escaped = true;
+      continue;
+    }
+
+    if (quote) {
+      if (char === quote) quote = "";
+      continue;
+    }
+
+    if (char === "'" || char === '"') {
+      quote = char;
+      continue;
+    }
+
+    if (char === "]") {
+      return {
+        content: expression.slice(start + 1, index).trim(),
+        nextIndex: index + 1,
+      };
+    }
+  }
+
+  throw new Error("Missing closing ] in JSONPath expression.");
+}
+
+function parseSelectorList(content: string): Selector[] {
+  if (!content) {
+    throw new Error("JSONPath bracket selection cannot be empty.");
+  }
+
+  if (content.trim().startsWith("?")) {
+    return [{ kind: "filter", expression: content.trim().slice(1).trim() }];
+  }
+
+  return splitTopLevel(content, ",").map((item) => parseSelector(item.trim()));
+}
+
+function parseSelector(value: string): Selector {
+  if (value === "*") return { kind: "wildcard" };
+
+  if (value.startsWith("'") && value.endsWith("'")) {
+    return { kind: "name", name: decodeSingleQuoted(value) };
+  }
+
+  if (value.startsWith('"') && value.endsWith('"')) {
+    try {
+      const decoded = JSON.parse(value) as unknown;
+      if (typeof decoded !== "string") throw new Error();
+      return { kind: "name", name: decoded };
+    } catch {
+      throw new Error(`Invalid double-quoted JSONPath name selector ${value}.`);
+    }
+  }
+
+  if (value.startsWith('"') || value.endsWith('"')) {
+    throw new Error("Unclosed double-quoted JSONPath name selector.");
+  }
+
+  if (/^-?(?:0|[1-9]\d*)$/.test(value)) {
+    const number = Number(value);
+    if (!Number.isSafeInteger(number)) {
+      throw new Error(`Array index ${value} is outside the safe integer range.`);
+    }
+    return { kind: "index", index: number };
+  }
+
+  if (value.includes(":")) {
+    const parts = value.split(":");
+    if (parts.length < 2 || parts.length > 3) {
+      throw new Error(`Invalid array slice "${value}".`);
+    }
+
+    const readPart = (part: string) => {
+      if (!part) return undefined;
+      if (!/^-?(?:0|[1-9]\d*)$/.test(part)) {
+        throw new Error(`Invalid slice number "${part}".`);
+      }
+      const number = Number(part);
+      if (!Number.isSafeInteger(number)) {
+        throw new Error(`Slice value ${part} is outside the safe integer range.`);
+      }
+      return number;
+    };
+
+    const start = readPart(parts[0]);
+    const end = readPart(parts[1]);
+    const step = parts.length === 3 ? readPart(parts[2]) : 1;
+    return { kind: "slice", start, end, step: step ?? 1 };
+  }
+
+  throw new Error(`Unsupported selector "${value}". Use quoted names, indices, wildcards, slices, or filters.`);
+}
+
+function applySelector(node: PathResult, selector: Selector): PathResult[] {
+  if (selector.kind === "name") {
+    if (!isRecord(node.value) || !(selector.name in node.value)) return [];
+    return [
+      {
+        path: appendResultName(node.path, selector.name),
+        value: node.value[selector.name],
+      },
+    ];
+  }
+
+  if (selector.kind === "wildcard") {
+    if (Array.isArray(node.value)) {
+      return node.value.map((value, index) => ({
+        path: `${node.path}[${index}]`,
+        value,
+      }));
+    }
+
+    if (isRecord(node.value)) {
+      return Object.entries(node.value).map(([name, value]) => ({
+        path: appendResultName(node.path, name),
+        value,
+      }));
+    }
+
+    return [];
+  }
+
+  if (selector.kind === "index") {
+    if (!Array.isArray(node.value)) return [];
+    const index = selector.index < 0 ? node.value.length + selector.index : selector.index;
+    if (index < 0 || index >= node.value.length) return [];
+    return [{ path: `${node.path}[${index}]`, value: node.value[index] }];
+  }
+
+  if (selector.kind === "slice") {
+    if (!Array.isArray(node.value)) return [];
+    const arrayValue = node.value;
+    return sliceIndexes(arrayValue.length, selector)
+      .map((index) => ({ path: `${node.path}[${index}]`, value: arrayValue[index] }));
+  }
+
+  const children = childNodes(node);
+  return children.filter((child) => evaluateBasicFilter(child.value, selector.expression));
+}
+
+function childNodes(node: PathResult): PathResult[] {
+  if (Array.isArray(node.value)) {
+    return node.value.map((value, index) => ({
+      path: `${node.path}[${index}]`,
+      value,
+    }));
+  }
+
+  if (isRecord(node.value)) {
+    return Object.entries(node.value).map(([name, value]) => ({
+      path: appendResultName(node.path, name),
+      value,
+    }));
+  }
+
+  return [];
+}
+
+function visitNodeAndDescendants(node: PathResult, output: PathResult[]) {
+  output.push(node);
+  childNodes(node).forEach((child) => visitNodeAndDescendants(child, output));
+}
+
+function sliceIndexes(
+  length: number,
+  selector: Extract<Selector, { kind: "slice" }>
+) {
+  const step = selector.step;
+  const indexes: number[] = [];
+
+  if (step === 0) return indexes;
+
+  if (step > 0) {
+    const start = normalizePositiveBound(selector.start, length, 0);
+    const end = normalizePositiveBound(selector.end, length, length);
+    for (let index = start; index < end; index += step) indexes.push(index);
+    return indexes;
+  }
+
+  const start = normalizeNegativeBound(selector.start, length, length - 1, false);
+  const end = normalizeNegativeBound(selector.end, length, -1, true);
+  for (let index = start; index > end; index += step) indexes.push(index);
+  return indexes;
+}
+
+function normalizePositiveBound(value: number | undefined, length: number, fallback: number) {
+  if (value === undefined) return fallback;
+  const normalized = value < 0 ? length + value : value;
+  return Math.min(Math.max(normalized, 0), length);
+}
+
+function normalizeNegativeBound(
+  value: number | undefined,
+  length: number,
+  fallback: number,
+  isEnd: boolean
+) {
+  if (value === undefined) return fallback;
+  let normalized = value < 0 ? length + value : value;
+  if (isEnd) normalized = Math.min(Math.max(normalized, -1), length - 1);
+  else normalized = Math.min(Math.max(normalized, -1), length - 1);
+  return normalized;
+}
+
+function evaluateBasicFilter(current: unknown, expression: string) {
+  if (!expression) throw new Error("Filter selector is missing an expression.");
+
+  const comparison = findComparison(expression);
+  if (!comparison) {
+    const values = readRelativeQuery(current, expression.trim());
+    return values.length > 0;
+  }
+
+  const leftValues = readRelativeQuery(current, comparison.left.trim());
+  const right = parseFilterLiteral(comparison.right.trim());
+
+  return leftValues.some((left) =>
+    comparePrimitive(left, right, comparison.operator)
+  );
+}
+
+function findComparison(expression: string) {
+  let quote = "";
+  let escaped = false;
+  const operators = ["==", "!=", "<=", ">=", "<", ">"];
+
+  for (let index = 0; index < expression.length; index += 1) {
+    const char = expression[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\" && quote) {
+      escaped = true;
+      continue;
+    }
+
+    if (quote) {
+      if (char === quote) quote = "";
+      continue;
+    }
+
+    if (char === "'" || char === '"') {
+      quote = char;
+      continue;
+    }
+
+    const operator = operators.find((candidate) =>
+      expression.startsWith(candidate, index)
+    );
+    if (operator) {
+      return {
+        left: expression.slice(0, index),
+        operator,
+        right: expression.slice(index + operator.length),
+      };
+    }
+  }
+
+  return null;
+}
+
+function readRelativeQuery(current: unknown, query: string): unknown[] {
+  if (query === "@") return [current];
+  if (!query.startsWith("@")) {
+    throw new Error("Basic filters in this tool require a relative query starting with @.");
+  }
+
+  const absolute = `$${query.slice(1)}`;
+  const segments = parseJsonPath(absolute);
+
+  if (
+    segments.some((segment) =>
+      segment.selectors.some(
+        (selector) =>
+          selector.kind === "wildcard" ||
+          selector.kind === "slice" ||
+          selector.kind === "filter"
+      )
+    )
+  ) {
+    throw new Error("Basic filter operands support singular member/index queries only.");
+  }
+
+  let nodes: PathResult[] = [{ path: "$", value: current }];
+  segments.forEach((segment) => {
+    if (segment.kind !== "child") {
+      throw new Error("Basic filter operands do not support descendant segments.");
+    }
+    const next: PathResult[] = [];
+    nodes.forEach((node) =>
+      segment.selectors.forEach((selector) => next.push(...applySelector(node, selector)))
+    );
+    nodes = next;
+  });
+
+  return nodes.map((node) => node.value);
+}
+
+function parseFilterLiteral(value: string): unknown {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (value === "null") return null;
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(value)) {
+    return Number(value);
+  }
+  if (value.startsWith('"') && value.endsWith('"')) {
+    return JSON.parse(value) as unknown;
+  }
+  if (value.startsWith("'") && value.endsWith("'")) {
+    return decodeSingleQuoted(value);
+  }
+  throw new Error(`Unsupported filter literal "${value}".`);
+}
+
+function comparePrimitive(left: unknown, right: unknown, operator: string) {
+  const primitive =
+    left === null ||
+    typeof left === "string" ||
+    typeof left === "number" ||
+    typeof left === "boolean";
+
+  if (!primitive) return false;
+
+  if (operator === "==") return left === right;
+  if (operator === "!=") return left !== right;
+
+  if (
+    (typeof left !== "number" || typeof right !== "number") &&
+    (typeof left !== "string" || typeof right !== "string")
+  ) {
+    return false;
+  }
+
+  if (operator === "<") return left < right;
+  if (operator === "<=") return left <= right;
+  if (operator === ">") return left > right;
+  if (operator === ">=") return left >= right;
+  return false;
+}
+
+function splitTopLevel(value: string, separator: string) {
+  const result: string[] = [];
+  let quote = "";
+  let escaped = false;
+  let current = "";
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\" && quote) {
+      current += char;
+      escaped = true;
+      continue;
+    }
+
+    if (quote) {
+      current += char;
+      if (char === quote) quote = "";
+      continue;
+    }
+
+    if (char === "'" || char === '"') {
+      quote = char;
+      current += char;
+      continue;
+    }
+
+    if (char === separator) {
+      result.push(current);
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  result.push(current);
+  return result;
+}
+
+function decodeSingleQuoted(value: string) {
+  const inner = value.slice(1, -1);
+  let output = "";
+
+  for (let index = 0; index < inner.length; index += 1) {
+    const char = inner[index];
+    if (char !== "\\") {
+      output += char;
+      continue;
+    }
+
+    index += 1;
+    if (index >= inner.length) throw new Error("Invalid escape at end of name selector.");
+    const escaped = inner[index];
+
+    const simple: Record<string, string> = {
+      "'": "'",
+      "\\": "\\",
+      b: "\b",
+      f: "\f",
+      n: "\n",
+      r: "\r",
+      t: "\t",
+      "/": "/",
+    };
+
+    if (escaped in simple) {
+      output += simple[escaped];
+      continue;
+    }
+
+    if (escaped === "u") {
+      const hex = inner.slice(index + 1, index + 5);
+      if (!/^[0-9A-Fa-f]{4}$/.test(hex)) {
+        throw new Error("Invalid \\u escape in JSONPath name selector.");
+      }
+      output += String.fromCharCode(parseInt(hex, 16));
+      index += 4;
+      continue;
+    }
+
+    throw new Error(`Unsupported escape \\${escaped} in JSONPath name selector.`);
+  }
+
+  return output;
+}
+
+function isShorthandNameChar(char: string, first: boolean) {
+  if (!char) return false;
+  if (/[A-Za-z_]/.test(char)) return true;
+  if (!first && /\d/.test(char)) return true;
+  const code = char.charCodeAt(0);
+  return code >= 0x80 && !(code >= 0xd800 && code <= 0xdfff);
+}
+
+function appendResultName(path: string, name: string) {
+  const escaped = name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  return `${path}['${escaped}']`;
+}
+
+function formatPathResults(expression: string, results: PathResult[]) {
   const lines = [
-    "JSON path tested.",
+    "JSONPath test completed.",
     "",
-    `Path: ${path}`,
-    `Matches found: ${results.length}`,
-    "",
-    "Results:",
+    `Expression: ${expression}`,
+    `Matches: ${results.length}`,
     "",
   ];
+
+  if (!results.length) {
+    lines.push("No nodes matched this expression.");
+    return lines.join("\n");
+  }
 
   results.forEach((result, index) => {
     lines.push(`${index + 1}. ${result.path}`);

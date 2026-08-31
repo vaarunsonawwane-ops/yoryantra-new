@@ -1,129 +1,133 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
-type OgData = {
-  title: string;
-  description: string;
-  image: string;
-  url: string;
-  type: string;
-  siteName: string;
+type SocialData = {
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+  ogImageAlt: string;
+  ogUrl: string;
+  ogType: string;
+  ogSiteName: string;
+  ogLocale: string;
   twitterCard: string;
   twitterTitle: string;
   twitterDescription: string;
   twitterImage: string;
+  htmlTitle: string;
+  metaDescription: string;
+  canonical: string;
 };
 
-type OgIssue = {
-  level: "Warning" | "Suggestion";
+type SocialIssue = {
+  level: "Warning" | "Note";
   message: string;
+};
+
+type SocialReport = {
+  data: SocialData;
+  issues: SocialIssue[];
+  duplicateTags: Array<{ key: string; values: string[] }>;
 };
 
 const sampleHtml = `<!doctype html>
 <html lang="en">
 <head>
-  <title>Yoryantra | Practical Tools for Everyday Work</title>
-  <meta name="description" content="Simple browser tools to help you format, convert, check, clean, validate, and prepare things quickly.">
+  <title>Yoryantra | Practical Developer Tools</title>
+  <meta name="description" content="Practical browser tools for developers.">
+  <link rel="canonical" href="https://yoryantra.com/">
 
-  <meta property="og:title" content="Yoryantra | Practical Tools for Everyday Work">
-  <meta property="og:description" content="Simple browser tools for everyday work.">
-  <meta property="og:image" content="https://yoryantra.com/og-image.png">
-  <meta property="og:url" content="https://yoryantra.com/">
+  <meta property="og:title" content="Yoryantra | Practical Developer Tools">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="https://yoryantra.com/og-image.png">
+  <meta property="og:image:alt" content="Yoryantra developer tools">
+  <meta property="og:url" content="https://yoryantra.com/">
+  <meta property="og:description" content="Practical browser tools for developers.">
   <meta property="og:site_name" content="Yoryantra">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Yoryantra | Practical Tools for Everyday Work">
-  <meta name="twitter:description" content="Simple browser tools for everyday work.">
-  <meta name="twitter:image" content="https://yoryantra.com/og-image.png">
 </head>
-<body>
-  <h1>Yoryantra</h1>
-</body>
 </html>`;
 
 export default function ToolClient() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(sampleHtml);
   const [output, setOutput] = useState("");
-  const [preview, setPreview] = useState<OgData | null>(null);
+  const [preview, setPreview] = useState<SocialData | null>(null);
   const [error, setError] = useState("");
 
-  const checkOpenGraph = () => {
+  const inspect = () => {
     if (!input.trim()) {
-      setError("Please paste HTML source code to check Open Graph tags.");
+      setError("Paste HTML source containing social metadata.");
       setOutput("");
       setPreview(null);
       return;
     }
 
     try {
-      const result = extractOpenGraphData(input);
-      const issues = analyzeOpenGraphData(result);
-
-      setPreview(result);
-      setOutput(formatReport(result, issues));
+      const report = inspectSocialMetadata(input);
+      setPreview(report.data);
+      setOutput(formatSocialReport(report));
       setError("");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Unable to check Open Graph tags from this HTML.";
-
-      setError(message);
-      setOutput("");
       setPreview(null);
+      setOutput("");
+      setError(
+        err instanceof Error ? err.message : "Unable to inspect this HTML."
+      );
     }
   };
 
-  const loadExample = () => {
+  const resetAll = () => {
     setInput(sampleHtml);
     setOutput("");
     setPreview(null);
     setError("");
   };
 
-  const resetAll = () => {
-    setInput("");
-    setOutput("");
-    setPreview(null);
-    setError("");
-  };
+  const previewTitle = preview?.ogTitle || preview?.htmlTitle || "";
+  const previewDescription =
+    preview?.ogDescription || preview?.metaDescription || "";
 
   return (
     <ToolShell
       title="Open Graph Preview Checker"
-      description="Check Open Graph tags from HTML, preview social sharing metadata, and inspect Twitter card fields directly in your browser."
+      description="Inspect Open Graph and X card metadata from pasted HTML, find duplicates or missing core properties, and preview the text a sharing card may use."
     >
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          HTML Source
+        <label className="block text-sm font-medium text-gray-700">
+          HTML source
         </label>
-
         <textarea
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event: { target: { value: string } }) => setInput(event.target.value)}
+          rows={15}
           placeholder={sampleHtml}
-          className="w-full min-h-[280px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Paste page HTML to check Open Graph and Twitter card tags. This tool
-          does not fetch remote URLs, so your HTML stays in the browser.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          This checker parses only the HTML you paste. It does not fetch the page
+          or sharing image.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={checkOpenGraph} className="yoryantra-btn">
-          Check Open Graph
+        <button onClick={inspect} className="yoryantra-btn">
+          Check Social Metadata
         </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button
+          onClick={() => {
+            setInput(sampleHtml);
+            setOutput("");
+            setPreview(null);
+            setError("");
+          }}
+          className="yoryantra-btn-outline"
+        >
           Load Example
         </button>
-
         <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
@@ -136,52 +140,42 @@ export default function ToolClient() {
       )}
 
       {preview && (
-        <div className="mt-8 min-w-0">
+        <div className="mt-8">
           <h3 className="text-lg font-semibold text-gray-900">
-            Social Preview
+            Approximate content preview
           </h3>
-
-          <div className="mt-4 w-full max-w-xl min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="flex min-h-[180px] items-center justify-center bg-gray-100 px-6 text-center text-sm text-gray-500">
-              {preview.image ? (
-                <span className="break-all">
-                  Image URL: {preview.image}
-                </span>
+          <div className="mt-3 max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex min-h-[150px] items-center justify-center bg-gray-100 p-5 text-center text-sm text-gray-500">
+              {preview.ogImage ? (
+                <span className="break-all">og:image: {preview.ogImage}</span>
               ) : (
-                "No og:image found"
+                "No og:image"
               )}
             </div>
-
             <div className="p-5">
               <p className="text-xs uppercase tracking-wide text-gray-500">
-                {preview.siteName || getHostFromUrl(preview.url) || "Preview"}
+                {preview.ogSiteName || hostName(preview.ogUrl) || "Preview"}
               </p>
-
               <p className="mt-2 text-lg font-semibold text-gray-900">
-                {preview.title || "No Open Graph title found"}
+                {previewTitle || "No title found"}
               </p>
-
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                {preview.description || "No Open Graph description found"}
+                {previewDescription || "No description found"}
               </p>
-
-              {preview.url && (
-                <p className="mt-3 break-all text-xs text-gray-500">
-                  {preview.url}
-                </p>
-              )}
             </div>
           </div>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-gray-500">
+            This is not a platform emulator. Real services may cache, crop,
+            truncate, or ignore metadata differently.
+          </p>
         </div>
       )}
 
-      {/* OUTPUT */}
-      <div className="mt-8 min-w-0">
-        <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="mt-8">
+        <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Open Graph Report
+            Metadata report
           </h3>
-
           {output && (
             <button
               onClick={() => navigator.clipboard.writeText(output)}
@@ -191,363 +185,256 @@ export default function ToolClient() {
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output min-h-[260px] min-w-0 overflow-auto whitespace-pre-wrap break-all text-sm">
-          {output || "Open Graph check results will appear here."}
+        <pre className="yoryantra-output mt-3 min-h-[320px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Open Graph inspection results will appear here."}
         </pre>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Check Open Graph Tags Before Sharing a Page
+            Inspect the declared tags separately from fallbacks
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Open Graph tags describe how a page may appear when its link is shared on social platforms, messaging apps, and other services that build link previews. Important fields include <span className="font-mono text-gray-800">og:title</span>, <span className="font-mono text-gray-800">og:description</span>, <span className="font-mono text-gray-800">og:image</span>, <span className="font-mono text-gray-800">og:url</span>, and <span className="font-mono text-gray-800">og:type</span>.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Open Graph checker reads pasted HTML, extracts the available tags, creates a clean social preview, checks Twitter card metadata, and reports common missing or weak fields. Everything runs locally in your browser.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The preview can fall back to the HTML title or meta description so
+            you can see useful page text, but the report still tells you when a
+            core Open Graph property is actually absent. That prevents a normal
+            title tag from being mistaken for a complete Open Graph setup.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the Open Graph Checker
+            What this checker catches
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Copy the HTML source from the page you want to inspect.</li>
-            <li>Paste the source into the HTML input box.</li>
-            <li>Click <strong>Check Open Graph</strong>.</li>
-            <li>Review the social preview and extracted Open Graph fields.</li>
-            <li>Check the warnings and suggestions in the report.</li>
-          </ol>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool checks pasted HTML only. It does not fetch a live URL, which keeps the source code in your browser.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Open Graph Tags Checked by This Tool
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>og:title:</strong> the headline used for the shared page.</li>
-            <li><strong>og:description:</strong> the summary shown below the title.</li>
-            <li><strong>og:image:</strong> the image URL used in the link preview.</li>
-            <li><strong>og:url:</strong> the preferred sharing URL for the page.</li>
-            <li><strong>og:type:</strong> the content type, such as website or article.</li>
-            <li><strong>og:site_name:</strong> the website or brand name.</li>
-            <li><strong>Twitter card tags:</strong> card type, title, description, and image.</li>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Missing og:title, og:type, og:image, or og:url.</li>
+            <li>Duplicate Open Graph or X card tags with conflicting values.</li>
+            <li>Relative or malformed sharing URLs.</li>
+            <li>A canonical URL that differs from og:url.</li>
+            <li>Missing og:image:alt when an Open Graph image is declared.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Open Graph Problems
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Missing og:title or og:description values.</li>
-            <li>No og:image for the social preview.</li>
-            <li>A relative image path instead of an absolute URL.</li>
-            <li>A title or description that is too long for a clear preview.</li>
-            <li>No og:url or og:type value.</li>
-            <li>Missing Twitter card metadata.</li>
-            <li>Preview text that does not match the actual page content.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example HTML with Open Graph Tags
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{sampleHtml}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Why a Social Preview May Look Different
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Social platforms may crop images, shorten text, cache older metadata, or apply their own layout rules. This checker shows a practical browser preview based on the tags in your HTML, but it cannot guarantee an exact platform-specific result.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            After changing Open Graph tags on a live page, some platforms may continue showing an older cached preview until they refresh the page metadata.
+          <h2 className="text-xl font-semibold text-gray-900">Reference</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Core Open Graph properties follow{" "}
+            <a href="https://ogp.me/" target="_blank" rel="noreferrer" className="font-medium underline">
+              The Open Graph protocol
+            </a>
+            . Everything here is parsed locally from pasted HTML.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does an Open Graph checker do?
-              </h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It reads HTML and extracts Open Graph metadata so you can inspect the title, description, image, URL, type, site name, and common issues.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is an Open Graph preview?
-              </h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It is a visual representation of how a shared page may appear using its Open Graph title, description, image, site name, and URL.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this test a live URL?
-              </h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Paste the page HTML into the tool. It does not make a request to the live website.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can it check Twitter card tags?
-              </h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The report checks twitter:card, twitter:title, twitter:description, and twitter:image.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why is my social image not appearing?
-              </h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                The tag may be missing, the image URL may be relative or inaccessible, or the platform may still be using cached metadata.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my HTML uploaded anywhere?
-              </h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The Open Graph check runs directly in your browser.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/open-graph-generator"
-              className="yoryantra-btn-outline"
-            >
-              Open Graph Generator
-            </Link>
-
-            <Link
-              href="/tools/meta-tags-checker"
-              className="yoryantra-btn-outline"
-            >
-              Meta Tags Checker
-            </Link>
-
-            <Link
-              href="/tools/meta-tag-generator"
-              className="yoryantra-btn-outline"
-            >
-              Meta Tag Generator
-            </Link>
-
-            <Link
-              href="/tools/canonical-url-checker"
-              className="yoryantra-btn-outline"
-            >
-              Canonical URL Checker
-            </Link>
-
-            <Link
-              href="/tools/meta-description-length-checker"
-              className="yoryantra-btn-outline"
-            >
-              Meta Description Length Checker
-            </Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <YoryantraRelatedTools currentHref="/tools/open-graph-preview-checker" />
         </div>
       </section>
     </ToolShell>
   );
 }
 
-function extractOpenGraphData(source: string): OgData {
+function inspectSocialMetadata(source: string): SocialReport {
   if (typeof window === "undefined") {
-    throw new Error("This tool must run in the browser.");
+    throw new Error("HTML metadata inspection must run in the browser.");
   }
 
-  const parser = new DOMParser();
-  const document = parser.parseFromString(source, "text/html");
+  const document = new DOMParser().parseFromString(source, "text/html");
+  const metaValues = collectMeta(document);
+  const duplicateTags: Array<{ key: string; values: string[] }> = [];
 
-  return {
-    title:
-      getMeta(document, "property", "og:title") ||
-      document.querySelector("title")?.textContent?.trim() ||
-      "",
-    description:
-      getMeta(document, "property", "og:description") ||
-      getMeta(document, "name", "description"),
-    image:
-      getMeta(document, "property", "og:image") ||
-      getMeta(document, "name", "twitter:image"),
-    url: getMeta(document, "property", "og:url"),
-    type: getMeta(document, "property", "og:type"),
-    siteName: getMeta(document, "property", "og:site_name"),
-    twitterCard: getMeta(document, "name", "twitter:card"),
-    twitterTitle: getMeta(document, "name", "twitter:title"),
-    twitterDescription: getMeta(document, "name", "twitter:description"),
-    twitterImage: getMeta(document, "name", "twitter:image"),
+  metaValues.forEach((values, key) => {
+    if (values.length > 1) {
+      duplicateTags.push({ key, values });
+    }
+  });
+
+  const read = (key: string) => metaValues.get(key)?.[0] || "";
+  const canonical =
+    document
+      .querySelector('link[rel~="canonical"]')
+      ?.getAttribute("href")
+      ?.trim() || "";
+
+  const data: SocialData = {
+    ogTitle: read("property:og:title"),
+    ogDescription: read("property:og:description"),
+    ogImage: read("property:og:image"),
+    ogImageAlt: read("property:og:image:alt"),
+    ogUrl: read("property:og:url"),
+    ogType: read("property:og:type"),
+    ogSiteName: read("property:og:site_name"),
+    ogLocale: read("property:og:locale"),
+    twitterCard: read("name:twitter:card"),
+    twitterTitle: read("name:twitter:title"),
+    twitterDescription: read("name:twitter:description"),
+    twitterImage: read("name:twitter:image"),
+    htmlTitle: document.querySelector("title")?.textContent?.trim() || "",
+    metaDescription: read("name:description"),
+    canonical,
   };
+
+  const issues: SocialIssue[] = [];
+  const required: Array<[keyof SocialData, string]> = [
+    ["ogTitle", "og:title"],
+    ["ogType", "og:type"],
+    ["ogImage", "og:image"],
+    ["ogUrl", "og:url"],
+  ];
+
+  required.forEach(([field, label]) => {
+    if (!data[field]) {
+      issues.push({ level: "Warning", message: `Missing core Open Graph property ${label}.` });
+    }
+  });
+
+  for (const [value, label] of [
+    [data.ogUrl, "og:url"],
+    [data.ogImage, "og:image"],
+    [data.twitterImage, "twitter:image"],
+  ] as const) {
+    if (value && !isAbsoluteHttpUrl(value)) {
+      issues.push({
+        level: "Warning",
+        message: `${label} is not an absolute HTTP or HTTPS URL.`,
+      });
+    }
+  }
+
+  if (data.ogImage && !data.ogImageAlt) {
+    issues.push({
+      level: "Note",
+      message: "og:image is present; consider adding og:image:alt for an accessible text description.",
+    });
+  }
+
+  if (data.ogLocale && !/^[A-Za-z]{2,3}_[A-Za-z]{2}$/.test(data.ogLocale)) {
+    issues.push({
+      level: "Note",
+      message: `og:locale "${data.ogLocale}" does not use the usual language_TERRITORY form.`,
+    });
+  }
+
+  if (data.canonical && data.ogUrl) {
+    const canonicalUrl = normalizeUrl(data.canonical);
+    const ogUrl = normalizeUrl(data.ogUrl);
+    if (canonicalUrl && ogUrl && canonicalUrl !== ogUrl) {
+      issues.push({
+        level: "Note",
+        message: "The canonical link and og:url point to different normalized URLs. Review whether that is intentional.",
+      });
+    }
+  }
+
+  duplicateTags.forEach((duplicate) => {
+    const distinct = Array.from(new Set(duplicate.values));
+    issues.push({
+      level: distinct.length > 1 ? "Warning" : "Note",
+      message:
+        distinct.length > 1
+          ? `${duplicate.key} appears more than once with different values.`
+          : `${duplicate.key} is duplicated with the same value.`,
+    });
+  });
+
+  return { data, issues, duplicateTags };
 }
 
-function analyzeOpenGraphData(data: OgData): OgIssue[] {
-  const issues: OgIssue[] = [];
+function collectMeta(document: Document) {
+  const result = new Map<string, string[]>();
 
-  if (!data.title) {
-    issues.push({
-      level: "Warning",
-      message: "Missing og:title or title fallback.",
-    });
-  } else if (data.title.length > 70) {
-    issues.push({
-      level: "Suggestion",
-      message: "Open Graph title may be long for social previews.",
-    });
-  }
+  Array.from(document.getElementsByTagName("meta")).forEach((element) => {
+    const property = element.getAttribute("property")?.trim().toLowerCase();
+    const name = element.getAttribute("name")?.trim().toLowerCase();
+    const content = element.getAttribute("content")?.trim() || "";
 
-  if (!data.description) {
-    issues.push({
-      level: "Warning",
-      message: "Missing og:description or meta description fallback.",
-    });
-  } else if (data.description.length > 200) {
-    issues.push({
-      level: "Suggestion",
-      message: "Open Graph description may be long for social previews.",
-    });
-  }
+    const key = property
+      ? `property:${property}`
+      : name
+        ? `name:${name}`
+        : "";
 
-  if (!data.image) {
-    issues.push({
-      level: "Warning",
-      message: "Missing og:image. Social previews often need an image.",
-    });
-  } else if (!/^https?:\/\//i.test(data.image)) {
-    issues.push({
-      level: "Suggestion",
-      message: "og:image should usually be an absolute URL.",
-    });
-  }
+    if (!key) return;
+    const values = result.get(key) || [];
+    values.push(content);
+    result.set(key, values);
+  });
 
-  if (!data.url) {
-    issues.push({
-      level: "Suggestion",
-      message: "Missing og:url. Add the canonical sharing URL when possible.",
-    });
-  }
-
-  if (!data.type) {
-    issues.push({
-      level: "Suggestion",
-      message: "Missing og:type. Common value for pages is website or article.",
-    });
-  }
-
-  if (!data.twitterCard) {
-    issues.push({
-      level: "Suggestion",
-      message: "Missing twitter:card. Add it for better Twitter/X previews.",
-    });
-  }
-
-  return issues;
+  return result;
 }
 
-function formatReport(data: OgData, issues: OgIssue[]) {
-  const warningCount = issues.filter((issue) => issue.level === "Warning").length;
-  const suggestionCount = issues.filter(
-    (issue) => issue.level === "Suggestion"
-  ).length;
+function formatSocialReport(report: SocialReport) {
+  const { data } = report;
+  const warnings = report.issues.filter((issue) => issue.level === "Warning").length;
+  const notes = report.issues.filter((issue) => issue.level === "Note").length;
 
   const lines = [
-    "Open Graph check completed.",
+    "Social metadata inspection completed.",
     "",
-    `Warnings: ${warningCount}`,
-    `Suggestions: ${suggestionCount}`,
+    `Warnings: ${warnings}`,
+    `Notes: ${notes}`,
+    `Duplicate meta keys: ${report.duplicateTags.length}`,
     "",
-    "Open Graph tags:",
-    `og:title: ${data.title || "Not found"}`,
-    `og:description: ${data.description || "Not found"}`,
-    `og:image: ${data.image || "Not found"}`,
-    `og:url: ${data.url || "Not found"}`,
-    `og:type: ${data.type || "Not found"}`,
-    `og:site_name: ${data.siteName || "Not found"}`,
+    "Open Graph:",
+    `og:title: ${data.ogTitle || "Not found"}`,
+    `og:type: ${data.ogType || "Not found"}`,
+    `og:image: ${data.ogImage || "Not found"}`,
+    `og:image:alt: ${data.ogImageAlt || "Not found"}`,
+    `og:url: ${data.ogUrl || "Not found"}`,
+    `og:description: ${data.ogDescription || "Not found"}`,
+    `og:site_name: ${data.ogSiteName || "Not found"}`,
+    `og:locale: ${data.ogLocale || "Not found"}`,
     "",
-    "Twitter card tags:",
+    "X / Twitter card:",
     `twitter:card: ${data.twitterCard || "Not found"}`,
     `twitter:title: ${data.twitterTitle || "Not found"}`,
     `twitter:description: ${data.twitterDescription || "Not found"}`,
     `twitter:image: ${data.twitterImage || "Not found"}`,
     "",
+    "HTML fallbacks:",
+    `title: ${data.htmlTitle || "Not found"}`,
+    `meta description: ${data.metaDescription || "Not found"}`,
+    `canonical: ${data.canonical || "Not found"}`,
+    "",
     "Issues:",
   ];
 
-  if (issues.length) {
-    issues.forEach((issue, index) => {
+  if (!report.issues.length) {
+    lines.push("No common Open Graph structural issues found.");
+  } else {
+    report.issues.forEach((issue, index) => {
       lines.push(`${index + 1}. ${issue.level}: ${issue.message}`);
     });
-  } else {
-    lines.push("No common Open Graph issues found.");
   }
+
+  lines.push("");
+  lines.push(
+    "Preview note: social platforms may cache, transform, crop, truncate, or ignore metadata differently."
+  );
 
   return lines.join("\n");
 }
 
-function getMeta(
-  document: Document,
-  attribute: "name" | "property",
-  value: string
-) {
-  return (
-    document
-      .querySelector(`meta[${attribute}="${value}"]`)
-      ?.getAttribute("content")
-      ?.trim() || ""
-  );
+function isAbsoluteHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
-function getHostFromUrl(value: string) {
-  if (!value) {
+function normalizeUrl(value: string) {
+  try {
+    return new URL(value).href;
+  } catch {
     return "";
   }
+}
 
+function hostName(value: string) {
   try {
     return new URL(value).hostname;
   } catch {

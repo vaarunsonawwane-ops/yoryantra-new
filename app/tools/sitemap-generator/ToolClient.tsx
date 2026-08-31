@@ -1,345 +1,328 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
+
+type SitemapEntry = {
+  url: string;
+  lastmod: string;
+};
+
+type SitemapResult = {
+  xml: string;
+  entries: SitemapEntry[];
+  warnings: string[];
+  byteLength: number;
+};
+
+const sampleInput = `https://example.com/ | 2026-08-31
+https://example.com/about
+https://example.com/contact | 2026-08-20`;
 
 export default function ToolClient() {
-  const [urls, setUrls] = useState("");
+  const [input, setInput] = useState(sampleInput);
   const [output, setOutput] = useState("");
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  const [entryCount, setEntryCount] = useState(0);
+  const [byteLength, setByteLength] = useState(0);
 
-  const generateSitemap = () => {
-    const urlList = urls
-      .split("\n")
-      .map((url) => url.trim())
-      .filter(Boolean);
+  const sizeLabel = useMemo(
+    () => (byteLength ? `${byteLength.toLocaleString()} UTF-8 bytes` : "—"),
+    [byteLength]
+  );
 
-    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urlList
-  .map(
-    (url) => `  <url>
-    <loc>${url}</loc>
-  </url>`
-  )
-  .join("\n")}
-</urlset>`;
-
-    setOutput(sitemap);
+  const generate = () => {
+    try {
+      const result = buildSitemap(input);
+      setOutput(result.xml);
+      setWarnings(result.warnings);
+      setEntryCount(result.entries.length);
+      setByteLength(result.byteLength);
+      setError("");
+    } catch (err) {
+      setOutput("");
+      setWarnings([]);
+      setEntryCount(0);
+      setByteLength(0);
+      setError(err instanceof Error ? err.message : "Unable to generate sitemap.");
+    }
   };
 
   const resetAll = () => {
-    setUrls("");
+    setInput(sampleInput);
     setOutput("");
+    setWarnings([]);
+    setEntryCount(0);
+    setByteLength(0);
+    setError("");
   };
 
   return (
     <ToolShell
-      title="Sitemap Generator"
-      description="Generate XML sitemaps instantly with this free online Sitemap Generator."
+      title="XML Sitemap Generator"
+      description="Generate a sitemap.xml file from absolute URLs, safely escape XML, validate optional lastmod values, and review sitemap protocol limits."
     >
-      {/* INPUT */}
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Website URLs
+        <label className="block text-sm font-medium text-gray-700">
+          Sitemap entries
         </label>
-
         <textarea
-          className="w-full h-64 rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-          placeholder={`https://example.com
-https://example.com/about
-https://example.com/contact`}
-          value={urls}
-          onChange={(e) => setUrls(e.target.value)}
+          value={input}
+          onChange={(event: { target: { value: string } }) => setInput(event.target.value)}
+          rows={12}
+          placeholder={sampleInput}
+          className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          One absolute HTTP or HTTPS URL per line. Optionally add a last-modified
+          value after a vertical bar: <span className="font-mono">URL | YYYY-MM-DD</span>.
+        </p>
       </div>
 
-      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={generateSitemap}
-          className="yoryantra-btn"
-        >
-          Generate Sitemap
+        <button onClick={generate} className="yoryantra-btn">
+          Generate sitemap.xml
         </button>
-
-        <button
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
+        <button onClick={() => setInput(sampleInput)} className="yoryantra-btn-outline">
+          Load Example
+        </button>
+        <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Generated Sitemap XML
-          </h3>
+      {error && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
+      )}
 
+      {warnings.length > 0 && (
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+          <p className="font-semibold">Review these notes</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <p className="text-sm text-gray-500">Unique URLs</p>
+          <p className="mt-1 text-xl font-semibold text-gray-900">{entryCount}</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <p className="text-sm text-gray-500">Generated XML size</p>
+          <p className="mt-1 text-xl font-semibold text-gray-900">{sizeLabel}</p>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Generated sitemap.xml
+          </h3>
           {output && (
             <button
-              onClick={() =>
-                navigator.clipboard.writeText(output)
-              }
+              onClick={() => navigator.clipboard.writeText(output)}
               className="yoryantra-btn-outline text-sm"
             >
               Copy
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[260px] whitespace-pre-wrap break-words">
-          {output || "Generated sitemap.xml will appear here..."}
+        <pre className="yoryantra-output mt-3 min-h-[300px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Generated sitemap XML will appear here."}
         </pre>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Building XML Sitemaps Search Engines Can Read
+            Generate XML without silently breaking URLs
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            XML sitemaps help search engines discover, crawl, and index website
-            pages more efficiently. Search engines such as Google and Bing use
-            sitemap files to understand website structure, detect important
-            pages, and prioritize crawling during indexing.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Sitemap URLs are XML text, so characters such as ampersands must be
+            escaped in the generated document. This tool validates each URL
+            before writing it and escapes the XML representation while keeping
+            the actual URL meaning intact.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            During technical SEO audits, missing or outdated sitemap.xml files
-            can reduce crawl efficiency, delay indexing, hide important pages,
-            and make large websites harder for search engines to understand.
-            This Sitemap Generator helps create clean XML sitemap files quickly
-            from a list of URLs.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool is useful for blogs, ecommerce stores, landing pages,
-            static websites, business websites, frontend applications, and SEO
-            workflows directly inside your browser.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Exact duplicate entries are removed. If the input spans multiple
+            hosts, the tool warns because the sitemap protocol expects a single
+            host per sitemap.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the Sitemap Generator
+            Sitemap limits and lastmod
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter one website URL per line.</li>
-
-            <li>
-              Click <strong>Generate Sitemap</strong>.
-            </li>
-
-            <li>
-              Copy the generated XML sitemap output.
-            </li>
-
-            <li>
-              Save the file as <strong>sitemap.xml</strong>.
-            </li>
-
-            <li>
-              Upload the sitemap.xml file to your website root directory.
-            </li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Generating XML sitemap files for websites.</li>
-
-            <li>Submitting sitemaps to Google Search Console.</li>
-
-            <li>Improving search engine crawl efficiency.</li>
-
-            <li>Managing SEO for blogs and ecommerce stores.</li>
-
-            <li>Creating sitemaps for static websites.</li>
-
-            <li>Preparing technical SEO audits and migrations.</li>
-
-            <li>Helping search engines discover new pages faster.</li>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>A sitemap file can contain at most 50,000 URLs.</li>
+            <li>The uncompressed file can be at most 50 MB.</li>
+            <li>Use lastmod only when you have a meaningful modification date; it is optional.</li>
+            <li>Fragments are removed because sitemap entries should identify fetchable page URLs rather than in-page anchors.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Sitemap.xml File
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-  <url>
-    <loc>https://example.com</loc>
-  </url>
-
-  <url>
-    <loc>https://example.com/about</loc>
-  </url>
-
-  <url>
-    <loc>https://example.com/contact</loc>
-  </url>
-
-</urlset>`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Why XML Sitemaps Help SEO
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>Faster discovery:</strong> Search engines can find new
-                pages more quickly.
-              </li>
-
-              <li>
-                <strong>Better crawl coverage:</strong> Important pages are less
-                likely to be missed.
-              </li>
-
-              <li>
-                <strong>Improved indexing:</strong> Sitemap files help search
-                engines understand site structure.
-              </li>
-
-              <li>
-                <strong>Large website support:</strong> Sitemaps are especially
-                useful for websites with many URLs.
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a sitemap.xml file?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                A sitemap.xml file lists important website URLs to help search
-                engines crawl and index pages more efficiently.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Where should I upload sitemap.xml?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                The sitemap.xml file is usually uploaded to the root of your
-                domain, such as example.com/sitemap.xml.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should I submit my sitemap to Google?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Submitting your sitemap through Google Search Console can
-                help Google discover and index pages faster.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Do small websites need XML sitemaps?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Even smaller websites benefit from XML sitemaps because they
-                help search engines understand site structure and page priority.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is sitemap generation processed on the server?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Sitemap generation happens directly inside your browser.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Sitemap generation often connects with robots.txt configuration,
-            canonical URLs, redirects, crawl optimization, and technical SEO
-            workflows.
+          <h2 className="text-xl font-semibold text-gray-900">Reference</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Output follows the{" "}
+            <a
+              href="https://www.sitemaps.org/protocol.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium underline"
+            >
+              Sitemap protocol
+            </a>
+            . Processing is local; the tool does not crawl or submit the URLs.
           </p>
+        </div>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/robots-txt-generator"
-              className="yoryantra-btn-outline"
-            >
-              Robots.txt Generator
-            </Link>
-
-            <Link
-              href="/tools/robots-txt-tester"
-              className="yoryantra-btn-outline"
-            >
-              Robots.txt Tester
-            </Link>
-
-            <Link
-              href="/tools/canonical-url-checker"
-              className="yoryantra-btn-outline"
-            >
-              Canonical URL Checker
-            </Link>
-
-            <Link
-              href="/tools/redirect-checker"
-              className="yoryantra-btn-outline"
-            >
-              Redirect Checker
-            </Link>
-
-            <Link
-              href="/tools/meta-tag-generator"
-              className="yoryantra-btn-outline"
-            >
-              Meta Tag Generator
-            </Link>
-          </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <YoryantraRelatedTools currentHref="/tools/sitemap-generator" />
         </div>
       </section>
     </ToolShell>
   );
+}
+
+function buildSitemap(source: string): SitemapResult {
+  const rawLines = source
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!rawLines.length) {
+    throw new Error("Enter at least one URL.");
+  }
+
+  if (rawLines.length > 50000) {
+    throw new Error("A sitemap file cannot contain more than 50,000 URL entries.");
+  }
+
+  const entries: SitemapEntry[] = [];
+  const seen = new Set<string>();
+  const warnings: string[] = [];
+  const hosts = new Set<string>();
+
+  rawLines.forEach((line, index) => {
+    const [rawUrl, ...lastmodParts] = line.split("|");
+    const originalUrl = rawUrl.trim();
+    const lastmod = lastmodParts.join("|").trim();
+
+    let parsed: URL;
+    try {
+      parsed = new URL(originalUrl);
+    } catch {
+      throw new Error(`Line ${index + 1}: "${originalUrl}" is not a valid absolute URL.`);
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error(`Line ${index + 1}: sitemap URLs must use HTTP or HTTPS.`);
+    }
+
+    if (parsed.username || parsed.password) {
+      throw new Error(`Line ${index + 1}: sitemap URLs should not contain embedded credentials.`);
+    }
+
+    if (parsed.hash) {
+      warnings.push(`Line ${index + 1}: URL fragment "${parsed.hash}" was removed.`);
+      parsed.hash = "";
+    }
+
+    if (lastmod && !isValidLastmod(lastmod)) {
+      throw new Error(
+        `Line ${index + 1}: "${lastmod}" is not a supported lastmod date. Use YYYY-MM-DD or an ISO 8601 date-time.`
+      );
+    }
+
+    const normalized = parsed.href;
+    hosts.add(parsed.host.toLowerCase());
+
+    if (seen.has(normalized)) {
+      warnings.push(`Line ${index + 1}: duplicate URL was omitted.`);
+      return;
+    }
+
+    seen.add(normalized);
+    entries.push({ url: normalized, lastmod });
+  });
+
+  if (hosts.size > 1) {
+    warnings.push(
+      "This input contains multiple hosts. The Sitemap protocol expects URLs in a sitemap to belong to a single host."
+    );
+  }
+
+  const body = entries
+    .map((entry) => {
+      const lines = [
+        "  <url>",
+        `    <loc>${escapeXml(entry.url)}</loc>`,
+      ];
+      if (entry.lastmod) {
+        lines.push(`    <lastmod>${escapeXml(entry.lastmod)}</lastmod>`);
+      }
+      lines.push("  </url>");
+      return lines.join("\n");
+    })
+    .join("\n");
+
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    body,
+    "</urlset>",
+  ].join("\n");
+
+  const byteLength = new TextEncoder().encode(xml).length;
+  if (byteLength > 50 * 1024 * 1024) {
+    throw new Error("The generated uncompressed sitemap exceeds the 50 MB protocol limit.");
+  }
+
+  return {
+    xml,
+    entries,
+    warnings: Array.from(new Set(warnings)),
+    byteLength,
+  };
+}
+
+function isValidLastmod(value: string) {
+  const datePart = value.slice(0, 10);
+  if (!isValidDatePart(datePart)) return false;
+
+  if (value.length === 10) return true;
+
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(
+      value
+    )
+  ) {
+    return false;
+  }
+
+  return !Number.isNaN(Date.parse(value));
+}
+
+function isValidDatePart(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }

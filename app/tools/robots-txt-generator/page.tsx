@@ -1,38 +1,25 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "Robots.txt Generator Online Free | Yoryantra",
-
+  title: "Robots.txt Generator | Build Crawler Rules | Yoryantra",
   description:
-    "Generate robots.txt files instantly with this free online Robots.txt Generator. Create crawl rules, sitemap links, and search engine directives easily.",
-
-  keywords: [
-    "robots.txt generator",
-    "robots txt generator",
-    "generate robots.txt",
-    "robots.txt file",
-    "seo tools",
-    "website crawler rules",
-  ],
-
+    "Build robots.txt groups with user-agent, Allow, Disallow, and Sitemap records. Review RFC 9309 rules and copy a clean robots.txt file.",
   alternates: {
     canonical: "https://yoryantra.com/tools/robots-txt-generator",
   },
-
   openGraph: {
-    title: "Robots.txt Generator Online Free | Yoryantra",
+    title: "Robots.txt Generator | Build Crawler Rules | Yoryantra",
     description:
-      "Generate robots.txt files instantly with this free online Robots.txt Generator.",
+      "Build robots.txt groups with user-agent, Allow, Disallow, and Sitemap records. Review RFC 9309 rules and copy a clean robots.txt file.",
     url: "https://yoryantra.com/tools/robots-txt-generator",
     siteName: "Yoryantra",
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-    title: "Robots.txt Generator Online Free | Yoryantra",
+    title: "Robots.txt Generator | Build Crawler Rules | Yoryantra",
     description:
-      "Create robots.txt crawl rules instantly with this free SEO tool.",
+      "Build robots.txt groups with user-agent, Allow, Disallow, and Sitemap records. Review RFC 9309 rules and copy a clean robots.txt file.",
   },
 };
 

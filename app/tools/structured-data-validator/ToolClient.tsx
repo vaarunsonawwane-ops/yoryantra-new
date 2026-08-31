@@ -1,64 +1,67 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
-type SchemaIssue = {
-  level: "Warning" | "Suggestion";
+type StructuredIssue = {
+  level: "Warning" | "Note";
+  path: string;
   message: string;
 };
 
-type SchemaReport = {
-  type: string;
+type EntityNode = {
+  path: string;
+  types: string[];
+  id: string;
   context: string;
-  issues: SchemaIssue[];
-  keys: string[];
+  properties: string[];
+};
+
+type StructuredReport = {
+  documentCount: number;
+  nodes: EntityNode[];
+  issues: StructuredIssue[];
 };
 
 const sampleJsonLd = `{
   "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "Yoryantra",
-  "url": "https://yoryantra.com",
-  "description": "Practical browser tools for everyday work."
+  "@type": "Article",
+  "@id": "https://example.com/articles/json-ld#article",
+  "headline": "Understanding JSON-LD",
+  "url": "https://example.com/articles/json-ld",
+  "author": {
+    "@type": "Person",
+    "name": "Example Author"
+  }
 }`;
 
 export default function ToolClient() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(sampleJsonLd);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
 
-  const validateStructuredData = () => {
+  const validate = () => {
     if (!input.trim()) {
-      setError("Please enter JSON-LD structured data to validate.");
+      setError("Paste JSON-LD or HTML containing JSON-LD scripts.");
       setOutput("");
       return;
     }
 
     try {
-      const reports = analyzeStructuredData(input);
-      setOutput(formatReport(reports));
+      const report = inspectStructuredData(input);
+      setOutput(formatStructuredReport(report));
       setError("");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Unable to validate this structured data.";
-
-      setError(message);
       setOutput("");
+      setError(
+        err instanceof Error ? err.message : "Unable to inspect this structured data."
+      );
     }
   };
 
-  const loadExample = () => {
-    setInput(sampleJsonLd);
-    setOutput("");
-    setError("");
-  };
-
   const resetAll = () => {
-    setInput("");
+    setInput(sampleJsonLd);
     setOutput("");
     setError("");
   };
@@ -66,35 +69,39 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Structured Data Validator"
-      description="Validate JSON-LD structured data, inspect schema markup, and find common schema issues in your browser."
+      description="Inspect Schema.org JSON-LD structure, contexts, types, identifiers, graphs, and common JSON-LD mistakes without pretending to certify rich-result eligibility."
     >
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          JSON-LD Structured Data
+        <label className="block text-sm font-medium text-gray-700">
+          JSON-LD or HTML source
         </label>
-
         <textarea
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event: { target: { value: string } }) => setInput(event.target.value)}
+          rows={14}
           placeholder={sampleJsonLd}
-          className="w-full min-h-[280px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Paste JSON-LD schema markup from a page, template, or structured data
-          script tag.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          You can paste raw JSON-LD, a JSON-LD array, an @graph document, or HTML
+          containing one or more application/ld+json script blocks.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={validateStructuredData} className="yoryantra-btn">
-          Validate Structured Data
+        <button onClick={validate} className="yoryantra-btn">
+          Inspect Structured Data
         </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button
+          onClick={() => {
+            setInput(sampleJsonLd);
+            setOutput("");
+            setError("");
+          }}
+          className="yoryantra-btn-outline"
+        >
           Load Example
         </button>
-
         <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
@@ -106,13 +113,11 @@ export default function ToolClient() {
         </div>
       )}
 
-      {/* OUTPUT */}
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Validation Report
+            Structured data report
           </h3>
-
           {output && (
             <button
               onClick={() => navigator.clipboard.writeText(output)}
@@ -122,356 +127,358 @@ export default function ToolClient() {
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[260px] whitespace-pre-wrap break-words">
-          {output || "Structured data validation report will appear here."}
+        <pre className="yoryantra-output mt-3 min-h-[320px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Structured data inspection results will appear here."}
         </pre>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking JSON-LD Schema Before Publishing Pages
+            Structural JSON-LD checks without fake rich-result guarantees
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Structured data helps search engines understand page details such as
-            articles, products, breadcrumbs, organizations, websites, FAQs, and
-            other schema types. Small JSON-LD mistakes can break schema parsing
-            or make structured data harder to review before publishing.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JSON-LD can be syntactically valid while still using the wrong
+            vocabulary, incomplete properties, or markup that is not eligible
+            for a search feature. This tool checks the structure it can verify
+            locally: JSON syntax, script extraction, @context inheritance,
+            @graph shape, @type values, @id values, and discovered entity nodes.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Structured Data Validator helps you check JSON-LD syntax,
-            inspect schema types, review required-looking fields, and find
-            common schema markup issues directly in your browser.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            It deliberately does not maintain a hard-coded list of “required
+            fields” for every Schema.org type. Schema.org vocabulary validity
+            and Google rich-result requirements are different questions and
+            change independently.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Validating Schema Markup from HTML or JSON-LD
+            What to verify after this local check
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste JSON-LD structured data into the input box.</li>
-            <li>
-              Click <strong>Validate Structured Data</strong>.
-            </li>
-            <li>Review the detected schema type, context, fields, and issues.</li>
-            <li>Fix missing or weak fields before adding schema to a page.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Structured Data Validator Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking JSON-LD schema syntax before publishing pages.</li>
-            <li>Reviewing Article, WebSite, Organization, FAQ, and Product schema.</li>
-            <li>Finding missing <strong>@context</strong> or <strong>@type</strong> values.</li>
-            <li>Inspecting schema fields copied from templates or generators.</li>
-            <li>Preparing cleaner schema markup for technical SEO checks.</li>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Check the intended type and properties against Schema.org documentation.</li>
+            <li>For Google search features, check the current feature-specific documentation and Rich Results Test.</li>
+            <li>Test the final rendered page, not only a copied JSON-LD fragment.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example JSON-LD Structured Data
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{sampleJsonLd}
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900">References</h2>
+          <div className="mt-4 space-y-2 text-gray-600">
+            <p>
+              <a href="https://schema.org/" target="_blank" rel="noreferrer" className="font-medium underline">
+                Schema.org vocabulary
+              </a>
+            </p>
+            <p>
+              <a href="https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data" target="_blank" rel="noreferrer" className="font-medium underline">
+                Google Search structured data guidance
+              </a>
+            </p>
           </div>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Inspection runs locally in the browser; pasted markup is not fetched
+            or sent to a validation service.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a structured data validator check?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks JSON-LD syntax, looks for important schema fields such
-                as <strong>@context</strong> and <strong>@type</strong>, and
-                highlights common issues that are useful to review before
-                publishing schema markup.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this replace Google&apos;s rich results testing tools?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool is useful for quick browser checks while editing
-                JSON-LD. For eligibility of rich results, you should still test
-                final pages with official search engine tools.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can I validate multiple schema objects?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The tool supports a single JSON-LD object, an array of
-                objects, and common <strong>@graph</strong> structures.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my structured data uploaded to a server?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The structured data check happens directly in your browser.
-                Your JSON-LD content is not uploaded to a server.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/meta-tags-checker"
-              className="yoryantra-btn-outline"
-            >
-              Meta Tags Checker
-            </Link>
-
-            <Link
-              href="/tools/meta-tag-generator"
-              className="yoryantra-btn-outline"
-            >
-              Meta Tag Generator
-            </Link>
-
-            <Link
-              href="/tools/json-validator"
-              className="yoryantra-btn-outline"
-            >
-              JSON Validator
-            </Link>
-
-            <Link
-              href="/tools/json-formatter"
-              className="yoryantra-btn-outline"
-            >
-              JSON Formatter
-            </Link>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <YoryantraRelatedTools currentHref="/tools/structured-data-validator" />
         </div>
       </section>
     </ToolShell>
   );
 }
 
-function analyzeStructuredData(source: string) {
-  const cleaned = extractJsonLd(source);
-  const parsed = JSON.parse(cleaned);
-  const nodes = normalizeNodes(parsed);
+function inspectStructuredData(source: string): StructuredReport {
+  const documents = extractStructuredDocuments(source);
+  if (!documents.length) {
+    throw new Error("No JSON-LD document was found.");
+  }
+
+  const nodes: EntityNode[] = [];
+  const issues: StructuredIssue[] = [];
+
+  documents.forEach((documentValue, index) => {
+    const path = documents.length === 1 ? "$" : `$document[${index}]`;
+    inspectValue(documentValue, path, "", nodes, issues, true);
+  });
 
   if (!nodes.length) {
-    throw new Error("No structured data objects were found.");
-  }
-
-  return nodes.map(analyzeNode);
-}
-
-function extractJsonLd(source: string) {
-  const scriptMatch = source.match(
-    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i
-  );
-
-  if (scriptMatch?.[1]) {
-    return scriptMatch[1].trim();
-  }
-
-  return source.trim();
-}
-
-function normalizeNodes(parsed: unknown): Record<string, unknown>[] {
-  if (Array.isArray(parsed)) {
-    return parsed.filter(isRecord);
-  }
-
-  if (isRecord(parsed)) {
-    if (Array.isArray(parsed["@graph"])) {
-      return parsed["@graph"].filter(isRecord);
-    }
-
-    return [parsed];
-  }
-
-  return [];
-}
-
-function analyzeNode(node: Record<string, unknown>): SchemaReport {
-  const type = getStringValue(node["@type"]);
-  const context = getStringValue(node["@context"]);
-  const keys = Object.keys(node);
-  const issues: SchemaIssue[] = [];
-
-  if (!context) {
     issues.push({
       level: "Warning",
-      message: "Missing @context. JSON-LD schema usually uses https://schema.org.",
-    });
-  } else if (!context.includes("schema.org")) {
-    issues.push({
-      level: "Suggestion",
-      message: "@context is present, but it does not look like a schema.org context.",
-    });
-  }
-
-  if (!type) {
-    issues.push({
-      level: "Warning",
-      message: "Missing @type. Schema markup should clearly define the schema type.",
-    });
-  }
-
-  if (!keys.includes("name") && !keys.includes("headline")) {
-    issues.push({
-      level: "Suggestion",
-      message: "Consider adding a name or headline field when it fits this schema type.",
-    });
-  }
-
-  if (!keys.includes("url") && ["WebSite", "Organization", "Product", "Article"].includes(type)) {
-    issues.push({
-      level: "Suggestion",
-      message: "Consider adding a url field for this schema type.",
-    });
-  }
-
-  if (type === "Article" || type === "BlogPosting") {
-    if (!keys.includes("headline")) {
-      issues.push({
-        level: "Warning",
-        message: "Article schema usually needs a headline field.",
-      });
-    }
-
-    if (!keys.includes("author")) {
-      issues.push({
-        level: "Suggestion",
-        message: "Consider adding author information for Article schema.",
-      });
-    }
-
-    if (!keys.includes("datePublished")) {
-      issues.push({
-        level: "Suggestion",
-        message: "Consider adding datePublished for Article schema.",
-      });
-    }
-  }
-
-  if (type === "Product") {
-    if (!keys.includes("offers")) {
-      issues.push({
-        level: "Suggestion",
-        message: "Product schema commonly includes offers information.",
-      });
-    }
-
-    if (!keys.includes("image")) {
-      issues.push({
-        level: "Suggestion",
-        message: "Product schema commonly includes image information.",
-      });
-    }
-  }
-
-  if (type === "FAQPage" && !keys.includes("mainEntity")) {
-    issues.push({
-      level: "Warning",
-      message: "FAQPage schema should include mainEntity questions and answers.",
+      path: "$",
+      message: "No JSON-LD entity object with @type, @id, or normal properties was found.",
     });
   }
 
   return {
-    type: type || "Not found",
-    context: context || "Not found",
+    documentCount: documents.length,
+    nodes,
     issues,
-    keys,
   };
 }
 
-function formatReport(reports: SchemaReport[]) {
-  const warningCount = reports.reduce(
-    (total, report) =>
-      total + report.issues.filter((issue) => issue.level === "Warning").length,
-    0
-  );
+function extractStructuredDocuments(source: string): unknown[] {
+  const trimmed = source.trim();
 
-  const suggestionCount = reports.reduce(
-    (total, report) =>
-      total +
-      report.issues.filter((issue) => issue.level === "Suggestion").length,
-    0
-  );
-
-  const lines = [
-    "Structured data check completed.",
-    "",
-    `Schema objects found: ${reports.length}`,
-    `Warnings: ${warningCount}`,
-    `Suggestions: ${suggestionCount}`,
-    "",
-  ];
-
-  reports.forEach((report, index) => {
-    lines.push(`Schema ${index + 1}`);
-    lines.push(`Type: ${report.type}`);
-    lines.push(`Context: ${report.context}`);
-    lines.push(`Fields: ${report.keys.join(", ") || "No fields found"}`);
-
-    if (report.issues.length) {
-      lines.push("Issues:");
-      report.issues.forEach((issue) => {
-        lines.push(`  - ${issue.level}: ${issue.message}`);
-      });
-    } else {
-      lines.push("Issues: No common issues found.");
+  if (trimmed.startsWith("<")) {
+    if (typeof window === "undefined") {
+      throw new Error("HTML extraction must run in the browser.");
     }
 
-    lines.push("");
-  });
+    const document = new DOMParser().parseFromString(trimmed, "text/html");
+    const scripts = Array.from(
+      document.querySelectorAll('script[type="application/ld+json"]')
+    );
 
-  return lines.join("\n").trim();
+    if (!scripts.length) {
+      throw new Error("No <script type=\"application/ld+json\"> block was found.");
+    }
+
+    return scripts.map((script, index) => {
+      const text = script.textContent?.trim() || "";
+      if (!text) {
+        throw new Error(`JSON-LD script ${index + 1} is empty.`);
+      }
+      try {
+        return JSON.parse(text) as unknown;
+      } catch (err) {
+        throw new Error(
+          `JSON-LD script ${index + 1} contains invalid JSON: ${jsonErrorMessage(err)}`
+        );
+      }
+    });
+  }
+
+  try {
+    return [JSON.parse(trimmed) as unknown];
+  } catch (err) {
+    throw new Error(`Invalid JSON-LD JSON: ${jsonErrorMessage(err)}`);
+  }
 }
 
-function getStringValue(value: unknown) {
+function inspectValue(
+  value: unknown,
+  path: string,
+  inheritedContext: string,
+  nodes: EntityNode[],
+  issues: StructuredIssue[],
+  topLevel: boolean
+) {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      inspectValue(item, `${path}[${index}]`, inheritedContext, nodes, issues, topLevel)
+    );
+    return;
+  }
+
+  if (!isRecord(value)) {
+    if (topLevel) {
+      issues.push({
+        level: "Warning",
+        path,
+        message: "Top-level JSON-LD value is not an object or array of objects.",
+      });
+    }
+    return;
+  }
+
+  const localContext = describeContext(value["@context"]) || inheritedContext;
+  if (topLevel && !value["@context"] && !inheritedContext) {
+    issues.push({
+      level: "Warning",
+      path,
+      message:
+        "No @context is available at the document root. Bare Schema.org type and property names normally need a Schema.org context.",
+    });
+  }
+
+  if (value["@context"] !== undefined && !isValidContextShape(value["@context"])) {
+    issues.push({
+      level: "Warning",
+      path: `${path}['@context']`,
+      message: "@context should be a string, object, or array accepted by JSON-LD.",
+    });
+  }
+
+  const types = readTypes(value["@type"], path, issues);
+  const id = value["@id"];
+  if (id !== undefined && typeof id !== "string") {
+    issues.push({
+      level: "Warning",
+      path: `${path}['@id']`,
+      message: "@id should be a string IRI/reference when it is present.",
+    });
+  }
+
+  const properties = Object.keys(value).filter((key) => !key.startsWith("@"));
+  const looksLikeEntity =
+    types.length > 0 || typeof id === "string" || properties.length > 0;
+
+  if (looksLikeEntity) {
+    nodes.push({
+      path,
+      types,
+      id: typeof id === "string" ? id : "",
+      context: localContext,
+      properties,
+    });
+  }
+
+  if (value["@graph"] !== undefined) {
+    if (!Array.isArray(value["@graph"])) {
+      issues.push({
+        level: "Warning",
+        path: `${path}['@graph']`,
+        message: "@graph is usually an array of JSON-LD nodes.",
+      });
+    } else {
+      value["@graph"].forEach((item, index) =>
+        inspectValue(
+          item,
+          `${path}['@graph'][${index}]`,
+          localContext,
+          nodes,
+          issues,
+          false
+        )
+      );
+    }
+  }
+
+  Object.entries(value).forEach(([key, child]) => {
+    if (key === "@context" || key === "@graph") return;
+    if (child && typeof child === "object") {
+      inspectValue(child, appendPath(path, key), localContext, nodes, issues, false);
+    }
+  });
+}
+
+function readTypes(
+  value: unknown,
+  path: string,
+  issues: StructuredIssue[]
+): string[] {
+  if (value === undefined) return [];
+
   if (typeof value === "string") {
-    return value;
+    return value.trim() ? [value] : [];
   }
 
   if (Array.isArray(value)) {
-    return value.filter((item) => typeof item === "string").join(", ");
+    const strings = value.filter(
+      (item): item is string => typeof item === "string" && Boolean(item.trim())
+    );
+    if (strings.length !== value.length) {
+      issues.push({
+        level: "Warning",
+        path: `${path}['@type']`,
+        message: "@type arrays should contain type strings.",
+      });
+    }
+    return strings;
+  }
+
+  issues.push({
+    level: "Warning",
+    path: `${path}['@type']`,
+    message: "@type should be a string or an array of strings.",
+  });
+  return [];
+}
+
+function formatStructuredReport(report: StructuredReport) {
+  const warnings = report.issues.filter((issue) => issue.level === "Warning").length;
+  const notes = report.issues.filter((issue) => issue.level === "Note").length;
+  const typeSet = new Set<string>();
+  report.nodes.forEach((node) => node.types.forEach((type) => typeSet.add(type)));
+
+  const lines = [
+    "Structured data inspection completed.",
+    "",
+    `JSON-LD documents: ${report.documentCount}`,
+    `Entity objects found: ${report.nodes.length}`,
+    `Types found: ${typeSet.size ? Array.from(typeSet).join(", ") : "None"}`,
+    `Warnings: ${warnings}`,
+    `Notes: ${notes}`,
+    "",
+    "Entities:",
+  ];
+
+  if (!report.nodes.length) {
+    lines.push("No entity objects found.");
+  } else {
+    report.nodes.forEach((node, index) => {
+      lines.push("");
+      lines.push(`${index + 1}. ${node.path}`);
+      lines.push(`   @type: ${node.types.length ? node.types.join(", ") : "Not set"}`);
+      lines.push(`   @id: ${node.id || "Not set"}`);
+      lines.push(`   @context: ${node.context || "Not resolved"}`);
+      lines.push(
+        `   properties: ${node.properties.length ? node.properties.join(", ") : "None"}`
+      );
+    });
+  }
+
+  lines.push("");
+  lines.push("Issues:");
+  if (!report.issues.length) {
+    lines.push("No structural JSON-LD warnings found.");
+  } else {
+    report.issues.forEach((issue, index) => {
+      lines.push(`${index + 1}. ${issue.level} at ${issue.path}: ${issue.message}`);
+    });
+  }
+
+  lines.push("");
+  lines.push(
+    "This is a structural browser check. It does not certify Schema.org vocabulary correctness or Google rich-result eligibility."
+  );
+
+  return lines.join("\n");
+}
+
+function describeContext(value: unknown): string {
+  if (typeof value === "string") return value;
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => describeContext(item))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (isRecord(value)) {
+    const vocab = value["@vocab"];
+    return typeof vocab === "string" ? `@vocab ${vocab}` : "Inline context object";
   }
 
   return "";
+}
+
+function isValidContextShape(value: unknown): boolean {
+  if (value === null || typeof value === "string" || isRecord(value)) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.every((item) => isValidContextShape(item));
+  }
+
+  return false;
+}
+
+function appendPath(path: string, key: string) {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(key)
+    ? `${path}.${key}`
+    : `${path}['${key.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}']`;
+}
+
+function jsonErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : "JSON parse error";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

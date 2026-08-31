@@ -1,51 +1,28 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "Open Graph Checker & Social Preview Tool | Yoryantra",
-
+  title: "Open Graph Preview Checker | Inspect Social Metadata | Yoryantra",
   description:
-    "Check Open Graph tags from HTML, preview social sharing metadata, and inspect og:title, og:description, og:image, og:url, and Twitter card tags.",
-
-  keywords: [
-    "open graph checker",
-    "open graph check",
-    "open graph tester",
-    "open graph preview checker",
-    "OG tag checker",
-    "OG preview tool",
-    "social media preview checker",
-    "check open graph tags",
-    "Twitter card checker",
-    "open graph validator",
-  ],
-
+    "Inspect Open Graph and X card tags from pasted HTML, find duplicate or missing metadata, validate URLs, and preview likely sharing content.",
   alternates: {
     canonical: "https://yoryantra.com/tools/open-graph-preview-checker",
   },
-
   openGraph: {
-    title: "Open Graph Checker & Social Preview Tool | Yoryantra",
-
+    title: "Open Graph Preview Checker | Inspect Social Metadata | Yoryantra",
     description:
-      "Check Open Graph tags from HTML, preview social sharing metadata, and inspect og:title, og:description, og:image, og:url, and Twitter card tags.",
-
+      "Inspect Open Graph and X card tags from pasted HTML, find duplicate or missing metadata, validate URLs, and preview likely sharing content.",
     url: "https://yoryantra.com/tools/open-graph-preview-checker",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Open Graph Checker & Social Preview Tool | Yoryantra",
-
+    title: "Open Graph Preview Checker | Inspect Social Metadata | Yoryantra",
     description:
-      "Check Open Graph tags from HTML, preview social sharing metadata, and inspect og:title, og:description, og:image, og:url, and Twitter card tags.",
+      "Inspect Open Graph and X card tags from pasted HTML, find duplicate or missing metadata, validate URLs, and preview likely sharing content.",
   },
 };
 
-export default function OpenGraphPreviewCheckerPage() {
+export default function Page() {
   return <ToolClient />;
 }

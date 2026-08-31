@@ -1,50 +1,28 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "JSON Path Tester | Test JSON Paths Online | Yoryantra",
-
+  title: "JSONPath Tester | Test RFC 9535 Paths | Yoryantra",
   description:
-    "Test JSON paths against JSON data, inspect matched values, check nested keys, arrays, and JSON query results directly in your browser.",
-
-  keywords: [
-    "json path tester",
-    "jsonpath tester",
-    "test json path",
-    "json path checker",
-    "json query tester",
-    "json path online",
-    "json path evaluator",
-    "json tools",
-    "developer tools",
-  ],
-
+    "Test JSONPath expressions against JSON data with child, wildcard, index, slice, descendant, and basic filter selectors based on RFC 9535.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-path-tester",
   },
-
   openGraph: {
-    title: "JSON Path Tester | Test JSON Paths Online | Yoryantra",
-
+    title: "JSONPath Tester | Test RFC 9535 Paths | Yoryantra",
     description:
-      "Test JSON paths against JSON data, inspect matched values, check nested keys, arrays, and JSON query results directly in your browser.",
-
+      "Test JSONPath expressions against JSON data with child, wildcard, index, slice, descendant, and basic filter selectors based on RFC 9535.",
     url: "https://yoryantra.com/tools/json-path-tester",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "JSON Path Tester | Test JSON Paths Online | Yoryantra",
-
+    title: "JSONPath Tester | Test RFC 9535 Paths | Yoryantra",
     description:
-      "Test JSON paths against JSON data, inspect matched values, check nested keys, arrays, and JSON query results directly in your browser.",
+      "Test JSONPath expressions against JSON data with child, wildcard, index, slice, descendant, and basic filter selectors based on RFC 9535.",
   },
 };
 
-export default function JSONPathTesterPage() {
+export default function Page() {
   return <ToolClient />;
 }

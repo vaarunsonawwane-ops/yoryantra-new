@@ -1,382 +1,377 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
+
+type RuleGroup = {
+  id: number;
+  userAgents: string;
+  allow: string;
+  disallow: string;
+};
+
+type BuildResult = {
+  output: string;
+  warnings: string[];
+};
+
+const initialGroups: RuleGroup[] = [
+  {
+    id: 1,
+    userAgents: "*",
+    allow: "/",
+    disallow: "/admin\n/private",
+  },
+];
 
 export default function ToolClient() {
-  const [userAgent, setUserAgent] = useState("*");
-  const [allowPath, setAllowPath] = useState("/");
-  const [disallowPath, setDisallowPath] = useState("/admin");
-  const [sitemapUrl, setSitemapUrl] = useState("");
+  const [groups, setGroups] = useState<RuleGroup[]>(initialGroups);
+  const [sitemaps, setSitemaps] = useState("https://example.com/sitemap.xml");
   const [output, setOutput] = useState("");
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  const [nextId, setNextId] = useState(2);
 
-  const generateRobotsTxt = () => {
-    let robots = `User-agent: ${userAgent}\n`;
+  const updateGroup = (
+    id: number,
+    field: "userAgents" | "allow" | "disallow",
+    value: string
+  ) => {
+    setGroups((current) =>
+      current.map((group) =>
+        group.id === id ? { ...group, [field]: value } : group
+      )
+    );
+  };
 
-    if (allowPath.trim()) {
-      robots += `Allow: ${allowPath}\n`;
+  const addGroup = () => {
+    setGroups((current) => [
+      ...current,
+      { id: nextId, userAgents: "", allow: "", disallow: "" },
+    ]);
+    setNextId((value) => value + 1);
+  };
+
+  const removeGroup = (id: number) => {
+    setGroups((current) => current.filter((group) => group.id !== id));
+  };
+
+  const generate = () => {
+    try {
+      const result = buildRobotsTxt(groups, sitemaps);
+      setOutput(result.output);
+      setWarnings(result.warnings);
+      setError("");
+    } catch (err) {
+      setOutput("");
+      setWarnings([]);
+      setError(err instanceof Error ? err.message : "Unable to build robots.txt.");
     }
-
-    if (disallowPath.trim()) {
-      robots += `Disallow: ${disallowPath}\n`;
-    }
-
-    if (sitemapUrl.trim()) {
-      robots += `\nSitemap: ${sitemapUrl}`;
-    }
-
-    setOutput(robots.trim());
   };
 
   const resetAll = () => {
-    setUserAgent("*");
-    setAllowPath("/");
-    setDisallowPath("/admin");
-    setSitemapUrl("");
+    setGroups(initialGroups);
+    setSitemaps("https://example.com/sitemap.xml");
     setOutput("");
+    setWarnings([]);
+    setError("");
+    setNextId(2);
   };
 
   return (
     <ToolShell
       title="Robots.txt Generator"
-      description="Generate robots.txt files instantly with this free online Robots.txt Generator."
+      description="Build robots.txt groups with user-agent, Allow, Disallow, and Sitemap records while checking common Robots Exclusion Protocol mistakes."
     >
-      {/* USER AGENT */}
-      <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          User Agent
-        </label>
+      <div className="space-y-8">
+        {groups.map((group, index) => (
+          <section
+            key={group.id}
+            className="rounded-2xl border border-gray-200 bg-gray-50 p-5"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Rule Group {index + 1}
+              </h2>
+              {groups.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeGroup(group.id)}
+                  className="yoryantra-btn-outline text-sm"
+                >
+                  Remove Group
+                </button>
+              )}
+            </div>
 
-        <input
-          value={userAgent}
-          onChange={(e) => setUserAgent(e.target.value)}
-          placeholder="*"
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-        />
+            <label className="mt-5 block text-sm font-medium text-gray-700">
+              User agents
+            </label>
+            <textarea
+              value={group.userAgents}
+              onChange={(event: { target: { value: string } }) =>
+                updateGroup(group.id, "userAgents", event.target.value)
+              }
+              rows={3}
+              placeholder={"*\nGooglebot"}
+              className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            />
+            <p className="mt-2 text-sm text-gray-500">
+              One product token per line. Use * for all crawlers.
+            </p>
+
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Allow paths
+                </label>
+                <textarea
+                  value={group.allow}
+                  onChange={(event: { target: { value: string } }) =>
+                    updateGroup(group.id, "allow", event.target.value)
+                  }
+                  rows={5}
+                  placeholder={"/\n/private/public-file.html"}
+                  className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Disallow paths
+                </label>
+                <textarea
+                  value={group.disallow}
+                  onChange={(event: { target: { value: string } }) =>
+                    updateGroup(group.id, "disallow", event.target.value)
+                  }
+                  rows={5}
+                  placeholder={"/admin\n/private"}
+                  className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                />
+              </div>
+            </div>
+          </section>
+        ))}
       </div>
 
-      {/* ALLOW */}
-      <div className="mt-6">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Allow Path
+      <button
+        type="button"
+        onClick={addGroup}
+        className="yoryantra-btn-outline mt-5"
+      >
+        Add Rule Group
+      </button>
+
+      <div className="mt-8">
+        <label className="block text-sm font-medium text-gray-700">
+          Sitemap URLs
         </label>
-
-        <input
-          value={allowPath}
-          onChange={(e) => setAllowPath(e.target.value)}
-          placeholder="/"
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-        />
-      </div>
-
-      {/* DISALLOW */}
-      <div className="mt-6">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Disallow Path
-        </label>
-
-        <input
-          value={disallowPath}
-          onChange={(e) => setDisallowPath(e.target.value)}
-          placeholder="/admin"
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-        />
-      </div>
-
-      {/* SITEMAP */}
-      <div className="mt-6">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Sitemap URL
-        </label>
-
-        <input
-          value={sitemapUrl}
-          onChange={(e) => setSitemapUrl(e.target.value)}
+        <textarea
+          value={sitemaps}
+          onChange={(event: { target: { value: string } }) => setSitemaps(event.target.value)}
+          rows={3}
           placeholder="https://example.com/sitemap.xml"
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
+        <p className="mt-2 text-sm text-gray-500">
+          Optional. Add one absolute HTTP or HTTPS sitemap URL per line.
+        </p>
       </div>
 
-      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={generateRobotsTxt}
-          className="yoryantra-btn"
-        >
-          Generate Robots.txt
+        <button onClick={generate} className="yoryantra-btn">
+          Generate robots.txt
         </button>
-
-        <button
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
+        <button onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Generated Robots.txt
-          </h3>
+      {error && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
+      )}
 
+      {warnings.length > 0 && (
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+          <p className="font-semibold">Review these notes</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-8">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Generated robots.txt
+          </h3>
           {output && (
             <button
-              onClick={() =>
-                navigator.clipboard.writeText(output)
-              }
+              onClick={() => navigator.clipboard.writeText(output)}
               className="yoryantra-btn-outline text-sm"
             >
               Copy
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
-          {output ||
-            "Generated robots.txt output will appear here..."}
+        <pre className="yoryantra-output mt-3 min-h-[260px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Generated robots.txt will appear here."}
         </pre>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Creating Robots.txt Files Without Blocking the Wrong Pages
+            Build crawler groups without treating robots.txt as security
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Robots.txt files help websites control how search engines and bots
-            crawl pages, directories, media files, APIs, and dynamic URLs.
-            Search engines check robots.txt instructions before crawling a
-            website to determine which sections should be allowed or blocked.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A robots.txt file contains one or more user-agent groups followed by
+            Allow and Disallow rules. RFC 9309 says crawlers use the most
+            specific matching path, and an equally specific Allow rule takes
+            precedence over Disallow. Multiple groups that match the same
+            crawler can be combined by the crawler.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            During technical SEO setup, incorrect robots.txt rules can
-            accidentally block important pages, reduce indexing, hide assets,
-            break crawl paths, or prevent search engines from discovering
-            valuable content. This Robots.txt Generator helps create clean crawl
-            rules quickly without writing everything manually.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool is useful for blogs, ecommerce stores, SaaS dashboards,
-            frontend applications, staging environments, static websites, and
-            technical SEO workflows directly inside your browser.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Robots rules are public crawl instructions, not authentication or
+            access control. Do not list a sensitive path and assume the file
+            makes that path private.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the Robots.txt Generator
+            Details worth checking before publishing
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Enter the user agent, usually <strong>*</strong> for all bots.
-            </li>
-
-            <li>
-              Add allowed and blocked paths.
-            </li>
-
-            <li>
-              Add your sitemap URL if available.
-            </li>
-
-            <li>
-              Click <strong>Generate Robots.txt</strong>.
-            </li>
-
-            <li>
-              Copy the generated robots.txt file and upload it to your website
-              root.
-            </li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Creating robots.txt files for new websites.</li>
-
-            <li>Blocking admin panels and private sections.</li>
-
-            <li>Managing crawler access for SEO optimization.</li>
-
-            <li>Adding sitemap.xml locations for search engines.</li>
-
-            <li>Preparing crawl rules before deployment.</li>
-
-            <li>Configuring crawl access for ecommerce stores.</li>
-
-            <li>Improving technical SEO and crawl efficiency.</li>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>User-agent product tokens use letters, underscores, or hyphens; * matches all crawlers.</li>
+            <li>Allow and Disallow patterns normally begin with / and may use * and $ matching characters.</li>
+            <li>Sitemap records are commonly understood by search engines but are outside the core Allow/Disallow grammar.</li>
+            <li>Publish the file at the top-level /robots.txt location for the host it controls.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example Robots.txt File
+            Reference
           </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <pre className="whitespace-pre-wrap break-words">
-{`User-agent: *
-Allow: /
-Disallow: /admin
-
-Sitemap: https://example.com/sitemap.xml`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Robots.txt Directives
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>User-agent:</strong> Specifies which crawler the rules
-                apply to.
-              </li>
-
-              <li>
-                <strong>Allow:</strong> Permits crawlers to access specific
-                paths or sections.
-              </li>
-
-              <li>
-                <strong>Disallow:</strong> Blocks crawlers from specific URLs or
-                directories.
-              </li>
-
-              <li>
-                <strong>Sitemap:</strong> Helps search engines locate XML
-                sitemap files faster.
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is robots.txt?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Robots.txt is a text file placed at the root of a website to
-                provide crawl instructions for search engines and bots.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Where should I upload robots.txt?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                The robots.txt file is usually uploaded to the root of the
-                domain, such as example.com/robots.txt.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can robots.txt block pages from Google?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Incorrect robots.txt rules can prevent search engines from
-                crawling important pages and assets.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does robots.txt protect private content?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Robots.txt is only a crawler instruction and should not be
-                used to secure sensitive or private information.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is robots.txt generation processed on the server?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Robots.txt generation happens directly inside your browser.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Robots.txt generation often connects with sitemap creation,
-            canonical URLs, redirects, crawl optimization, and technical SEO
-            workflows.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The generator follows the group and rule model in{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc9309"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium underline"
+            >
+              RFC 9309, Robots Exclusion Protocol
+            </a>
+            . The generation happens locally in your browser.
           </p>
+        </div>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/tools/robots-txt-tester"
-              className="yoryantra-btn-outline"
-            >
-              Robots.txt Tester
-            </Link>
-
-            <Link
-              href="/tools/sitemap-generator"
-              className="yoryantra-btn-outline"
-            >
-              Sitemap Generator
-            </Link>
-
-            <Link
-              href="/tools/canonical-url-checker"
-              className="yoryantra-btn-outline"
-            >
-              Canonical URL Checker
-            </Link>
-
-            <Link
-              href="/tools/redirect-checker"
-              className="yoryantra-btn-outline"
-            >
-              Redirect Checker
-            </Link>
-
-            <Link
-              href="/tools/meta-tag-generator"
-              className="yoryantra-btn-outline"
-            >
-              Meta Tag Generator
-            </Link>
-          </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <YoryantraRelatedTools currentHref="/tools/robots-txt-generator" />
         </div>
       </section>
     </ToolShell>
   );
+}
+
+function buildRobotsTxt(groups: RuleGroup[], sitemapSource: string): BuildResult {
+  if (!groups.length) {
+    throw new Error("Add at least one user-agent group.");
+  }
+
+  const warnings: string[] = [];
+  const chunks: string[] = [];
+
+  groups.forEach((group, index) => {
+    const userAgents = uniqueLines(group.userAgents);
+    const allow = uniqueLines(group.allow);
+    const disallow = uniqueLines(group.disallow);
+
+    if (!userAgents.length) {
+      throw new Error(`Rule Group ${index + 1} needs at least one user agent.`);
+    }
+
+    userAgents.forEach((agent) => {
+      if (agent !== "*" && !/^[A-Za-z_-]+$/.test(agent)) {
+        throw new Error(
+          `Rule Group ${index + 1}: "${agent}" is not a valid RFC 9309 product token.`
+        );
+      }
+    });
+
+    [...allow, ...disallow].forEach((path) => {
+      if (!path.startsWith("/")) {
+        warnings.push(
+          `Rule Group ${index + 1}: "${path}" does not begin with /. Review whether this is the path pattern you intended.`
+        );
+      }
+      if (path.includes("#")) {
+        warnings.push(
+          `Rule Group ${index + 1}: "#" starts a robots.txt comment; encode a literal # if it belongs in the path.`
+        );
+      }
+    });
+
+    if (!allow.length && !disallow.length) {
+      warnings.push(
+        `Rule Group ${index + 1} has no rules, which implicitly allows crawling for matching user agents.`
+      );
+    }
+
+    const lines = [
+      ...userAgents.map((agent) => `User-agent: ${agent}`),
+      ...allow.map((path) => `Allow: ${path}`),
+      ...disallow.map((path) => `Disallow: ${path}`),
+    ];
+    chunks.push(lines.join("\n"));
+  });
+
+  const sitemapUrls = uniqueLines(sitemapSource);
+  sitemapUrls.forEach((value) => {
+    const url = parseHttpUrl(value);
+    if (!url) {
+      throw new Error(`Sitemap URL "${value}" must be an absolute HTTP or HTTPS URL.`);
+    }
+  });
+
+  const output = [
+    chunks.join("\n\n"),
+    sitemapUrls.length
+      ? sitemapUrls.map((url) => `Sitemap: ${url}`).join("\n")
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
+
+  return { output, warnings: Array.from(new Set(warnings)) };
+}
+
+function uniqueLines(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+function parseHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
 }
