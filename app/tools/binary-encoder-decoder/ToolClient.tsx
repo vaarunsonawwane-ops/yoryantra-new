@@ -44,6 +44,13 @@ export default function ToolClient() {
     }
 
     try {
+      const invalidSurrogate = findUnpairedSurrogate(input);
+      if (invalidSurrogate !== -1) {
+        throw new Error(
+          `Input contains an unpaired UTF-16 surrogate at code-unit position ${invalidSurrogate + 1}. Repair the text before UTF-8 encoding so it is not silently replaced with U+FFFD.`,
+        );
+      }
+
       const bytes = new TextEncoder().encode(input);
       const groups = Array.from(bytes, (byte) => byte.toString(2).padStart(8, "0"));
 
@@ -123,7 +130,7 @@ export default function ToolClient() {
         />
 
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          Decoding accepts 8-bit groups separated by spaces, commas, or line breaks; 0b-prefixed bytes; and continuous bit strings whose length is a multiple of 8.
+          Decoding accepts 8-bit groups separated by spaces, commas, or line breaks; 0b-prefixed 8-bit bytes; and one continuous bit string whose length is a multiple of 8. Separators are treated as byte boundaries.
         </p>
       </div>
 
@@ -220,6 +227,9 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             If you are inspecting arbitrary binary data such as compressed files, images, encrypted data, or protocol frames, use a hex or byte-oriented tool instead of assuming the bytes are text.
           </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The browser TextEncoder API accepts Unicode scalar-value text. A lone UTF-16 surrogate is not a valid Unicode scalar value, so this tool reports it instead of allowing the browser conversion step to silently substitute U+FFFD before encoding.
+          </p>
         </div>
 
         <div>
@@ -278,21 +288,30 @@ function parseBinaryBytes(input: string) {
       throw new Error("When 0b prefixes are used, each byte must look like 0b01000001 and contain exactly 8 bits.");
     }
 
-    return new Uint8Array(tokens.map((token) => Number.parseInt(token.slice(2), 2)));
+    return validateUtf8Bytes(new Uint8Array(tokens.map((token) => Number.parseInt(token.slice(2), 2))));
   }
 
   if (/[^01\s,]/.test(trimmed)) {
     throw new Error("Binary input can contain only 0, 1, whitespace, commas, or 0b-prefixed 8-bit bytes.");
   }
 
-  const compact = trimmed.replace(/[\s,]+/g, "");
+  const hasSeparators = /[\s,]/.test(trimmed);
+  const tokens = trimmed.split(/[\s,]+/).filter(Boolean);
 
-  if (!compact) {
+  if (tokens.length === 0) {
     throw new Error("Please enter binary bytes to decode.");
   }
 
+  if (hasSeparators && tokens.length > 1) {
+    if (tokens.some((token) => !/^[01]{8}$/.test(token))) {
+      throw new Error("When spaces, commas, or line breaks separate values, each binary byte must contain exactly 8 bits. Remove the separators to use one continuous bit string.");
+    }
+    return validateUtf8Bytes(new Uint8Array(tokens.map((token) => Number.parseInt(token, 2))));
+  }
+
+  const compact = tokens.join("");
   if (compact.length % 8 !== 0) {
-    throw new Error(`The binary input contains ${compact.length} bits. UTF-8 decoding requires complete 8-bit bytes.`);
+    throw new Error(`The continuous binary input contains ${compact.length} bits. UTF-8 decoding requires complete 8-bit bytes.`);
   }
 
   const values: number[] = [];
@@ -300,16 +319,31 @@ function parseBinaryBytes(input: string) {
     values.push(Number.parseInt(compact.slice(index, index + 8), 2));
   }
 
-  const bytes = new Uint8Array(values);
+  return validateUtf8Bytes(new Uint8Array(values));
+}
 
+function validateUtf8Bytes(bytes: Uint8Array) {
   try {
     new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
     const hex = Array.from(bytes, (byte) => byte.toString(16).toUpperCase().padStart(2, "0")).join(" ");
     throw new Error(`These are complete bytes, but they are not valid UTF-8 text. Byte sequence: ${hex}.`);
   }
-
   return bytes;
+}
+
+function findUnpairedSurrogate(input: string) {
+  for (let index = 0; index < input.length; index += 1) {
+    const codeUnit = input.charCodeAt(index);
+    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
+      const next = index + 1 < input.length ? input.charCodeAt(index + 1) : -1;
+      if (next < 0xdc00 || next > 0xdfff) return index;
+      index += 1;
+    } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
+      return index;
+    }
+  }
+  return -1;
 }
 
 function buildDiagnostics(mode: Diagnostics["mode"], bytes: Uint8Array): Diagnostics {

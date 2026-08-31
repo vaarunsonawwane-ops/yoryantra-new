@@ -473,7 +473,11 @@ function analyzeTitles(options: {
 
   const rows = parsedRows.map((row) => analyzeRow(row, options));
   const duplicateFindings = options.checkDuplicates ? getDuplicateFindings(rows) : [];
-  const findings = [...rows.flatMap((row) => row.findings), ...duplicateFindings];
+  const rowFindings: Finding[] = [];
+  rows.forEach((row) => {
+    rowFindings.push(...row.findings);
+  });
+  const findings = [...rowFindings, ...duplicateFindings];
   const totalLength = rows.reduce((sum, row) => sum + row.length, 0);
 
   const base = {
