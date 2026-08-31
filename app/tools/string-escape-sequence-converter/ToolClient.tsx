@@ -420,6 +420,9 @@ export default function ToolClient() {
           <p className="mt-4 text-gray-600 leading-relaxed">
             Non-BMP characters such as many emoji need special handling in JSON. If non-ASCII escaping is enabled, JSON output uses a UTF-16 surrogate pair such as <code className="rounded bg-gray-100 px-1 py-0.5">\uD83D\uDE80</code> rather than JavaScript&apos;s braced form.
           </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The C-style mode is intended for debugging common C escape notation, not for proving that a literal is valid for a particular compiler, execution character set, source encoding, or language standard mode. C octal and hexadecimal escapes have different consumption rules from JavaScript&apos;s fixed-width <code className="rounded bg-gray-100 px-1 py-0.5">\xHH</code> escape, so the selected style matters.
+          </p>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
@@ -427,9 +430,14 @@ export default function ToolClient() {
           <p className="mt-3 text-gray-600 leading-relaxed">
             If a copied API value looks double-escaped, decode once and inspect the result before decoding again. Repeated unescaping can change literal backslashes that were meant to remain part of the data. The character table is useful for spotting real control characters, Unicode code points, and invisible line breaks before you paste a value back into code or configuration.
           </p>
-          <a href="https://www.rfc-editor.org/rfc/rfc8259.html#section-7" target="_blank" rel="noreferrer" className="mt-3 inline-flex font-medium text-[var(--green)] hover:underline">
-            JSON string escaping in RFC 8259 →
-          </a>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            <a href="https://www.rfc-editor.org/rfc/rfc8259.html#section-7" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">
+              JSON string escaping in RFC 8259 →
+            </a>
+            <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#escape_sequences" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">
+              JavaScript escape syntax on MDN →
+            </a>
+          </div>
         </div>
 
         <div>
@@ -580,27 +588,71 @@ function decodeEscapes(
       t: "\t",
     };
 
-    const commonSimple: Record<string, string> = {
+    const javascriptSimple: Record<string, string> = {
       ...jsonSimple,
       v: "\v",
-      "0": "\0",
       "'": "'",
       "`": "`",
     };
 
-    const simple = style === "json"
-      ? jsonSimple
-      : style === "c"
-        ? { ...commonSimple, a: "\x07" }
-        : commonSimple;
+    const cSimple: Record<string, string> = {
+      "\"": "\"",
+      "\\": "\\",
+      "'": "'",
+      "?": "?",
+      a: "\x07",
+      b: "\b",
+      f: "\f",
+      n: "\n",
+      r: "\r",
+      t: "\t",
+      v: "\v",
+    };
+
+    if (style === "javascript" && /^[0-9]$/.test(next)) {
+      const following = input[index + 2] ?? "";
+      if (next === "0" && !/^[0-9]$/.test(following)) {
+        output += "\0";
+      } else {
+        output += `\\${next}`;
+        warn(
+          "Legacy numeric escape not decoded",
+          `\\${next} is a legacy numeric/octal escape form in JavaScript and is restricted in strict-mode code. The sequence was kept unchanged instead of guessing legacy parser behavior.`,
+        );
+      }
+      index += 1;
+      continue;
+    }
+
+    if (style === "javascript" && (next === "\n" || next === "\r" || next === "\u2028" || next === "\u2029")) {
+      if (next === "\r" && input[index + 2] === "\n") index += 2;
+      else index += 1;
+      continue;
+    }
+
+    const simple = style === "json" ? jsonSimple : style === "c" ? cSimple : javascriptSimple;
     if (Object.prototype.hasOwnProperty.call(simple, next)) {
       output += simple[next];
       index += 1;
       continue;
     }
 
+    if (style === "c" && /^[0-7]$/.test(next)) {
+      let end = index + 1;
+      while (end + 1 < input.length && end - index < 3 && /^[0-7]$/.test(input[end + 1])) end += 1;
+      const octal = input.slice(index + 1, end + 1);
+      const value = Number.parseInt(octal, 8);
+      if (value <= 0xff) output += String.fromCharCode(value);
+      else {
+        output += `\\${octal}`;
+        warn("C octal value is implementation-dependent", `\\${octal} is above 255. Mapping that value to a browser Unicode character would not reliably model a C execution character set, so the sequence was kept unchanged.`);
+      }
+      index = end;
+      continue;
+    }
+
+
     if (next === "x") {
-      const hex = input.slice(index + 2, index + 4);
       if (style === "json" || style === "unicode") {
         const raw = input.slice(index, Math.min(index + 4, input.length));
         output += raw;
@@ -611,6 +663,28 @@ function decodeEscapes(
         index += raw.length - 1;
         continue;
       }
+
+      if (style === "c") {
+        let end = index + 2;
+        while (end < input.length && /^[0-9a-fA-F]$/.test(input[end])) end += 1;
+        const digits = input.slice(index + 2, end);
+        if (!digits) {
+          output += "\\x";
+          warn("Invalid C hex escape", `\\x at position ${index} is not followed by a hexadecimal digit.`);
+          index += 1;
+          continue;
+        }
+        const value = Number.parseInt(digits, 16);
+        if (value <= 0xff) output += String.fromCharCode(value);
+        else {
+          output += input.slice(index, end);
+          warn("C hex value is implementation-dependent", `\\x${digits} is above 255. C interprets hexadecimal escapes through its execution character set, so this browser tool left the sequence unchanged instead of mapping it to Unicode.`);
+        }
+        index = end - 1;
+        continue;
+      }
+
+      const hex = input.slice(index + 2, index + 4);
       if (/^[0-9a-fA-F]{2}$/.test(hex)) {
         output += String.fromCharCode(Number.parseInt(hex, 16));
         index += 3;
@@ -696,6 +770,17 @@ function decodeEscapes(
         warn("Invalid C Unicode escape", `\\U at position ${index} does not have eight valid hex digits.`);
         index += 1;
       }
+      continue;
+    }
+
+    if (style === "javascript" && next !== "\n" && next !== "\r") {
+      output += next;
+      warn(
+        "JavaScript identity escape",
+        `\\${next} is not a named JavaScript escape. JavaScript string-literal parsing treats this as the character ${next} without the backslash; avoid relying on identity escapes in portable data formats.`,
+        "info",
+      );
+      index += 1;
       continue;
     }
 

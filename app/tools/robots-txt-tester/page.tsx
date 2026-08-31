@@ -5,16 +5,6 @@ export const metadata: Metadata = {
   title: "Robots.txt Tester | Test Allow & Disallow Rules | Yoryantra",
   description:
     "Test robots.txt Allow and Disallow rules against a URL and crawler, using longest-match precedence, user-agent groups, wildcards, end anchors, comments, and RFC 9309 behavior.",
-  keywords: [
-    "robots.txt tester",
-    "robots txt checker",
-    "robots.txt rule tester",
-    "robots.txt allow disallow tester",
-    "Googlebot robots tester",
-    "robots.txt wildcard tester",
-    "robots exclusion protocol tester",
-    "RFC 9309 robots.txt",
-  ],
   alternates: {
     canonical: "https://yoryantra.com/tools/robots-txt-tester",
   },

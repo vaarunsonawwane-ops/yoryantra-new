@@ -289,6 +289,9 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             That detail matters. A broad <code className="rounded bg-gray-100 px-1 py-0.5">Disallow: /private/</code> can be overridden by a longer <code className="rounded bg-gray-100 px-1 py-0.5">Allow: /private/public-page</code>, but a shorter Allow should not cancel a more specific Disallow.
           </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            When you enter a full URL, this browser tool uses its path and query for rule matching. It cannot verify that the pasted robots.txt was actually served from that URL&apos;s scheme, host, and port, nor can it reproduce crawler caching or HTTP-status handling. For a live Google-specific check, compare the result with the robots.txt report in Search Console.
+          </p>
         </div>
 
         <div>
@@ -316,6 +319,7 @@ export default function ToolClient() {
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             <a href="https://www.rfc-editor.org/rfc/rfc9309.html" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">RFC 9309 →</a>
             <a href="https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">Google robots.txt interpretation →</a>
+            <a href="https://developers.google.com/crawling/docs/robots-txt/create-robots-txt" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">Google robots.txt testing guidance →</a>
           </div>
         </div>
 
@@ -332,6 +336,13 @@ function parseRobots(input: string) {
   const groups: Group[] = [];
   const issues: ParseIssue[] = [];
   const sitemaps: string[] = [];
+  const inputBytes = new TextEncoder().encode(input).length;
+  if (inputBytes > 500 * 1024) {
+    issues.push({
+      severity: "warning",
+      message: `This pasted file is ${inputBytes.toLocaleString()} UTF-8 bytes. RFC 9309 requires crawlers to support at least 500 KiB, while Google documents a 500 KiB parsing limit; rules beyond a crawler's limit may be ignored.`,
+    });
+  }
   let agents: string[] = [];
   let rules: Rule[] = [];
   let groupIndex = 0;
@@ -366,6 +377,9 @@ function parseRobots(input: string) {
       if (!value) {
         issues.push({ severity: "warning", line: lineNumber, message: "Empty user-agent value was ignored." });
         return;
+      }
+      if (value !== "*" && !/^[A-Za-z_-]+$/.test(value)) {
+        issues.push({ severity: "warning", line: lineNumber, message: `User-agent '${value}' is not an RFC 9309 product token. Strict product tokens contain only letters, underscore, or hyphen; crawler-specific parsers may be more lenient.` });
       }
       if (rulePhaseStarted) pushGroup();
       agents.push(value);

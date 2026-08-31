@@ -159,7 +159,7 @@ export default function ToolClient() {
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
             <div className="text-sm font-semibold text-gray-900">Get the response chain with cURL</div>
             <p className="mt-2 text-sm leading-relaxed text-gray-600">
-              Run the command below in a terminal, then paste the response headers into the panel on the right. Using GET avoids assuming that a server handles HEAD exactly like GET.
+              Run the command below in a POSIX-style shell, then paste the response headers into the panel on the right. For method-sensitive requests, reproduce the real body, authentication, and headers your application sends; a method name alone cannot recreate the whole request. Non-GET/HEAD commands use curl <code className="rounded bg-white px-1 py-0.5">--follow</code>, available in curl 8.16.0 and later.
             </p>
             <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-xs text-gray-700">
               {curlCommand || "Enter a valid HTTP or HTTPS URL to generate the command."}
@@ -307,22 +307,23 @@ export default function ToolClient() {
             <li>HTTPS pages should not unexpectedly redirect back to HTTP.</li>
             <li>Redirect maps should not send multiple old URLs into loops or back to themselves.</li>
             <li>POST, PUT, PATCH, and DELETE workflows deserve extra attention because 301/302 and 307/308 have different method semantics.</li>
+            <li>This checker evaluates HTTP status responses and Location headers. HTML meta refresh, JavaScript navigation, service-worker routing, and application-level redirects are different mechanisms and are outside this check.</li>
           </ul>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">Standards Reference</h2>
           <p className="mt-3 leading-relaxed text-gray-600">
-            Redirect status semantics are defined in HTTP Semantics, RFC 9110. When you need to verify production behavior, capture the actual response headers from the same request method and environment that matters to your application.
+            Redirect status semantics are defined in HTTP Semantics, RFC 9110. The generated command follows redirects only to HTTP or HTTPS destinations. For non-GET methods it uses curl 8.16.0+ <code className="rounded bg-white px-1 py-0.5">--follow</code> behavior, because curl documents that combining a custom <code className="rounded bg-white px-1 py-0.5">--request</code> method with <code className="rounded bg-white px-1 py-0.5">--location</code> can force that method onto later hops and change the behavior you are trying to inspect.
           </p>
-          <a
-            href="https://www.rfc-editor.org/rfc/rfc9110.html#name-redirection-3xx"
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex font-medium text-[var(--green)] hover:underline"
-          >
-            Read RFC 9110 redirection semantics →
-          </a>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            <a href="https://www.rfc-editor.org/rfc/rfc9110.html#name-redirection-3xx" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">
+              RFC 9110 redirection semantics →
+            </a>
+            <a href="https://curl.se/docs/manpage.html#--follow" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">
+              curl redirect options →
+            </a>
+          </div>
         </div>
 
         <div>
@@ -347,8 +348,10 @@ function normalizeHttpUrl(value: string) {
 
 function buildCurlCommand(url: string, method: RequestMethod) {
   const quoted = `'${url.replace(/'/g, `'\\''`)}'`;
-  const methodPart = method === "GET" ? "" : ` -X ${method}`;
-  return `curl -sS -D - -o /dev/null -L --max-redirs 10${methodPart} ${quoted}`;
+  const common = "-sS -D - -o /dev/null --max-redirs 10 --proto-redir =http,https";
+  if (method === "GET") return `curl ${common} -L ${quoted}`;
+  if (method === "HEAD") return `curl ${common} --head -L ${quoted}`;
+  return `curl ${common} --follow -X ${method} ${quoted}`;
 }
 
 function parseResponseChain(input: string): ParsedResponse[] {
@@ -515,7 +518,7 @@ function analyzeRedirects(startUrl: string, requestMethod: RequestMethod, respon
     });
   }
 
-  const finalStatus = hops.at(-1)?.status;
+  const finalStatus = hops.length ? hops[hops.length - 1].status : undefined;
   if (finalStatus && redirectStatuses.has(finalStatus)) {
     findings.push({
       severity: "warning",

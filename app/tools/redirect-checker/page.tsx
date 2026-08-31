@@ -5,17 +5,6 @@ export const metadata: Metadata = {
   title: "Redirect Checker | Analyze Redirect Chains & Status Codes | Yoryantra",
   description:
     "Analyze HTTP redirect response headers, follow Location hops, resolve relative redirects, spot loops, HTTPS downgrades, missing Location headers, and long chains locally.",
-  keywords: [
-    "redirect checker",
-    "redirect chain checker",
-    "301 redirect checker",
-    "302 redirect checker",
-    "307 redirect checker",
-    "308 redirect checker",
-    "HTTP redirect analyzer",
-    "Location header checker",
-    "SEO redirect checker",
-  ],
   alternates: {
     canonical: "https://yoryantra.com/tools/redirect-checker",
   },
