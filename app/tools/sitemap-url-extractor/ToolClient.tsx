@@ -327,6 +327,9 @@ export default function ToolClient() {
           <p className="mt-4 text-gray-600 leading-relaxed">
             A single sitemap is limited to 50,000 URLs and 50 MB uncompressed. A sitemap index can list up to 50,000 sitemap files and is subject to the same uncompressed size limit. The tool checks the pasted text size and entry count so an oversized file is visible before you rely on the extracted list.
           </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The protocol also ties sitemap entries to site location. A normal URL sitemap is expected to contain page URLs for one protocol and host, while a sitemap index normally lists child sitemap files from the same site. This extractor can flag mixed origins inside the pasted XML, but it cannot prove hosting scope or cross-site authorization because it does not know where the sitemap is actually published.
+          </p>
         </div>
 
         <div>
@@ -351,6 +354,7 @@ export default function ToolClient() {
           <div className="mt-4 flex flex-wrap gap-3">
             <a className="yoryantra-btn-outline" href="https://www.sitemaps.org/protocol.html" target="_blank" rel="noreferrer">Sitemaps protocol</a>
             <a className="yoryantra-btn-outline" href="https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap" target="_blank" rel="noreferrer">Google sitemap guidance</a>
+            <a className="yoryantra-btn-outline" href="https://developers.google.com/search/docs/crawling-indexing/sitemaps/image-sitemaps" target="_blank" rel="noreferrer">Google image sitemap guidance</a>
           </div>
         </div>
 
@@ -526,6 +530,11 @@ function addProtocolWarnings(entries: SitemapEntry[], warnings: string[], byteSi
   const invalidUrls = entries.filter((entry) => !isAbsoluteHttpUrl(entry.loc));
   if (invalidUrls.length > 0) warnings.push(`${invalidUrls.length} loc value${invalidUrls.length === 1 ? " is" : "s are"} not an absolute HTTP(S) URL.`);
 
+  const primaryOrigins = Array.from(new Set(entries.map((entry) => webOrigin(entry.loc)).filter(Boolean)));
+  if (primaryOrigins.length > 1) {
+    warnings.push(`Primary loc values span ${primaryOrigins.length} origins (${primaryOrigins.slice(0, 3).join(", ")}${primaryOrigins.length > 3 ? ", ..." : ""}). A normal sitemap should list URLs for one target origin, and a sitemap index should normally list sitemap files from the same site. Verify the published sitemap location and any cross-site submission setup.`);
+  }
+
   const overlong = entries.filter((entry) => entry.loc.length >= 2048);
   if (overlong.length > 0) warnings.push(`${overlong.length} loc value${overlong.length === 1 ? " is" : "s are"} 2,048 characters or longer; the sitemap protocol requires loc values to be under 2,048 characters.`);
 
@@ -538,7 +547,10 @@ function addProtocolWarnings(entries: SitemapEntry[], warnings: string[], byteSi
   const invalidPriority = entries.filter((entry) => entry.priority && !isValidPriority(entry.priority));
   if (invalidPriority.length > 0) warnings.push(`${invalidPriority.length} priority value${invalidPriority.length === 1 ? " is" : "s are"} outside the protocol range 0.0 to 1.0.`);
 
-  const imageUrls = entries.flatMap((entry) => entry.images);
+  const imageUrls = entries.reduce<string[]>((all, entry) => {
+    all.push(...entry.images);
+    return all;
+  }, []);
   const invalidImages = imageUrls.filter((url) => !isAbsoluteHttpUrl(url));
   if (invalidImages.length > 0) warnings.push(`${invalidImages.length} image loc value${invalidImages.length === 1 ? " is" : "s are"} not an absolute HTTP(S) URL.`);
 }
@@ -549,6 +561,15 @@ function isAbsoluteHttpUrl(value: string) {
     return url.protocol === "http:" || url.protocol === "https:";
   } catch {
     return false;
+  }
+}
+
+function webOrigin(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.origin : "";
+  } catch {
+    return "";
   }
 }
 
@@ -588,14 +609,19 @@ function getSitemapType(urlCount: number, sitemapCount: number): ExtractionResul
 }
 
 function imageEntries(entries: SitemapEntry[]) {
-  return entries.flatMap((entry) => entry.images.map((imageUrl) => ({
-    loc: imageUrl,
-    lastmod: "",
-    changefreq: "",
-    priority: "",
-    images: [],
-    type: "image" as const,
-  })));
+  return entries.reduce<SitemapEntry[]>((all, entry) => {
+    entry.images.forEach((imageUrl) => {
+      all.push({
+        loc: imageUrl,
+        lastmod: "",
+        changefreq: "",
+        priority: "",
+        images: [],
+        type: "image",
+      });
+    });
+    return all;
+  }, []);
 }
 
 function filterEntries(entries: SitemapEntry[], images: SitemapEntry[], filterMode: FilterMode, includeImages: boolean) {

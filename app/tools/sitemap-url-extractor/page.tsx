@@ -5,16 +5,6 @@ export const metadata: Metadata = {
   title: "Sitemap URL Extractor | XML Sitemap Parser | Yoryantra",
   description:
     "Extract page, child-sitemap, and image URLs from XML sitemaps. Review lastmod, limits, malformed URLs, duplicates, and export clean lists locally.",
-  keywords: [
-    "sitemap URL extractor",
-    "extract URLs from sitemap",
-    "XML sitemap parser",
-    "sitemap index extractor",
-    "sitemap loc extractor",
-    "image sitemap URL extractor",
-    "sitemap lastmod checker",
-    "technical SEO sitemap tool",
-  ],
   alternates: {
     canonical: "https://yoryantra.com/tools/sitemap-url-extractor",
   },

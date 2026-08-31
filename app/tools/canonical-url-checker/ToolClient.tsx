@@ -260,6 +260,7 @@ export default function ToolClient() {
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <a className="yoryantra-btn-outline" href="https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls" target="_blank" rel="noreferrer">Google canonicalization guidance</a>
+            <a className="yoryantra-btn-outline" href="https://developers.google.com/search/docs/crawling-indexing/canonicalization-troubleshooting" target="_blank" rel="noreferrer">Google canonical troubleshooting</a>
             <a className="yoryantra-btn-outline" href="https://www.rfc-editor.org/rfc/rfc6596" target="_blank" rel="noreferrer">RFC 6596</a>
           </div>
         </div>

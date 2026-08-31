@@ -5,16 +5,6 @@ export const metadata: Metadata = {
   title: "Canonical URL Checker | Compare Canonical Tags | Yoryantra",
   description:
     "Compare a page URL with its canonical target and review host, path, query, fragment, relative URL, HTTPS, and tracking-parameter differences locally.",
-  keywords: [
-    "canonical URL checker",
-    "canonical tag checker",
-    "rel canonical checker",
-    "canonical URL validator",
-    "self canonical checker",
-    "cross domain canonical checker",
-    "technical SEO canonical",
-    "canonical URL comparison",
-  ],
   alternates: {
     canonical: "https://yoryantra.com/tools/canonical-url-checker",
   },

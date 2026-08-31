@@ -456,7 +456,11 @@ function analyzeDescriptions(options: {
 }): Result {
   const rows = parseRows(options.descriptions, options.oneDescriptionPerLine).map((description) => analyzeRow(description, options));
   const duplicateIssues = options.checkDuplicates ? getDuplicateIssues(rows) : [];
-  const issues = [...rows.flatMap((row) => row.issues), ...duplicateIssues];
+  const rowIssues = rows.reduce<Issue[]>((all, row) => {
+    all.push(...row.issues);
+    return all;
+  }, []);
+  const issues = [...rowIssues, ...duplicateIssues];
   const totalLength = rows.reduce((sum, row) => sum + row.length, 0);
 
   const base = {
