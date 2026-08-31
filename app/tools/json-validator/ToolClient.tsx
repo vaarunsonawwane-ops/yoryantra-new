@@ -54,13 +54,18 @@ const exampleJson = `{
   }
 }`;
 
+const MAX_SAFE_INTEGER_TEXT = "9007199254740991";
+
 export default function ToolClient() {
   const [input, setInput] = useState("");
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<ErrorDetails | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const warnings = useMemo(() => (result ? buildWarnings(result) : []), [result]);
+  const warnings = useMemo(
+    () => (result ? buildWarnings(result) : []),
+    [result]
+  );
 
   const clearResult = () => {
     setResult(null);
@@ -79,8 +84,8 @@ export default function ToolClient() {
     const hadBom = input.charCodeAt(0) === 0xfeff;
     const source = hadBom ? input.slice(1) : input;
 
-    if (!source.trim()) {
-      setError({ message: "JSON cannot be empty or contain only whitespace." });
+    if (source.length === 0 || isOnlyJsonWhitespace(source)) {
+      setError({ message: "JSON cannot be empty or contain only JSON whitespace." });
       setResult(null);
       setCopied(false);
       return;
@@ -118,7 +123,10 @@ export default function ToolClient() {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
-      setError({ message: "The formatted JSON could not be copied. Select and copy it manually." });
+      setError({
+        message:
+          "The formatted JSON could not be copied. Select and copy it manually.",
+      });
       setCopied(false);
     }
   };
@@ -136,17 +144,22 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Validator"
-      description="Validate JSON syntax, locate parser errors, detect duplicate object keys and risky number values, and format valid JSON without rewriting its original string or number tokens."
+      description="Validate JSON syntax, locate parser errors, detect duplicate object names and risky number values, and format valid JSON without rewriting its original string or number tokens."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <label className="block text-sm font-semibold text-gray-900">JSON Input</label>
+            <label className="block text-sm font-semibold text-gray-900">
+              JSON Input
+            </label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Objects, arrays, strings, numbers, booleans, and null are all valid top-level JSON values.
+              Objects, arrays, strings, numbers, booleans, and null are all
+              valid top-level JSON values.
             </p>
           </div>
-          <p className="text-xs text-gray-500">{input.length.toLocaleString()} characters</p>
+          <p className="text-xs text-gray-500">
+            {input.length.toLocaleString()} characters
+          </p>
         </div>
 
         <textarea
@@ -157,43 +170,92 @@ export default function ToolClient() {
           }}
           placeholder={exampleJson}
           spellCheck={false}
-          className="mt-4 w-full min-h-[320px] rounded-xl border border-gray-300 p-4 text-sm font-mono leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          className="mt-4 w-full min-h-[360px] rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={validateJson}
+            className="yoryantra-btn"
+          >
+            Validate JSON
+          </button>
+          <button
+            type="button"
+            onClick={loadExample}
+            className="yoryantra-btn-outline"
+          >
+            Load Example
+          </button>
+          <button
+            type="button"
+            onClick={resetAll}
+            className="yoryantra-btn-outline"
+          >
+            Reset
+          </button>
+        </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button type="button" onClick={validateJson} className="yoryantra-btn">
-          Validate JSON
-        </button>
-        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
-          Load Example
-        </button>
-        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">
-          Reset
-        </button>
-      </div>
+      {error ? (
+        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h3 className="text-sm font-semibold text-red-900">Invalid JSON</h3>
+          <p className="mt-2 break-words font-mono text-sm leading-relaxed text-red-800">
+            {error.message}
+          </p>
 
-      {error ? <JsonErrorPanel details={error} /> : null}
+          {error.line !== undefined && error.column !== undefined ? (
+            <p className="mt-3 text-sm text-red-800">
+              Approximate parser location: line {error.line}, column{" "}
+              {error.column}.
+            </p>
+          ) : null}
+
+          {error.excerpt ? (
+            <pre className="mt-4 overflow-auto rounded-xl border border-red-200 bg-white p-4 font-mono text-sm leading-6 text-gray-800">
+              {error.excerpt}
+              {"\n"}
+              {" ".repeat(error.caretOffset || 0)}^
+            </pre>
+          ) : null}
+        </div>
+      ) : null}
 
       {result ? (
         <>
-          <div className="mt-7 rounded-xl border border-green-200 bg-green-50 p-4">
-            <h3 className="text-sm font-semibold text-green-900">Valid JSON syntax</h3>
+          <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
+            <h3 className="text-sm font-semibold text-green-900">
+              Valid JSON syntax
+            </h3>
             <p className="mt-2 text-sm leading-relaxed text-green-800">
-              The input parsed successfully as a {result.rootType} value. Syntax validity does not mean the data matches an API contract or JSON Schema.
+              The browser JSON parser accepted the document. Review the
+              warnings below as interoperability or data-model concerns rather
+              than syntax failures.
             </p>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Root value" value={result.rootType} />
-            <StatCard label="UTF-8 size" value={`${result.bytes.toLocaleString()} bytes`} />
-            <StatCard label="Max depth" value={result.stats.maxDepth.toLocaleString()} />
-            <StatCard label="Duplicate keys" value={result.duplicates.length.toLocaleString()} />
+            <StatCard
+              label="UTF-8 size"
+              value={`${result.bytes.toLocaleString()} bytes`}
+            />
+            <StatCard
+              label="Max depth"
+              value={result.stats.maxDepth.toLocaleString()}
+            />
+            <StatCard
+              label="Duplicate keys"
+              value={result.duplicates.length.toLocaleString()}
+            />
           </div>
 
           {warnings.length > 0 ? (
             <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <h3 className="text-sm font-semibold text-amber-900">Review these details</h3>
+              <h3 className="text-sm font-semibold text-amber-900">
+                Review these details
+              </h3>
               <div className="mt-3 space-y-3 text-sm leading-relaxed text-amber-800">
                 {warnings.map((warning) => (
                   <p key={warning}>{warning}</p>
@@ -204,25 +266,81 @@ export default function ToolClient() {
 
           {result.duplicates.length > 0 ? (
             <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-              <h3 className="text-lg font-semibold text-gray-900">Duplicate object keys</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Duplicate object names
+              </h3>
               <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                JSON syntax can still parse when an object repeats a name, but RFC 8259 says object names should be unique because receiver behavior is not reliably interoperable.
+                RFC 8259 says object names should be unique because receiver
+                behavior is not reliably interoperable when names repeat. The
+                locations below point to the repeated occurrence, not the
+                first occurrence.
               </p>
+
               <div className="mt-4 overflow-auto">
                 <table className="min-w-full text-left text-sm">
                   <thead className="text-gray-500">
                     <tr>
-                      <th className="pr-6 pb-2 font-medium">Key</th>
+                      <th className="pr-6 pb-2 font-medium">Name</th>
                       <th className="pr-6 pb-2 font-medium">Line</th>
                       <th className="pb-2 font-medium">Column</th>
                     </tr>
                   </thead>
                   <tbody className="text-gray-800">
                     {result.duplicates.slice(0, 50).map((item, index) => (
-                      <tr key={`${item.key}-${item.line}-${item.column}-${index}`} className="border-t border-gray-100">
-                        <td className="py-2 pr-6 font-mono">{JSON.stringify(item.key)}</td>
+                      <tr
+                        key={`${item.key}-${item.line}-${item.column}-${index}`}
+                        className="border-t border-gray-100"
+                      >
+                        <td className="py-2 pr-6 font-mono">
+                          {JSON.stringify(item.key)}
+                        </td>
                         <td className="py-2 pr-6">{item.line}</td>
                         <td className="py-2">{item.column}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {result.duplicates.length > 50 ? (
+                <p className="mt-3 text-xs text-gray-500">
+                  Showing the first 50 duplicate occurrences.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {result.numberFindings.length > 0 ? (
+            <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Number interoperability findings
+              </h3>
+              <div className="mt-4 overflow-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="text-gray-500">
+                    <tr>
+                      <th className="pr-6 pb-2 font-medium">Token</th>
+                      <th className="pr-6 pb-2 font-medium">Finding</th>
+                      <th className="pb-2 font-medium">Location</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-800">
+                    {result.numberFindings.slice(0, 50).map((item, index) => (
+                      <tr
+                        key={`${item.token}-${item.line}-${item.column}-${index}`}
+                        className="border-t border-gray-100"
+                      >
+                        <td className="max-w-[280px] break-all py-2 pr-6 font-mono">
+                          {item.token}
+                        </td>
+                        <td className="py-2 pr-6">
+                          {item.kind === "unsafe-integer"
+                            ? "Outside JavaScript safe-integer range"
+                            : "Becomes non-finite as a JavaScript Number"}
+                        </td>
+                        <td className="py-2">
+                          {item.line}:{item.column}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -234,12 +352,21 @@ export default function ToolClient() {
           <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Formatted JSON</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Formatted JSON
+                </h3>
                 <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                  Formatting is done from the validated source text, so number spellings, string escapes, key order, and duplicate keys are not silently rewritten through JavaScript values.
+                  Formatting is performed from the validated source text.
+                  Number spellings, string escapes, key order, and duplicate
+                  names are not silently rewritten through JavaScript values.
                 </p>
               </div>
-              <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+
+              <button
+                type="button"
+                onClick={copyOutput}
+                className="yoryantra-btn-outline text-sm"
+              >
                 {copied ? "Copied" : "Copy Output"}
               </button>
             </div>
@@ -250,58 +377,149 @@ export default function ToolClient() {
           </div>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Objects" value={result.stats.objects.toLocaleString()} />
-            <StatCard label="Arrays" value={result.stats.arrays.toLocaleString()} />
-            <StatCard label="Properties" value={result.stats.properties.toLocaleString()} />
-            <StatCard label="Primitive values" value={result.stats.primitiveValues.toLocaleString()} />
+            <StatCard
+              label="Objects"
+              value={result.stats.objects.toLocaleString()}
+            />
+            <StatCard
+              label="Arrays"
+              value={result.stats.arrays.toLocaleString()}
+            />
+            <StatCard
+              label="Properties"
+              value={result.stats.properties.toLocaleString()}
+            />
+            <StatCard
+              label="Primitive values"
+              value={result.stats.primitiveValues.toLocaleString()}
+            />
           </div>
         </>
       ) : null}
 
       <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">Browser-local processing</h3>
+        <h3 className="text-sm font-semibold text-yellow-900">
+          Browser-local processing
+        </h3>
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          This page does not send your JSON to a validation API. Parsing, duplicate-key inspection, formatting, and diagnostics run in your browser.
+          This tool does not send your pasted JSON to a validation API. Parsing,
+          duplicate-name inspection, formatting, and diagnostics run in your
+          browser. Site-wide analytics or advertising scripts, if enabled by
+          the website, are separate from this validation operation.
         </p>
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">What This JSON Validator Actually Checks</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The validator checks JSON grammar: quoted strings, escapes, numbers, commas, colons, brackets, braces, and the lowercase literals true, false, and null. A valid JSON document may have an object or array at the root, but it may also be a single string, number, boolean, or null value.
+          <h2 className="text-2xl font-semibold text-gray-900">
+            What This JSON Validator Actually Checks
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The validator checks JSON grammar using the browser&apos;s native
+            JSON parser: quoted strings, permitted escapes, JSON number syntax,
+            commas, colons, brackets, braces, and the lowercase literals true,
+            false, and null. A JSON text can contain any serialized JSON value
+            at its root, not only an object or array.
           </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            When parsing succeeds, the formatter works from the original token stream instead of serializing the JavaScript result again. That matters when you are inspecting large integer spellings, exponent notation, escaped strings, or repeated object names.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            After parsing succeeds, a second source scanner reports duplicate
+            object names and number tokens that can lose exact identity when
+            represented as ordinary JavaScript numbers. These are review
+            findings, not extra JSON grammar invented by the tool.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Duplicate Keys Are a Data-Interoperability Warning</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            RFC 8259 says names inside a JSON object should be unique. Some parsers keep the last repeated value, some report duplicates, and other implementations behave differently. This tool therefore reports repeated names even when the browser parser accepts the document.
+          <h2 className="text-xl font-semibold text-gray-900">
+            Duplicate Names Can Be Valid Syntax but Poor Interoperability
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 8259 says names within an object should be unique. Parsers have
+            historically differed when the same name appears more than once:
+            some keep the last value, some report an error, and some expose all
+            pairs. That is why this page flags repeated names even when
+            <code> JSON.parse()</code> accepts the text.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Numbers Need a JavaScript Reality Check</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON itself does not define JavaScript&apos;s safe-integer boundary. When an integer token is outside the exact IEEE-754 safe integer range, this validator leaves the original token untouched and warns you that converting it to a JavaScript Number can lose integer precision. Extremely large exponents that become non-finite in the browser are also flagged.
+          <h2 className="text-xl font-semibold text-gray-900">
+            Large JSON Integers Need Special Care
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JSON itself does not impose JavaScript&apos;s safe-integer limit.
+            An integer token can therefore be valid JSON while being too large
+            for an ordinary JavaScript Number to represent exactly. This tool
+            compares integer digit strings directly against 9,007,199,254,740,991,
+            so the warning does not depend on a post-ES2017 integer primitive and
+            remains compatible with the project&apos;s ES2017 target.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            If exact large integer identity matters, keep the source token as a
+            string or use a parser designed for arbitrary-precision numeric
+            handling. The formatted output on this page preserves the original
+            numeric spelling rather than serializing the parsed Number again.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Syntax Validation Is Not Schema Validation</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A document can be perfectly valid JSON and still be wrong for your application. Required properties, allowed values, formats, numeric ranges, and object shapes belong to JSON Schema or application-level validation. Use this page when the first question is simply: “Can a conforming JSON parser read this text?”
+          <h2 className="text-xl font-semibold text-gray-900">
+            JSON Is Not a JavaScript Object Literal
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JSON requires double-quoted object names and strings. Comments,
+            trailing commas, single-quoted strings, undefined, NaN, Infinity,
+            hexadecimal numeric literals, and unquoted object names are not
+            part of the JSON grammar. Text that works inside JavaScript source
+            can therefore still be invalid JSON.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">About a Leading BOM</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON generators must not add a byte order mark to network JSON, although RFC 8259 allows parsers to ignore one for interoperability. If a pasted document begins with U+FEFF, this tool ignores it for parsing and reports the condition so you can remove it at the source.
+          <h2 className="text-xl font-semibold text-gray-900">
+            BOM Handling and Parser Error Locations
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 8259 says JSON generators must not add a byte order mark to
+            network-transmitted JSON, while parsers may ignore one for
+            interoperability. This validator tolerates one leading U+FEFF and
+            reports it as a warning.
           </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Syntax error wording and exact positions come from the browser
+            engine. Yoryantra extracts line and column information when the
+            engine exposes a usable position, but it does not pretend every
+            browser will produce identical diagnostics.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Official References
+          </h2>
+          <div className="mt-4 space-y-3 text-sm leading-relaxed">
+            <p>
+              <a
+                href="https://www.rfc-editor.org/rfc/rfc8259"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-[var(--green)] underline underline-offset-4"
+              >
+                RFC 8259 — The JavaScript Object Notation (JSON) Data
+                Interchange Format
+              </a>
+            </p>
+            <p>
+              <a
+                href="https://tc39.es/ecma262/multipage/structured-data.html#sec-json.parse"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-[var(--green)] underline underline-offset-4"
+              >
+                ECMAScript specification — JSON.parse
+              </a>
+            </p>
+          </div>
         </div>
 
         <div>
@@ -313,89 +531,116 @@ export default function ToolClient() {
   );
 }
 
-function JsonErrorPanel({ details }: { details: ErrorDetails }) {
-  return (
-    <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
-      <h3 className="font-semibold">Invalid JSON syntax</h3>
-      <p className="mt-2 leading-relaxed">{details.message}</p>
-      {details.line && details.column ? (
-        <p className="mt-2 font-medium">Line {details.line}, column {details.column}</p>
-      ) : null}
-      {details.excerpt !== undefined && details.caretOffset !== undefined ? (
-        <pre className="mt-3 overflow-auto rounded-lg border border-red-100 bg-white/70 p-3 font-mono text-xs leading-5 text-red-900">{`${details.excerpt}\n${" ".repeat(details.caretOffset)}^`}</pre>
-      ) : null}
-    </div>
-  );
-}
-
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
+    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">
+        {value}
+      </p>
     </div>
   );
 }
 
 function getJsonErrorDetails(caught: unknown, source: string): ErrorDetails {
-  const rawMessage = caught instanceof Error ? caught.message : "The input is not valid JSON.";
-  const positionMatch = rawMessage.match(/position\s+(\d+)/i);
-  const lineColumnMatch = rawMessage.match(/line\s+(\d+)\s+column\s+(\d+)/i);
+  const message =
+    caught instanceof Error ? caught.message : "The JSON could not be parsed.";
 
-  let line: number | undefined;
-  let column: number | undefined;
-  let index: number | undefined;
-
+  const positionMatch = message.match(/position\s+(\d+)/i);
   if (positionMatch) {
-    index = Math.min(Number(positionMatch[1]), source.length);
-    const location = lineColumnFromIndex(source, index);
-    line = location.line;
-    column = location.column;
-  } else if (lineColumnMatch) {
-    line = Number(lineColumnMatch[1]);
-    column = Number(lineColumnMatch[2]);
-    index = indexFromLineColumn(source, line, column);
+    const position = Math.min(
+      source.length,
+      Math.max(0, Number(positionMatch[1]))
+    );
+    const location = lineColumnFromIndex(source, position);
+    const excerpt = buildExcerpt(source, position);
+
+    return {
+      message,
+      line: location.line,
+      column: location.column,
+      excerpt: excerpt.text,
+      caretOffset: excerpt.caretOffset,
+    };
   }
 
-  if (index === undefined || line === undefined || column === undefined) {
-    return { message: rawMessage };
+  const lineColumnMatch = message.match(
+    /line\s+(\d+)(?:\s+column\s+|\s*[:,]\s*column\s+)(\d+)/i
+  );
+
+  if (lineColumnMatch) {
+    const line = Number(lineColumnMatch[1]);
+    const column = Number(lineColumnMatch[2]);
+    const position = indexFromLineColumn(source, line, column);
+    const excerpt = buildExcerpt(source, position);
+
+    return {
+      message,
+      line,
+      column,
+      excerpt: excerpt.text,
+      caretOffset: excerpt.caretOffset,
+    };
   }
 
-  const lineStart = source.lastIndexOf("\n", Math.max(0, index - 1)) + 1;
-  const nextBreak = source.indexOf("\n", index);
-  const lineEnd = nextBreak === -1 ? source.length : nextBreak;
-  const fullLine = source.slice(lineStart, lineEnd).replace(/\r$/, "");
-  const maxExcerpt = 140;
-  const rawOffset = Math.max(0, index - lineStart);
-  let excerpt = fullLine;
-  let caretOffset = rawOffset;
-
-  if (fullLine.length > maxExcerpt) {
-    const start = Math.max(0, rawOffset - 60);
-    const end = Math.min(fullLine.length, start + maxExcerpt);
-    excerpt = `${start > 0 ? "…" : ""}${fullLine.slice(start, end)}${end < fullLine.length ? "…" : ""}`;
-    caretOffset = rawOffset - start + (start > 0 ? 1 : 0);
-  }
-
-  return { message: rawMessage, line, column, excerpt, caretOffset };
+  return { message };
 }
 
 function lineColumnFromIndex(source: string, index: number) {
-  const before = source.slice(0, index);
-  const lines = before.split("\n");
-  return {
-    line: lines.length,
-    column: (lines[lines.length - 1]?.replace(/\r$/, "").length || 0) + 1,
-  };
+  let line = 1;
+  let column = 1;
+
+  for (let i = 0; i < index && i < source.length; i += 1) {
+    if (source[i] === "\n") {
+      line += 1;
+      column = 1;
+    } else {
+      column += 1;
+    }
+  }
+
+  return { line, column };
 }
 
 function indexFromLineColumn(source: string, line: number, column: number) {
-  const lines = source.split("\n");
-  let index = 0;
-  for (let i = 0; i < Math.max(0, line - 1) && i < lines.length; i += 1) {
-    index += lines[i].length + 1;
+  let currentLine = 1;
+  let currentColumn = 1;
+
+  for (let index = 0; index < source.length; index += 1) {
+    if (currentLine === line && currentColumn === column) return index;
+
+    if (source[index] === "\n") {
+      currentLine += 1;
+      currentColumn = 1;
+    } else {
+      currentColumn += 1;
+    }
   }
-  return Math.min(source.length, index + Math.max(0, column - 1));
+
+  return source.length;
+}
+
+function buildExcerpt(source: string, index: number) {
+  const lineStart = source.lastIndexOf("\n", Math.max(0, index - 1)) + 1;
+  const nextBreak = source.indexOf("\n", index);
+  const lineEnd = nextBreak === -1 ? source.length : nextBreak;
+  const fullLine = source.slice(lineStart, lineEnd);
+
+  const maxLength = 180;
+  const rawOffset = Math.max(0, index - lineStart);
+  const windowStart = Math.max(
+    0,
+    Math.min(rawOffset - 70, Math.max(0, fullLine.length - maxLength))
+  );
+  const visible = fullLine.slice(windowStart, windowStart + maxLength);
+  const prefix = windowStart > 0 ? "…" : "";
+  const suffix =
+    windowStart + maxLength < fullLine.length ? "…" : "";
+
+  return {
+    text: `${prefix}${visible}${suffix}`,
+    caretOffset: prefix.length + Math.max(0, rawOffset - windowStart),
+  };
 }
 
 function formatJsonSource(source: string) {
@@ -411,6 +656,7 @@ function formatJsonSource(source: string) {
 
     if (inString) {
       output += character;
+
       if (escaped) {
         escaped = false;
       } else if (character === "\\") {
@@ -418,6 +664,7 @@ function formatJsonSource(source: string) {
       } else if (character === '"') {
         inString = false;
       }
+
       continue;
     }
 
@@ -427,22 +674,32 @@ function formatJsonSource(source: string) {
       continue;
     }
 
-    if (/\s/.test(character)) continue;
+    if (isJsonWhitespace(character)) continue;
 
     if (character === "{" || character === "[") {
       output += character;
       indent += 1;
-      if (nextNonWhitespace(source, index + 1) !== (character === "{" ? "}" : "]")) {
+
+      if (
+        nextNonWhitespace(source, index + 1) !==
+        (character === "{" ? "}" : "]")
+      ) {
         output += newline();
       }
+
       continue;
     }
 
     if (character === "}" || character === "]") {
       indent = Math.max(0, indent - 1);
-      if (previousNonWhitespace(source, index - 1) !== (character === "}" ? "{" : "[")) {
+
+      if (
+        previousNonWhitespace(source, index - 1) !==
+        (character === "}" ? "{" : "[")
+      ) {
         output += newline();
       }
+
       output += character;
       continue;
     }
@@ -465,16 +722,32 @@ function formatJsonSource(source: string) {
 
 function nextNonWhitespace(source: string, start: number) {
   for (let index = start; index < source.length; index += 1) {
-    if (!/\s/.test(source[index])) return source[index];
+    if (!isJsonWhitespace(source[index])) return source[index];
   }
   return "";
 }
 
 function previousNonWhitespace(source: string, start: number) {
   for (let index = start; index >= 0; index -= 1) {
-    if (!/\s/.test(source[index])) return source[index];
+    if (!isJsonWhitespace(source[index])) return source[index];
   }
   return "";
+}
+
+function isJsonWhitespace(character: string) {
+  return (
+    character === " " ||
+    character === "\t" ||
+    character === "\n" ||
+    character === "\r"
+  );
+}
+
+function isOnlyJsonWhitespace(source: string) {
+  for (let index = 0; index < source.length; index += 1) {
+    if (!isJsonWhitespace(source[index])) return false;
+  }
+  return true;
 }
 
 function scanValidJson(source: string) {
@@ -483,7 +756,9 @@ function scanValidJson(source: string) {
   const numberFindings: NumberFinding[] = [];
 
   const skipWhitespace = () => {
-    while (index < source.length && /[\x20\x09\x0a\x0d]/.test(source[index])) index += 1;
+    while (index < source.length && isJsonWhitespace(source[index])) {
+      index += 1;
+    }
   };
 
   const parseString = () => {
@@ -494,6 +769,7 @@ function scanValidJson(source: string) {
     while (index < source.length) {
       const character = source[index];
       index += 1;
+
       if (escaped) {
         escaped = false;
       } else if (character === "\\") {
@@ -509,24 +785,34 @@ function scanValidJson(source: string) {
 
   const parseNumber = () => {
     const start = index;
-    while (index < source.length && !/[\x20\x09\x0a\x0d,\]}]/.test(source[index])) index += 1;
+
+    while (
+      index < source.length &&
+      !isJsonWhitespace(source[index]) &&
+      source[index] !== "," &&
+      source[index] !== "]" &&
+      source[index] !== "}"
+    ) {
+      index += 1;
+    }
+
     const token = source.slice(start, index);
     const location = lineColumnFromIndex(source, start);
 
-    if (/^-?(?:0|[1-9]\d*)$/.test(token)) {
-      try {
-        const numeric = BigInt(token);
-        const absolute = numeric < BigInt(0) ? -numeric : numeric;
-        if (absolute > BigInt(Number.MAX_SAFE_INTEGER)) {
-          numberFindings.push({ token, ...location, kind: "unsafe-integer" });
-        }
-      } catch {
-        // JSON.parse already validated the number token.
-      }
+    if (/^-?(?:0|[1-9]\d*)$/.test(token) && isOutsideSafeInteger(token)) {
+      numberFindings.push({
+        token,
+        ...location,
+        kind: "unsafe-integer",
+      });
     }
 
     if (!Number.isFinite(Number(token))) {
-      numberFindings.push({ token, ...location, kind: "non-finite" });
+      numberFindings.push({
+        token,
+        ...location,
+        kind: "non-finite",
+      });
     }
   };
 
@@ -538,33 +824,41 @@ function scanValidJson(source: string) {
       parseObject();
       return;
     }
+
     if (character === "[") {
       parseArray();
       return;
     }
+
     if (character === '"') {
       parseString();
       return;
     }
+
     if (character === "t") {
       index += 4;
       return;
     }
+
     if (character === "f") {
       index += 5;
       return;
     }
+
     if (character === "n") {
       index += 4;
       return;
     }
+
     parseNumber();
   };
 
   const parseObject = (): void => {
     index += 1;
     skipWhitespace();
+
     const seen = new Set<string>();
+
     if (source[index] === "}") {
       index += 1;
       return;
@@ -573,18 +867,25 @@ function scanValidJson(source: string) {
     while (index < source.length) {
       skipWhitespace();
       const key = parseString();
+
       if (seen.has(key.value)) {
-        duplicates.push({ key: key.value, ...lineColumnFromIndex(source, key.start) });
+        duplicates.push({
+          key: key.value,
+          ...lineColumnFromIndex(source, key.start),
+        });
       }
+
       seen.add(key.value);
       skipWhitespace();
       index += 1; // colon
       parseValue();
       skipWhitespace();
+
       if (source[index] === "}") {
         index += 1;
         return;
       }
+
       index += 1; // comma
     }
   };
@@ -592,6 +893,7 @@ function scanValidJson(source: string) {
   const parseArray = (): void => {
     index += 1;
     skipWhitespace();
+
     if (source[index] === "]") {
       index += 1;
       return;
@@ -600,10 +902,12 @@ function scanValidJson(source: string) {
     while (index < source.length) {
       parseValue();
       skipWhitespace();
+
       if (source[index] === "]") {
         index += 1;
         return;
       }
+
       index += 1; // comma
     }
   };
@@ -612,8 +916,28 @@ function scanValidJson(source: string) {
   return { duplicates, numberFindings };
 }
 
+function isOutsideSafeInteger(token: string) {
+  let digits = token[0] === "-" ? token.slice(1) : token;
+
+  while (digits.length > 1 && digits[0] === "0") {
+    digits = digits.slice(1);
+  }
+
+  if (digits.length !== MAX_SAFE_INTEGER_TEXT.length) {
+    return digits.length > MAX_SAFE_INTEGER_TEXT.length;
+  }
+
+  return digits > MAX_SAFE_INTEGER_TEXT;
+}
+
 function collectStats(value: unknown): JsonStats {
-  const stats: JsonStats = { objects: 0, arrays: 0, properties: 0, primitiveValues: 0, maxDepth: 0 };
+  const stats: JsonStats = {
+    objects: 0,
+    arrays: 0,
+    properties: 0,
+    primitiveValues: 0,
+    maxDepth: 0,
+  };
 
   const visit = (current: unknown, depth: number) => {
     stats.maxDepth = Math.max(stats.maxDepth, depth);
@@ -649,22 +973,40 @@ function buildWarnings(result: ValidationResult) {
   const warnings: string[] = [];
 
   if (result.hadBom) {
-    warnings.push("A leading U+FEFF byte order mark was ignored for parsing. JSON generators should not emit a BOM.");
+    warnings.push(
+      "A leading U+FEFF byte order mark was ignored for parsing. RFC 8259 says JSON generators must not add a BOM to network-transmitted JSON."
+    );
   }
 
   if (result.duplicates.length > 0) {
-    warnings.push(`${result.duplicates.length.toLocaleString()} duplicate object key occurrence${result.duplicates.length === 1 ? " was" : "s were"} found. Different JSON consumers may not agree on repeated names.`);
+    warnings.push(
+      `${result.duplicates.length.toLocaleString()} duplicate object name occurrence${
+        result.duplicates.length === 1 ? " was" : "s were"
+      } found. Different JSON consumers may not agree on repeated names.`
+    );
   }
 
-  const unsafeIntegers = result.numberFindings.filter((item) => item.kind === "unsafe-integer");
-  const nonFinite = result.numberFindings.filter((item) => item.kind === "non-finite");
+  const unsafeIntegers = result.numberFindings.filter(
+    (item) => item.kind === "unsafe-integer"
+  );
+  const nonFinite = result.numberFindings.filter(
+    (item) => item.kind === "non-finite"
+  );
 
   if (unsafeIntegers.length > 0) {
-    warnings.push(`${unsafeIntegers.length.toLocaleString()} integer token${unsafeIntegers.length === 1 ? " is" : "s are"} outside JavaScript's exact safe-integer range. Keep them as strings or use a big-integer-aware parser if exact integer identity matters.`);
+    warnings.push(
+      `${unsafeIntegers.length.toLocaleString()} integer token${
+        unsafeIntegers.length === 1 ? " is" : "s are"
+      } outside JavaScript's exact safe-integer range. Preserve the token as text or use an arbitrary-precision parser when exact integer identity matters.`
+    );
   }
 
   if (nonFinite.length > 0) {
-    warnings.push(`${nonFinite.length.toLocaleString()} number token${nonFinite.length === 1 ? " becomes" : "s become"} non-finite when converted to a JavaScript Number. The original JSON token is preserved in the formatted output.`);
+    warnings.push(
+      `${nonFinite.length.toLocaleString()} number token${
+        nonFinite.length === 1 ? " becomes" : "s become"
+      } non-finite when converted to a JavaScript Number. The source token is still preserved in the formatted output.`
+    );
   }
 
   return warnings;
