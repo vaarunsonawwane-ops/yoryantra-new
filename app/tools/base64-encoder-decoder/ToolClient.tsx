@@ -3,318 +3,275 @@
 import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
+
+type DecodeMode = "strict" | "relaxed";
+type DecodeView = "utf8" | "hex";
+
+type DecodeResult = {
+  base64: string;
+  text: string | null;
+  hex: string;
+  byteCount: number;
+  canonical: boolean;
+  normalizedInput: string;
+};
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
+  const [decodeMode, setDecodeMode] = useState<DecodeMode>("strict");
+  const [decodeView, setDecodeView] = useState<DecodeView>("utf8");
+  const [details, setDetails] = useState<DecodeResult | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const clearResult = () => {
+    setOutput("");
+    setError("");
+    setDetails(null);
+    setCopied(false);
+  };
 
   const encodeText = () => {
-    try {
-      setOutput(btoa(input));
-      setError("");
-    } catch {
-      setError("Unable to encode text.");
+    if (!input.length) {
+      setError("Enter text before encoding.");
       setOutput("");
+      setDetails(null);
+      return;
+    }
+
+    const bytes = new TextEncoder().encode(input);
+    const encoded = bytesToBase64(bytes);
+    setOutput(encoded);
+    setDetails({
+      base64: encoded,
+      text: input,
+      hex: bytesToHex(bytes),
+      byteCount: bytes.length,
+      canonical: true,
+      normalizedInput: encoded,
+    });
+    setError("");
+    setCopied(false);
+  };
+
+  const decodeBase64 = () => {
+    if (!input.trim()) {
+      setError("Enter Base64 before decoding.");
+      setOutput("");
+      setDetails(null);
+      return;
+    }
+
+    try {
+      const decoded = decodeBase64Input(input, decodeMode);
+      const text = decodeUtf8(decoded.bytes);
+      const nextOutput = decodeView === "hex"
+        ? bytesToHex(decoded.bytes)
+        : text ?? "[Decoded bytes are not valid UTF-8. Switch output to Hex bytes.]";
+
+      setOutput(nextOutput);
+      setDetails({
+        base64: decoded.canonicalBase64,
+        text,
+        hex: bytesToHex(decoded.bytes),
+        byteCount: decoded.bytes.length,
+        canonical: decoded.canonical,
+        normalizedInput: decoded.normalizedInput,
+      });
+      setError("");
+      setCopied(false);
+    } catch (caught) {
+      setOutput("");
+      setDetails(null);
+      setError(caught instanceof Error ? caught.message : "Invalid Base64 input.");
     }
   };
 
-  const decodeText = () => {
-    try {
-      setOutput(atob(input));
-      setError("");
-    } catch {
-      setError("Invalid Base64 string.");
-      setOutput("");
-    }
+  const copyOutput = async () => {
+    if (!output) return;
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
   };
 
   const resetAll = () => {
     setInput("");
-    setOutput("");
-    setError("");
+    setDecodeMode("strict");
+    setDecodeView("utf8");
+    clearResult();
   };
 
   return (
     <ToolShell
       title="Base64 Encoder Decoder"
-      description="Encode and decode Base64 text instantly with this free online Base64 Encoder Decoder."
+      description="Encode UTF-8 text as RFC 4648 Base64, or decode Base64 into UTF-8 text or hexadecimal bytes with strict and relaxed validation modes."
     >
-      {/* INPUT */}
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Input
-        </label>
-
+        <label className="block mb-2 text-sm font-medium text-gray-700">Input</label>
         <textarea
-          className="w-full h-64 rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-          placeholder="Paste text or Base64 content here..."
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(event) => {
+            setInput(event.target.value);
+            clearResult();
+          }}
+          placeholder="Enter Unicode text to encode, or Base64 to decode..."
+          className="w-full min-h-[240px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
 
-      {/* ACTIONS */}
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <YoryantraSelect
+          label="Decode validation"
+          value={decodeMode}
+          onChange={(value) => {
+            setDecodeMode(value as DecodeMode);
+            clearResult();
+          }}
+          options={[
+            { label: "Strict RFC 4648", value: "strict" },
+            { label: "Relaxed: whitespace / missing padding", value: "relaxed" },
+          ]}
+        />
+        <YoryantraSelect
+          label="Decoded output"
+          value={decodeView}
+          onChange={(value) => {
+            setDecodeView(value as DecodeView);
+            clearResult();
+          }}
+          options={[
+            { label: "UTF-8 text", value: "utf8" },
+            { label: "Hex bytes", value: "hex" },
+          ]}
+        />
+      </div>
+
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={encodeText}
-          className="yoryantra-btn"
-        >
-          Encode
-        </button>
-
-        <button
-          onClick={decodeText}
-          className="yoryantra-btn-outline"
-        >
-          Decode
-        </button>
-
-        <button
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
-          Reset
-        </button>
+        <button type="button" onClick={encodeText} className="yoryantra-btn">Encode UTF-8</button>
+        <button type="button" onClick={decodeBase64} className="yoryantra-btn-outline">Decode Base64</button>
+        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
       </div>
 
-      {/* ERROR */}
-      {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {error}
+      {error ? (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">{error}</div>
+      ) : null}
+
+      {output ? (
+        <div className="mt-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Output</h3>
+              {details ? (
+                <p className="mt-1 text-sm text-gray-500">
+                  {details.byteCount.toLocaleString()} decoded byte{details.byteCount === 1 ? "" : "s"}
+                  {details.text === null ? " · not valid UTF-8" : " · valid UTF-8"}
+                </p>
+              ) : null}
+            </div>
+            <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">{copied ? "Copied" : "Copy"}</button>
+          </div>
+          <pre className="yoryantra-output mt-3 min-h-[180px] overflow-auto whitespace-pre-wrap break-all text-sm font-mono">{output}</pre>
+
+          {details && !details.canonical ? (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+              The input decoded successfully in relaxed mode, but it was not the canonical padded Base64 spelling. Canonical form: <code>{details.base64}</code>
+            </div>
+          ) : null}
         </div>
-      )}
+      ) : null}
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Output
-          </h3>
-
-          {output && (
-            <button
-              onClick={() =>
-                navigator.clipboard.writeText(output)
-              }
-              className="yoryantra-btn-outline text-sm"
-            >
-              Copy
-            </button>
-          )}
-        </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[180px] whitespace-pre-wrap break-words">
-          {output ||
-            "Encoded or decoded output will appear here..."}
-        </pre>
-      </div>
-
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Encoding and Decoding Base64 Text Safely
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">UTF-8 text is converted to bytes first</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Base64 encoding converts text and binary data into a text-safe
-            format that can travel through browsers, APIs, email systems,
-            authentication headers, JSON payloads, and web applications more
-            reliably. Base64 decoding converts encoded values back into readable
-            text.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            During development and debugging workflows, Base64 data often
-            appears inside JWT tokens, API payloads, authentication systems,
-            configuration values, encoded files, and browser requests. This
-            Base64 Encoder Decoder helps quickly convert readable text into
-            Base64 format and decode encoded values back into plain text.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool is useful for API testing, frontend debugging,
-            authentication workflows, encoded configuration values, JSON
-            payloads, and developer troubleshooting directly inside your
-            browser.
+            Browser <code>btoa()</code> works on byte-like Latin-1 strings, which can fail on normal Unicode text such as Marathi, Hindi, emoji, or many accented characters. This tool uses UTF-8 bytes before Base64 encoding, so Unicode text is handled predictably.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the Base64 Encoder Decoder
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Paste your plain text or Base64 content into the editor.
-            </li>
-
-            <li>
-              Click <strong>Encode</strong> to convert text into Base64 format.
-            </li>
-
-            <li>
-              Click <strong>Decode</strong> to convert Base64 back into readable
-              text.
-            </li>
-
-            <li>
-              Copy the final output for use in applications, APIs, or debugging
-              workflows.
-            </li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Encoding text for APIs and data transfer.</li>
-
-            <li>Decoding Base64 strings during debugging.</li>
-
-            <li>Working with encoded authentication values.</li>
-
-            <li>Inspecting JWT token payloads.</li>
-
-            <li>Testing encoded content in web applications.</li>
-
-            <li>Converting readable text into Base64 format.</li>
-
-            <li>Debugging browser requests and JSON payloads.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Base64 Encoding
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p className="font-medium text-gray-900">
-              Original text:
+          <h2 className="text-xl font-semibold text-gray-900">Strict and relaxed decoding</h2>
+          <div className="mt-3 space-y-3 text-gray-600 leading-relaxed">
+            <p>
+              Strict mode expects the standard Base64 alphabet, correct end padding, and no unrelated characters. Relaxed mode is useful for copied data that contains ASCII whitespace or omits trailing padding; it normalizes that input before decoding.
             </p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">
-Hello Yoryantra
-            </pre>
-
-            <p className="mt-4 font-medium text-gray-900">
-              Encoded Base64:
+            <p>
+              Base64 represents arbitrary bytes. Those bytes are not guaranteed to be UTF-8 text, so the hex view is available when a decoded file fragment or binary value cannot be displayed as text.
             </p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">
-SGVsbG8gWW9yeWFudHJh
-            </pre>
           </div>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Why Base64 Encoding Is Used
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>Safe text transport:</strong> Base64 helps move binary
-                or special data safely through text-based systems.
-              </li>
-
-              <li>
-                <strong>API compatibility:</strong> APIs often use Base64 for
-                encoded payloads and authentication values.
-              </li>
-
-              <li>
-                <strong>Reliable encoding:</strong> Encoded values avoid issues
-                with unsupported characters.
-              </li>
-
-              <li>
-                <strong>Debugging support:</strong> Developers can inspect and
-                decode encoded data more easily.
-              </li>
-            </ul>
-          </div>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
+          <strong>Not encryption:</strong> Base64 is a reversible encoding for bytes. It does not provide confidentiality, hashing, signing, or authentication.
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is Base64 encoding?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Base64 encoding converts text or binary data into a text-based
-                format that can safely travel through browsers, APIs, and web
-                systems.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this tool decode Base64 strings?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The decoder converts Base64 encoded values back into
-                readable plain text instantly.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is Base64 encryption?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Base64 is an encoding method, not encryption. Encoded data
-                can usually be decoded easily.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why is Base64 used in APIs and JWT tokens?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Base64 helps safely transport structured data inside tokens,
-                headers, and API payloads.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is Base64 processing handled on the server?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. All Base64 encoding and decoding happen directly inside your
-                browser.
-              </p>
-            </div>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Reference</h2>
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            The standard Base64 alphabet, padding rules, and canonical form are defined by <a className="underline" href="https://www.rfc-editor.org/rfc/rfc4648" target="_blank" rel="noreferrer">RFC 4648</a>. Base64URL uses a different alphabet and should be handled with the dedicated Base64URL tool.
+          </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/base64-encoder-decoder" />
-        </div>
+        <YoryantraRelatedTools currentHref="/tools/base64-encoder-decoder" />
       </section>
     </ToolShell>
   );
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    const chunk = bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length));
+    binary += String.fromCharCode(...Array.from(chunk));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(value: string) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
+
+function decodeBase64Input(input: string, mode: DecodeMode) {
+  const asciiWhitespace = /[\t\n\f\r ]/g;
+  const compact = mode === "relaxed" ? input.replace(asciiWhitespace, "") : input;
+
+  if (!compact) throw new Error("Base64 input is empty after normalization.");
+  if (/[^A-Za-z0-9+/=]/.test(compact)) throw new Error("Input contains characters outside the standard Base64 alphabet.");
+  if (/=[^=]/.test(compact) || /={3,}$/.test(compact)) throw new Error("Padding '=' may appear only at the end, with at most two padding characters.");
+
+  let normalized = compact;
+  if (mode === "strict") {
+    if (compact.length % 4 !== 0) throw new Error("Strict Base64 length must be a multiple of 4, including required padding.");
+  } else {
+    const remainder = compact.length % 4;
+    if (remainder === 1) throw new Error("This Base64 length cannot be repaired by adding padding.");
+    if (remainder) normalized += "=".repeat(4 - remainder);
+  }
+
+  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(normalized)) {
+    throw new Error("Invalid Base64 grouping or padding.");
+  }
+
+  const bytes = base64ToBytes(normalized);
+  const canonicalBase64 = bytesToBase64(bytes);
+  const canonical = canonicalBase64 === compact;
+  if (mode === "strict" && !canonical) throw new Error("Base64 decodes, but its non-zero pad bits are not in canonical RFC 4648 form.");
+
+  return { bytes, canonicalBase64, canonical, normalizedInput: normalized };
+}
+
+function decodeUtf8(bytes: Uint8Array) {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+function bytesToHex(bytes: Uint8Array) {
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(" ");
 }

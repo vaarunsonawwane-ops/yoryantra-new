@@ -1,614 +1,347 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
-import YoryantraSelect from "@/app/components/YoryantraSelect";
 
-type OutputMode = "minified" | "escapedString" | "validationReport" | "sizeReport";
-type TrimMode = "trim" | "preserve";
-
-type Result = {
+type JsonResult = {
   output: string;
-  originalSize: number;
-  minifiedSize: number;
+  originalBytes: number;
+  minifiedBytes: number;
   savedBytes: number;
   savedPercent: string;
-  keyCount: number;
-  arrayCount: number;
-  objectCount: number;
   rootType: string;
+  duplicateKeys: string[];
+  unsafeIntegers: string[];
 };
 
 const sampleJson = `{
-  "name": "Yoryantra",
-  "type": "utility-site",
-  "tools": [
-    "JSON Formatter",
-    "JSON Minifier",
-    "YAML Formatter"
-  ],
-  "settings": {
-    "browserOnly": true,
-    "cleanOutput": true
-  }
+  "api": "https://example.com/v1",
+  "retry": 3,
+  "features": ["parse", "validate"],
+  "enabled": true
 }`;
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
-  const [outputMode, setOutputMode] = useState<OutputMode>("minified");
-  const [trimMode, setTrimMode] = useState<TrimMode>("trim");
-  const [sortKeys, setSortKeys] = useState(false);
-  const [copyAsOneLine, setCopyAsOneLine] = useState(true);
-  const [includeSizeStats, setIncludeSizeStats] = useState(true);
-  const [result, setResult] = useState<Result | null>(null);
-  const [output, setOutput] = useState("");
+  const [result, setResult] = useState<JsonResult | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const hasOutput = output.length > 0;
-
-  const sizeRows = useMemo(() => {
-    if (!result) return [];
-
-    return [
-      { label: "Original size", value: `${result.originalSize.toLocaleString()} bytes` },
-      { label: "Minified size", value: `${result.minifiedSize.toLocaleString()} bytes` },
-      { label: "Saved", value: `${result.savedBytes.toLocaleString()} bytes` },
-      { label: "Reduction", value: `${result.savedPercent}%` },
-    ];
-  }, [result]);
-
   const clearResult = () => {
     setResult(null);
-    setOutput("");
     setError("");
     setCopied(false);
   };
 
   const minifyJSON = () => {
     if (!input.trim()) {
-      setError("Please paste JSON content to minify.");
-      setOutput("");
       setResult(null);
-      setCopied(false);
+      setError("Paste JSON before minifying.");
       return;
     }
 
     try {
-      const source = trimMode === "trim" ? input.trim() : input;
-      const parsed = JSON.parse(source);
-      const prepared = sortKeys ? sortObjectKeys(parsed) : parsed;
-      const minified = JSON.stringify(prepared);
-      const originalSize = getByteSize(source);
-      const minifiedSize = getByteSize(minified);
-      const savedBytes = Math.max(originalSize - minifiedSize, 0);
-      const savedPercent =
-        originalSize > 0 ? ((savedBytes / originalSize) * 100).toFixed(2) : "0.00";
+      const parsed = JSON.parse(input);
+      const output = minifyJsonTokens(input);
+      const diagnostics = inspectJsonSource(input);
+      const originalBytes = getUtf8Bytes(input);
+      const minifiedBytes = getUtf8Bytes(output);
+      const savedBytes = Math.max(originalBytes - minifiedBytes, 0);
+      const savedPercent = originalBytes
+        ? ((savedBytes / originalBytes) * 100).toFixed(1)
+        : "0.0";
 
-      const nextResult: Result = {
-        output: minified,
-        originalSize,
-        minifiedSize,
+      setResult({
+        output,
+        originalBytes,
+        minifiedBytes,
         savedBytes,
         savedPercent,
-        keyCount: countKeys(prepared),
-        arrayCount: countArrays(prepared),
-        objectCount: countObjects(prepared),
-        rootType: detectRoot(prepared),
-      };
-
-      const nextOutput = buildOutput({
-        outputMode,
-        minified,
-        parsed: prepared,
-        result: nextResult,
-        includeSizeStats,
-        copyAsOneLine,
+        rootType: detectRootType(parsed),
+        duplicateKeys: diagnostics.duplicateKeys,
+        unsafeIntegers: diagnostics.unsafeIntegers,
       });
-
-      setResult(nextResult);
-      setOutput(nextOutput);
       setError("");
       setCopied(false);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Invalid JSON input.";
-      setError(`Invalid JSON. ${message}`);
-      setOutput("");
+    } catch (caught) {
       setResult(null);
-      setCopied(false);
+      setError(formatJsonError(caught, input));
     }
   };
 
   const copyOutput = async () => {
-    if (!hasOutput) return;
-    await navigator.clipboard.writeText(output);
+    if (!result) return;
+    await navigator.clipboard.writeText(result.output);
     setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
-  };
-
-  const loadExample = () => {
-    setInput(sampleJson);
-    setOutputMode("minified");
-    setTrimMode("trim");
-    setSortKeys(false);
-    setCopyAsOneLine(true);
-    setIncludeSizeStats(true);
-    clearResult();
   };
 
   const resetAll = () => {
     setInput("");
-    setOutputMode("minified");
-    setTrimMode("trim");
-    setSortKeys(false);
-    setCopyAsOneLine(true);
-    setIncludeSizeStats(true);
     clearResult();
   };
 
   return (
     <ToolShell
       title="JSON Minifier"
-      description="Minify JSON online, compress JSON payloads, remove whitespace, validate syntax, and copy compact JSON for APIs, apps, logs, and development workflows."
+      description="Remove insignificant JSON whitespace without rebuilding the parsed value, preserving original number spellings, key order, and duplicate-key text."
     >
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <div className="mb-4">
-          <label className="block text-sm font-semibold text-gray-900">
-            JSON Input
-          </label>
-
-          <p className="mt-1 text-sm leading-relaxed text-gray-500">
-            Paste formatted JSON, API responses, configuration data, logs, or test payloads that you want to compress into compact JSON.
-          </p>
-        </div>
-
+      <div>
+        <label className="block mb-2 text-sm font-medium text-gray-700">JSON Input</label>
         <textarea
-          className="w-full min-h-[380px] rounded-xl border border-gray-300 p-4 text-sm leading-6 font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-          placeholder={sampleJson}
           value={input}
-          spellCheck={false}
           onChange={(event) => {
             setInput(event.target.value);
             clearResult();
           }}
+          placeholder="Paste formatted JSON here..."
+          className="w-full min-h-[280px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Minifier Settings</h3>
-
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <YoryantraSelect
-            label="Output"
-            value={outputMode}
-            onChange={(value) => {
-              setOutputMode(value as OutputMode);
-              clearResult();
-            }}
-            options={[
-              { label: "Minified JSON", value: "minified" },
-              { label: "Escaped JSON string", value: "escapedString" },
-              { label: "Validation report", value: "validationReport" },
-              { label: "Size report", value: "sizeReport" },
-            ]}
-          />
-
-          <YoryantraSelect
-            label="Input handling"
-            value={trimMode}
-            onChange={(value) => {
-              setTrimMode(value as TrimMode);
-              clearResult();
-            }}
-            options={[
-              { label: "Trim outer whitespace", value: "trim" },
-              { label: "Preserve outer whitespace for stats", value: "preserve" },
-            ]}
-          />
-
-          <YoryantraSelect
-            label="Copy style"
-            value={copyAsOneLine ? "oneLine" : "normal"}
-            onChange={(value) => {
-              setCopyAsOneLine(value === "oneLine");
-              clearResult();
-            }}
-            options={[
-              { label: "One-line output", value: "oneLine" },
-              { label: "Normal text output", value: "normal" },
-            ]}
-          />
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Options</h3>
-
-        <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
-          <Toggle
-            checked={sortKeys}
-            onChange={(value) => {
-              setSortKeys(value);
-              clearResult();
-            }}
-            label="Sort object keys alphabetically before minifying"
-          />
-
-          <Toggle
-            checked={includeSizeStats}
-            onChange={(value) => {
-              setIncludeSizeStats(value);
-              clearResult();
-            }}
-            label="Include size stats in reports"
-          />
-        </div>
-
-        <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          JSON minification removes formatting whitespace while keeping the parsed data structure the same.
-        </p>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button type="button" onClick={minifyJSON} className="yoryantra-btn">
-          Minify JSON
-        </button>
-
-        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button type="button" onClick={minifyJSON} className="yoryantra-btn">Minify JSON</button>
+        <button
+          type="button"
+          onClick={() => {
+            setInput(sampleJson);
+            clearResult();
+          }}
+          className="yoryantra-btn-outline"
+        >
           Load Example
         </button>
-
-        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">
-          Reset
-        </button>
+        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700 whitespace-pre-wrap">
           {error}
         </div>
       ) : null}
 
       {result ? (
-        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Minified Output</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Copy compact JSON for APIs, requests, storage, logs, or documentation.
-                </p>
-              </div>
+        <div className="mt-8">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label="Original" value={`${result.originalBytes.toLocaleString()} bytes`} />
+            <Stat label="Minified" value={`${result.minifiedBytes.toLocaleString()} bytes`} />
+            <Stat label="Saved" value={`${result.savedBytes.toLocaleString()} bytes (${result.savedPercent}%)`} />
+            <Stat label="Root" value={result.rootType} />
+          </div>
 
-              <button
-                type="button"
-                onClick={copyOutput}
-                disabled={!hasOutput}
-                className="yoryantra-btn-outline text-sm disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {copied ? "Copied" : "Copy Output"}
-              </button>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Minified JSON</h3>
+            <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+
+          <pre className="yoryantra-output mt-3 min-h-[180px] overflow-auto whitespace-pre-wrap break-all text-sm font-mono">
+            {result.output}
+          </pre>
+
+          {result.duplicateKeys.length ? (
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+              <strong>Duplicate member names remain in the minified text:</strong>{" "}
+              {result.duplicateKeys.slice(0, 8).join(", ")}
+              {result.duplicateKeys.length > 8 ? " …" : ""}. Many JSON consumers keep only the last duplicate value, so review these before sending the payload.
             </div>
+          ) : null}
 
-            <pre className="mt-4 yoryantra-output min-h-[220px] overflow-auto whitespace-pre-wrap break-words text-sm">
-              {output}
-            </pre>
-          </div>
-
-          <div className="space-y-4">
-            {sizeRows.map((row) => (
-              <StatCard key={row.label} label={row.label} value={row.value} />
-            ))}
-
-            <StatCard label="Root type" value={result.rootType} />
-            <StatCard label="Keys" value={result.keyCount.toLocaleString()} />
-          </div>
-        </div>
-      ) : null}
-
-      {result ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">JSON Review Notes</h3>
-
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            <ReviewNote title="Objects" value={result.objectCount.toLocaleString()} />
-            <ReviewNote title="Arrays" value={result.arrayCount.toLocaleString()} />
-            <ReviewNote title="Compression" value={`${result.savedPercent}% smaller`} />
-          </div>
-
-          <p className="mt-4 text-sm leading-relaxed text-gray-500">
-            The output is generated from parsed JSON, so invalid JSON is caught before compact output is created.
-          </p>
+          {result.unsafeIntegers.length ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+              <strong>Large integer literals preserved:</strong>{" "}
+              {result.unsafeIntegers.slice(0, 6).join(", ")}
+              {result.unsafeIntegers.length > 6 ? " …" : ""}. They exceed JavaScript&apos;s exact safe-integer range, so applications that parse them as Number may lose precision.
+            </div>
+          ) : null}
         </div>
       ) : null}
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Minifying JSON Before Using It in APIs and Apps
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON minification removes unnecessary whitespace, indentation, and line breaks from valid JSON. The data stays the same, but the output becomes compact and easier to send through APIs, save in configuration files, paste into headers, or store in logs.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Developers often work with formatted JSON while debugging because it is easier to read. For production payloads, test requests, API examples, embedded values, and storage fields, compact JSON is sometimes more practical.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON Minifier validates the input first, then creates compact JSON directly in your browser.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This JSON Minifier Helps</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Compressing API request or response examples before sharing them.</p>
-            <p className="mt-2">Removing whitespace from JSON before storing it in a field, config value, script, or test case.</p>
-            <p className="mt-2">Checking whether copied JSON is valid before using it in development workflows.</p>
-            <p className="mt-2">Creating compact JSON from formatted logs, mocks, sample data, or documentation examples.</p>
+          <h2 className="text-2xl font-semibold text-gray-900">What this minifier removes</h2>
+          <div className="mt-4 space-y-4 text-gray-600 leading-relaxed">
+            <p>
+              JSON permits insignificant whitespace around structural tokens. This tool validates the document, then removes only that outside-string whitespace. Spaces, tabs, and line breaks that are part of a JSON string are left untouched.
+            </p>
+            <p>
+              The output is not compressed in the gzip or Brotli sense. It is simply a smaller textual JSON representation. HTTP compression can reduce transfer size further when a server or CDN enables it.
+            </p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the JSON Minifier</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste valid JSON into the input box.</li>
-            <li>Choose whether you want minified JSON, an escaped JSON string, a validation report, or a size report.</li>
-            <li>Turn on sorting if you want object keys arranged alphabetically before minifying.</li>
-            <li>Click <strong>Minify JSON</strong>.</li>
-            <li>Copy the compact output for your API, app, documentation, or workflow.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example JSON Minification</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <p className="font-medium text-gray-900">Before minifying:</p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">{`{
-  "name": "Yoryantra",
-  "active": true,
-  "tools": ["JSON Formatter", "JSON Minifier"]
-}`}</pre>
-
-            <p className="mt-4 font-medium text-gray-900">After minifying:</p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">{`{"name":"Yoryantra","active":true,"tools":["JSON Formatter","JSON Minifier"]}`}</pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Minified JSON Is Compact, Not Encrypted
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Minifying JSON only removes formatting whitespace. It does not hide, encrypt, or protect the values inside the JSON. If your JSON contains secrets, tokens, passwords, or private data, review it carefully before sharing it anywhere.
+          <h2 className="text-xl font-semibold text-gray-900">Why the tool does not parse and stringify the result</h2>
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            A parse-and-stringify minifier can silently collapse duplicate member names and can reserialize number tokens after JavaScript has converted them to Number values. Token-level minification keeps the original JSON token spelling while still rejecting invalid syntax first.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-
-          <div className="mt-5 space-y-6">
-            <Faq title="What does a JSON Minifier do?">
-              A JSON Minifier removes unnecessary spaces, indentation, and line breaks from JSON while keeping the same data structure.
-            </Faq>
-
-            <Faq title="Is minified JSON different from formatted JSON?">
-              The values and structure are the same when the JSON is valid. Minified JSON is compact, while formatted JSON is easier for humans to read.
-            </Faq>
-
-            <Faq title="Can this tool validate JSON before minifying it?">
-              Yes. The tool parses the JSON first. If the input is invalid, it shows an error instead of creating compact output.
-            </Faq>
-
-            <Faq title="Can I minify JSON online without uploading it?">
-              Yes. JSON minification happens locally inside your browser, so pasted JSON is not sent to a server.
-            </Faq>
-
-            <Faq title="When should I use compact JSON?">
-              Compact JSON is useful for API requests, embedded examples, storage fields, logs, test payloads, and places where whitespace is not needed.
-            </Faq>
-          </div>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
+          <strong>Local processing:</strong> pasted JSON stays in the browser; no payload is sent to a remote service.
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/json-minifier" />
+          <h2 className="text-xl font-semibold text-gray-900">Reference</h2>
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            See <a className="underline" href="https://www.rfc-editor.org/rfc/rfc8259" target="_blank" rel="noreferrer">RFC 8259</a> for JSON grammar and interoperability guidance.
+          </p>
         </div>
+
+        <YoryantraRelatedTools currentHref="/tools/json-minifier" />
       </section>
     </ToolShell>
   );
 }
 
-function buildOutput(options: {
-  outputMode: OutputMode;
-  minified: string;
-  parsed: unknown;
-  result: Result;
-  includeSizeStats: boolean;
-  copyAsOneLine: boolean;
-}) {
-  if (options.outputMode === "escapedString") {
-    return JSON.stringify(options.minified);
-  }
+function minifyJsonTokens(source: string) {
+  let output = "";
+  let inString = false;
+  let escaped = false;
 
-  if (options.outputMode === "validationReport") {
-    const lines = [
-      "JSON validation report",
-      "",
-      "Status: valid JSON",
-      `Root type: ${options.result.rootType}`,
-      `Keys: ${options.result.keyCount}`,
-      `Objects: ${options.result.objectCount}`,
-      `Arrays: ${options.result.arrayCount}`,
-    ];
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
 
-    if (options.includeSizeStats) {
-      lines.push(
-        "",
-        "Size:",
-        `Original: ${options.result.originalSize} bytes`,
-        `Minified: ${options.result.minifiedSize} bytes`,
-        `Saved: ${options.result.savedBytes} bytes (${options.result.savedPercent}%)`
-      );
+    if (inString) {
+      output += char;
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
     }
 
-    return lines.join("\n");
+    if (char === '"') {
+      inString = true;
+      output += char;
+    } else if (!/\s/.test(char)) {
+      output += char;
+    }
   }
 
-  if (options.outputMode === "sizeReport") {
-    return [
-      "JSON size report",
-      "",
-      `Original size: ${options.result.originalSize} bytes`,
-      `Minified size: ${options.result.minifiedSize} bytes`,
-      `Saved: ${options.result.savedBytes} bytes`,
-      `Reduction: ${options.result.savedPercent}%`,
-      "",
-      `Root type: ${options.result.rootType}`,
-      `Keys: ${options.result.keyCount}`,
-      `Objects: ${options.result.objectCount}`,
-      `Arrays: ${options.result.arrayCount}`,
-    ].join("\n");
-  }
-
-  return options.copyAsOneLine ? options.minified : options.minified;
+  return output;
 }
 
-function sortObjectKeys(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(sortObjectKeys);
+function inspectJsonSource(source: string) {
+  const duplicateKeys: string[] = [];
+  const unsafeIntegers: string[] = [];
+  const stack: Array<{ type: "object" | "array"; keys?: Set<string> }> = [];
+  let index = 0;
+
+  while (index < source.length) {
+    const char = source[index];
+
+    if (/\s/.test(char)) {
+      index += 1;
+      continue;
+    }
+
+    if (char === "{") {
+      stack.push({ type: "object", keys: new Set<string>() });
+      index += 1;
+      continue;
+    }
+    if (char === "[") {
+      stack.push({ type: "array" });
+      index += 1;
+      continue;
+    }
+    if (char === "}" || char === "]") {
+      stack.pop();
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      const end = findJsonStringEnd(source, index);
+      const raw = source.slice(index, end + 1);
+      let cursor = end + 1;
+      while (cursor < source.length && /\s/.test(source[cursor])) cursor += 1;
+      const current = stack[stack.length - 1];
+
+      if (source[cursor] === ":" && current?.type === "object" && current.keys) {
+        try {
+          const key = JSON.parse(raw) as string;
+          if (current.keys.has(key)) duplicateKeys.push(key);
+          else current.keys.add(key);
+        } catch {
+          // The full JSON parse already validates the token.
+        }
+      }
+
+      index = end + 1;
+      continue;
+    }
+
+    if (char === "-" || /[0-9]/.test(char)) {
+      const match = source.slice(index).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+      if (match) {
+        const token = match[0];
+        if (/^-?\d+$/.test(token)) {
+          try {
+            const numeric = BigInt(token);
+            const absolute = numeric < BigInt(0) ? -numeric : numeric;
+            if (absolute > BigInt(Number.MAX_SAFE_INTEGER)) unsafeIntegers.push(token);
+          } catch {
+            // Ignore; syntax has already been checked.
+          }
+        }
+        index += token.length;
+        continue;
+      }
+    }
+
+    index += 1;
   }
 
-  if (value && typeof value === "object") {
-    return Object.keys(value as Record<string, unknown>)
-      .sort((a, b) => a.localeCompare(b))
-      .reduce<Record<string, unknown>>((acc, key) => {
-        acc[key] = sortObjectKeys((value as Record<string, unknown>)[key]);
-        return acc;
-      }, {});
-  }
-
-  return value;
+  return { duplicateKeys, unsafeIntegers };
 }
 
-function countKeys(value: unknown): number {
-  if (Array.isArray(value)) {
-    return value.reduce((total, item) => total + countKeys(item), 0);
+function findJsonStringEnd(source: string, start: number) {
+  let escaped = false;
+  for (let index = start + 1; index < source.length; index += 1) {
+    const char = source[index];
+    if (escaped) escaped = false;
+    else if (char === "\\") escaped = true;
+    else if (char === '"') return index;
   }
-
-  if (value && typeof value === "object") {
-    return Object.entries(value as Record<string, unknown>).reduce(
-      (total, [, item]) => total + 1 + countKeys(item),
-      0
-    );
-  }
-
-  return 0;
+  return source.length - 1;
 }
 
-function countArrays(value: unknown): number {
-  if (Array.isArray(value)) {
-    return 1 + value.reduce((total, item) => total + countArrays(item), 0);
-  }
+function formatJsonError(caught: unknown, source: string) {
+  const message = caught instanceof Error ? caught.message : "Invalid JSON input.";
+  const positionMatch = message.match(/position\s+(\d+)/i);
+  if (!positionMatch) return `Invalid JSON. ${message}`;
 
-  if (value && typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).reduce<number>(
-      (total, item) => total + countArrays(item),
-      0
-    );
-  }
-
-  return 0;
+  const position = Number(positionMatch[1]);
+  const before = source.slice(0, position);
+  const line = before.split(/\r?\n/).length;
+  const lastBreak = Math.max(before.lastIndexOf("\n"), before.lastIndexOf("\r"));
+  const column = position - lastBreak;
+  const excerpt = source.split(/\r?\n/)[line - 1] ?? "";
+  const caret = " ".repeat(Math.max(column - 1, 0)) + "^";
+  return `Invalid JSON near line ${line}, column ${column}.\n${excerpt}\n${caret}\n${message}`;
 }
 
-function countObjects(value: unknown): number {
-  if (Array.isArray(value)) {
-    return value.reduce((total, item) => total + countObjects(item), 0);
-  }
-
-  if (value && typeof value === "object" && value !== null) {
-    return (
-      1 +
-      Object.values(value as Record<string, unknown>).reduce<number>(
-        (total, item) => total + countObjects(item),
-        0
-      )
-    );
-  }
-
-  return 0;
-}
-
-function detectRoot(value: unknown) {
-  if (Array.isArray(value)) return "array";
+function detectRootType(value: unknown) {
   if (value === null) return "null";
-  if (typeof value === "object") return "object";
+  if (Array.isArray(value)) return "array";
   return typeof value;
 }
 
-function getByteSize(value: string) {
-  return new Blob([value]).size;
+function getUtf8Bytes(value: string) {
+  return new TextEncoder().encode(value).length;
 }
 
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  label: string;
-}) {
-  return (
-    <label className="flex items-center gap-3 text-sm text-gray-700">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
-      />
-      <span>{label}</span>
-    </label>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function ReviewNote({ title, value }: { title: string; value: string }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <p className="text-sm font-semibold text-gray-900">{title}</p>
-      <p className="mt-2 font-mono text-sm text-gray-700">{value}</p>
-    </div>
-  );
-}
-
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-gray-900 break-words">{value}</div>
     </div>
   );
 }

@@ -2,42 +2,28 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Minifier Online | Minify, Compress, and Validate JSON",
+  title: "JSON Minifier | Remove JSON Whitespace | Yoryantra",
   description:
-    "Minify JSON online, compress JSON payloads, remove whitespace, validate JSON syntax, and copy clean compact JSON for APIs, apps, logs, and development workflows.",
-  keywords: [
-    "json minifier",
-    "json minifier online",
-    "minify json",
-    "minify json online",
-    "json minify",
-    "json minify online",
-    "json compressor",
-    "compress json online",
-    "remove whitespace from json",
-    "compact json",
-    "json validator",
-    "developer tools",
-  ],
+    "Minify valid JSON by removing insignificant whitespace while preserving token spelling, key order, and duplicate-key text for inspection.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-minifier",
   },
   openGraph: {
-    title: "JSON Minifier Online | Yoryantra",
+    title: "JSON Minifier | Yoryantra",
     description:
-      "Minify JSON, remove whitespace, validate syntax, and create compact JSON directly in your browser.",
+      "Remove JSON formatting whitespace and compare UTF-8 byte size without reserializing the parsed value.",
     url: "https://yoryantra.com/tools/json-minifier",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "JSON Minifier Online | Yoryantra",
+    title: "JSON Minifier | Yoryantra",
     description:
-      "Compress JSON online, validate syntax, and copy compact JSON for APIs and development work.",
+      "Minify JSON locally and inspect size savings, duplicate keys, and numeric precision cautions.",
   },
 };
 
-export default function JsonMinifierPage() {
+export default function Page() {
   return <ToolClient />;
 }

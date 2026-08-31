@@ -1,44 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Meta Tag Generator Online Free | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Meta Tag Generator | SEO, Open Graph & X Cards | Yoryantra",
   description:
-    "Generate SEO meta tags instantly with this free online Meta Tag Generator. Create title, description, Open Graph, and Twitter tags easily.",
-
-  keywords: [
-    "meta tag generator",
-    "seo meta tags",
-    "open graph generator",
-    "twitter card generator",
-    "website meta tags",
-    "seo tools",
-  ],
-
+    "Generate escaped title, description, canonical, Open Graph, and X card markup with URL checks and practical search-preview guidance.",
   alternates: {
     canonical: "https://yoryantra.com/tools/meta-tag-generator",
   },
-
   openGraph: {
-    title: "Meta Tag Generator Online Free | Yoryantra",
-
+    title: "Meta Tag Generator | Yoryantra",
     description:
-      "Generate SEO meta tags instantly with this free online Meta Tag Generator.",
-
+      "Create safe-to-copy SEO and social metadata without obsolete meta-keywords markup or fixed-length SEO scoring.",
     url: "https://yoryantra.com/tools/meta-tag-generator",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Meta Tag Generator Online Free | Yoryantra",
-
+    title: "Meta Tag Generator | Yoryantra",
     description:
-      "Generate SEO and social meta tags instantly with this online generator.",
+      "Generate title, description, canonical, Open Graph, and X card markup locally.",
   },
 };
 

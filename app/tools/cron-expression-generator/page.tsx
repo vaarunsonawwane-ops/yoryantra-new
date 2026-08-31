@@ -1,49 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Cron Expression Generator Online Free | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Cron Expression Generator | Unix 5-Field Cron | Yoryantra",
   description:
-    "Generate cron expressions online for scheduled jobs, automation tasks, and server-side cron jobs instantly with this free cron expression generator.",
-
-  keywords: [
-    "cron expression generator",
-    "cron job generator",
-    "cron builder",
-    "linux cron generator",
-    "scheduler expression generator",
-    "developer tools",
-    "cron syntax generator",
-  ],
-
+    "Build and validate traditional five-field Unix cron expressions with ranges, lists, steps, and month or weekday names.",
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/cron-expression-generator",
+    canonical: "https://yoryantra.com/tools/cron-expression-generator",
   },
-
   openGraph: {
-    title:
-      "Cron Expression Generator Online Free | Yoryantra",
-
+    title: "Cron Expression Generator | Yoryantra",
     description:
-      "Generate cron expressions instantly for scheduled tasks and automation workflows.",
-
-    url:
-      "https://yoryantra.com/tools/cron-expression-generator",
-
+      "Generate traditional Unix cron schedules and catch field-range or syntax mistakes before copying the expression.",
+    url: "https://yoryantra.com/tools/cron-expression-generator",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title:
-      "Cron Expression Generator Online Free | Yoryantra",
-
+    card: "summary",
+    title: "Cron Expression Generator | Yoryantra",
     description:
-      "Generate cron expressions for scheduled jobs and automation tasks instantly.",
+      "Build validated five-field Unix cron expressions for recurring jobs.",
   },
 };
 
