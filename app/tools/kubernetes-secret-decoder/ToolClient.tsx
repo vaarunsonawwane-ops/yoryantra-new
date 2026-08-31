@@ -330,7 +330,7 @@ export default function ToolClient() {
             This is a lightweight Secret-manifest parser, not a full YAML engine or Kubernetes API validator. It is intended for ordinary block-style <span className="font-mono">data</span> and <span className="font-mono">stringData</span> mappings. YAML anchors, complex tags, and multi-line block scalars may require a dedicated YAML parser. Binary <span className="font-mono">data</span> values are shown as a hexadecimal preview when they are not valid UTF-8 text.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The decoding logic runs in this page in your browser and does not send a request to a Kubernetes cluster. Still, decoded values can be highly sensitive, so use the masking option before copying output for someone else.
+            The decoding logic runs in this page in your browser and does not send a request to a Kubernetes cluster. Still, decoded values can be highly sensitive, so use the masking option before copying output for someone else. Base64 representation also says nothing about storage protection: Kubernetes documents encryption at rest as a separate API-server configuration, and clusters that use the default identity provider do not gain confidentiality for Secret data stored in etcd.
           </p>
         </div>
 
@@ -339,14 +339,24 @@ export default function ToolClient() {
           <p className="mt-4 text-gray-600 leading-relaxed">
             Kubernetes documents the behavior of <span className="font-mono">data</span>, <span className="font-mono">stringData</span>, built-in Secret types, and the security limitations of base64 encoding in its official Secret documentation.
           </p>
-          <a
-            href="https://kubernetes.io/docs/concepts/configuration/secret/"
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex text-sm font-semibold text-[var(--green)] hover:underline"
-          >
-            Kubernetes Secrets documentation ↗
-          </a>
+          <div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-[var(--green)]">
+            <a
+              href="https://kubernetes.io/docs/concepts/configuration/secret/"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:underline"
+            >
+              Kubernetes Secrets documentation ↗
+            </a>
+            <a
+              href="https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:underline"
+            >
+              Encryption at rest guidance ↗
+            </a>
+          </div>
         </div>
 
         <div>
@@ -669,7 +679,7 @@ function stripInlineComment(value: string) {
     if (char === "'" && !double) single = !single;
     if (char === '"' && !single && value[index - 1] !== "\\") double = !double;
     if (char === "#" && !single && !double && (index === 0 || /\s/.test(value[index - 1]))) {
-      return value.slice(0, index).trimEnd();
+      return value.slice(0, index).replace(/\s+$/, "");
     }
   }
 

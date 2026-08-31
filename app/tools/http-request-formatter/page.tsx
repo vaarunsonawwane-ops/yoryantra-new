@@ -5,16 +5,6 @@ export const metadata: Metadata = {
   title: "HTTP Request Formatter | Parse Raw HTTP Requests",
   description:
     "Format and inspect raw HTTP requests, request lines, headers, query parameters, JSON or form bodies, Content-Length, and common request issues locally in your browser.",
-  keywords: [
-    "http request formatter",
-    "raw http request formatter",
-    "parse http request",
-    "http request parser",
-    "http headers formatter",
-    "api request formatter",
-    "raw http parser",
-    "http request analyzer",
-  ],
   alternates: {
     canonical: "https://yoryantra.com/tools/http-request-formatter",
   },

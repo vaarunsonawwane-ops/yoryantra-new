@@ -5,15 +5,6 @@ export const metadata: Metadata = {
   title: "Kubernetes Secret Decoder | Decode K8s Secret YAML",
   description:
     "Decode base64 values from Kubernetes Secret YAML, inspect data and stringData fields, identify invalid values, and review secret metadata locally in your browser.",
-  keywords: [
-    "kubernetes secret decoder",
-    "k8s secret decoder",
-    "decode kubernetes secret",
-    "decode k8s secret yaml",
-    "kubernetes secret base64 decoder",
-    "kubernetes secret data decoder",
-    "kubectl secret decode",
-  ],
   alternates: {
     canonical: "https://yoryantra.com/tools/kubernetes-secret-decoder",
   },

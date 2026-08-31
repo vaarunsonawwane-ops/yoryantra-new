@@ -5,17 +5,6 @@ export const metadata: Metadata = {
   title: "JSON to FormData Converter | FormData, URL Encoded & cURL",
   description:
     "Convert JSON into JavaScript FormData code, form fields, x-www-form-urlencoded bodies, multipart previews, and safe cURL form parameters in your browser.",
-  keywords: [
-    "json to formdata",
-    "json to form data converter",
-    "json to javascript formdata",
-    "json to form fields",
-    "json to x-www-form-urlencoded",
-    "json to multipart form data",
-    "json to curl form data",
-    "formdata append json",
-    "api form data converter",
-  ],
   alternates: {
     canonical: "https://yoryantra.com/tools/json-to-form-data-converter",
   },
