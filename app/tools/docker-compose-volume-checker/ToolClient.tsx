@@ -40,7 +40,6 @@ type VolumeResult = {
   duplicateTargetCount: number;
   riskyCount: number;
   readOnlyCount: number;
-  score: number;
 };
 
 type VolumeNote = {
@@ -65,6 +64,10 @@ const sampleCompose = `services:
       - api-data:/var/lib/app
       - /tmp:/tmp
       - /app/node_modules
+      - type: bind
+        source: ./config
+        target: /app/config
+        read_only: true
 
 volumes:
   app-cache:
@@ -189,7 +192,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Docker Compose Volume Checker"
-      description="Check Docker Compose volume mounts for duplicate targets, risky host paths, Docker socket mounts, anonymous volumes, missing modes, read-only recommendations, and data-loss risks."
+      description="Review Docker Compose volume mounts for duplicate targets, risky host paths, Docker socket access, anonymous volumes, writable config mounts, and common short or long syntax."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -411,9 +414,9 @@ export default function ToolClient() {
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Score" value={`${result.score}/100`} />
           <SummaryCard label="Mounts" value={result.totalMounts.toLocaleString()} />
           <SummaryCard label="Risky" value={result.riskyCount.toLocaleString()} />
+          <SummaryCard label="Duplicate Targets" value={result.duplicateTargetCount.toLocaleString()} />
           <SummaryCard label="Issues" value={result.issues.length.toLocaleString()} />
         </div>
       )}
@@ -550,154 +553,122 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking Docker Compose Volume Mounts Before Deployment
+            Volume Mount Problems Are Often Easy to Miss in a Compose Review
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Docker Compose volume mounts are powerful, but small mistakes can
-            cause data loss, security exposure, broken containers, or confusing
-            file overrides. A single duplicate target can hide files inside a
-            container, and a risky host mount can expose more of the system than
-            intended.
+            A mount can be syntactically valid and still be a bad production
+            choice. Mounting the same container path twice can hide files from
+            an earlier mount. Binding a broad host directory can expose far more
+            than the service needs. Mounting the Docker socket can give a
+            container powerful control over the host Docker daemon.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Docker Compose Volume Checker reviews Compose volume mounts for
-            duplicate container targets, Docker socket mounts, risky host paths,
-            anonymous volumes, missing access modes, and read-only recommendations
-            for config and static file mounts.
+            This checker focuses on those review-time mistakes. It understands
+            common short syntax and the common long-form
+            <code> type/source/target/read_only </code> form for bind mounts and
+            named volumes.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Using the Compose Volume Checker
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a docker-compose.yml snippet, service block, or volume list.</li>
-            <li>Choose the input type and checking style.</li>
-            <li>Run the checker and review each mount source, target, and mode.</li>
-            <li>Fix duplicate targets, risky host paths, and unexpected writable mounts.</li>
-            <li>Copy the summary, detailed report, JSON, Markdown, or CSV output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Docker Compose Volume Problems
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Mounting the Docker socket into a container without realizing the risk.</li>
-            <li>Mounting root or system directories such as /, /etc, /var, /proc, or /sys.</li>
-            <li>Using the same container target twice in one service.</li>
-            <li>Creating anonymous volumes accidentally.</li>
-            <li>Leaving config files writable when they could be read-only.</li>
-            <li>Mounting project source over built container files in production.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Compose Volume Mounts
+            Short Syntax and Long Syntax Mean the Same Mount Can Look Very Different
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`services:
-  web:
-    image: nginx:alpine
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./public:/usr/share/nginx/html:ro
-      - app-cache:/cache`}
-            </pre>
-          </div>
-        </div>
+            <pre className="whitespace-pre-wrap break-words">{`# Short syntax
+- ./nginx.conf:/etc/nginx/nginx.conf:ro
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Bind Mounts, Named Volumes, and Anonymous Volumes
-          </h2>
+# Long syntax
+- type: bind
+  source: ./nginx.conf
+  target: /etc/nginx/nginx.conf
+  read_only: true`}</pre>
+          </div>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A bind mount maps a host path into the container. A named volume is
-            managed by Docker and is usually better for persistent app data. An
-            anonymous volume has no clear name in the Compose file, which can
-            make cleanup and debugging harder.
+            Docker Compose also supports mount types and options beyond what this
+            browser checker evaluates. If you use advanced long-form fields,
+            treat this result as a focused review rather than a full Compose
+            parser.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Use bind mounts carefully in production. They are useful for local
-            development, config files, and static assets, but they can also create
-            security and portability problems when host paths differ between
-            machines.
+            One short-syntax detail is easy to overlook: for a bind mount,
+            Compose can create the source directory on the host when that path
+            does not already exist. Long syntax can disable that behavior with
+            <code> bind.create_host_path: false</code>. This checker does not
+            inspect the host filesystem, so verify path existence and advanced
+            bind options with Docker Compose before deployment.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Bind Mount, Named Volume, or Anonymous Volume?
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a Docker Compose Volume Checker do?
-              </h3>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Bind mounts point at a path on the host, which makes them convenient
+            for local source code and configuration but ties the container to the
+            host filesystem. Named volumes are managed by Docker and are usually
+            easier to move and reason about for persistent application data.
+            Anonymous volumes can be valid, but their generated names make
+            cleanup and inspection less obvious.
+          </p>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks Compose volume mounts for risky paths, duplicate
-                targets, anonymous volumes, missing modes, socket mounts, and
-                read-only recommendations.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Read-only access is worth considering for files the container only
+            needs to consume: configuration, certificates, static assets, and
+            generated build output are common examples. A missing
+            <code>:ro</code> is not automatically a bug; it is a prompt to ask
+            whether write access is actually required.
+          </p>
+        </div>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is mounting /var/run/docker.sock risky?
-              </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Treat Docker Socket Mounts as High-Risk
+          </h2>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Docker socket access can allow a container to control Docker
-                on the host, so it should only be used when truly needed.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A mount such as
+            <code> /var/run/docker.sock:/var/run/docker.sock </code> lets code in
+            the container talk to the host Docker daemon. That can be necessary
+            for a small number of tools, but it is a much stronger capability
+            than an ordinary data volume and deserves an explicit security
+            review.
+          </p>
+        </div>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should config file mounts be read-only?
-              </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Verify the Final Compose Model Before Deployment
+          </h2>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Often yes. Mounts like nginx.conf, static assets, certificates,
-                and config files are usually safer with :ro when the container
-                does not need to modify them.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This tool does not merge Compose override files, resolve variables,
+            validate every long-syntax option, or ask the Docker Engine whether
+            a host path exists. After fixing suspicious mounts, run
+            <code> docker compose config </code> against the real project to see
+            the canonical configuration Docker Compose will apply.
+          </p>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this fully parse every Compose file?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It handles common Compose volume syntax and snippets, but it is
-                designed for quick review rather than full Docker Compose execution.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I check volumes?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The check happens directly in your browser.
-              </p>
-            </div>
-          </div>
+          <p className="mt-4 text-sm leading-relaxed text-gray-500">
+            Reference:{" "}
+            <a
+              href="https://docs.docker.com/reference/compose-file/services/#volumes"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="font-medium text-[var(--green)] hover:underline"
+            >
+              Docker Compose service volume documentation
+            </a>
+            {" "}defines short syntax, long syntax, bind mounts, named volumes,
+            and <code> read_only</code>.
+          </p>
         </div>
 
         <div>
@@ -756,13 +727,15 @@ function analyzeComposeVolumes(
     ...mount,
     issues: getMountIssues(mount, options),
   }));
-  const issues = mounts.flatMap((mount) =>
-    mount.issues.map((issue) => ({
-      ...issue,
-      title: `${mount.service || "service"} ${mount.target || mount.raw}: ${issue.title}`,
-    }))
-  );
-  const score = calculateScore(issues);
+  const issues = mounts.reduce<VolumeIssue[]>((allIssues, mount) => {
+    mount.issues.forEach((issue) => {
+      allIssues.push({
+        ...issue,
+        title: `${mount.service || "service"} ${mount.target || mount.raw}: ${issue.title}`,
+      });
+    });
+    return allIssues;
+  }, []);
   const base = {
     mounts,
     issues,
@@ -773,7 +746,6 @@ function analyzeComposeVolumes(
     duplicateTargetCount: mounts.filter((mount) => mount.duplicateTarget).length,
     riskyCount: mounts.filter((mount) => mount.riskySource || mount.type === "socket").length,
     readOnlyCount: mounts.filter((mount) => mount.readOnly).length,
-    score,
   };
   const output = formatOutput(base, options.outputMode);
 
@@ -801,7 +773,13 @@ function parseVolumeMounts(input: string, inputMode: InputMode): VolumeMount[] {
     }
 
     const serviceMatch = line.match(/^(\s{2,})([A-Za-z0-9_.-]+):\s*$/);
-    if (serviceMatch && !["volumes", "environment", "ports", "networks", "depends_on", "labels"].includes(serviceMatch[2])) {
+    if (
+      serviceMatch &&
+      (serviceIndent < 0 || indent === serviceIndent) &&
+      !["volumes", "environment", "ports", "networks", "depends_on", "labels"].includes(
+        serviceMatch[2]
+      )
+    ) {
       currentService = serviceMatch[2];
       serviceIndent = serviceMatch[1].length;
       inVolumes = inputMode === "volumesOnly";
@@ -823,6 +801,10 @@ function parseVolumeMounts(input: string, inputMode: InputMode): VolumeMount[] {
       return;
     }
 
+    if (inputMode === "compose" && !trimmed.startsWith("-")) {
+      return;
+    }
+
     const mount = parseVolumeLine(trimmed, index + 1, raw, currentService);
 
     if (mount) {
@@ -834,6 +816,150 @@ function parseVolumeMounts(input: string, inputMode: InputMode): VolumeMount[] {
     }
   });
 
+  const longSyntaxMounts = parseLongSyntaxVolumeMounts(input, inputMode);
+
+  return [...mounts, ...longSyntaxMounts].sort((left, right) => left.line - right.line);
+}
+
+function parseLongSyntaxVolumeMounts(input: string, inputMode: InputMode): VolumeMount[] {
+  const lines = input.split(/\r?\n/);
+  const mounts: VolumeMount[] = [];
+  let currentService = "unknown";
+  let serviceIndent = -1;
+  let inVolumes = inputMode !== "compose";
+  let volumeIndent = -1;
+  let draft:
+    | {
+        service: string;
+        type: string;
+        source: string;
+        target: string;
+        readOnly: boolean;
+        line: number;
+        raw: string[];
+        listIndent: number;
+      }
+    | null = null;
+
+  const flushDraft = () => {
+    if (!draft) return;
+
+    if (draft.target && ["bind", "volume"].includes(draft.type)) {
+      const mount = buildMount({
+        service: draft.service,
+        source: draft.source,
+        target: draft.target,
+        mode: draft.readOnly ? "ro" : "",
+        raw: draft.raw.join("\n"),
+        line: draft.line,
+      });
+
+      if (draft.type === "bind") {
+        mount.type =
+          draft.source === "/var/run/docker.sock" ||
+          draft.target === "/var/run/docker.sock"
+            ? "socket"
+            : "bind";
+      } else {
+        mount.type = draft.source ? "named" : "anonymous";
+      }
+
+      mounts.push(mount);
+    }
+
+    draft = null;
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    const indent = getIndent(line);
+
+    if (!trimmed || trimmed.startsWith("#")) {
+      if (draft) draft.raw.push(line);
+      return;
+    }
+
+    const serviceMatch = line.match(/^(\s{2,})([A-Za-z0-9_.-]+):\s*$/);
+    if (
+      serviceMatch &&
+      (serviceIndent < 0 || indent === serviceIndent) &&
+      ![
+        "volumes",
+        "volume",
+        "bind",
+        "tmpfs",
+        "environment",
+        "ports",
+        "networks",
+        "depends_on",
+        "labels",
+      ].includes(serviceMatch[2])
+    ) {
+      flushDraft();
+      currentService = serviceMatch[2];
+      serviceIndent = serviceMatch[1].length;
+      inVolumes = false;
+      return;
+    }
+
+    if (/^\s*volumes:\s*$/.test(line) && indent > serviceIndent) {
+      flushDraft();
+      inVolumes = true;
+      volumeIndent = indent;
+      return;
+    }
+
+    if (inVolumes && volumeIndent >= 0 && indent <= volumeIndent && !trimmed.startsWith("-")) {
+      flushDraft();
+      inVolumes = false;
+      return;
+    }
+
+    if (!inVolumes) {
+      return;
+    }
+
+    const longStart = line.match(/^(\s*)-\s*type:\s*([^#\s]+)\s*(?:#.*)?$/i);
+    if (longStart) {
+      flushDraft();
+      draft = {
+        service: currentService,
+        type: stripQuotes(longStart[2]).toLowerCase(),
+        source: "",
+        target: "",
+        readOnly: false,
+        line: index + 1,
+        raw: [line],
+        listIndent: longStart[1].length,
+      };
+      return;
+    }
+
+    if (!draft) {
+      return;
+    }
+
+    if (trimmed.startsWith("-") && indent <= draft.listIndent) {
+      flushDraft();
+      return;
+    }
+
+    draft.raw.push(line);
+
+    const property = trimmed.match(/^(source|src|target|dst|destination|read_only):\s*(.*)$/i);
+    if (!property) {
+      return;
+    }
+
+    const key = property[1].toLowerCase();
+    const value = stripQuotes(stripYamlInlineComment(property[2]).trim());
+
+    if (key === "source" || key === "src") draft.source = value;
+    if (key === "target" || key === "dst" || key === "destination") draft.target = value;
+    if (key === "read_only") draft.readOnly = /^(true|yes|1)$/i.test(value);
+  });
+
+  flushDraft();
   return mounts;
 }
 
@@ -849,7 +975,7 @@ function parseVolumeLine(trimmed: string, line: number, raw: string, service: st
     return parseInlineObjectVolume(value, line, raw, service);
   }
 
-  if (/^type:\s*/.test(value) || /^source:\s*/.test(value) || /^target:\s*/.test(value)) {
+  if (/^(type|source|src|target|dst|destination|read_only|bind|volume|tmpfs|consistency):\s*/i.test(value)) {
     return null;
   }
 
@@ -1126,24 +1252,31 @@ function stripQuotes(value: string) {
   return value;
 }
 
-function getIndent(line: string) {
-  return line.match(/^\s*/)?.[0].length || 0;
+function stripYamlInlineComment(value: string) {
+  let quote: string | null = null;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+
+    if ((char === "'" || char === '"') && value[index - 1] !== "\\") {
+      quote = quote === char ? null : quote || char;
+    }
+
+    if (
+      char === "#" &&
+      quote === null &&
+      index > 0 &&
+      /\s/.test(value[index - 1])
+    ) {
+      return value.slice(0, index);
+    }
+  }
+
+  return value;
 }
 
-function calculateScore(issues: VolumeIssue[]) {
-  let score = 100;
-
-  issues.forEach((issue) => {
-    if (issue.severity === "high") {
-      score -= 25;
-    } else if (issue.severity === "warning") {
-      score -= 12;
-    } else {
-      score -= 4;
-    }
-  });
-
-  return Math.max(0, score);
+function getIndent(line: string) {
+  return line.match(/^\s*/)?.[0].length || 0;
 }
 
 function formatOutput(
@@ -1211,7 +1344,6 @@ function formatOutput(
   return [
     "Docker Compose Volume Summary",
     "-----------------------------",
-    `Score: ${result.score}/100`,
     `Mounts: ${result.totalMounts}`,
     `Bind mounts: ${result.bindCount}`,
     `Named volumes: ${result.namedCount}`,
@@ -1264,11 +1396,11 @@ function getVolumeNotes(result: VolumeResult): VolumeNote[] {
     });
   }
 
-  if (result.score >= 90) {
+  if (result.issues.length === 0) {
     notes.push({
-      title: "Clean volume setup",
+      title: "No flagged mount issues",
       message:
-        "Only minor or no common Compose volume issues were found in the pasted snippet.",
+        "The pasted mounts did not trigger the checks enabled in this tool. This is not a full Compose validation or host-filesystem check.",
     });
   }
 

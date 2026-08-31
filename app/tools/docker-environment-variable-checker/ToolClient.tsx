@@ -41,7 +41,6 @@ type EnvResult = {
   secretCount: number;
   invalidNameCount: number;
   interpolatedCount: number;
-  score: number;
 };
 
 type EnvNote = {
@@ -413,9 +412,9 @@ export default function ToolClient() {
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Score" value={`${result.score}/100`} />
           <SummaryCard label="Variables" value={result.totalVariables.toLocaleString()} />
           <SummaryCard label="Duplicates" value={result.duplicateCount.toLocaleString()} />
+          <SummaryCard label="Secret-like" value={result.secretCount.toLocaleString()} />
           <SummaryCard label="Issues" value={result.issues.length.toLocaleString()} />
         </div>
       )}
@@ -613,6 +612,15 @@ environment:
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
+            In Docker env-file syntax, quoting also changes meaning. Unquoted
+            and double-quoted values can be interpolated, while a single-quoted
+            value is literal: <code>VALUE='${"${OTHER}"}'</code> keeps the dollar
+            expression as text. The checker preserves that distinction for
+            <code>.env</code>-style input instead of warning about interpolation
+            that Compose would not perform there.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
             When the final resolved value matters, run
             <code> docker compose config</code>. Docker also provides
             <code> docker compose config --environment</code> to show the
@@ -729,16 +737,16 @@ function analyzeEnvironmentVariables(
     issues: getEntryIssues(entry, options),
   }));
   const globalIssues = getGlobalIssues(entries, options.requiredInput, options);
-  const issues = [
-    ...globalIssues,
-    ...entries.flatMap((entry) =>
-      entry.issues.map((issue) => ({
+  const entryIssues = entries.reduce<EnvIssue[]>((allIssues, entry) => {
+    entry.issues.forEach((issue) => {
+      allIssues.push({
         ...issue,
         title: `${entry.key || "Variable"}: ${issue.title}`,
-      }))
-    ),
-  ];
-  const score = calculateScore(issues);
+      });
+    });
+    return allIssues;
+  }, []);
+  const issues = [...globalIssues, ...entryIssues];
   const base = {
     entries,
     issues,
@@ -748,7 +756,6 @@ function analyzeEnvironmentVariables(
     secretCount: entries.filter((entry) => entry.likelySecret).length,
     invalidNameCount: entries.filter((entry) => !entry.validName).length,
     interpolatedCount: entries.filter((entry) => entry.interpolated).length,
-    score,
   };
   const output = formatOutput(base, options.outputMode);
 
@@ -876,11 +883,15 @@ function parseLine(line: string, lineNumber: number, inputMode: InputMode): EnvE
 
   const cleanValue = stripInlineComment(value).trim();
   const quoted = isQuoted(cleanValue);
+  const singleQuotedEnvValue =
+    source === "env" && cleanValue.startsWith("'") && cleanValue.endsWith("'");
   const unquotedValue = removeQuotes(cleanValue);
   const likelySecret = riskyKeyPattern.test(key);
   const empty = unquotedValue.length === 0 && !valueOmitted;
   const interpolationText = unquotedValue.replace(/\$\$/g, "");
-  const interpolated = /\$(?:\{[^}]+\}|[A-Za-z_][A-Za-z0-9_]*)/.test(interpolationText);
+  const interpolated =
+    !singleQuotedEnvValue &&
+    /\$(?:\{[^}]+\}|[A-Za-z_][A-Za-z0-9_]*)/.test(interpolationText);
   const validName = /^[A-Za-z_][A-Za-z0-9_]*$/.test(key);
 
   return {
@@ -1070,22 +1081,6 @@ function getGlobalIssues(
   return issues;
 }
 
-function calculateScore(issues: EnvIssue[]) {
-  let score = 100;
-
-  issues.forEach((issue) => {
-    if (issue.severity === "high") {
-      score -= 25;
-    } else if (issue.severity === "warning") {
-      score -= 12;
-    } else {
-      score -= 4;
-    }
-  });
-
-  return Math.max(0, score);
-}
-
 function formatOutput(
   result: Omit<EnvResult, "output">,
   outputMode: OutputMode
@@ -1146,7 +1141,6 @@ function formatOutput(
   return [
     "Docker Environment Variable Summary",
     "-----------------------------------",
-    `Score: ${result.score}/100`,
     `Variables: ${result.totalVariables}`,
     `Duplicates: ${result.duplicateCount}`,
     `Empty values: ${result.emptyCount}`,
@@ -1210,11 +1204,11 @@ function getEnvNotes(result: EnvResult): EnvNote[] {
     });
   }
 
-  if (result.score >= 90) {
+  if (result.issues.length === 0) {
     notes.push({
-      title: "Clean environment file",
+      title: "No flagged variable issues",
       message:
-        "Only minor or no common environment variable issues were found.",
+        "The pasted values did not trigger the enabled checks. Docker Compose can still resolve them differently after precedence, interpolation, env_file loading, and CLI overrides are applied.",
     });
   }
 

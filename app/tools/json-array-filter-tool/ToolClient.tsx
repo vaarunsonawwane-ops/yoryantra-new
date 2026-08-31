@@ -516,6 +516,15 @@ export default function ToolClient() {
             to test a condition such as <code>user.role</code> without turning
             the returned record into a different shape.
           </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The dot path in this tool is a small convenience syntax, not
+            JSONPath or JSON Pointer. A path such as <code>user.role</code> walks
+            nested object properties; if a record has a literal key named
+            <code>user.role</code>, the tool checks that direct key first. Use a
+            JSONPath or JSON Pointer tool when you need those standards and their
+            full selector or escaping rules.
+          </p>
         </div>
 
         <div>

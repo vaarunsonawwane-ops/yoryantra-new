@@ -402,7 +402,7 @@ export default function ToolClient() {
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Decode MIME and RFC 2047 Email Headers</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Email subjects, sender names, and other message headers may appear as encoded text when they contain emoji, accented letters, Hindi, Japanese, or other non-ASCII characters. RFC 2047 represents this text as MIME encoded words so it can travel safely through email systems.
+            Email subjects, sender names, and some other message-header text may appear encoded when they contain emoji, accented letters, Hindi, Japanese, or other non-ASCII characters. <a href="https://www.rfc-editor.org/rfc/rfc2047.html" target="_blank" rel="noreferrer" className="underline underline-offset-2">RFC 2047</a> defines MIME encoded-words such as <span className="font-mono text-gray-800">=?UTF-8?B?...?=</span> for specific places in a header field.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
             This MIME decoder reads patterns such as <span className="font-mono text-gray-800">=?UTF-8?B?...?=</span> and <span className="font-mono text-gray-800">=?UTF-8?Q?...?=</span>. It converts them into readable text and shows the charset, encoding method, byte length, folding issues, and other useful details.
@@ -426,6 +426,16 @@ export default function ToolClient() {
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
             Whitespace between adjacent encoded-words is ignored when a mail reader displays the header. The decoder follows that rule only between adjacent encoded-words and leaves ordinary spaces elsewhere in the header alone.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Encoded-Words Are Not a Universal Header Escape</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            RFC 2047 allows encoded-words only in particular header contexts. They must not be inserted into an email address&apos;s <span className="font-mono text-gray-800">addr-spec</span>, a <span className="font-mono text-gray-800">Received</span> field, or MIME parameter values such as a Content-Type parameter. A display name can use encoded-words, but that does not mean an entire structured address field should be encoded as one opaque string.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Modern internationalized email can also carry UTF-8 directly in many header fields when the SMTPUTF8 extensions are in use. <a href="https://www.rfc-editor.org/rfc/rfc6532.html" target="_blank" rel="noreferrer" className="underline underline-offset-2">RFC 6532</a> says encoded-words should not be generated for those internationalized headers. This tool remains useful for legacy mail, raw traces, exports, and compatibility debugging where RFC 2047 syntax is still encountered.
           </p>
         </div>
 
@@ -595,20 +605,12 @@ function decodeHeaderText(input: string, parts: EncodedWordPart[], options: { jo
 function decodeEncodedWord(charset: string, encoding: string, encodedText: string, warnUnsupportedCharset: boolean) {
   try {
     const bytes = encoding === "B" ? decodeBase64ToBytes(encodedText) : decodeQToBytes(encodedText);
-    const decoder = getTextDecoder(charset);
-    if (!decoder) {
-      const fallback = bytesToLatin1(bytes);
-      return {
-        text: fallback,
-        byteLength: bytes.length,
-        error: warnUnsupportedCharset ? `Unsupported charset: ${charset}. Decoded with a Latin-1 fallback.` : "",
-      };
-    }
+    const decoded = decodeBytesForCharset(bytes, charset, warnUnsupportedCharset);
 
     return {
-      text: decoder.decode(bytes),
+      text: decoded.text,
       byteLength: bytes.length,
-      error: "",
+      error: decoded.error,
     };
   } catch (error) {
     return {
@@ -652,12 +654,43 @@ function decodeQToBytes(value: string) {
   return new Uint8Array(bytes);
 }
 
-function getTextDecoder(charset: string) {
+function decodeBytesForCharset(bytes: Uint8Array, charset: string, warnUnsupportedCharset: boolean) {
   const normalized = normalizeCharset(charset);
+
+  if (normalized === "iso-8859-1") {
+    return { text: bytesToLatin1(bytes), error: "" };
+  }
+
+  if (normalized === "us-ascii") {
+    const hasNonAscii = Array.from(bytes).some((byte) => byte > 0x7f);
+    return {
+      text: Array.from(bytes)
+        .map((byte) => (byte <= 0x7f ? String.fromCharCode(byte) : "�"))
+        .join(""),
+      error: hasNonAscii ? "US-ASCII encoded-word contains bytes above 0x7F." : "",
+    };
+  }
+
+  if (normalized === "windows-1252") {
+    const decoded = decodeWindows1252(bytes);
+    return {
+      text: decoded.text,
+      error: decoded.hasUndefinedBytes ? "Windows-1252 input contains undefined byte values." : "",
+    };
+  }
+
   try {
-    return new TextDecoder(normalized, { fatal: false });
+    return {
+      text: new TextDecoder(normalized, { fatal: false }).decode(bytes),
+      error: "",
+    };
   } catch {
-    return null;
+    return {
+      text: bytesToLatin1(bytes),
+      error: warnUnsupportedCharset
+        ? `Unsupported charset: ${charset}. Decoded with a Latin-1 fallback.`
+        : "",
+    };
   }
 }
 
@@ -782,6 +815,52 @@ function encodeTextBytes(text: string, charset: CharsetMode) {
   return new Uint8Array(bytes);
 }
 
+function decodeWindows1252(bytes: Uint8Array) {
+  const special: Record<number, number> = {
+    0x80: 0x20ac,
+    0x82: 0x201a,
+    0x83: 0x0192,
+    0x84: 0x201e,
+    0x85: 0x2026,
+    0x86: 0x2020,
+    0x87: 0x2021,
+    0x88: 0x02c6,
+    0x89: 0x2030,
+    0x8a: 0x0160,
+    0x8b: 0x2039,
+    0x8c: 0x0152,
+    0x8e: 0x017d,
+    0x91: 0x2018,
+    0x92: 0x2019,
+    0x93: 0x201c,
+    0x94: 0x201d,
+    0x95: 0x2022,
+    0x96: 0x2013,
+    0x97: 0x2014,
+    0x98: 0x02dc,
+    0x99: 0x2122,
+    0x9a: 0x0161,
+    0x9b: 0x203a,
+    0x9c: 0x0153,
+    0x9e: 0x017e,
+    0x9f: 0x0178,
+  };
+  const undefinedBytes = new Set([0x81, 0x8d, 0x8f, 0x90, 0x9d]);
+  let hasUndefinedBytes = false;
+  const text = Array.from(bytes)
+    .map((byte) => {
+      if (undefinedBytes.has(byte)) {
+        hasUndefinedBytes = true;
+        return "�";
+      }
+      if (byte in special) return String.fromCodePoint(special[byte]);
+      return String.fromCharCode(byte);
+    })
+    .join("");
+
+  return { text, hasUndefinedBytes };
+}
+
 function encodeWindows1252CodePoint(codePoint: number) {
   const extra: Record<number, number> = {
     0x20ac: 0x80,
@@ -814,7 +893,7 @@ function encodeWindows1252CodePoint(codePoint: number) {
   };
 
   if (codePoint in extra) return extra[codePoint];
-  if (codePoint <= 0xff) return codePoint;
+  if (codePoint <= 0x7f || (codePoint >= 0xa0 && codePoint <= 0xff)) return codePoint;
   return 0x3f;
 }
 

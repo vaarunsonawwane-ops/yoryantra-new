@@ -7,18 +7,6 @@ export const metadata: Metadata = {
   description:
     "Format textual HTTP response captures, inspect status lines, headers, Set-Cookie attributes, redirects and JSON bodies, and surface syntax notes locally.",
 
-  keywords: [
-    "http response formatter",
-    "raw http response formatter",
-    "format http response",
-    "http response parser",
-    "http headers formatter",
-    "api response formatter",
-    "parse http response",
-    "status code checker",
-    "developer tools",
-  ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/http-response-formatter",
   },

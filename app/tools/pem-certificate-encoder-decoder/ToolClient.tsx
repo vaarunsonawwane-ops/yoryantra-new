@@ -394,7 +394,7 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Why 64-Character Lines Are Used</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            RFC 7468 requires generators to wrap the Base64 body at exactly 64 characters per line, except for the final shorter line. Parsers are often more tolerant, but producing the standard form avoids needless compatibility problems when a certificate or key moves between command-line tools, servers, CI systems, and configuration files.
+            <a href="https://www.rfc-editor.org/rfc/rfc7468.html" target="_blank" rel="noreferrer" className="underline underline-offset-2">RFC 7468</a> requires generators to wrap the Base64 body at exactly 64 characters per line, except for the final shorter line. Parsers are often more tolerant, but producing the standard form avoids needless compatibility problems when a certificate or key moves between command-line tools, servers, CI systems, and configuration files.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
             Normalize mode therefore writes 64-character lines and matching BEGIN/END labels. You can still choose LF or CRLF line endings because real systems use both newline conventions.

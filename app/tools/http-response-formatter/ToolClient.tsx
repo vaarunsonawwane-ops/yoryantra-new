@@ -503,7 +503,7 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Reason Phrases Are Useful for Reading, Not for Logic</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            In an HTTP/1.1 status line such as <span className="font-mono text-gray-800">HTTP/1.1 404 Not Found</span>, the numeric status code is the reliable part. RFC 9112 says clients should ignore the reason phrase for program logic because intermediaries can change or remove it. This tool displays the phrase when present, but classifies the response from the status code.
+            In an HTTP/1.1 status line such as <span className="font-mono text-gray-800">HTTP/1.1 404 Not Found</span>, the numeric status code is the reliable part. <a href="https://www.rfc-editor.org/rfc/rfc9112.html" target="_blank" rel="noreferrer" className="underline underline-offset-2">RFC 9112</a> says clients should ignore the reason phrase for program logic because intermediaries can change or remove it. This tool displays the phrase when present, but classifies the response from the status code.
           </p>
         </div>
 
@@ -878,11 +878,46 @@ function getResponseNotes(response: ParsedResponse): ResponseNote[] {
   });
 
 
+  const transferEncoding = getHeaderValue(response.headers, "transfer-encoding");
+  const contentLengthHeader = getHeaderValue(response.headers, "content-length");
+
+  if (transferEncoding && contentLengthHeader) {
+    notes.push({
+      title: "Transfer-Encoding and Content-Length are both present",
+      message:
+        "HTTP/1.1 gives Transfer-Encoding precedence over Content-Length and treats this combination as potentially dangerous. Do not use this formatter to decide whether an ambiguous capture is safe to forward.",
+    });
+  }
+
+  if (
+    response.body &&
+    ((response.statusCode >= 100 && response.statusCode < 200) ||
+      response.statusCode === 204 ||
+      response.statusCode === 304)
+  ) {
+    notes.push({
+      title: "Status code normally has no HTTP message body",
+      message:
+        "HTTP/1.1 responses with 1xx, 204, or 304 status codes are terminated after the header section. If pasted body text appears here, check whether your capture tool appended decoded content or another message.",
+    });
+  }
+
+  if (contentLengthHeader && /^\d+$/.test(contentLengthHeader.trim())) {
+    const declaredLength = Number(contentLengthHeader.trim());
+    if (Number.isSafeInteger(declaredLength) && declaredLength !== response.bodyBytes) {
+      notes.push({
+        title: "Pasted body size differs from Content-Length",
+        message:
+          `Content-Length declares ${declaredLength.toLocaleString()} octets, while the pasted body is ${response.bodyBytes.toLocaleString()} UTF-8 bytes. Logs and developer tools can transform or decode content, so verify the original wire capture before treating this as a server framing error.`,
+      });
+    }
+  }
+
   if (response.statusCode >= 300 && response.statusCode < 400 && !response.location) {
     notes.push({
       title: "Redirect without Location header",
       message:
-        "This response is in the redirect range, but no Location header was found.",
+        "This response is in the redirect range, but no Location header was found. Not every 3xx response requires Location, so interpret this in the context of the specific status code.",
     });
   }
 
