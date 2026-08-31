@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON to FormData Converter | FormData, URL Encoded & cURL",
+  title: "JSON to FormData Converter | FormData, URL Encoded & cURL | Yoryantra",
   description:
     "Convert JSON into JavaScript FormData code, form fields, x-www-form-urlencoded bodies, multipart previews, and safe cURL form parameters in your browser.",
   alternates: {

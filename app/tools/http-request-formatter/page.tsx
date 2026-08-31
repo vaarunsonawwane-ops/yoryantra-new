@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "HTTP Request Formatter | Parse Raw HTTP Requests",
+  title: "HTTP Request Formatter | Parse Raw HTTP Requests | Yoryantra",
   description:
     "Format and inspect raw HTTP requests, request lines, headers, query parameters, JSON or form bodies, Content-Length, and common request issues locally in your browser.",
   alternates: {

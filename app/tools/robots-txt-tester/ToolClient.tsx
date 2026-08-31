@@ -1,35 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
-type RuleType = "allow" | "disallow";
-
-type Rule = {
-  type: RuleType;
-  pattern: string;
-  line: number;
-  groupIndex: number;
-};
-
-type Group = {
-  agents: string[];
-  rules: Rule[];
-  index: number;
-};
-
-type ParseIssue = {
-  severity: "info" | "warning";
-  line?: number;
-  message: string;
-};
-
-type MatchedRule = Rule & {
-  normalizedPattern: string;
-  specificity: number;
-};
-
+type Rule = { type: "allow" | "disallow"; pattern: string; line: number };
+type Group = { agents: string[]; rules: Rule[]; index: number };
+type ParseIssue = { severity: "info" | "warning"; message: string; line?: number };
+type MatchedRule = Rule & { normalizedPattern: string; specificity: number };
 type TestResult = {
   allowed: boolean;
   testedTarget: string;
@@ -45,20 +23,26 @@ type TestResult = {
 
 const sampleRobots = `User-agent: *
 Disallow: /private/
-Disallow: /*.pdf$
-Allow: /private/public-guide.pdf
+Allow: /private/public/
+Disallow: /*?session=
 
 User-agent: Googlebot
-Disallow: /search
-Allow: /search/about`;
+Disallow: /staging/
+
+Sitemap: https://example.com/sitemap.xml`;
 
 export default function ToolClient() {
   const [robotsInput, setRobotsInput] = useState("");
-  const [urlInput, setUrlInput] = useState("");
+  const [targetInput, setTargetInput] = useState("");
   const [userAgent, setUserAgent] = useState("Googlebot");
   const [result, setResult] = useState<TestResult | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+
+  const parsed = useMemo(() => {
+    if (!robotsInput.trim()) return null;
+    return parseRobots(robotsInput);
+  }, [robotsInput]);
 
   const clearResult = () => {
     setResult(null);
@@ -67,50 +51,49 @@ export default function ToolClient() {
   };
 
   const testRobots = () => {
-    try {
-      if (!robotsInput.trim()) {
-        setError("Paste robots.txt content to test.");
-        setResult(null);
-        return;
-      }
-      if (!urlInput.trim()) {
-        setError("Enter a URL or path to test.");
-        setResult(null);
-        return;
-      }
-      if (!userAgent.trim()) {
-        setError("Enter a crawler product token or user-agent string.");
-        setResult(null);
-        return;
-      }
+    if (!robotsInput.trim()) {
+      setError("Please paste robots.txt content.");
+      setResult(null);
+      return;
+    }
+    if (!targetInput.trim()) {
+      setError("Please enter a URL or path to test.");
+      setResult(null);
+      return;
+    }
+    if (!userAgent.trim()) {
+      setError("Please enter a crawler user-agent name.");
+      setResult(null);
+      return;
+    }
 
-      const parsed = parseRobots(robotsInput);
-      const next = evaluateRobots(parsed, urlInput, userAgent);
+    try {
+      const next = evaluateRobots(parseRobots(robotsInput), targetInput, userAgent);
       setResult(next);
       setError("");
       setCopied(false);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to test these robots.txt rules.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to test this robots.txt file.");
       setResult(null);
     }
   };
 
   const loadExample = () => {
     setRobotsInput(sampleRobots);
-    setUrlInput("https://example.com/private/public-guide.pdf?download=1");
+    setTargetInput("https://example.com/private/public/help?session=abc");
     setUserAgent("Googlebot");
     clearResult();
   };
 
   const resetAll = () => {
     setRobotsInput("");
-    setUrlInput("");
+    setTargetInput("");
     setUserAgent("Googlebot");
     clearResult();
   };
 
   const copyOutput = async () => {
-    if (!result?.output) return;
+    if (!result) return;
     await navigator.clipboard.writeText(result.output);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
@@ -119,214 +102,126 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Robots.txt Tester"
-      description="Test a URL against robots.txt Allow and Disallow rules, see which crawler group applies, and inspect the longest matching rule. Everything is evaluated locally in your browser."
+      description="Test pasted robots.txt rules against a URL path and crawler token using RFC 9309 matching plus Google-style user-agent selection and wildcard behavior."
     >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <label className="block text-sm font-semibold text-gray-900">Robots.txt Content</label>
-          <p className="mt-1 text-sm leading-relaxed text-gray-500">
-            Paste the file exactly as served. Comments, repeated user-agent groups, <code className="rounded bg-gray-100 px-1 py-0.5">*</code>, and <code className="rounded bg-gray-100 px-1 py-0.5">$</code> are handled.
-          </p>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">Robots.txt Content</label>
           <textarea
             value={robotsInput}
-            onChange={(event) => {
-              setRobotsInput(event.target.value);
-              clearResult();
-            }}
+            onChange={(event) => { setRobotsInput(event.target.value); clearResult(); }}
+            rows={15}
             placeholder={sampleRobots}
-            spellCheck={false}
-            className="mt-4 min-h-[420px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
         </div>
-
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-gray-900">URL or Path to Test</label>
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Full URLs are accepted. Path and query are used for matching; fragments are not sent in HTTP requests and are ignored.
-            </p>
+            <label className="mb-2 block text-sm font-medium text-gray-700">URL or Path</label>
             <input
-              type="text"
-              value={urlInput}
-              onChange={(event) => {
-                setUrlInput(event.target.value);
-                clearResult();
-              }}
-              placeholder="https://example.com/private/page?view=1"
-              spellCheck={false}
-              className="mt-3 w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              value={targetInput}
+              onChange={(event) => { setTargetInput(event.target.value); clearResult(); }}
+              placeholder="/products/item?ref=nav"
+              className="w-full rounded-xl border border-gray-300 p-3 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)]"
             />
           </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-semibold text-gray-900">Crawler / User Agent</label>
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              A crawler token such as <code className="rounded bg-gray-100 px-1 py-0.5">Googlebot</code> is simplest. A full HTTP User-Agent string also works when it contains the crawler token.
-            </p>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Crawler User-Agent</label>
             <input
-              type="text"
               value={userAgent}
-              onChange={(event) => {
-                setUserAgent(event.target.value);
-                clearResult();
-              }}
+              onChange={(event) => { setUserAgent(event.target.value); clearResult(); }}
               placeholder="Googlebot"
-              spellCheck={false}
-              className="mt-3 w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              className="w-full rounded-xl border border-gray-300 p-3 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)]"
             />
           </div>
-
-          <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-            Robots.txt controls crawling, not authentication. A disallowed URL can still be known or indexed from other signals, and robots.txt is publicly readable. Do not use it to protect private content.
-          </div>
+          {parsed && (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+              <p><strong>{parsed.groups.length}</strong> user-agent group{parsed.groups.length === 1 ? "" : "s"} parsed.</p>
+              <p className="mt-1"><strong>{parsed.sitemaps.length}</strong> Sitemap directive{parsed.sitemaps.length === 1 ? "" : "s"} found.</p>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button type="button" onClick={testRobots} className="yoryantra-btn">Test Rules</button>
-        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">Load Example</button>
-        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
+        <button onClick={testRobots} className="yoryantra-btn">Test Robots.txt</button>
+        <button onClick={loadExample} className="yoryantra-btn-outline">Load Example</button>
+        <button onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
+        {result && <button onClick={copyOutput} className="yoryantra-btn-outline">{copied ? "Copied" : "Copy Report"}</button>}
       </div>
 
-      {error ? <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
+      {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
-      {result ? (
+      {result && (
         <>
-          <div className={`mt-8 rounded-2xl border p-6 ${result.allowed ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold uppercase tracking-wide text-gray-500">Crawler Decision</div>
-                <div className={`mt-2 text-3xl font-semibold ${result.allowed ? "text-green-800" : "text-red-800"}`}>
-                  {result.allowed ? "Allowed" : "Disallowed"}
-                </div>
-                <div className="mt-3 break-all text-sm leading-relaxed text-gray-700">{result.testedTarget}</div>
-              </div>
-              <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">{copied ? "Copied" : "Copy Result"}</button>
+          <div className={`mt-8 rounded-2xl border p-5 ${result.allowed ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
+            <div className="text-sm font-semibold uppercase tracking-wide text-gray-600">Decision</div>
+            <div className="mt-1 text-2xl font-semibold text-gray-900">{result.allowed ? "Allowed" : "Disallowed"}</div>
+            <p className="mt-3 text-sm leading-relaxed text-gray-700">
+              Matched user-agent: <code>{result.matchedAgent || "none"}</code>. Winning rule: {result.matchedRule ? <code>{`${result.matchedRule.type}: ${result.matchedRule.pattern}`}</code> : "none; allowed by default"}.
+            </p>
+          </div>
+
+          {result.matchingRules.length > 0 && (
+            <div className="mt-8 overflow-auto rounded-xl border border-gray-200">
+              <table className="w-full min-w-[680px] text-left text-sm">
+                <thead className="bg-gray-50 text-gray-600"><tr><th className="px-4 py-3">Rule</th><th className="px-4 py-3">Pattern</th><th className="px-4 py-3">Normalized</th><th className="px-4 py-3">Specificity</th><th className="px-4 py-3">Line</th></tr></thead>
+                <tbody className="divide-y divide-gray-100">
+                  {result.matchingRules.map((rule, index) => (
+                    <tr key={`${rule.line}-${index}`}><td className="px-4 py-3">{rule.type}</td><td className="px-4 py-3 font-mono">{rule.pattern}</td><td className="px-4 py-3 font-mono">{rule.normalizedPattern}</td><td className="px-4 py-3">{rule.specificity}</td><td className="px-4 py-3">{rule.line}</td></tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          )}
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <StatCard label="Matched User-Agent" value={result.matchedAgent || "None"} />
-            <StatCard label="Applicable Rules" value={String(result.matchingRules.length)} />
-            <StatCard label="Groups Parsed" value={String(result.groups.length)} />
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-            <h3 className="text-lg font-semibold text-gray-900">Rule That Decided the Result</h3>
-            {result.matchedRule ? (
-              <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${result.matchedRule.type === "allow" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-                    {result.matchedRule.type.toUpperCase()}
-                  </span>
-                  <code className="break-all text-sm text-gray-900">{result.matchedRule.pattern}</code>
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  Line {result.matchedRule.line}. Specificity: {result.matchedRule.specificity} path-pattern octets. Longer matching patterns take precedence; equally specific Allow and Disallow rules prefer Allow.
-                </p>
-              </div>
-            ) : (
-              <p className="mt-4 text-sm leading-relaxed text-gray-600">
-                No Allow or Disallow rule matched this target. The default is to allow crawling for the selected crawler group.
-              </p>
-            )}
-
-            {result.matchingRules.length > 1 ? (
-              <div className="mt-5 overflow-auto rounded-xl border border-gray-200">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-gray-700">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">Rule</th>
-                      <th className="px-4 py-3 font-semibold">Pattern</th>
-                      <th className="px-4 py-3 font-semibold">Specificity</th>
-                      <th className="px-4 py-3 font-semibold">Line</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
-                    {result.matchingRules.map((rule, index) => (
-                      <tr key={`${rule.line}-${rule.pattern}-${index}`}>
-                        <td className="px-4 py-3 font-medium text-gray-900">{rule.type}</td>
-                        <td className="px-4 py-3 font-mono text-gray-700">{rule.pattern}</td>
-                        <td className="px-4 py-3 text-gray-600">{rule.specificity}</td>
-                        <td className="px-4 py-3 text-gray-600">{rule.line}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
-          </div>
-
-          {result.issues.length || result.sitemaps.length ? (
-            <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-              <h3 className="text-lg font-semibold text-gray-900">File Notes</h3>
-              <div className="mt-4 space-y-3">
-                {result.issues.map((issue, index) => (
-                  <div key={`${issue.line ?? 0}-${index}`} className={`rounded-xl border p-4 text-sm leading-relaxed ${issue.severity === "warning" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-gray-200 bg-gray-50 text-gray-700"}`}>
-                    {issue.line ? <span className="font-semibold">Line {issue.line}: </span> : null}{issue.message}
-                  </div>
-                ))}
-                {result.sitemaps.length ? (
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-                    <div className="font-semibold text-gray-900">Sitemap records found</div>
-                    <ul className="mt-2 list-disc space-y-1 pl-5">
-                      {result.sitemaps.map((sitemap) => <li key={sitemap} className="break-all">{sitemap}</li>)}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
+          {result.issues.length > 0 && (
+            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <h3 className="font-semibold text-amber-900">Notes</h3>
+              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-amber-800">
+                {result.issues.map((issue, index) => <li key={index}>{issue.line ? `Line ${issue.line}: ` : ""}{issue.message}</li>)}
+              </ul>
             </div>
-          ) : null}
+          )}
+
+          <pre className="mt-8 yoryantra-output min-h-[220px] overflow-auto whitespace-pre-wrap break-words text-sm">{result.output}</pre>
         </>
-      ) : null}
+      )}
+
+      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+        This tester evaluates the robots.txt text you paste. It does not fetch a live robots.txt file or verify what a crawler actually received.
+      </div>
 
       <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Robots.txt Matching Is More Than “First Rule Wins”</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Testing Crawl Rules Without Guessing at Precedence</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Robots.txt is organized into user-agent groups. For a crawler, the relevant groups are selected first; their rules are then evaluated against the URL path. When more than one Allow or Disallow rule matches, the most specific path wins. If an Allow and Disallow rule are equally specific, Allow wins.
-          </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            That detail matters. A broad <code className="rounded bg-gray-100 px-1 py-0.5">Disallow: /private/</code> can be overridden by a longer <code className="rounded bg-gray-100 px-1 py-0.5">Allow: /private/public-page</code>, but a shorter Allow should not cancel a more specific Disallow.
-          </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            When you enter a full URL, this browser tool uses its path and query for rule matching. It cannot verify that the pasted robots.txt was actually served from that URL&apos;s scheme, host, and port, nor can it reproduce crawler caching or HTTP-status handling. For a live Google-specific check, compare the result with the robots.txt report in Search Console.
+            Robots.txt decisions depend on the crawler group that applies and the most specific matching Allow or Disallow rule. This tester keeps matching rules visible so you can see why a path was allowed or blocked instead of treating robots.txt as a simple first-match list.
           </p>
         </div>
-
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Patterns, Queries, Wildcards, and Case</h2>
-          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
-            <li>Rule paths are case-sensitive even though the <code className="rounded bg-gray-100 px-1 py-0.5">user-agent</code> field is matched case-insensitively.</li>
-            <li><code className="rounded bg-gray-100 px-1 py-0.5">*</code> matches zero or more characters and <code className="rounded bg-gray-100 px-1 py-0.5">$</code> anchors a pattern to the end of the URL.</li>
-            <li>The query string can affect a match. For example, an end-anchored file rule may stop matching when extra query characters follow the filename.</li>
-            <li>An empty <code className="rounded bg-gray-100 px-1 py-0.5">Disallow:</code> or <code className="rounded bg-gray-100 px-1 py-0.5">Allow:</code> rule has no blocking effect.</li>
-          </ul>
-        </div>
-
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-xl font-semibold text-amber-900">Robots.txt Does Not Mean “Do Not Index”</h2>
-          <p className="mt-3 leading-relaxed text-amber-800">
-            A disallowed URL cannot normally be crawled by a compliant crawler, but the URL itself can still be discovered from links or other signals. Use page-level indexing controls where you need indexing behavior, and use authentication or access control for private content.
+          <h2 className="text-xl font-semibold text-gray-900">Trailing Wildcards Do Not Make a Rule More Specific</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            For Google-style matching, a trailing <code>*</code> that does not precede an end anchor is redundant. For example, <code>/*</code> behaves like <code>/</code> and <code>/fish*</code> behaves like <code>/fish</code>. The tester removes that redundant trailing wildcard before calculating precedence, preventing it from incorrectly outranking an equivalent Allow rule.
           </p>
         </div>
-
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Robots.txt Controls Crawling, Not Privacy</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A disallowed URL can still be discovered from links and other signals. Use page-level indexing controls for indexing behavior and authentication or access controls for private content. Never use robots.txt as a security boundary.
+          </p>
+        </div>
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-          <h2 className="text-xl font-semibold text-gray-900">Reference Used by This Tester</h2>
+          <h2 className="text-xl font-semibold text-gray-900">References Used by This Tester</h2>
           <p className="mt-3 leading-relaxed text-gray-600">
-            The core grouping, longest-match, Allow/Disallow, wildcard, comment, and encoding behavior comes from RFC 9309, the Robots Exclusion Protocol. The crawler-token selection here also follows Google&apos;s documented most-specific user-agent behavior, which is especially useful for SEO testing.
+            Core grouping and rule matching are based on RFC 9309. Crawler-token selection and wildcard details are aligned with Google&apos;s documented robots.txt interpretation for practical SEO testing.
           </p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             <a href="https://www.rfc-editor.org/rfc/rfc9309.html" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">RFC 9309 →</a>
             <a href="https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">Google robots.txt interpretation →</a>
-            <a href="https://developers.google.com/crawling/docs/robots-txt/create-robots-txt" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">Google robots.txt testing guidance →</a>
           </div>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/robots-txt-tester" />
-        </div>
+        <div><h2 className="text-xl font-semibold text-gray-900">Related Tools</h2><YoryantraRelatedTools currentHref="/tools/robots-txt-tester" /></div>
       </section>
     </ToolShell>
   );
@@ -338,16 +233,13 @@ function parseRobots(input: string) {
   const sitemaps: string[] = [];
   const inputBytes = new TextEncoder().encode(input).length;
   if (inputBytes > 500 * 1024) {
-    issues.push({
-      severity: "warning",
-      message: `This pasted file is ${inputBytes.toLocaleString()} UTF-8 bytes. RFC 9309 requires crawlers to support at least 500 KiB, while Google documents a 500 KiB parsing limit; rules beyond a crawler's limit may be ignored.`,
-    });
+    issues.push({ severity: "warning", message: `This pasted file is ${inputBytes.toLocaleString()} UTF-8 bytes. Very large robots.txt files can be truncated by crawlers; Google documents a 500 KiB parsing limit.` });
   }
+
   let agents: string[] = [];
   let rules: Rule[] = [];
   let groupIndex = 0;
   let rulePhaseStarted = false;
-
   const pushGroup = () => {
     if (!agents.length) return;
     groups.push({ agents: [...agents], rules: [...rules], index: groupIndex });
@@ -358,53 +250,36 @@ function parseRobots(input: string) {
   };
 
   const lines = input.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
-
   lines.forEach((rawLine, index) => {
     const lineNumber = index + 1;
     const withoutComment = rawLine.split("#", 1)[0].trim();
     if (!withoutComment) return;
-
     const separator = withoutComment.indexOf(":");
     if (separator <= 0) {
       issues.push({ severity: "warning", line: lineNumber, message: "This line has no directive separator ':' and was ignored." });
       return;
     }
-
     const name = withoutComment.slice(0, separator).trim().toLowerCase();
     const value = withoutComment.slice(separator + 1).trim();
 
     if (name === "user-agent") {
-      if (!value) {
-        issues.push({ severity: "warning", line: lineNumber, message: "Empty user-agent value was ignored." });
-        return;
-      }
-      if (value !== "*" && !/^[A-Za-z_-]+$/.test(value)) {
-        issues.push({ severity: "warning", line: lineNumber, message: `User-agent '${value}' is not an RFC 9309 product token. Strict product tokens contain only letters, underscore, or hyphen; crawler-specific parsers may be more lenient.` });
-      }
+      if (!value) { issues.push({ severity: "warning", line: lineNumber, message: "Empty user-agent value was ignored." }); return; }
       if (rulePhaseStarted) pushGroup();
       agents.push(value);
       return;
     }
-
     if (name === "allow" || name === "disallow") {
-      if (!agents.length) {
-        issues.push({ severity: "warning", line: lineNumber, message: `${name} appears before any user-agent group and is ignored by standards-compliant crawlers.` });
-        return;
-      }
+      if (!agents.length) { issues.push({ severity: "warning", line: lineNumber, message: `${name} appears before a user-agent group and was ignored.` }); return; }
       rulePhaseStarted = true;
-      if (!value) return;
-      rules.push({ type: name, pattern: value, line: lineNumber, groupIndex });
+      if (name === "disallow" && value === "") return;
+      rules.push({ type: name, pattern: value, line: lineNumber });
       return;
     }
-
     if (name === "sitemap") {
       if (value) sitemaps.push(value);
       return;
     }
-
-    issues.push({ severity: "info", line: lineNumber, message: `Directive '${name}' is not part of RFC 9309 Allow/Disallow matching and was ignored by this test.` });
   });
-
   pushGroup();
   return { groups, issues, sitemaps };
 }
@@ -413,18 +288,15 @@ function evaluateRobots(parsed: ReturnType<typeof parseRobots>, targetInput: str
   const testedTarget = normalizeTarget(targetInput);
   const userAgent = userAgentInput.trim();
   const uaLower = userAgent.toLowerCase();
-
   const specificTokens = new Set<string>();
-  parsed.groups.forEach((group) => {
-    group.agents.forEach((agent) => {
-      const token = agent.trim().toLowerCase();
-      if (token && token !== "*" && uaLower.includes(token)) specificTokens.add(token);
-    });
-  });
+
+  parsed.groups.forEach((group) => group.agents.forEach((agent) => {
+    const token = agent.trim().toLowerCase();
+    if (token && token !== "*" && uaLower.includes(token)) specificTokens.add(token);
+  }));
 
   let matchedAgent = "";
   let applicableGroups: Group[] = [];
-
   if (specificTokens.size) {
     matchedAgent = [...specificTokens].sort((a, b) => b.length - a.length)[0];
     applicableGroups = parsed.groups.filter((group) => group.agents.some((agent) => agent.trim().toLowerCase() === matchedAgent));
@@ -435,12 +307,10 @@ function evaluateRobots(parsed: ReturnType<typeof parseRobots>, targetInput: str
   }
 
   const matchingRules: MatchedRule[] = [];
-  applicableGroups.forEach((group) => {
-    group.rules.forEach((rule) => {
-      const match = matchRule(rule.pattern, testedTarget);
-      if (match.matches) matchingRules.push({ ...rule, normalizedPattern: match.normalizedPattern, specificity: match.specificity });
-    });
-  });
+  applicableGroups.forEach((group) => group.rules.forEach((rule) => {
+    const match = matchRule(rule.pattern, testedTarget);
+    if (match.matches) matchingRules.push({ ...rule, normalizedPattern: match.normalizedPattern, specificity: match.specificity });
+  }));
 
   matchingRules.sort((a, b) => {
     if (b.specificity !== a.specificity) return b.specificity - a.specificity;
@@ -451,28 +321,23 @@ function evaluateRobots(parsed: ReturnType<typeof parseRobots>, targetInput: str
   const robotsTxtPath = testedTarget.split("?", 1)[0] === "/robots.txt";
   const matchedRule = robotsTxtPath ? null : matchingRules[0] ?? null;
   const allowed = robotsTxtPath || !matchedRule || matchedRule.type === "allow";
-
   const issues = [...parsed.issues];
   if (!parsed.groups.length) issues.push({ severity: "info", message: "No user-agent groups were found, so no crawl restrictions apply." });
-  if (!matchedAgent && parsed.groups.length) issues.push({ severity: "info", message: "No matching crawler group and no wildcard group were found. The URL is therefore allowed by default." });
+  if (!matchedAgent && parsed.groups.length) issues.push({ severity: "info", message: "No matching crawler group and no wildcard group were found. The URL is allowed by default." });
   if (robotsTxtPath) issues.push({ severity: "info", message: "/robots.txt is implicitly allowed by RFC 9309." });
-
-  const output = buildOutput({ allowed, testedTarget, userAgent, matchedAgent, matchedRule, matchingRules, groups: parsed.groups, sitemaps: parsed.sitemaps, issues });
-  return { allowed, testedTarget, userAgent, matchedAgent, matchedRule, matchingRules, groups: parsed.groups, sitemaps: parsed.sitemaps, issues, output };
+  const base = { allowed, testedTarget, userAgent, matchedAgent, matchedRule, matchingRules, groups: parsed.groups, sitemaps: parsed.sitemaps, issues };
+  return { ...base, output: buildOutput(base) };
 }
 
 function normalizeTarget(value: string) {
   const trimmed = value.trim();
   if (!trimmed) throw new Error("Enter a URL or path to test.");
-
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
     const parsed = new URL(trimmed);
     return normalizeRobotsOctets(`${parsed.pathname}${parsed.search}` || "/");
   }
-
   const withoutFragment = trimmed.split("#", 1)[0];
-  const withSlash = withoutFragment.startsWith("/") ? withoutFragment : `/${withoutFragment}`;
-  return normalizeRobotsOctets(withSlash);
+  return normalizeRobotsOctets(withoutFragment.startsWith("/") ? withoutFragment : `/${withoutFragment}`);
 }
 
 function normalizeRobotsOctets(value: string) {
@@ -481,10 +346,8 @@ function normalizeRobotsOctets(value: string) {
     const char = value[index];
     if (char === "%" && /^[0-9a-fA-F]{2}$/.test(value.slice(index + 1, index + 3))) {
       const hex = value.slice(index + 1, index + 3).toUpperCase();
-      const code = Number.parseInt(hex, 16);
-      const decoded = String.fromCharCode(code);
-      if (/^[A-Za-z0-9._~-]$/.test(decoded)) output += decoded;
-      else output += `%${hex}`;
+      const decoded = String.fromCharCode(Number.parseInt(hex, 16));
+      output += /^[A-Za-z0-9._~-]$/.test(decoded) ? decoded : `%${hex}`;
       index += 2;
       continue;
     }
@@ -492,9 +355,7 @@ function normalizeRobotsOctets(value: string) {
     if (codePoint > 0x7f) {
       output += encodeURIComponent(String.fromCodePoint(codePoint)).toUpperCase();
       if (codePoint > 0xffff) index += 1;
-    } else {
-      output += char;
-    }
+    } else output += char;
   }
   return output;
 }
@@ -504,39 +365,38 @@ function matchRule(pattern: string, target: string) {
   const anchoredEnd = normalizedPattern.endsWith("$");
   const body = anchoredEnd ? normalizedPattern.slice(0, -1) : normalizedPattern;
   let regexSource = "^";
-  for (const char of body) {
-    regexSource += char === "*" ? ".*" : escapeRegex(char);
-  }
+  for (const char of body) regexSource += char === "*" ? ".*" : escapeRegex(char);
   if (anchoredEnd) regexSource += "$";
-  const matches = new RegExp(regexSource).test(target);
-  const specificity = new TextEncoder().encode(normalizedPattern).length;
-  return { matches, specificity, normalizedPattern };
+  return {
+    matches: new RegExp(regexSource).test(target),
+    specificity: new TextEncoder().encode(normalizedPattern).length,
+    normalizedPattern,
+  };
 }
 
 function normalizeRulePattern(pattern: string) {
+  let output = normalizeRobotsOctetsPreservingMeta(pattern);
+  if (!output.endsWith("$")) output = output.replace(/\*+$/, "");
+  return output;
+}
+
+function normalizeRobotsOctetsPreservingMeta(value: string) {
   let output = "";
-  for (let index = 0; index < pattern.length; index += 1) {
-    const char = pattern[index];
-    if (char === "*" || (char === "$" && index === pattern.length - 1)) {
-      output += char;
-      continue;
-    }
-    if (char === "%" && /^[0-9a-fA-F]{2}$/.test(pattern.slice(index + 1, index + 3))) {
-      const hex = pattern.slice(index + 1, index + 3).toUpperCase();
-      const code = Number.parseInt(hex, 16);
-      const decoded = String.fromCharCode(code);
-      if (/^[A-Za-z0-9._~-]$/.test(decoded)) output += decoded;
-      else output += `%${hex}`;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (char === "*" || (char === "$" && index === value.length - 1)) { output += char; continue; }
+    if (char === "%" && /^[0-9a-fA-F]{2}$/.test(value.slice(index + 1, index + 3))) {
+      const hex = value.slice(index + 1, index + 3).toUpperCase();
+      const decoded = String.fromCharCode(Number.parseInt(hex, 16));
+      output += /^[A-Za-z0-9._~-]$/.test(decoded) ? decoded : `%${hex}`;
       index += 2;
       continue;
     }
-    const codePoint = pattern.codePointAt(index) ?? 0;
+    const codePoint = value.codePointAt(index) ?? 0;
     if (codePoint > 0x7f) {
       output += encodeURIComponent(String.fromCodePoint(codePoint)).toUpperCase();
       if (codePoint > 0xffff) index += 1;
-    } else {
-      output += char;
-    }
+    } else output += char;
   }
   return output;
 }
@@ -556,21 +416,10 @@ function buildOutput(result: Omit<TestResult, "output">) {
     lines.push(`Winning rule: ${result.matchedRule.type}: ${result.matchedRule.pattern}`);
     lines.push(`Rule line: ${result.matchedRule.line}`);
     lines.push(`Specificity: ${result.matchedRule.specificity}`);
-  } else {
-    lines.push("Winning rule: none (allowed by default)");
-  }
+  } else lines.push("Winning rule: none (allowed by default)");
   if (result.issues.length) {
     lines.push("", "Notes:");
     result.issues.forEach((issue) => lines.push(`- ${issue.line ? `Line ${issue.line}: ` : ""}${issue.message}`));
   }
   return lines.join("\n");
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-2 break-words text-xl font-semibold text-gray-900">{value}</p>
-    </div>
-  );
 }

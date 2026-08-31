@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Kubernetes Secret Decoder | Decode K8s Secret YAML",
+  title: "Kubernetes Secret Decoder | Decode K8s Secret YAML | Yoryantra",
   description:
     "Decode base64 values from Kubernetes Secret YAML, inspect data and stringData fields, identify invalid values, and review secret metadata locally in your browser.",
   alternates: {
