@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "UTM Builder | Campaign URL Generator | Yoryantra",
   description:
-    "Build campaign URLs with Google Analytics UTM parameters while preserving existing query parameters and URL fragments.",
+    "Build campaign URLs with Google Analytics UTM parameters, preserve existing query parameters and fragments, review existing tags, and keep campaign naming consistent.",
   alternates: {
     canonical: "https://yoryantra.com/tools/utm-builder",
   },
   openGraph: {
-    title: "UTM Builder | Campaign URL Generator",
+    title: "UTM Builder | Campaign URL Generator | Yoryantra",
     description:
-      "Create consistent campaign URLs with UTM source, medium, campaign, ID, term, content, and newer GA4 parameters.",
+      "Create campaign URLs without damaging existing query parameters, fragments, or previously tagged links.",
     url: "https://yoryantra.com/tools/utm-builder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "UTM Builder | Yoryantra",
     description:
-      "Build campaign URLs with current Google Analytics UTM parameters.",
+      "Build consistent Google Analytics campaign URLs while preserving the destination URL.",
   },
 };
 

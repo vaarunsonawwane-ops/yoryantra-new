@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "User Agent Parser | Browser, OS & Device Heuristics | Yoryantra",
   description:
-    "Inspect a User-Agent string for browser family, version, operating system, device type, engine, bot signals, and reduction limitations.",
+    "Inspect User-Agent strings for browser or client family, version, operating system, device hints, engine, bot signals, architecture clues, and reduced or frozen data.",
   alternates: {
     canonical: "https://yoryantra.com/tools/user-agent-parser",
   },
   openGraph: {
-    title: "User Agent Parser | Browser, OS & Device Heuristics",
+    title: "User Agent Parser | Browser, OS & Device Heuristics | Yoryantra",
     description:
-      "Inspect browser, OS, device, engine, bot, and reduced User-Agent signals locally in your browser.",
+      "Read browser and non-browser User-Agent strings while keeping spoofing, reduction, and device-detection limits visible.",
     url: "https://yoryantra.com/tools/user-agent-parser",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "User Agent Parser | Yoryantra",
     description:
-      "Inspect browser, OS, device, engine, bot, and User-Agent reduction signals.",
+      "Inspect User-Agent browser, OS, device, bot, engine, client, and reduction clues.",
   },
 };
 

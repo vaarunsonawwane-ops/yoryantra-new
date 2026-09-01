@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Hreflang Tag Generator | HTML, Header & Sitemap | Yoryantra",
   description:
-    "Generate and validate hreflang annotations for localized pages as HTML link tags, HTTP Link headers, or sitemap xhtml:link entries.",
+    "Build hreflang alternate sets for localized pages, validate language and region codes, add x-default, and generate HTML, HTTP Link header, or sitemap markup.",
   alternates: {
     canonical: "https://yoryantra.com/tools/hreflang-tag-generator",
   },
   openGraph: {
-    title: "Hreflang Tag Generator | HTML, Header & Sitemap",
+    title: "Hreflang Tag Generator | HTML, Header & Sitemap | Yoryantra",
     description:
-      "Build hreflang annotations with language/region checks, x-default, absolute URL validation, and duplicate diagnostics.",
+      "Create complete hreflang alternate sets with code checks, x-default, duplicate diagnostics, and implementation guidance.",
     url: "https://yoryantra.com/tools/hreflang-tag-generator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "Hreflang Tag Generator | Yoryantra",
     description:
-      "Generate validated hreflang annotations for HTML, HTTP headers, and XML sitemaps.",
+      "Generate hreflang markup for localized pages without losing self-references, x-default, or alternate-set consistency.",
   },
 };
 
