@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "HTML Encoder Decoder | Character References | Yoryantra",
   description:
-    "Encode text as named, decimal, or hexadecimal HTML character references and decode HTML entities for debugging, CMS content, and web data.",
+    "Encode text as named, decimal, or hexadecimal HTML character references and decode browser-recognized references with context, Unicode, and sanitization guidance.",
   alternates: {
     canonical: "https://yoryantra.com/tools/html-encoder-decoder",
   },
   openGraph: {
     title: "HTML Encoder Decoder | Character References | Yoryantra",
     description:
-      "Convert text to HTML character references or decode named and numeric HTML entities for debugging, CMS content, and web workflows.",
+      "Convert text to HTML character references or decode named and numeric references while keeping entity conversion separate from sanitization.",
     url: "https://yoryantra.com/tools/html-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "HTML Encoder Decoder | Character References | Yoryantra",
+    card: "summary",
+    title: "HTML Encoder Decoder | Yoryantra",
     description:
-      "Encode or decode named, decimal, and hexadecimal HTML character references.",
+      "Encode or decode named, decimal, and hexadecimal HTML character references in your browser.",
   },
 };
 

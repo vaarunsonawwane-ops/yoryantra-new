@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "JSON Diff Checker | Compare JSON by Path | Yoryantra",
+export const metadata: Metadata = {
+  title: "JSON Diff Checker | Structural JSON Comparison | Yoryantra",
   description:
-    "Compare two JSON values structurally by path. Ignore object key order and whitespace while finding added, removed, changed, and type-changed data.",
+    "Compare two JSON values structurally by path, ignoring whitespace and object member order while reporting array, type, duplicate-key, and number-precision caveats.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-diff-checker",
   },
   openGraph: {
-    title: "JSON Diff Checker | Compare JSON by Path | Yoryantra",
+    title: "JSON Diff Checker | Structural JSON Comparison | Yoryantra",
     description:
-      "Compare JSON structurally and inspect added, removed, changed, and type-changed values without line-based false differences.",
+      "Compare parsed JSON values by path and inspect added, removed, changed, and type-changed data with source-level interoperability warnings.",
     url: "https://yoryantra.com/tools/json-diff-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "JSON Diff Checker | Compare JSON by Path | Yoryantra",
+    card: "summary",
+    title: "JSON Diff Checker | Yoryantra",
     description:
-      "Compare JSON structurally by path while ignoring whitespace and object key order.",
+      "Compare JSON structurally by path while ignoring whitespace and object member order.",
   },
 };
 

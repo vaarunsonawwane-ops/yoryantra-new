@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "XML to JSON Converter | Mapping XML Structure | Yoryantra",
+export const metadata: Metadata = {
+  title: "XML to JSON Converter | Compact & Ordered Mapping | Yoryantra",
   description:
-    "Convert XML to JSON with explicit compact or ordered mappings for attributes, repeated elements, namespaces, CDATA, and mixed-content workflows.",
+    "Convert well-formed XML to explicit compact or ordered JSON mappings with attributes, namespaces, repeated elements, CDATA, mixed content, and whitespace caveats.",
   alternates: {
     canonical: "https://yoryantra.com/tools/xml-to-json-converter",
   },
   openGraph: {
     title: "XML to JSON Converter | Mapping XML Structure | Yoryantra",
     description:
-      "Convert well-formed XML using compact or ordered JSON mappings that make attributes, repeated elements, and mixed content explicit.",
+      "Convert XML using compact or ordered JSON mappings that make attributes, namespaces, repeated elements, mixed content, and conversion loss visible.",
     url: "https://yoryantra.com/tools/xml-to-json-converter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "XML to JSON Converter | Mapping XML Structure | Yoryantra",
+    card: "summary",
+    title: "XML to JSON Converter | Yoryantra",
     description:
-      "Convert XML with explicit compact or ordered mappings for attributes and mixed content.",
+      "Convert well-formed XML with compact or ordered JSON mappings and explicit namespace and mixed-content handling.",
   },
 };
 
