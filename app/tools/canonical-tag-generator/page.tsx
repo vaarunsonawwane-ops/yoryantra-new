@@ -1,50 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Canonical Tag Generator | Create Canonical URLs Online | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Canonical Tag Generator | HTML, HTTP & Next.js | Yoryantra",
   description:
-    "Generate canonical link tags, check canonical URL format, create HTML canonical tags, and prepare SEO canonical markup directly in your browser.",
-
-  keywords: [
-    "canonical tag generator",
-    "canonical url generator",
-    "canonical link tag",
-    "generate canonical tag",
-    "canonical tag html",
-    "canonical url checker",
-    "seo canonical tag",
-    "technical seo tools",
-    "seo tools",
-  ],
-
+    "Generate HTML, HTTP Link or Next.js canonicals while checking fragments, credentials, tracking parameters, URL normalization and page-to-canonical differences.",
   alternates: {
     canonical: "https://yoryantra.com/tools/canonical-tag-generator",
   },
-
   openGraph: {
-    title: "Canonical Tag Generator | Create Canonical URLs Online | Yoryantra",
-
+    title: "Canonical Tag Generator | Yoryantra",
     description:
-      "Generate canonical link tags, check canonical URL format, create HTML canonical tags, and prepare SEO canonical markup directly in your browser.",
-
+      "Generate escaped canonical output and review the relationship between the current page URL and its preferred canonical without treating canonicalization as a redirect.",
     url: "https://yoryantra.com/tools/canonical-tag-generator",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "Canonical Tag Generator | Create Canonical URLs Online | Yoryantra",
-
+    card: "summary",
+    title: "Canonical Tag Generator | Yoryantra",
     description:
-      "Generate canonical link tags, check canonical URL format, create HTML canonical tags, and prepare SEO canonical markup directly in your browser.",
+      "Create HTML, HTTP Link or Next.js canonical output with practical canonical-signal and URL-cleanup guidance.",
   },
 };
 
-export default function CanonicalTagGeneratorPage() {
+export default function Page() {
   return <ToolClient />;
 }

@@ -1,49 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Robots.txt Validator | Check Robots Rules Online | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Robots.txt Validator | RFC 9309 Rule Review | Yoryantra",
   description:
-    "Validate robots.txt rules, check user-agent groups, disallow and allow paths, sitemap lines, crawl-delay values, and common robots.txt issues in your browser.",
-
-  keywords: [
-    "robots.txt validator",
-    "robots txt validator",
-    "robots.txt checker",
-    "validate robots.txt",
-    "robots txt syntax checker",
-    "robots.txt tester",
-    "robots rules checker",
-    "seo tools",
-  ],
-
+    "Validate robots.txt groups, product tokens, Allow/Disallow patterns, merged groups, percent escapes, Sitemap records and deployment location.",
   alternates: {
     canonical: "https://yoryantra.com/tools/robots-txt-validator",
   },
-
   openGraph: {
-    title: "Robots.txt Validator | Check Robots Rules Online | Yoryantra",
-
+    title: "Robots.txt Validator | Yoryantra",
     description:
-      "Validate robots.txt rules, check user-agent groups, disallow and allow paths, sitemap lines, crawl-delay values, and common robots.txt issues in your browser.",
-
+      "Review robots.txt against RFC 9309 structure and matching rules while separating standard crawler controls from Sitemap and crawler-specific extensions.",
     url: "https://yoryantra.com/tools/robots-txt-validator",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "Robots.txt Validator | Check Robots Rules Online | Yoryantra",
-
+    card: "summary",
+    title: "Robots.txt Validator | Yoryantra",
     description:
-      "Validate robots.txt rules, check user-agent groups, disallow and allow paths, sitemap lines, crawl-delay values, and common robots.txt issues in your browser.",
+      "Inspect robots.txt groups, Allow/Disallow patterns, merged user-agent groups, Sitemap records and crawler-specific extensions.",
   },
 };
 
-export default function RobotsTxtValidatorPage() {
+export default function Page() {
   return <ToolClient />;
 }

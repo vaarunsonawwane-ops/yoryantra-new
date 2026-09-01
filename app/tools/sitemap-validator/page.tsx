@@ -1,50 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Sitemap Validator | Check XML Sitemap Online | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Sitemap Validator | XML, Scope & URL Limits | Yoryantra",
   description:
-    "Validate XML sitemap syntax, inspect sitemap URLs, check loc, lastmod, changefreq, priority values, and find common sitemap issues directly in your browser.",
-
-  keywords: [
-    "sitemap validator",
-    "xml sitemap validator",
-    "sitemap checker",
-    "validate sitemap",
-    "sitemap xml checker",
-    "check sitemap urls",
-    "sitemap syntax checker",
-    "technical seo tools",
-    "seo tools",
-  ],
-
+    "Validate sitemap XML or indexes for namespace, loc URLs, lastmod, duplicates, deployment scope, entry limits and UTF-8 file size.",
   alternates: {
     canonical: "https://yoryantra.com/tools/sitemap-validator",
   },
-
   openGraph: {
-    title: "Sitemap Validator | Check XML Sitemap Online | Yoryantra",
-
+    title: "Sitemap Validator | Yoryantra",
     description:
-      "Validate XML sitemap syntax, inspect sitemap URLs, check loc, lastmod, changefreq, priority values, and find common sitemap issues directly in your browser.",
-
+      "Inspect sitemap XML structure, protocol namespace, URL/index entries, lastmod values, scope, duplicates and protocol limits without claiming search indexability.",
     url: "https://yoryantra.com/tools/sitemap-validator",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "Sitemap Validator | Check XML Sitemap Online | Yoryantra",
-
+    card: "summary",
+    title: "Sitemap Validator | Yoryantra",
     description:
-      "Validate XML sitemap syntax, inspect sitemap URLs, check loc, lastmod, changefreq, priority values, and find common sitemap issues directly in your browser.",
+      "Validate sitemap XML, namespace, loc URLs, lastmod, deployment scope, entry counts and file-size limits locally.",
   },
 };
 
-export default function SitemapValidatorPage() {
+export default function Page() {
   return <ToolClient />;
 }
