@@ -5,3 +5,4 @@
 /tools/meta-tags-generator /tools/meta-tag-generator 301
 /tools/security-headers-checker /tools/security-headers-scanner 301
 /tools/random-password-generator /tools/password-generator 301
+/tools/json-to-typescript-converter /tools/json-schema-to-typescript-converter 301
