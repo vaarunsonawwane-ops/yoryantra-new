@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "JSON to YAML Converter | Indent & Quote Controls | Yoryantra",
+export const metadata: Metadata = {
+  title: "JSON to YAML Converter | Precision Checks | Yoryantra",
   description:
-    "Convert JSON to YAML with indentation, line-width, quoting, and key-order controls plus diagnostics for JavaScript number precision.",
+    "Convert JSON to readable YAML with formatting controls, duplicate-key diagnostics, and warnings for JavaScript number precision and conversion loss.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-to-yaml-converter",
   },
   openGraph: {
-    title: "JSON to YAML Converter | Indent & Quote Controls",
+    title: "JSON to YAML Converter | Precision Checks | Yoryantra",
     description:
-      "Convert JSON values to readable YAML with practical formatting controls and precision warnings.",
+      "Convert valid JSON to YAML while keeping number precision, duplicate object names, string quoting, and presentation choices visible.",
     url: "https://yoryantra.com/tools/json-to-yaml-converter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "JSON to YAML Converter | Yoryantra",
     description:
-      "Convert JSON to YAML with indentation, wrapping, quoting, and precision diagnostics.",
+      "Convert JSON to YAML with practical formatting controls and conversion-loss diagnostics.",
   },
 };
 

@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "YAML to JSON Converter | Multi-Document YAML | Yoryantra",
+export const metadata: Metadata = {
+  title: "YAML to JSON Converter | Loss Checks | Yoryantra",
   description:
-    "Convert YAML to JSON with multi-document support, JSON-compatible scalar handling, and warnings for anchors, aliases, and lossy YAML features.",
+    "Convert YAML to JSON with multi-document support and clear warnings for anchors, aliases, tags, complex keys, and YAML-only features that JSON cannot preserve.",
   alternates: {
     canonical: "https://yoryantra.com/tools/yaml-to-json-converter",
   },
   openGraph: {
-    title: "YAML to JSON Converter | Multi-Document YAML",
+    title: "YAML to JSON Converter | Loss Checks | Yoryantra",
     description:
-      "Convert YAML documents to readable JSON and understand which YAML features cannot be preserved in JSON.",
+      "Convert YAML streams to JSON and see which YAML features cannot survive the conversion exactly.",
     url: "https://yoryantra.com/tools/yaml-to-json-converter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "YAML to JSON Converter | Yoryantra",
     description:
-      "Convert single or multi-document YAML to JSON with conversion diagnostics.",
+      "Convert YAML to JSON with multi-document handling and YAML-to-JSON loss diagnostics.",
   },
 };
 

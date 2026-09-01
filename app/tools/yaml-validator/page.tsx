@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "YAML Validator | Syntax, Documents & Duplicate Keys | Yoryantra",
+export const metadata: Metadata = {
+  title: "YAML Validator | Syntax & Parser Diagnostics | Yoryantra",
   description:
-    "Validate YAML syntax with a real YAML parser, inspect multiple documents, and surface duplicate-key, alias, and parser diagnostics.",
+    "Validate YAML syntax with line/column diagnostics, multi-document support, duplicate-key checks, and warnings for aliases, tabs, templates, and versions.",
   alternates: {
     canonical: "https://yoryantra.com/tools/yaml-validator",
   },
   openGraph: {
-    title: "YAML Validator | Syntax, Documents & Duplicate Keys",
+    title: "YAML Validator | Syntax & Parser Diagnostics | Yoryantra",
     description:
-      "Check YAML syntax and multi-document streams locally with parser line and column diagnostics.",
+      "Check YAML syntax with a real parser and understand the difference between valid YAML and valid application configuration.",
     url: "https://yoryantra.com/tools/yaml-validator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "YAML Validator | Yoryantra",
     description:
-      "Validate YAML syntax and inspect multi-document parser diagnostics.",
+      "Validate YAML syntax, multi-document streams, parser errors, anchors, aliases, and schema-sensitive values.",
   },
 };
 
