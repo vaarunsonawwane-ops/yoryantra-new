@@ -1,50 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "HTTP Header Diff Checker | Compare Response Headers Online | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "HTTP Header Diff Checker | Compare Field Changes | Yoryantra",
   description:
-    "Compare two sets of HTTP headers, find added, removed, and changed header values, and review response header differences directly in your browser.",
-
-  keywords: [
-    "http header diff checker",
-    "compare http headers",
-    "http headers diff",
-    "response header comparison",
-    "header diff tool",
-    "compare response headers",
-    "http header checker",
-    "developer tools",
-    "security tools",
-  ],
-
+    "Compare HTTP header sections case-insensitively with repeated fields, pseudo-fields, malformed-line warnings, value order and sensitive-value redaction.",
   alternates: {
     canonical: "https://yoryantra.com/tools/http-header-diff-checker",
   },
-
   openGraph: {
-    title: "HTTP Header Diff Checker | Compare Response Headers Online | Yoryantra",
-
+    title: "HTTP Header Diff Checker | Yoryantra",
     description:
-      "Compare two sets of HTTP headers, find added, removed, and changed header values, and review response header differences directly in your browser.",
-
+      "Compare response or request header sections without losing repeated fields, Set-Cookie lines, pseudo-fields, status/request lines, or case-insensitive field-name semantics.",
     url: "https://yoryantra.com/tools/http-header-diff-checker",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "HTTP Header Diff Checker | Compare Response Headers Online | Yoryantra",
-
+    card: "summary",
+    title: "HTTP Header Diff Checker | Yoryantra",
     description:
-      "Compare two sets of HTTP headers, find added, removed, and changed header values, and review response header differences directly in your browser.",
+      "Find added, removed and changed HTTP fields with repeated-line preservation and sensitive-value redaction.",
   },
 };
 
-export default function HTTPHeaderDiffCheckerPage() {
+export default function Page() {
   return <ToolClient />;
 }

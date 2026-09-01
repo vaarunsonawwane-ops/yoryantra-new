@@ -1,50 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "PEM Certificate Viewer and Block Inspector | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "PEM Certificate Viewer | X.509 Inspector | Yoryantra",
   description:
-    "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser.",
-
-  keywords: [
-    "pem certificate viewer",
-    "pem viewer",
-    "certificate viewer",
-    "pem certificate decoder",
-    "decode pem certificate",
-    "x509 certificate viewer",
-    "ssl certificate viewer",
-    "certificate inspector",
-    "security tools",
-  ],
-
+    "Inspect PEM blocks locally and decode X.509 subject, issuer, serial, validity, SANs, algorithms and SHA-256 fingerprint without claiming trust validation.",
   alternates: {
     canonical: "https://yoryantra.com/tools/pem-certificate-viewer",
   },
-
   openGraph: {
-    title: "PEM Certificate Viewer and Block Inspector | Yoryantra",
-
+    title: "PEM Certificate Viewer | Yoryantra",
     description:
-      "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser.",
-
+      "Inspect PEM boundaries and useful X.509 certificate fields while keeping hostname, chain, revocation, trust, and private-key validation outside the tool's claims.",
     url: "https://yoryantra.com/tools/pem-certificate-viewer",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "PEM Certificate Viewer and Block Inspector | Yoryantra",
-
+    card: "summary",
+    title: "PEM Certificate Viewer | Yoryantra",
     description:
-      "Inspect PEM block types, decoded byte size, SHA-256 fingerprints, certificate boundaries, and readable byte previews in your browser.",
+      "View PEM block structure, X.509 fields, SANs, algorithms, validity and SHA-256 fingerprints locally.",
   },
 };
 
-export default function PEMCertificateViewerPage() {
+export default function Page() {
   return <ToolClient />;
 }
