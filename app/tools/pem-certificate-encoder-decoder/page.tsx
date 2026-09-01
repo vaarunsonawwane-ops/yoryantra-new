@@ -2,28 +2,28 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "PEM Certificate Encoder Decoder – PEM & Base64 | Yoryantra",
+  title: "PEM Certificate Encoder Decoder | RFC 7468 | Yoryantra",
   description:
-    "Parse PEM certificates, keys, CSRs and CRLs, extract or rebuild Base64, and normalize RFC 7468 wrapping locally. Formatting only; no trust validation.",
+    "Parse, normalize, extract and wrap PEM/Base64 certificates, keys, CSRs and CRLs while preserving separate blocks, labels, decoded sizes and line endings.",
   alternates: {
     canonical: "https://yoryantra.com/tools/pem-certificate-encoder-decoder",
   },
   openGraph: {
-    title: "PEM Certificate Encoder Decoder – PEM & Base64 | Yoryantra",
+    title: "PEM Certificate Encoder Decoder | Yoryantra",
     description:
-      "Parse PEM certificates, keys, CSRs and CRLs, extract or rebuild Base64, and normalize RFC 7468 wrapping locally. Formatting only; no trust validation.",
+      "Normalize or extract PEM blocks without collapsing certificate chains, and wrap strict Base64 with deliberate labels, line width and newline choices.",
     url: "https://yoryantra.com/tools/pem-certificate-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "PEM Certificate Encoder Decoder – PEM & Base64 | Yoryantra",
+    card: "summary",
+    title: "PEM Certificate Encoder Decoder | Yoryantra",
     description:
-      "Parse PEM certificates, keys, CSRs and CRLs, extract or rebuild Base64, and normalize RFC 7468 wrapping locally. Formatting only; no trust validation.",
+      "Parse and normalize PEM blocks, extract Base64, or wrap raw Base64 while preserving multi-block boundaries and labels.",
   },
 };
 
-export default function PemCertificateEncoderDecoderPage() {
+export default function Page() {
   return <ToolClient />;
 }

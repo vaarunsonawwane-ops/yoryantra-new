@@ -5,24 +5,15 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
-type ActionMode = "decode" | "encode" | "analyze" | "normalize";
-type OutputMode =
-  | "plain"
-  | "summary"
-  | "json"
-  | "markdown"
-  | "csv"
-  | "checklist";
-type EncodingMode = "auto" | "base64" | "q";
+type ActionMode = "decode" | "encode";
+type EncodingMode = "B" | "Q" | "auto";
 type CharsetMode =
-  | "utf-8"
-  | "iso-8859-1"
+  | "UTF-8"
+  | "ISO-8859-1"
   | "windows-1252"
-  | "us-ascii";
-type HeaderKind = "subject" | "display-name" | "comment" | "generic";
+  | "US-ASCII";
 
-type EncodedWordPart = {
-  index: number;
+type EncodedWord = {
   raw: string;
   charset: string;
   encoding: "B" | "Q";
@@ -31,620 +22,1408 @@ type EncodedWordPart = {
   start: number;
   end: number;
   byteLength: number;
-  hasError: boolean;
-  errorMessage: string;
+  errors: string[];
+  warnings: string[];
 };
 
-type Issue = {
-  severity: "info" | "warning" | "high";
+type MimeIssue = {
+  severity: "warning" | "note";
   title: string;
   message: string;
 };
 
-type Result = {
+type MimeResult = {
   output: string;
   decodedText: string;
   encodedText: string;
-  parts: EncodedWordPart[];
-  issues: Issue[];
-  inputLength: number;
-  decodedLength: number;
-  encodedWordCount: number;
-  charsetCount: number;
+  words: EncodedWord[];
+  issues: MimeIssue[];
+  unfoldedInput: string;
 };
 
-type Note = {
-  title: string;
-  message: string;
+const SAMPLE_HEADER =
+  "Subject: =?UTF-8?B?U25laGEg4oCTIFlvcnlhbnRyYQ==?=";
+
+const WINDOWS_1252_DECODE: Record<number, number> = {
+  0x80: 0x20ac,
+  0x82: 0x201a,
+  0x83: 0x0192,
+  0x84: 0x201e,
+  0x85: 0x2026,
+  0x86: 0x2020,
+  0x87: 0x2021,
+  0x88: 0x02c6,
+  0x89: 0x2030,
+  0x8a: 0x0160,
+  0x8b: 0x2039,
+  0x8c: 0x0152,
+  0x8e: 0x017d,
+  0x91: 0x2018,
+  0x92: 0x2019,
+  0x93: 0x201c,
+  0x94: 0x201d,
+  0x95: 0x2022,
+  0x96: 0x2013,
+  0x97: 0x2014,
+  0x98: 0x02dc,
+  0x99: 0x2122,
+  0x9a: 0x0161,
+  0x9b: 0x203a,
+  0x9c: 0x0153,
+  0x9e: 0x017e,
+  0x9f: 0x0178,
 };
 
-const sampleInput = `Subject: =?UTF-8?B?V29ybGQ=?=
-From: =?UTF-8?Q?Varoun_Sonawane?= <hello@yoryantra.com>`;
+const WINDOWS_1252_ENCODE: Record<number, number> = {
+  0x20ac: 0x80,
+  0x201a: 0x82,
+  0x0192: 0x83,
+  0x201e: 0x84,
+  0x2026: 0x85,
+  0x2020: 0x86,
+  0x2021: 0x87,
+  0x02c6: 0x88,
+  0x2030: 0x89,
+  0x0160: 0x8a,
+  0x2039: 0x8b,
+  0x0152: 0x8c,
+  0x017d: 0x8e,
+  0x2018: 0x91,
+  0x2019: 0x92,
+  0x201c: 0x93,
+  0x201d: 0x94,
+  0x2022: 0x95,
+  0x2013: 0x96,
+  0x2014: 0x97,
+  0x02dc: 0x98,
+  0x2122: 0x99,
+  0x0161: 0x9a,
+  0x203a: 0x9b,
+  0x0153: 0x9c,
+  0x017e: 0x9e,
+  0x0178: 0x9f,
+};
 
-const charsetOptions = [
-  { label: "UTF-8", value: "utf-8" },
-  { label: "ISO-8859-1", value: "iso-8859-1" },
-  { label: "Windows-1252", value: "windows-1252" },
-  { label: "US-ASCII", value: "us-ascii" },
-];
+function unfoldHeader(input: string) {
+  return input.replace(/\r?\n[ \t]+/g, " ");
+}
 
-const encodingOptions = [
-  { label: "Auto choose", value: "auto" },
-  { label: "Base64 (B)", value: "base64" },
-  { label: "Q encoding", value: "q" },
-];
+function splitHeaderName(input: string) {
+  const match = input.match(/^([!#$%&'*+\-.^_`|~0-9A-Za-z]+):[ \t]*([\s\S]*)$/);
+
+  if (!match) {
+    return {
+      name: "",
+      body: input,
+    };
+  }
+
+  return {
+    name: match[1],
+    body: match[2],
+  };
+}
+
+function decodeBase64Word(value: string) {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!value) {
+    errors.push("Encoded-text is empty.");
+    return {
+      bytes: new Uint8Array(),
+      errors,
+      warnings,
+    };
+  }
+
+  if (/[\s?]/.test(value)) {
+    errors.push("B encoded-text contains whitespace or ?, which is not valid encoded-text.");
+  }
+
+  if (/[^A-Za-z0-9+/=]/.test(value)) {
+    errors.push("B encoded-text contains characters outside the standard Base64 alphabet.");
+  }
+
+  const padding = (value.match(/=+$/) || [""])[0];
+
+  if (padding.length > 2) {
+    errors.push("Base64 uses more than two trailing padding characters.");
+  }
+
+  if (value.indexOf("=") !== -1 && !/=+$/.test(value)) {
+    errors.push("Base64 padding appears before the end of encoded-text.");
+  }
+
+  if (value.length % 4 === 1) {
+    errors.push("Base64 length cannot be valid because it has a remainder of 1.");
+  }
+
+  if (!errors.length && value.length % 4 !== 0) {
+    warnings.push(
+      "Base64 padding is omitted. Some mail software accepts this, but canonical Base64 normally includes the required trailing padding."
+    );
+  }
+
+  if (errors.length) {
+    return {
+      bytes: new Uint8Array(),
+      errors,
+      warnings,
+    };
+  }
+
+  try {
+    const padded = value + "=".repeat((4 - (value.length % 4)) % 4);
+    const binary = atob(padded);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    return {
+      bytes,
+      errors,
+      warnings,
+    };
+  } catch {
+    errors.push("Browser Base64 decoding failed.");
+
+    return {
+      bytes: new Uint8Array(),
+      errors,
+      warnings,
+    };
+  }
+}
+
+function decodeQWord(value: string) {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const bytes: number[] = [];
+
+  if (!value) {
+    errors.push("Encoded-text is empty.");
+    return {
+      bytes: new Uint8Array(),
+      errors,
+      warnings,
+    };
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value.charAt(index);
+    const code = value.charCodeAt(index);
+
+    if (char === "?") {
+      errors.push("Q encoded-text contains ?, which cannot appear literally.");
+      continue;
+    }
+
+    if (char === " " || char === "\t" || code < 33 || code > 126) {
+      errors.push("Q encoded-text contains whitespace or a non-printable/non-ASCII character.");
+      continue;
+    }
+
+    if (char === "_") {
+      bytes.push(0x20);
+      continue;
+    }
+
+    if (char === "=") {
+      const pair = value.slice(index + 1, index + 3);
+
+      if (!/^[0-9A-Fa-f]{2}$/.test(pair)) {
+        errors.push(`Malformed Q escape at character ${index + 1}; "=" must be followed by two hexadecimal digits.`);
+        continue;
+      }
+
+      bytes.push(Number.parseInt(pair, 16));
+      index += 2;
+      continue;
+    }
+
+    bytes.push(code);
+  }
+
+  return {
+    bytes: new Uint8Array(bytes),
+    errors,
+    warnings,
+  };
+}
+
+function latin1(bytes: Uint8Array) {
+  return Array.from(bytes)
+    .map((byte) => String.fromCharCode(byte))
+    .join("");
+}
+
+function windows1252(bytes: Uint8Array) {
+  const warnings: string[] = [];
+
+  const text = Array.from(bytes)
+    .map((byte) => {
+      if (
+        [0x81, 0x8d, 0x8f, 0x90, 0x9d].indexOf(byte) !== -1
+      ) {
+        warnings.push(
+          `Windows-1252 byte 0x${byte.toString(16).toUpperCase()} is undefined.`
+        );
+        return "�";
+      }
+
+      if (
+        Object.prototype.hasOwnProperty.call(
+          WINDOWS_1252_DECODE,
+          byte
+        )
+      ) {
+        return String.fromCodePoint(WINDOWS_1252_DECODE[byte]);
+      }
+
+      return String.fromCharCode(byte);
+    })
+    .join("");
+
+  return {
+    text,
+    warnings,
+  };
+}
+
+function normalizeCharset(value: string) {
+  const clean = value.trim().toLowerCase();
+
+  if (clean === "utf8" || clean === "utf-8") return "utf-8";
+  if (
+    clean === "iso-8859-1" ||
+    clean === "iso8859-1" ||
+    clean === "latin1" ||
+    clean === "latin-1"
+  ) {
+    return "iso-8859-1";
+  }
+  if (
+    clean === "windows-1252" ||
+    clean === "windows1252" ||
+    clean === "cp1252"
+  ) {
+    return "windows-1252";
+  }
+  if (clean === "us-ascii" || clean === "ascii") return "us-ascii";
+
+  return clean;
+}
+
+function decodeCharset(bytes: Uint8Array, charset: string) {
+  const normalized = normalizeCharset(charset);
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (normalized === "iso-8859-1") {
+    return {
+      text: latin1(bytes),
+      errors,
+      warnings,
+    };
+  }
+
+  if (normalized === "windows-1252") {
+    const decoded = windows1252(bytes);
+
+    return {
+      text: decoded.text,
+      errors,
+      warnings: decoded.warnings,
+    };
+  }
+
+  if (normalized === "us-ascii") {
+    const text = Array.from(bytes)
+      .map((byte) => {
+        if (byte > 0x7f) {
+          errors.push(
+            `US-ASCII encoded-word contains byte 0x${byte
+              .toString(16)
+              .toUpperCase()} above 0x7F.`
+          );
+          return "�";
+        }
+
+        return String.fromCharCode(byte);
+      })
+      .join("");
+
+    return {
+      text,
+      errors,
+      warnings,
+    };
+  }
+
+  try {
+    const text = new TextDecoder(normalized, {
+      fatal: true,
+    }).decode(bytes);
+
+    return {
+      text,
+      errors,
+      warnings,
+    };
+  } catch {
+    try {
+      const text = new TextDecoder(normalized).decode(bytes);
+
+      errors.push(
+        normalized === "utf-8"
+          ? "Byte sequence is not valid UTF-8; replacement characters may appear."
+          : `Charset "${charset}" could not be decoded strictly; replacement characters may appear.`
+      );
+
+      return {
+        text,
+        errors,
+        warnings,
+      };
+    } catch {
+      errors.push(
+        `Charset "${charset}" is not supported by this browser's TextDecoder. Encoded bytes are shown as Latin-1 code points only as a diagnostic fallback.`
+      );
+
+      return {
+        text: latin1(bytes),
+        errors,
+        warnings,
+      };
+    }
+  }
+}
+
+function decodeWord(
+  raw: string,
+  charset: string,
+  encoding: "B" | "Q",
+  encodedText: string,
+  start: number,
+  end: number
+): EncodedWord {
+  const encoded =
+    encoding === "B"
+      ? decodeBase64Word(encodedText)
+      : decodeQWord(encodedText);
+  const decoded = decodeCharset(encoded.bytes, charset);
+  const errors = encoded.errors.concat(decoded.errors);
+  const warnings = encoded.warnings.concat(decoded.warnings);
+
+  if (raw.length > 75) {
+    errors.push(
+      `Encoded-word is ${raw.length} characters long. RFC 2047 limits an encoded-word to 75 characters including =?charset?encoding?encoded-text?=.`
+    );
+  }
+
+  return {
+    raw,
+    charset,
+    encoding,
+    encodedText,
+    decodedText: encoded.errors.length ? raw : decoded.text,
+    start,
+    end,
+    byteLength: encoded.bytes.length,
+    errors,
+    warnings,
+  };
+}
+
+function parseEncodedWords(input: string) {
+  const words: EncodedWord[] = [];
+  const regex = /=\?([^?\s]+)\?([bBqQ])\?([^?\s]+)\?=/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(input)) !== null) {
+    words.push(
+      decodeWord(
+        match[0],
+        match[1],
+        match[2].toUpperCase() as "B" | "Q",
+        match[3],
+        match.index,
+        match.index + match[0].length
+      )
+    );
+  }
+
+  return words;
+}
+
+function decodeDisplayText(
+  input: string,
+  words: EncodedWord[],
+  joinAdjacent: boolean
+) {
+  if (!words.length) {
+    return input;
+  }
+
+  let output = "";
+  let cursor = 0;
+
+  words.forEach((word, index) => {
+    const between = input.slice(cursor, word.start);
+    const previous = index > 0 ? words[index - 1] : null;
+    const onlyLinearWhitespace =
+      Boolean(previous) && /^[ \t]+$/.test(between);
+
+    if (!(joinAdjacent && onlyLinearWhitespace)) {
+      output += between;
+    }
+
+    output += word.decodedText;
+    cursor = word.end;
+  });
+
+  output += input.slice(cursor);
+
+  return output;
+}
+
+function malformedCandidates(input: string, validWords: EncodedWord[]) {
+  const issues: string[] = [];
+  let cursor = 0;
+
+  while (cursor < input.length) {
+    const start = input.indexOf("=?", cursor);
+
+    if (start === -1) {
+      break;
+    }
+
+    const valid = validWords.some((word) => word.start === start);
+
+    if (!valid) {
+      const end = input.indexOf("?=", start + 2);
+      const sample =
+        end === -1
+          ? input.slice(start, Math.min(input.length, start + 90))
+          : input.slice(start, Math.min(input.length, end + 2));
+
+      issues.push(sample);
+    }
+
+    cursor = start + 2;
+  }
+
+  return issues;
+}
+
+function buildDecodeIssues(
+  originalInput: string,
+  unfoldedInput: string,
+  words: EncodedWord[]
+) {
+  const issues: MimeIssue[] = [];
+  const malformed = malformedCandidates(unfoldedInput, words);
+  const physicalLines =
+    originalInput
+      .replace(/\r\n?/g, "\n")
+      .split("\n");
+  const overHardLimit =
+    physicalLines.filter(
+      (line) =>
+        line.length > 998
+    ).length;
+  const overRecommended =
+    physicalLines.filter(
+      (line) =>
+        line.length > 78
+    ).length;
+
+  if (overHardLimit) {
+    issues.push({
+      severity: "warning",
+      title: "Header line exceeds RFC 5322 hard limit",
+      message:
+        `${overHardLimit} physical line${
+          overHardLimit === 1 ? "" : "s"
+        } exceed 998 characters before CRLF. A conforming Internet message must keep each line within that limit.`,
+    });
+  } else if (overRecommended) {
+    issues.push({
+      severity: "note",
+      title: "Long physical header line",
+      message:
+        `${overRecommended} physical line${
+          overRecommended === 1 ? "" : "s"
+        } exceed RFC 5322's recommended 78-character line length. Folding may improve interoperability/readability.`,
+    });
+  }
+
+  if (originalInput !== unfoldedInput) {
+    issues.push({
+      severity: "note",
+      title: "Header folding was unfolded",
+      message:
+        "CRLF/LF followed by whitespace was unfolded to one space before RFC 2047 decoding. Folding belongs to the surrounding email header syntax, not to the encoded bytes.",
+    });
+  }
+
+  if (!words.length) {
+    issues.push({
+      severity: "note",
+      title: "No valid encoded-word recognized",
+      message:
+        "No complete =?charset?B/Q?encoded-text?= token matching this decoder's RFC 2047 grammar was found.",
+    });
+  }
+
+  if (malformed.length) {
+    issues.push({
+      severity: "warning",
+      title: "Encoded-word-like text is malformed",
+      message:
+        `${malformed.length} sequence${
+          malformed.length === 1 ? "" : "s"
+        } begin with "=?", but do not form valid encoded-word syntax. Example: ${malformed[0]}`,
+    });
+  }
+
+  words.forEach((word, index) => {
+    word.errors.forEach((error) => {
+      issues.push({
+        severity: "warning",
+        title: `Encoded-word ${index + 1} needs review`,
+        message: error,
+      });
+    });
+
+    word.warnings.forEach((warning) => {
+      issues.push({
+        severity: "note",
+        title: `Encoded-word ${index + 1}`,
+        message: warning,
+      });
+    });
+  });
+
+  const charsets = Array.from(
+    new Set(words.map((word) => normalizeCharset(word.charset)))
+  );
+
+  if (charsets.length > 1) {
+    issues.push({
+      severity: "note",
+      title: "Multiple charsets in one header value",
+      message:
+        `This value uses ${charsets.join(
+          ", "
+        )}. Adjacent encoded-words can legally use different charsets, but mixed legacy encodings are worth checking when text looks wrong.`,
+    });
+  }
+
+  if (/^(Received|Return-Path):/i.test(unfoldedInput)) {
+    issues.push({
+      severity: "warning",
+      title: "Header field has restricted encoded-word use",
+      message:
+        "RFC 2047 encoded-words are not a generic transformation for every header field. Received is specifically not an encoded-word field; use the exact field grammar when validating complete messages.",
+    });
+  }
+
+  if (
+    /;\s*(?:filename|name)\s*=\s*=\?/i.test(unfoldedInput)
+  ) {
+    issues.push({
+      severity: "warning",
+      title: "Encoded-word used like a MIME parameter",
+      message:
+        "RFC 2047 encoded-words are not the standard mechanism for MIME parameter values such as filename=. Parameter encoding uses other MIME mechanisms (for example RFC 2231/5987-style conventions depending on the context).",
+    });
+  }
+
+  issues.push({
+    severity: "note",
+    title: "Display decoding is contextual",
+    message:
+      "RFC 2047 allows encoded-words only in defined message-header contexts. This tool decodes recognizable tokens for diagnostics; it is not a complete RFC 5322 address/header parser.",
+  });
+
+  return issues;
+}
+
+function encodeBytes(text: string, charset: CharsetMode) {
+  if (charset === "UTF-8") {
+    return new TextEncoder().encode(text);
+  }
+
+  const bytes: number[] = [];
+
+  for (const char of Array.from(text)) {
+    const codePoint = char.codePointAt(0) as number;
+
+    if (charset === "US-ASCII") {
+      if (codePoint > 0x7f) {
+        throw new Error(
+          `Character "${char}" cannot be represented in US-ASCII. Choose UTF-8 or another compatible charset.`
+        );
+      }
+
+      bytes.push(codePoint);
+      continue;
+    }
+
+    if (charset === "ISO-8859-1") {
+      if (codePoint > 0xff) {
+        throw new Error(
+          `Character "${char}" cannot be represented in ISO-8859-1. Choose UTF-8.`
+        );
+      }
+
+      bytes.push(codePoint);
+      continue;
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        WINDOWS_1252_ENCODE,
+        codePoint
+      )
+    ) {
+      bytes.push(WINDOWS_1252_ENCODE[codePoint]);
+      continue;
+    }
+
+    if (codePoint <= 0xff && [0x81, 0x8d, 0x8f, 0x90, 0x9d].indexOf(codePoint) === -1) {
+      bytes.push(codePoint);
+      continue;
+    }
+
+    throw new Error(
+      `Character "${char}" cannot be represented in Windows-1252. Choose UTF-8.`
+    );
+  }
+
+  return new Uint8Array(bytes);
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += 1) {
+    binary += String.fromCharCode(bytes[index]);
+  }
+
+  return btoa(binary);
+}
+
+function qEncodeByte(byte: number) {
+  if (byte === 0x20) return "_";
+
+  if (
+    (byte >= 0x41 && byte <= 0x5a) ||
+    (byte >= 0x61 && byte <= 0x7a) ||
+    (byte >= 0x30 && byte <= 0x39)
+  ) {
+    return String.fromCharCode(byte);
+  }
+
+  return `=${byte.toString(16).toUpperCase().padStart(2, "0")}`;
+}
+
+function bytesToQ(bytes: Uint8Array) {
+  return Array.from(bytes).map(qEncodeByte).join("");
+}
+
+function encodedWordLength(
+  charset: CharsetMode,
+  encoding: "B" | "Q",
+  encodedText: string
+) {
+  return `=?${charset}?${encoding}?${encodedText}?=`.length;
+}
+
+function splitTextForWords(
+  text: string,
+  charset: CharsetMode,
+  encoding: "B" | "Q"
+) {
+  const words: string[] = [];
+  let current = "";
+
+  const flush = () => {
+    if (!current) return;
+
+    const bytes = encodeBytes(current, charset);
+    const encoded =
+      encoding === "B" ? bytesToBase64(bytes) : bytesToQ(bytes);
+
+    words.push(`=?${charset}?${encoding}?${encoded}?=`);
+    current = "";
+  };
+
+  for (const char of Array.from(text)) {
+    const candidate = current + char;
+    const bytes = encodeBytes(candidate, charset);
+    const encoded =
+      encoding === "B" ? bytesToBase64(bytes) : bytesToQ(bytes);
+
+    if (
+      current &&
+      encodedWordLength(charset, encoding, encoded) > 75
+    ) {
+      flush();
+      current = char;
+    } else {
+      current = candidate;
+    }
+
+    const singleBytes = encodeBytes(current, charset);
+    const singleEncoded =
+      encoding === "B"
+        ? bytesToBase64(singleBytes)
+        : bytesToQ(singleBytes);
+
+    if (encodedWordLength(charset, encoding, singleEncoded) > 75) {
+      throw new Error(
+        `A single character cannot fit inside the RFC 2047 75-character encoded-word limit using ${charset}/${encoding}.`
+      );
+    }
+  }
+
+  flush();
+
+  return words;
+}
+
+function chooseEncoding(text: string, charset: CharsetMode) {
+  const bytes = encodeBytes(text, charset);
+  const b = bytesToBase64(bytes);
+  const q = bytesToQ(bytes);
+
+  return q.length <= b.length ? "Q" : "B";
+}
+
+function encodeHeaderValue(
+  input: string,
+  charset: CharsetMode,
+  encodingMode: EncodingMode,
+  preserveHeaderName: boolean
+) {
+  const unfolded = unfoldHeader(input.trim());
+  const split = splitHeaderName(unfolded);
+  const headerName = preserveHeaderName ? split.name : "";
+  const body = preserveHeaderName && split.name ? split.body : unfolded;
+
+  if (!body) {
+    throw new Error("Enter text to encode.");
+  }
+
+  const selected =
+    encodingMode === "auto"
+      ? chooseEncoding(body, charset)
+      : encodingMode;
+  const words = splitTextForWords(body, charset, selected);
+  const value = words.join("\r\n ");
+
+  return {
+    encodedText: headerName ? `${headerName}: ${value}` : value,
+    encoding: selected,
+    wordCount: words.length,
+  };
+}
+
+function buildResult(options: {
+  input: string;
+  actionMode: ActionMode;
+  encodingMode: EncodingMode;
+  charset: CharsetMode;
+  unfold: boolean;
+  joinAdjacent: boolean;
+  preserveHeaderName: boolean;
+}): MimeResult {
+  const prepared = options.unfold
+    ? unfoldHeader(options.input.trim())
+    : options.input.trim();
+
+  if (options.actionMode === "encode") {
+    const encoded = encodeHeaderValue(
+      options.input,
+      options.charset,
+      options.encodingMode,
+      options.preserveHeaderName
+    );
+
+    return {
+      output: encoded.encodedText,
+      decodedText: options.input,
+      encodedText: encoded.encodedText,
+      words: [],
+      unfoldedInput: prepared,
+      issues: [
+        {
+          severity: "note",
+          title: `${encoded.encoding} encoding selected`,
+          message:
+            `Output was split into ${encoded.wordCount} encoded-word${
+              encoded.wordCount === 1 ? "" : "s"
+            } so each token stays within RFC 2047's 75-character limit.`,
+        },
+        {
+          severity: "note",
+          title: "Generated folding",
+          message:
+            "Multiple encoded-words are separated with CRLF + space. Mail software unfolds that header and ignores linear whitespace between adjacent encoded-words for display.",
+        },
+      ],
+    };
+  }
+
+  const words = parseEncodedWords(prepared);
+  const decoded = decodeDisplayText(
+    prepared,
+    words,
+    options.joinAdjacent
+  );
+  const split = splitHeaderName(decoded);
+  const decodedText =
+    !options.preserveHeaderName && split.name
+      ? split.body
+      : decoded;
+  const issues = buildDecodeIssues(options.input.trim(), prepared, words);
+
+  return {
+    output: decodedText,
+    decodedText,
+    encodedText: "",
+    words,
+    issues,
+    unfoldedInput: prepared,
+  };
+}
+
+function formatReport(result: MimeResult) {
+  const lines = [
+    "MIME encoded-word inspection",
+    `Encoded-words: ${result.words.length}`,
+    "",
+    "Decoded output:",
+    result.output,
+  ];
+
+  if (result.words.length) {
+    lines.push("", "Words:");
+
+    result.words.forEach((word, index) => {
+      lines.push(
+        `${index + 1}. ${word.raw}`,
+        `   charset: ${word.charset}`,
+        `   encoding: ${word.encoding}`,
+        `   decoded bytes: ${word.byteLength}`,
+        `   decoded text: ${word.decodedText}`
+      );
+
+      word.errors.forEach((error) => lines.push(`   ERROR: ${error}`));
+      word.warnings.forEach((warning) => lines.push(`   NOTE: ${warning}`));
+    });
+  }
+
+  if (result.issues.length) {
+    lines.push(
+      "",
+      "Review:",
+      ...result.issues.map(
+        (issue) => `- ${issue.severity.toUpperCase()} — ${issue.title}: ${issue.message}`
+      )
+    );
+  }
+
+  return lines.join("\n");
+}
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
   const [actionMode, setActionMode] = useState<ActionMode>("decode");
-  const [outputMode, setOutputMode] = useState<OutputMode>("summary");
-  const [encodingMode, setEncodingMode] =
-    useState<EncodingMode>("auto");
-  const [charsetMode, setCharsetMode] =
-    useState<CharsetMode>("utf-8");
-  const [headerKind, setHeaderKind] =
-    useState<HeaderKind>("subject");
-
-  const [unfoldHeaders, setUnfoldHeaders] = useState(true);
-  const [joinAdjacentWords, setJoinAdjacentWords] = useState(true);
-  const [preserveHeaderNames, setPreserveHeaderNames] = useState(true);
-  const [warnUnsupportedCharset, setWarnUnsupportedCharset] =
-    useState(true);
-  const [warnBrokenWords, setWarnBrokenWords] = useState(true);
-  const [warnLongHeaderLines, setWarnLongHeaderLines] = useState(true);
-  const [wrapEncodedLines, setWrapEncodedLines] = useState(true);
-
-  const [result, setResult] = useState<Result | null>(null);
-  const [output, setOutput] = useState("");
+  const [encodingMode, setEncodingMode] = useState<EncodingMode>("auto");
+  const [charset, setCharset] = useState<CharsetMode>("UTF-8");
+  const [unfold, setUnfold] = useState(true);
+  const [joinAdjacent, setJoinAdjacent] = useState(true);
+  const [preserveHeaderName, setPreserveHeaderName] = useState(true);
+  const [result, setResult] = useState<MimeResult | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const notes = useMemo(
-    () => (result ? getNotes(result) : []),
+  const report = useMemo(
+    () => (result ? formatReport(result) : ""),
     [result]
   );
 
   const clearResult = () => {
     setResult(null);
-    setOutput("");
     setError("");
     setCopied(false);
   };
 
-  const processHeader = () => {
+  const run = () => {
     if (!input.trim()) {
       setError(
-        "Paste an email header, subject line, display name, or plain text value first."
+        actionMode === "decode"
+          ? "Paste an RFC 2047 email header/value to decode."
+          : "Enter header text to encode."
       );
       setResult(null);
-      setOutput("");
-      setCopied(false);
       return;
     }
 
     try {
-      const next = buildResult({
-        input,
-        actionMode,
-        outputMode,
-        encodingMode,
-        charsetMode,
-        headerKind,
-        unfoldHeaders,
-        joinAdjacentWords,
-        preserveHeaderNames,
-        warnUnsupportedCharset,
-        warnBrokenWords,
-        warnLongHeaderLines,
-        wrapEncodedLines,
-      });
-
-      setResult(next);
-      setOutput(next.output);
+      setResult(
+        buildResult({
+          input,
+          actionMode,
+          encodingMode,
+          charset,
+          unfold,
+          joinAdjacent,
+          preserveHeaderName,
+        })
+      );
       setError("");
       setCopied(false);
     } catch (caught) {
+      setResult(null);
+      setCopied(false);
       setError(
         caught instanceof Error
           ? caught.message
-          : "Unable to process this MIME header."
+          : "Unable to process this MIME header text."
       );
-      setResult(null);
-      setOutput("");
-      setCopied(false);
-    }
-  };
-
-  const copyOutput = async () => {
-    if (!output) return;
-
-    try {
-      await navigator.clipboard.writeText(output);
-      setCopied(true);
-      setError("");
-      window.setTimeout(() => setCopied(false), 1400);
-    } catch {
-      setError(
-        "The output could not be copied. Select and copy it manually."
-      );
-      setCopied(false);
     }
   };
 
   const loadExample = () => {
-    setInput(sampleInput);
+    setInput(SAMPLE_HEADER);
     setActionMode("decode");
-    setOutputMode("summary");
     setEncodingMode("auto");
-    setCharsetMode("utf-8");
-    setHeaderKind("subject");
-    setUnfoldHeaders(true);
-    setJoinAdjacentWords(true);
-    setPreserveHeaderNames(true);
-    setWarnUnsupportedCharset(true);
-    setWarnBrokenWords(true);
-    setWarnLongHeaderLines(true);
-    setWrapEncodedLines(true);
+    setCharset("UTF-8");
+    setUnfold(true);
+    setJoinAdjacent(true);
+    setPreserveHeaderName(true);
     clearResult();
   };
 
   const resetAll = () => {
     setInput("");
     setActionMode("decode");
-    setOutputMode("summary");
     setEncodingMode("auto");
-    setCharsetMode("utf-8");
-    setHeaderKind("subject");
-    setUnfoldHeaders(true);
-    setJoinAdjacentWords(true);
-    setPreserveHeaderNames(true);
-    setWarnUnsupportedCharset(true);
-    setWarnBrokenWords(true);
-    setWarnLongHeaderLines(true);
-    setWrapEncodedLines(true);
+    setCharset("UTF-8");
+    setUnfold(true);
+    setJoinAdjacent(true);
+    setPreserveHeaderName(true);
     clearResult();
+  };
+
+  const copyOutput = async () => {
+    if (!result) return;
+
+    try {
+      await navigator.clipboard.writeText(result.output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+      setError("The output could not be copied. Select and copy it manually.");
+    }
+  };
+
+  const copyReport = async () => {
+    if (!report) return;
+
+    try {
+      await navigator.clipboard.writeText(report);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+      setError("The report could not be copied. Select and copy it manually.");
+    }
   };
 
   return (
     <ToolShell
       title="MIME Encoded-Word Decoder"
-      description="Decode, analyze, normalize, or create RFC 2047 MIME encoded-words for email subjects and display names with strict Base64/Q validation, charset handling, and byte-aware header diagnostics."
+      description="Decode RFC 2047 encoded-words in email subjects and display text, inspect B/Q bytes and charsets, or generate deliberately bounded encoded-words without treating MIME header encoding as generic Base64."
     >
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
-          Email Header or Text
-        </label>
-        <p className="mt-1 text-sm leading-relaxed text-gray-500">
-          Paste an encoded subject or display name, a folded header, or
-          plain text you want to encode.
-        </p>
-
-        <textarea
-          value={input}
-          onChange={(event) => {
-            setInput(event.target.value);
+      <div className="grid gap-5 md:grid-cols-3">
+        <YoryantraSelect
+          label="Action"
+          value={actionMode}
+          onChange={(value: string) => {
+            setActionMode(value as ActionMode);
             clearResult();
           }}
-          placeholder={sampleInput}
-          spellCheck={false}
-          className="mt-4 w-full min-h-[320px] rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          options={[
+            { label: "Decode / inspect", value: "decode" },
+            { label: "Encode text", value: "encode" },
+          ]}
+        />
+
+        <YoryantraSelect
+          label="Encoding"
+          value={encodingMode}
+          onChange={(value: string) => {
+            setEncodingMode(value as EncodingMode);
+            clearResult();
+          }}
+          options={[
+            { label: "Auto (shorter B or Q)", value: "auto" },
+            { label: "B (Base64)", value: "B" },
+            { label: "Q (header Q encoding)", value: "Q" },
+          ]}
+        />
+
+        <YoryantraSelect
+          label="Charset for encoding"
+          value={charset}
+          onChange={(value: string) => {
+            setCharset(value as CharsetMode);
+            clearResult();
+          }}
+          options={[
+            { label: "UTF-8", value: "UTF-8" },
+            { label: "ISO-8859-1", value: "ISO-8859-1" },
+            { label: "Windows-1252", value: "windows-1252" },
+            { label: "US-ASCII", value: "US-ASCII" },
+          ]}
         />
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Options</h3>
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="block text-sm font-semibold text-gray-900">
+          Email header or header value
+        </label>
+        <textarea
+          value={input}
+          onChange={(event: { target: { value: string } }) => {
+            setInput(event.target.value);
+            clearResult();
+          }}
+          placeholder={SAMPLE_HEADER}
+          spellCheck={false}
+          className="mt-3 min-h-[250px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        />
+      </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <YoryantraSelect
-            label="Action"
-            value={actionMode}
-            onChange={(value) => {
-              setActionMode(value as ActionMode);
-              clearResult();
-            }}
-            options={[
-              { label: "Decode encoded words", value: "decode" },
-              { label: "Encode text as MIME word", value: "encode" },
-              { label: "Analyze header only", value: "analyze" },
-              { label: "Normalize decoded header", value: "normalize" },
-            ]}
-          />
-
-          <YoryantraSelect
-            label="Output"
-            value={outputMode}
-            onChange={(value) => {
-              setOutputMode(value as OutputMode);
-              clearResult();
-            }}
-            options={[
-              { label: "Readable summary", value: "summary" },
-              { label: "Plain text", value: "plain" },
-              { label: "JSON", value: "json" },
-              { label: "Markdown table", value: "markdown" },
-              { label: "CSV", value: "csv" },
-              { label: "Review checklist", value: "checklist" },
-            ]}
-          />
-
-          <YoryantraSelect
-            label="Encoding for New Words"
-            value={encodingMode}
-            onChange={(value) => {
-              setEncodingMode(value as EncodingMode);
-              clearResult();
-            }}
-            options={encodingOptions}
-          />
-
-          <YoryantraSelect
-            label="Charset for New Words"
-            value={charsetMode}
-            onChange={(value) => {
-              setCharsetMode(value as CharsetMode);
-              clearResult();
-            }}
-            options={charsetOptions}
-          />
-
-          <YoryantraSelect
-            label="Header Type"
-            value={headerKind}
-            onChange={(value) => {
-              setHeaderKind(value as HeaderKind);
-              clearResult();
-            }}
-            options={[
-              { label: "Subject header", value: "subject" },
-              { label: "Display name", value: "display-name" },
-              { label: "Comment text", value: "comment" },
-              { label: "Generic header text", value: "generic" },
-            ]}
-          />
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
-          <CheckboxRow
-            checked={unfoldHeaders}
-            label="Unfold multiline email headers"
-            onChange={(value) => {
-              setUnfoldHeaders(value);
-              clearResult();
-            }}
-          />
-          <CheckboxRow
-            checked={joinAdjacentWords}
-            label="Join adjacent encoded words cleanly"
-            onChange={(value) => {
-              setJoinAdjacentWords(value);
-              clearResult();
-            }}
-          />
-          <CheckboxRow
-            checked={preserveHeaderNames}
-            label="Preserve header names like Subject:"
-            onChange={(value) => {
-              setPreserveHeaderNames(value);
-              clearResult();
-            }}
-          />
-          <CheckboxRow
-            checked={wrapEncodedLines}
-            label="Wrap encoded output for email headers"
-            onChange={(value) => {
-              setWrapEncodedLines(value);
-              clearResult();
-            }}
-          />
-          <CheckboxRow
-            checked={warnUnsupportedCharset}
-            label="Warn about unsupported charsets"
-            onChange={(value) => {
-              setWarnUnsupportedCharset(value);
-              clearResult();
-            }}
-          />
-          <CheckboxRow
-            checked={warnBrokenWords}
-            label="Warn about malformed encoded-word syntax"
-            onChange={(value) => {
-              setWarnBrokenWords(value);
-              clearResult();
-            }}
-          />
-          <CheckboxRow
-            checked={warnLongHeaderLines}
-            label="Warn about very long header lines"
-            onChange={(value) => {
-              setWarnLongHeaderLines(value);
-              clearResult();
-            }}
-          />
-        </div>
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <Toggle
+          checked={unfold}
+          onChange={(checked) => {
+            setUnfold(checked);
+            clearResult();
+          }}
+          title="Unfold header lines"
+          text="Convert CRLF/LF + whitespace folding into a single space before decoding."
+        />
+        <Toggle
+          checked={joinAdjacent}
+          onChange={(checked) => {
+            setJoinAdjacent(checked);
+            clearResult();
+          }}
+          title="Join adjacent encoded-words"
+          text="Ignore linear whitespace between adjacent encoded-words, matching RFC 2047 display rules."
+        />
+        <Toggle
+          checked={preserveHeaderName}
+          onChange={(checked) => {
+            setPreserveHeaderName(checked);
+            clearResult();
+          }}
+          title="Preserve header name"
+          text="Keep Subject:, From:, Comments:, or another valid field name in output."
+        />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={processHeader}
-          className="yoryantra-btn"
-        >
-          Process Header
+        <button type="button" onClick={run} className="yoryantra-btn">
+          {actionMode === "decode" ? "Decode Header" : "Encode Header"}
         </button>
-
-        <button
-          type="button"
-          onClick={copyOutput}
-          className="yoryantra-btn"
-          disabled={!output}
-        >
-          {copied ? "Copied" : "Copy Output"}
-        </button>
-
-        <button
-          type="button"
-          onClick={loadExample}
-          className="yoryantra-btn-outline"
-        >
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
           Load Example
         </button>
-
-        <button
-          type="button"
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
+        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div className="mt-5 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
 
       {result ? (
-        <>
-          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <SummaryCard
-              label="Encoded Words"
-              value={result.encodedWordCount.toLocaleString()}
+        <div className="mt-8">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Stat label="Encoded-words" value={String(result.words.length)} />
+            <Stat
+              label="Warnings"
+              value={String(
+                result.issues.filter((issue) => issue.severity === "warning").length
+              )}
             />
-            <SummaryCard
-              label="Charsets"
-              value={result.charsetCount.toLocaleString()}
-            />
-            <SummaryCard
-              label="Decoded Length"
-              value={result.decodedLength.toLocaleString()}
-            />
-            <SummaryCard
-              label="Findings"
-              value={result.issues.length.toLocaleString()}
+            <Stat
+              label="Output characters"
+              value={String(result.output.length)}
             />
           </div>
 
-          {result.parts.length > 0 ? (
-            <div className="mt-8 overflow-auto rounded-xl border border-gray-200">
-              <table className="w-full min-w-[900px] text-left text-sm">
-                <thead className="bg-gray-50 text-gray-600">
-                  <tr>
-                    <th className="px-4 py-3">#</th>
-                    <th className="px-4 py-3">Charset</th>
-                    <th className="px-4 py-3">Encoding</th>
-                    <th className="px-4 py-3">Bytes</th>
-                    <th className="px-4 py-3">Decoded Preview</th>
-                    <th className="px-4 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {result.parts.map((part) => (
-                    <tr key={`${part.index}-${part.start}`}>
-                      <td className="px-4 py-3">{part.index + 1}</td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {part.charset}
-                      </td>
-                      <td className="px-4 py-3">{part.encoding}</td>
-                      <td className="px-4 py-3">{part.byteLength}</td>
-                      <td className="px-4 py-3 break-words">
-                        {truncate(
-                          part.decodedText || part.encodedText,
-                          100
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {part.hasError ? part.errorMessage : "decoded"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-
-          {result.issues.length > 0 ? (
-            <div className="mt-6 space-y-3">
-              {result.issues.map((issue, index) => (
-                <div
-                  key={`${issue.title}-${index}`}
-                  className={`rounded-xl border p-4 ${
-                    issue.severity === "high"
-                      ? "border-red-200 bg-red-50"
-                      : "border-amber-200 bg-amber-50"
-                  }`}
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {actionMode === "decode" ? "Decoded output" : "Encoded output"}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={copyOutput}
+                  className="yoryantra-btn-outline whitespace-nowrap"
                 >
-                  <div className="font-semibold text-gray-900">
-                    {issue.title}
-                  </div>
-                  <p className="mt-1 text-sm leading-relaxed text-gray-700">
-                    {issue.message}
-                  </p>
-                </div>
-              ))}
+                  {copied ? "Copied" : "Copy Output"}
+                </button>
+                <button
+                  type="button"
+                  onClick={copyReport}
+                  className="yoryantra-btn-outline whitespace-nowrap"
+                >
+                  Copy Report
+                </button>
+              </div>
             </div>
-          ) : null}
 
-          {notes.length > 0 ? (
-            <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-              {notes.map((note) => (
-                <div key={note.title} className="mb-3 last:mb-0">
-                  <p className="font-semibold text-blue-900">
-                    {note.title}
-                  </p>
-                  <p className="mt-1 text-sm leading-relaxed text-blue-800">
-                    {note.message}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="mt-8 grid min-w-0 gap-6 lg:grid-cols-2">
-            <OutputBox
-              title="Decoded Text"
-              text={result.decodedText}
-            />
-            <OutputBox
-              title="Encoded-Word Output"
-              text={result.encodedText}
-            />
+            <pre className="yoryantra-output mt-4 min-h-[220px] overflow-auto whitespace-pre-wrap break-words font-mono text-sm">
+              {result.output}
+            </pre>
           </div>
-        </>
-      ) : null}
 
-      <div className="mt-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Output</h3>
+          {result.words.length ? (
+            <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Encoded-word inspection
+              </h3>
+              <div className="mt-4 space-y-4">
+                {result.words.map((word, index) => (
+                  <div
+                    key={`${word.start}-${index}`}
+                    className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+                  >
+                    <code className="block break-all text-xs text-gray-800">
+                      {word.raw}
+                    </code>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      <Info label="Charset" value={word.charset} />
+                      <Info label="Encoding" value={word.encoding} />
+                      <Info label="Decoded bytes" value={String(word.byteLength)} />
+                    </div>
+                    <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Decoded text
+                      </div>
+                      <div className="mt-2 break-words text-sm text-gray-800">
+                        {word.decodedText}
+                      </div>
+                    </div>
+                    {word.errors.length || word.warnings.length ? (
+                      <ul className="mt-3 list-disc space-y-1 pl-5 text-xs leading-relaxed text-yellow-900">
+                        {word.errors.map((item, itemIndex) => (
+                          <li key={`e-${itemIndex}`}>
+                            <strong>Error:</strong> {item}
+                          </li>
+                        ))}
+                        {word.warnings.map((item, itemIndex) => (
+                          <li key={`w-${itemIndex}`}>
+                            <strong>Note:</strong> {item}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {result.issues.length ? (
+            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+              <h3 className="font-semibold text-yellow-900">
+                Header review
+              </h3>
+              <div className="mt-4 space-y-3">
+                {result.issues.map((issue, index) => (
+                  <div
+                    key={`${issue.title}-${index}`}
+                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                  >
+                    <strong>{issue.title}</strong>
+                    <p className="mt-1">{issue.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
-        <pre className="yoryantra-output min-h-[320px] overflow-auto whitespace-pre-wrap break-words text-sm">
-          {output || "MIME encoded-word output will appear here."}
+      ) : (
+        <pre className="yoryantra-output mt-8 min-h-[280px] whitespace-pre-wrap break-words text-sm">
+          Decoded header text, encoded-word components, charset results and RFC
+          2047 diagnostics will appear here.
         </pre>
+      )}
+
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        MIME header decoding/encoding runs on the text in your browser. The tool
+        does not connect to an IMAP/SMTP server or upload an email message.
+        Site-wide analytics or advertising scripts, if enabled, are separate
+        from this operation.
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Processing happens in your browser. This tool does not send the
-        email-header text you paste to a MIME-decoding service. Site-wide
-        analytics or advertising scripts, if enabled, are separate from the
-        MIME processing operation itself.
-      </div>
-
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Decode MIME and RFC 2047 Email Headers Carefully
+            An Encoded-Word Is a Header Token, Not “Base64 Somewhere in an Email”
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            RFC 2047 encoded-words carry a charset, an encoding marker
-            (B or Q), and encoded text. All three pieces matter. Decoding
-            Base64 bytes with the wrong charset can produce believable but
-            incorrect text, so the tool exposes the charset and any
-            decoding warning instead of returning only a final string.
+            RFC 2047 encoded-words have a specific shape:{" "}
+            <code>=?charset?encoding?encoded-text?=</code>. The charset explains
+            how decoded bytes become characters, and the encoding is either B
+            (Base64) or Q (a header-oriented quoted encoding).
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            MIME body transfer encodings and header encoded-words solve
+            different problems. A body can use Base64 without any{" "}
+            <code>=?charset?B?encoded-text?=</code> wrapper, while a Subject can contain several
+            encoded-words next to ordinary ASCII text.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Malformed Encoded-Words Are Not Silently Repaired
+        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
+            Q Encoding Is Not the Same as Quoted-Printable Body Encoding
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            An encoded-word cannot contain raw space or tab characters
-            inside its encoded-text. B encoding is checked as canonical
-            Base64, including padding position and unused pad bits. In Q
-            encoding, every equals sign must be followed by two hexadecimal
-            digits. Invalid forms remain visible with a warning instead of
-            being normalized into apparently valid data.
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            The syntax is related, but RFC 2047 gives Q encoded-words their own
+            rules. Inside an encoded-word, underscore represents an ASCII space,
+            and bytes can be written as <code>=HH</code> hexadecimal escapes.
+          </p>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            That means <code>=?UTF-8?Q?Sneha_Yoryantra?=</code> decodes the
+            underscore as a space. Treating the encoded-text as a normal URL or
+            generic quoted-printable string can produce the wrong result.
           </p>
         </div>
 
-        <div>
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Header Length Is Measured in Octets
+            Whitespace Between Adjacent Encoded-Words Disappears for Display
           </h2>
+          <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`=?UTF-8?B?U25laGE=?= =?UTF-8?Q?_Yoryantra?=`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Internationalized email can use UTF-8 directly under RFC 6532,
-            so JavaScript&apos;s <code>string.length</code> is not a safe
-            transport-length measurement. The long-line check counts UTF-8
-            octets with <code>TextEncoder</code> and flags physical lines
-            above the 998-octet limit from Internet Message Format.
+            When encoded-words are adjacent and separated only by linear
+            whitespace, RFC 2047 display decoding ignores that separating
+            whitespace. The decoded characters inside the words decide whether
+            a visible space exists.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This is one reason naive regex replacement often creates an extra
+            space between words or removes a space that was encoded as{" "}
+            <code>_</code> or <code>=20</code>.
           </p>
         </div>
 
-        <div>
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            The 75-Character Encoded-Word Limit
+            75 Characters Is an Encoded-Word Limit, Not Just a Pretty Line-Wrap Preference
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            RFC 2047 limits each encoded-word to 75 characters including
-            delimiters and charset. When wrapping is enabled, the encoder
-            creates multiple complete encoded-words and folds between them
-            instead of slicing through an encoded payload.
+            RFC 2047 limits each complete encoded-word to 75 characters,
+            including the charset, encoding marker and delimiters. Long Unicode
+            header values therefore need multiple encoded-words.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The encoder splits by Unicode characters and re-encodes each
+            candidate chunk until every generated word fits. Multiple words are
+            folded using CRLF plus whitespace instead of generating one
+            oversized token.
           </p>
         </div>
 
-        <div>
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Q Encoding Depends on Header Context
+            The Charset Is Part of the Data
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            RFC 2047 permits a broader set of printable Q-encoded
-            characters in unstructured text than in a phrase such as a
-            display name. The encoder here uses a conservative printable
-            subset and escapes punctuation that is restricted or ambiguous
-            across those contexts. Spaces become underscores.
+            The same byte value can mean different characters under UTF-8,
+            ISO-8859-1 or Windows-1252. Decoding the Base64 first and then
+            blindly calling the bytes UTF-8 can turn a valid legacy header into
+            replacement characters.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Yoryantra treats ISO-8859-1 and Windows-1252 separately for their
+            0x80–0x9F behavior, handles US-ASCII range violations, and uses the
+            browser TextDecoder for other recognized charset labels.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            MIME Encoded-Words Are for Header Text, Not Message Bodies
+        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h2 className="text-xl font-semibold text-red-900">
+            Encoded-Words Are Allowed Only in Specific Header Contexts
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Encoded-words are a header mechanism. They are not a general
-            MIME body-transfer encoder and should not be used as a substitute
-            for Content-Transfer-Encoding rules on message bodies or
-            attachments. Modern UTF-8 email under RFC 6532 can also permit
-            UTF-8 directly in supported header fields, so RFC 2047 encoding
-            is not always required by every modern mail path.
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            RFC 2047 does not authorize replacing arbitrary header syntax with
+            encoded-words. They are used in text/phrase contexts such as Subject
+            and display names, with restrictions. Received is not a generic
+            encoded-word field, and MIME parameters such as filename have their
+            own parameter-encoding mechanisms.
+          </p>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            This tool decodes recognizable tokens for diagnostics, but it does
+            not pretend to be a complete RFC 5322 address parser or MIME
+            parameter parser.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Official References
+            Broken Mail Often Requires Tolerant Reading and Strict Diagnosis
           </h2>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-            <a
-              href="https://www.rfc-editor.org/rfc/rfc2047.html"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] hover:underline"
-            >
-              RFC 2047 →
-            </a>
-            <a
-              href="https://www.rfc-editor.org/rfc/rfc5322.html"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] hover:underline"
-            >
-              RFC 5322 →
-            </a>
-            <a
-              href="https://www.rfc-editor.org/rfc/rfc6532.html"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] hover:underline"
-            >
-              RFC 6532 →
-            </a>
-          </div>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Real messages contain missing Base64 padding, unknown charset
+            labels, malformed Q escapes and encoded-word-looking strings that do
+            not fully match the grammar. Silently “fixing” all of them makes it
+            hard to know whether the original sender was standards-compliant.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The decoder therefore distinguishes warnings from successful
+            decoding. It can tolerate omitted Base64 padding for inspection
+            while still telling you that the serialized encoded-word is not the
+            canonical form you would generate.
+          </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+        <div className="mt-12 grid gap-4 md:grid-cols-2">
+          <ReferenceCard
+            title="RFC 2047 — Message Header Extensions"
+            href="https://www.rfc-editor.org/rfc/rfc2047"
+            text="Defines encoded-word syntax, B/Q encodings, contexts, adjacent-word whitespace and the 75-character limit."
+          />
+          <ReferenceCard
+            title="RFC 5322 — Internet Message Format"
+            href="https://www.rfc-editor.org/rfc/rfc5322"
+            text="Defines the surrounding message-header syntax, including fields and line folding."
+          />
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/mime-encoded-word-decoder" />
         </div>
       </section>
@@ -652,29 +1431,36 @@ export default function ToolClient() {
   );
 }
 
-function CheckboxRow({
+function Toggle({
   checked,
-  label,
   onChange,
+  title,
+  text,
 }: {
   checked: boolean;
-  label: string;
   onChange: (checked: boolean) => void;
+  title: string;
+  text: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+    <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
       <input
         type="checkbox"
         checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 accent-[var(--light-gold)]"
+        onChange={(event: { target: { checked: boolean } }) =>
+          onChange(event.target.checked)
+        }
+        className="mt-1"
       />
-      {label}
+      <span>
+        <strong className="text-gray-900">{title}</strong>
+        <span className="mt-1 block text-gray-500">{text}</span>
+      </span>
     </label>
   );
 }
 
-function SummaryCard({
+function Stat({
   label,
   value,
 }: {
@@ -683,1197 +1469,55 @@ function SummaryCard({
 }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </div>
-      <div className="mt-1 font-mono text-lg font-semibold text-gray-900">
+      <div className="mt-2 break-words text-lg font-semibold text-gray-900">
         {value}
       </div>
     </div>
   );
 }
 
-function OutputBox({
-  title,
-  text,
+function Info({
+  label,
+  value,
 }: {
-  title: string;
-  text: string;
+  label: string;
+  value: string;
 }) {
-  const copy = async () => {
-    if (!text) return;
-
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      // The main output still remains selectable if clipboard access fails.
-    }
-  };
-
   return (
-    <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        {text ? (
-          <button
-            type="button"
-            onClick={copy}
-            className="yoryantra-btn-outline text-sm"
-          >
-            Copy
-          </button>
-        ) : null}
+    <div className="rounded-lg border border-gray-200 bg-white p-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
       </div>
-
-      <pre className="mt-4 yoryantra-output min-h-[200px] overflow-auto whitespace-pre-wrap break-words text-sm">
-        {text || `${title} will appear here.`}
-      </pre>
+      <div className="mt-2 break-words font-mono text-xs text-gray-800">
+        {value}
+      </div>
     </div>
   );
 }
 
-function buildResult(options: {
-  input: string;
-  actionMode: ActionMode;
-  outputMode: OutputMode;
-  encodingMode: EncodingMode;
-  charsetMode: CharsetMode;
-  headerKind: HeaderKind;
-  unfoldHeaders: boolean;
-  joinAdjacentWords: boolean;
-  preserveHeaderNames: boolean;
-  warnUnsupportedCharset: boolean;
-  warnBrokenWords: boolean;
-  warnLongHeaderLines: boolean;
-  wrapEncodedLines: boolean;
-}): Result {
-  const rawTrimmed = options.input.trim();
-  const preparedInput = options.unfoldHeaders
-    ? unfoldHeaderLines(rawTrimmed)
-    : rawTrimmed;
-
-  const parts = parseEncodedWords(
-    preparedInput,
-    options.warnUnsupportedCharset
-  );
-
-  const decodedText = decodeHeaderText(
-    preparedInput,
-    parts,
-    options
-  );
-
-  const splitForEncoding = splitHeaderName(
-    preparedInput,
-    options.preserveHeaderNames,
-    options.headerKind
-  );
-
-  const encodeSource =
-    options.actionMode === "encode"
-      ? splitForEncoding.body
-      : stripHeaderName(decodedText || preparedInput);
-
-  const encodedText = encodeHeaderText(encodeSource, {
-    encodingMode: options.encodingMode,
-    charsetMode: options.charsetMode,
-    headerKind: options.headerKind,
-    wrapEncodedLines: options.wrapEncodedLines,
-    preserveHeaderNames: options.preserveHeaderNames,
-    originalHeaderName: splitForEncoding.headerName,
-  });
-
-  const issues = buildIssues(
-    options.input,
-    preparedInput,
-    decodedText,
-    parts,
-    options
-  );
-
-  const output = formatOutput({
-    input: preparedInput,
-    actionMode: options.actionMode,
-    outputMode: options.outputMode,
-    decodedText,
-    encodedText,
-    parts,
-    issues,
-    headerKind: options.headerKind,
-  });
-
-  return {
-    output,
-    decodedText,
-    encodedText,
-    parts,
-    issues,
-    inputLength: preparedInput.length,
-    decodedLength: decodedText.length,
-    encodedWordCount: parts.length,
-    charsetCount: new Set(
-      parts.map((part) => normalizeCharset(part.charset))
-    ).size,
-  };
-}
-
-function unfoldHeaderLines(input: string) {
-  return input.replace(/\r?\n[\t ]+/g, " ");
-}
-
-function parseEncodedWords(
-  input: string,
-  warnUnsupportedCharset: boolean
-): EncodedWordPart[] {
-  const regex = /=\?([^?\s]+)\?([bBqQ])\?([^?]*)\?=/g;
-  const parts: EncodedWordPart[] = [];
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(input)) !== null) {
-    const charset = match[1];
-    const encoding = match[2].toUpperCase() as "B" | "Q";
-    const encodedText = match[3];
-
-    const decoded = decodeEncodedWord(
-      charset,
-      encoding,
-      encodedText,
-      warnUnsupportedCharset
-    );
-
-    parts.push({
-      index: parts.length,
-      raw: match[0],
-      charset,
-      encoding,
-      encodedText,
-      decodedText: decoded.text,
-      start: match.index,
-      end: match.index + match[0].length,
-      byteLength: decoded.byteLength,
-      hasError: Boolean(decoded.error),
-      errorMessage: decoded.error || "",
-    });
-  }
-
-  return parts;
-}
-
-function decodeHeaderText(
-  input: string,
-  parts: EncodedWordPart[],
-  options: {
-    joinAdjacentWords: boolean;
-    preserveHeaderNames: boolean;
-  }
-) {
-  if (!parts.length) {
-    return options.preserveHeaderNames
-      ? input.trim()
-      : stripHeaderName(input).trim();
-  }
-
-  let decoded = "";
-  let cursor = 0;
-
-  parts.forEach((part, index) => {
-    const between = input.slice(cursor, part.start);
-    const previous = index > 0 ? parts[index - 1] : null;
-
-    const ignoreInterWordWhitespace =
-      options.joinAdjacentWords &&
-      previous !== null &&
-      /^[\t \r\n]+$/.test(between);
-
-    if (!ignoreInterWordWhitespace) {
-      decoded += between;
-    }
-
-    decoded += part.hasError ? part.raw : part.decodedText;
-    cursor = part.end;
-  });
-
-  decoded += input.slice(cursor);
-
-  if (!options.preserveHeaderNames) {
-    decoded = stripHeaderName(decoded);
-  }
-
-  return decoded.trim();
-}
-
-function decodeEncodedWord(
-  charset: string,
-  encoding: "B" | "Q",
-  encodedText: string,
-  warnUnsupportedCharset: boolean
-) {
-  try {
-    if (/[\t \r\n]/.test(encodedText)) {
-      throw new Error(
-        "RFC 2047 encoded-text cannot contain raw spaces, tabs, or line breaks."
-      );
-    }
-
-    const bytes =
-      encoding === "B"
-        ? decodeBase64ToBytes(encodedText)
-        : decodeQToBytes(encodedText);
-
-    const decoded = decodeBytesForCharset(
-      bytes,
-      charset,
-      warnUnsupportedCharset
-    );
-
-    return {
-      text: decoded.text,
-      byteLength: bytes.length,
-      error: decoded.error,
-    };
-  } catch (caught) {
-    return {
-      text: encodedText,
-      byteLength: 0,
-      error:
-        caught instanceof Error
-          ? caught.message
-          : "Unable to decode encoded word.",
-    };
-  }
-}
-
-function decodeBase64ToBytes(value: string) {
-  if (!value) {
-    throw new Error("RFC 2047 B encoded-text cannot be empty.");
-  }
-
-  if (
-    !/^[A-Za-z0-9+/]*={0,2}$/.test(value) ||
-    value.length % 4 !== 0
-  ) {
-    throw new Error(
-      "Invalid RFC 2047 Base64 alphabet, padding, or length."
-    );
-  }
-
-  const firstPadding = value.indexOf("=");
-
-  if (
-    firstPadding !== -1 &&
-    firstPadding < value.length - 2
-  ) {
-    throw new Error(
-      "Invalid RFC 2047 Base64 padding position."
-    );
-  }
-
-  let binary = "";
-
-  try {
-    binary = atob(value);
-  } catch {
-    throw new Error("Invalid Base64 data in encoded word.");
-  }
-
-  const bytes = Uint8Array.from(
-    binary,
-    (character) => character.charCodeAt(0)
-  );
-
-  if (bytesToBase64(bytes) !== value) {
-    throw new Error(
-      "Base64 payload is not in canonical padded form or has invalid pad bits."
-    );
-  }
-
-  return bytes;
-}
-
-function decodeQToBytes(value: string) {
-  if (!value) {
-    throw new Error("RFC 2047 Q encoded-text cannot be empty.");
-  }
-
-  const bytes: number[] = [];
-
-  for (let index = 0; index < value.length; index += 1) {
-    const character = value[index];
-
-    if (character === "_") {
-      bytes.push(32);
-      continue;
-    }
-
-    if (character === "=") {
-      const hex = value.slice(index + 1, index + 3);
-
-      if (!/^[0-9A-Fa-f]{2}$/.test(hex)) {
-        throw new Error(
-          "Invalid Q encoding: '=' must be followed by two hexadecimal digits."
-        );
-      }
-
-      bytes.push(Number.parseInt(hex, 16));
-      index += 2;
-      continue;
-    }
-
-    const code = character.charCodeAt(0);
-
-    if (code < 33 || code > 126 || character === "?") {
-      throw new Error(
-        "Q encoded-text contains a character that must be represented as an =HH byte escape."
-      );
-    }
-
-    bytes.push(code);
-  }
-
-  return new Uint8Array(bytes);
-}
-
-function decodeBytesForCharset(
-  bytes: Uint8Array,
-  charset: string,
-  warn: boolean
-) {
-  const normalized = normalizeCharset(charset);
-
-  if (normalized === "iso-8859-1") {
-    return {
-      text: Array.from(bytes)
-        .map((byte) => String.fromCharCode(byte))
-        .join(""),
-      error: "",
-    };
-  }
-
-  if (normalized === "us-ascii") {
-    const hasNonAscii = Array.from(bytes).some(
-      (byte) => byte > 0x7f
-    );
-
-    return {
-      text: Array.from(bytes)
-        .map((byte) =>
-          byte <= 0x7f ? String.fromCharCode(byte) : "�"
-        )
-        .join(""),
-      error: hasNonAscii
-        ? "US-ASCII payload contains bytes above 0x7F."
-        : "",
-    };
-  }
-
-  if (normalized === "windows-1252") {
-    return decodeWindows1252(bytes);
-  }
-
-  if (normalized === "utf-8") {
-    try {
-      return {
-        text: new TextDecoder("utf-8", {
-          fatal: true,
-        }).decode(bytes),
-        error: "",
-      };
-    } catch {
-      return {
-        text: new TextDecoder("utf-8").decode(bytes),
-        error:
-          "Byte sequence is not valid UTF-8 for the declared charset.",
-      };
-    }
-  }
-
-  try {
-    return {
-      text: new TextDecoder(normalized, {
-        fatal: true,
-      }).decode(bytes),
-      error: "",
-    };
-  } catch {
-    try {
-      return {
-        text: new TextDecoder(normalized).decode(bytes),
-        error:
-          "Byte sequence is not valid for the declared charset.",
-      };
-    } catch {
-      return {
-        text: Array.from(bytes)
-          .map((byte) => String.fromCharCode(byte))
-          .join(""),
-        error: warn
-          ? `Unsupported charset: ${charset}. Latin-1-style fallback used.`
-          : "",
-      };
-    }
-  }
-}
-
-function normalizeCharset(charset: string) {
-  const clean = charset.trim().toLowerCase();
-
-  if (clean === "utf8" || clean === "utf-8") {
-    return "utf-8";
-  }
-
-  if (
-    clean === "latin1" ||
-    clean === "latin-1" ||
-    clean === "iso8859-1" ||
-    clean === "iso-8859-1"
-  ) {
-    return "iso-8859-1";
-  }
-
-  if (
-    clean === "windows1252" ||
-    clean === "windows-1252" ||
-    clean === "cp1252"
-  ) {
-    return "windows-1252";
-  }
-
-  if (clean === "ascii" || clean === "us-ascii") {
-    return "us-ascii";
-  }
-
-  return clean;
-}
-
-function decodeWindows1252(bytes: Uint8Array) {
-  const table: Record<number, number> = {
-    0x80: 0x20ac,
-    0x82: 0x201a,
-    0x83: 0x0192,
-    0x84: 0x201e,
-    0x85: 0x2026,
-    0x86: 0x2020,
-    0x87: 0x2021,
-    0x88: 0x02c6,
-    0x89: 0x2030,
-    0x8a: 0x0160,
-    0x8b: 0x2039,
-    0x8c: 0x0152,
-    0x8e: 0x017d,
-    0x91: 0x2018,
-    0x92: 0x2019,
-    0x93: 0x201c,
-    0x94: 0x201d,
-    0x95: 0x2022,
-    0x96: 0x2013,
-    0x97: 0x2014,
-    0x98: 0x02dc,
-    0x99: 0x2122,
-    0x9a: 0x0161,
-    0x9b: 0x203a,
-    0x9c: 0x0153,
-    0x9e: 0x017e,
-    0x9f: 0x0178,
-  };
-
-  const undefinedBytes = new Set([
-    0x81,
-    0x8d,
-    0x8f,
-    0x90,
-    0x9d,
-  ]);
-
-  let hasUndefinedByte = false;
-
-  const text = Array.from(bytes)
-    .map((byte) => {
-      if (undefinedBytes.has(byte)) {
-        hasUndefinedByte = true;
-        return "�";
-      }
-
-      return Object.prototype.hasOwnProperty.call(table, byte)
-        ? String.fromCodePoint(table[byte])
-        : String.fromCharCode(byte);
-    })
-    .join("");
-
-  return {
-    text,
-    error: hasUndefinedByte
-      ? "Windows-1252 payload contains undefined byte values."
-      : "",
-  };
-}
-
-function encodeHeaderText(
-  input: string,
-  options: {
-    encodingMode: EncodingMode;
-    charsetMode: CharsetMode;
-    headerKind: HeaderKind;
-    wrapEncodedLines: boolean;
-    preserveHeaderNames: boolean;
-    originalHeaderName: string;
-  }
-) {
-  const body = input.trim();
-
-  if (!body) {
-    if (!options.preserveHeaderNames) return "";
-
-    const headerName =
-      options.originalHeaderName ||
-      defaultHeaderName(options.headerKind);
-
-    return headerName ? `${headerName}:` : "";
-  }
-
-  const encoding =
-    options.encodingMode === "auto"
-      ? chooseEncoding(body)
-      : options.encodingMode;
-
-  const words = buildEncodedWords(
-    body,
-    options.charsetMode,
-    encoding,
-    options.headerKind
-  );
-
-  const encoded = options.wrapEncodedLines
-    ? words
-        .map((word, index) =>
-          index === 0 ? word : `\r\n ${word}`
-        )
-        .join("")
-    : words.join(" ");
-
-  if (!options.preserveHeaderNames) {
-    return encoded;
-  }
-
-  const headerName =
-    options.originalHeaderName ||
-    defaultHeaderName(options.headerKind);
-
-  return headerName ? `${headerName}: ${encoded}` : encoded;
-}
-
-function defaultHeaderName(kind: HeaderKind) {
-  if (kind === "subject") return "Subject";
-  if (kind === "display-name") return "From";
-  if (kind === "comment") return "Comments";
-  return "";
-}
-
-function splitHeaderName(
-  input: string,
-  preserve: boolean,
-  kind: HeaderKind
-) {
-  const match = input.match(
-    /^([A-Za-z0-9][A-Za-z0-9-]*):[ \t]*([\s\S]*)$/
-  );
-
-  if (match) {
-    return {
-      headerName: preserve ? match[1] : "",
-      body: match[2],
-    };
-  }
-
-  return {
-    headerName: preserve ? defaultHeaderName(kind) : "",
-    body: input,
-  };
-}
-
-function stripHeaderName(input: string) {
-  return input.replace(
-    /^[A-Za-z0-9][A-Za-z0-9-]*:[ \t]*/,
-    ""
-  );
-}
-
-function chooseEncoding(
-  text: string
-): "base64" | "q" {
-  const utf8 = new TextEncoder().encode(text);
-  const qLength = qPayloadLength(utf8, "generic");
-  const bLength = Math.ceil(utf8.length / 3) * 4;
-
-  return bLength < qLength ? "base64" : "q";
-}
-
-function buildEncodedWords(
-  text: string,
-  charset: CharsetMode,
-  encoding: "base64" | "q",
-  headerKind: HeaderKind
-) {
-  const label = charset.toUpperCase();
-
-  // =? + charset + ? + B/Q + ? + payload + ?=
-  const wrapperLength = label.length + 7;
-  const maxPayload = 75 - wrapperLength;
-
-  if (maxPayload < 4) {
-    throw new Error(
-      "The selected charset label leaves no usable payload space inside the RFC 2047 75-character encoded-word limit."
-    );
-  }
-
-  const characters = Array.from(text);
-  const words: string[] = [];
-  let current = "";
-
-  const flush = () => {
-    if (!current) return;
-
-    words.push(
-      makeEncodedWord(
-        current,
-        charset,
-        encoding,
-        headerKind
-      )
-    );
-    current = "";
-  };
-
-  for (const character of characters) {
-    const candidate = current + character;
-
-    if (
-      current &&
-      encodedPayloadLength(
-        candidate,
-        charset,
-        encoding,
-        headerKind
-      ) > maxPayload
-    ) {
-      flush();
-    }
-
-    current += character;
-
-    if (
-      encodedPayloadLength(
-        current,
-        charset,
-        encoding,
-        headerKind
-      ) > maxPayload
-    ) {
-      throw new Error(
-        "A single character cannot fit inside the selected RFC 2047 encoded-word limit with this charset and encoding."
-      );
-    }
-  }
-
-  flush();
-  return words;
-}
-
-function encodedPayloadLength(
-  text: string,
-  charset: CharsetMode,
-  encoding: "base64" | "q",
-  headerKind: HeaderKind
-) {
-  const bytes = encodeBytes(text, charset);
-
-  if (encoding === "base64") {
-    return Math.ceil(bytes.length / 3) * 4;
-  }
-
-  return qPayloadLength(bytes, headerKind);
-}
-
-function qPayloadLength(
-  bytes: Uint8Array,
-  headerKind: HeaderKind
-) {
-  return Array.from(bytes).reduce((sum, byte) => {
-    if (byte === 32) return sum + 1;
-    return sum + (isQSafe(byte, headerKind) ? 1 : 3);
-  }, 0);
-}
-
-function makeEncodedWord(
-  text: string,
-  charset: CharsetMode,
-  encoding: "base64" | "q",
-  headerKind: HeaderKind
-) {
-  const bytes = encodeBytes(text, charset);
-
-  const payload =
-    encoding === "base64"
-      ? bytesToBase64(bytes)
-      : Array.from(bytes)
-          .map((byte) => {
-            if (byte === 32) return "_";
-
-            if (isQSafe(byte, headerKind)) {
-              return String.fromCharCode(byte);
-            }
-
-            return `=${byte
-              .toString(16)
-              .toUpperCase()
-              .padStart(2, "0")}`;
-          })
-          .join("");
-
-  return `=?${charset.toUpperCase()}?${
-    encoding === "base64" ? "B" : "Q"
-  }?${payload}?=`;
-}
-
-function encodeBytes(
-  text: string,
-  charset: CharsetMode
-) {
-  if (charset === "utf-8") {
-    return new TextEncoder().encode(text);
-  }
-
-  const output: number[] = [];
-
-  for (const character of Array.from(text)) {
-    const codePoint = character.codePointAt(0) || 0;
-
-    if (charset === "us-ascii") {
-      if (codePoint > 0x7f) {
-        throw new Error(
-          "US-ASCII cannot represent every input character. Use UTF-8."
-        );
-      }
-
-      output.push(codePoint);
-      continue;
-    }
-
-    if (charset === "iso-8859-1") {
-      if (codePoint > 0xff) {
-        throw new Error(
-          "ISO-8859-1 cannot represent every input character. Use UTF-8."
-        );
-      }
-
-      output.push(codePoint);
-      continue;
-    }
-
-    const byte = encodeWindows1252CodePoint(codePoint);
-
-    if (byte === null) {
-      throw new Error(
-        "Windows-1252 cannot represent every input character. Use UTF-8."
-      );
-    }
-
-    output.push(byte);
-  }
-
-  return new Uint8Array(output);
-}
-
-function encodeWindows1252CodePoint(
-  codePoint: number
-): number | null {
-  const reverse: Record<number, number> = {
-    0x20ac: 0x80,
-    0x201a: 0x82,
-    0x0192: 0x83,
-    0x201e: 0x84,
-    0x2026: 0x85,
-    0x2020: 0x86,
-    0x2021: 0x87,
-    0x02c6: 0x88,
-    0x2030: 0x89,
-    0x0160: 0x8a,
-    0x2039: 0x8b,
-    0x0152: 0x8c,
-    0x017d: 0x8e,
-    0x2018: 0x91,
-    0x2019: 0x92,
-    0x201c: 0x93,
-    0x201d: 0x94,
-    0x2022: 0x95,
-    0x2013: 0x96,
-    0x2014: 0x97,
-    0x02dc: 0x98,
-    0x2122: 0x99,
-    0x0161: 0x9a,
-    0x203a: 0x9b,
-    0x0153: 0x9c,
-    0x017e: 0x9e,
-    0x0178: 0x9f,
-  };
-
-  if (
-    Object.prototype.hasOwnProperty.call(
-      reverse,
-      codePoint
-    )
-  ) {
-    return reverse[codePoint];
-  }
-
-  if (
-    codePoint <= 0x7f ||
-    (codePoint >= 0xa0 && codePoint <= 0xff)
-  ) {
-    return codePoint;
-  }
-
-  return null;
-}
-
-function bytesToBase64(bytes: Uint8Array) {
-  let binary = "";
-
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-
-  return btoa(binary);
-}
-
-function isQSafe(
-  byte: number,
-  headerKind: HeaderKind
-) {
-  if (byte < 33 || byte > 126) return false;
-
-  const character = String.fromCharCode(byte);
-
-  if (
-    character === "=" ||
-    character === "?" ||
-    character === "_"
-  ) {
-    return false;
-  }
-
-  if (headerKind === "display-name") {
-    return /^[A-Za-z0-9!*+\-/]$/.test(character);
-  }
-
-  return /^[A-Za-z0-9!*+\-/]$/.test(character);
-}
-
-function buildIssues(
-  rawInput: string,
-  preparedInput: string,
-  decodedText: string,
-  parts: EncodedWordPart[],
-  options: {
-    actionMode: ActionMode;
-    charsetMode: CharsetMode;
-    warnUnsupportedCharset: boolean;
-    warnBrokenWords: boolean;
-    warnLongHeaderLines: boolean;
-  }
-) {
-  const issues: Issue[] = [];
-
-  if (
-    !parts.length &&
-    options.actionMode !== "encode"
-  ) {
-    issues.push({
-      severity: "info",
-      title: "No encoded-word found",
-      message:
-        "The input does not contain a complete =?charset?B/Q?text?= pattern. It may already be plain text.",
-    });
-  }
-
-  const errored = parts.filter(
-    (part) => part.hasError
-  );
-
-  if (errored.length) {
-    issues.push({
-      severity: "warning",
-      title: "Malformed or undecodable encoded-word",
-      message: `${errored.length} encoded word${
-        errored.length === 1 ? "" : "s"
-      } could not be decoded strictly. Original encoded-word text is preserved in the decoded view.`,
-    });
-  }
-
-  if (
-    options.warnUnsupportedCharset &&
-    parts.some((part) =>
-      /unsupported charset/i.test(part.errorMessage)
-    )
-  ) {
-    issues.push({
-      severity: "warning",
-      title: "Unsupported charset fallback used",
-      message:
-        "The browser could not decode at least one declared charset directly. Verify the source charset before trusting fallback text.",
-    });
-  }
-
-  if (options.warnBrokenWords) {
-    const suspicious =
-      rawInput.match(/=\?[^\r\n]*(?:\?=|$)/g) || [];
-
-    const malformed = suspicious.filter(
-      (candidate) =>
-        !/^=\?[^?\s]+\?[bBqQ]\?[^?\s]*\?=$/.test(
-          candidate.trim()
-        )
-    );
-
-    if (malformed.length) {
-      issues.push({
-        severity: "warning",
-        title: "Possible broken encoded-word pattern",
-        message: `${malformed.length} encoded-word-like fragment${
-          malformed.length === 1 ? "" : "s"
-        } do not match the basic RFC 2047 encoded-word structure.`,
-      });
-    }
-  }
-
-  if (
-    parts.some((part) => part.raw.length > 75)
-  ) {
-    issues.push({
-      severity: "warning",
-      title: "Encoded-word exceeds RFC 2047 length",
-      message:
-        "At least one encoded-word is longer than 75 characters including charset and delimiters.",
-    });
-  }
-
-  if (options.warnLongHeaderLines) {
-    const physicalLines = rawInput
-      .replace(/\r\n/g, "\n")
-      .replace(/\r/g, "\n")
-      .split("\n");
-
-    const longLines = physicalLines.filter(
-      (line) =>
-        new TextEncoder().encode(line).length > 998
-    );
-
-    if (longLines.length) {
-      issues.push({
-        severity: "high",
-        title: "Header line exceeds 998 octets",
-        message: `${longLines.length} physical header line${
-          longLines.length === 1 ? "" : "s"
-        } exceed the 998-octet limit. The check uses UTF-8 octets instead of JavaScript UTF-16 code-unit length.`,
-      });
-    }
-  }
-
-  if (/\r?\n[^\t ]/.test(preparedInput)) {
-    issues.push({
-      severity: "info",
-      title: "Multiple header lines detected",
-      message:
-        "Only continuation lines beginning with a space or tab are unfolded into the previous field.",
-    });
-  }
-
-  if (decodedText.includes("�")) {
-    issues.push({
-      severity: "warning",
-      title: "Replacement character found",
-      message:
-        "Decoded text contains U+FFFD, which usually means the charset or byte sequence needs review.",
-    });
-  }
-
-  if (!issues.length) {
-    issues.push({
-      severity: "info",
-      title: "Header processed cleanly",
-      message:
-        "No obvious MIME encoded-word warning was found.",
-    });
-  }
-
-  return issues;
-}
-
-function formatOutput(params: {
-  input: string;
-  actionMode: ActionMode;
-  outputMode: OutputMode;
-  decodedText: string;
-  encodedText: string;
-  parts: EncodedWordPart[];
-  issues: Issue[];
-  headerKind: HeaderKind;
+function ReferenceCard({
+  title,
+  href,
+  text,
+}: {
+  title: string;
+  href: string;
+  text: string;
 }) {
-  const primary =
-    params.actionMode === "encode"
-      ? params.encodedText
-      : params.decodedText;
-
-  if (params.outputMode === "plain") {
-    return primary;
-  }
-
-  if (params.outputMode === "json") {
-    return JSON.stringify(
-      {
-        action: params.actionMode,
-        headerKind: params.headerKind,
-        decodedText: params.decodedText,
-        encodedText: params.encodedText,
-        encodedWords: params.parts,
-        issues: params.issues,
-      },
-      null,
-      2
-    );
-  }
-
-  if (params.outputMode === "markdown") {
-    return [
-      "| # | Charset | Encoding | Bytes | Status |",
-      "|---:|---|---|---:|---|",
-      ...params.parts.map(
-        (part) =>
-          `| ${part.index + 1} | ${escapeMd(
-            part.charset
-          )} | ${part.encoding} | ${part.byteLength} | ${
-            part.hasError
-              ? escapeMd(part.errorMessage)
-              : "decoded"
-          } |`
-      ),
-      "",
-      ...params.issues.map(
-        (issue) =>
-          `- **${escapeMd(issue.title)}:** ${escapeMd(
-            issue.message
-          )}`
-      ),
-    ].join("\n");
-  }
-
-  if (params.outputMode === "csv") {
-    const rows = [
-      [
-        "index",
-        "charset",
-        "encoding",
-        "bytes",
-        "decoded",
-        "status",
-      ],
-      ...params.parts.map((part) => [
-        String(part.index + 1),
-        part.charset,
-        part.encoding,
-        String(part.byteLength),
-        part.decodedText,
-        part.hasError
-          ? part.errorMessage
-          : "decoded",
-      ]),
-    ];
-
-    return rows
-      .map((row) =>
-        row.map(csvEscape).join(",")
-      )
-      .join("\n");
-  }
-
-  if (params.outputMode === "checklist") {
-    return [
-      "MIME Encoded-Word Review Checklist",
-      "-----------------------------------",
-      "- [ ] Confirm the declared charset matches the sender/source.",
-      "- [ ] Confirm B/Q payloads decode without strict-syntax warnings.",
-      "- [ ] Keep every encoded-word at 75 characters or fewer.",
-      "- [ ] Keep physical header lines within email transport limits.",
-      "- [ ] Check adjacent encoded-word whitespace and header folding.",
-      "",
-      ...params.issues.map(
-        (issue) =>
-          `- ${issue.title}: ${issue.message}`
-      ),
-    ].join("\n");
-  }
-
-  return [
-    `Action: ${params.actionMode}`,
-    `Encoded words: ${params.parts.length}`,
-    `Decoded text: ${
-      params.decodedText || "(none)"
-    }`,
-    "",
-    `Encoded output: ${
-      params.encodedText || "(none)"
-    }`,
-    "",
-    "Findings:",
-    ...params.issues.map(
-      (issue) =>
-        `- [${issue.severity.toUpperCase()}] ${
-          issue.title
-        }: ${issue.message}`
-    ),
-  ].join("\n");
-}
-
-function getNotes(result: Result): Note[] {
-  const notes: Note[] = [];
-
-  if (
-    result.parts.some((part) => part.hasError)
-  ) {
-    notes.push({
-      title: "Keep the original header for forensic work",
-      message:
-        "Malformed encoded-words can be evidence of a broken sender or transport. Do not discard the raw header when debugging delivery or parsing differences.",
-    });
-  }
-
-  if (result.parts.length > 1) {
-    notes.push({
-      title: "Adjacent encoded words",
-      message:
-        "RFC 2047 display rules can ignore linear whitespace between adjacent encoded-words. The join option applies only in that specific case.",
-    });
-  }
-
-  return notes;
-}
-
-function truncate(
-  value: string,
-  max: number
-) {
-  return value.length <= max
-    ? value
-    : `${value.slice(0, max - 1)}…`;
-}
-
-function escapeMd(value: string) {
-  return value
-    .replace(/\|/g, "\\|")
-    .replace(/\n/g, "<br>");
-}
-
-function csvEscape(value: string) {
-  return /[",\n\r]/.test(value)
-    ? `"${value.replace(/"/g, '""')}"`
-    : value;
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="font-semibold text-[var(--green)] underline underline-offset-4"
+      >
+        {title}
+      </a>
+      <p className="mt-3 text-sm leading-relaxed text-gray-600">{text}</p>
+    </div>
+  );
 }

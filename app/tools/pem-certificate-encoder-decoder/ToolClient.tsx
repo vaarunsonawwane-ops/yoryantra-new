@@ -5,435 +5,1186 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
-type ActionMode = "parse" | "extract" | "wrap" | "normalize" | "inspect";
-type OutputMode = "summary" | "pem" | "base64" | "json" | "markdown" | "csv" | "checklist";
-type PemLabel = "CERTIFICATE" | "PUBLIC KEY" | "PRIVATE KEY" | "RSA PRIVATE KEY" | "EC PRIVATE KEY" | "CERTIFICATE REQUEST" | "X509 CRL" | "OPENSSH PRIVATE KEY";
-type LineBreakMode = "lf" | "crlf";
+type ActionMode =
+  | "normalize"
+  | "extract"
+  | "wrap";
+type NewlineMode =
+  | "lf"
+  | "crlf";
 
 type PemBlock = {
   index: number;
-  type: string;
   beginLabel: string;
   endLabel: string;
-  base64Body: string;
+  rawBody: string;
+  cleanBase64: string;
+  canonicalBase64: string;
+  decodedBytes: number;
   lineCount: number;
-  byteEstimate: number;
-  hasMatchingEnd: boolean;
+  matchingEnd: boolean;
+  labelValid: boolean;
+  base64Valid: boolean;
+  errors: string[];
+  warnings: string[];
   classification: string;
 };
 
-type Issue = {
-  severity: "info" | "warning" | "high";
+type PemIssue = {
+  severity:
+    | "warning"
+    | "note";
   title: string;
   message: string;
 };
 
-type Result = {
-  output: string;
+type PemResult = {
   blocks: PemBlock[];
-  issues: Issue[];
-  inputLength: number;
-  blockCount: number;
-  base64Length: number;
-  byteEstimate: number;
+  output: string;
+  issues: PemIssue[];
+  outsideText: string[];
+  totalBytes: number;
 };
 
-const sampleInput = `-----BEGIN CERTIFICATE-----
-MIIDXTCCAkWgAwIBAgIJAL7uYoryantraExampleOnlyMA0GCSqGSIb3DQEBCwUA
-MEUxCzAJBgNVBAYTAklOMRIwEAYDVQQKDAlZb3J5YW50cmExIjAgBgNVBAMMGW95
-b3J5YW50cmEuZXhhbXBsZS5sb2NhbDAeFw0yNjA2MDMwMDAwMDBaFw0yNzA2MDMw
-MDAwMDBaMEUxCzAJBgNVBAYTAklOMRIwEAYDVQQKDAlZb3J5YW50cmExIjAgBgNV
-BAMMGW95b3J5YW50cmEuZXhhbXBsZS5sb2NhbA==
------END CERTIFICATE-----`;
+const SAMPLE_PEM = `-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCr+kUZP3HeeXkATULsDnfIu4OA
+P3c1yyHYvHVwSV1nn45TxTyMbJRG7BHD+tKRd5XeBTmFBFBErt34p96d/7fWty/z
+9rMdmsLtabZ0xiM8wDjSd46ePqU+Nzu5L9uKZnSmvwz2kdaFPnN6d28q8B3N71Wi
+alLzwYH3Hj2yc4bYewIDAQAB
+-----END PUBLIC KEY-----`;
+
+const LABEL_OPTIONS = [
+  "CERTIFICATE",
+  "PRIVATE KEY",
+  "ENCRYPTED PRIVATE KEY",
+  "PUBLIC KEY",
+  "CERTIFICATE REQUEST",
+  "X509 CRL",
+  "CMS",
+  "PKCS7",
+];
+
+function validLabel(label: string) {
+  if (!label) {
+    return false;
+  }
+
+  if (
+    label !== label.toUpperCase()
+  ) {
+    return false;
+  }
+
+  if (
+    label.charAt(0) === " " ||
+    label.charAt(label.length - 1) === " " ||
+    label.charAt(0) === "-" ||
+    label.charAt(label.length - 1) === "-"
+  ) {
+    return false;
+  }
+
+  if (
+    label.indexOf("  ") !== -1 ||
+    label.indexOf("--") !== -1
+  ) {
+    return false;
+  }
+
+  for (let index = 0; index < label.length; index += 1) {
+    const code = label.charCodeAt(index);
+    const char = label.charAt(index);
+
+    if (
+      code < 0x21 ||
+      code > 0x7e ||
+      char === "-"
+    ) {
+      if (char !== " " && char !== "-") {
+        return false;
+      }
+    }
+  }
+
+  return /^[\x21-\x2C\x2E-\x7E]+(?:[ -][\x21-\x2C\x2E-\x7E]+)*$/.test(
+    label
+  );
+}
+
+function prohibitedGeneratorLabel(label: string) {
+  return (
+    [
+      "X509 CERTIFICATE",
+      "X.509 CERTIFICATE",
+      "CRL",
+      "NEW CERTIFICATE REQUEST",
+      "CERTIFICATE CHAIN",
+    ].indexOf(label) !== -1
+  );
+}
+
+function classifyLabel(label: string) {
+  if (label === "CERTIFICATE") return "X.509 certificate";
+  if (label === "CERTIFICATE REQUEST") return "PKCS #10 certificate request";
+  if (label === "X509 CRL") return "X.509 certificate revocation list";
+  if (label === "PUBLIC KEY") return "SubjectPublicKeyInfo public key";
+  if (label === "PRIVATE KEY") return "PKCS #8 private key";
+  if (label === "ENCRYPTED PRIVATE KEY") return "Encrypted PKCS #8 private key";
+  if (label === "CMS") return "Cryptographic Message Syntax";
+  if (label === "PKCS7") return "PKCS #7";
+  if (/PRIVATE KEY/i.test(label)) return "private-key material";
+  if (/PUBLIC KEY/i.test(label)) return "public-key material";
+  if (/CERTIFICATE/i.test(label)) return "certificate-related block";
+  if (/CRL/i.test(label)) return "certificate revocation list";
+  return "PEM/textual-encoding block";
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += 1) {
+    binary += String.fromCharCode(bytes[index]);
+  }
+
+  return btoa(binary);
+}
+
+function decodeBase64Strict(value: string) {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const clean = value.replace(/\s/g, "");
+
+  if (!clean) {
+    errors.push("Base64 body is empty.");
+
+    return {
+      clean,
+      canonical: "",
+      bytes: new Uint8Array(),
+      errors,
+      warnings,
+    };
+  }
+
+  if (/[^A-Za-z0-9+/=]/.test(clean)) {
+    errors.push("Body contains characters outside the standard Base64 alphabet.");
+  }
+
+  const padding = (clean.match(/=+$/) || [""])[0];
+
+  if (padding.length > 2) {
+    errors.push("Base64 has more than two trailing padding characters.");
+  }
+
+  if (clean.indexOf("=") !== -1 && !/=+$/.test(clean)) {
+    errors.push("Base64 padding appears before the end of the body.");
+  }
+
+  if (clean.length % 4 === 1) {
+    errors.push("Base64 length cannot be valid because it leaves a one-character remainder.");
+  }
+
+  if (errors.length) {
+    return {
+      clean,
+      canonical: "",
+      bytes: new Uint8Array(),
+      errors,
+      warnings,
+    };
+  }
+
+  if (clean.length % 4 !== 0) {
+    warnings.push(
+      "Trailing Base64 padding is omitted. The normalized generator output will restore canonical padding."
+    );
+  }
+
+  try {
+    const padded = clean + "=".repeat((4 - (clean.length % 4)) % 4);
+    const binary = atob(padded);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    const canonical = bytesToBase64(bytes);
+
+    if (
+      canonical.replace(/=+$/, "") !==
+      clean.replace(/=+$/, "")
+    ) {
+      warnings.push(
+        "Decoded bytes re-encode to a different canonical Base64 spelling. Non-zero/ambiguous padding bits or non-canonical input may be involved."
+      );
+    }
+
+    return {
+      clean,
+      canonical,
+      bytes,
+      errors,
+      warnings,
+    };
+  } catch {
+    errors.push("Browser Base64 decoding failed.");
+
+    return {
+      clean,
+      canonical: "",
+      bytes: new Uint8Array(),
+      errors,
+      warnings,
+    };
+  }
+}
+
+function parseBoundary(
+  line: string,
+  kind: "BEGIN" | "END"
+) {
+  const regex =
+    kind === "BEGIN"
+      ? /^-----BEGIN (.+)-----$/
+      : /^-----END (.+)-----$/;
+  const match = line.match(regex);
+
+  return match ? match[1] : "";
+}
+
+function parsePemBlocks(input: string) {
+  const normalized = input.replace(/\r\n?/g, "\n");
+  const lines = normalized.split("\n");
+  const blocks: PemBlock[] = [];
+  const outsideText: string[] = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const originalLine = lines[index];
+    const trimmed = originalLine.trim();
+    const beginLabel = parseBoundary(trimmed, "BEGIN");
+
+    if (!beginLabel) {
+      if (trimmed) {
+        outsideText.push(`Line ${index + 1}: ${trimmed}`);
+      }
+      index += 1;
+      continue;
+    }
+
+    const bodyLines: string[] = [];
+    const beginLineNumber = index + 1;
+    let endLabel = "";
+    let endFound = false;
+    index += 1;
+
+    while (index < lines.length) {
+      const currentTrimmed = lines[index].trim();
+      const nestedBegin = parseBoundary(currentTrimmed, "BEGIN");
+      const candidateEnd = parseBoundary(currentTrimmed, "END");
+
+      if (nestedBegin) {
+        break;
+      }
+
+      if (candidateEnd) {
+        endLabel = candidateEnd;
+        endFound = true;
+        index += 1;
+        break;
+      }
+
+      bodyLines.push(lines[index]);
+      index += 1;
+    }
+
+    const rawBody = bodyLines.join("\n");
+    const bodyDecode = decodeBase64Strict(rawBody);
+    const errors = bodyDecode.errors.slice();
+    const warnings = bodyDecode.warnings.slice();
+    const labelValid = validLabel(beginLabel);
+
+    if (!labelValid) {
+      errors.push(
+        `BEGIN label "${beginLabel}" is outside RFC 7468 generator label grammar/case requirements.`
+      );
+    }
+
+    if (!endFound) {
+      errors.push(
+        `No END boundary was found for block beginning on line ${beginLineNumber}.`
+      );
+    }
+
+    const matchingEnd = endFound && endLabel === beginLabel;
+
+    if (endFound && !matchingEnd) {
+      errors.push(
+        `END label "${endLabel}" does not match BEGIN label "${beginLabel}".`
+      );
+    }
+
+    if (endFound && !validLabel(endLabel)) {
+      errors.push(
+        `END label "${endLabel}" is outside RFC 7468 generator label grammar/case requirements.`
+      );
+    }
+
+    const nonBlankLines = bodyLines.filter((line) => line.trim()).length;
+    const bodyHasLegacyHeader = bodyLines.some(
+      (line) =>
+        /^[A-Za-z0-9-]+:\s*/.test(line.trim()) &&
+        !/^[A-Za-z0-9+/=]+$/.test(line.trim())
+    );
+
+    if (bodyHasLegacyHeader) {
+      warnings.push(
+        "The encapsulated region contains a header-like line (for example legacy PEM Proc-Type/DEK-Info). RFC 7468 textual encoding does not define encapsulated headers alongside the Base64 data."
+      );
+    }
+
+    const hasBodyWhitespace =
+      bodyLines.some(
+        (line) =>
+          line &&
+          line !== line.trim()
+      );
+
+    if (hasBodyWhitespace) {
+      warnings.push(
+        "Whitespace surrounds one or more Base64 lines. Parsers can be tolerant, but normalized generator output removes extraneous whitespace."
+      );
+    }
+
+    const nonFinalLineLengths = bodyLines
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, -1)
+      .map((line) => line.length);
+
+    if (
+      nonFinalLineLengths.some(
+        (length) => length !== 64
+      )
+    ) {
+      warnings.push(
+        "At least one non-final Base64 line is not 64 characters. RFC 7468 generators use exactly 64 characters per line except the final line."
+      );
+    }
+
+    blocks.push({
+      index: blocks.length + 1,
+      beginLabel,
+      endLabel,
+      rawBody,
+      cleanBase64: bodyDecode.clean,
+      canonicalBase64: bodyDecode.canonical,
+      decodedBytes: bodyDecode.bytes.length,
+      lineCount: nonBlankLines,
+      matchingEnd,
+      labelValid,
+      base64Valid: bodyDecode.errors.length === 0,
+      errors,
+      warnings,
+      classification: classifyLabel(beginLabel),
+    });
+  }
+
+  return {
+    blocks,
+    outsideText,
+  };
+}
+
+function wrap64(value: string, newline: string) {
+  const lines: string[] = [];
+
+  for (let index = 0; index < value.length; index += 64) {
+    lines.push(value.slice(index, index + 64));
+  }
+
+  return lines.join(newline);
+}
+
+function canonicalPem(
+  label: string,
+  canonicalBase64: string,
+  newline: string
+) {
+  return [
+    `-----BEGIN ${label}-----`,
+    wrap64(canonicalBase64, newline),
+    `-----END ${label}-----`,
+  ].join(newline);
+}
+
+function normalizeExistingBlocks(
+  blocks: PemBlock[],
+  newline: string
+) {
+  const invalid = blocks.filter(
+    (block) =>
+      !block.matchingEnd ||
+      !block.labelValid ||
+      prohibitedGeneratorLabel(
+        block.beginLabel
+      ) ||
+      !block.base64Valid ||
+      !block.canonicalBase64
+  );
+
+  if (invalid.length) {
+    throw new Error(
+      `Cannot generate normalized PEM because ${invalid.length} block${
+        invalid.length === 1 ? " has" : "s have"
+      } a boundary/Base64 problem or a historical label that RFC 7468 generators should not emit. Fix the reported block or deliberately re-wrap verified bytes with the correct standardized label.`
+    );
+  }
+
+  return blocks
+    .map((block) =>
+      canonicalPem(
+        block.beginLabel,
+        block.canonicalBase64,
+        newline
+      )
+    )
+    .join(`${newline}${newline}`);
+}
+
+function extractBase64(blocks: PemBlock[], newline: string) {
+  if (!blocks.length) {
+    throw new Error("No PEM block was found to extract.");
+  }
+
+  return blocks
+    .map((block) => {
+      if (!block.base64Valid || !block.canonicalBase64) {
+        return `# Block ${block.index} (${block.beginLabel}) has invalid Base64`;
+      }
+
+      return [
+        `# Block ${block.index}: ${block.beginLabel}`,
+        wrap64(block.canonicalBase64, newline),
+      ].join(newline);
+    })
+    .join(`${newline}${newline}`);
+}
+
+function buildIssues(
+  blocks: PemBlock[],
+  outsideText: string[]
+) {
+  const issues: PemIssue[] = [];
+
+  if (!blocks.length) {
+    issues.push({
+      severity: "note",
+      title: "No PEM block detected",
+      message:
+        "Use Wrap Raw Base64 when the input contains only Base64 rather than BEGIN/END boundaries.",
+    });
+  }
+
+  if (blocks.length > 1) {
+    issues.push({
+      severity: "note",
+      title: "Multiple blocks stay separate",
+      message:
+        `The input contains ${blocks.length} PEM blocks. Normalization preserves each block and its label in order instead of joining their Base64 bodies into one synthetic object.`,
+    });
+  }
+
+  if (
+    blocks.some((block) =>
+      /PRIVATE KEY/i.test(block.beginLabel)
+    )
+  ) {
+    issues.push({
+      severity: "warning",
+      title: "Private-key material detected",
+      message:
+        "Private keys are sensitive. Avoid unnecessary production-key handling, screenshots, clipboard history, logs and shared browser sessions.",
+    });
+  }
+
+  if (outsideText.length) {
+    issues.push({
+      severity: "note",
+      title: "Text exists outside PEM boundaries",
+      message:
+        `${outsideText.length} non-empty outside line${
+          outsideText.length === 1 ? " was" : "s were"
+        } found. Normalized output contains only PEM blocks and deliberately drops surrounding commentary.`,
+    });
+  }
+
+  blocks.forEach((block) => {
+    block.errors.forEach((error) => {
+      issues.push({
+        severity: "warning",
+        title: `Block ${block.index} · ${block.beginLabel}`,
+        message: error,
+      });
+    });
+
+    block.warnings.forEach((warning) => {
+      issues.push({
+        severity: "note",
+        title: `Block ${block.index} · ${block.beginLabel}`,
+        message: warning,
+      });
+    });
+
+    if (block.beginLabel === "X509 CERTIFICATE") {
+      issues.push({
+        severity: "warning",
+        title: `Block ${block.index} uses a historical certificate label`,
+        message:
+          'RFC 7468 generators use "CERTIFICATE" and must not generate the historical "X509 CERTIFICATE" label.',
+      });
+    }
+
+    if (block.beginLabel === "CRL") {
+      issues.push({
+        severity: "warning",
+        title: `Block ${block.index} uses a historical CRL label`,
+        message:
+          'RFC 7468 standardizes "X509 CRL"; generators must not generate the historical "CRL" label.',
+      });
+    }
+
+    if (block.beginLabel === "NEW CERTIFICATE REQUEST") {
+      issues.push({
+        severity: "note",
+        title: `Block ${block.index} uses a legacy CSR label`,
+        message:
+          'RFC 7468 generators use "CERTIFICATE REQUEST", although parsers may treat "NEW CERTIFICATE REQUEST" as equivalent.',
+      });
+    }
+
+    if (block.beginLabel === "CERTIFICATE CHAIN") {
+      issues.push({
+        severity: "warning",
+        title: `Block ${block.index} uses CERTIFICATE CHAIN`,
+        message:
+          'RFC 7468 says generators must not generate the "CERTIFICATE CHAIN" label. Certificate bundles normally contain multiple separate CERTIFICATE blocks.',
+      });
+    }
+  });
+
+  issues.push({
+    severity: "note",
+    title: "Container formatting is not certificate validation",
+    message:
+      "A valid PEM wrapper and decodable Base64 do not prove the bytes are the ASN.1 structure implied by the label, that a certificate is trusted, or that a private key matches a certificate.",
+  });
+
+  return issues;
+}
+
+function buildResult(options: {
+  input: string;
+  actionMode: ActionMode;
+  newlineMode: NewlineMode;
+  wrapLabel: string;
+}): PemResult {
+  const newline =
+    options.newlineMode === "crlf"
+      ? "\r\n"
+      : "\n";
+  const parsed = parsePemBlocks(options.input);
+  const issues = buildIssues(parsed.blocks, parsed.outsideText);
+  let output = "";
+
+  if (options.actionMode === "wrap") {
+    const label = options.wrapLabel.trim();
+
+    if (!validLabel(label)) {
+      throw new Error(
+        "PEM label must be uppercase RFC 7468 label text without leading/trailing spaces or hyphens, consecutive spaces, or consecutive hyphens."
+      );
+    }
+
+    const decoded = decodeBase64Strict(options.input);
+
+    if (decoded.errors.length || !decoded.canonical) {
+      throw new Error(
+        decoded.errors.length
+          ? `Raw Base64 cannot be wrapped: ${decoded.errors.join(" ")}`
+          : "Raw Base64 is empty."
+      );
+    }
+
+    output = canonicalPem(label, decoded.canonical, newline);
+
+    decoded.warnings.forEach((warning) => {
+      issues.unshift({
+        severity: "note",
+        title: "Raw Base64 normalized",
+        message: warning,
+      });
+    });
+
+    return {
+      blocks: [],
+      output,
+      issues,
+      outsideText: [],
+      totalBytes: decoded.bytes.length,
+    };
+  }
+
+  if (!parsed.blocks.length) {
+    throw new Error(
+      "No PEM BEGIN/END block was found. Choose Wrap Raw Base64 if the input is only Base64."
+    );
+  }
+
+  if (options.actionMode === "normalize") {
+    output = normalizeExistingBlocks(parsed.blocks, newline);
+  } else {
+    output = extractBase64(parsed.blocks, newline);
+  }
+
+  return {
+    blocks: parsed.blocks,
+    output,
+    issues,
+    outsideText: parsed.outsideText,
+    totalBytes: parsed.blocks.reduce(
+      (sum, block) => sum + block.decodedBytes,
+      0
+    ),
+  };
+}
+
+function formatReport(result: PemResult) {
+  const lines = [
+    "PEM encoding review",
+    `Blocks: ${result.blocks.length}`,
+    `Decoded bytes: ${result.totalBytes}`,
+  ];
+
+  result.blocks.forEach((block) => {
+    lines.push(
+      "",
+      `Block ${block.index}: ${block.beginLabel}`,
+      `Kind: ${block.classification}`,
+      `END label: ${block.endLabel || "(missing)"}`,
+      `Matching boundary: ${block.matchingEnd ? "yes" : "no"}`,
+      `Label grammar: ${block.labelValid ? "accepted" : "needs review"}`,
+      `Base64: ${block.base64Valid ? "decodable" : "invalid"}`,
+      `Decoded bytes: ${block.decodedBytes}`,
+      `Non-empty body lines: ${block.lineCount}`
+    );
+  });
+
+  if (result.issues.length) {
+    lines.push(
+      "",
+      "Review:",
+      ...result.issues.map(
+        (issue) =>
+          `- ${issue.severity.toUpperCase()} — ${issue.title}: ${issue.message}`
+      )
+    );
+  }
+
+  return lines.join("\n");
+}
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
-  const [actionMode, setActionMode] = useState<ActionMode>("parse");
-  const [outputMode, setOutputMode] = useState<OutputMode>("summary");
-  const [pemLabel, setPemLabel] = useState<PemLabel>("CERTIFICATE");
-  const [lineBreakMode, setLineBreakMode] = useState<LineBreakMode>("lf");
-  const [trimInput, setTrimInput] = useState(true);
-  const [removeBlankLines, setRemoveBlankLines] = useState(true);
-  const [uppercaseLabels, setUppercaseLabels] = useState(true);
-  const [warnPrivateKeys, setWarnPrivateKeys] = useState(true);
-  const [warnInvalidBase64, setWarnInvalidBase64] = useState(true);
-  const [warnMismatchedLabels, setWarnMismatchedLabels] = useState(true);
-  const [warnMultipleBlocks, setWarnMultipleBlocks] = useState(true);
-  const [result, setResult] = useState<Result | null>(null);
-  const [output, setOutput] = useState("");
+  const [actionMode, setActionMode] = useState<ActionMode>("normalize");
+  const [newlineMode, setNewlineMode] = useState<NewlineMode>("lf");
+  const [wrapLabel, setWrapLabel] = useState("CERTIFICATE");
+  const [result, setResult] = useState<PemResult | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const notes = useMemo(() => (result ? getNotes(result) : []), [result]);
+  const report = useMemo(
+    () => (result ? formatReport(result) : ""),
+    [result]
+  );
 
   const clearResult = () => {
     setResult(null);
-    setOutput("");
     setError("");
     setCopied(false);
   };
 
-  const processPem = () => {
+  const run = () => {
     if (!input.trim()) {
-      setError("Please paste a PEM block or Base64 certificate/key body.");
+      setError(
+        actionMode === "wrap"
+          ? "Paste raw standard Base64 to wrap."
+          : "Paste one or more PEM blocks."
+      );
       setResult(null);
-      setOutput("");
       return;
     }
 
-    const next = buildResult({
-      input,
-      actionMode,
-      outputMode,
-      pemLabel,
-      lineBreakMode,
-      lineLength: 64,
-      trimInput,
-      removeBlankLines,
-      uppercaseLabels,
-      warnPrivateKeys,
-      warnInvalidBase64,
-      warnMismatchedLabels,
-      warnMultipleBlocks,
-    });
-
-    setResult(next);
-    setOutput(next.output);
-    setError("");
-    setCopied(false);
-  };
-
-  const copyOutput = async () => {
-    if (!output) return;
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+    try {
+      setResult(
+        buildResult({
+          input,
+          actionMode,
+          newlineMode,
+          wrapLabel,
+        })
+      );
+      setError("");
+      setCopied(false);
+    } catch (caught) {
+      setResult(null);
+      setCopied(false);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to process this PEM/Base64 input."
+      );
+    }
   };
 
   const loadExample = () => {
-    setInput(sampleInput);
-    setActionMode("parse");
-    setOutputMode("summary");
-    setPemLabel("CERTIFICATE");
-    setLineBreakMode("lf");
-    setTrimInput(true);
-    setRemoveBlankLines(true);
-    setUppercaseLabels(true);
-    setWarnPrivateKeys(true);
-    setWarnInvalidBase64(true);
-    setWarnMismatchedLabels(true);
-    setWarnMultipleBlocks(true);
+    setInput(SAMPLE_PEM);
+    setActionMode("normalize");
+    setNewlineMode("lf");
+    setWrapLabel("CERTIFICATE");
     clearResult();
   };
 
   const resetAll = () => {
     setInput("");
-    setActionMode("parse");
-    setOutputMode("summary");
-    setPemLabel("CERTIFICATE");
-    setLineBreakMode("lf");
-    setTrimInput(true);
-    setRemoveBlankLines(true);
-    setUppercaseLabels(true);
-    setWarnPrivateKeys(true);
-    setWarnInvalidBase64(true);
-    setWarnMismatchedLabels(true);
-    setWarnMultipleBlocks(true);
+    setActionMode("normalize");
+    setNewlineMode("lf");
+    setWrapLabel("CERTIFICATE");
     clearResult();
+  };
+
+  const copyOutput = async () => {
+    if (!result) return;
+
+    try {
+      await navigator.clipboard.writeText(result.output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+      setError("The output could not be copied. Select and copy it manually.");
+    }
+  };
+
+  const copyReport = async () => {
+    if (!report) return;
+
+    try {
+      await navigator.clipboard.writeText(report);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+      setError("The report could not be copied. Select and copy it manually.");
+    }
   };
 
   return (
     <ToolShell
       title="PEM Certificate Encoder Decoder"
-      description="Decode, encode, parse, and normalize PEM certificates, keys, CSRs, CRLs, and Base64 bodies. Inspect PEM blocks and fix line wrapping locally."
+      description="Normalize RFC 7468-style PEM blocks without collapsing bundles, extract canonical Base64 per block, or wrap raw Base64 using deliberate labels and 64-character generator lines."
     >
-      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-        <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-900">PEM Block or Base64 Body</label>
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Paste a certificate, key, CSR, CRL, certificate chain, or raw Base64 body.
-            </p>
-          </div>
+      <div className="grid gap-5 md:grid-cols-2">
+        <YoryantraSelect
+          label="Action"
+          value={actionMode}
+          onChange={(value: string) => {
+            setActionMode(value as ActionMode);
+            clearResult();
+          }}
+          options={[
+            { label: "Normalize PEM blocks", value: "normalize" },
+            { label: "Extract Base64 per block", value: "extract" },
+            { label: "Wrap raw Base64 as PEM", value: "wrap" },
+          ]}
+        />
 
-          <textarea
-            value={input}
-            onChange={(event) => {
-              setInput(event.target.value);
-              clearResult();
-            }}
-            placeholder={sampleInput}
-            spellCheck={false}
-            className="w-full min-h-[440px] rounded-xl border border-gray-300 p-4 text-sm leading-6 font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-          />
-        </div>
-
-        <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">PEM Settings</h3>
-
-          <div className="mt-4 space-y-4">
-            <YoryantraSelect
-              label="Action"
-              value={actionMode}
-              onChange={(value) => {
-                setActionMode(value as ActionMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Parse PEM blocks", value: "parse" },
-                { label: "Extract Base64 body", value: "extract" },
-                { label: "Base64 body to PEM", value: "wrap" },
-                { label: "Normalize PEM formatting", value: "normalize" },
-                { label: "Inspect content", value: "inspect" },
-              ]}
-            />
-
-            <YoryantraSelect
-              label="PEM Label"
-              value={pemLabel}
-              onChange={(value) => {
-                setPemLabel(value as PemLabel);
-                clearResult();
-              }}
-              options={[
-                { label: "CERTIFICATE", value: "CERTIFICATE" },
-                { label: "PUBLIC KEY", value: "PUBLIC KEY" },
-                { label: "PRIVATE KEY", value: "PRIVATE KEY" },
-                { label: "RSA PRIVATE KEY", value: "RSA PRIVATE KEY" },
-                { label: "EC PRIVATE KEY", value: "EC PRIVATE KEY" },
-                { label: "CERTIFICATE REQUEST", value: "CERTIFICATE REQUEST" },
-                { label: "X509 CRL", value: "X509 CRL" },
-                { label: "OPENSSH PRIVATE KEY", value: "OPENSSH PRIVATE KEY" },
-              ]}
-            />
-
-            <YoryantraSelect
-              label="Output"
-              value={outputMode}
-              onChange={(value) => {
-                setOutputMode(value as OutputMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Readable summary", value: "summary" },
-                { label: "PEM output", value: "pem" },
-                { label: "Base64 only", value: "base64" },
-                { label: "JSON", value: "json" },
-                { label: "Markdown table", value: "markdown" },
-                { label: "CSV", value: "csv" },
-                { label: "Review checklist", value: "checklist" },
-              ]}
-            />
-
-            <YoryantraSelect
-              label="Line Breaks"
-              value={lineBreakMode}
-              onChange={(value) => {
-                setLineBreakMode(value as LineBreakMode);
-                clearResult();
-              }}
-              options={[
-                { label: "LF", value: "lf" },
-                { label: "CRLF", value: "crlf" },
-              ]}
-            />
-
-            <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
-              <p className="text-sm font-medium text-gray-700">PEM shape</p>
-              <div className="mt-2 space-y-1 font-mono text-xs text-gray-500">
-                <p>-----BEGIN CERTIFICATE-----</p>
-                <p>Base64 body wrapped at 64 chars</p>
-                <p>-----END CERTIFICATE-----</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <YoryantraSelect
+          label="Generated line endings"
+          value={newlineMode}
+          onChange={(value: string) => {
+            setNewlineMode(value as NewlineMode);
+            clearResult();
+          }}
+          options={[
+            { label: "LF", value: "lf" },
+            { label: "CRLF", value: "crlf" },
+          ]}
+        />
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Options</h3>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <CheckboxRow checked={trimInput} label="Trim input before processing" onChange={(checked) => { setTrimInput(checked); clearResult(); }} />
-          <CheckboxRow checked={removeBlankLines} label="Remove blank lines from Base64 body" onChange={(checked) => { setRemoveBlankLines(checked); clearResult(); }} />
-          <CheckboxRow checked={uppercaseLabels} label="Use uppercase PEM labels" onChange={(checked) => { setUppercaseLabels(checked); clearResult(); }} />
-          <CheckboxRow checked={warnPrivateKeys} label="Warn when private key blocks are present" onChange={(checked) => { setWarnPrivateKeys(checked); clearResult(); }} />
-          <CheckboxRow checked={warnInvalidBase64} label="Warn about invalid Base64 body characters" onChange={(checked) => { setWarnInvalidBase64(checked); clearResult(); }} />
-          <CheckboxRow checked={warnMismatchedLabels} label="Warn about mismatched BEGIN and END labels" onChange={(checked) => { setWarnMismatchedLabels(checked); clearResult(); }} />
-          <CheckboxRow checked={warnMultipleBlocks} label="Warn when multiple PEM blocks are detected" onChange={(checked) => { setWarnMultipleBlocks(checked); clearResult(); }} />
+      {actionMode === "wrap" ? (
+        <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5">
+          <label className="block text-sm font-semibold text-gray-900">
+            PEM label
+          </label>
+          <input
+            value={wrapLabel}
+            onChange={(event: { target: { value: string } }) => {
+              setWrapLabel(event.target.value);
+              clearResult();
+            }}
+            list="pem-label-options"
+            spellCheck={false}
+            className="mt-3 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          />
+          <datalist id="pem-label-options">
+            {LABEL_OPTIONS.map((label) => (
+              <option key={label} value={label} />
+            ))}
+          </datalist>
+          <p className="mt-2 text-sm text-gray-500">
+            Labels are case-sensitive in RFC 7468. Use the label that matches
+            the actual encoded structure; changing a label does not convert the
+            bytes.
+          </p>
         </div>
+      ) : null}
 
-        <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          PEM handling runs locally in your browser. Avoid pasting real private keys unless you need to inspect or reformat them.
-        </p>
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="block text-sm font-semibold text-gray-900">
+          {actionMode === "wrap" ? "Raw Base64" : "PEM input"}
+        </label>
+        <textarea
+          value={input}
+          onChange={(event: { target: { value: string } }) => {
+            setInput(event.target.value);
+            clearResult();
+          }}
+          placeholder={actionMode === "wrap" ? "MIIB..." : SAMPLE_PEM}
+          spellCheck={false}
+          className="mt-3 min-h-[390px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={processPem} className="yoryantra-btn">Process PEM</button>
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>{copied ? "Copied" : "Copy Output"}</button>
-        <button onClick={loadExample} className="yoryantra-btn-outline">Load Example</button>
-        <button onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
+        <button type="button" onClick={run} className="yoryantra-btn">
+          {actionMode === "normalize"
+            ? "Normalize PEM"
+            : actionMode === "extract"
+            ? "Extract Base64"
+            : "Wrap Base64"}
+        </button>
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
+          Load Example
+        </button>
+        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">
+          Reset
+        </button>
       </div>
 
-      {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+      {error ? (
+        <div className="mt-5 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
-      )}
+      ) : null}
 
-      {result && (
-        <div className="mt-8 grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="PEM Blocks" value={result.blockCount.toLocaleString()} />
-          <SummaryCard label="Base64 Length" value={result.base64Length.toLocaleString()} />
-          <SummaryCard label="Estimated Bytes" value={result.byteEstimate.toLocaleString()} />
-          <SummaryCard label="Findings" value={result.issues.length.toLocaleString()} />
-        </div>
-      )}
+      {result ? (
+        <div className="mt-8">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Stat label="Blocks" value={String(result.blocks.length)} />
+            <Stat label="Decoded bytes" value={String(result.totalBytes)} />
+            <Stat
+              label="Warnings"
+              value={String(
+                result.issues.filter((issue) => issue.severity === "warning").length
+              )}
+            />
+          </div>
 
-      {result && result.blocks.length > 0 && (
-        <div className="mt-8 min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Detected PEM Blocks</h3>
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Generated output
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Generator output uses 64-character Base64 lines except for
+                  the final line of each block.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={copyOutput}
+                  className="yoryantra-btn-outline whitespace-nowrap"
+                >
+                  {copied ? "Copied" : "Copy Output"}
+                </button>
+                <button
+                  type="button"
+                  onClick={copyReport}
+                  className="yoryantra-btn-outline whitespace-nowrap"
+                >
+                  Copy Report
+                </button>
+              </div>
+            </div>
 
-          <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
-            <table className="w-full min-w-[960px] text-left text-sm">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">#</th>
-                  <th className="px-4 py-3 font-semibold">Type</th>
-                  <th className="px-4 py-3 font-semibold">Base64 Length</th>
-                  <th className="px-4 py-3 font-semibold">Lines</th>
-                  <th className="px-4 py-3 font-semibold">Bytes</th>
-                  <th className="px-4 py-3 font-semibold">Classification</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {result.blocks.map((block) => (
-                  <tr key={`${block.index}-${block.type}`}>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-600">{block.index + 1}</td>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-900">{block.type}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{block.base64Body.length}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{block.lineCount}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{block.byteEstimate}</td>
-                    <td className="px-4 py-3 text-gray-700">{block.classification}</td>
-                  </tr>
+            <pre className="yoryantra-output mt-4 min-h-[320px] max-h-[700px] overflow-auto whitespace-pre-wrap break-words font-mono text-sm">
+              {result.output}
+            </pre>
+          </div>
+
+          {result.blocks.length ? (
+            <div className="mt-6 space-y-4">
+              {result.blocks.map((block) => (
+                <div
+                  key={block.index}
+                  className="rounded-2xl border border-gray-200 bg-white p-5"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Block {block.index}
+                      </div>
+                      <h3 className="mt-1 text-lg font-semibold text-gray-900">
+                        {block.beginLabel}
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {block.classification}
+                      </p>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {block.decodedBytes.toLocaleString()} decoded bytes
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <Info
+                      label="END boundary"
+                      value={block.endLabel || "(missing)"}
+                    />
+                    <Info
+                      label="Boundary match"
+                      value={block.matchingEnd ? "yes" : "no"}
+                    />
+                    <Info
+                      label="Base64"
+                      value={block.base64Valid ? "decodable" : "invalid"}
+                    />
+                  </div>
+
+                  {block.errors.length || block.warnings.length ? (
+                    <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-yellow-900">
+                      {block.errors.map((item, index) => (
+                        <li key={`e-${index}`}>
+                          <strong>Error:</strong> {item}
+                        </li>
+                      ))}
+                      {block.warnings.map((item, index) => (
+                        <li key={`w-${index}`}>
+                          <strong>Note:</strong> {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {result.issues.length ? (
+            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+              <h3 className="font-semibold text-yellow-900">PEM review</h3>
+              <div className="mt-4 space-y-3">
+                {result.issues.map((issue, index) => (
+                  <div
+                    key={`${issue.title}-${index}`}
+                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                  >
+                    <strong>{issue.title}</strong>
+                    <p className="mt-1">{issue.message}</p>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">PEM findings</h3>
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : null}
         </div>
-      )}
-
-      {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">PEM handling guidance</h3>
-          <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="mt-8 min-w-0">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-          {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
-              {copied ? "Copied" : "Copy"}
-            </button>
-          )}
-        </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[340px] whitespace-pre-wrap break-words">
-          {output || "PEM output will appear here."}
+      ) : (
+        <pre className="yoryantra-output mt-8 min-h-[300px] whitespace-pre-wrap break-words text-sm">
+          Normalized PEM, per-block Base64, boundary diagnostics and decoded
+          byte sizes will appear here.
         </pre>
+      )}
+
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        PEM/Base64 parsing and re-encoding happen on the pasted text in your
+        browser. The tool does not upload keys or certificates and does not
+        perform trust, signature, certificate-chain or key-pair validation.
+        Site-wide analytics or advertising scripts, if enabled, are separate
+        from this operation.
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This tool processes pasted PEM text locally in your browser. It does not validate certificate chains, verify signatures, contact certificate authorities, or upload keys.
-      </div>
-
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Decode and Encode PEM Certificates and Keys</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            PEM files are commonly used for TLS certificates, public keys, private keys, certificate signing requests, certificate chains, and trust bundles. Each block contains a BEGIN label, a Base64 body, and a matching END label.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This PEM certificate decoder and encoder can parse PEM blocks, extract Base64 content, rebuild PEM text from raw Base64, normalize line wrapping, and identify common certificate or key labels.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">PEM Is a Text Wrapper Around Binary Data</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A PEM block does not make a certificate or key human-readable by itself. The text between the BEGIN and END boundaries is Base64-encoded binary data. The label tells another program what kind of object it should expect, such as a certificate, public key, private key, CSR, or CRL.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool works at that wrapper level: it can extract the Base64 body, rebuild the boundaries, normalize line wrapping, count blocks, and flag obvious formatting problems. It does not parse the ASN.1 fields inside an X.509 certificate or prove that the encoded object is cryptographically valid.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Why 64-Character Lines Are Used</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            <a href="https://www.rfc-editor.org/rfc/rfc7468.html" target="_blank" rel="noreferrer" className="underline underline-offset-2">RFC 7468</a> requires generators to wrap the Base64 body at exactly 64 characters per line, except for the final shorter line. Parsers are often more tolerant, but producing the standard form avoids needless compatibility problems when a certificate or key moves between command-line tools, servers, CI systems, and configuration files.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Normalize mode therefore writes 64-character lines and matching BEGIN/END labels. You can still choose LF or CRLF line endings because real systems use both newline conventions.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">A Certificate Chain Is More Than Several PEM Blocks</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Files often contain more than one CERTIFICATE block. That may be a leaf certificate followed by one or more intermediates, but the tool cannot infer or verify the trust path from formatting alone. If you are preparing a chain for a web server, keep the expected order and verify it with certificate-aware tooling before deployment.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Private Keys Need Different Handling</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A private-key PEM block is a secret, even though it looks like ordinary Base64 text. Reformatting it does not make it safer. Avoid putting real private keys into screenshots, tickets, shared chat threads, public repositories, or logs. This page runs locally, but the safest workflow is still to use non-production material whenever possible.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Encrypted private keys are also outside this tool’s scope. It can preserve and normalize the wrapper, but it does not decrypt the key or verify that the key matches a certificate.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">What to Verify After Formatting</h2>
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>The BEGIN and END labels match exactly.</li>
-            <li>The selected label matches the object you actually have.</li>
-            <li>A certificate is unexpired and valid for the intended hostname or use.</li>
-            <li>A chain contains the right intermediates in the order expected by the target system.</li>
-            <li>A private key is stored and transferred as a secret.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
+          <h2 className="text-2xl font-semibold text-gray-900">
+            PEM Is a Textual Container Around Binary Structures
           </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The familiar BEGIN/END lines and Base64 body make binary PKIX, PKCS
+            and CMS structures convenient to store in text files. The label
+            tells software what kind of inner object it should expect.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Rewrapping the Base64 changes the text representation, not the
+            certificate, key or CSR bytes. Changing only the label changes even
+            less: it does not convert a PKCS #8 private key into a certificate
+            or a CSR into a public key.
+          </p>
+        </div>
 
+        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
+            A Certificate Bundle Is Several PEM Blocks, Not One Bigger Certificate
+          </h2>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            Certificate-chain files commonly concatenate a leaf certificate and
+            intermediate certificates. Each object keeps its own{" "}
+            <code>BEGIN CERTIFICATE</code>, Base64 body and{" "}
+            <code>END CERTIFICATE</code> boundary.
+          </p>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            The older normalization pattern of joining all Base64 bodies and
+            wrapping them once destroys those object boundaries. This version
+            normalizes every block independently and preserves the original
+            block order.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            RFC 7468 Generators Use 64-Character Base64 Lines
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Parsers are deliberately tolerant of several newline conventions
+            and can accept other line sizes, but RFC 7468 gives generators a
+            concrete output rule: Base64 lines are 64 characters except for the
+            final line that carries the remainder.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Normalized output therefore uses 64 rather than offering arbitrary
+            “pretty” widths. You can choose LF or CRLF because both newline
+            conventions occur in real environments.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            BEGIN and END Labels Are Case-Sensitive and Should Match
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 7468 generator labels are uppercase and the END label must match
+            the corresponding BEGIN label. Parsers in the wild can be more
+            tolerant, which is why a mismatched file may open in one program and
+            fail in another.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Normalization refuses to silently “fix” a mismatched boundary
+            because choosing which label is correct requires knowing what the
+            inner bytes actually represent.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Historical Labels Can Be Parseable but Poor Generator Output
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 7468 standardizes <code>CERTIFICATE</code> for certificates,{" "}
+            <code>X509 CRL</code> for CRLs and{" "}
+            <code>CERTIFICATE REQUEST</code> for PKCS #10 requests. It also
+            documents historical labels that deployed parsers may encounter.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A diagnostic parser can recognize historical files while a
+            standards-oriented generator should emit the standardized label.
+            This tool reports that distinction instead of equating every old
+            label.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h2 className="text-xl font-semibold text-red-900">
+            Private-Key PEM Is Secret Material Even When the Formatting Operation Is Local
+          </h2>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            Certificates and public keys are designed for distribution. Private
+            keys are not. Local browser processing avoids intentionally sending
+            the key to a formatting API, but clipboard history, screenshots,
+            browser extensions, local logs and screen sharing remain real
+            exposure paths.
+          </p>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            Prefer test keys when learning or checking formatting. If a
+            production private key is accidentally exposed outside its intended
+            environment, treat rotation as an operational security decision—not
+            as a formatting problem.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Decodable Base64 Does Not Prove the Label Is True
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Any byte sequence can be Base64-encoded and placed between{" "}
+            <code>BEGIN CERTIFICATE</code> boundaries. A text formatter can
+            prove that those bytes round-trip through Base64, but it has not
+            proven they form the ASN.1 Certificate structure implied by the
+            label.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Use the PEM Certificate Viewer for field inspection and
+            cryptographic/X.509 tooling for chain, signature, hostname,
+            revocation or key-match questions.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Legacy PEM Headers Are Not Part of RFC 7468 Textual Encoding
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Older PEM-style encrypted key files can contain lines such as{" "}
+            <code>Proc-Type:</code> and <code>DEK-Info:</code> between the
+            boundary and encoded data. RFC 7468 explicitly distinguishes its
+            textual encoding from legacy PEM and does not define those
+            encapsulated headers.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The parser reports header-like body lines rather than silently
+            treating punctuation from them as Base64.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
+          <a
+            href="https://www.rfc-editor.org/rfc/rfc7468"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[var(--green)] underline underline-offset-4"
+          >
+            RFC 7468
+          </a>{" "}
+          is the primary reference for textual boundaries, label grammar,
+          multiple instances, Base64 wrapping, parser tolerance and the
+          standardized certificate/key/CSR/CRL/CMS labels used by this tool.
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/pem-certificate-encoder-decoder" />
         </div>
       </section>
@@ -441,336 +1192,40 @@ export default function ToolClient() {
   );
 }
 
-function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-[var(--light-gold)]" />
-      {label}
-    </label>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+      <div className="mt-2 break-words text-lg font-semibold text-gray-900">
+        {value}
+      </div>
     </div>
   );
 }
 
-function buildResult(options: {
-  input: string;
-  actionMode: ActionMode;
-  outputMode: OutputMode;
-  pemLabel: PemLabel;
-  lineBreakMode: LineBreakMode;
-  lineLength: number;
-  trimInput: boolean;
-  removeBlankLines: boolean;
-  uppercaseLabels: boolean;
-  warnPrivateKeys: boolean;
-  warnInvalidBase64: boolean;
-  warnMismatchedLabels: boolean;
-  warnMultipleBlocks: boolean;
-}): Result {
-  const preparedInput = options.trimInput ? options.input.trim() : options.input;
-  const blocks = parsePemBlocks(preparedInput, options.removeBlankLines);
-  const rawBase64 = cleanBase64Body(preparedInput, options.removeBlankLines);
-  const activeBase64 = blocks.length > 0 ? blocks.map((block) => block.base64Body).join("\n") : rawBase64;
-  const generatedPem = buildPem(activeBase64, options.pemLabel, options.lineLength, options.lineBreakMode, options.uppercaseLabels);
-  const issues = buildIssues(blocks, activeBase64, options);
-  const output = formatOutput({
-    actionMode: options.actionMode,
-    outputMode: options.outputMode,
-    blocks,
-    activeBase64,
-    generatedPem,
-    issues,
-    input: preparedInput,
-  });
-
-  return {
-    output,
-    blocks,
-    issues,
-    inputLength: preparedInput.length,
-    blockCount: blocks.length,
-    base64Length: activeBase64.replace(/\s/g, "").length,
-    byteEstimate: blocks.length > 0 ? blocks.reduce((sum, block) => sum + block.byteEstimate, 0) : estimateBytes(activeBase64),
-  };
-}
-
-function parsePemBlocks(input: string, removeBlankLines: boolean): PemBlock[] {
-  const regex = /-----BEGIN ([^\r\n]+?)-----([\s\S]*?)(?:-----END ([^\r\n]+?)-----|$)/g;
-  const blocks: PemBlock[] = [];
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(input)) !== null) {
-    const beginLabel = match[1].trim();
-    const endLabel = (match[3] || "").trim();
-    const body = match[2] || "";
-    const base64Body = cleanBase64Body(body, removeBlankLines);
-    const lineCount = body.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).length;
-
-    blocks.push({
-      index: blocks.length,
-      type: beginLabel,
-      beginLabel,
-      endLabel,
-      base64Body,
-      lineCount,
-      byteEstimate: estimateBytes(base64Body),
-      hasMatchingEnd: Boolean(endLabel && endLabel === beginLabel),
-      classification: classifyPem(beginLabel),
-    });
-  }
-
-  return blocks;
-}
-
-function cleanBase64Body(value: string, removeBlankLines: boolean) {
-  const withoutPem = value
-    .replace(/-----BEGIN [^\r\n]+?-----/g, "")
-    .replace(/-----END [^\r\n]+?-----/g, "");
-  const lines = withoutPem.split(/\r?\n/).map((line) => line.trim());
-  const filtered = removeBlankLines ? lines.filter(Boolean) : lines;
-  return filtered.join("").replace(/\s/g, "");
-}
-
-function buildPem(base64Body: string, label: PemLabel | string, lineLength: number, lineBreakMode: LineBreakMode, uppercaseLabels: boolean) {
-  const clean = base64Body.replace(/\s/g, "");
-  const finalLabel = uppercaseLabels ? label.toUpperCase() : label;
-  const newline = lineBreakMode === "crlf" ? "\r\n" : "\n";
-  const wrapped = wrapBase64(clean, lineLength).join(newline);
-  return [`-----BEGIN ${finalLabel}-----`, wrapped, `-----END ${finalLabel}-----`].join(newline);
-}
-
-function wrapBase64(value: string, lineLength: number) {
-  const lines: string[] = [];
-  for (let index = 0; index < value.length; index += lineLength) {
-    lines.push(value.slice(index, index + lineLength));
-  }
-  return lines.length ? lines : [""];
-}
-
-function estimateBytes(base64Body: string) {
-  const clean = base64Body.replace(/\s/g, "");
-  if (!clean) return 0;
-  const padding = (clean.match(/=+$/) || [""])[0].length;
-  return Math.max(0, Math.floor((clean.length * 3) / 4) - padding);
-}
-
-function classifyPem(type: string) {
-  if (/PRIVATE KEY/i.test(type)) return "private key";
-  if (/PUBLIC KEY/i.test(type)) return "public key";
-  if (/CERTIFICATE REQUEST/i.test(type)) return "certificate signing request";
-  if (/CERTIFICATE/i.test(type)) return "certificate";
-  if (/CRL/i.test(type)) return "certificate revocation list";
-  return "PEM block";
-}
-
-function getBase64Problem(value: string) {
-  const clean = value.replace(/\s/g, "");
-  if (!clean) return "";
-  if (/[^A-Za-z0-9+/=]/.test(clean)) return "The body contains characters outside the standard Base64 alphabet.";
-  if (/=/.test(clean.slice(0, -2))) return "Base64 padding appears before the end of the body.";
-  if ((clean.match(/=/g) || []).length > 2) return "Base64 uses more than two padding characters.";
-  if (clean.length % 4 === 1) return "The Base64 length cannot be valid because it leaves a one-character remainder.";
-  try {
-    const padded = clean + "=".repeat((4 - (clean.length % 4)) % 4);
-    atob(padded);
-  } catch {
-    return "The Base64 body could not be decoded by the browser.";
-  }
-  return "";
-}
-
-function buildIssues(blocks: PemBlock[], activeBase64: string, options: {
-  warnPrivateKeys: boolean;
-  warnInvalidBase64: boolean;
-  warnMismatchedLabels: boolean;
-  warnMultipleBlocks: boolean;
+function Info({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
 }) {
-  const issues: Issue[] = [];
-  const clean = activeBase64.replace(/\s/g, "");
-
-  if (blocks.length === 0) {
-    issues.push({
-      severity: "info",
-      title: "No PEM wrapper detected",
-      message: "No BEGIN/END PEM block was found. The input is being treated as a raw Base64 body.",
-    });
-  }
-
-  if (options.warnPrivateKeys && blocks.some((block) => /PRIVATE KEY/i.test(block.type))) {
-    issues.push({
-      severity: "high",
-      title: "Private key block detected",
-      message: "Private keys are sensitive. Avoid pasting real production keys unless you need to reformat or inspect them.",
-    });
-  }
-
-  const base64Problem = options.warnInvalidBase64 ? getBase64Problem(clean) : "";
-  if (base64Problem) {
-    issues.push({
-      severity: "warning",
-      title: "Base64 body needs review",
-      message: base64Problem,
-    });
-  }
-
-  if (options.warnMismatchedLabels) {
-    const mismatched = blocks.filter((block) => !block.hasMatchingEnd);
-    if (mismatched.length > 0) {
-      issues.push({
-        severity: "warning",
-        title: "Mismatched or missing PEM footer",
-        message: `${mismatched.length} PEM block${mismatched.length === 1 ? "" : "s"} have missing or mismatched END labels.`,
-      });
-    }
-  }
-
-  if (options.warnMultipleBlocks && blocks.length > 1) {
-    issues.push({
-      severity: "info",
-      title: "Multiple PEM blocks detected",
-      message: "This may be a certificate chain or bundle. Keep block order intact when chain order matters.",
-    });
-  }
-
-  if (!base64Problem && clean && clean.length % 4 !== 0) {
-    issues.push({
-      severity: "info",
-      title: "Base64 padding is omitted",
-      message: "The body length is not divisible by 4. Some decoders accept omitted trailing padding, but check the source if exact round-tripping matters.",
-    });
-  }
-
-  if (issues.length === 0) {
-    issues.push({
-      severity: "info",
-      title: "PEM content processed",
-      message: "No obvious PEM formatting warning was found.",
-    });
-  }
-
-  return issues;
-}
-
-function formatOutput(params: {
-  actionMode: ActionMode;
-  outputMode: OutputMode;
-  blocks: PemBlock[];
-  activeBase64: string;
-  generatedPem: string;
-  issues: Issue[];
-  input: string;
-}) {
-  const { actionMode, outputMode, blocks, activeBase64, generatedPem, issues, input } = params;
-  const primary = selectPrimary(actionMode, blocks, activeBase64, generatedPem, input);
-
-  if (outputMode === "pem") {
-    if (blocks.length > 0 && actionMode !== "wrap") {
-      return blocks
-        .map((block) => buildPem(block.base64Body, block.type, 64, "lf", true))
-        .join("\n");
-    }
-    return generatedPem;
-  }
-  if (outputMode === "base64") return activeBase64;
-  if (outputMode === "json") return JSON.stringify({ action: actionMode, blocks, base64Body: activeBase64, generatedPem, issues }, null, 2);
-
-  if (outputMode === "markdown") {
-    return [
-      "| # | Type | Base64 Length | Lines | Estimated Bytes | Classification |",
-      "| --- | --- | ---: | ---: | ---: | --- |",
-      ...(blocks.length
-        ? blocks.map((block) => `| ${block.index + 1} | ${block.type} | ${block.base64Body.length} | ${block.lineCount} | ${block.byteEstimate} | ${block.classification} |`)
-        : [`| 1 | raw Base64 | ${activeBase64.length} | - | ${estimateBytes(activeBase64)} | raw body |`]),
-      "",
-      "## Findings",
-      ...issues.map((issue) => `- **${issue.title}:** ${issue.message}`),
-    ].join("\n");
-  }
-
-  if (outputMode === "csv") {
-    const rows = [
-      ["index", "type", "base64_length", "line_count", "estimated_bytes", "classification", "matching_footer"],
-      ...(blocks.length
-        ? blocks.map((block) => [String(block.index + 1), block.type, String(block.base64Body.length), String(block.lineCount), String(block.byteEstimate), block.classification, block.hasMatchingEnd ? "yes" : "no"])
-        : [["1", "raw Base64", String(activeBase64.length), "", String(estimateBytes(activeBase64)), "raw body", ""]]),
-    ];
-    return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
-  }
-
-  if (outputMode === "checklist") {
-    return [
-      "PEM Review Checklist",
-      "--------------------",
-      "- [ ] Confirm the PEM type matches the intended use.",
-      "- [ ] Confirm BEGIN and END labels match.",
-      "- [ ] Confirm private keys are not exposed in tickets, logs, or public repos.",
-      "- [ ] Confirm certificate chains keep the correct order.",
-      "- [ ] Confirm PEM output uses the line breaks expected by your system.",
-      "- [ ] Use proper tools for certificate trust, expiry, signature, and hostname validation.",
-      "",
-      "Findings:",
-      ...issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
-    ].join("\n");
-  }
-
-  return primary;
-}
-
-function selectPrimary(actionMode: ActionMode, blocks: PemBlock[], activeBase64: string, generatedPem: string, input: string) {
-  if (actionMode === "extract") return activeBase64;
-  if (actionMode === "wrap") return generatedPem;
-  if (actionMode === "normalize") {
-    if (blocks.length === 0) return generatedPem;
-    return blocks.map((block) => buildPem(block.base64Body, block.type, 64, "lf", true)).join("\n");
-  }
-  if (actionMode === "inspect") {
-    return [
-      "PEM Inspection",
-      "--------------",
-      `Input length: ${input.length}`,
-      `Detected blocks: ${blocks.length}`,
-      `Base64 length: ${activeBase64.length}`,
-      `Estimated bytes: ${estimateBytes(activeBase64)}`,
-      "",
-      "Types:",
-      ...(blocks.length ? blocks.map((block) => `- ${block.type} (${block.classification})`) : ["- raw Base64 body"]),
-    ].join("\n");
-  }
-
-  return [
-    "PEM Summary",
-    "-----------",
-    `Detected blocks: ${blocks.length}`,
-    `Base64 length: ${activeBase64.length}`,
-    `Estimated bytes: ${estimateBytes(activeBase64)}`,
-    "",
-    "Blocks:",
-    ...(blocks.length
-      ? blocks.map((block) => `- ${block.type}: ${block.base64Body.length} Base64 chars, ${block.byteEstimate} estimated bytes, ${block.hasMatchingEnd ? "matching footer" : "footer issue"}`)
-      : ["- No PEM wrapper found. Input treated as raw Base64."]),
-  ].join("\n");
-}
-
-function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-  return value;
-}
-
-function getNotes(result: Result) {
-  const notes: { title: string; message: string }[] = [];
-  if (result.blocks.some((block) => /PRIVATE KEY/i.test(block.type))) {
-    notes.push({ title: "Private keys are sensitive", message: "Treat private key PEM blocks as secrets. Reformatting them does not make them safe to share." });
-  }
-  if (result.blockCount > 1) {
-    notes.push({ title: "Certificate chains may depend on order", message: "When PEM blocks form a chain or bundle, changing their order can break some certificate workflows." });
-  }
-  notes.push({ title: "Formatting is not validation", message: "A well-formatted PEM block can still be expired, untrusted, mismatched, or invalid for its intended use." });
-  return notes;
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+      <div className="mt-2 break-words font-mono text-xs leading-relaxed text-gray-800">
+        {value}
+      </div>
+    </div>
+  );
 }
