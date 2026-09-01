@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Cron Expression Parser | Read 5-Field Cron Schedules | Yoryantra",
+export const metadata: Metadata = {
+  title: "Cron Expression Parser | Read 5-Field Schedules | Yoryantra",
   description:
-    "Parse traditional five-field cron expressions with ranges, lists, steps, month and weekday names, and understand important day-of-month and weekday behavior.",
+    "Parse five-field cron expressions into readable schedule rules with lists, ranges, steps, month and weekday names, day-field warnings, and date checks.",
   alternates: {
     canonical: "https://yoryantra.com/tools/cron-expression-parser",
   },
   openGraph: {
-    title: "Cron Expression Parser | Read 5-Field Cron Schedules | Yoryantra",
+    title: "Cron Expression Parser | Yoryantra",
     description:
-      "Read traditional five-field cron schedules with ranges, lists, steps, month names, weekday names, and field-by-field explanations.",
+      "Read five-field cron syntax field by field and catch schedule assumptions that a syntactically valid expression can still hide.",
     url: "https://yoryantra.com/tools/cron-expression-parser",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Cron Expression Parser | Read 5-Field Cron Schedules | Yoryantra",
+    card: "summary",
+    title: "Cron Expression Parser | Yoryantra",
     description:
-      "Parse five-field Unix cron syntax and understand each schedule field.",
+      "Understand traditional five-field Unix cron expressions, including lists, ranges, steps, names, and day matching.",
   },
 };
 

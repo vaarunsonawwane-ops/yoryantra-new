@@ -3,283 +3,1635 @@
 import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 
-type EncodeStyle = "json" | "javascript" | "codepoint";
-type DecodeStyle = "auto" | "json" | "javascript" | "codepoint";
+type EncodeStyle =
+  | "utf16"
+  | "javascript"
+  | "codepoint";
 
-const encodeStyles: Array<{ value: EncodeStyle; label: string; detail: string }> = [
+type DecodeStyle =
+  | "auto"
+  | "utf16"
+  | "javascript"
+  | "codepoint";
+
+type SurrogatePolicy =
+  | "strict"
+  | "inspect";
+
+type CodePointEntry = {
+  label: string;
+  display: string;
+  utf16: string;
+  utf8: string;
+  surrogate: boolean;
+};
+
+type DecodeResult = {
+  text: string;
+  warnings: string[];
+  detected: string;
+};
+
+type UnicodeStats = {
+  utf16Units: number;
+  sequenceItems: number;
+  utf8Bytes: number;
+  loneSurrogates: number;
+  nfcChanged: boolean;
+  nfdChanged: boolean;
+};
+
+const ENCODE_STYLES: Array<{
+  value: EncodeStyle;
+  label: string;
+  detail: string;
+}> = [
   {
-    value: "json",
-    label: "JSON / UTF-16",
-    detail: "Uses \\uXXXX escapes and surrogate pairs for non-BMP characters.",
+    value: "utf16",
+    label: "UTF-16 \\uXXXX",
+    detail:
+      "Four-hex-digit code-unit escapes; supplementary characters use surrogate pairs.",
   },
   {
     value: "javascript",
-    label: "JavaScript code point",
-    detail: "Uses \\u{...} for characters outside the basic multilingual plane.",
+    label: "JavaScript \\u{...}",
+    detail:
+      "Uses ECMAScript code-point escapes for supplementary characters.",
   },
   {
     value: "codepoint",
     label: "U+ code points",
-    detail: "Writes each character as U+XXXX or U+XXXXX.",
+    detail:
+      "Writes Unicode code-point labels such as U+0053 and U+1F600.",
   },
 ];
 
-export default function ToolClient() {
-  const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
-  const [encodeStyle, setEncodeStyle] = useState<EncodeStyle>("json");
-  const [decodeStyle, setDecodeStyle] = useState<DecodeStyle>("auto");
-  const [escapeAscii, setEscapeAscii] = useState(true);
-  const [error, setError] = useState("");
+function hex(
+  value: number,
+  width: number
+) {
+  return value
+    .toString(16)
+    .toUpperCase()
+    .padStart(width, "0");
+}
 
-  const stats = useMemo(() => getUnicodeStats(input), [input]);
+function isHighSurrogate(
+  value: number
+) {
+  return (
+    value >= 0xd800 &&
+    value <= 0xdbff
+  );
+}
+
+function isLowSurrogate(
+  value: number
+) {
+  return (
+    value >= 0xdc00 &&
+    value <= 0xdfff
+  );
+}
+
+function combineSurrogates(
+  high: number,
+  low: number
+) {
+  return (
+    0x10000 +
+    ((high - 0xd800) << 10) +
+    (low - 0xdc00)
+  );
+}
+
+function displayCodePoint(
+  codePoint: number,
+  char: string
+) {
+  if (codePoint === 0x20) {
+    return "space";
+  }
+
+  if (codePoint === 0x09) {
+    return "\\t";
+  }
+
+  if (codePoint === 0x0a) {
+    return "\\n";
+  }
+
+  if (codePoint === 0x0d) {
+    return "\\r";
+  }
+
+  if (
+    codePoint < 0x20 ||
+    (codePoint >= 0x7f &&
+      codePoint <= 0x9f)
+  ) {
+    return "control";
+  }
+
+  return char;
+}
+
+function codePointEntries(
+  value: string
+) {
+  const entries: CodePointEntry[] =
+    [];
+  let index = 0;
+
+  while (index < value.length) {
+    const first =
+      value.charCodeAt(index);
+
+    if (
+      isHighSurrogate(first) &&
+      index + 1 < value.length
+    ) {
+      const second =
+        value.charCodeAt(index + 1);
+
+      if (
+        isLowSurrogate(second)
+      ) {
+        const codePoint =
+          combineSurrogates(
+            first,
+            second
+          );
+        const char =
+          String.fromCodePoint(
+            codePoint
+          );
+        const bytes =
+          new TextEncoder().encode(
+            char
+          );
+
+        entries.push({
+          label: `U+${hex(
+            codePoint,
+            codePoint <= 0xffff
+              ? 4
+              : 6
+          )}`,
+          display: displayCodePoint(
+            codePoint,
+            char
+          ),
+          utf16: `0x${hex(
+            first,
+            4
+          )} 0x${hex(
+            second,
+            4
+          )}`,
+          utf8: Array.from(
+            bytes
+          )
+            .map(
+              (byte) =>
+                hex(byte, 2)
+            )
+            .join(" "),
+          surrogate: false,
+        });
+
+        index += 2;
+        continue;
+      }
+    }
+
+    const surrogate =
+      isHighSurrogate(first) ||
+      isLowSurrogate(first);
+
+    const char =
+      value.charAt(index);
+    const bytes = surrogate
+      ? ""
+      : Array.from(
+          new TextEncoder().encode(
+            char
+          )
+        )
+          .map(
+            (byte) =>
+              hex(byte, 2)
+          )
+          .join(" ");
+
+    entries.push({
+      label: `U+${hex(
+        first,
+        4
+      )}`,
+      display: surrogate
+        ? "isolated surrogate"
+        : displayCodePoint(
+            first,
+            char
+          ),
+      utf16: `0x${hex(
+        first,
+        4
+      )}`,
+      utf8: surrogate
+        ? "not a Unicode scalar value"
+        : bytes,
+      surrogate,
+    });
+
+    index += 1;
+  }
+
+  return entries;
+}
+
+function getUnicodeStats(
+  value: string
+): UnicodeStats {
+  const entries =
+    codePointEntries(value);
+  const loneSurrogates =
+    entries.filter(
+      (entry) =>
+        entry.surrogate
+    ).length;
+
+  return {
+    utf16Units: value.length,
+    sequenceItems:
+      entries.length,
+    utf8Bytes:
+      loneSurrogates === 0
+        ? new TextEncoder().encode(
+            value
+          ).length
+        : -1,
+    loneSurrogates,
+    nfcChanged:
+      value.normalize("NFC") !==
+      value,
+    nfdChanged:
+      value.normalize("NFD") !==
+      value,
+  };
+}
+
+function encodeUtf16Escapes(
+  value: string,
+  escapeAscii: boolean
+) {
+  let output = "";
+
+  for (
+    let index = 0;
+    index < value.length;
+    index += 1
+  ) {
+    const unit =
+      value.charCodeAt(index);
+
+    if (
+      !escapeAscii &&
+      unit >= 0x20 &&
+      unit <= 0x7e
+    ) {
+      output +=
+        value.charAt(index);
+    } else {
+      output += `\\u${hex(
+        unit,
+        4
+      )}`;
+    }
+  }
+
+  return output;
+}
+
+function encodeJavaScriptEscapes(
+  value: string,
+  escapeAscii: boolean
+) {
+  let output = "";
+  let index = 0;
+
+  while (index < value.length) {
+    const first =
+      value.charCodeAt(index);
+
+    if (
+      isHighSurrogate(first) &&
+      index + 1 < value.length
+    ) {
+      const second =
+        value.charCodeAt(
+          index + 1
+        );
+
+      if (
+        isLowSurrogate(second)
+      ) {
+        const codePoint =
+          combineSurrogates(
+            first,
+            second
+          );
+        output += `\\u{${hex(
+          codePoint,
+          1
+        )}}`;
+        index += 2;
+        continue;
+      }
+    }
+
+    if (
+      !escapeAscii &&
+      first >= 0x20 &&
+      first <= 0x7e
+    ) {
+      output +=
+        value.charAt(index);
+    } else {
+      output += `\\u${hex(
+        first,
+        4
+      )}`;
+    }
+
+    index += 1;
+  }
+
+  return output;
+}
+
+function encodeCodePointLabels(
+  value: string
+) {
+  return codePointEntries(value)
+    .map((entry) =>
+      entry.label
+    )
+    .join(" ");
+}
+
+function validateCodePointRange(
+  codePoint: number,
+  label: string
+) {
+  if (
+    !Number.isInteger(
+      codePoint
+    ) ||
+    codePoint < 0 ||
+    codePoint > 0x10ffff
+  ) {
+    throw new Error(
+      `${label} is outside the Unicode codespace U+0000 through U+10FFFF.`
+    );
+  }
+}
+
+function surrogateWarning(
+  label: string
+) {
+  return `${label} is a surrogate code point/code unit. Surrogates are reserved for UTF-16 pairing and are not Unicode scalar values on their own.`;
+}
+
+function decodeUtf16Escapes(
+  value: string,
+  policy: SurrogatePolicy
+): DecodeResult {
+  let output = "";
+  let index = 0;
+  let found = false;
+  const warnings: string[] =
+    [];
+
+  while (index < value.length) {
+    const match =
+      value
+        .slice(index)
+        .match(
+          /^\\u([0-9a-fA-F]{4})/
+        );
+
+    if (!match) {
+      output +=
+        value.charAt(index);
+      index += 1;
+      continue;
+    }
+
+    found = true;
+    const first =
+      parseInt(
+        match[1],
+        16
+      );
+    const firstLabel =
+      `\\u${match[1].toUpperCase()}`;
+
+    index += 6;
+
+    if (
+      isHighSurrogate(first)
+    ) {
+      const lowMatch =
+        value
+          .slice(index)
+          .match(
+            /^\\u([0-9a-fA-F]{4})/
+          );
+
+      if (lowMatch) {
+        const low =
+          parseInt(
+            lowMatch[1],
+            16
+          );
+
+        if (
+          isLowSurrogate(low)
+        ) {
+          output +=
+            String.fromCodePoint(
+              combineSurrogates(
+                first,
+                low
+              )
+            );
+          index += 6;
+          continue;
+        }
+      }
+
+      if (
+        policy === "strict"
+      ) {
+        throw new Error(
+          `High surrogate ${firstLabel} is not followed by a low-surrogate escape. Strict Unicode text requires a complete UTF-16 surrogate pair.`
+        );
+      }
+
+      output +=
+        String.fromCharCode(
+          first
+        );
+      warnings.push(
+        surrogateWarning(
+          firstLabel
+        )
+      );
+      continue;
+    }
+
+    if (
+      isLowSurrogate(first)
+    ) {
+      if (
+        policy === "strict"
+      ) {
+        throw new Error(
+          `Low surrogate ${firstLabel} appears without a preceding high-surrogate escape.`
+        );
+      }
+
+      output +=
+        String.fromCharCode(
+          first
+        );
+      warnings.push(
+        surrogateWarning(
+          firstLabel
+        )
+      );
+      continue;
+    }
+
+    output +=
+      String.fromCharCode(
+        first
+      );
+  }
+
+  if (!found) {
+    throw new Error(
+      "No \\uXXXX escapes were found."
+    );
+  }
+
+  return {
+    text: output,
+    warnings,
+    detected:
+      "UTF-16 \\uXXXX escape sequence",
+  };
+}
+
+function replaceJavaScriptCodePointEscapes(
+  value: string,
+  policy: SurrogatePolicy
+) {
+  const warnings: string[] =
+    [];
+  let found = false;
+
+  const text = value.replace(
+    /\\u\{([0-9a-fA-F]{1,6})\}/g,
+    (
+      _match,
+      rawHex: string
+    ) => {
+      found = true;
+      const codePoint =
+        parseInt(rawHex, 16);
+      const label =
+        `\\u{${rawHex.toUpperCase()}}`;
+
+      validateCodePointRange(
+        codePoint,
+        label
+      );
+
+      if (
+        isHighSurrogate(
+          codePoint
+        ) ||
+        isLowSurrogate(
+          codePoint
+        )
+      ) {
+        if (
+          policy === "strict"
+        ) {
+          throw new Error(
+            `${label} is permitted by JavaScript's code-point escape range, but it denotes a surrogate code point rather than a Unicode scalar value. Switch to inspection mode only if you intentionally need to inspect a lone UTF-16 surrogate.`
+          );
+        }
+
+        warnings.push(
+          surrogateWarning(label)
+        );
+      }
+
+      return String.fromCodePoint(
+        codePoint
+      );
+    }
+  );
+
+  return {
+    text,
+    warnings,
+    found,
+  };
+}
+
+function decodeJavaScriptEscapes(
+  value: string,
+  policy: SurrogatePolicy
+): DecodeResult {
+  const js =
+    replaceJavaScriptCodePointEscapes(
+      value,
+      policy
+    );
+  let text =
+    js.text;
+  const warnings =
+    js.warnings.slice();
+  let found =
+    js.found;
+
+  if (
+    /\\u[0-9a-fA-F]{4}/.test(
+      text
+    )
+  ) {
+    const utf16 =
+      decodeUtf16Escapes(
+        text,
+        policy
+      );
+    text =
+      utf16.text;
+    utf16.warnings.forEach(
+      (warning) =>
+        warnings.push(warning)
+    );
+    found = true;
+  }
+
+  if (!found) {
+    throw new Error(
+      "No JavaScript Unicode escape was found. Use \\uXXXX or \\u{...}."
+    );
+  }
+
+  return {
+    text,
+    warnings,
+    detected:
+      "JavaScript Unicode escape syntax",
+  };
+}
+
+function decodeCodePointNotation(
+  value: string,
+  policy: SurrogatePolicy
+): DecodeResult {
+  const tokens =
+    value
+      .trim()
+      .split(/[\s,]+/)
+      .filter(Boolean);
+
+  if (
+    !tokens.length ||
+    tokens.some(
+      (token) =>
+        !/^U\+[0-9a-fA-F]{1,6}$/i.test(
+          token
+        )
+    )
+  ) {
+    throw new Error(
+      "U+ notation must contain only code-point tokens such as U+0053 U+006E U+1F600, separated by spaces or commas."
+    );
+  }
+
+  const warnings: string[] =
+    [];
+  let output = "";
+
+  tokens.forEach((token) => {
+    const codePoint =
+      parseInt(
+        token.slice(2),
+        16
+      );
+
+    validateCodePointRange(
+      codePoint,
+      token
+    );
+
+    if (
+      isHighSurrogate(
+        codePoint
+      ) ||
+      isLowSurrogate(
+        codePoint
+      )
+    ) {
+      if (
+        policy === "strict"
+      ) {
+        throw new Error(
+          `${token.toUpperCase()} is a Unicode surrogate code point, not a Unicode scalar value. It cannot represent a standalone encoded character in well-formed UTF-8/UTF-16 text.`
+        );
+      }
+
+      warnings.push(
+        surrogateWarning(
+          token.toUpperCase()
+        )
+      );
+    }
+
+    output +=
+      String.fromCodePoint(
+        codePoint
+      );
+  });
+
+  return {
+    text: output,
+    warnings,
+    detected:
+      "U+ code-point notation",
+  };
+}
+
+function decodeUnicodeInput(
+  value: string,
+  style: DecodeStyle,
+  policy: SurrogatePolicy
+): DecodeResult {
+  if (style === "utf16") {
+    return decodeUtf16Escapes(
+      value,
+      policy
+    );
+  }
+
+  if (
+    style === "javascript"
+  ) {
+    return decodeJavaScriptEscapes(
+      value,
+      policy
+    );
+  }
+
+  if (
+    style === "codepoint"
+  ) {
+    return decodeCodePointNotation(
+      value,
+      policy
+    );
+  }
+
+  const hasJs =
+    /\\u\{[0-9a-fA-F]{1,6}\}/.test(
+      value
+    );
+  const hasUtf16 =
+    /\\u[0-9a-fA-F]{4}/.test(
+      value
+    );
+  const trimmed =
+    value.trim();
+  const allCodePoints =
+    /^(?:U\+[0-9a-fA-F]{1,6})(?:[\s,]+U\+[0-9a-fA-F]{1,6})*$/i.test(
+      trimmed
+    );
+
+  if (hasJs) {
+    return decodeJavaScriptEscapes(
+      value,
+      policy
+    );
+  }
+
+  if (hasUtf16) {
+    return decodeUtf16Escapes(
+      value,
+      policy
+    );
+  }
+
+  if (allCodePoints) {
+    return decodeCodePointNotation(
+      value,
+      policy
+    );
+  }
+
+  throw new Error(
+    "Auto-detect could not find a supported form. Use \\uXXXX, JavaScript \\u{...}, or a sequence of U+XXXX code-point tokens."
+  );
+}
+
+function encodeUnicode(
+  value: string,
+  style: EncodeStyle,
+  escapeAscii: boolean
+) {
+  if (style === "utf16") {
+    return encodeUtf16Escapes(
+      value,
+      escapeAscii
+    );
+  }
+
+  if (
+    style === "javascript"
+  ) {
+    return encodeJavaScriptEscapes(
+      value,
+      escapeAscii
+    );
+  }
+
+  return encodeCodePointLabels(
+    value
+  );
+}
+
+function formatStats(
+  stats: UnicodeStats
+) {
+  return [
+    `Sequence items: ${stats.sequenceItems}`,
+    `UTF-16 code units: ${stats.utf16Units}`,
+    `UTF-8 bytes: ${
+      stats.utf8Bytes >= 0
+        ? stats.utf8Bytes
+        : "not well-formed without surrogate replacement"
+    }`,
+    `Isolated surrogate units: ${stats.loneSurrogates}`,
+    `NFC changes text: ${
+      stats.nfcChanged
+        ? "yes"
+        : "no"
+    }`,
+    `NFD changes text: ${
+      stats.nfdChanged
+        ? "yes"
+        : "no"
+    }`,
+  ].join("\n");
+}
+
+export default function ToolClient() {
+  const [input, setInput] =
+    useState("");
+  const [output, setOutput] =
+    useState("");
+  const [encodeStyle, setEncodeStyle] =
+    useState<EncodeStyle>(
+      "utf16"
+    );
+  const [decodeStyle, setDecodeStyle] =
+    useState<DecodeStyle>(
+      "auto"
+    );
+  const [
+    surrogatePolicy,
+    setSurrogatePolicy,
+  ] =
+    useState<SurrogatePolicy>(
+      "strict"
+    );
+  const [
+    escapeAscii,
+    setEscapeAscii,
+  ] = useState(true);
+  const [error, setError] =
+    useState("");
+  const [notes, setNotes] =
+    useState<string[]>([]);
+  const [detected, setDetected] =
+    useState("");
+  const [copied, setCopied] =
+    useState(false);
+
+  const stats = useMemo(
+    () => getUnicodeStats(input),
+    [input]
+  );
+
+  const entries = useMemo(
+    () =>
+      codePointEntries(
+        input
+      ).slice(0, 80),
+    [input]
+  );
+
+  const clearResult = () => {
+    setOutput("");
+    setError("");
+    setNotes([]);
+    setDetected("");
+    setCopied(false);
+  };
 
   const encode = () => {
     if (!input) {
-      setError("Enter text to encode.");
+      setError(
+        "Enter text to encode."
+      );
       setOutput("");
+      setNotes([]);
+      setDetected("");
       return;
     }
 
     try {
       const encoded =
-        encodeStyle === "json"
-          ? encodeJsonUtf16(input, escapeAscii)
-          : encodeStyle === "javascript"
-          ? encodeJavaScriptCodePoints(input, escapeAscii)
-          : encodeCodePointLabels(input);
+        encodeUnicode(
+          input,
+          encodeStyle,
+          escapeAscii
+        );
+      const nextNotes: string[] =
+        [];
+
+      if (
+        stats.loneSurrogates
+      ) {
+        nextNotes.push(
+          `The input contains ${stats.loneSurrogates} isolated UTF-16 surrogate code unit${
+            stats.loneSurrogates ===
+            1
+              ? ""
+              : "s"
+          }. The encoder preserves them as code-unit/code-point notation for inspection, but they are not Unicode scalar values and are not well-formed standalone Unicode text.`
+        );
+      }
+
+      if (
+        encodeStyle ===
+          "utf16" &&
+        !escapeAscii
+      ) {
+        nextNotes.push(
+          "Printable ASCII is left readable. This output demonstrates \\uXXXX escape representation; it is not automatically a complete quoted JSON string literal because quotes, backslashes, and surrounding quotation marks are not added."
+        );
+      }
+
+      if (
+        encodeStyle ===
+        "javascript"
+      ) {
+        nextNotes.push(
+          "\\u{...} code-point escapes are ECMAScript syntax and are not valid JSON escape syntax."
+        );
+      }
+
+      if (
+        stats.nfcChanged
+      ) {
+        nextNotes.push(
+          "The input is not already NFC-normalized. Visually similar text can have different code-point sequences; encoding preserves the sequence you supplied rather than normalizing it."
+        );
+      }
 
       setOutput(encoded);
+      setNotes(nextNotes);
+      setDetected(
+        encodeStyle ===
+          "utf16"
+          ? "Encoded as UTF-16 code-unit escapes"
+          : encodeStyle ===
+            "javascript"
+          ? "Encoded as JavaScript Unicode escapes"
+          : "Encoded as Unicode code-point labels"
+      );
       setError("");
-    } catch (err) {
+      setCopied(false);
+    } catch (caught) {
       setOutput("");
-      setError(err instanceof Error ? err.message : "Unable to encode this text.");
+      setNotes([]);
+      setDetected("");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to encode this text."
+      );
     }
   };
 
   const decode = () => {
     if (!input.trim()) {
-      setError("Enter Unicode escape text or code-point notation to decode.");
+      setError(
+        "Enter Unicode escape text or code-point notation to decode."
+      );
       setOutput("");
+      setNotes([]);
+      setDetected("");
       return;
     }
 
     try {
-      const decoded = decodeUnicodeInput(input, decodeStyle);
-      setOutput(decoded);
+      const result =
+        decodeUnicodeInput(
+          input,
+          decodeStyle,
+          surrogatePolicy
+        );
+      const decodedStats =
+        getUnicodeStats(
+          result.text
+        );
+      const nextNotes =
+        result.warnings.slice();
+
+      if (
+        decodedStats.nfcChanged
+      ) {
+        nextNotes.push(
+          "The decoded text is not NFC-normalized. Decoding preserves the encoded code-point/code-unit sequence rather than normalizing it."
+        );
+      }
+
+      setOutput(result.text);
+      setNotes(nextNotes);
+      setDetected(
+        result.detected
+      );
       setError("");
-    } catch (err) {
+      setCopied(false);
+    } catch (caught) {
       setOutput("");
-      setError(err instanceof Error ? err.message : "Unable to decode this input.");
+      setNotes([]);
+      setDetected("");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to decode this input."
+      );
     }
   };
 
   const loadExample = () => {
-    setInput("Hello 😀 नमस्ते");
-    setOutput("");
-    setError("");
-    setEncodeStyle("json");
-    setDecodeStyle("auto");
+    setInput(
+      "Sneha 😀 नमस्ते e\u0301"
+    );
+    setEncodeStyle(
+      "utf16"
+    );
+    setDecodeStyle(
+      "auto"
+    );
+    setSurrogatePolicy(
+      "strict"
+    );
     setEscapeAscii(true);
+    clearResult();
+  };
+
+  const loadEscapeExample = () => {
+    setInput(
+      "\\u0053\\u006E\\u0065\\u0068\\u0061 \\uD83D\\uDE00 \\u0928\\u092E\\u0938\\u094D\\u0924\\u0947"
+    );
+    setDecodeStyle(
+      "auto"
+    );
+    setSurrogatePolicy(
+      "strict"
+    );
+    clearResult();
   };
 
   const resetAll = () => {
     setInput("");
-    setOutput("");
-    setError("");
-    setEncodeStyle("json");
-    setDecodeStyle("auto");
+    setEncodeStyle(
+      "utf16"
+    );
+    setDecodeStyle(
+      "auto"
+    );
+    setSurrogatePolicy(
+      "strict"
+    );
     setEscapeAscii(true);
+    clearResult();
+  };
+
+  const copyOutput = async () => {
+    if (!output) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        output
+      );
+      setCopied(true);
+      window.setTimeout(
+        () => setCopied(false),
+        1400
+      );
+    } catch {
+      setCopied(false);
+      setError(
+        "The output could not be copied. Select and copy it manually."
+      );
+    }
   };
 
   return (
     <ToolShell
       title="Unicode Encoder Decoder"
-      description="Convert readable Unicode text to JSON-compatible UTF-16 escapes, JavaScript code-point escapes, or U+ notation, and decode those forms safely."
+      description="Move between readable text, UTF-16 \\uXXXX code-unit escapes, JavaScript code-point escapes, and U+ notation while keeping surrogate pairs, Unicode scalar values, UTF-16 units, UTF-8 bytes, and normalization differences visible."
     >
-      <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
-          Input
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="block text-sm font-semibold text-gray-900">
+          Text or Unicode notation
         </label>
         <textarea
           value={input}
-          onChange={(event) => setInput(event.target.value)}
-          rows={7}
-          placeholder={"Examples: Hello 😀  |  \\uD83D\\uDE00  |  \\u{1F600}  |  U+1F600"}
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          onChange={(event: {
+            target: { value: string };
+          }) => {
+            setInput(
+              event.target.value
+            );
+            clearResult();
+          }}
+          placeholder="Sneha 😀 नमस्ते or \\u0053\\u006E\\u0065\\u0068\\u0061"
+          spellCheck={false}
+          className="mt-4 w-full min-h-[260px] rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-        <p className="mt-2 text-sm text-gray-500">
-          Characters: {stats.codePoints.toLocaleString()} · UTF-16 code units:{" "}
-          {stats.codeUnits.toLocaleString()} · UTF-8 bytes:{" "}
-          {stats.utf8Bytes.toLocaleString()}
-        </p>
+
+        {input ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <Stat
+              label="Sequence items"
+              value={String(
+                stats.sequenceItems
+              )}
+            />
+            <Stat
+              label="UTF-16 units"
+              value={String(
+                stats.utf16Units
+              )}
+            />
+            <Stat
+              label="UTF-8 bytes"
+              value={
+                stats.utf8Bytes >=
+                0
+                  ? String(
+                      stats.utf8Bytes
+                    )
+                  : "ill-formed"
+              }
+            />
+            <Stat
+              label="Lone surrogates"
+              value={String(
+                stats.loneSurrogates
+              )}
+            />
+            <Stat
+              label="NFC changes?"
+              value={
+                stats.nfcChanged
+                  ? "Yes"
+                  : "No"
+              }
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-6">
-        <p className="text-sm font-medium text-gray-700">Encode as</p>
+        <h3 className="text-sm font-semibold text-gray-900">
+          Encode as
+        </h3>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
-          {encodeStyles.map((style) => (
-            <button
-              key={style.value}
-              onClick={() => setEncodeStyle(style.value)}
-              className={`rounded-xl border p-4 text-left transition ${
-                encodeStyle === style.value
-                  ? "border-[var(--light-gold)] bg-yellow-50"
-                  : "border-gray-200 bg-white hover:border-[var(--light-gold)]"
-              }`}
-            >
-              <span className="block text-sm font-semibold text-gray-900">
-                {style.label}
-              </span>
-              <span className="mt-1 block text-xs leading-relaxed text-gray-500">
-                {style.detail}
-              </span>
-            </button>
-          ))}
+          {ENCODE_STYLES.map(
+            (style) => (
+              <button
+                key={style.value}
+                type="button"
+                onClick={() => {
+                  setEncodeStyle(
+                    style.value
+                  );
+                  clearResult();
+                }}
+                className={`rounded-xl border p-4 text-left transition ${
+                  encodeStyle ===
+                  style.value
+                    ? "border-[var(--green)] bg-green-50"
+                    : "border-gray-200 bg-white hover:border-[var(--light-gold)]"
+                }`}
+              >
+                <span className="block text-sm font-semibold text-gray-900">
+                  {style.label}
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-gray-500">
+                  {style.detail}
+                </span>
+              </button>
+            )
+          )}
         </div>
 
-        {encodeStyle !== "codepoint" && (
-          <label className="mt-4 flex items-start gap-3 text-sm text-gray-700">
+        {encodeStyle !==
+        "codepoint" ? (
+          <label className="mt-4 flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
             <input
               type="checkbox"
               checked={escapeAscii}
-              onChange={(event) => setEscapeAscii(event.target.checked)}
-              className="mt-1"
+              onChange={(event: {
+                target: {
+                  checked: boolean;
+                };
+              }) => {
+                setEscapeAscii(
+                  event.target.checked
+                );
+                clearResult();
+              }}
+              className="mt-1 h-4 w-4 accent-[#d9a928]"
             />
             <span>
-              Escape ASCII characters too. Turn this off to leave ordinary
-              printable ASCII readable while escaping non-ASCII characters.
+              <strong>
+                Escape printable ASCII too.
+              </strong>{" "}
+              Turn this off to leave ordinary printable ASCII readable while
+              still escaping non-ASCII and control code units.
             </span>
           </label>
-        )}
+        ) : null}
       </div>
 
-      <div className="mt-6">
-        <label className="mb-2 block text-sm font-medium text-gray-700">
-          Decode format
-        </label>
-        <select
+      <div className="mt-6 grid gap-5 md:grid-cols-2">
+        <YoryantraSelect
+          label="Decode format"
           value={decodeStyle}
-          onChange={(event) => setDecodeStyle(event.target.value as DecodeStyle)}
-          className="w-full rounded-xl border border-gray-300 bg-white p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] md:max-w-md"
-        >
-          <option value="auto">Auto-detect common forms</option>
-          <option value="json">JSON / UTF-16 \\uXXXX</option>
-          <option value="javascript">JavaScript \\u{"{...}"}</option>
-          <option value="codepoint">U+ code points</option>
-        </select>
+          onChange={(value: string) => {
+            setDecodeStyle(
+              value as DecodeStyle
+            );
+            clearResult();
+          }}
+          options={[
+            {
+              label:
+                "Auto-detect common forms",
+              value: "auto",
+            },
+            {
+              label:
+                "UTF-16 \\uXXXX",
+              value: "utf16",
+            },
+            {
+              label:
+                "JavaScript \\u{...} / \\uXXXX",
+              value: "javascript",
+            },
+            {
+              label:
+                "U+ code points",
+              value: "codepoint",
+            },
+          ]}
+        />
+
+        <YoryantraSelect
+          label="Decoded surrogate handling"
+          value={surrogatePolicy}
+          onChange={(value: string) => {
+            setSurrogatePolicy(
+              value as SurrogatePolicy
+            );
+            clearResult();
+          }}
+          options={[
+            {
+              label:
+                "Strict Unicode text",
+              value: "strict",
+            },
+            {
+              label:
+                "Inspection: allow lone surrogates",
+              value: "inspect",
+            },
+          ]}
+        />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={decode} className="yoryantra-btn">
+        <button
+          type="button"
+          onClick={decode}
+          className="yoryantra-btn"
+        >
           Decode Unicode
         </button>
-        <button onClick={encode} className="yoryantra-btn-outline">
+        <button
+          type="button"
+          onClick={encode}
+          className="yoryantra-btn-outline"
+        >
           Encode Unicode
         </button>
-        <button onClick={loadExample} className="yoryantra-btn-outline">
-          Load Example
+        <button
+          type="button"
+          onClick={loadExample}
+          className="yoryantra-btn-outline"
+        >
+          Load Text Example
         </button>
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button
+          type="button"
+          onClick={loadEscapeExample}
+          className="yoryantra-btn-outline"
+        >
+          Load Escape Example
+        </button>
+        <button
+          type="button"
+          onClick={resetAll}
+          className="yoryantra-btn-outline"
+        >
           Reset
         </button>
       </div>
 
-      {error && (
+      {error ? (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
-      )}
+      ) : null}
 
-      <div className="mt-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-          {output && (
+      <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Output
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {detected ||
+                "Encoded or decoded Unicode output will appear here."}
+            </p>
+          </div>
+
+          {output ? (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
-              className="yoryantra-btn-outline text-sm"
+              type="button"
+              onClick={copyOutput}
+              className="yoryantra-btn-outline whitespace-nowrap"
             >
-              Copy
+              {copied
+                ? "Copied"
+                : "Copy"}
             </button>
-          )}
+          ) : null}
         </div>
-        <pre className="yoryantra-output min-h-[220px] overflow-auto whitespace-pre-wrap break-words text-sm">
-          {output || "Encoded or decoded Unicode output will appear here."}
+
+        <pre className="yoryantra-output mt-4 min-h-[220px] overflow-auto whitespace-pre-wrap break-words font-mono text-sm">
+          {output ||
+            "No output yet."}
         </pre>
+
+        {notes.length ? (
+          <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+            <ul className="list-disc space-y-2 pl-5">
+              {notes.map(
+                (note, index) => (
+                  <li
+                    key={`${note}-${index}`}
+                  >
+                    {note}
+                  </li>
+                )
+              )}
+            </ul>
+          </div>
+        ) : null}
       </div>
 
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      {input ? (
+        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Code-point / encoding inspection
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-gray-500">
+              Showing the first{" "}
+              {Math.min(
+                entries.length,
+                80
+              )}{" "}
+              sequence item
+              {entries.length === 1
+                ? ""
+                : "s"}. UTF-8 bytes are shown only for Unicode scalar values.
+            </p>
+          </div>
+
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="bg-gray-50 text-gray-900">
+                <tr>
+                  <th className="p-3">
+                    Code point
+                  </th>
+                  <th className="p-3">
+                    Display
+                  </th>
+                  <th className="p-3">
+                    UTF-16 units
+                  </th>
+                  <th className="p-3">
+                    UTF-8 bytes
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-700">
+                {entries.map(
+                  (entry, index) => (
+                    <tr
+                      key={`${entry.label}-${index}`}
+                      className="border-t border-gray-200"
+                    >
+                      <td className="p-3 font-mono">
+                        {entry.label}
+                      </td>
+                      <td className="p-3">
+                        {entry.display}
+                      </td>
+                      <td className="p-3 font-mono text-xs">
+                        {entry.utf16}
+                      </td>
+                      <td className="p-3 font-mono text-xs">
+                        {entry.utf8}
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <pre className="mt-4 rounded-xl bg-gray-50 p-4 text-xs leading-6 text-gray-700">
+            {formatStats(stats)}
+          </pre>
+        </div>
+      ) : null}
+
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Encoding, decoding, normalization checks, and byte inspection happen on
+        the supplied string in your browser. The tool does not send the text to
+        a Unicode lookup API. Site-wide analytics or advertising scripts, if
+        enabled, are separate from this operation.
+      </div>
+
+      <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            JSON Escapes and JavaScript Code-Point Escapes Are Not the Same
+            “One Character” Can Mean Four Different Counts
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON string escapes use exactly four hexadecimal digits after
-            <code> \u</code>. Characters above U+FFFF are represented with a
-            UTF-16 surrogate pair, such as <code>\uD83D\uDE00</code> for 😀.
-            JavaScript source code also supports code-point escape syntax such
-            as <code>\u{"{1F600}"}</code>, but that form is not valid JSON.
+            A user sees text as grapheme clusters: what appears to be one
+            character on screen can be several Unicode code points. JavaScript
+            strings are indexed as UTF-16 code units. UTF-8 stores those scalar
+            values as one to four bytes. None of those counts is guaranteed to
+            equal the number of visible symbols.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The JSON / UTF-16 mode focuses on Unicode escape representation.
-            It is not a complete JSON string escaper for quote, backslash, and
-            other JSON string-syntax concerns; use the dedicated JSON Escape
-            Unescape tool when you need a complete JSON string literal.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Surrogate-Pair Validation Matters
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            A high UTF-16 surrogate should be followed by a matching low
-            surrogate when it represents a character outside the basic
-            multilingual plane. The decoder reports unpaired surrogate escapes
-            instead of silently producing malformed Unicode text.
+            The emoji 😀 is one Unicode scalar value, two UTF-16 code units, and
+            four UTF-8 bytes. A family emoji or an accented letter written with
+            a combining mark can involve several code points while still
+            looking like one user-perceived character.
           </p>
         </div>
 
-        <div>
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            Code Points, Code Units, and UTF-8 Bytes
+            Why 😀 Becomes Two \uXXXX Escapes but One U+1F600
           </h2>
+          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`Unicode code point
+U+1F600
+
+UTF-16 code units
+D83D DE00
+
+Four-digit escape representation
+\\uD83D\\uDE00
+
+JavaScript code-point escape
+\\u{1F600}`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JavaScript string length is based on UTF-16 code units, so one emoji
-            can occupy two code units while still representing one Unicode code
-            point. UTF-8 uses a separate variable-length byte encoding. The
-            counters above make those distinctions visible while debugging
-            payloads or escaped strings.
+            Four-digit <code>\uXXXX</code> escapes represent UTF-16 code units.
+            A code point above U+FFFF therefore needs a high-surrogate and
+            low-surrogate pair. JavaScript&apos;s brace form can spell the code
+            point directly, but that <code>\u{"{...}"}</code> form is not JSON
+            syntax.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Standards Reference
+        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
+            Surrogate Code Points Exist, but They Are Not Standalone Unicode Characters
           </h2>
-          <div className="mt-4 flex flex-wrap gap-3">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            U+D800 through U+DFFF are reserved for UTF-16 surrogate mechanics.
+            The Unicode Standard calls all values from U+0000 through U+10FFFF
+            code points, but excludes surrogate code points from the set of
+            Unicode scalar values. An isolated UTF-16 surrogate code unit has
+            no standalone character interpretation.
+          </p>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            Strict decode mode therefore rejects lone surrogates. Inspection
+            mode can preserve them in a JavaScript string when you are
+            diagnosing malformed or legacy data, while clearly marking that
+            result as ill-formed Unicode text.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            JSON Can Contain a \uD800 Escape Even Though Interoperability Is Poor
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JSON&apos;s ABNF permits a four-hex-digit <code>\uXXXX</code> escape,
+            and RFC 8259 notes that observed JSON texts can contain unpaired
+            surrogate escapes such as <code>\uDEAD</code>. The RFC also warns
+            that software behavior for those values is unpredictable.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            That is why “valid-looking JSON escape syntax” and “well-formed
+            Unicode scalar text” are not exactly the same claim. The decoder
+            defaults to the stricter Unicode interpretation rather than silently
+            normalizing malformed surrogate data.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            JavaScript \u{"{...}"} Syntax Describes a Code Point, Not UTF-8 Bytes
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            <code>\u{"{1F600}"}</code> is an ECMAScript source escape. The
+            hexadecimal number identifies a Unicode code point up to U+10FFFF.
+            It does not show the UTF-8 byte sequence <code>F0 9F 98 80</code>,
+            and it is not a percent-encoded URL sequence.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Choose the representation based on the system you are debugging:
+            JavaScript source, JSON-style UTF-16 escapes, U+ notation in
+            documentation, or UTF-8 bytes on the wire are different layers.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Two Strings Can Look the Same and Still Have Different Code Points
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The visible letter <code>é</code> can be represented as U+00E9 or
+            as U+0065 followed by U+0301 COMBINING ACUTE ACCENT. Unicode
+            normalization defines standard transformations such as NFC and NFD
+            for equivalent sequences.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This tool reports whether normalization would change the supplied
+            sequence but does not normalize automatically. Silent normalization
+            would make an encoder stop being a faithful representation of the
+            exact string you pasted.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            TextEncoder Has to Repair Lone Surrogates Before Producing UTF-8
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            UTF-8 encodes Unicode scalar values; surrogate code points are not
+            scalar values. JavaScript strings, however, can contain lone UTF-16
+            surrogate code units. Web APIs that turn such strings into Unicode
+            scalar text generally use well-formed-string behavior, which can
+            replace lone surrogates with U+FFFD.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The inspection table does not pretend those replacement bytes were
+            the original character. It labels a lone surrogate as not directly
+            representable as a Unicode scalar value.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Standards Are Useful Here Because the Terms Are Easy to Mix Up
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Unicode&apos;s core specification defines code points, surrogate
+            code units, surrogate pairs, scalar values, UTF-16, and UTF-8.{" "}
             <a
-              href="https://www.rfc-editor.org/rfc/rfc8259.html"
+              href="https://unicode.org/versions/Unicode17.0.0/core-spec/chapter-3/"
               target="_blank"
-              rel="noreferrer noopener"
-              className="yoryantra-btn-outline"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
             >
-              RFC 8259 JSON strings
+              Unicode 17 Core Specification, Chapter 3
             </a>
+            . For syntax boundaries,{" "}
             <a
-              href="https://tc39.es/ecma262/"
+              href="https://www.rfc-editor.org/rfc/rfc8259"
               target="_blank"
-              rel="noreferrer noopener"
-              className="yoryantra-btn-outline"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
             >
-              ECMAScript specification
-            </a>
-          </div>
+              RFC 8259
+            </a>{" "}
+            covers JSON string escapes and surrogate interoperability, while
+            the{" "}
+            <a
+              href="https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              ECMAScript lexical grammar
+            </a>{" "}
+            defines JavaScript&apos;s Unicode escape forms.
+          </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
           <YoryantraRelatedTools currentHref="/tools/unicode-encoder-decoder" />
         </div>
       </section>
@@ -287,194 +1639,21 @@ export default function ToolClient() {
   );
 }
 
-function getUnicodeStats(value: string) {
-  return {
-    codePoints: Array.from(value).length,
-    codeUnits: value.length,
-    utf8Bytes: new TextEncoder().encode(value).length,
-  };
-}
-
-function encodeJsonUtf16(value: string, escapeAscii: boolean) {
-  let output = "";
-
-  for (const char of Array.from(value)) {
-    const codePoint = char.codePointAt(0);
-    if (codePoint === undefined) continue;
-
-    if (!escapeAscii && codePoint >= 0x20 && codePoint <= 0x7e) {
-      output += char;
-      continue;
-    }
-
-    if (codePoint <= 0xffff) {
-      output += `\\u${hex(codePoint, 4)}`;
-      continue;
-    }
-
-    const adjusted = codePoint - 0x10000;
-    const high = 0xd800 + (adjusted >> 10);
-    const low = 0xdc00 + (adjusted & 0x3ff);
-    output += `\\u${hex(high, 4)}\\u${hex(low, 4)}`;
-  }
-
-  return output;
-}
-
-function encodeJavaScriptCodePoints(value: string, escapeAscii: boolean) {
-  let output = "";
-
-  for (const char of Array.from(value)) {
-    const codePoint = char.codePointAt(0);
-    if (codePoint === undefined) continue;
-
-    if (!escapeAscii && codePoint >= 0x20 && codePoint <= 0x7e) {
-      output += char;
-    } else if (codePoint <= 0xffff) {
-      output += `\\u${hex(codePoint, 4)}`;
-    } else {
-      output += `\\u{${codePoint.toString(16).toUpperCase()}}`;
-    }
-  }
-
-  return output;
-}
-
-function encodeCodePointLabels(value: string) {
-  return Array.from(value)
-    .map((char) => {
-      const codePoint = char.codePointAt(0);
-      return codePoint === undefined ? "" : `U+${hex(codePoint, codePoint <= 0xffff ? 4 : 5)}`;
-    })
-    .filter(Boolean)
-    .join(" ");
-}
-
-function decodeUnicodeInput(value: string, style: DecodeStyle) {
-  if (style === "json") return decodeUtf16Escapes(value);
-  if (style === "javascript") return decodeJavaScriptEscapes(value);
-  if (style === "codepoint") return decodeCodePointNotation(value);
-
-  const hasJsCodePoint = /\\u\{[0-9a-fA-F]+\}/.test(value);
-  const hasUtf16 = /\\u[0-9a-fA-F]{4}/.test(value);
-  const looksLikeCodePoints = /(?:^|[\s,])U\+[0-9a-fA-F]{1,6}(?=$|[\s,])/i.test(value);
-
-  if (hasJsCodePoint) {
-    const afterJs = replaceJavaScriptCodePointEscapes(value);
-    return hasUtf16 ? decodeUtf16Escapes(afterJs) : afterJs;
-  }
-
-  if (hasUtf16) return decodeUtf16Escapes(value);
-  if (looksLikeCodePoints) return decodeCodePointNotation(value);
-
-  throw new Error(
-    "No supported Unicode escape was found. Use \\uXXXX, \\u{...}, or U+XXXX notation."
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+      <div className="mt-2 text-sm font-semibold text-gray-900">
+        {value}
+      </div>
+    </div>
   );
-}
-
-function decodeJavaScriptEscapes(value: string) {
-  const withCodePoints = replaceJavaScriptCodePointEscapes(value);
-  return /\\u[0-9a-fA-F]{4}/.test(withCodePoints)
-    ? decodeUtf16Escapes(withCodePoints)
-    : withCodePoints;
-}
-
-function replaceJavaScriptCodePointEscapes(value: string) {
-  return value.replace(/\\u\{([0-9a-fA-F]{1,6})\}/g, (_match, rawHex: string) => {
-    const codePoint = parseInt(rawHex, 16);
-    assertUnicodeScalar(codePoint, `\\u{${rawHex}}`);
-    return String.fromCodePoint(codePoint);
-  });
-}
-
-function decodeUtf16Escapes(value: string) {
-  let output = "";
-  let index = 0;
-  let found = false;
-
-  while (index < value.length) {
-    const match = value.slice(index).match(/^\\u([0-9a-fA-F]{4})/);
-
-    if (!match) {
-      output += value[index];
-      index += 1;
-      continue;
-    }
-
-    found = true;
-    const codeUnit = parseInt(match[1], 16);
-    index += 6;
-
-    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
-      const lowMatch = value.slice(index).match(/^\\u([0-9a-fA-F]{4})/);
-      if (!lowMatch) {
-        throw new Error(
-          `High surrogate \\u${match[1].toUpperCase()} is not followed by a low-surrogate escape.`
-        );
-      }
-
-      const low = parseInt(lowMatch[1], 16);
-      if (low < 0xdc00 || low > 0xdfff) {
-        throw new Error(
-          `High surrogate \\u${match[1].toUpperCase()} is followed by a non-low-surrogate escape.`
-        );
-      }
-
-      const codePoint =
-        0x10000 + ((codeUnit - 0xd800) << 10) + (low - 0xdc00);
-      output += String.fromCodePoint(codePoint);
-      index += 6;
-      continue;
-    }
-
-    if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
-      throw new Error(
-        `Low surrogate \\u${match[1].toUpperCase()} appears without a preceding high surrogate.`
-      );
-    }
-
-    output += String.fromCharCode(codeUnit);
-  }
-
-  if (!found) {
-    throw new Error("No \\uXXXX escapes were found.");
-  }
-
-  return output;
-}
-
-function decodeCodePointNotation(value: string) {
-  const tokens = value
-    .trim()
-    .split(/[\s,]+/)
-    .filter(Boolean);
-
-  if (!tokens.length || tokens.some((token) => !/^U\+[0-9a-fA-F]{1,6}$/i.test(token))) {
-    throw new Error(
-      "U+ notation must contain code-point tokens such as U+0041 U+1F600."
-    );
-  }
-
-  return tokens
-    .map((token) => {
-      const codePoint = parseInt(token.slice(2), 16);
-      assertUnicodeScalar(codePoint, token);
-      return String.fromCodePoint(codePoint);
-    })
-    .join("");
-}
-
-function assertUnicodeScalar(codePoint: number, label: string) {
-  if (
-    !Number.isInteger(codePoint) ||
-    codePoint < 0 ||
-    codePoint > 0x10ffff ||
-    (codePoint >= 0xd800 && codePoint <= 0xdfff)
-  ) {
-    throw new Error(`${label} is not a valid Unicode scalar value.`);
-  }
-}
-
-function hex(value: number, width: number) {
-  return value.toString(16).toUpperCase().padStart(width, "0");
 }

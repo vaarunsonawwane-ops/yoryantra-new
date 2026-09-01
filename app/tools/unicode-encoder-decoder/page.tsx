@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Unicode Encoder Decoder | JavaScript & JSON Escapes | Yoryantra",
+export const metadata: Metadata = {
+  title: "Unicode Encoder Decoder | Escapes & Code Points | Yoryantra",
   description:
-    "Encode and decode Unicode as JavaScript code-point escapes, JSON-compatible UTF-16 escapes, or U+ code-point notation with surrogate-pair checks.",
+    "Convert Unicode text to UTF-16 \\uXXXX escapes, JavaScript escapes, or U+ notation; decode with surrogate checks and inspect code points, UTF-16, and UTF-8.",
   alternates: {
     canonical: "https://yoryantra.com/tools/unicode-encoder-decoder",
   },
   openGraph: {
-    title: "Unicode Encoder Decoder | JavaScript & JSON Escapes | Yoryantra",
+    title: "Unicode Encoder Decoder | Yoryantra",
     description:
-      "Convert text between JavaScript Unicode escapes, JSON-compatible UTF-16 escapes, U+ code points, and readable Unicode text.",
+      "Inspect the difference between Unicode code points, UTF-16 code units, JavaScript escapes, JSON-style escapes, and UTF-8 byte length.",
     url: "https://yoryantra.com/tools/unicode-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Unicode Encoder Decoder | JavaScript & JSON Escapes | Yoryantra",
+    card: "summary",
+    title: "Unicode Encoder Decoder | Yoryantra",
     description:
-      "Work with JavaScript code-point escapes, JSON UTF-16 escapes, Unicode code points, and readable text.",
+      "Encode, decode, and inspect Unicode code points, UTF-16 escapes, JavaScript escapes, and UTF-8 bytes.",
   },
 };
 
