@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Redirect Chain Checker | Analyze Redirect Hops | Yoryantra",
+export const metadata: Metadata = {
+  title: "Redirect Chain Checker | HTTP Hops | Yoryantra",
   description:
-    "Analyze pasted HTTP redirect response headers, resolve Location values, detect loops and HTTPS downgrades, and inspect each redirect hop.",
+    "Analyze HTTP redirect traces, resolve relative Location values, follow method semantics, detect loops and HTTPS downgrades, and identify incomplete chains.",
   alternates: {
     canonical: "https://yoryantra.com/tools/redirect-chain-checker",
   },
   openGraph: {
-    title: "Redirect Chain Checker | Analyze Redirect Hops | Yoryantra",
+    title: "Redirect Chain Checker | Yoryantra",
     description:
-      "Analyze redirect response headers, resolve Location values, and inspect redirect loops, hops, status codes, and final destinations.",
+      "Turn raw response headers into a readable redirect path with status, destination, method, loop, downgrade, and final-response diagnostics.",
     url: "https://yoryantra.com/tools/redirect-chain-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Redirect Chain Checker | Analyze Redirect Hops | Yoryantra",
+    card: "summary",
+    title: "Redirect Chain Checker | Yoryantra",
     description:
-      "Inspect pasted redirect traces for hops, loops, Location targets, HTTPS downgrades, and final responses.",
+      "Analyze HTTP redirect hops from a captured response-header trace.",
   },
 };
 
