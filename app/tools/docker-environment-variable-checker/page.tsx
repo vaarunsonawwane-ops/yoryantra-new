@@ -2,28 +2,28 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Docker Environment Variable Checker – .env & Compose | Yoryantra",
+  title: "Docker Environment Variable Checker | Compose & .env | Yoryantra",
   description:
-    "Review Docker .env and Compose environment values for duplicate keys, empty or omitted values, interpolation, invalid names, required variables, and secrets.",
+    "Review Docker Compose environment blocks and .env files for duplicates, empty or unresolved values, interpolation, env_file precedence clues and secret-like variables.",
   alternates: {
     canonical: "https://yoryantra.com/tools/docker-environment-variable-checker",
   },
   openGraph: {
-    title: "Docker Environment Variable Checker – .env & Compose | Yoryantra",
+    title: "Docker Environment Variable Checker | Yoryantra",
     description:
-    "Review Docker .env and Compose environment values for duplicate keys, empty or omitted values, interpolation, invalid names, required variables, and secrets.",
+      "Inspect Compose environment map/list syntax or .env text while keeping interpolation, env_file and final Docker Compose resolution boundaries explicit.",
     url: "https://yoryantra.com/tools/docker-environment-variable-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Docker Environment Variable Checker – .env & Compose | Yoryantra",
+    card: "summary",
+    title: "Docker Environment Variable Checker | Yoryantra",
     description:
-    "Review Docker .env and Compose environment values for duplicate keys, empty or omitted values, interpolation, invalid names, required variables, and secrets.",
+      "Check Docker Compose and .env variables for duplicates, unresolved values, interpolation and secret-handling risks.",
   },
 };
 
-export default function DockerEnvironmentVariableCheckerPage() {
+export default function Page() {
   return <ToolClient />;
 }

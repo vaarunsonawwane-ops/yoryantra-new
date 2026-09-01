@@ -2,28 +2,28 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Docker Compose Volume Checker – Review Volume Mounts | Yoryantra",
+  title: "Docker Compose Volume Checker | Mount Review | Yoryantra",
   description:
-    "Review Docker Compose volume mounts for duplicate targets, risky host paths, Docker socket access, anonymous volumes, and writable config mounts.",
+    "Parse Docker Compose YAML and review bind mounts, named volumes, anonymous mounts, Docker socket access, duplicate targets, read-only usage and volume declarations.",
   alternates: {
     canonical: "https://yoryantra.com/tools/docker-compose-volume-checker",
   },
   openGraph: {
-    title: "Docker Compose Volume Checker – Review Volume Mounts | Yoryantra",
+    title: "Docker Compose Volume Checker | Yoryantra",
     description:
-    "Review Docker Compose volume mounts for duplicate targets, risky host paths, Docker socket access, anonymous volumes, and writable config mounts.",
+      "Review Compose volume mounts with YAML-aware parsing, duplicate-target detection, risky bind paths and named-volume declaration checks.",
     url: "https://yoryantra.com/tools/docker-compose-volume-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Docker Compose Volume Checker – Review Volume Mounts | Yoryantra",
+    card: "summary",
+    title: "Docker Compose Volume Checker | Yoryantra",
     description:
-    "Review Docker Compose volume mounts for duplicate targets, risky host paths, Docker socket access, anonymous volumes, and writable config mounts.",
+      "Inspect Docker Compose volume mounts, bind paths, named volumes, duplicate targets and read-only settings locally.",
   },
 };
 
-export default function DockerComposeVolumeCheckerPage() {
+export default function Page() {
   return <ToolClient />;
 }

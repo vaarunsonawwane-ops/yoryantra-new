@@ -12,600 +12,1648 @@ type Operator =
   | "notContains"
   | "startsWith"
   | "endsWith"
+  | "greaterThan"
+  | "greaterOrEqual"
+  | "lessThan"
+  | "lessOrEqual"
+  | "between"
   | "exists"
   | "missing"
-  | "greaterThan"
-  | "lessThan"
-  | "between"
-  | "regex"
   | "truthy"
-  | "falsy";
+  | "falsy"
+  | "regex";
 
-type OutputMode = "filteredJson" | "matchedOnly" | "rejectedJson" | "markdown" | "csv" | "jsonReport" | "checklist";
-type ValueMode = "string" | "number" | "boolean" | "auto";
-type MatchMode = "keepMatches" | "keepNonMatches";
-type SortMode = "original" | "keyAsc" | "keyDesc";
+type ValueMode =
+  | "string"
+  | "number"
+  | "boolean"
+  | "null"
+  | "json";
 
-type FilterResult = {
+type MatchMode =
+  | "keep"
+  | "exclude";
+
+type OutputMode =
+  | "records"
+  | "matchedValues"
+  | "rejectedRecords"
+  | "markdown"
+  | "csv"
+  | "diagnostic"
+  | "checklist";
+
+type SortMode =
+  | "original"
+  | "pathAsc"
+  | "pathDesc";
+
+type Row = {
   index: number;
-  matched: boolean;
-  value: unknown;
-  reason: string;
   record: unknown;
+  found: boolean;
+  actualValue: unknown;
+  matched: boolean;
+  reason: string;
 };
 
 type Issue = {
-  severity: "info" | "warning" | "high";
+  severity: "warning" | "note";
   title: string;
   message: string;
 };
 
-type Result = {
+type FilterResult = {
+  rows: Row[];
+  selected: Row[];
   output: string;
-  rows: FilterResult[];
   issues: Issue[];
-  inputLength: number;
-  recordCount: number;
+  inputCount: number;
   matchedCount: number;
-  rejectedCount: number;
-  outputLength: number;
+  missingCount: number;
+  sourceBytes: number;
 };
 
-const sampleInput = `[
+const SAMPLE = `[
   {
-    "tool": "JSON Formatter",
-    "category": "JSON & Data",
-    "status": "live",
-    "views": 120,
-    "featured": true
+    "id": 17,
+    "user": {
+      "name": "Sneha",
+      "role": "admin"
+    },
+    "active": true,
+    "score": 91
   },
   {
-    "tool": "JSON Validator",
-    "category": "JSON & Data",
-    "status": "live",
-    "views": 95,
-    "featured": true
+    "id": 18,
+    "user": {
+      "name": "Varoun",
+      "role": "editor"
+    },
+    "active": false,
+    "score": 72
   },
   {
-    "tool": "URL Encoder Decoder",
-    "category": "Encoding",
-    "status": "live",
-    "views": 76,
-    "featured": false
-  },
-  {
-    "tool": "JSON Array Filter Tool",
-    "category": "JSON & Data",
-    "status": "new",
-    "views": 0,
-    "featured": false
+    "id": 19,
+    "user.role": "admin",
+    "active": true,
+    "score": 84
   }
 ]`;
 
+function own(record: Record<string, unknown>, key: string) {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+function getByPath(record: unknown, path: string) {
+  if (!path) {
+    return {
+      found: true,
+      value: record,
+      resolution: "whole record",
+    };
+  }
+
+  if (record && typeof record === "object" && !Array.isArray(record)) {
+    const objectRecord = record as Record<string, unknown>;
+
+    if (own(objectRecord, path)) {
+      return {
+        found: true,
+        value: objectRecord[path],
+        resolution: "literal key",
+      };
+    }
+  }
+
+  const parts = path.split(".");
+  let current: unknown = record;
+
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
+
+    if (part === "") {
+      return {
+        found: false,
+        value: undefined,
+        resolution: "invalid empty path segment",
+      };
+    }
+
+    if (Array.isArray(current) && /^\d+$/.test(part)) {
+      const arrayIndex = Number(part);
+
+      if (arrayIndex >= current.length) {
+        return {
+          found: false,
+          value: undefined,
+          resolution: "nested path",
+        };
+      }
+
+      current = current[arrayIndex];
+      continue;
+    }
+
+    if (
+      !current ||
+      typeof current !== "object" ||
+      Array.isArray(current)
+    ) {
+      return {
+        found: false,
+        value: undefined,
+        resolution: "nested path",
+      };
+    }
+
+    const objectCurrent = current as Record<string, unknown>;
+
+    if (!own(objectCurrent, part)) {
+      return {
+        found: false,
+        value: undefined,
+        resolution: "nested path",
+      };
+    }
+
+    current = objectCurrent[part];
+  }
+
+  return {
+    found: true,
+    value: current,
+    resolution: "nested path",
+  };
+}
+
+function parseFilterValue(text: string, mode: ValueMode) {
+  if (mode === "string") {
+    return text;
+  }
+
+  if (mode === "number") {
+    const trimmed = text.trim();
+
+    if (!trimmed || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(trimmed)) {
+      throw new Error("Enter a finite numeric filter value.");
+    }
+
+    const number = Number(trimmed);
+
+    if (!Number.isFinite(number)) {
+      throw new Error("Numeric filter value must be finite.");
+    }
+
+    return number;
+  }
+
+  if (mode === "boolean") {
+    const lower = text.trim().toLowerCase();
+
+    if (lower !== "true" && lower !== "false") {
+      throw new Error('Boolean filter value must be "true" or "false".');
+    }
+
+    return lower === "true";
+  }
+
+  if (mode === "null") {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (caught) {
+    throw new Error(
+      caught instanceof Error
+        ? `JSON filter value is invalid: ${caught.message}`
+        : "JSON filter value is invalid."
+    );
+  }
+}
+
+function normalizeText(value: unknown, caseSensitive: boolean, trim: boolean) {
+  let text =
+    typeof value === "string"
+      ? value
+      : value === null
+      ? "null"
+      : typeof value === "undefined"
+      ? ""
+      : String(value);
+
+  if (trim) text = text.trim();
+  if (!caseSensitive) text = text.toLowerCase();
+
+  return text;
+}
+
+function deepEqual(left: unknown, right: unknown) {
+  if (left === right) return true;
+
+  if (
+    typeof left !== typeof right ||
+    left === null ||
+    right === null
+  ) {
+    return false;
+  }
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    if (left.length !== right.length) return false;
+
+    for (let index = 0; index < left.length; index += 1) {
+      if (!deepEqual(left[index], right[index])) return false;
+    }
+
+    return true;
+  }
+
+  if (
+    typeof left === "object" &&
+    typeof right === "object" &&
+    !Array.isArray(left) &&
+    !Array.isArray(right)
+  ) {
+    const leftRecord = left as Record<string, unknown>;
+    const rightRecord = right as Record<string, unknown>;
+    const leftKeys = Object.keys(leftRecord);
+    const rightKeys = Object.keys(rightRecord);
+
+    if (leftKeys.length !== rightKeys.length) return false;
+
+    for (let index = 0; index < leftKeys.length; index += 1) {
+      const key = leftKeys[index];
+
+      if (!own(rightRecord, key) || !deepEqual(leftRecord[key], rightRecord[key])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+function numericActual(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  return null;
+}
+
+function evaluate(options: {
+  actual: unknown;
+  found: boolean;
+  operator: Operator;
+  expected: unknown;
+  secondExpected: unknown;
+  caseSensitive: boolean;
+  trimStrings: boolean;
+  regexFlags: string;
+}) {
+  if (options.operator === "exists") {
+    return {
+      matched: options.found,
+      reason: options.found ? "field exists" : "field is missing",
+    };
+  }
+
+  if (options.operator === "missing") {
+    return {
+      matched: !options.found,
+      reason: options.found ? "field exists" : "field is missing",
+    };
+  }
+
+  if (!options.found) {
+    return {
+      matched: false,
+      reason: "field is missing",
+    };
+  }
+
+  if (options.operator === "truthy") {
+    return {
+      matched: Boolean(options.actual),
+      reason: `Boolean(actual) is ${String(Boolean(options.actual))}`,
+    };
+  }
+
+  if (options.operator === "falsy") {
+    return {
+      matched: !Boolean(options.actual),
+      reason: `Boolean(actual) is ${String(Boolean(options.actual))}`,
+    };
+  }
+
+  if (
+    options.operator === "greaterThan" ||
+    options.operator === "greaterOrEqual" ||
+    options.operator === "lessThan" ||
+    options.operator === "lessOrEqual" ||
+    options.operator === "between"
+  ) {
+    const actualNumber = numericActual(options.actual);
+
+    if (actualNumber === null || typeof options.expected !== "number") {
+      return {
+        matched: false,
+        reason:
+          "numeric comparison requires the record field and filter value to be finite JSON numbers; strings are not auto-coerced",
+      };
+    }
+
+    if (options.operator === "greaterThan") {
+      return {
+        matched: actualNumber > options.expected,
+        reason: `${actualNumber} > ${options.expected}`,
+      };
+    }
+
+    if (options.operator === "greaterOrEqual") {
+      return {
+        matched: actualNumber >= options.expected,
+        reason: `${actualNumber} >= ${options.expected}`,
+      };
+    }
+
+    if (options.operator === "lessThan") {
+      return {
+        matched: actualNumber < options.expected,
+        reason: `${actualNumber} < ${options.expected}`,
+      };
+    }
+
+    if (options.operator === "lessOrEqual") {
+      return {
+        matched: actualNumber <= options.expected,
+        reason: `${actualNumber} <= ${options.expected}`,
+      };
+    }
+
+    if (typeof options.secondExpected !== "number") {
+      return {
+        matched: false,
+        reason: "between requires two numeric filter values",
+      };
+    }
+
+    const min = Math.min(options.expected, options.secondExpected);
+    const max = Math.max(options.expected, options.secondExpected);
+
+    return {
+      matched: actualNumber >= min && actualNumber <= max,
+      reason: `${actualNumber} is between ${min} and ${max} inclusive`,
+    };
+  }
+
+  if (options.operator === "regex") {
+    if (typeof options.actual !== "string") {
+      return {
+        matched: false,
+        reason: "regex operator only evaluates JSON string fields",
+      };
+    }
+
+    if (typeof options.expected !== "string") {
+      return {
+        matched: false,
+        reason: "regex pattern must be text",
+      };
+    }
+
+    let regex: RegExp;
+
+    try {
+      regex = new RegExp(options.expected, options.regexFlags);
+    } catch (caught) {
+      throw new Error(
+        caught instanceof Error
+          ? `Invalid regular expression: ${caught.message}`
+          : "Invalid regular expression."
+      );
+    }
+
+    return {
+      matched: regex.test(options.actual),
+      reason: `regex /${options.expected}/${options.regexFlags} tested against string value`,
+    };
+  }
+
+  if (
+    options.operator === "contains" ||
+    options.operator === "notContains" ||
+    options.operator === "startsWith" ||
+    options.operator === "endsWith"
+  ) {
+    if (typeof options.actual !== "string" || typeof options.expected !== "string") {
+      return {
+        matched: false,
+        reason:
+          "text operator requires both the record field and filter value to be strings; objects/numbers are not auto-stringified for matching",
+      };
+    }
+
+    const actualText = normalizeText(
+      options.actual,
+      options.caseSensitive,
+      options.trimStrings
+    );
+    const expectedText = normalizeText(
+      options.expected,
+      options.caseSensitive,
+      options.trimStrings
+    );
+
+    if (
+      options.operator === "contains" ||
+      options.operator === "notContains"
+    ) {
+      const contains =
+        actualText.indexOf(
+          expectedText
+        ) !== -1;
+
+      return {
+        matched:
+          options.operator ===
+          "contains"
+            ? contains
+            : !contains,
+        reason:
+          options.operator ===
+          "contains"
+            ? "string contains comparison"
+            : "string does-not-contain comparison",
+      };
+    }
+
+    if (options.operator === "startsWith") {
+      return {
+        matched: actualText.indexOf(expectedText) === 0,
+        reason: "string prefix comparison",
+      };
+    }
+
+    return {
+      matched:
+        expectedText.length <= actualText.length &&
+        actualText.slice(actualText.length - expectedText.length) === expectedText,
+      reason: "string suffix comparison",
+    };
+  }
+
+  let equal = false;
+
+  if (typeof options.actual === "string" && typeof options.expected === "string") {
+    equal =
+      normalizeText(
+        options.actual,
+        options.caseSensitive,
+        options.trimStrings
+      ) ===
+      normalizeText(
+        options.expected,
+        options.caseSensitive,
+        options.trimStrings
+      );
+  } else {
+    equal = deepEqual(options.actual, options.expected);
+  }
+
+  return {
+    matched: options.operator === "equals" ? equal : !equal,
+    reason:
+      options.operator === "equals"
+        ? "strict/type-aware equality comparison"
+        : "strict/type-aware inequality comparison",
+  };
+}
+
+function duplicateKeysInJsonSource(source: string) {
+  const duplicates: string[] = [];
+  const stack: Array<{ type: "object" | "array"; keys?: string[] }> = [];
+  let index = 0;
+
+  const endString = (start: number) => {
+    let escaped = false;
+
+    for (let cursor = start + 1; cursor < source.length; cursor += 1) {
+      const char = source.charAt(cursor);
+
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') return cursor;
+    }
+
+    return source.length - 1;
+  };
+
+  while (index < source.length) {
+    const char = source.charAt(index);
+
+    if (char === "{") {
+      stack.push({ type: "object", keys: [] });
+      index += 1;
+      continue;
+    }
+
+    if (char === "[") {
+      stack.push({ type: "array" });
+      index += 1;
+      continue;
+    }
+
+    if (char === "}" || char === "]") {
+      stack.pop();
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      const end = endString(index);
+      const current = stack[stack.length - 1];
+      let cursor = end + 1;
+
+      while (cursor < source.length && /\s/.test(source.charAt(cursor))) {
+        cursor += 1;
+      }
+
+      if (
+        current &&
+        current.type === "object" &&
+        current.keys &&
+        source.charAt(cursor) === ":"
+      ) {
+        try {
+          const key = JSON.parse(source.slice(index, end + 1)) as string;
+
+          if (current.keys.indexOf(key) !== -1 && duplicates.indexOf(key) === -1) {
+            duplicates.push(key);
+          } else {
+            current.keys.push(key);
+          }
+        } catch {
+          // JSON.parse below reports syntax errors.
+        }
+      }
+
+      index = end + 1;
+      continue;
+    }
+
+    index += 1;
+  }
+
+  return duplicates;
+}
+
+function csvCell(value: string) {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function displayValue(value: unknown) {
+  if (typeof value === "undefined") return "(missing)";
+  if (typeof value === "string") return value;
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function buildOutput(
+  selected: Row[],
+  allRows: Row[],
+  outputMode: OutputMode
+) {
+  if (outputMode === "records") {
+    return JSON.stringify(
+      selected.map(
+        (row) => row.record
+      ),
+      null,
+      2
+    );
+  }
+
+  if (
+    outputMode ===
+    "matchedValues"
+  ) {
+    return JSON.stringify(
+      selected.map(
+        (row) =>
+          row.found
+            ? row.actualValue
+            : null
+      ),
+      null,
+      2
+    );
+  }
+
+  if (
+    outputMode ===
+    "rejectedRecords"
+  ) {
+    return JSON.stringify(
+      allRows
+        .filter(
+          (row) =>
+            !row.matched
+        )
+        .map(
+          (row) =>
+            row.record
+        ),
+      null,
+      2
+    );
+  }
+
+  if (
+    outputMode ===
+    "markdown"
+  ) {
+    const lines = [
+      "| Source index | Matched | Value | Reason | Record |",
+      "| ---: | :---: | --- | --- | --- |",
+    ];
+
+    selected.forEach(
+      (row) => {
+        const clean = (
+          value: string
+        ) =>
+          value.replace(
+            /\|/g,
+            "\\|"
+          ).replace(
+            /\r?\n/g,
+            " "
+          );
+
+        lines.push(
+          `| ${row.index} | ${
+            row.matched
+              ? "Yes"
+              : "No"
+          } | ${clean(
+            displayValue(
+              row.found
+                ? row.actualValue
+                : undefined
+            )
+          )} | ${clean(
+            row.reason
+          )} | ${clean(
+            displayValue(
+              row.record
+            )
+          )} |`
+        );
+      }
+    );
+
+    return lines.join("\n");
+  }
+
+  if (outputMode === "csv") {
+    const lines = [
+      [
+        "source_index",
+        "matched",
+        "value",
+        "reason",
+        "record_json",
+      ]
+        .map(csvCell)
+        .join(","),
+    ];
+
+    selected.forEach(
+      (row) => {
+        lines.push(
+          [
+            String(row.index),
+            String(row.matched),
+            displayValue(
+              row.found
+                ? row.actualValue
+                : undefined
+            ),
+            row.reason,
+            displayValue(
+              row.record
+            ),
+          ]
+            .map(csvCell)
+            .join(",")
+        );
+      }
+    );
+
+    return lines.join("\n");
+  }
+
+  if (
+    outputMode ===
+    "checklist"
+  ) {
+    return selected
+      .map(
+        (row) =>
+          `${row.matched ? "[x]" : "[ ]"} #${row.index} · ${displayValue(
+            row.found
+              ? row.actualValue
+              : undefined
+          )} · ${row.reason}`
+      )
+      .join("\n");
+  }
+
+  return JSON.stringify(
+    selected.map((row) => ({
+      sourceIndex:
+        row.index,
+      matched:
+        row.matched,
+      reason:
+        row.reason,
+      actualValue:
+        row.found
+          ? row.actualValue
+          : null,
+      record:
+        row.record,
+    })),
+    null,
+    2
+  );
+}
+
+function sortableValue(
+  value: unknown
+) {
+  if (
+    typeof value ===
+    "number" &&
+    Number.isFinite(value)
+  ) {
+    return {
+      type: "number",
+      value,
+    };
+  }
+
+  if (typeof value === "string") {
+    return {
+      type: "string",
+      value:
+        value.toLowerCase(),
+    };
+  }
+
+  if (typeof value === "boolean") {
+    return {
+      type: "boolean",
+      value:
+        value ? 1 : 0,
+    };
+  }
+
+  if (value === null) {
+    return {
+      type: "null",
+      value: 0,
+    };
+  }
+
+  return {
+    type: "other",
+    value:
+      displayValue(value),
+  };
+}
+
+function sortRows(
+  rows: Row[],
+  sortMode: SortMode
+) {
+  if (sortMode === "original") {
+    return rows.slice();
+  }
+
+  const direction =
+    sortMode === "pathAsc"
+      ? 1
+      : -1;
+
+  return rows
+    .slice()
+    .sort(
+      (left, right) => {
+        if (
+          !left.found &&
+          !right.found
+        ) {
+          return (
+            left.index -
+            right.index
+          );
+        }
+
+        if (!left.found) {
+          return 1;
+        }
+
+        if (!right.found) {
+          return -1;
+        }
+
+        const leftValue =
+          sortableValue(
+            left.actualValue
+          );
+        const rightValue =
+          sortableValue(
+            right.actualValue
+          );
+
+        if (
+          leftValue.type !==
+          rightValue.type
+        ) {
+          const typeOrder = [
+            "number",
+            "string",
+            "boolean",
+            "null",
+            "other",
+          ];
+
+          return (
+            typeOrder.indexOf(
+              leftValue.type
+            ) -
+            typeOrder.indexOf(
+              rightValue.type
+            )
+          ) * direction;
+        }
+
+        if (
+          typeof leftValue.value ===
+            "number" &&
+          typeof rightValue.value ===
+            "number"
+        ) {
+          return (
+            leftValue.value -
+            rightValue.value
+          ) * direction;
+        }
+
+        return String(
+          leftValue.value
+        ).localeCompare(
+          String(
+            rightValue.value
+          )
+        ) * direction;
+      }
+    );
+}
+
+function runFilter(options: {
+  input: string;
+  path: string;
+  operator: Operator;
+  filterValue: string;
+  secondValue: string;
+  valueMode: ValueMode;
+  matchMode: MatchMode;
+  outputMode: OutputMode;
+  sortMode: SortMode;
+  caseSensitive: boolean;
+  trimStrings: boolean;
+  regexFlags: string;
+  limit100: boolean;
+}): FilterResult {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(options.input);
+  } catch (caught) {
+    throw new Error(
+      caught instanceof Error
+        ? `Invalid JSON: ${caught.message}`
+        : "Invalid JSON."
+    );
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error("Top-level JSON value must be an array.");
+  }
+
+  const noValueOperators = [
+    "exists",
+    "missing",
+    "truthy",
+    "falsy",
+  ];
+  const expected =
+    noValueOperators.indexOf(options.operator) !== -1
+      ? null
+      : parseFilterValue(options.filterValue, options.valueMode);
+  const secondExpected =
+    options.operator === "between"
+      ? parseFilterValue(options.secondValue, "number")
+      : null;
+  const rows = parsed.map((record, index) => {
+    const lookup = getByPath(record, options.path);
+    const evaluation = evaluate({
+      actual: lookup.value,
+      found: lookup.found,
+      operator: options.operator,
+      expected,
+      secondExpected,
+      caseSensitive: options.caseSensitive,
+      trimStrings: options.trimStrings,
+      regexFlags: options.regexFlags,
+    });
+
+    return {
+      index,
+      record,
+      found: lookup.found,
+      actualValue: lookup.value,
+      matched: evaluation.matched,
+      reason: `${evaluation.reason}; path resolved as ${lookup.resolution}`,
+    };
+  });
+
+  let selected =
+    options.matchMode === "keep"
+      ? rows.filter(
+          (row) =>
+            row.matched
+        )
+      : rows.filter(
+          (row) =>
+            !row.matched
+        );
+
+  selected = sortRows(
+    selected,
+    options.sortMode
+  );
+
+  const issues: Issue[] = [];
+  const duplicateKeys = duplicateKeysInJsonSource(options.input);
+
+  if (duplicateKeys.length) {
+    issues.push({
+      severity: "warning",
+      title: "Duplicate JSON member names were present in the source",
+      message:
+        `JSON.parse keeps only the last occurrence of a duplicate member name. Earlier values for ${duplicateKeys
+          .slice(0, 8)
+          .join(", ")}${
+          duplicateKeys.length > 8 ? "…" : ""
+        } cannot participate in filtering after parsing.`,
+    });
+  }
+
+  const missingCount = rows.filter((row) => !row.found).length;
+
+  if (missingCount) {
+    issues.push({
+      severity: "note",
+      title: "Some records do not contain the selected path",
+      message:
+        `${missingCount} of ${rows.length} records are missing "${options.path}". Missing is distinct from a present value of null, false, 0 or an empty string.`,
+    });
+  }
+
+  if (
+    rows.some(
+      (row) =>
+        row.found &&
+        typeof row.actualValue === "number" &&
+        Number.isInteger(row.actualValue) &&
+        !Number.isSafeInteger(row.actualValue)
+    )
+  ) {
+    issues.push({
+      severity: "warning",
+      title: "Unsafe JavaScript integer precision",
+      message:
+        "At least one matched-path integer is outside JavaScript's safe-integer range. JSON.parse may already have rounded it; use JSON strings for identifiers where every digit matters.",
+    });
+  }
+
+  if (
+    options.operator === "truthy" ||
+    options.operator === "falsy"
+  ) {
+    issues.push({
+      severity: "note",
+      title: "Truthy/falsy uses JavaScript Boolean semantics",
+      message:
+        "false, null, 0, empty string and NaN-like runtime values are falsy; arrays and objects are truthy even when empty.",
+    });
+  }
+
+  if (options.operator === "regex") {
+    issues.push({
+      severity: "note",
+      title: "Regex is a JavaScript regular expression",
+      message:
+        "Pattern syntax and flags follow the current browser's JavaScript RegExp engine. Regex matching is only applied to JSON string fields.",
+    });
+  }
+
+  if (options.limit100 && selected.length > 100) {
+    issues.push({
+      severity: "note",
+      title: "Output limited to first 100 selected rows",
+      message:
+        `The filter selected ${selected.length} rows; only the first 100 are included in generated output. Counts still reflect the full input.`,
+    });
+    selected = selected.slice(0, 100);
+  }
+
+  if (options.outputMode === "diagnostic") {
+    issues.push({
+      severity: "note",
+      title: "Diagnostic metadata is wrapped outside original records",
+      message:
+        "sourceIndex, matched and reason are stored in wrapper objects rather than injected as _index/_match/_reason fields. Original user records are not overwritten even if they already use those property names.",
+    });
+  }
+
+  return {
+    rows,
+    selected,
+    output: buildOutput(
+      selected,
+      rows,
+      options.outputMode
+    ),
+    issues,
+    inputCount: parsed.length,
+    matchedCount: rows.filter((row) => row.matched).length,
+    missingCount,
+    sourceBytes: new TextEncoder().encode(options.input).length,
+  };
+}
+
 export default function ToolClient() {
   const [input, setInput] = useState("");
-  const [filterKey, setFilterKey] = useState("");
-  const [filterValue, setFilterValue] = useState("");
-  const [secondValue, setSecondValue] = useState("");
+  const [path, setPath] = useState("user.role");
   const [operator, setOperator] = useState<Operator>("equals");
-  const [outputMode, setOutputMode] = useState<OutputMode>("filteredJson");
-  const [valueMode, setValueMode] = useState<ValueMode>("auto");
-  const [matchMode, setMatchMode] = useState<MatchMode>("keepMatches");
+  const [filterValue, setFilterValue] = useState("admin");
+  const [secondValue, setSecondValue] = useState("");
+  const [valueMode, setValueMode] = useState<ValueMode>("string");
+  const [matchMode, setMatchMode] = useState<MatchMode>("keep");
+  const [outputMode, setOutputMode] = useState<OutputMode>("records");
   const [sortMode, setSortMode] = useState<SortMode>("original");
-  const [flattenNestedObjects, setFlattenNestedObjects] = useState(true);
-  const [caseSensitive, setCaseSensitive] = useState(false);
-  const [trimValues, setTrimValues] = useState(true);
-  const [includeOriginalIndex, setIncludeOriginalIndex] = useState(true);
-  const [includeMatchReason, setIncludeMatchReason] = useState(true);
-  const [limitOutputRows, setLimitOutputRows] = useState(false);
-  const [warnMissingKeys, setWarnMissingKeys] = useState(true);
-  const [warnTypeCoercion, setWarnTypeCoercion] = useState(true);
-  const [warnRegexErrors, setWarnRegexErrors] = useState(true);
-  const [result, setResult] = useState<Result | null>(null);
-  const [output, setOutput] = useState("");
+  const [caseSensitive, setCaseSensitive] = useState(true);
+  const [trimStrings, setTrimStrings] = useState(false);
+  const [regexFlags, setRegexFlags] = useState("");
+  const [limit100, setLimit100] = useState(false);
+  const [result, setResult] = useState<FilterResult | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const notes = useMemo(() => (result ? getNotes(result) : []), [result]);
+  const noValue = ["exists", "missing", "truthy", "falsy"].indexOf(operator) !== -1;
 
-  const clearResult = () => {
+  const output = useMemo(
+    () => (result ? result.output : ""),
+    [result]
+  );
+
+  const clear = () => {
     setResult(null);
-    setOutput("");
     setError("");
     setCopied(false);
   };
 
-  const processJson = () => {
+  const run = () => {
     if (!input.trim()) {
-      setError("Please paste a JSON array of records to filter.");
+      setError("Paste a JSON array to filter.");
       setResult(null);
-      setOutput("");
       return;
     }
 
-    if (!filterKey.trim()) {
-      setError("Please enter a key or dot path to filter by.");
-      setResult(null);
-      setOutput("");
-      return;
+    if (!path.trim() && operator !== "truthy" && operator !== "falsy") {
+      setError("Enter a field path, or use the whole-record behavior deliberately.");
     }
 
-    const next = buildResult({
-      input,
-      filterKey,
-      filterValue,
-      secondValue,
-      operator,
-      outputMode,
-      valueMode,
-      matchMode,
-      sortMode,
-      flattenNestedObjects,
-      caseSensitive,
-      trimValues,
-      includeOriginalIndex,
-      includeMatchReason,
-      limitOutputRows,
-      warnMissingKeys,
-      warnTypeCoercion,
-      warnRegexErrors,
-    });
-
-    if (next.output.startsWith("__ERROR__:")) {
-      setError(next.output.replace("__ERROR__:", ""));
-      setResult(next);
-      setOutput("");
+    try {
+      setResult(
+        runFilter({
+          input,
+          path: path.trim(),
+          operator,
+          filterValue,
+          secondValue,
+          valueMode,
+          matchMode,
+          outputMode,
+          sortMode,
+          caseSensitive,
+          trimStrings,
+          regexFlags,
+          limit100,
+        })
+      );
+      setError("");
       setCopied(false);
-      return;
+    } catch (caught) {
+      setResult(null);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to filter this JSON array."
+      );
     }
-
-    setResult(next);
-    setOutput(next.output);
-    setError("");
-    setCopied(false);
-  };
-
-  const copyOutput = async () => {
-    if (!output) return;
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
   };
 
   const loadExample = () => {
-    setInput(sampleInput);
-    setFilterKey("category");
-    setFilterValue("JSON & Data");
-    setSecondValue("");
+    setInput(SAMPLE);
+    setPath("user.role");
     setOperator("equals");
-    setOutputMode("filteredJson");
-    setValueMode("auto");
-    setMatchMode("keepMatches");
+    setFilterValue("admin");
+    setSecondValue("");
+    setValueMode("string");
+    setMatchMode("keep");
+    setOutputMode("records");
     setSortMode("original");
-    setFlattenNestedObjects(true);
-    setCaseSensitive(false);
-    setTrimValues(true);
-    setIncludeOriginalIndex(true);
-    setIncludeMatchReason(true);
-    setLimitOutputRows(false);
-    setWarnMissingKeys(true);
-    setWarnTypeCoercion(true);
-    setWarnRegexErrors(true);
-    clearResult();
+    setCaseSensitive(true);
+    setTrimStrings(false);
+    setRegexFlags("");
+    setLimit100(false);
+    clear();
   };
 
-  const resetAll = () => {
+  const reset = () => {
     setInput("");
-    setFilterKey("");
+    setPath("");
     setFilterValue("");
     setSecondValue("");
     setOperator("equals");
-    setOutputMode("filteredJson");
-    setValueMode("auto");
-    setMatchMode("keepMatches");
+    setValueMode("string");
+    setMatchMode("keep");
+    setOutputMode("records");
     setSortMode("original");
-    setFlattenNestedObjects(true);
-    setCaseSensitive(false);
-    setTrimValues(true);
-    setIncludeOriginalIndex(true);
-    setIncludeMatchReason(true);
-    setLimitOutputRows(false);
-    setWarnMissingKeys(true);
-    setWarnTypeCoercion(true);
-    setWarnRegexErrors(true);
-    clearResult();
+    setCaseSensitive(true);
+    setTrimStrings(false);
+    setRegexFlags("");
+    setLimit100(false);
+    clear();
+  };
+
+  const copy = async () => {
+    if (!output) return;
+
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("The filtered output could not be copied. Select and copy it manually.");
+    }
   };
 
   return (
     <ToolShell
       title="JSON Array Filter Tool"
-      description="Filter JSON array records by key, value, comparison rule, and dot path. Preview matches and export filtered JSON, Markdown, CSV, or review reports locally."
+      description="Filter arrays of JSON values by a literal or dot-path field using type-aware text, number, boolean, null, JSON, regex, existence and range conditions without mutating original records."
     >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-900">JSON Array of Records</label>
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Paste an array of objects from an API response, export, log sample, or small dataset you want to filter.
-            </p>
-          </div>
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="block text-sm font-semibold text-gray-900">
+          JSON array
+        </label>
+        <textarea
+          value={input}
+          onChange={(event: { target: { value: string } }) => {
+            setInput(event.target.value);
+            clear();
+          }}
+          rows={20}
+          placeholder={SAMPLE}
+          spellCheck={false}
+          className="mt-3 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        />
+      </div>
 
-          <textarea
-            value={input}
-            onChange={(event) => {
-              setInput(event.target.value);
-              clearResult();
+      <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Field path
+          </label>
+          <input
+            value={path}
+            onChange={(event: { target: { value: string } }) => {
+              setPath(event.target.value);
+              clear();
             }}
-            placeholder={sampleInput}
+            placeholder="user.role"
             spellCheck={false}
-            className="w-full min-h-[420px] max-h-[520px] resize-y overflow-auto rounded-xl border border-gray-300 p-4 text-sm leading-6 font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            className="mt-2 w-full rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
+          <p className="mt-2 text-xs leading-relaxed text-gray-500">
+            A literal key matching the full text wins before dot traversal. Array
+            indexes such as <code>items.0.id</code> are supported.
+          </p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Filter Settings</h3>
+        <YoryantraSelect
+          label="Condition"
+          value={operator}
+          onChange={(value: string) => {
+            setOperator(value as Operator);
+            clear();
+          }}
+          options={[
+            { label: "Equals", value: "equals" },
+            { label: "Not equals", value: "notEquals" },
+            { label: "Contains", value: "contains" },
+            { label: "Does not contain", value: "notContains" },
+            { label: "Starts with", value: "startsWith" },
+            { label: "Ends with", value: "endsWith" },
+            { label: "Greater than", value: "greaterThan" },
+            { label: "Greater or equal", value: "greaterOrEqual" },
+            { label: "Less than", value: "lessThan" },
+            { label: "Less or equal", value: "lessOrEqual" },
+            { label: "Between (inclusive)", value: "between" },
+            { label: "Exists", value: "exists" },
+            { label: "Missing", value: "missing" },
+            { label: "Truthy", value: "truthy" },
+            { label: "Falsy", value: "falsy" },
+            { label: "Regex", value: "regex" },
+          ]}
+        />
 
-          <div className="mt-4 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Filter Key or Dot Path</label>
-              <input
-                value={filterKey}
-                onChange={(event) => {
-                  setFilterKey(event.target.value);
-                  clearResult();
-                }}
-                placeholder="category, status, user.role"
-                className="mt-2 min-h-[48px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-              />
-            </div>
+        <YoryantraSelect
+          label="Filter value type"
+          value={valueMode}
+          onChange={(value: string) => {
+            setValueMode(value as ValueMode);
+            clear();
+          }}
+          options={[
+            { label: "String", value: "string" },
+            { label: "Number", value: "number" },
+            { label: "Boolean", value: "boolean" },
+            { label: "null", value: "null" },
+            { label: "JSON value/object/array", value: "json" },
+          ]}
+        />
 
-            <YoryantraSelect
-              label="Condition"
-              value={operator}
-              onChange={(value) => {
-                setOperator(value as Operator);
-                clearResult();
+        {!noValue ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Filter value
+            </label>
+            <input
+              value={filterValue}
+              onChange={(event: { target: { value: string } }) => {
+                setFilterValue(event.target.value);
+                clear();
               }}
-              options={[
-                { label: "Equals", value: "equals" },
-                { label: "Does not equal", value: "notEquals" },
-                { label: "Contains", value: "contains" },
-                { label: "Does not contain", value: "notContains" },
-                { label: "Starts with", value: "startsWith" },
-                { label: "Ends with", value: "endsWith" },
-                { label: "Exists", value: "exists" },
-                { label: "Missing", value: "missing" },
-                { label: "Greater than", value: "greaterThan" },
-                { label: "Less than", value: "lessThan" },
-                { label: "Between two numbers", value: "between" },
-                { label: "Matches regex", value: "regex" },
-                { label: "Truthy", value: "truthy" },
-                { label: "Falsy", value: "falsy" },
-              ]}
-            />
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Filter Value</label>
-              <input
-                value={filterValue}
-                onChange={(event) => {
-                  setFilterValue(event.target.value);
-                  clearResult();
-                }}
-                placeholder="JSON & Data, live, 100, true"
-                className="mt-2 min-h-[48px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-              />
-            </div>
-
-            {operator === "between" ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Second Value</label>
-                <input
-                  value={secondValue}
-                  onChange={(event) => {
-                    setSecondValue(event.target.value);
-                    clearResult();
-                  }}
-                  placeholder="200"
-                  className="mt-2 min-h-[48px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-                />
-              </div>
-            ) : null}
-
-            <YoryantraSelect
-              label="Value Type"
-              value={valueMode}
-              onChange={(value) => {
-                setValueMode(value as ValueMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Auto detect", value: "auto" },
-                { label: "Text", value: "string" },
-                { label: "Number", value: "number" },
-                { label: "Boolean", value: "boolean" },
-              ]}
-            />
-
-            <YoryantraSelect
-              label="Output"
-              value={outputMode}
-              onChange={(value) => {
-                setOutputMode(value as OutputMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Filtered JSON", value: "filteredJson" },
-                { label: "Matched values only", value: "matchedOnly" },
-                { label: "Rejected records JSON", value: "rejectedJson" },
-                { label: "Markdown table", value: "markdown" },
-                { label: "CSV", value: "csv" },
-                { label: "JSON report", value: "jsonReport" },
-                { label: "Review checklist", value: "checklist" },
-              ]}
-            />
-
-            <YoryantraSelect
-              label="Result Mode"
-              value={matchMode}
-              onChange={(value) => {
-                setMatchMode(value as MatchMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Keep matching records", value: "keepMatches" },
-                { label: "Keep non-matching records", value: "keepNonMatches" },
-              ]}
-            />
-
-            <YoryantraSelect
-              label="Sort Output"
-              value={sortMode}
-              onChange={(value) => {
-                setSortMode(value as SortMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Keep original order", value: "original" },
-                { label: "Filter key A to Z", value: "keyAsc" },
-                { label: "Filter key Z to A", value: "keyDesc" },
-              ]}
+              spellCheck={false}
+              className="mt-2 w-full rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
             />
           </div>
-        </div>
+        ) : null}
+
+        {operator === "between" ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Second number
+            </label>
+            <input
+              value={secondValue}
+              onChange={(event: { target: { value: string } }) => {
+                setSecondValue(event.target.value);
+                clear();
+              }}
+              spellCheck={false}
+              className="mt-2 w-full rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            />
+          </div>
+        ) : null}
+
+        {operator === "regex" ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Regex flags
+            </label>
+            <input
+              value={regexFlags}
+              onChange={(event: { target: { value: string } }) => {
+                setRegexFlags(event.target.value);
+                clear();
+              }}
+              placeholder="i"
+              spellCheck={false}
+              className="mt-2 w-full rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            />
+          </div>
+        ) : null}
+
+        <YoryantraSelect
+          label="Selection"
+          value={matchMode}
+          onChange={(value: string) => {
+            setMatchMode(value as MatchMode);
+            clear();
+          }}
+          options={[
+            { label: "Keep matching records", value: "keep" },
+            { label: "Exclude matching records", value: "exclude" },
+          ]}
+        />
+
+        <YoryantraSelect
+          label="Output"
+          value={outputMode}
+          onChange={(value: string) => {
+            setOutputMode(value as OutputMode);
+            clear();
+          }}
+          options={[
+            { label: "Filtered original records", value: "records" },
+            { label: "Selected field values only", value: "matchedValues" },
+            { label: "All non-matching records", value: "rejectedRecords" },
+            { label: "Markdown table", value: "markdown" },
+            { label: "CSV review", value: "csv" },
+            { label: "Diagnostic wrapper objects", value: "diagnostic" },
+            { label: "Review checklist", value: "checklist" },
+          ]}
+        />
+
+        <YoryantraSelect
+          label="Sort selected output"
+          value={sortMode}
+          onChange={(value: string) => {
+            setSortMode(value as SortMode);
+            clear();
+          }}
+          options={[
+            { label: "Original array order", value: "original" },
+            { label: "Selected path ascending", value: "pathAsc" },
+            { label: "Selected path descending", value: "pathDesc" },
+          ]}
+        />
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Options</h3>
-        <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
-          <Toggle checked={flattenNestedObjects} onChange={setFlattenNestedObjects} label="Flatten nested objects for dot-path filtering" />
-          <Toggle checked={caseSensitive} onChange={setCaseSensitive} label="Use case-sensitive text matching" />
-          <Toggle checked={trimValues} onChange={setTrimValues} label="Trim text values before matching" />
-          <Toggle checked={includeOriginalIndex} onChange={setIncludeOriginalIndex} label="Include original record index" />
-          <Toggle checked={includeMatchReason} onChange={setIncludeMatchReason} label="Include match reason in reports" />
-          <Toggle checked={limitOutputRows} onChange={setLimitOutputRows} label="Limit output to first 100 records" />
-          <Toggle checked={warnMissingKeys} onChange={setWarnMissingKeys} label="Warn about missing filter keys" />
-          <Toggle checked={warnTypeCoercion} onChange={setWarnTypeCoercion} label="Warn when values are coerced for comparison" />
-          <Toggle checked={warnRegexErrors} onChange={setWarnRegexErrors} label="Warn about invalid regex patterns" />
-        </div>
-        <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          These options help filter pasted JSON data safely while keeping enough context to understand why records matched or did not match.
-        </p>
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <Toggle
+          checked={caseSensitive}
+          onChange={(checked) => {
+            setCaseSensitive(checked);
+            clear();
+          }}
+          title="Case-sensitive strings"
+          text="Only affects string equality/contains/prefix/suffix checks."
+        />
+        <Toggle
+          checked={trimStrings}
+          onChange={(checked) => {
+            setTrimStrings(checked);
+            clear();
+          }}
+          title="Trim strings for comparison"
+          text="Off by default so leading/trailing spaces remain meaningful data."
+        />
+        <Toggle
+          checked={limit100}
+          onChange={(checked) => {
+            setLimit100(checked);
+            clear();
+          }}
+          title="Limit generated output to 100 rows"
+          text="Counts still inspect the full array; useful for large pasted samples."
+        />
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={processJson}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-        >
-          Filter JSON Array
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button type="button" onClick={run} className="yoryantra-btn">
+          Filter Array
         </button>
-        <button
-          type="button"
-          onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
-        >
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
           Load Example
         </button>
-        <button
-          type="button"
-          onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
-        >
+        <button type="button" onClick={reset} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
 
-      {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+      {error ? (
+        <div className="mt-5 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
+      ) : null}
 
       {result ? (
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-8">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <Stat label="Input rows" value={String(result.inputCount)} />
+            <Stat label="Matched" value={String(result.matchedCount)} />
+            <Stat label="Selected output" value={String(result.selected.length)} />
+            <Stat label="Missing path" value={String(result.missingCount)} />
+            <Stat label="UTF-8 bytes" value={result.sourceBytes.toLocaleString()} />
+          </div>
+
+          {result.issues.length ? (
+            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+              <h3 className="font-semibold text-yellow-900">Filter review</h3>
+              <div className="mt-4 space-y-3">
+                {result.issues.map((issue, index) => (
+                  <div
+                    key={`${issue.title}-${index}`}
+                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                  >
+                    <strong>{issue.title}</strong>
+                    <p className="mt-1">{issue.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-                <p className="mt-1 text-sm text-gray-500">Filtered JSON, rejected records, table output, report, or checklist.</p>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Filtered output
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Records mode returns original records unchanged; diagnostic
+                  metadata is kept outside each record.
+                </p>
               </div>
               <button
                 type="button"
-                onClick={copyOutput}
-                disabled={!output}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={copy}
+                className="yoryantra-btn-outline whitespace-nowrap"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
             </div>
 
-            <pre className="mt-4 max-h-[520px] overflow-auto rounded-xl bg-gray-950 p-4 text-sm leading-6 text-gray-100 whitespace-pre-wrap break-words">
+            <pre className="yoryantra-output mt-4 min-h-[340px] max-h-[720px] overflow-auto whitespace-pre-wrap break-words font-mono text-sm">
               {output}
             </pre>
           </div>
-
-          <div className="space-y-4">
-            <StatCard label="Records" value={String(result.recordCount)} />
-            <StatCard label="Matched" value={String(result.matchedCount)} />
-            <StatCard label="Rejected" value={String(result.rejectedCount)} />
-            <StatCard label="Output size" value={`${result.outputLength.toLocaleString()} chars`} />
-          </div>
         </div>
-      ) : null}
+      ) : (
+        <pre className="yoryantra-output mt-8 min-h-[300px] whitespace-pre-wrap break-words text-sm">
+          Matched counts, missing-path information, diagnostics and filtered JSON
+          output will appear here.
+        </pre>
+      )}
 
-      {notes.length ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
-          <div className="mt-4 space-y-3">
-            {notes.map((note) => (
-              <div key={`${note.title}-${note.message}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{note.message}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        JSON parsing and filtering happen on the pasted array in your browser.
+        The tool does not upload the dataset or modify the original input.
+        Site-wide analytics or advertising scripts, if enabled, are separate
+        from this filtering operation.
+      </div>
 
-      {result?.rows.length ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Filter Preview</h3>
-          <p className="mt-1 text-sm text-gray-500">Showing match status, selected value, and reason for the first 100 records.</p>
-          <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50 text-left text-gray-600">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Index</th>
-                  <th className="px-4 py-3 font-semibold">Matched</th>
-                  <th className="px-4 py-3 font-semibold">Value</th>
-                  <th className="px-4 py-3 font-semibold">Reason</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-gray-700">
-                {result.rows.slice(0, 100).map((row) => (
-                  <tr key={row.index}>
-                    <td className="px-4 py-3">{row.index}</td>
-                    <td className="px-4 py-3">{row.matched ? "Yes" : "No"}</td>
-                    <td className="px-4 py-3 font-mono break-words">{formatValueForDisplay(row.value)}</td>
-                    <td className="px-4 py-3">{row.reason}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {result.rows.length > 100 ? (
-            <p className="mt-3 text-sm text-gray-500">Showing the first 100 records to keep the preview readable.</p>
-          ) : null}
-        </div>
-      ) : null}
-
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Filter the Records You Need Without Rewriting the Data
+            Filtering Is Easier to Trust When Missing Is Not Quietly Turned Into null
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            API responses and exported JSON often contain dozens or hundreds of
-            records when you only need a small subset. This tool lets you filter
-            an array by a field or nested dot path, inspect why each record
-            matched, and keep the original record structure in the result.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            These records are different: one has{" "}
+            <code>{"{ \"status\": null }"}</code>, another has{" "}
+            <code>{"{ \"status\": \"\" }"}</code>, and a third has no status
+            member at all. Converting all three to one falsy value hides useful
+            information.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Nested objects can be flattened for lookup, but the filtered output
-            still preserves the original nested JSON. That matters when you want
-            to test a condition such as <code>user.role</code> without turning
-            the returned record into a different shape.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The dot path in this tool is a small convenience syntax, not
-            JSONPath or JSON Pointer. A path such as <code>user.role</code> walks
-            nested object properties; if a record has a literal key named
-            <code>user.role</code>, the tool checks that direct key first. Use a
-            JSONPath or JSON Pointer tool when you need those standards and their
-            full selector or escaping rules.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The path resolver tracks whether a property actually exists, which
+            lets Exists/Missing filters and diagnostics distinguish absence from
+            an explicitly present value.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Text, Number, Boolean, Missing-Field, and Regex Checks
+        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
+            user.role Is a Convenience Path, Not JSONPath
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use text operators for exact or partial matches, numeric operators
-            for ranges and thresholds, and Exists or Missing when the presence
-            of a field is the thing you are investigating. Truthy and Falsy are
-            useful for flags, but JavaScript truthiness also treats values such
-            as <code>0</code>, an empty string, <code>null</code>, and
-            <code>false</code> as falsy.
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            The field path syntax on this page is intentionally small.{" "}
+            <code>user.role</code> walks object properties and{" "}
+            <code>items.0.id</code> can walk an array index. It does not
+            implement JSONPath filters, recursive descent or JSON Pointer
+            escaping.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Regex matching is helpful for quick inspection, but a regular
-            expression is not the same as a schema or type check. If the data
-            mixes strings and numbers, review the preview before relying on an
-            auto-coerced comparison.
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            If an object literally has a key named <code>user.role</code>, that
+            direct key wins before nested traversal. The sample includes that
+            case so the rule is visible rather than hidden.
           </p>
         </div>
 
-        <div>
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Example: Filter a Nested API Response
+            Numeric Comparisons Do Not Auto-Coerce "10" Into 10
           </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`Filter key: user.role
-Condition: equals
-Value: admin
-
-Input record:
-{
-  "id": 17,
-  "user": {
-    "role": "admin",
-    "name": "Asha"
-  }
-}
-
-Result:
-The record matches, and the original nested "user" object is kept in the output.`}</pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Keep Browser Filtering for Review-Sized Data
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This is a review and debugging tool for pasted JSON, API samples,
-            exports, fixtures, and test data. For very large datasets, repeated
-            filters, or production data pipelines, a local script, jq, database
-            query, or application-level filter is usually easier to reproduce
-            and audit.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A JSON string <code>"10"</code> and JSON number <code>10</code> are
+            different values. Automatic numeric coercion can make messy exports
+            appear cleaner than they are and can silently accept malformed
+            records.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Greater/less/between conditions therefore require an actual finite
+            JSON number in the record. If the API returns numbers as strings,
+            that is useful information to fix or normalize deliberately.
           </p>
         </div>
 
-        <div>
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            What the Tool Does Not Change
+            String Operations Stay String Operations
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Filtering does not validate the records against a JSON Schema, fix
-            malformed values, or infer missing data. It only evaluates the
-            condition you choose. Original record indexes and match reasons are
-            optional annotations in generated reports; disable them when you
-            need clean records only.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Contains, starts-with, ends-with and regex are only applied to JSON
+            string fields. An object is not quietly converted to{" "}
+            <code>[object Object]</code>, and the number 123 is not treated like
+            the text "123".
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Case-insensitivity and trimming are optional because both can change
+            data semantics. A customer code with a leading space may be bad data,
+            not something a filter should hide.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
+        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h2 className="text-xl font-semibold text-red-900">
+            Diagnostic Metadata Must Not Overwrite User Fields
           </h2>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            Earlier filter designs often annotated matching objects with fields
+            such as <code>_index</code>, <code>_match</code> or{" "}
+            <code>_reason</code>. If the source record already used one of those
+            names, diagnostic output could overwrite real application data.
+          </p>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            This version never injects metadata into original records.
+            Diagnostic mode wraps each record inside a separate object containing
+            sourceIndex, matched, reason and actualValue.
+          </p>
+        </div>
 
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Duplicate JSON Keys Are Already Lost by the Time Normal Filtering Starts
+          </h2>
+          <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`{
+  "role": "editor",
+  "role": "admin"
+}`}</pre>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JavaScript JSON parsing keeps the later member. A filter cannot
+            recover the earlier value from the parsed object. The tool scans the
+            source before filtering and warns when duplicate member names appear,
+            so a match is not mistaken for evidence that the original source was
+            unambiguous.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Browser Filtering Is Best for Review-Sized Data
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Pasted arrays are useful for API samples, fixtures, exported
+            records, debugging and one-off investigation. Large production
+            datasets are usually better handled with jq, a local script,
+            database query or application-level pipeline where memory use and
+            filter logic can be versioned and reproduced.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The 100-row output limit can keep a browser result manageable while
+            still evaluating full counts. It is an output convenience, not
+            pagination or streaming processing.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/json-array-filter-tool" />
         </div>
       </section>
@@ -613,402 +1661,50 @@ The record matches, and the original nested "user" object is kept in the output.
   );
 }
 
-function buildResult(options: {
-  input: string;
-  filterKey: string;
-  filterValue: string;
-  secondValue: string;
-  operator: Operator;
-  outputMode: OutputMode;
-  valueMode: ValueMode;
-  matchMode: MatchMode;
-  sortMode: SortMode;
-  flattenNestedObjects: boolean;
-  caseSensitive: boolean;
-  trimValues: boolean;
-  includeOriginalIndex: boolean;
-  includeMatchReason: boolean;
-  limitOutputRows: boolean;
-  warnMissingKeys: boolean;
-  warnTypeCoercion: boolean;
-  warnRegexErrors: boolean;
-}): Result {
-  let parsed: unknown;
-
-  try {
-    parsed = JSON.parse(options.input);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid JSON input.";
-    return emptyResult(`__ERROR__:The input is not valid JSON: ${message}`, options.input.length);
-  }
-
-  if (!Array.isArray(parsed)) {
-    return emptyResult("__ERROR__:Please paste a JSON array. This tool filters arrays of records.", options.input.length);
-  }
-
-  const needsFilterValue = !["exists", "missing", "truthy", "falsy"].includes(options.operator);
-  const usesNumericComparison = ["greaterThan", "lessThan", "between"].includes(options.operator);
-
-  if (needsFilterValue && options.valueMode === "number" && !isFiniteNumberText(options.filterValue)) {
-    return emptyResult("__ERROR__:Enter a valid number for the filter value.", options.input.length);
-  }
-
-  if (usesNumericComparison && !isFiniteNumberText(options.filterValue)) {
-    return emptyResult("__ERROR__:Numeric comparisons need a valid numeric filter value.", options.input.length);
-  }
-
-  if (options.operator === "between" && !isFiniteNumberText(options.secondValue)) {
-    return emptyResult("__ERROR__:Between needs a valid second numeric value.", options.input.length);
-  }
-
-  if (
-    needsFilterValue &&
-    options.valueMode === "boolean" &&
-    !/^(true|false)$/i.test(options.filterValue.trim())
-  ) {
-    return emptyResult("__ERROR__:Boolean filter values must be true or false.", options.input.length);
-  }
-
-  const rows = parsed.map((record, index) => {
-    const lookupRecord = options.flattenNestedObjects ? flattenRecord(record) : record;
-    return evaluateRecord(lookupRecord, record, index, options);
-  });
-  const selected = options.matchMode === "keepMatches" ? rows.filter((row) => row.matched) : rows.filter((row) => !row.matched);
-  const sorted = sortRows(selected, options);
-  const limited = options.limitOutputRows ? sorted.slice(0, 100) : sorted;
-  const issues = buildIssues(rows, options);
-  const output = formatOutput(limited, rows, issues, options);
-
-  return {
-    output,
-    rows,
-    issues,
-    inputLength: options.input.length,
-    recordCount: rows.length,
-    matchedCount: rows.filter((row) => row.matched).length,
-    rejectedCount: rows.filter((row) => !row.matched).length,
-    outputLength: output.length,
-  };
-}
-
-function emptyResult(output: string, inputLength: number): Result {
-  return {
-    output,
-    rows: [],
-    issues: [],
-    inputLength,
-    recordCount: 0,
-    matchedCount: 0,
-    rejectedCount: 0,
-    outputLength: 0,
-  };
-}
-
-function evaluateRecord(lookupRecord: unknown, originalRecord: unknown, index: number, options: {
-  filterKey: string;
-  filterValue: string;
-  secondValue: string;
-  operator: Operator;
-  valueMode: ValueMode;
-  caseSensitive: boolean;
-  trimValues: boolean;
+function Toggle({
+  checked,
+  onChange,
+  title,
+  text,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  title: string;
+  text: string;
 }) {
-  const value = readPath(lookupRecord, options.filterKey);
-  const exists = value !== undefined;
-  const expected = coerceValue(options.filterValue, options.valueMode);
-  const second = coerceValue(options.secondValue, options.valueMode);
-
-  let matched = false;
-  let reason = "";
-
-  try {
-    if (options.operator === "exists") {
-      matched = exists;
-      reason = exists ? "Key exists" : "Key is missing";
-    } else if (options.operator === "missing") {
-      matched = !exists;
-      reason = matched ? "Key is missing" : "Key exists";
-    } else if (options.operator === "truthy") {
-      matched = Boolean(value);
-      reason = matched ? "Value is truthy" : "Value is not truthy";
-    } else if (options.operator === "falsy") {
-      matched = !value;
-      reason = matched ? "Value is falsy" : "Value is not falsy";
-    } else if (options.operator === "greaterThan") {
-      matched = Number(value) > Number(expected);
-      reason = matched ? "Number is greater than filter value" : "Number is not greater than filter value";
-    } else if (options.operator === "lessThan") {
-      matched = Number(value) < Number(expected);
-      reason = matched ? "Number is less than filter value" : "Number is not less than filter value";
-    } else if (options.operator === "between") {
-      const num = Number(value);
-      const low = Number(expected);
-      const high = Number(second);
-      matched = num >= Math.min(low, high) && num <= Math.max(low, high);
-      reason = matched ? "Number is inside range" : "Number is outside range";
-    } else if (options.operator === "regex") {
-      const regex = new RegExp(String(options.filterValue), options.caseSensitive ? "" : "i");
-      matched = regex.test(normalizeText(value, options));
-      reason = matched ? "Value matches regex" : "Value does not match regex";
-    } else {
-      const actualText = normalizeText(value, options);
-      const expectedText = normalizeText(expected, options);
-
-      if (options.operator === "equals") matched = actualText === expectedText;
-      if (options.operator === "notEquals") matched = actualText !== expectedText;
-      if (options.operator === "contains") matched = actualText.includes(expectedText);
-      if (options.operator === "notContains") matched = !actualText.includes(expectedText);
-      if (options.operator === "startsWith") matched = actualText.startsWith(expectedText);
-      if (options.operator === "endsWith") matched = actualText.endsWith(expectedText);
-
-      reason = matched ? "Condition matched" : "Condition did not match";
-    }
-  } catch (error) {
-    matched = false;
-    reason = error instanceof Error ? error.message : "Comparison failed";
-  }
-
-  return {
-    index,
-    matched,
-    value,
-    reason,
-    record: originalRecord,
-  };
-}
-
-function normalizeText(value: unknown, options: { caseSensitive: boolean; trimValues: boolean }) {
-  let text = value === undefined || value === null ? "" : typeof value === "string" ? value : JSON.stringify(value);
-  if (options.trimValues) text = text.trim();
-  if (!options.caseSensitive) text = text.toLowerCase();
-  return text;
-}
-
-function isFiniteNumberText(value: string) {
-  const trimmed = value.trim();
-  return trimmed !== "" && Number.isFinite(Number(trimmed));
-}
-
-function coerceValue(value: string, mode: ValueMode): unknown {
-  const trimmed = value.trim();
-
-  if (mode === "string") return value;
-  if (mode === "number") return Number(trimmed);
-  if (mode === "boolean") return trimmed.toLowerCase() === "true";
-
-  if (trimmed === "true") return true;
-  if (trimmed === "false") return false;
-  if (trimmed === "null") return null;
-  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
-  return value;
-}
-
-function sortRows(rows: FilterResult[], options: { sortMode: SortMode }) {
-  if (options.sortMode === "original") return rows;
-  return [...rows].sort((a, b) => {
-    const left = formatValueForDisplay(a.value).toLowerCase();
-    const right = formatValueForDisplay(b.value).toLowerCase();
-    return options.sortMode === "keyAsc" ? left.localeCompare(right) : right.localeCompare(left);
-  });
-}
-
-function formatOutput(selectedRows: FilterResult[], allRows: FilterResult[], issues: Issue[], options: {
-  outputMode: OutputMode;
-  includeOriginalIndex: boolean;
-  includeMatchReason: boolean;
-}) {
-  const selectedRecords = selectedRows.map((row) => {
-    if (!options.includeOriginalIndex && !options.includeMatchReason) return row.record;
-    return {
-      ...(typeof row.record === "object" && row.record !== null && !Array.isArray(row.record) ? row.record as Record<string, unknown> : { value: row.record }),
-      ...(options.includeOriginalIndex ? { _index: row.index } : {}),
-      ...(options.includeMatchReason ? { _match: row.matched, _reason: row.reason } : {}),
-    };
-  });
-
-  if (options.outputMode === "filteredJson") return JSON.stringify(selectedRecords, null, 2);
-  if (options.outputMode === "rejectedJson") return JSON.stringify(allRows.filter((row) => !row.matched).map((row) => row.record), null, 2);
-  if (options.outputMode === "matchedOnly") return selectedRows.map((row) => formatValueForDisplay(row.value)).join("\n");
-
-  if (options.outputMode === "jsonReport") {
-    return JSON.stringify({
-      totalRecords: allRows.length,
-      matchedRecords: allRows.filter((row) => row.matched).length,
-      rejectedRecords: allRows.filter((row) => !row.matched).length,
-      selectedRecords,
-      issues,
-    }, null, 2);
-  }
-
-  if (options.outputMode === "markdown") {
-    const lines = [
-      "| Index | Matched | Value | Reason |",
-      "|---:|---|---|---|",
-      ...allRows.map((row) => `| ${row.index} | ${row.matched ? "yes" : "no"} | ${escapeMarkdown(formatValueForDisplay(row.value))} | ${escapeMarkdown(row.reason)} |`),
-    ];
-    if (issues.length) {
-      lines.push("", "Notes:");
-      issues.forEach((issue) => lines.push(`- ${issue.title}: ${issue.message}`));
-    }
-    return lines.join("\n");
-  }
-
-  if (options.outputMode === "csv") {
-    const rows = [["index", "matched", "value", "reason"]];
-    allRows.forEach((row) => rows.push([String(row.index), row.matched ? "true" : "false", formatValueForDisplay(row.value), row.reason]));
-    return rows.map((row) => row.map(csvCell).join(",")).join("\n");
-  }
-
-  const lines = [
-    "# JSON Array Filter Checklist",
-    "",
-    `- [${allRows.length ? "x" : " "}] Parsed ${allRows.length} record${allRows.length === 1 ? "" : "s"}.`,
-    `- [${selectedRows.length ? "x" : " "}] Selected ${selectedRows.length} record${selectedRows.length === 1 ? "" : "s"} for output.`,
-    `- [${issues.every((issue) => issue.severity !== "high") ? "x" : " "}] No high-severity filter issues found.`,
-  ];
-
-  if (issues.length) {
-    lines.push("", "Notes:");
-    issues.forEach((issue) => lines.push(`- ${issue.title}: ${issue.message}`));
-  }
-
-  return lines.join("\n");
-}
-
-function buildIssues(rows: FilterResult[], options: {
-  filterKey: string;
-  operator: Operator;
-  valueMode: ValueMode;
-  filterValue: string;
-  warnMissingKeys: boolean;
-  warnTypeCoercion: boolean;
-  warnRegexErrors: boolean;
-}) {
-  const issues: Issue[] = [];
-
-  if (options.warnMissingKeys) {
-    const missing = rows.filter((row) => row.value === undefined).length;
-    if (missing) {
-      issues.push({
-        severity: "warning",
-        title: "Missing filter keys",
-        message: `${missing} record${missing === 1 ? "" : "s"} do not contain the selected key or dot path.`,
-      });
-    }
-  }
-
-  if (options.warnTypeCoercion && options.valueMode === "auto" && ["greaterThan", "lessThan", "between"].includes(options.operator)) {
-    issues.push({
-      severity: "info",
-      title: "Numeric comparison",
-      message: "Numeric comparisons coerce values with Number(). Check the preview if your data contains mixed text and numbers.",
-    });
-  }
-
-  if (options.warnRegexErrors && options.operator === "regex") {
-    try {
-      new RegExp(options.filterValue);
-    } catch {
-      issues.push({
-        severity: "high",
-        title: "Invalid regex pattern",
-        message: "The regex pattern could not be created. Check escaping and pattern syntax.",
-      });
-    }
-  }
-
-  if (rows.length > 1000) {
-    issues.push({
-      severity: "info",
-      title: "Large JSON array",
-      message: "This tool is best for quick browser-side filtering. Very large datasets may be better handled in a local script or database.",
-    });
-  }
-
-  return issues;
-}
-
-function getNotes(result: Result): Issue[] {
-  const notes = [...result.issues];
-
-  if (result.outputLength > 50000) {
-    notes.push({
-      severity: "info",
-      title: "Large output",
-      message: "The generated output is large. Consider limiting rows or exporting CSV for easier review.",
-    });
-  }
-
-  return notes;
-}
-
-function flattenRecord(value: unknown, prefix = ""): Record<string, unknown> {
-  const output: Record<string, unknown> = {};
-
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    if (prefix) output[prefix] = value;
-    return output;
-  }
-
-  Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (item && typeof item === "object" && !Array.isArray(item)) {
-      Object.assign(output, flattenRecord(item, path));
-    } else {
-      output[path] = item;
-    }
-  });
-
-  return output;
-}
-
-function readPath(value: unknown, path: string): unknown {
-  if (!path.trim()) return undefined;
-  const direct = value && typeof value === "object" ? (value as Record<string, unknown>)[path] : undefined;
-  if (direct !== undefined) return direct;
-
-  return path.split(".").reduce<unknown>((current, part) => {
-    if (current && typeof current === "object" && Object.prototype.hasOwnProperty.call(current as Record<string, unknown>, part)) {
-      return (current as Record<string, unknown>)[part];
-    }
-    return undefined;
-  }, value);
-}
-
-function formatValueForDisplay(value: unknown) {
-  if (value === undefined) return "(missing)";
-  if (value === null) return "null";
-  if (typeof value === "string") return value;
-  return JSON.stringify(value);
-}
-
-function escapeMarkdown(value: string) {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
-}
-
-function csvCell(value: string) {
-  return `"${value.replace(/"/g, '""')}"`;
-}
-
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
   return (
-    <label className="flex items-center gap-3 text-sm text-gray-700">
+    <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
       <input
         type="checkbox"
         checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
+        onChange={(event: { target: { checked: boolean } }) =>
+          onChange(event.target.checked)
+        }
+        className="mt-1"
       />
-      <span>{label}</span>
+      <span>
+        <strong className="text-gray-900">{title}</strong>
+        <span className="mt-1 block text-gray-500">{text}</span>
+      </span>
     </label>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+      <div className="mt-2 break-words text-lg font-semibold text-gray-900">
+        {value}
+      </div>
     </div>
   );
 }
