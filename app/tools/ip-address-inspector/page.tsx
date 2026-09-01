@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "IP Address Inspector – Validate IPv4 & IPv6 | Yoryantra",
+export const metadata: Metadata = {
+  title: "IP Address Inspector | Validate IPv4 & IPv6 | Yoryantra",
   description:
-    "Validate IPv4 and IPv6 addresses, normalize IPv6 notation, and identify common private, loopback, link-local, documentation, multicast, and special ranges.",
+    "Validate strict IPv4 and IPv6 syntax, normalize IPv6 notation, inspect IPv4-mapped addresses and zone identifiers, and classify common special-purpose ranges.",
   alternates: {
     canonical: "https://yoryantra.com/tools/ip-address-inspector",
   },
   openGraph: {
-    title: "IP Address Inspector – Validate IPv4 & IPv6 | Yoryantra",
+    title: "IP Address Inspector | Validate IPv4 & IPv6 | Yoryantra",
     description:
-      "Validate IPv4 and IPv6 syntax and inspect common special-purpose address ranges.",
+      "Validate IP address syntax, normalize IPv6, and inspect common special-purpose IPv4 and IPv6 ranges.",
     url: "https://yoryantra.com/tools/ip-address-inspector",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "IP Address Inspector – Validate IPv4 & IPv6 | Yoryantra",
+    card: "summary",
+    title: "IP Address Inspector | Yoryantra",
     description:
-      "Validate IP address syntax and recognize common IPv4 and IPv6 special-purpose ranges.",
+      "Validate IPv4 and IPv6 syntax and classify common special-purpose address ranges.",
   },
 };
 

@@ -11,6 +11,7 @@ type ParsedIPv4 = {
 
 type ParsedIPv6 = {
   normalized: string;
+  expanded: string;
   groups: number[];
   bytes: number[];
 };
@@ -20,44 +21,80 @@ type RangeInfo = {
   bits: number;
   label: string;
   note: string;
+  globallyReachable?: "Yes" | "No" | "Context-dependent";
 };
 
 const IPV4_RANGES: RangeInfo[] = [
-  { prefix: "0.0.0.0", bits: 32, label: "Unspecified / this host", note: "Special address; not a normal remote host address." },
-  { prefix: "255.255.255.255", bits: 32, label: "Limited broadcast", note: "IPv4 limited broadcast address." },
-  { prefix: "10.0.0.0", bits: 8, label: "Private-use (RFC 1918)", note: "Private address space used inside local networks." },
-  { prefix: "100.64.0.0", bits: 10, label: "Shared address space", note: "Shared space commonly used for carrier-grade NAT; it is not RFC 1918 private space." },
-  { prefix: "127.0.0.0", bits: 8, label: "Loopback", note: "Refers back to the local host." },
-  { prefix: "169.254.0.0", bits: 16, label: "Link-local", note: "Valid only on the local link; not normally routed." },
-  { prefix: "172.16.0.0", bits: 12, label: "Private-use (RFC 1918)", note: "Private address space used inside local networks." },
-  { prefix: "192.0.0.0", bits: 24, label: "IETF protocol assignments", note: "Special-purpose protocol assignment block; more-specific addresses can have their own behavior." },
-  { prefix: "192.0.2.0", bits: 24, label: "Documentation (TEST-NET-1)", note: "Reserved for examples and documentation." },
-  { prefix: "192.168.0.0", bits: 16, label: "Private-use (RFC 1918)", note: "Private address space commonly used on local networks." },
-  { prefix: "198.18.0.0", bits: 15, label: "Benchmarking", note: "Reserved for network device benchmark testing." },
-  { prefix: "198.51.100.0", bits: 24, label: "Documentation (TEST-NET-2)", note: "Reserved for examples and documentation." },
-  { prefix: "203.0.113.0", bits: 24, label: "Documentation (TEST-NET-3)", note: "Reserved for examples and documentation." },
-  { prefix: "224.0.0.0", bits: 4, label: "Multicast", note: "IPv4 multicast address space, not ordinary unicast host addressing." },
-  { prefix: "240.0.0.0", bits: 4, label: "Reserved", note: "Reserved address space." },
+  { prefix: "0.0.0.0", bits: 32, label: "This host on this network", note: "The all-zero IPv4 address is not a normal remote-host address.", globallyReachable: "No" },
+  { prefix: "192.0.0.8", bits: 32, label: "IPv4 dummy address", note: "A special-purpose dummy address.", globallyReachable: "No" },
+  { prefix: "192.0.0.9", bits: 32, label: "Port Control Protocol Anycast", note: "A globally reachable anycast address assigned for PCP.", globallyReachable: "Yes" },
+  { prefix: "192.0.0.10", bits: 32, label: "TURN Anycast", note: "A globally reachable anycast address assigned for Traversal Using Relays around NAT.", globallyReachable: "Yes" },
+  { prefix: "192.0.0.170", bits: 32, label: "NAT64/DNS64 Discovery", note: "One of the IPv4 addresses used for NAT64/DNS64 discovery.", globallyReachable: "No" },
+  { prefix: "192.0.0.171", bits: 32, label: "NAT64/DNS64 Discovery", note: "One of the IPv4 addresses used for NAT64/DNS64 discovery.", globallyReachable: "No" },
+  { prefix: "192.88.99.2", bits: 32, label: "6a44 Relay Anycast", note: "Special-purpose anycast address for the 6a44 mechanism.", globallyReachable: "No" },
+  { prefix: "255.255.255.255", bits: 32, label: "Limited broadcast", note: "IPv4 limited broadcast address.", globallyReachable: "No" },
+
+  { prefix: "192.0.0.0", bits: 29, label: "IPv4 Service Continuity Prefix", note: "A more-specific special-purpose block inside 192.0.0.0/24.", globallyReachable: "No" },
+
+  { prefix: "100.64.0.0", bits: 10, label: "Shared Address Space", note: "Shared space commonly used for carrier-grade NAT. It is not RFC 1918 private-use space.", globallyReachable: "No" },
+  { prefix: "172.16.0.0", bits: 12, label: "Private-Use (RFC 1918)", note: "Private address space used inside local networks.", globallyReachable: "No" },
+  { prefix: "198.18.0.0", bits: 15, label: "Benchmarking", note: "Reserved for network-device benchmark testing.", globallyReachable: "No" },
+
+  { prefix: "169.254.0.0", bits: 16, label: "Link Local", note: "Valid on the local link and not normally forwarded by routers.", globallyReachable: "No" },
+  { prefix: "192.168.0.0", bits: 16, label: "Private-Use (RFC 1918)", note: "Private address space commonly used on local networks.", globallyReachable: "No" },
+
+  { prefix: "192.0.0.0", bits: 24, label: "IETF Protocol Assignments", note: "A special-purpose protocol-assignment block. More-specific entries inside it can have different behavior.", globallyReachable: "No" },
+  { prefix: "192.0.2.0", bits: 24, label: "Documentation (TEST-NET-1)", note: "Reserved for documentation and examples.", globallyReachable: "No" },
+  { prefix: "192.31.196.0", bits: 24, label: "AS112-v4", note: "Special-purpose address space for AS112 service.", globallyReachable: "Yes" },
+  { prefix: "192.52.193.0", bits: 24, label: "AMT", note: "Automatic Multicast Tunneling special-purpose block.", globallyReachable: "Yes" },
+  { prefix: "192.88.99.0", bits: 24, label: "Deprecated 6to4 Relay Anycast", note: "Historical 6to4 relay anycast block. The general allocation was deprecated; a more-specific address still has a separate assignment.", globallyReachable: "Context-dependent" },
+  { prefix: "192.175.48.0", bits: 24, label: "Direct Delegation AS112 Service", note: "Special-purpose address space for direct-delegation AS112 service.", globallyReachable: "Yes" },
+  { prefix: "198.51.100.0", bits: 24, label: "Documentation (TEST-NET-2)", note: "Reserved for documentation and examples.", globallyReachable: "No" },
+  { prefix: "203.0.113.0", bits: 24, label: "Documentation (TEST-NET-3)", note: "Reserved for documentation and examples.", globallyReachable: "No" },
+
+  { prefix: "0.0.0.0", bits: 8, label: "This network", note: "Special-purpose IPv4 block associated with this network. More-specific entries can have different meaning.", globallyReachable: "No" },
+  { prefix: "10.0.0.0", bits: 8, label: "Private-Use (RFC 1918)", note: "Private address space used inside local networks.", globallyReachable: "No" },
+  { prefix: "127.0.0.0", bits: 8, label: "Loopback", note: "Refers back to the local host.", globallyReachable: "No" },
+
+  { prefix: "224.0.0.0", bits: 4, label: "IPv4 multicast", note: "IPv4 multicast address space rather than ordinary unicast host addressing.", globallyReachable: "Context-dependent" },
+  { prefix: "240.0.0.0", bits: 4, label: "Reserved", note: "IPv4 address space reserved by the protocol.", globallyReachable: "No" },
 ];
 
 const IPV6_RANGES: RangeInfo[] = [
-  { prefix: "::", bits: 128, label: "Unspecified", note: "Represents the absence of a specific IPv6 address." },
-  { prefix: "::1", bits: 128, label: "Loopback", note: "Refers back to the local host." },
-  { prefix: "::ffff:0:0", bits: 96, label: "IPv4-mapped IPv6", note: "Carries an IPv4 address in the final 32 bits." },
-  { prefix: "64:ff9b::", bits: 96, label: "IPv4/IPv6 translation", note: "Well-known translation prefix used by NAT64 mechanisms." },
-  { prefix: "64:ff9b:1::", bits: 48, label: "IPv4/IPv6 translation", note: "Local-use translation prefix." },
-  { prefix: "100::", bits: 64, label: "Discard-only", note: "Special discard-only IPv6 prefix." },
-  { prefix: "100:0:0:1::", bits: 64, label: "Dummy IPv6 prefix", note: "Special-purpose dummy prefix." },
-  { prefix: "2001::", bits: 32, label: "Teredo", note: "IPv6 transition mechanism prefix." },
-  { prefix: "2001:2::", bits: 48, label: "Benchmarking", note: "Reserved for IPv6 benchmarking." },
-  { prefix: "2001:20::", bits: 28, label: "ORCHIDv2", note: "Non-routed cryptographic identifier space." },
-  { prefix: "2001:db8::", bits: 32, label: "Documentation", note: "Reserved for IPv6 examples and documentation." },
-  { prefix: "2002::", bits: 16, label: "6to4", note: "IPv6 transition-mechanism prefix." },
-  { prefix: "3fff::", bits: 20, label: "Documentation", note: "Reserved for IPv6 documentation and examples." },
-  { prefix: "5f00::", bits: 16, label: "Segment Routing SIDs", note: "Special-purpose prefix for SRv6 segment identifiers." },
-  { prefix: "fc00::", bits: 7, label: "Unique-local", note: "Locally assigned IPv6 space; it is not intended for global routing." },
-  { prefix: "fe80::", bits: 10, label: "Link-local unicast", note: "Valid on the local link and commonly paired with an interface zone identifier." },
-  { prefix: "ff00::", bits: 8, label: "Multicast", note: "IPv6 multicast address space, not ordinary unicast host addressing." },
+  { prefix: "::", bits: 128, label: "Unspecified Address", note: "Represents the absence of a specific IPv6 address.", globallyReachable: "No" },
+  { prefix: "::1", bits: 128, label: "Loopback Address", note: "Refers back to the local host.", globallyReachable: "No" },
+  { prefix: "2001:1::1", bits: 128, label: "Port Control Protocol Anycast", note: "Special-purpose globally reachable PCP anycast address.", globallyReachable: "Yes" },
+  { prefix: "2001:1::2", bits: 128, label: "TURN Anycast", note: "Special-purpose globally reachable TURN anycast address.", globallyReachable: "Yes" },
+  { prefix: "2001:1::3", bits: 128, label: "DNS-SD Service Registration Protocol Anycast", note: "Special-purpose globally reachable DNS-SD service-registration anycast address.", globallyReachable: "Yes" },
+
+  { prefix: "::ffff:0:0", bits: 96, label: "IPv4-mapped IPv6", note: "Represents an IPv4 address in the final 32 bits of an IPv6-form address.", globallyReachable: "No" },
+  { prefix: "64:ff9b::", bits: 96, label: "IPv4-IPv6 Translation", note: "Well-known translation prefix used by NAT64 mechanisms.", globallyReachable: "Yes" },
+
+  { prefix: "100::", bits: 64, label: "Discard-Only Address Block", note: "Special-purpose discard-only IPv6 prefix.", globallyReachable: "No" },
+  { prefix: "100:0:0:1::", bits: 64, label: "Dummy IPv6 Prefix", note: "Special-purpose dummy prefix.", globallyReachable: "No" },
+
+  { prefix: "64:ff9b:1::", bits: 48, label: "IPv4-IPv6 Translation", note: "Local-use translation prefix.", globallyReachable: "No" },
+  { prefix: "2001:2::", bits: 48, label: "Benchmarking", note: "Reserved for IPv6 benchmarking.", globallyReachable: "No" },
+  { prefix: "2001:4:112::", bits: 48, label: "AS112-v6", note: "Special-purpose address space for AS112 service.", globallyReachable: "Yes" },
+  { prefix: "2620:4f:8000::", bits: 48, label: "Direct Delegation AS112 Service", note: "Special-purpose address space for direct-delegation AS112 service.", globallyReachable: "Yes" },
+
+  { prefix: "2001::", bits: 32, label: "TEREDO", note: "IPv6 transition-mechanism prefix.", globallyReachable: "Context-dependent" },
+  { prefix: "2001:3::", bits: 32, label: "AMT", note: "Automatic Multicast Tunneling special-purpose prefix.", globallyReachable: "Yes" },
+  { prefix: "2001:db8::", bits: 32, label: "Documentation", note: "Reserved for IPv6 documentation and examples.", globallyReachable: "No" },
+
+  { prefix: "2001:20::", bits: 28, label: "ORCHIDv2", note: "Overlay Routable Cryptographic Hash Identifier space. It is not ordinary globally routed unicast space.", globallyReachable: "Yes" },
+  { prefix: "2001:30::", bits: 28, label: "Drone Remote ID DETs Prefix", note: "Special-purpose prefix for Drone Remote ID protocol entity tags.", globallyReachable: "Yes" },
+
+  { prefix: "3fff::", bits: 20, label: "Documentation", note: "Reserved for IPv6 documentation and examples.", globallyReachable: "No" },
+
+  { prefix: "2002::", bits: 16, label: "6to4", note: "IPv6 transition-mechanism prefix.", globallyReachable: "Context-dependent" },
+  { prefix: "5f00::", bits: 16, label: "Segment Routing (SRv6) SIDs", note: "Special-purpose prefix for SRv6 segment identifiers.", globallyReachable: "No" },
+
+  { prefix: "fe80::", bits: 10, label: "Link-Local Unicast", note: "Valid on the local link and commonly paired with an interface zone identifier.", globallyReachable: "No" },
+  { prefix: "fc00::", bits: 7, label: "Unique-Local", note: "Locally assigned IPv6 space that is not intended for global routing.", globallyReachable: "No" },
+  { prefix: "ff00::", bits: 8, label: "IPv6 multicast", note: "IPv6 multicast address space rather than ordinary unicast host addressing.", globallyReachable: "Context-dependent" },
+
+  { prefix: "2001::", bits: 23, label: "IETF Protocol Assignments", note: "Broad special-purpose IETF assignment block. More-specific ranges can have different behavior.", globallyReachable: "No" },
 ];
 
 function parseIPv4(value: string): ParsedIPv4 | null {
@@ -65,29 +102,42 @@ function parseIPv4(value: string): ParsedIPv4 | null {
   if (parts.length !== 4) return null;
 
   const bytes: number[] = [];
+
   for (const part of parts) {
     if (!/^\d+$/.test(part)) return null;
     if (part.length > 1 && part.charAt(0) === "0") return null;
+
     const octet = Number(part);
-    if (!Number.isInteger(octet) || octet < 0 || octet > 255) return null;
+
+    if (!Number.isInteger(octet) || octet < 0 || octet > 255) {
+      return null;
+    }
+
     bytes.push(octet);
   }
 
-  return { normalized: bytes.join("."), bytes };
+  return {
+    normalized: bytes.join("."),
+    bytes,
+  };
 }
 
 function parseIPv6(value: string): ParsedIPv6 | null {
   let address = value.toLowerCase();
+
   const doubleColonCount = (address.match(/::/g) || []).length;
   if (doubleColonCount > 1 || address.indexOf(":::") !== -1) return null;
 
   const lastColon = address.lastIndexOf(":");
   const possibleIPv4 = lastColon >= 0 ? address.slice(lastColon + 1) : "";
+
   if (possibleIPv4.indexOf(".") !== -1) {
     const parsedIPv4 = parseIPv4(possibleIPv4);
     if (!parsedIPv4) return null;
+
     const first = (parsedIPv4.bytes[0] << 8) | parsedIPv4.bytes[1];
     const second = (parsedIPv4.bytes[2] << 8) | parsedIPv4.bytes[3];
+
     address =
       address.slice(0, lastColon + 1) +
       first.toString(16) +
@@ -97,6 +147,7 @@ function parseIPv6(value: string): ParsedIPv6 | null {
 
   const compressed = address.indexOf("::") !== -1;
   const halves = compressed ? address.split("::") : [address];
+
   if (halves.length > 2) return null;
 
   const left = halves[0] ? halves[0].split(":") : [];
@@ -113,25 +164,27 @@ function parseIPv6(value: string): ParsedIPv6 | null {
   const missing = compressed ? 8 - rawGroups.length : 0;
   const groups: number[] = [];
 
-  for (const group of left) groups.push(parseInt(group, 16));
+  left.forEach((group) => groups.push(parseInt(group, 16)));
   for (let index = 0; index < missing; index += 1) groups.push(0);
-  for (const group of right) groups.push(parseInt(group, 16));
+  right.forEach((group) => groups.push(parseInt(group, 16)));
 
   if (groups.length !== 8) return null;
 
   const bytes: number[] = [];
-  for (const group of groups) {
+
+  groups.forEach((group) => {
     bytes.push((group >> 8) & 255, group & 255);
-  }
+  });
 
   return {
     normalized: compressIPv6(groups),
+    expanded: groups.map((group) => group.toString(16).padStart(4, "0")).join(":"),
     groups,
     bytes,
   };
 }
 
-function compressIPv6(groups: number[]): string {
+function compressIPv6(groups: number[]) {
   const text = groups.map((group) => group.toString(16));
   let bestStart = -1;
   let bestLength = 0;
@@ -144,11 +197,14 @@ function compressIPv6(groups: number[]): string {
 
     let end = index;
     while (end < groups.length && groups[end] === 0) end += 1;
+
     const length = end - index;
+
     if (length >= 2 && length > bestLength) {
       bestStart = index;
       bestLength = length;
     }
+
     index = end;
   }
 
@@ -156,13 +212,14 @@ function compressIPv6(groups: number[]): string {
 
   const left = text.slice(0, bestStart).join(":");
   const right = text.slice(bestStart + bestLength).join(":");
-  if (left && right) return left + "::" + right;
-  if (left) return left + "::";
-  if (right) return "::" + right;
+
+  if (left && right) return `${left}::${right}`;
+  if (left) return `${left}::`;
+  if (right) return `::${right}`;
   return "::";
 }
 
-function matchesPrefix(bytes: number[], prefix: number[], bits: number): boolean {
+function matchesPrefix(bytes: number[], prefix: number[], bits: number) {
   const fullBytes = Math.floor(bits / 8);
   const remainingBits = bits % 8;
 
@@ -171,29 +228,56 @@ function matchesPrefix(bytes: number[], prefix: number[], bits: number): boolean
   }
 
   if (remainingBits === 0) return true;
+
   const mask = (255 << (8 - remainingBits)) & 255;
-  return (bytes[fullBytes] & mask) === (prefix[fullBytes] & mask);
+
+  return (
+    (bytes[fullBytes] & mask) ===
+    (prefix[fullBytes] & mask)
+  );
 }
 
-function findIPv4Range(bytes: number[]): RangeInfo | null {
-  for (const range of IPV4_RANGES) {
+function findIPv4Range(bytes: number[]) {
+  const ordered = IPV4_RANGES.slice().sort((a, b) => b.bits - a.bits);
+
+  for (const range of ordered) {
     const parsed = parseIPv4(range.prefix);
-    if (parsed && matchesPrefix(bytes, parsed.bytes, range.bits)) return range;
+
+    if (
+      parsed &&
+      matchesPrefix(bytes, parsed.bytes, range.bits)
+    ) {
+      return range;
+    }
   }
+
   return null;
 }
 
-function findIPv6Range(bytes: number[]): RangeInfo | null {
-  for (const range of IPV6_RANGES) {
+function findIPv6Range(bytes: number[]) {
+  const ordered = IPV6_RANGES.slice().sort((a, b) => b.bits - a.bits);
+
+  for (const range of ordered) {
     const parsed = parseIPv6(range.prefix);
-    if (parsed && matchesPrefix(bytes, parsed.bytes, range.bits)) return range;
+
+    if (
+      parsed &&
+      matchesPrefix(bytes, parsed.bytes, range.bits)
+    ) {
+      return range;
+    }
   }
+
   return null;
 }
 
-function mappedIPv4(groups: number[]): string | null {
-  const mapped = groups.slice(0, 5).every((group) => group === 0) && groups[5] === 65535;
-  if (!mapped) return null;
+function mappedIPv4(groups: number[]) {
+  const isMapped =
+    groups.slice(0, 5).every((group) => group === 0) &&
+    groups[5] === 0xffff;
+
+  if (!isMapped) return "";
+
   return [
     (groups[6] >> 8) & 255,
     groups[6] & 255,
@@ -202,60 +286,107 @@ function mappedIPv4(groups: number[]): string | null {
   ].join(".");
 }
 
+function inIPv6Prefix(bytes: number[], prefix: string, bits: number) {
+  const parsed = parseIPv6(prefix);
+  return parsed ? matchesPrefix(bytes, parsed.bytes, bits) : false;
+}
+
 export default function ToolClient() {
   const [ip, setIp] = useState("");
   const [output, setOutput] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const inspectIP = () => {
     let value = ip.trim();
+
+    setCopied(false);
+
     if (!value) {
       setOutput("");
       return;
     }
 
     if (value.indexOf("/") !== -1) {
-      setOutput("Enter one IP address without a CIDR prefix. Use the CIDR Calculator when you need network/prefix calculations.");
+      setOutput(
+        "Enter one IP address without a CIDR prefix. Use the CIDR Calculator when you need network or prefix calculations."
+      );
       return;
     }
 
+    if (
+      /^\[[^\]]+\]:\d+$/.test(value) ||
+      /^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(value)
+    ) {
+      setOutput(
+        "Enter the IP address only, without a TCP/UDP port. For example, use 2001:db8::1 instead of [2001:db8::1]:443."
+      );
+      return;
+    }
+
+    let bracketed = false;
+
     if (value.charAt(0) === "[" && value.charAt(value.length - 1) === "]") {
+      bracketed = true;
       value = value.slice(1, -1);
     }
 
     let zone = "";
     const zoneIndex = value.indexOf("%");
+
     if (zoneIndex !== -1) {
       zone = value.slice(zoneIndex + 1);
       value = value.slice(0, zoneIndex);
-      if (!zone || value.indexOf("%") !== -1) {
+
+      if (!zone || value.indexOf("%") !== -1 || /[\s/?#\[\]]/.test(zone)) {
         setOutput("Invalid IPv6 zone identifier syntax.");
         return;
       }
     }
 
     const ipv4 = parseIPv4(value);
+
     if (ipv4) {
       if (zone) {
-        setOutput("Zone identifiers apply to scoped IPv6 text forms, not IPv4 addresses.");
+        setOutput(
+          "Zone identifiers are used with scoped IPv6 text forms, not IPv4 addresses."
+        );
+        return;
+      }
+
+      if (bracketed) {
+        setOutput(
+          "Square brackets are a URI host notation for IPv6 literals. Do not wrap an IPv4 address in brackets for this inspector."
+        );
         return;
       }
 
       const range = findIPv4Range(ipv4.bytes);
-      const privateUse = range ? range.label.indexOf("Private-use") === 0 : false;
+      const privateUse =
+        matchesPrefix(ipv4.bytes, [10, 0, 0, 0], 8) ||
+        matchesPrefix(ipv4.bytes, [172, 16, 0, 0], 12) ||
+        matchesPrefix(ipv4.bytes, [192, 168, 0, 0], 16);
+
       const lines = [
         "Valid IPv4 address",
         "",
-        "Normalized: " + ipv4.normalized,
+        `Normalized: ${ipv4.normalized}`,
         "Version: IPv4",
-        "Private-use (RFC 1918): " + (privateUse ? "Yes" : "No"),
-        "Classification: " + (range ? range.label : "No common special-purpose range matched"),
+        `Private-use (RFC 1918): ${privateUse ? "Yes" : "No"}`,
+        `Classification: ${
+          range ? range.label : "No bundled special-purpose range matched"
+        }`,
       ];
 
       if (range) {
-        lines.push("Matched range: " + range.prefix + "/" + range.bits);
-        lines.push("Note: " + range.note);
+        lines.push(`Matched range: ${range.prefix}/${range.bits}`);
+        if (range.globallyReachable) {
+          lines.push(`Globally reachable (registry/context): ${range.globallyReachable}`);
+        }
+        lines.push(`Note: ${range.note}`);
       } else {
-        lines.push("Note: Syntax alone does not prove that an address is allocated, reachable, or owned by a particular network.");
+        lines.push(
+          "Note: No special-purpose match does not prove allocation, ownership, reachability, or that the address is currently routed on the public Internet."
+        );
       }
 
       setOutput(lines.join("\n"));
@@ -263,124 +394,291 @@ export default function ToolClient() {
     }
 
     const ipv6 = parseIPv6(value);
+
     if (ipv6) {
       const range = findIPv6Range(ipv6.bytes);
       const mapped = mappedIPv4(ipv6.groups);
+      const uniqueLocal = inIPv6Prefix(ipv6.bytes, "fc00::", 7);
+      const linkLocal = inIPv6Prefix(ipv6.bytes, "fe80::", 10);
+
       const lines = [
         "Valid IPv6 address",
         "",
-        "Normalized: " + ipv6.normalized,
+        `Normalized: ${ipv6.normalized}`,
+        `Expanded: ${ipv6.expanded}`,
         "Version: IPv6",
-        "Unique-local: " + (range && range.label === "Unique-local" ? "Yes" : "No"),
-        "Classification: " + (range ? range.label : "No common special-purpose range matched"),
+        `Unique-local: ${uniqueLocal ? "Yes" : "No"}`,
+        `Link-local: ${linkLocal ? "Yes" : "No"}`,
+        `Classification: ${
+          range ? range.label : "No bundled special-purpose range matched"
+        }`,
       ];
 
       if (range) {
-        lines.push("Matched range: " + range.prefix + "/" + range.bits);
-        lines.push("Note: " + range.note);
+        lines.push(`Matched range: ${range.prefix}/${range.bits}`);
+        if (range.globallyReachable) {
+          lines.push(`Globally reachable (registry/context): ${range.globallyReachable}`);
+        }
+        lines.push(`Note: ${range.note}`);
       } else {
-        lines.push("Note: Syntax alone does not prove global routability, assignment, or ownership.");
+        lines.push(
+          "Note: No special-purpose match does not prove assignment, ownership, reachability, or that the address is globally routed."
+        );
       }
 
-      if (mapped) lines.push("Embedded IPv4: " + mapped);
-      if (zone) lines.push("Zone identifier: " + zone + " (interface scope marker; not part of the 128-bit address)");
+      if (mapped) {
+        lines.push(`Embedded IPv4: ${mapped}`);
+
+        const parsedMapped = parseIPv4(mapped);
+        const mappedRange = parsedMapped
+          ? findIPv4Range(parsedMapped.bytes)
+          : null;
+
+        if (mappedRange) {
+          lines.push(
+            `Embedded IPv4 classification: ${mappedRange.label} (${mappedRange.prefix}/${mappedRange.bits})`
+          );
+        }
+      }
+
+      if (zone) {
+        lines.push(
+          `Zone identifier: ${zone} (interface/scope marker; not part of the 128-bit IPv6 address)`
+        );
+
+        if (!linkLocal && !(range && range.label === "IPv6 multicast")) {
+          lines.push(
+            "Zone note: zone identifiers are meaningful for scoped addresses. Confirm that the target API or operating system expects a zone for this address."
+          );
+        }
+      }
 
       setOutput(lines.join("\n"));
       return;
     }
 
-    setOutput("Invalid IP address syntax. The inspector accepts strict dotted-decimal IPv4 and standard IPv6 forms, including :: compression and IPv4-mapped IPv6.");
+    setOutput(
+      "Invalid IP address syntax. The inspector accepts strict dotted-decimal IPv4 and standard IPv6 forms, including :: compression, IPv4-embedded IPv6, optional IPv6 brackets, and optional zone identifiers."
+    );
   };
 
   const resetAll = () => {
     setIp("");
     setOutput("");
+    setCopied(false);
+  };
+
+  const copyOutput = async () => {
+    if (!output) return;
+
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
   };
 
   return (
     <ToolShell
       title="IP Address Inspector"
-      description="Validate IPv4 and IPv6 syntax, normalize IPv6 notation, and recognize common special-purpose address ranges."
+      description="Validate strict IPv4 and IPv6 syntax, normalize IPv6 notation, inspect IPv4-mapped addresses and zone identifiers, and recognize common special-purpose address ranges without pretending to perform geolocation or ownership lookup."
     >
-      <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="block text-sm font-semibold text-gray-900">
           IP Address
         </label>
+        <p className="mt-1 text-sm leading-relaxed text-gray-500">
+          Enter one address such as <code>192.0.2.10</code>,{" "}
+          <code>2001:db8::1</code>, <code>::ffff:192.0.2.10</code>, or{" "}
+          <code>fe80::1%eth0</code>. Do not include a CIDR prefix or port.
+        </p>
+
         <input
           value={ip}
-          onChange={(event) => setIp(event.target.value)}
+          onChange={(event) => {
+            setIp(event.target.value);
+            setOutput("");
+            setCopied(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") inspectIP();
+          }}
           placeholder="2001:db8::1"
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          spellCheck={false}
+          className="mt-4 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button type="button" onClick={inspectIP} className="yoryantra-btn">
+            Inspect IP
+          </button>
+          <button
+            type="button"
+            onClick={resetAll}
+            className="yoryantra-btn-outline"
+          >
+            Reset
+          </button>
+        </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={inspectIP} className="yoryantra-btn">Inspect IP</button>
-        <button onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
-      </div>
+      <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              IP Inspection Result
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-gray-500">
+              Classification uses a bundled set of common special-purpose
+              ranges and chooses the most-specific matching prefix.
+            </p>
+          </div>
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">IP Inspection Result</h3>
-          {output && (
+          {output ? (
             <button
-              onClick={() => navigator.clipboard.writeText(output)}
+              type="button"
+              onClick={copyOutput}
               className="yoryantra-btn-outline text-sm"
             >
-              Copy
+              {copied ? "Copied" : "Copy"}
             </button>
-          )}
+          ) : null}
         </div>
-        <div className="yoryantra-output min-h-[180px] text-sm whitespace-pre-wrap break-words overflow-auto">
-          {output || "Validation and range details will appear here."}
-        </div>
+
+        <pre className="mt-4 yoryantra-output min-h-[240px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output ||
+            "Enter one IPv4 or IPv6 address to validate and inspect it."}
+        </pre>
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">What This Inspector Actually Checks</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The inspector parses one IPv4 or IPv6 address locally in your browser. IPv6 input can use normal zero compression such as <code>2001:db8::1</code>, the loopback form <code>::1</code>, bracketed address text, IPv4-mapped forms, and an optional zone identifier such as <code>fe80::1%eth0</code>.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            After syntax validation, it checks a practical set of IANA special-purpose ranges: private or unique-local space, loopback, link-local, documentation ranges, shared NAT space, benchmarking prefixes, multicast, transition prefixes, and a few protocol-reserved blocks. A syntactically valid address that matches none of these is not automatically proven to be publicly routed or assigned.
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Syntax Validation Is Not an Ownership or Geolocation Lookup
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            An address can be syntactically valid without being assigned,
+            reachable, globally routed, or owned by the organization you expect.
+            This inspector works entirely from the address text and a bundled
+            special-purpose range table. It does not query WHOIS, RDAP, DNS,
+            routing tables, geolocation databases, your network interface, or
+            the public Internet.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Ranges Worth Recognizing</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`10.0.0.0/8          → IPv4 private-use
-100.64.0.0/10       → shared / carrier-grade NAT space
-127.0.0.0/8         → IPv4 loopback
-169.254.0.0/16      → IPv4 link-local
-192.0.2.0/24        → IPv4 documentation
-::1/128             → IPv6 loopback
-2001:db8::/32       → IPv6 documentation
-fc00::/7            → IPv6 unique-local
-fe80::/10           → IPv6 link-local
-ff00::/8            → IPv6 multicast`}</pre>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why Most-Specific-Prefix Matching Matters
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Special-purpose registries contain broad blocks with smaller
+            assignments inside them. For example, <code>192.0.0.0/24</code> is
+            an IETF protocol-assignment block, while addresses such as{" "}
+            <code>192.0.0.9/32</code> and <code>192.0.0.10/32</code> have their
+            own anycast purposes. The inspector sorts candidate ranges by
+            prefix length so a specific assignment is not hidden by a broader
+            parent range.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Where the Result Helps</h2>
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking allowlist, firewall, proxy, VPN, and server configuration values.</li>
-            <li>Catching an IPv6 parser that rejects valid <code>::</code>-compressed notation.</li>
-            <li>Separating RFC 1918 private space from shared carrier NAT or documentation ranges.</li>
-            <li>Recognizing when an example address should never be treated as a production endpoint.</li>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Private, Shared, Link-Local, and Documentation Space Are Different
+          </h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>
+              IPv4 RFC 1918 private-use space is <code>10.0.0.0/8</code>,{" "}
+              <code>172.16.0.0/12</code>, and{" "}
+              <code>192.168.0.0/16</code>.
+            </li>
+            <li>
+              <code>100.64.0.0/10</code> is Shared Address Space, often used
+              with carrier-grade NAT. It is not RFC 1918 private space.
+            </li>
+            <li>
+              IPv4 <code>169.254.0.0/16</code> and IPv6{" "}
+              <code>fe80::/10</code> are link-local rather than ordinary
+              globally routed addresses.
+            </li>
+            <li>
+              TEST-NET IPv4 blocks and IPv6 documentation prefixes are
+              deliberately reserved so documentation can avoid using real
+              production addresses.
+            </li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Limits and References</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            This is an address parser, not an IP intelligence service. It does not contact WHOIS/RDAP, geolocation, ASN, DNS, reputation, or ISP services. Ownership and reachability can change and cannot be inferred from syntax alone.
+          <h2 className="text-xl font-semibold text-gray-900">
+            IPv6 Normalization and Zone Identifiers
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            IPv6 allows zero compression and leading-zero omission. The
+            normalized value follows the common RFC 5952 style: hexadecimal is
+            lowercase, leading zeroes in a group are removed, and the longest
+            eligible run of zero groups is compressed. The expanded line shows
+            all eight 16-bit groups for debugging.
           </p>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Range classifications follow the IANA IPv4 and IPv6 Special-Purpose Address Space registries and the IPv6 addressing architecture in RFC 4291.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A suffix such as <code>%eth0</code> is a zone identifier used by
+            APIs and operating systems for scoped IPv6 addresses. It is not
+            part of the 128 address bits. URI syntax has additional escaping
+            rules for zone identifiers, so do not blindly copy an operating
+            system address string into a URL.
           </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Leading Zeroes in IPv4 Are Rejected Deliberately
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The inspector accepts canonical dotted-decimal IPv4 octets from 0
+            through 255 and rejects multi-digit octets with a leading zero.
+            Historical software has interpreted ambiguous IPv4 text using
+            non-decimal forms, so strict dotted decimal is safer for a tool
+            whose purpose is validation and comparison.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Registry References Add Value for Address Classification
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Special-purpose assignments can evolve, so the live IANA
+            registries are useful when an unusual address affects a production
+            networking decision. The bundled table focuses on common ranges
+            rather than claiming to replace the registries.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            <a
+              href="https://www.iana.org/assignments/iana-ipv4-special-registry/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              IANA IPv4 Special-Purpose Registry
+            </a>
+            <a
+              href="https://www.iana.org/assignments/iana-ipv6-special-registry/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              IANA IPv6 Special-Purpose Registry
+            </a>
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc5952"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 5952 — IPv6 Text Representation
+            </a>
+          </div>
         </div>
 
         <div>

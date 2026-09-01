@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "MIME Type Finder – File Extension to Media Type | Yoryantra",
+export const metadata: Metadata = {
+  title: "MIME Type Finder | File Extension to Media Type | Yoryantra",
   description:
-    "Look up common media types from file names or extensions, reverse-check known media types, and distinguish extension mapping from real file-content detection.",
+    "Look up common media types from file names or extensions, reverse-check known Content-Type values, and distinguish extension conventions from actual file-content detection.",
   alternates: {
     canonical: "https://yoryantra.com/tools/mime-type-finder",
   },
   openGraph: {
-    title: "MIME Type Finder – File Extension to Media Type | Yoryantra",
+    title: "MIME Type Finder | File Extension to Media Type | Yoryantra",
     description:
-      "Find common media types from file extensions and inspect known media type names.",
+      "Find practical Content-Type mappings for common extensions and inspect known media type names.",
     url: "https://yoryantra.com/tools/mime-type-finder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "MIME Type Finder – File Extension to Media Type | Yoryantra",
+    card: "summary",
+    title: "MIME Type Finder | Yoryantra",
     description:
-      "Look up common Content-Type media types from file names and extensions.",
+      "Look up common media types from file names, extensions, and Content-Type values.",
   },
 };
 
