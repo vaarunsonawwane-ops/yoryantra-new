@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Structured Data Validator | Inspect JSON-LD | Yoryantra",
+export const metadata: Metadata = {
+  title: "Structured Data Validator | JSON-LD Review | Yoryantra",
   description:
-    "Inspect Schema.org JSON-LD structure, contexts, types, identifiers, graphs, URLs, and common JSON-LD issues directly in your browser.",
+    "Inspect JSON-LD or HTML for syntax, contexts, types, IDs, graphs, duplicate identifiers, URL fields, and common markup issues without claiming rich-result eligibility.",
   alternates: {
     canonical: "https://yoryantra.com/tools/structured-data-validator",
   },
   openGraph: {
-    title: "Structured Data Validator | Inspect JSON-LD | Yoryantra",
+    title: "Structured Data Validator | Yoryantra",
     description:
-      "Inspect Schema.org JSON-LD structure, contexts, types, identifiers, graphs, URLs, and common JSON-LD issues directly in your browser.",
+      "Review JSON-LD structure and entity relationships separately from Schema.org vocabulary correctness and Google Search feature requirements.",
     url: "https://yoryantra.com/tools/structured-data-validator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Structured Data Validator | Inspect JSON-LD | Yoryantra",
+    card: "summary",
+    title: "Structured Data Validator | Yoryantra",
     description:
-      "Inspect Schema.org JSON-LD structure, contexts, types, identifiers, graphs, URLs, and common JSON-LD issues directly in your browser.",
+      "Inspect JSON-LD structure, graphs, types, IDs, contexts, and common Schema.org implementation issues.",
   },
 };
 
