@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { parseAllDocuments } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
+type EntrySource = "data" | "stringData";
+
 type SecretEntry = {
   key: string;
-  source: "data" | "stringData";
+  source: EntrySource;
   encodedValue: string;
   decodedValue: string;
   bytes: number;
@@ -15,34 +17,647 @@ type SecretEntry = {
   error: string;
 };
 
-type SecretResult = {
+type SecretDocument = {
+  documentNumber: number;
   apiVersion: string;
   kind: string;
   name: string;
   namespace: string;
   secretType: string;
+  immutable: boolean | null;
   entries: SecretEntry[];
   notes: string[];
 };
 
-const sampleSecret = `apiVersion: v1
+type SecretReport = {
+  documents: SecretDocument[];
+  notes: string[];
+  yamlWarnings: string[];
+};
+
+const SAMPLE_SECRET = `apiVersion: v1
 kind: Secret
 metadata:
-  name: app-credentials
+  name: app-secret
   namespace: default
 type: Opaque
 data:
   username: YWRtaW4=
-  password: c2VjdXJlLWV4YW1wbGU=
+  password: c2VjcmV0MTIz
+  api_key: eW9yeWFudHJhLWtleQ==
 stringData:
-  environment: "staging\\nblue"`;
+  environment: production`;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+  );
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function metadataValue(
+  value: unknown,
+  key: string
+) {
+  if (!isRecord(value)) {
+    return "";
+  }
+
+  return asString(value[key]);
+}
+
+function hexPreview(bytes: Uint8Array) {
+  const shown = bytes.slice(0, 96);
+  const hex = Array.from(shown)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join(" ");
+
+  return `${hex}${bytes.length > 96 ? " …" : ""}`;
+}
+
+function decodeBase64Value(value: string) {
+  const normalized = value.replace(/\r\n|\r|\n/g, "");
+
+  if (!normalized) {
+    return {
+      value: "",
+      bytes: 0,
+      isText: true,
+    };
+  }
+
+  if (/\s/.test(normalized)) {
+    throw new Error(
+      "Invalid standard Base64: spaces/tabs are present after YAML parsing. Kubernetes Secret data values should be standard Base64 strings."
+    );
+  }
+
+  if (
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(normalized) ||
+    normalized.length % 4 !== 0
+  ) {
+    throw new Error(
+      "Invalid standard Base64 encoding or padding."
+    );
+  }
+
+  const firstPadding = normalized.indexOf("=");
+
+  if (
+    firstPadding !== -1 &&
+    firstPadding < normalized.length - 2
+  ) {
+    throw new Error(
+      "Base64 padding appears before the end of the value."
+    );
+  }
+
+  let binary = "";
+
+  try {
+    binary = atob(normalized);
+  } catch {
+    throw new Error(
+      "Invalid standard Base64 encoding."
+    );
+  }
+
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  try {
+    const text = new TextDecoder("utf-8", {
+      fatal: true,
+    }).decode(bytes);
+
+    return {
+      value: text,
+      bytes: bytes.length,
+      isText: true,
+    };
+  } catch {
+    return {
+      value: `[binary data: ${bytes.length} bytes]\nhex: ${hexPreview(bytes)}`,
+      bytes: bytes.length,
+      isText: false,
+    };
+  }
+}
+
+function readStringMap(
+  value: unknown,
+  sectionName: string,
+  notes: string[]
+) {
+  const result: Array<{
+    key: string;
+    value: string;
+    error: string;
+  }> = [];
+
+  if (value === undefined || value === null) {
+    return result;
+  }
+
+  if (!isRecord(value)) {
+    notes.push(
+      `${sectionName} exists but is not a YAML mapping/object. Kubernetes Secret ${sectionName} is expected to be a string-keyed map.`
+    );
+    return result;
+  }
+
+  Object.keys(value).forEach((key) => {
+    const item = value[key];
+
+    if (typeof item !== "string") {
+      result.push({
+        key,
+        value: "",
+        error:
+          `${sectionName}.${key} parsed as ${Array.isArray(item) ? "array" : item === null ? "null" : typeof item}, not a string. Quote YAML values when Kubernetes expects map[string]string data.`,
+      });
+      return;
+    }
+
+    result.push({
+      key,
+      value: item,
+      error: "",
+    });
+  });
+
+  return result;
+}
+
+function typeSpecificNotes(
+  secretType: string,
+  keys: string[],
+  metadata: unknown
+) {
+  const notes: string[] = [];
+  const has = (key: string) => keys.indexOf(key) !== -1;
+
+  if (secretType === "kubernetes.io/tls") {
+    const missing = ["tls.crt", "tls.key"].filter((key) => !has(key));
+
+    if (missing.length) {
+      notes.push(
+        `TLS Secret is missing expected key${
+          missing.length === 1 ? "" : "s"
+        }: ${missing.join(", ")}. Kubernetes' built-in TLS Secret type expects tls.crt and tls.key keys.`
+      );
+    } else {
+      notes.push(
+        "TLS Secret contains tls.crt and tls.key. This decoder does not validate certificate/key syntax or whether the private key matches the certificate."
+      );
+    }
+  }
+
+  if (secretType === "kubernetes.io/dockerconfigjson") {
+    if (!has(".dockerconfigjson")) {
+      notes.push(
+        'kubernetes.io/dockerconfigjson Secret is missing the expected ".dockerconfigjson" key.'
+      );
+    } else {
+      notes.push(
+        ".dockerconfigjson is present. Kubernetes checks that this value can be interpreted as JSON for the built-in type, but this decoder does not authenticate registry credentials."
+      );
+    }
+  }
+
+  if (secretType === "kubernetes.io/dockercfg" && !has(".dockercfg")) {
+    notes.push(
+      'kubernetes.io/dockercfg Secret is missing the expected ".dockercfg" key.'
+    );
+  }
+
+  if (secretType === "kubernetes.io/basic-auth") {
+    if (!has("username") && !has("password")) {
+      notes.push(
+        "Basic-auth Secret contains neither username nor password. Kubernetes documents those conventional keys for this built-in type."
+      );
+    }
+  }
+
+  if (secretType === "kubernetes.io/ssh-auth" && !has("ssh-privatekey")) {
+    notes.push(
+      "SSH-auth Secret is missing the expected ssh-privatekey key."
+    );
+  }
+
+  if (secretType === "kubernetes.io/service-account-token") {
+    const annotations =
+      isRecord(metadata) && isRecord(metadata.annotations)
+        ? metadata.annotations
+        : null;
+    const serviceAccountName =
+      annotations &&
+      typeof annotations["kubernetes.io/service-account.name"] === "string"
+        ? annotations["kubernetes.io/service-account.name"]
+        : "";
+
+    if (!serviceAccountName) {
+      notes.push(
+        "Service-account-token Secret does not show the kubernetes.io/service-account.name annotation used to identify the ServiceAccount."
+      );
+    }
+
+    notes.push(
+      "Long-lived service-account-token Secrets are a specialized legacy workflow. Kubernetes recommends the TokenRequest API/projected tokens for many modern workloads."
+    );
+  }
+
+  return notes;
+}
+
+function parseSecretDocument(
+  value: unknown,
+  documentNumber: number
+): SecretDocument {
+  const notes: string[] = [];
+
+  if (!isRecord(value)) {
+    return {
+      documentNumber,
+      apiVersion: "",
+      kind: "",
+      name: "",
+      namespace: "",
+      secretType: "",
+      immutable: null,
+      entries: [],
+      notes: [
+        "This YAML document does not contain a top-level mapping/object, so it cannot be interpreted as a Kubernetes Secret manifest.",
+      ],
+    };
+  }
+
+  const apiVersion = asString(value.apiVersion);
+  const kind = asString(value.kind);
+  const metadata = value.metadata;
+  const name = metadataValue(metadata, "name");
+  const namespace = metadataValue(metadata, "namespace");
+  const rawType = asString(value.type);
+  const secretType = rawType || "Opaque";
+  const immutable =
+    typeof value.immutable === "boolean" ? value.immutable : null;
+  const dataFields = readStringMap(value.data, "data", notes);
+  const stringDataFields = readStringMap(
+    value.stringData,
+    "stringData",
+    notes
+  );
+  const entries: SecretEntry[] = [];
+
+  dataFields.forEach((field) => {
+    if (field.error) {
+      entries.push({
+        key: field.key,
+        source: "data",
+        encodedValue: "",
+        decodedValue: "",
+        bytes: 0,
+        isText: false,
+        error: field.error,
+      });
+      return;
+    }
+
+    try {
+      const decoded = decodeBase64Value(field.value);
+
+      entries.push({
+        key: field.key,
+        source: "data",
+        encodedValue: field.value,
+        decodedValue: decoded.value,
+        bytes: decoded.bytes,
+        isText: decoded.isText,
+        error: "",
+      });
+    } catch (caught) {
+      entries.push({
+        key: field.key,
+        source: "data",
+        encodedValue: field.value,
+        decodedValue: "",
+        bytes: 0,
+        isText: false,
+        error:
+          caught instanceof Error
+            ? caught.message
+            : "Invalid Base64 value.",
+      });
+    }
+  });
+
+  stringDataFields.forEach((field) => {
+    if (field.error) {
+      entries.push({
+        key: field.key,
+        source: "stringData",
+        encodedValue: "",
+        decodedValue: "",
+        bytes: 0,
+        isText: true,
+        error: field.error,
+      });
+      return;
+    }
+
+    entries.push({
+      key: field.key,
+      source: "stringData",
+      encodedValue: "",
+      decodedValue: field.value,
+      bytes: new TextEncoder().encode(field.value).length,
+      isText: true,
+      error: "",
+    });
+  });
+
+  const dataKeys = dataFields.map((field) => field.key);
+  const overlapping = stringDataFields
+    .map((field) => field.key)
+    .filter((key) => dataKeys.indexOf(key) !== -1);
+
+  if (overlapping.length) {
+    notes.push(
+      `Key${
+        overlapping.length === 1 ? "" : "s"
+      } ${overlapping.join(
+        ", "
+      )} appear in both data and stringData. When Kubernetes merges them, the stringData value takes precedence for the same key.`
+    );
+  }
+
+  if (kind !== "Secret") {
+    notes.push(
+      kind
+        ? `kind is "${kind}", not "Secret". The YAML can still be inspected, but this tool cannot assume Kubernetes Secret semantics.`
+        : "No kind field was found. A Kubernetes Secret manifest normally uses kind: Secret."
+    );
+  }
+
+  if (apiVersion !== "v1") {
+    notes.push(
+      apiVersion
+        ? `apiVersion is "${apiVersion}". Core Kubernetes Secret objects use apiVersion: v1.`
+        : "No apiVersion field was found. Core Kubernetes Secret objects use apiVersion: v1."
+    );
+  }
+
+  if (!name) {
+    notes.push(
+      "metadata.name is not present. A namespaced Secret normally needs a name before it can be created."
+    );
+  }
+
+  if (value.type === undefined) {
+    notes.push(
+      "type is omitted, so this review treats the Secret as Opaque, Kubernetes' default Secret type."
+    );
+  }
+
+  if (
+    value.immutable !== undefined &&
+    typeof value.immutable !== "boolean"
+  ) {
+    notes.push(
+      "immutable is present but did not parse as a boolean."
+    );
+  }
+
+  if (!entries.length) {
+    notes.push(
+      "No scalar data or stringData entries were found."
+    );
+  }
+
+  if (entries.some((entry) => entry.error)) {
+    notes.push(
+      "At least one field could not be interpreted. Valid fields remain visible so you can isolate the problem."
+    );
+  }
+
+  if (
+    entries.some(
+      (entry) =>
+        entry.source === "data" &&
+        !entry.error &&
+        !entry.isText
+    )
+  ) {
+    notes.push(
+      "At least one data value is binary rather than valid UTF-8 text. A hexadecimal preview is shown for that field."
+    );
+  }
+
+  const finalKeys = dataKeys.slice();
+
+  stringDataFields.forEach((field) => {
+    if (finalKeys.indexOf(field.key) === -1) {
+      finalKeys.push(field.key);
+    }
+  });
+
+  typeSpecificNotes(secretType, finalKeys, metadata).forEach((note) =>
+    notes.push(note)
+  );
+
+  return {
+    documentNumber,
+    apiVersion,
+    kind,
+    name,
+    namespace,
+    secretType,
+    immutable,
+    entries,
+    notes,
+  };
+}
+
+function parseKubernetesSecrets(source: string): SecretReport {
+  const documents = parseAllDocuments(source, {
+    uniqueKeys: true,
+    prettyErrors: true,
+  });
+
+  if (!documents.length) {
+    throw new Error("No YAML document was found.");
+  }
+
+  const yamlErrors: string[] = [];
+  const yamlWarnings: string[] = [];
+
+  documents.forEach((document, index) => {
+    document.errors.forEach((error) => {
+      yamlErrors.push(
+        `Document ${index + 1}: ${error.message}`
+      );
+    });
+
+    document.warnings.forEach((warning) => {
+      yamlWarnings.push(
+        `Document ${index + 1}: ${warning.message}`
+      );
+    });
+  });
+
+  if (yamlErrors.length) {
+    throw new Error(
+      `YAML parsing failed:\n${yamlErrors.join("\n")}`
+    );
+  }
+
+  const parsedDocuments = documents.map((document, index) => {
+    let value: unknown;
+
+    try {
+      value = document.toJS({
+        maxAliasCount: 100,
+      });
+    } catch (caught) {
+      throw new Error(
+        `Document ${index + 1} could not be converted from YAML: ${
+          caught instanceof Error ? caught.message : "unknown YAML error"
+        }`
+      );
+    }
+
+    return parseSecretDocument(value, index + 1);
+  });
+
+  const notes: string[] = [];
+
+  if (parsedDocuments.length > 1) {
+    notes.push(
+      `The input contains ${parsedDocuments.length} YAML documents. Each is reviewed independently; kubectl/apply behavior still depends on the complete resource set and cluster API validation.`
+    );
+  }
+
+  if (
+    parsedDocuments.some(
+      (document) => document.kind && document.kind !== "Secret"
+    )
+  ) {
+    notes.push(
+      "At least one YAML document is not kind: Secret. The decoder does not discard it silently because mixed multi-document files are common during troubleshooting."
+    );
+  }
+
+  notes.push(
+    "Base64 decoding proves representation only. It does not prove that the Secret is authorized, encrypted at rest, safe to expose to a Pod, or accepted by a Kubernetes API server."
+  );
+
+  return {
+    documents: parsedDocuments,
+    notes,
+    yamlWarnings,
+  };
+}
+
+function maskValue(value: string, bytes: number) {
+  if (!value) {
+    return "(empty value)";
+  }
+
+  return `•••••••• (${bytes} byte${bytes === 1 ? "" : "s"} hidden)`;
+}
+
+function entryDisplay(entry: SecretEntry, mask: boolean) {
+  if (entry.error) {
+    return `ERROR: ${entry.error}`;
+  }
+
+  return mask
+    ? maskValue(entry.decodedValue, entry.bytes)
+    : entry.decodedValue;
+}
+
+function formatSecretReport(
+  report: SecretReport,
+  mask: boolean
+) {
+  const lines = [
+    "Kubernetes Secret inspection",
+    `YAML documents: ${report.documents.length}`,
+    "",
+  ];
+
+  report.documents.forEach((document) => {
+    lines.push(
+      `Document ${document.documentNumber}`,
+      `apiVersion: ${document.apiVersion || "not found"}`,
+      `kind: ${document.kind || "not found"}`,
+      `name: ${document.name || "not found"}`,
+      `namespace: ${document.namespace || "not specified"}`,
+      `type: ${document.secretType || "not specified"}`,
+      `immutable: ${
+        document.immutable === null ? "not specified" : String(document.immutable)
+      }`,
+      ""
+    );
+
+    if (document.entries.length) {
+      document.entries.forEach((entry) => {
+        lines.push(
+          `[${entry.source}] ${entry.key}`,
+          entryDisplay(entry, mask),
+          ""
+        );
+      });
+    } else {
+      lines.push("No data/stringData entries.", "");
+    }
+
+    if (document.notes.length) {
+      lines.push(
+        "Document review:",
+        ...document.notes.map((note) => `- ${note}`),
+        ""
+      );
+    }
+  });
+
+  if (report.yamlWarnings.length) {
+    lines.push(
+      "YAML warnings:",
+      ...report.yamlWarnings.map((warning) => `- ${warning}`),
+      ""
+    );
+  }
+
+  if (report.notes.length) {
+    lines.push(
+      "Overall notes:",
+      ...report.notes.map((note) => `- ${note}`)
+    );
+  }
+
+  return lines.join("\n").trim();
+}
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
-  const [result, setResult] = useState<SecretResult | null>(null);
+  const [result, setResult] = useState<SecretReport | null>(null);
   const [error, setError] = useState("");
-  const [showEncoded, setShowEncoded] = useState(false);
+  const [maskValues, setMaskValues] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  const formattedOutput = useMemo(
+    () => (result ? formatSecretReport(result, maskValues) : ""),
+    [result, maskValues]
+  );
 
   const clearResult = () => {
     setResult(null);
@@ -50,234 +665,544 @@ export default function ToolClient() {
     setCopied(false);
   };
 
-  const decodeSecret = () => {
+  const decode = () => {
     if (!input.trim()) {
-      setError("Please paste a Kubernetes Secret YAML document.");
+      setError("Paste Kubernetes Secret YAML to inspect.");
       setResult(null);
       return;
     }
 
     try {
-      setResult(parseKubernetesSecret(input));
+      setResult(parseKubernetesSecrets(input));
       setError("");
       setCopied(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to parse this Kubernetes Secret.");
+    } catch (caught) {
       setResult(null);
+      setCopied(false);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to parse this Secret YAML."
+      );
     }
   };
 
   const loadExample = () => {
-    setInput(sampleSecret);
-    setShowEncoded(false);
+    setInput(SAMPLE_SECRET);
+    setMaskValues(true);
     clearResult();
   };
 
   const resetAll = () => {
     setInput("");
-    setShowEncoded(false);
+    setMaskValues(true);
     clearResult();
   };
 
-  const copyReport = async () => {
-    if (!result) return;
-    await navigator.clipboard.writeText(buildReport(result));
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+  const copyOutput = async () => {
+    if (!formattedOutput) return;
+
+    try {
+      await navigator.clipboard.writeText(formattedOutput);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+      setError(
+        "The Secret report could not be copied. Select and copy it manually."
+      );
+    }
   };
+
+  const entryCount = result
+    ? result.documents.reduce(
+        (total, document) => total + document.entries.length,
+        0
+      )
+    : 0;
+  const invalidCount = result
+    ? result.documents.reduce(
+        (total, document) =>
+          total + document.entries.filter((entry) => entry.error).length,
+        0
+      )
+    : 0;
+  const binaryCount = result
+    ? result.documents.reduce(
+        (total, document) =>
+          total +
+          document.entries.filter(
+            (entry) =>
+              entry.source === "data" &&
+              !entry.error &&
+              !entry.isText
+          ).length,
+        0
+      )
+    : 0;
 
   return (
     <ToolShell
       title="Kubernetes Secret Decoder"
-      description="Decode standard Base64 values from Kubernetes Secret data, inspect stringData and metadata, and identify malformed or binary values locally in your browser."
+      description="Parse Secret manifests with a real YAML parser, decode base64 data, preserve stringData semantics, identify binary fields and type-specific key expectations, and keep decoded values masked until you choose to reveal them."
     >
-      <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">Kubernetes Secret YAML</label>
-        <textarea
-          value={input}
-          onChange={(event) => { setInput(event.target.value); clearResult(); }}
-          rows={16}
-          placeholder={sampleSecret}
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-        />
-      </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+          <label className="block text-sm font-semibold text-gray-900">
+            Kubernetes YAML
+          </label>
+          <p className="mt-1 text-sm leading-relaxed text-gray-500">
+            Single- or multi-document YAML is supported. Quoted scalars, block
+            scalars, anchors and normal YAML syntax are parsed by the project&apos;s
+            YAML library rather than a hand-written line parser.
+          </p>
+          <textarea
+            value={input}
+            onChange={(event: { target: { value: string } }) => {
+              setInput(event.target.value);
+              clearResult();
+            }}
+            placeholder={SAMPLE_SECRET}
+            spellCheck={false}
+            className="mt-4 min-h-[430px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          />
+        </div>
 
-      <div className="mt-4 flex items-center gap-2 text-sm text-gray-700">
-        <input id="show-encoded" type="checkbox" checked={showEncoded} onChange={(event) => setShowEncoded(event.target.checked)} className="h-4 w-4 accent-[var(--light-gold)]" />
-        <label htmlFor="show-encoded">Show original Base64 values beside decoded data</label>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Secret-value visibility
+          </h2>
+
+          <label className="mt-5 flex items-start gap-3 text-sm leading-relaxed text-gray-700">
+            <input
+              type="checkbox"
+              checked={maskValues}
+              onChange={(event: { target: { checked: boolean } }) => {
+                setMaskValues(event.target.checked);
+                setCopied(false);
+              }}
+              className="mt-1"
+            />
+            <span>
+              <strong>Mask decoded values.</strong>{" "}
+              Enabled by default so a successful decode does not immediately
+              expose credentials during screen sharing or screenshots.
+            </span>
+          </label>
+
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-900">
+            Base64 is not encryption. A Secret manifest can contain production
+            credentials, private keys, registry passwords or tokens. Prefer
+            placeholders when testing the tool and avoid copying unmasked output
+            into tickets or chat.
+          </div>
+        </div>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={decodeSecret} className="yoryantra-btn">Decode Secret</button>
-        <button onClick={loadExample} className="yoryantra-btn-outline">Load Example</button>
-        <button onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
-        {result && <button onClick={copyReport} className="yoryantra-btn-outline">{copied ? "Copied" : "Copy Report"}</button>}
+        <button type="button" onClick={decode} className="yoryantra-btn">
+          Decode Secret
+        </button>
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
+          Load Example
+        </button>
+        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">
+          Reset
+        </button>
       </div>
 
-      {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">{error}</div>}
+      {error ? (
+        <div className="mt-5 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
+      ) : null}
 
-      {result && (
-        <>
-          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <SummaryCard label="Name" value={result.name || "(not set)"} />
-            <SummaryCard label="Namespace" value={result.namespace || "default / not set"} />
-            <SummaryCard label="Type" value={result.secretType || "Opaque / not set"} />
-            <SummaryCard label="Fields" value={result.entries.length.toLocaleString()} />
-            <SummaryCard label="API" value={`${result.apiVersion || "?"} ${result.kind || "?"}`} />
+      {result ? (
+        <div className="mt-8">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label="YAML documents" value={String(result.documents.length)} />
+            <Stat label="Secret fields" value={String(entryCount)} />
+            <Stat label="Invalid fields" value={String(invalidCount)} />
+            <Stat label="Binary fields" value={String(binaryCount)} />
           </div>
 
-          <div className="mt-8 overflow-auto rounded-xl border border-gray-200">
-            <table className="w-full min-w-[780px] text-left text-sm">
-              <thead className="bg-gray-50 text-gray-600"><tr><th className="px-4 py-3">Key</th><th className="px-4 py-3">Source</th><th className="px-4 py-3">Decoded Value</th>{showEncoded && <th className="px-4 py-3">Encoded Value</th>}<th className="px-4 py-3">Bytes</th></tr></thead>
-              <tbody className="divide-y divide-gray-100">
-                {result.entries.map((entry) => (
-                  <tr key={`${entry.source}-${entry.key}`}>
-                    <td className="px-4 py-3 font-mono font-semibold">{entry.key}</td>
-                    <td className="px-4 py-3">{entry.source}</td>
-                    <td className="px-4 py-3"><pre className={`max-w-[520px] whitespace-pre-wrap break-words font-mono text-xs ${entry.error ? "text-red-700" : "text-gray-800"}`}>{entry.error || entry.decodedValue}</pre></td>
-                    {showEncoded && <td className="px-4 py-3"><code className="block max-w-[360px] break-all text-xs">{entry.encodedValue || "—"}</code></td>}
-                    <td className="px-4 py-3">{entry.bytes}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-6 flex justify-end">
+            <button
+              type="button"
+              onClick={copyOutput}
+              className="yoryantra-btn-outline whitespace-nowrap"
+            >
+              {copied
+                ? "Copied"
+                : maskValues
+                ? "Copy Masked Report"
+                : "Copy Unmasked Report"}
+            </button>
           </div>
 
-          {result.notes.length > 0 && (
-            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <h3 className="font-semibold text-amber-900">Review notes</h3>
-              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-amber-800">{result.notes.map((note, index) => <li key={index}>{note}</li>)}</ul>
+          <div className="mt-4 space-y-6">
+            {result.documents.map((document) => (
+              <div
+                key={document.documentNumber}
+                className="rounded-2xl border border-gray-200 bg-white p-5"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      YAML document {document.documentNumber}
+                    </div>
+                    <h3 className="mt-1 text-lg font-semibold text-gray-900">
+                      {document.name || document.kind || "Unnamed document"}
+                    </h3>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {document.secretType || "type not specified"}
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                  <Info label="apiVersion" value={document.apiVersion || "not found"} />
+                  <Info label="kind" value={document.kind || "not found"} />
+                  <Info label="name" value={document.name || "not found"} />
+                  <Info
+                    label="namespace"
+                    value={document.namespace || "not specified"}
+                  />
+                  <Info
+                    label="immutable"
+                    value={
+                      document.immutable === null
+                        ? "not specified"
+                        : String(document.immutable)
+                    }
+                  />
+                </div>
+
+                {document.entries.length ? (
+                  <div className="mt-5 overflow-x-auto rounded-xl border border-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50 text-left text-gray-600">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold">Key</th>
+                          <th className="px-4 py-3 font-semibold">Source</th>
+                          <th className="px-4 py-3 font-semibold">Decoded value</th>
+                          <th className="px-4 py-3 font-semibold">Bytes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 text-gray-700">
+                        {document.entries.map((entry, index) => (
+                          <tr key={`${entry.source}-${entry.key}-${index}`}>
+                            <td className="px-4 py-3 align-top font-mono">
+                              {entry.key}
+                            </td>
+                            <td className="px-4 py-3 align-top font-mono">
+                              {entry.source}
+                            </td>
+                            <td className="px-4 py-3 align-top">
+                              <pre className="max-w-[720px] whitespace-pre-wrap break-words font-mono text-xs leading-6 text-gray-800">
+                                {entryDisplay(entry, maskValues)}
+                              </pre>
+                            </td>
+                            <td className="px-4 py-3 align-top">
+                              {entry.error ? "—" : entry.bytes}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="mt-5 text-sm text-gray-600">
+                    No data/stringData fields were found.
+                  </p>
+                )}
+
+                {document.notes.length ? (
+                  <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+                    <ul className="list-disc space-y-2 pl-5">
+                      {document.notes.map((note, index) => (
+                        <li key={`${note}-${index}`}>{note}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+
+          {result.yamlWarnings.length || result.notes.length ? (
+            <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
+              {result.yamlWarnings.length ? (
+                <>
+                  <strong className="text-gray-900">YAML parser warnings</strong>
+                  <ul className="mt-2 list-disc space-y-2 pl-5">
+                    {result.yamlWarnings.map((warning, index) => (
+                      <li key={`${warning}-${index}`}>{warning}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+
+              {result.notes.length ? (
+                <>
+                  <strong className="mt-5 block text-gray-900">
+                    Overall review
+                  </strong>
+                  <ul className="mt-2 list-disc space-y-2 pl-5">
+                    {result.notes.map((note, index) => (
+                      <li key={`${note}-${index}`}>{note}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
             </div>
-          )}
-        </>
+          ) : null}
+        </div>
+      ) : (
+        <pre className="yoryantra-output mt-8 min-h-[300px] whitespace-pre-wrap break-words text-sm">
+          Parsed Secret metadata, masked decoded values, binary-field previews
+          and type-specific review notes will appear here.
+        </pre>
       )}
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Decoding happens in your browser. Kubernetes Secret values are only Base64-encoded by default, not encrypted by Base64 itself. Avoid pasting production credentials unless you genuinely need to inspect them.
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        YAML parsing and Base64 decoding happen on the pasted manifest in your
+        browser. The tool does not contact a Kubernetes cluster or API server.
+        Site-wide analytics or advertising scripts, if enabled, are separate
+        from this decoding operation.
       </div>
 
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Reading Kubernetes Secret Data Without Misreading YAML</h2>
-          <p className="mt-4 leading-relaxed text-gray-600">A Kubernetes Secret normally stores encoded bytes under <code>data</code> and accepts plain strings under <code>stringData</code>. This version uses a real YAML parser rather than stripping quotes manually, so YAML double-quoted escapes, single-quoted scalar rules, block scalars, anchors, comments, and normal YAML parsing behavior are handled before Secret fields are inspected.</p>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            A Secret Decoder Needs a YAML Parser Before It Needs a Base64 Decoder
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Kubernetes manifests are YAML documents, not line-oriented
+            <code>key: value</code> text files. Quoted scalars can contain
+            comment characters, block scalars can span lines, anchors can reuse
+            nodes, and YAML parsing rules determine whether a value becomes a
+            string, number, boolean or mapping.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Earlier Yoryantra versions intentionally used a lightweight parser
+            and had to document unsupported block-scalar behavior. This freeze
+            version uses the project&apos;s real YAML library first, then applies
+            Kubernetes Secret-specific checks to the parsed object.
+          </p>
         </div>
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Base64 Is an Encoding, Not a Secret-Protection Mechanism</h2>
-          <p className="mt-4 leading-relaxed text-gray-600">Anyone who can read the Secret object can normally decode its Base64 data. Kubernetes documents additional protections such as encryption at rest and access controls, but those are cluster configuration concerns; this browser tool does not check them.</p>
+
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            data and stringData Reach the Same Secret Through Different Authoring Paths
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Values under <code>data</code> are Base64-encoded representations of
+            arbitrary bytes. <code>stringData</code> is a write-only convenience
+            that lets manifest authors provide unencoded string values and lets
+            the API server merge them into Secret data.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            When the same key is supplied in both sections, the stringData value
+            wins during that merge. The decoder shows both source sections and
+            calls out overlapping keys so you do not inspect the Base64 value
+            and accidentally believe it will be the effective value.
+          </p>
         </div>
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Binary Secret Values</h2>
-          <p className="mt-4 leading-relaxed text-gray-600">Not every Secret value is UTF-8 text. TLS keys, certificates, keystores, and application blobs can contain arbitrary bytes. When Base64 decoding succeeds but strict UTF-8 decoding does not, the tool reports a hexadecimal preview instead of inventing replacement characters.</p>
+
+        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h2 className="text-xl font-semibold text-red-900">
+            Base64 Makes Bytes Printable; It Does Not Make Them Confidential
+          </h2>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            Anyone who can read a Secret&apos;s Base64 data can normally decode it.
+            Kubernetes security depends on RBAC and authorization, API access,
+            workload isolation, storage/encryption-at-rest configuration and how
+            applications handle the material after mounting or injecting it.
+          </p>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            That is why decoded values start masked here. Local browser
+            processing reduces unnecessary network exposure, but it does not
+            make a production credential harmless to display, screenshot or
+            copy.
+          </p>
         </div>
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">What This Tool Does Not Validate</h2>
-          <p className="mt-4 leading-relaxed text-gray-600">The YAML is parsed accurately, but this is not a Kubernetes API-server validator. It does not apply admission rules, verify a Secret type&apos;s required keys, resolve server-side apply behavior, or check RBAC. Paste one YAML document at a time.</p>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            A Secret Can Store Binary Data That Is Not Valid UTF-8
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Certificates, key material and application blobs are byte sequences.
+            Decoding Base64 does not guarantee the result is readable text.
+            Forcing arbitrary bytes through a normal string decoder can replace
+            invalid sequences and hide the actual content.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Yoryantra uses a fatal UTF-8 decode first. If the bytes are not valid
+            UTF-8, it reports their size and shows a hexadecimal preview instead
+            of pretending the data is text.
+          </p>
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-          <h2 className="text-xl font-semibold text-gray-900">Official References</h2>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-            <a href="https://kubernetes.io/docs/concepts/configuration/secret/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">Kubernetes Secrets documentation →</a>
-            <a href="https://yaml.org/spec/1.2.2/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">YAML 1.2.2 specification →</a>
-          </div>
+
+        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
+            Built-In Secret Types Add Expectations Beyond “data Is a Map”
+          </h2>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            An Opaque Secret can use application-defined keys. Built-in types
+            carry conventions or validation: TLS Secrets use{" "}
+            <code>tls.crt</code> and <code>tls.key</code>;
+            dockerconfigjson uses <code>.dockerconfigjson</code>; SSH auth uses{" "}
+            <code>ssh-privatekey</code>; basic auth commonly uses username and
+            password.
+          </p>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            This decoder checks whether those expected key names are present,
+            but it does not claim that a certificate is valid, a private key
+            matches it, registry credentials work, or an SSH key is
+            cryptographically sound.
+          </p>
         </div>
-        <div><h2 className="text-xl font-semibold text-gray-900">Related Tools</h2><YoryantraRelatedTools currentHref="/tools/kubernetes-secret-decoder" /></div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            YAML Type Coercion Can Break a Secret Before Base64 Is Checked
+          </h2>
+          <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`stringData:
+  enabled: true
+  pin: 012345
+
+Safer when strings are intended:
+stringData:
+  enabled: "true"
+  pin: "012345"`}</pre>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Kubernetes Secret data/stringData are string-keyed maps at the API
+            level. If YAML produces a boolean, number, array or object where a
+            string is expected, the manifest can fail schema/API conversion or
+            behave differently from what a human reading the source assumed.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The real YAML parser lets this tool identify the parsed type and
+            tell you to quote values that are meant to remain strings.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            immutable Changes Update Behavior, Not the Meaning of Decoded Bytes
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Kubernetes can mark a Secret immutable. That prevents changes to the
+            Secret&apos;s data after creation and can reduce API-server/kubelet
+            watch load in some large deployments.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The decoder displays the immutable flag because it matters when a
+            value is correct in YAML but an attempted update still fails. It
+            does not change how existing data bytes are Base64-decoded.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Decoding a Manifest and Reading the Live Cluster Are Different Workflows
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A manifest on your laptop can differ from the object stored in the
+            cluster after templating, GitOps substitution, admission changes,
+            Secret generation or a later update. This page only answers what the
+            pasted YAML says.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            When cluster state is the question, use authenticated kubectl/API
+            access and your organization&apos;s secret-handling process. Do not
+            paste live credentials into unrelated systems simply to make
+            inspection easier.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-4 md:grid-cols-2">
+          <ReferenceCard
+            title="Kubernetes Secrets"
+            href="https://kubernetes.io/docs/concepts/configuration/secret/"
+            text="Official documentation for data, stringData, built-in Secret types, immutable Secrets and security considerations."
+          />
+          <ReferenceCard
+            title="Encrypt Secret Data at Rest"
+            href="https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/"
+            text="Explains API-server encryption-at-rest configuration, which is separate from Base64 representation."
+          />
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <YoryantraRelatedTools currentHref="/tools/kubernetes-secret-decoder" />
+        </div>
       </section>
     </ToolShell>
   );
 }
 
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border border-gray-200 bg-gray-50 p-4"><div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div><div className="mt-1 break-words font-mono text-sm font-semibold text-gray-900">{value}</div></div>;
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+      <div className="mt-2 break-words text-lg font-semibold text-gray-900">
+        {value}
+      </div>
+    </div>
+  );
 }
 
-function parseKubernetesSecret(source: string): SecretResult {
-  const documents = parseAllDocuments(source, { uniqueKeys: true });
-  const errors = documents.flatMap((document) => document.errors);
-  if (errors.length) throw new Error(`Invalid YAML: ${errors[0].message}`);
-
-  const nonEmpty = documents.filter((document) => document.contents !== null);
-  if (nonEmpty.length !== 1) throw new Error(`Paste exactly one Kubernetes Secret YAML document. Found ${nonEmpty.length} non-empty documents.`);
-  const value = nonEmpty[0].toJS({ maxAliasCount: 100 }) as unknown;
-  if (!isRecord(value)) throw new Error("The YAML document must contain a mapping/object at the top level.");
-
-  const apiVersion = scalarString(value.apiVersion);
-  const kind = scalarString(value.kind);
-  const secretType = scalarString(value.type);
-  if (kind && kind.toLowerCase() !== "secret") throw new Error(`This manifest is kind: ${kind}, not kind: Secret.`);
-
-  const metadata = value.metadata === undefined ? {} : requireRecord(value.metadata, "metadata");
-  const name = scalarString(metadata.name);
-  const namespace = scalarString(metadata.namespace);
-  const data = value.data === undefined || value.data === null ? {} : requireRecord(value.data, "data");
-  const stringData = value.stringData === undefined || value.stringData === null ? {} : requireRecord(value.stringData, "stringData");
-  if (!Object.keys(data).length && !Object.keys(stringData).length) throw new Error("No values were found under data or stringData.");
-
-  const entries: SecretEntry[] = [];
-  Object.entries(data).forEach(([key, raw]) => {
-    if (typeof raw !== "string") {
-      entries.push({ key, source: "data", encodedValue: stringifyScalar(raw), decodedValue: "", bytes: 0, isText: false, error: "Kubernetes Secret data values must be Base64 strings." });
-      return;
-    }
-    try {
-      const decoded = decodeBase64Value(raw);
-      entries.push({ key, source: "data", encodedValue: raw, decodedValue: decoded.value, bytes: decoded.bytes, isText: decoded.isText, error: "" });
-    } catch (err) {
-      entries.push({ key, source: "data", encodedValue: raw, decodedValue: "", bytes: 0, isText: false, error: err instanceof Error ? err.message : "Invalid Base64 value." });
-    }
-  });
-
-  Object.entries(stringData).forEach(([key, raw]) => {
-    if (typeof raw !== "string") {
-      entries.push({ key, source: "stringData", encodedValue: "", decodedValue: stringifyScalar(raw), bytes: 0, isText: false, error: "Kubernetes Secret stringData values must resolve to strings." });
-      return;
-    }
-    entries.push({ key, source: "stringData", encodedValue: "", decodedValue: raw, bytes: new TextEncoder().encode(raw).length, isText: true, error: "" });
-  });
-
-  const notes: string[] = [];
-  const dataKeys = new Set(Object.keys(data));
-  const duplicates = Object.keys(stringData).filter((key) => dataKeys.has(key));
-  if (duplicates.length) notes.push(`The key${duplicates.length === 1 ? "" : "s"} ${duplicates.join(", ")} appear in both data and stringData. Kubernetes uses stringData to merge/replace those values when the Secret is submitted.`);
-  if (!kind) notes.push("No kind field was found. A normal Kubernetes Secret manifest uses kind: Secret.");
-  if (!apiVersion) notes.push("No apiVersion field was found. Core Kubernetes Secrets normally use apiVersion: v1.");
-  if (entries.some((entry) => entry.error)) notes.push("At least one value needs review. Other valid fields are still shown so you can isolate the problem.");
-  if (entries.some((entry) => entry.source === "data" && !entry.error && !entry.isText)) notes.push("At least one decoded data value is binary rather than valid UTF-8 text; a hexadecimal preview is shown for that field.");
-
-  return { apiVersion, kind, name, namespace, secretType, entries, notes };
+function Info({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+      <div className="mt-2 break-words text-sm leading-relaxed text-gray-800">
+        {value}
+      </div>
+    </div>
+  );
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
-function requireRecord(value: unknown, field: string) { if (!isRecord(value)) throw new Error(`${field} must be a YAML mapping/object.`); return value; }
-function scalarString(value: unknown) { if (value === undefined || value === null) return ""; if (typeof value === "string") return value; if (typeof value === "number" || typeof value === "boolean") return String(value); return ""; }
-function stringifyScalar(value: unknown) { if (value === null) return "null"; if (typeof value === "string") return value; try { return JSON.stringify(value); } catch { return String(value); } }
-
-function decodeBase64Value(value: string) {
-  const normalized = value.replace(/\s+/g, "");
-  if (!normalized) return { value: "", bytes: 0, isText: true };
-  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(normalized) || normalized.length % 4 !== 0 || /=/.test(normalized.slice(0, -2))) throw new Error("Invalid standard Base64 encoding.");
-  let binary = "";
-  try { binary = atob(normalized); } catch { throw new Error("Invalid standard Base64 encoding."); }
-  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-  try { return { value: new TextDecoder("utf-8", { fatal: true }).decode(bytes), bytes: bytes.length, isText: true }; }
-  catch {
-    const preview = Array.from(bytes.slice(0, 96)).map((byte) => byte.toString(16).padStart(2, "0")).join(" ");
-    return { value: `[binary data: ${bytes.length} bytes]\nhex: ${preview}${bytes.length > 96 ? " …" : ""}`, bytes: bytes.length, isText: false };
-  }
-}
-
-function buildReport(result: SecretResult) {
-  const lines = [
-    "Kubernetes Secret Review",
-    "------------------------",
-    `apiVersion: ${result.apiVersion || "(missing)"}`,
-    `kind: ${result.kind || "(missing)"}`,
-    `name: ${result.name || "(missing)"}`,
-    `namespace: ${result.namespace || "(not set)"}`,
-    `type: ${result.secretType || "(not set)"}`,
-    "",
-    "Fields:",
-    ...result.entries.map((entry) => `- ${entry.key} [${entry.source}]: ${entry.error || entry.decodedValue}`),
-  ];
-  if (result.notes.length) lines.push("", "Notes:", ...result.notes.map((note) => `- ${note}`));
-  return lines.join("\n");
+function ReferenceCard({
+  title,
+  href,
+  text,
+}: {
+  title: string;
+  href: string;
+  text: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="font-semibold text-[var(--green)] underline underline-offset-4"
+      >
+        {title}
+      </a>
+      <p className="mt-3 text-sm leading-relaxed text-gray-600">{text}</p>
+    </div>
+  );
 }

@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Kubernetes Secret Decoder | Decode K8s Secret YAML | Yoryantra",
+  title: "Kubernetes Secret Decoder | YAML & Base64 | Yoryantra",
   description:
-    "Decode base64 values from Kubernetes Secret YAML, inspect data and stringData fields, identify invalid values, and review secret metadata locally in your browser.",
+    "Parse Kubernetes Secret YAML with a real YAML parser, decode data values, inspect stringData, binary fields, metadata and type-specific key expectations locally.",
   alternates: {
     canonical: "https://yoryantra.com/tools/kubernetes-secret-decoder",
   },
   openGraph: {
     title: "Kubernetes Secret Decoder | Yoryantra",
     description:
-      "Decode Kubernetes Secret data values, inspect stringData, and review secret metadata locally in your browser.",
+      "Decode Kubernetes Secret data safely while preserving YAML semantics, stringData precedence, binary values and Secret-type review notes.",
     url: "https://yoryantra.com/tools/kubernetes-secret-decoder",
     siteName: "Yoryantra",
     type: "website",
@@ -20,10 +20,10 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Kubernetes Secret Decoder | Yoryantra",
     description:
-      "Decode base64 values from Kubernetes Secret YAML and inspect data and stringData fields locally.",
+      "Parse Secret YAML, decode base64 data, inspect stringData and review Secret metadata and type-specific fields locally.",
   },
 };
 
-export default function KubernetesSecretDecoderPage() {
+export default function Page() {
   return <ToolClient />;
 }

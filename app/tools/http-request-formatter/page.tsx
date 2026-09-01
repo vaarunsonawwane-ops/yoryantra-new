@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "HTTP Request Formatter | Parse Raw HTTP Requests | Yoryantra",
+  title: "HTTP Request Formatter | Request Diagnostics | Yoryantra",
   description:
-    "Format and inspect raw HTTP requests, request lines, headers, query parameters, JSON or form bodies, Content-Length, and common request issues locally in your browser.",
+    "Format raw HTTP/1.x requests and inspect request lines, headers, query parameters, framing, body media types, sensitive fields and common request defects.",
   alternates: {
     canonical: "https://yoryantra.com/tools/http-request-formatter",
   },
   openGraph: {
     title: "HTTP Request Formatter | Yoryantra",
     description:
-      "Parse a raw HTTP request into method, target, headers, query parameters, body details, and practical diagnostics.",
+      "Turn a raw HTTP request capture into a readable request-line, header, query, body and framing review without sending the request.",
     url: "https://yoryantra.com/tools/http-request-formatter",
     siteName: "Yoryantra",
     type: "website",
@@ -20,10 +20,10 @@ export const metadata: Metadata = {
     card: "summary",
     title: "HTTP Request Formatter | Yoryantra",
     description:
-      "Format raw HTTP requests and inspect headers, query parameters, body content, and request diagnostics locally.",
+      "Format raw HTTP requests and inspect header, query, body, framing and credential-handling issues locally.",
   },
 };
 
-export default function HTTPRequestFormatterPage() {
+export default function Page() {
   return <ToolClient />;
 }
