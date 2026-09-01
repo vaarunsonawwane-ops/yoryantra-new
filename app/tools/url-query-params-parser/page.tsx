@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "URL Query Params Parser | Repeated Query Values | Yoryantra",
+export const metadata: Metadata = {
+  title: "URL Query Params Parser | Read URL Parameters | Yoryantra",
   description:
-    "Parse full URLs or raw query strings while preserving repeated parameters, blank values, raw encoding, decoded values, and parameter order.",
+    "Parse URL query parameters, see what values such as utm_source or repeated filters contain, preserve raw encoding and order, and diagnose malformed percent encoding.",
   alternates: {
     canonical: "https://yoryantra.com/tools/url-query-params-parser",
   },
   openGraph: {
-    title: "URL Query Params Parser | Repeated Query Values | Yoryantra",
+    title: "URL Query Params Parser | Read URL Parameters | Yoryantra",
     description:
-      "Inspect URL query parameters without overwriting repeated keys or hiding raw encoding.",
+      "Read the parameters after ? in a URL, preserve repeated values, and compare raw and decoded forms.",
     url: "https://yoryantra.com/tools/url-query-params-parser",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "URL Query Params Parser | Yoryantra",
     description:
-      "Parse ordered query parameters with repeated-key and percent-decoding diagnostics.",
+      "Parse URL parameters and understand repeated keys, blank values, plus signs, and percent encoding.",
   },
 };
 

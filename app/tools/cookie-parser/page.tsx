@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Cookie Parser | Cookie & Set-Cookie Inspector | Yoryantra",
+export const metadata: Metadata = {
+  title: "Cookie Parser | Read Cookie & Set-Cookie Headers | Yoryantra",
   description:
-    "Parse Cookie request headers and Set-Cookie response headers while preserving duplicate names, attributes, raw values, and diagnostics.",
+    "Parse Cookie and Set-Cookie headers, understand common cookie attributes, preserve duplicate names, and inspect Secure, HttpOnly, SameSite, prefixes, and expiry settings.",
   alternates: {
     canonical: "https://yoryantra.com/tools/cookie-parser",
   },
   openGraph: {
-    title: "Cookie Parser | Cookie & Set-Cookie Inspector | Yoryantra",
+    title: "Cookie Parser | Read Cookie & Set-Cookie Headers | Yoryantra",
     description:
-      "Inspect Cookie and Set-Cookie headers with ordered values, attributes, and practical diagnostics.",
+      "Read browser cookie headers in plain language, then inspect attributes, duplicates, prefixes, and structural diagnostics.",
     url: "https://yoryantra.com/tools/cookie-parser",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Cookie Parser | Cookie & Set-Cookie Inspector | Yoryantra",
+    card: "summary",
+    title: "Cookie Parser | Yoryantra",
     description:
-      "Parse request cookies and Set-Cookie response headers without losing repeated values or attributes.",
+      "Parse Cookie and Set-Cookie headers and understand what their values and attributes mean.",
   },
 };
 

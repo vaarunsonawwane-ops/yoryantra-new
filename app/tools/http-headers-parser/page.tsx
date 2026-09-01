@@ -1,25 +1,26 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "HTTP Headers Parser | Preserve Repeated Fields | Yoryantra",
+export const metadata: Metadata = {
+  title: "HTTP Headers Parser | Read Request & Response Headers | Yoryantra",
   description:
-    "Parse HTTP request or response headers into ordered structured data while preserving repeated fields, start lines, and parsing diagnostics.",
+    "Parse raw HTTP request or response headers into ordered fields, preserve repeated values, inspect start lines and pseudo-fields, and flag malformed or risky framing patterns.",
   alternates: {
     canonical: "https://yoryantra.com/tools/http-headers-parser",
   },
   openGraph: {
-    title: "HTTP Headers Parser | Preserve Repeated Fields | Yoryantra",
+    title: "HTTP Headers Parser | Read Request & Response Headers | Yoryantra",
     description:
-      "Inspect raw HTTP header blocks without silently overwriting duplicate field lines.",
+      "Turn pasted HTTP headers into structured data while preserving duplicates, order, start lines, and useful diagnostics.",
     url: "https://yoryantra.com/tools/http-headers-parser",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "HTTP Headers Parser | Yoryantra",
     description:
-      "Parse raw HTTP headers, preserve repeated fields, and surface malformed lines for debugging.",
+      "Parse and understand raw HTTP request and response headers without silently losing repeated fields.",
   },
 };
 
