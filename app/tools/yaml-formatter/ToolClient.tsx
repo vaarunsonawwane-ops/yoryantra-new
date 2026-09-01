@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import YAML from "yaml";
+import {
+  parseAllDocuments,
+} from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -13,14 +15,14 @@ type FormatResult = {
   output: string;
   documents: number;
   warnings: string[];
-  comments: number;
   anchors: number;
   aliases: number;
+  directives: number;
   inputLines: number;
   outputLines: number;
 };
 
-const sampleYaml = `# Deployment settings
+const SAMPLE_YAML = `# Deployment settings
 service: api
 image: example/api:1.4
 resources: &defaults
@@ -32,13 +34,280 @@ workers:
   - name: queue-b
     resources: *defaults`;
 
+function stripTrailingWhitespace(
+  value: string
+) {
+  return value.replace(/\s+$/, "");
+}
+
+function countLines(value: string) {
+  if (!value) return 0;
+
+  return value
+    .replace(/\r\n?/g, "\n")
+    .split("\n").length;
+}
+
+function countDirectives(value: string) {
+  return value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .filter((line) =>
+      /^%(?:YAML|TAG)\b/.test(
+        line.trim()
+      )
+    ).length;
+}
+
+function countReferenceTokens(
+  source: string,
+  token: "&" | "*"
+) {
+  let count = 0;
+  let single = false;
+  let double = false;
+  let comment = false;
+  let escaped = false;
+
+  for (
+    let index = 0;
+    index < source.length;
+    index += 1
+  ) {
+    const char = source[index];
+
+    if (char === "\n") {
+      comment = false;
+    }
+
+    if (comment) {
+      continue;
+    }
+
+    if (double) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        double = false;
+      }
+
+      continue;
+    }
+
+    if (single) {
+      if (
+        char === "'" &&
+        source[index + 1] === "'"
+      ) {
+        index += 1;
+      } else if (char === "'") {
+        single = false;
+      }
+
+      continue;
+    }
+
+    if (char === "#") {
+      comment = true;
+      continue;
+    }
+
+    if (char === '"') {
+      double = true;
+      continue;
+    }
+
+    if (char === "'") {
+      single = true;
+      continue;
+    }
+
+    if (
+      char === token &&
+      /[\s\[\]{},?:-]/.test(
+        source[index - 1] || "\n"
+      ) &&
+      /[A-Za-z0-9_-]/.test(
+        source[index + 1] || ""
+      )
+    ) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function formatDiagnostic(
+  diagnostic: {
+    code?: string;
+    message?: string;
+    linePos?: Array<{
+      line: number;
+      col: number;
+    }>;
+  },
+  documentIndex: number
+) {
+  const position =
+    diagnostic.linePos &&
+    diagnostic.linePos.length
+      ? diagnostic.linePos[0]
+      : null;
+  const location = position
+    ? `line ${position.line}, column ${position.col}`
+    : "location unavailable";
+  const code = diagnostic.code
+    ? ` [${diagnostic.code}]`
+    : "";
+
+  return `Document ${
+    documentIndex + 1
+  }, ${location}${code}: ${
+    diagnostic.message ||
+    "YAML parser diagnostic."
+  }`;
+}
+
+function formatYaml(
+  input: string,
+  indent: number,
+  lineWidth: number
+): FormatResult {
+  const documents =
+    parseAllDocuments(input, {
+      prettyErrors: true,
+      uniqueKeys: true,
+    });
+
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  documents.forEach(
+    (document, documentIndex) => {
+      document.errors.forEach(
+        (diagnostic) => {
+          errors.push(
+            formatDiagnostic(
+              diagnostic,
+              documentIndex
+            )
+          );
+        }
+      );
+
+      document.warnings.forEach(
+        (diagnostic) => {
+          warnings.push(
+            formatDiagnostic(
+              diagnostic,
+              documentIndex
+            )
+          );
+        }
+      );
+    }
+  );
+
+  if (errors.length) {
+    throw new Error(
+      errors.slice(0, 10).join("\n\n")
+    );
+  }
+
+  const parts = documents.map(
+    (document, index) => {
+      const rendered =
+        stripTrailingWhitespace(
+          document.toString({
+            indent,
+            lineWidth,
+          })
+        );
+
+      if (
+        index > 0 &&
+        !/^---(?:\s|$)/.test(
+          rendered
+        )
+      ) {
+        return `---\n${rendered}`;
+      }
+
+      return rendered;
+    }
+  );
+
+  const output = `${parts.join(
+    "\n"
+  )}\n`;
+
+  if (
+    input.indexOf("{{") !== -1 ||
+    input.indexOf("{%") !== -1
+  ) {
+    warnings.push(
+      "Template markers were detected. Formatting template source can be misleading when the final rendered YAML has different structure."
+    );
+  }
+
+  if (
+    /^\s*<<\s*:/m.test(input)
+  ) {
+    warnings.push(
+      "A << merge-key-looking entry is present. Formatting preserves the document representation, but merge semantics still depend on the parser/application schema that consumes the file."
+    );
+  }
+
+  const anchors =
+    countReferenceTokens(input, "&");
+  const aliases =
+    countReferenceTokens(input, "*");
+
+  if (anchors || aliases) {
+    warnings.push(
+      `Anchor/alias syntax was detected (${anchors} anchor token${
+        anchors === 1 ? "" : "s"
+      }, ${aliases} alias token${
+        aliases === 1 ? "" : "s"
+      }). Review the formatted diff when aliases are important to the configuration graph.`
+    );
+  }
+
+  if (countDirectives(input)) {
+    warnings.push(
+      "YAML directives are present. The formatter works through parsed documents, so verify version/tag directives in the formatted output before replacing the source."
+    );
+  }
+
+  return {
+    output,
+    documents: documents.length,
+    warnings,
+    anchors,
+    aliases,
+    directives:
+      countDirectives(input),
+    inputLines: countLines(input),
+    outputLines: countLines(output),
+  };
+}
+
 export default function ToolClient() {
-  const [input, setInput] = useState("");
-  const [indentMode, setIndentMode] = useState<IndentMode>("2");
-  const [widthMode, setWidthMode] = useState<WidthMode>("120");
-  const [result, setResult] = useState<FormatResult | null>(null);
-  const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [input, setInput] =
+    useState("");
+  const [indentMode, setIndentMode] =
+    useState<IndentMode>("2");
+  const [widthMode, setWidthMode] =
+    useState<WidthMode>("120");
+  const [result, setResult] =
+    useState<FormatResult | null>(null);
+  const [error, setError] =
+    useState("");
+  const [copied, setCopied] =
+    useState(false);
 
   const clearResult = () => {
     setResult(null);
@@ -48,54 +317,59 @@ export default function ToolClient() {
 
   const formatYAML = () => {
     if (!input.trim()) {
-      setError("Paste YAML before formatting.");
+      setError(
+        "Paste YAML before formatting."
+      );
       setResult(null);
       return;
     }
 
     try {
-      const documents = YAML.parseAllDocuments(input, { prettyErrors: true, uniqueKeys: true });
-      const parseErrors = documents.flatMap((document) => document.errors ?? []);
-      if (parseErrors.length) {
-        throw new Error(parseErrors.map((item) => item.message).join("\n"));
-      }
+      const resultValue = formatYaml(
+        input,
+        Number(indentMode),
+        Number(widthMode)
+      );
 
-      const lineWidth = Number(widthMode);
-      const parts = documents.map((document, index) => {
-        const rendered = document.toString({
-          indent: Number(indentMode),
-          lineWidth: lineWidth === 0 ? 0 : lineWidth,
-        }).trimEnd();
-
-        if (index > 0 && !/^---(?:\s|$)/.test(rendered)) return `---\n${rendered}`;
-        return rendered;
-      });
-
-      const output = parts.join("\n") + "\n";
-      const warnings = documents.flatMap((document) => (document.warnings ?? []).map((item) => item.message));
-
-      setResult({
-        output,
-        documents: documents.length,
-        warnings,
-        comments: countComments(input),
-        anchors: countMatches(input, /&[A-Za-z0-9_-]+/g),
-        aliases: countMatches(input, /\*[A-Za-z0-9_-]+/g),
-        inputLines: countLines(input),
-        outputLines: countLines(output),
-      });
+      setResult(resultValue);
       setError("");
       setCopied(false);
     } catch (caught) {
       setResult(null);
-      setError(caught instanceof Error ? `Invalid YAML. ${caught.message}` : "Invalid YAML input.");
+      setError(
+        caught instanceof Error
+          ? `YAML formatting stopped.\n${caught.message}`
+          : "YAML formatting stopped because the input could not be parsed."
+      );
+      setCopied(false);
     }
+  };
+
+  const loadExample = () => {
+    setInput(SAMPLE_YAML);
+    setResult(null);
+    setError("");
+    setCopied(false);
   };
 
   const copyOutput = async () => {
     if (!result) return;
-    await navigator.clipboard.writeText(result.output);
-    setCopied(true);
+
+    try {
+      await navigator.clipboard.writeText(
+        result.output
+      );
+      setCopied(true);
+      window.setTimeout(
+        () => setCopied(false),
+        1400
+      );
+    } catch {
+      setCopied(false);
+      setError(
+        "The formatted YAML could not be copied. Select and copy it manually."
+      );
+    }
   };
 
   const resetAll = () => {
@@ -108,18 +382,31 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="YAML Formatter"
-      description="Format YAML through the parser's document model so comments, anchors, aliases, and multi-document structure are handled more faithfully than a plain object round trip."
+      description="Reformat YAML through its parsed document model so comments, anchors, aliases, directives, tags, and multi-document structure are retained where possible instead of being discarded by an object round trip."
     >
-      <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">YAML Input</label>
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="block text-sm font-semibold text-gray-900">
+          YAML input
+        </label>
+        <p className="mt-1 text-sm leading-relaxed text-gray-500">
+          Multi-document streams are supported. Duplicate mapping keys are
+          treated as errors rather than silently normalized.
+        </p>
+
         <textarea
           value={input}
-          onChange={(event) => {
+          onChange={(event: {
+            target: { value: string };
+          }) => {
             setInput(event.target.value);
             clearResult();
           }}
-          placeholder="Paste YAML here..."
-          className="w-full min-h-[300px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          placeholder={`# Service configuration
+profile:
+  name: Sneha
+  enabled: true`}
+          spellCheck={false}
+          className="mt-4 w-full min-h-[360px] rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
       </div>
 
@@ -127,165 +414,351 @@ export default function ToolClient() {
         <YoryantraSelect
           label="Indentation"
           value={indentMode}
-          onChange={(value) => {
-            setIndentMode(value as IndentMode);
+          onChange={(value: string) => {
+            setIndentMode(
+              value as IndentMode
+            );
             clearResult();
           }}
           options={[
-            { label: "2 spaces", value: "2" },
-            { label: "4 spaces", value: "4" },
+            {
+              label: "2 spaces",
+              value: "2",
+            },
+            {
+              label: "4 spaces",
+              value: "4",
+            },
           ]}
         />
+
         <YoryantraSelect
           label="Preferred line width"
           value={widthMode}
-          onChange={(value) => {
-            setWidthMode(value as WidthMode);
+          onChange={(value: string) => {
+            setWidthMode(
+              value as WidthMode
+            );
             clearResult();
           }}
           options={[
-            { label: "80 characters", value: "80" },
-            { label: "120 characters", value: "120" },
-            { label: "No wrapping preference", value: "0" },
+            {
+              label: "80 characters",
+              value: "80",
+            },
+            {
+              label: "120 characters",
+              value: "120",
+            },
+            {
+              label:
+                "No wrapping preference",
+              value: "0",
+            },
           ]}
         />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button type="button" onClick={formatYAML} className="yoryantra-btn">Format YAML</button>
         <button
           type="button"
-          onClick={() => {
-            setInput(sampleYaml);
-            clearResult();
-          }}
+          onClick={formatYAML}
+          className="yoryantra-btn"
+        >
+          Format YAML
+        </button>
+        <button
+          type="button"
+          onClick={loadExample}
           className="yoryantra-btn-outline"
         >
           Load Example
         </button>
-        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
+        <button
+          type="button"
+          onClick={resetAll}
+          className="yoryantra-btn-outline"
+        >
+          Reset
+        </button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700 whitespace-pre-wrap">{error}</div>
+        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
       ) : null}
 
       {result ? (
         <div className="mt-8">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat label="Documents" value={result.documents.toLocaleString()} />
-            <Stat label="Lines" value={`${result.inputLines} → ${result.outputLines}`} />
-            <Stat label="Comments" value={result.comments.toLocaleString()} />
-            <Stat label="Anchors / aliases" value={`${result.anchors} / ${result.aliases}`} />
+            <Stat
+              label="Documents"
+              value={result.documents.toLocaleString()}
+            />
+            <Stat
+              label="Lines"
+              value={`${result.inputLines} → ${result.outputLines}`}
+            />
+            <Stat
+              label="Anchor / alias hints"
+              value={`${result.anchors} / ${result.aliases}`}
+            />
+            <Stat
+              label="Directives"
+              value={result.directives.toLocaleString()}
+            />
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Formatted YAML</h3>
-            <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">{copied ? "Copied" : "Copy"}</button>
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Formatted YAML
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                  Formatting can normalize presentation even when the parsed
+                  YAML meaning stays the same. Review important configuration
+                  changes as a diff.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={copyOutput}
+                className="yoryantra-btn-outline text-sm"
+              >
+                {copied
+                  ? "Copied"
+                  : "Copy"}
+              </button>
+            </div>
+
+            <pre className="yoryantra-output mt-4 min-h-[280px] overflow-auto whitespace-pre font-mono text-sm">
+              {result.output}
+            </pre>
           </div>
-          <pre className="yoryantra-output mt-3 min-h-[240px] overflow-auto whitespace-pre text-sm font-mono">{result.output}</pre>
 
           {result.warnings.length ? (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
-              <strong>Parser warning{result.warnings.length === 1 ? "" : "s"}:</strong>
-              <ul className="mt-2 list-disc space-y-1 pl-5">
-                {result.warnings.slice(0, 8).map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+              <strong>
+                Review after formatting:
+              </strong>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                {result.warnings
+                  .slice(0, 10)
+                  .map(
+                    (
+                      warning,
+                      index
+                    ) => (
+                      <li
+                        key={`${warning}-${index}`}
+                      >
+                        {warning}
+                      </li>
+                    )
+                  )}
               </ul>
             </div>
           ) : null}
         </div>
       ) : null}
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        YAML parsing and formatting happen on the pasted text in your browser.
+        The tool does not upload the configuration or fetch a
+        product-specific schema. Site-wide analytics or advertising scripts,
+        if enabled, are separate from this operation.
+      </div>
+
+      <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Formatting is not the same as converting YAML to an object</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            YAML includes comments, anchors, aliases, directives, tags, document boundaries, and other presentation or serialization details. A formatter should work with YAML documents directly where possible instead of immediately converting everything to plain JavaScript objects and recreating new YAML from those objects.
+          <h2 className="text-2xl font-semibold text-gray-900">
+            A YAML Formatter Is Performing a Controlled Rewrite, Not Just Adding Spaces
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JSON can be prettified by changing insignificant whitespace around
+            tokens. YAML presentation is richer: indentation, block versus flow
+            collections, quote style, scalar folding, comments, directives,
+            anchors, aliases, and document markers all participate in the
+            source text.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This formatter therefore parses YAML into the library&apos;s document
+            model and serializes those documents again with your indentation
+            and line-width preferences. It is intentionally different from
+            loading YAML into plain JavaScript values and generating an entirely
+            new YAML file from those values.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">What may still be normalized</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            A parser-backed formatter can normalize quoting style, flow-vs-block presentation, whitespace, scalar layout, and some document markers. Use version control when formatting configuration where exact textual presentation matters. Application meaning should never depend on mapping key order.
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why the Document Model Matters for Comments and Aliases
+          </h2>
+          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`# shared limits
+limits: &defaults
+  cpu: 500m
+  memory: 512Mi
+
+worker:
+  limits: *defaults`}</pre>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            If that file is immediately converted to a normal JavaScript object,
+            the comment has nowhere to live and the alias relationship may be
+            resolved into repeated data. A YAML document/AST representation can
+            carry more of the original YAML-specific information through the
+            formatting operation.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            “Preserved where possible” is still the important qualifier.
+            Serialization can normalize whitespace and scalar presentation, so
+            formatting should not be treated as byte-for-byte preservation.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Syntax validation is not platform validation</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            Successfully formatting a YAML document means its YAML syntax was accepted by the parser. It does not prove that a Kubernetes manifest, Docker Compose file, GitHub Actions workflow, or other application-specific configuration satisfies that platform&apos;s schema or runtime rules.
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Line Width Is a Presentation Preference, Not a Maximum-Line Guarantee
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The preferred width helps the serializer decide when certain
+            scalars or collections can be rendered more readably. YAML cannot
+            safely wrap every long value at an arbitrary column: URLs, quoted
+            strings, block scalars, flow collections, and syntax-sensitive
+            content can require different treatment.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Choose 80 or 120 when your repository has a readability convention.
+            Choose no wrapping preference when preserving long scalar
+            presentation is more useful than aiming for a particular width.
           </p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
-          <strong>Local processing:</strong> YAML parsing and formatting happen in the browser; the pasted configuration is not uploaded by this tool.
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Reference</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            YAML&apos;s representation, serialization, mappings, aliases, and loading failure points are described in the <a className="underline" href="https://yaml.org/spec/1.2.2/" target="_blank" rel="noreferrer">YAML 1.2.2 specification</a>.
+        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
+            Formatting a Configuration File Can Create a Large Diff Without Changing Its Intended Data
+          </h2>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            Quote choices, block styles, blank lines, sequence indentation, and
+            wrapping can all change at once. That can make a simple formatting
+            pass look like a substantial configuration edit in version control.
+          </p>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            For production Kubernetes, Compose, CI, or application config,
+            format on a clean branch and inspect the diff before committing.
+            Avoid mixing broad formatting with an unrelated behavior change
+            when reviewers need to understand exactly what changed.
           </p>
         </div>
 
-        <YoryantraRelatedTools currentHref="/tools/yaml-formatter" />
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Mapping Order Is Useful to Maintainers Even When the Data Model Does Not Depend on It
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Teams often keep metadata, image, ports, environment, resources, or
+            other related configuration close together. A formatter should not
+            alphabetize keys unless that is an explicit policy because the
+            human grouping can carry maintenance value.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This tool does not include a “sort keys” switch. YAML formatting and
+            configuration reorganization are separate operations and are easier
+            to review when kept separate.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Directives, Tags, Anchors, and Merge Behavior Deserve a Diff Check
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            YAML can declare a version, define tag handles, attach tags to
+            nodes, and connect nodes using anchors and aliases. Some
+            applications also support merge-key conventions. These are exactly
+            the kinds of files where “it still parses” is not enough reason to
+            replace the original without inspecting the rendered output.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The{" "}
+            <a
+              href="https://yaml.org/spec/1.2.2/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              YAML 1.2.2 specification
+            </a>{" "}
+            is useful when a formatter and a target application disagree about
+            a YAML-language feature; the application&apos;s own schema and parser
+            rules remain relevant as well.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Valid and Nicely Formatted YAML Can Still Be Invalid for Its Destination
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A Kubernetes Deployment, Docker Compose file, GitHub Actions
+            workflow, Ansible playbook, or application config has rules beyond
+            YAML syntax. Required fields, allowed enum values, cross-references,
+            API versions, and runtime constraints belong to the consuming
+            product.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Use formatting to make the YAML maintainable. Use a
+            product-specific validator when you need to know whether the
+            configuration is actually acceptable.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Template Source Is a Special Case
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Helm, Jinja-style templates, CI expressions, and other generators
+            may insert syntax that is not ordinary YAML until after rendering.
+            Running a generic YAML formatter directly over the template source
+            can fail or can rearrange text in a way the template engine did not
+            expect.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            When the file is generated, format the rendered YAML unless the
+            template system explicitly supports a YAML-aware formatter for its
+            source language.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Related Tools
+          </h2>
+          <YoryantraRelatedTools currentHref="/tools/yaml-formatter" />
+        </div>
       </section>
     </ToolShell>
   );
 }
 
-function countLines(value: string) {
-  if (!value) return 0;
-  return value.split(/\r?\n/).length;
-}
-
-function countComments(value: string) {
-  let count = 0;
-  let inSingle = false;
-  let inDouble = false;
-  let escaped = false;
-
-  for (const line of value.split(/\r?\n/)) {
-    inSingle = false;
-    inDouble = false;
-    escaped = false;
-
-    for (let index = 0; index < line.length; index += 1) {
-      const char = line[index];
-      if (inDouble) {
-        if (escaped) escaped = false;
-        else if (char === "\\") escaped = true;
-        else if (char === '"') inDouble = false;
-        continue;
-      }
-      if (inSingle) {
-        if (char === "'") {
-          if (line[index + 1] === "'") index += 1;
-          else inSingle = false;
-        }
-        continue;
-      }
-      if (char === '"') inDouble = true;
-      else if (char === "'") inSingle = true;
-      else if (char === "#" && (index === 0 || /\s/.test(line[index - 1]))) {
-        count += 1;
-        break;
-      }
-    }
-  }
-  return count;
-}
-
-function countMatches(value: string, pattern: RegExp) {
-  return value.match(pattern)?.length ?? 0;
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-gray-900">{value}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+      <div className="mt-1 text-sm font-semibold text-gray-900">
+        {value}
+      </div>
     </div>
   );
 }

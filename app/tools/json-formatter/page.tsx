@@ -2,25 +2,25 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Formatter | Pretty Print JSON Safely | Yoryantra",
+  title: "JSON Formatter | Pretty Print Without Data Loss | Yoryantra",
   description:
-    "Format valid JSON with configurable indentation while preserving number spellings, key order, and duplicate-key text for inspection.",
+    "Pretty-print valid JSON while preserving source number spellings, duplicate member text, escape sequences, and key order, with precision diagnostics.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-formatter",
   },
   openGraph: {
-    title: "JSON Formatter | Yoryantra",
+    title: "JSON Formatter | Pretty Print Without Data Loss | Yoryantra",
     description:
-      "Pretty print JSON, inspect syntax errors, and review duplicate keys or unsafe integer literals in your browser.",
+      "Format JSON for reading without rebuilding it from JavaScript values and silently rewriting important source tokens.",
     url: "https://yoryantra.com/tools/json-formatter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "JSON Formatter | Yoryantra",
     description:
-      "Pretty print JSON and inspect syntax, duplicate keys, and numeric precision risks locally in your browser.",
+      "Pretty-print JSON while preserving source token spellings and surfacing duplicate-key and number-precision risks.",
   },
 };
 

@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Minifier | Remove JSON Whitespace | Yoryantra",
+  title: "JSON Minifier | Remove Whitespace Safely | Yoryantra",
   description:
-    "Minify valid JSON by removing insignificant whitespace while preserving token spelling, key order, and duplicate-key text for inspection.",
+    "Minify valid JSON by removing insignificant whitespace outside strings while preserving number spellings, duplicate member text, escapes, and key order.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-minifier",
   },
   openGraph: {
-    title: "JSON Minifier | Yoryantra",
+    title: "JSON Minifier | Remove Whitespace Safely | Yoryantra",
     description:
-      "Remove JSON formatting whitespace and compare UTF-8 byte size without reserializing the parsed value.",
+      "Shrink JSON source text without a parse-and-stringify round trip that can hide duplicate names or rewrite numeric values.",
     url: "https://yoryantra.com/tools/json-minifier",
     siteName: "Yoryantra",
     type: "website",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "JSON Minifier | Yoryantra",
     description:
-      "Minify JSON locally and inspect size savings, duplicate keys, and numeric precision cautions.",
+      "Remove JSON formatting whitespace while keeping the original source tokens intact.",
   },
 };
 

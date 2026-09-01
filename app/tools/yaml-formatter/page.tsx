@@ -2,25 +2,25 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "YAML Formatter | Format YAML Documents | Yoryantra",
+  title: "YAML Formatter | Comments, Anchors & Documents | Yoryantra",
   description:
-    "Format YAML with parser-backed syntax diagnostics, multi-document support, configurable indentation, and comment-aware document handling.",
+    "Format YAML through its document model with indentation and line-width controls while retaining comments, anchors, aliases, directives, and document boundaries.",
   alternates: {
     canonical: "https://yoryantra.com/tools/yaml-formatter",
   },
   openGraph: {
-    title: "YAML Formatter | Yoryantra",
+    title: "YAML Formatter | Comments, Anchors & Documents | Yoryantra",
     description:
-      "Format YAML documents and inspect parser warnings without pretending formatting is Kubernetes or application-schema validation.",
+      "Reformat YAML without reducing it first to plain JavaScript objects and unnecessarily throwing away YAML-specific structure.",
     url: "https://yoryantra.com/tools/yaml-formatter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "YAML Formatter | Yoryantra",
     description:
-      "Format YAML locally with multi-document and parser diagnostics.",
+      "Format YAML documents while preserving comments, aliases, anchors, and stream boundaries where the parser can.",
   },
 };
 
