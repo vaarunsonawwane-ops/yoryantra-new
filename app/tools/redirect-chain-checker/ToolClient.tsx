@@ -864,7 +864,7 @@ export default function ToolClient() {
             <button
               type="button"
               onClick={copyCurl}
-              className="yoryantra-btn-outline text-sm"
+              className="yoryantra-btn-outline whitespace-nowrap"
             >
               Copy curl
             </button>
