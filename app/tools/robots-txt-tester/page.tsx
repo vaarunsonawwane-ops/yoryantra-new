@@ -2,25 +2,25 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Robots.txt Tester | Test Allow & Disallow Rules | Yoryantra",
+  title: "Robots.txt Tester | RFC 9309 & Google Matching | Yoryantra",
   description:
-    "Test robots.txt Allow and Disallow rules against a URL and crawler, using longest-match precedence, user-agent groups, wildcards, end anchors, comments, and RFC 9309 behavior.",
+    "Test URL paths against robots.txt groups, merged user-agent rules, wildcard patterns, percent-encoding, query strings, Allow/Disallow precedence and crawl defaults.",
   alternates: {
     canonical: "https://yoryantra.com/tools/robots-txt-tester",
   },
   openGraph: {
-    title: "Robots.txt Tester | Test Allow & Disallow Rules | Yoryantra",
+    title: "Robots.txt Tester | Yoryantra",
     description:
-      "Check which robots.txt rule applies to a crawler and URL, including longest-match precedence and wildcard patterns.",
+      "Evaluate robots.txt crawl rules with RFC 9309 matching plus an explicit Google-style full User-Agent selection mode.",
     url: "https://yoryantra.com/tools/robots-txt-tester",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Robots.txt Tester | Test Allow & Disallow Rules | Yoryantra",
+    card: "summary",
+    title: "Robots.txt Tester | Yoryantra",
     description:
-      "Test crawler access against robots.txt rules and inspect the rule that wins.",
+      "Test crawler access using merged groups, longest rule matches, wildcards, percent-encoding and Allow tie precedence.",
   },
 };
 

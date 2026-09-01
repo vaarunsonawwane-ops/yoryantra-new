@@ -11,12 +11,14 @@ type OutputMode = "text" | "json" | "markdown" | "csv" | "checklist";
 type NewlineMode = "preserve" | "lf" | "crlf";
 
 type CharacterRow = {
-  index: number;
+  codePointIndex: number;
+  utf16Index: number;
   char: string;
   display: string;
   codePoint: number;
   unicode: string;
-  hex: string;
+  utf16: string;
+  utf8Bytes: number;
   category: string;
 };
 
@@ -26,430 +28,1102 @@ type Issue = {
   message: string;
 };
 
+type DecodeResult = {
+  text: string;
+  issues: Issue[];
+  recognizedEscapes: number;
+};
+
 type Result = {
   output: string;
   convertedText: string;
   rows: CharacterRow[];
   issues: Issue[];
-  inputLength: number;
-  outputLength: number;
+  inputCodeUnits: number;
+  outputCodeUnits: number;
+  outputCodePoints: number;
+  utf8Bytes: number;
   escapeCount: number;
   lineCount: number;
 };
 
-const sampleInput = String.raw`Hello\nYoryantra\nUnicode: \u0935\u0930\u0941\u0923\nEmoji: \u{1F680}`;
+const SAMPLE = String.raw`Hello\nSneha\nUnicode: \u0935\u0930\u0941\u0923\nEmoji: \u{1F680}`;
 
-export default function ToolClient() {
-  const [input, setInput] = useState("");
-  const [actionMode, setActionMode] = useState<ActionMode>("decode");
-  const [escapeStyle, setEscapeStyle] = useState<EscapeStyle>("javascript");
-  const [outputMode, setOutputMode] = useState<OutputMode>("text");
-  const [newlineMode, setNewlineMode] = useState<NewlineMode>("preserve");
-  const [trimInput, setTrimInput] = useState(false);
-  const [unwrapQuotes, setUnwrapQuotes] = useState(true);
-  const [escapeNonAscii, setEscapeNonAscii] = useState(false);
-  const [escapeQuotes, setEscapeQuotes] = useState(true);
-  const [escapeSlashes, setEscapeSlashes] = useState(false);
-  const [uppercaseHex, setUppercaseHex] = useState(true);
-  const [warnInvalidEscapes, setWarnInvalidEscapes] = useState(true);
-  const [warnControlCharacters, setWarnControlCharacters] = useState(true);
-  const [result, setResult] = useState<Result | null>(null);
-  const [output, setOutput] = useState("");
-  const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+function styleLabel(style: EscapeStyle) {
+  if (style === "javascript") return "JavaScript";
+  if (style === "json") return "JSON";
+  if (style === "unicode") return "Unicode escape";
+  if (style === "hex") return "hex escape";
+  return "C-style";
+}
 
-  const notes = useMemo(() => (result ? getNotes(result) : []), [result]);
+function formatHex(value: number, uppercase: boolean) {
+  const text = value.toString(16);
+  return uppercase ? text.toUpperCase() : text.toLowerCase();
+}
 
-  const clearResult = () => {
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+function isHighSurrogate(value: number) {
+  return value >= 0xd800 && value <= 0xdbff;
+}
+
+function isLowSurrogate(value: number) {
+  return value >= 0xdc00 && value <= 0xdfff;
+}
+
+function isSurrogate(value: number) {
+  return value >= 0xd800 && value <= 0xdfff;
+}
+
+function applyNewlineMode(input: string, mode: NewlineMode) {
+  if (mode === "preserve") {
+    return input;
+  }
+
+  const normalized = input.replace(/\r\n|\r|\n/g, "\n");
+
+  return mode === "crlf"
+    ? normalized.replace(/\n/g, "\r\n")
+    : normalized;
+}
+
+function prepareInput(
+  input: string,
+  trimInput: boolean,
+  unwrapQuotes: boolean,
+  actionMode: ActionMode
+) {
+  let value = trimInput ? input.trim() : input;
+  const issues: Issue[] = [];
+
+  if (
+    unwrapQuotes &&
+    (actionMode === "decode" || actionMode === "normalize") &&
+    value.length >= 2
+  ) {
+    const first = value.charAt(0);
+    const last = value.charAt(value.length - 1);
+
+    if (
+      (first === '"' && last === '"') ||
+      (first === "'" && last === "'") ||
+      (first === "`" && last === "`")
+    ) {
+      value = value.slice(1, -1);
+
+      issues.push({
+        severity: "info",
+        title: "Outer quote characters removed",
+        message:
+          `Matching ${first} wrapper characters were removed before escape decoding. This is wrapper removal, not evaluation of a complete ${
+            first === "`" ? "JavaScript template literal" : "language string literal"
+          }.`,
+      });
+
+      if (first === "`" && /\$\{/.test(value)) {
+        issues.push({
+          severity: "warning",
+          title: "Template interpolation is not evaluated",
+          message:
+            "The unwrapped backtick text contains ${...}. This converter never executes JavaScript or evaluates template expressions.",
+        });
+      }
+    }
+  }
+
+  return {
+    value,
+    issues,
   };
+}
 
-  const processString = () => {
-    if (!input.length || (trimInput && !input.trim())) {
-      setError("Please paste escaped text or plain text to convert.");
-      setResult(null);
-      setOutput("");
-      return;
+function pushIssue(
+  issues: Issue[],
+  enabled: boolean,
+  severity: Issue["severity"],
+  title: string,
+  message: string
+) {
+  if (enabled) {
+    issues.push({
+      severity,
+      title,
+      message,
+    });
+  }
+}
+
+function decodeFixedUnicode(
+  input: string,
+  index: number,
+  issues: Issue[],
+  warn: boolean
+) {
+  const hex = input.slice(index + 2, index + 6);
+
+  if (!/^[0-9A-Fa-f]{4}$/.test(hex)) {
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Invalid \\u escape",
+      `\\u at UTF-16 position ${index} is not followed by exactly four hexadecimal digits.`
+    );
+
+    return {
+      text: "\\u",
+      nextIndex: index + 1,
+      recognized: false,
+    };
+  }
+
+  const first = Number.parseInt(hex, 16);
+
+  if (isHighSurrogate(first)) {
+    const nextPrefix = input.slice(index + 6, index + 8);
+    const nextHex = input.slice(index + 8, index + 12);
+
+    if (
+      nextPrefix === "\\u" &&
+      /^[0-9A-Fa-f]{4}$/.test(nextHex)
+    ) {
+      const second = Number.parseInt(nextHex, 16);
+
+      if (isLowSurrogate(second)) {
+        return {
+          text:
+            String.fromCharCode(first) +
+            String.fromCharCode(second),
+          nextIndex: index + 11,
+          recognized: true,
+        };
+      }
     }
 
-    const next = buildResult({
-      input,
-      actionMode,
-      escapeStyle,
-      outputMode,
-      newlineMode,
-      trimInput,
-      unwrapQuotes,
-      escapeNonAscii,
-      escapeQuotes,
-      escapeSlashes,
-      uppercaseHex,
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Lone high surrogate escape",
+      `\\u${hex} is a high surrogate without a following low-surrogate \\uXXXX escape. The UTF-16 code unit is preserved for inspection.`
+    );
+  } else if (isLowSurrogate(first)) {
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Lone low surrogate escape",
+      `\\u${hex} is a low surrogate without a preceding high surrogate. The UTF-16 code unit is preserved for inspection.`
+    );
+  }
+
+  return {
+    text: String.fromCharCode(first),
+    nextIndex: index + 5,
+    recognized: true,
+  };
+}
+
+function decodeCFixedUniversal(
+  input: string,
+  index: number,
+  issues: Issue[],
+  warn: boolean
+) {
+  const hex =
+    input.slice(
+      index + 2,
+      index + 6
+    );
+
+  if (
+    !/^[0-9A-Fa-f]{4}$/.test(
+      hex
+    )
+  ) {
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Invalid C \\u escape",
+      `\\u at UTF-16 position ${index} is not followed by exactly four hexadecimal digits.`
+    );
+
+    return {
+      text: "\\u",
+      nextIndex:
+        index + 1,
+      recognized: false,
+    };
+  }
+
+  const codePoint =
+    Number.parseInt(
+      hex,
+      16
+    );
+  const raw =
+    `\\u${hex}`;
+
+  if (
+    isSurrogate(codePoint)
+  ) {
+    pushIssue(
+      issues,
+      warn,
+      "high",
+      "C universal escape names a surrogate",
+      `${raw} does not identify a Unicode scalar value and was kept unchanged.`
+    );
+
+    return {
+      text: raw,
+      nextIndex:
+        index + 5,
+      recognized: false,
+    };
+  }
+
+  return {
+    text:
+      String.fromCodePoint(
+        codePoint
+      ),
+    nextIndex:
+      index + 5,
+    recognized: true,
+  };
+}
+
+function decodeBracedUnicode(
+  input: string,
+  index: number,
+  style: EscapeStyle,
+  issues: Issue[],
+  warn: boolean
+) {
+  const close = input.indexOf("}", index + 3);
+
+  if (close === -1) {
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Unclosed braced Unicode escape",
+      `A \\u{...} sequence beginning at UTF-16 position ${index} has no closing brace.`
+    );
+
+    return {
+      text: "\\u{",
+      nextIndex: index + 2,
+      recognized: false,
+    };
+  }
+
+  const body = input.slice(index + 3, close);
+  const raw = input.slice(index, close + 1);
+
+  if (style === "json" || style === "c") {
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Braced Unicode escape is not valid for this style",
+      `\\u{...} is not a ${style === "json" ? "JSON string" : "C universal-character-name"} escape. The sequence was kept unchanged.`
+    );
+
+    return {
+      text: raw,
+      nextIndex: close,
+      recognized: false,
+    };
+  }
+
+  if (!/^[0-9A-Fa-f]{1,6}$/.test(body)) {
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Invalid braced Unicode escape",
+      `${raw} must contain one to six hexadecimal digits.`
+    );
+
+    return {
+      text: raw,
+      nextIndex: close,
+      recognized: false,
+    };
+  }
+
+  const codePoint = Number.parseInt(body, 16);
+
+  if (codePoint > 0x10ffff) {
+    pushIssue(
+      issues,
+      warn,
+      "high",
+      "Unicode code point is too large",
+      `${raw} is above Unicode's maximum U+10FFFF.`
+    );
+
+    return {
+      text: raw,
+      nextIndex: close,
+      recognized: false,
+    };
+  }
+
+  if (isSurrogate(codePoint)) {
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Surrogate code point in braced escape",
+      `${raw} names a surrogate code point rather than a Unicode scalar value. It is preserved as the corresponding UTF-16 code unit and deserves interoperability review.`
+    );
+  }
+
+  return {
+    text: String.fromCodePoint(codePoint),
+    nextIndex: close,
+    recognized: true,
+  };
+}
+
+function decodeCUniversal(
+  input: string,
+  index: number,
+  issues: Issue[],
+  warn: boolean
+) {
+  const hex = input.slice(index + 2, index + 10);
+
+  if (!/^[0-9A-Fa-f]{8}$/.test(hex)) {
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Invalid C \\U escape",
+      `\\U at UTF-16 position ${index} is not followed by exactly eight hexadecimal digits.`
+    );
+
+    return {
+      text: "\\U",
+      nextIndex: index + 1,
+      recognized: false,
+    };
+  }
+
+  const codePoint = Number.parseInt(hex, 16);
+  const raw = `\\U${hex}`;
+
+  if (codePoint > 0x10ffff || isSurrogate(codePoint)) {
+    pushIssue(
+      issues,
+      warn,
+      "high",
+      "Invalid Unicode value in C universal escape",
+      `${raw} does not identify a Unicode scalar value.`
+    );
+
+    return {
+      text: raw,
+      nextIndex: index + 9,
+      recognized: false,
+    };
+  }
+
+  return {
+    text: String.fromCodePoint(codePoint),
+    nextIndex: index + 9,
+    recognized: true,
+  };
+}
+
+function decodeEscapes(
+  input: string,
+  style: EscapeStyle,
+  warnInvalidEscapes: boolean
+): DecodeResult {
+  const issues: Issue[] = [];
+  let output = "";
+  let recognizedEscapes = 0;
+
+  const common: Record<string, string> = {
+    "\\": "\\",
+    n: "\n",
+    r: "\r",
+    t: "\t",
+  };
+
+  const jsonSimple: Record<string, string> = {
+    '"': '"',
+    "\\": "\\",
+    "/": "/",
+    b: "\b",
+    f: "\f",
+    n: "\n",
+    r: "\r",
+    t: "\t",
+  };
+
+  const javascriptSimple: Record<string, string> = {
+    '"': '"',
+    "'": "'",
+    "`": "`",
+    "\\": "\\",
+    b: "\b",
+    f: "\f",
+    n: "\n",
+    r: "\r",
+    t: "\t",
+    v: "\v",
+  };
+
+  const cSimple: Record<string, string> = {
+    '"': '"',
+    "'": "'",
+    "?": "?",
+    "\\": "\\",
+    a: "\x07",
+    b: "\b",
+    f: "\f",
+    n: "\n",
+    r: "\r",
+    t: "\t",
+    v: "\v",
+  };
+
+  for (let index = 0; index < input.length; index += 1) {
+    const current = input.charAt(index);
+
+    if (current !== "\\") {
+      output += current;
+      continue;
+    }
+
+    const next =
+      index + 1 < input.length
+        ? input.charAt(index + 1)
+        : "";
+
+    if (!next) {
+      output += "\\";
+      pushIssue(
+        issues,
+        warnInvalidEscapes,
+        "warning",
+        "Trailing backslash",
+        "The input ends with a single backslash. It was preserved."
+      );
+      continue;
+    }
+
+    if (
+      style === "javascript" &&
+      (next === "\n" || next === "\r" || next === "\u2028" || next === "\u2029")
+    ) {
+      if (
+        next === "\r" &&
+        input.charAt(index + 2) === "\n"
+      ) {
+        index += 2;
+      } else {
+        index += 1;
+      }
+
+      recognizedEscapes += 1;
+      continue;
+    }
+
+    const simple =
+      style === "json"
+        ? jsonSimple
+        : style === "c"
+        ? cSimple
+        : style === "unicode" || style === "hex"
+        ? common
+        : javascriptSimple;
+
+    if (Object.prototype.hasOwnProperty.call(simple, next)) {
+      output += simple[next];
+      recognizedEscapes += 1;
+      index += 1;
+      continue;
+    }
+
+    if (style === "javascript" && next === "0") {
+      const following = input.charAt(index + 2);
+
+      if (!/^[0-9]$/.test(following)) {
+        output += "\0";
+        recognizedEscapes += 1;
+        index += 1;
+        continue;
+      }
+    }
+
+    if (style === "javascript" && /^[0-9]$/.test(next)) {
+      output += `\\${next}`;
+      pushIssue(
+        issues,
+        warnInvalidEscapes,
+        "warning",
+        "Legacy numeric/octal JavaScript escape kept",
+        `\\${next} begins a legacy numeric escape form. It is restricted in strict-mode/module code, so this converter does not guess legacy octal semantics.`
+      );
+      index += 1;
+      continue;
+    }
+
+    if (style === "c" && /^[0-7]$/.test(next)) {
+      let end = index + 1;
+
+      while (
+        end + 1 < input.length &&
+        end - index < 3 &&
+        /^[0-7]$/.test(input.charAt(end + 1))
+      ) {
+        end += 1;
+      }
+
+      const octal = input.slice(index + 1, end + 1);
+      const value = Number.parseInt(octal, 8);
+
+      if (value <= 0xff) {
+        output += String.fromCharCode(value);
+        recognizedEscapes += 1;
+      } else {
+        output += `\\${octal}`;
+        pushIssue(
+          issues,
+          warnInvalidEscapes,
+          "warning",
+          "C octal value kept",
+          `\\${octal} is above 255. Mapping it to browser Unicode text would not reliably model a C execution character set.`
+        );
+      }
+
+      index = end;
+      continue;
+    }
+
+    if (next === "x") {
+      if (style === "json" || style === "unicode") {
+        output += "\\x";
+        pushIssue(
+          issues,
+          warnInvalidEscapes,
+          "warning",
+          "\\x is outside the selected syntax",
+          `\\xHH is not a ${style === "json" ? "JSON" : "Unicode-only"} escape.`
+        );
+        index += 1;
+        continue;
+      }
+
+      if (style === "c") {
+        let end = index + 2;
+
+        while (
+          end < input.length &&
+          /^[0-9A-Fa-f]$/.test(input.charAt(end))
+        ) {
+          end += 1;
+        }
+
+        const digits = input.slice(index + 2, end);
+
+        if (!digits) {
+          output += "\\x";
+          pushIssue(
+            issues,
+            warnInvalidEscapes,
+            "warning",
+            "Invalid C hex escape",
+            `\\x at UTF-16 position ${index} has no following hexadecimal digit.`
+          );
+          index += 1;
+          continue;
+        }
+
+        const value = Number.parseInt(digits, 16);
+
+        if (value <= 0xff) {
+          output += String.fromCharCode(value);
+          recognizedEscapes += 1;
+        } else {
+          output += input.slice(index, end);
+          pushIssue(
+            issues,
+            warnInvalidEscapes,
+            "warning",
+            "C hex value is execution-character-set dependent",
+            `\\x${digits} is above 255. The sequence was preserved instead of inventing a browser Unicode mapping.`
+          );
+        }
+
+        index = end - 1;
+        continue;
+      }
+
+      const hex = input.slice(index + 2, index + 4);
+
+      if (/^[0-9A-Fa-f]{2}$/.test(hex)) {
+        output += String.fromCharCode(Number.parseInt(hex, 16));
+        recognizedEscapes += 1;
+        index += 3;
+      } else {
+        output += "\\x";
+        pushIssue(
+          issues,
+          warnInvalidEscapes,
+          "warning",
+          "Invalid hex escape",
+          `\\x at UTF-16 position ${index} needs exactly two hexadecimal digits in this ${styleLabel(
+            style
+          )} mode.`
+        );
+        index += 1;
+      }
+
+      continue;
+    }
+
+    if (next === "u") {
+      if (input.charAt(index + 2) === "{") {
+        const decoded = decodeBracedUnicode(
+          input,
+          index,
+          style,
+          issues,
+          warnInvalidEscapes
+        );
+        output += decoded.text;
+        index = decoded.nextIndex;
+
+        if (decoded.recognized) {
+          recognizedEscapes += 1;
+        }
+
+        continue;
+      }
+
+      const decoded =
+        style === "c"
+          ? decodeCFixedUniversal(
+              input,
+              index,
+              issues,
+              warnInvalidEscapes
+            )
+          : decodeFixedUnicode(
+              input,
+              index,
+              issues,
+              warnInvalidEscapes
+            );
+      output += decoded.text;
+      index = decoded.nextIndex;
+
+      if (decoded.recognized) {
+        recognizedEscapes += 1;
+      }
+
+      continue;
+    }
+
+    if (next === "U") {
+      if (style !== "c" && style !== "unicode") {
+        output += "\\U";
+        pushIssue(
+          issues,
+          warnInvalidEscapes,
+          "warning",
+          "\\UXXXXXXXX is outside the selected syntax",
+          `C/Unicode utility mode can inspect \\UXXXXXXXX; ${styleLabel(
+            style
+          )} mode keeps it unchanged.`
+        );
+        index += 1;
+        continue;
+      }
+
+      const decoded = decodeCUniversal(
+        input,
+        index,
+        issues,
+        warnInvalidEscapes
+      );
+      output += decoded.text;
+      index = decoded.nextIndex;
+
+      if (decoded.recognized) {
+        recognizedEscapes += 1;
+      }
+
+      continue;
+    }
+
+    if (style === "javascript") {
+      output += next;
+      recognizedEscapes += 1;
+      pushIssue(
+        issues,
+        warnInvalidEscapes,
+        "info",
+        "JavaScript identity escape",
+        `\\${next} decodes to ${next} in a JavaScript string-literal context. Do not assume the same behavior in JSON or other data formats.`
+      );
+      index += 1;
+      continue;
+    }
+
+    output += `\\${next}`;
+    pushIssue(
+      issues,
       warnInvalidEscapes,
-      warnControlCharacters,
+      style === "json" ? "high" : "warning",
+      style === "json" ? "Invalid JSON escape" : "Unknown escape kept",
+      `\\${next} at UTF-16 position ${index} is not recognized in ${styleLabel(
+        style
+      )} mode and was kept unchanged.`
+    );
+    index += 1;
+  }
+
+  return {
+    text: output,
+    issues,
+    recognizedEscapes,
+  };
+}
+
+function unicodeEscape(codePoint: number, uppercase: boolean) {
+  const hex = formatHex(codePoint, uppercase);
+
+  return codePoint <= 0xffff
+    ? `\\u${hex.padStart(4, "0")}`
+    : `\\u{${hex}}`;
+}
+
+function jsonUnicodeEscape(codePoint: number, uppercase: boolean) {
+  if (codePoint <= 0xffff) {
+    return `\\u${formatHex(codePoint, uppercase).padStart(4, "0")}`;
+  }
+
+  const adjusted = codePoint - 0x10000;
+  const high = 0xd800 + (adjusted >> 10);
+  const low = 0xdc00 + (adjusted & 0x3ff);
+
+  return `\\u${formatHex(high, uppercase).padStart(
+    4,
+    "0"
+  )}\\u${formatHex(low, uppercase).padStart(4, "0")}`;
+}
+
+function cUnicodeEscape(codePoint: number, uppercase: boolean) {
+  const hex = formatHex(codePoint, uppercase);
+
+  return codePoint <= 0xffff
+    ? `\\u${hex.padStart(4, "0")}`
+    : `\\U${hex.padStart(8, "0")}`;
+}
+
+function encodeEscapes(
+  input: string,
+  style: EscapeStyle,
+  options: {
+    escapeNonAscii: boolean;
+    escapeQuotes: boolean;
+    escapeSlashes: boolean;
+    uppercaseHex: boolean;
+  }
+) {
+  let output = "";
+
+  for (const char of input) {
+    const point = char.codePointAt(0);
+    const codePoint =
+      typeof point === "number" ? point : 0;
+    const hex = formatHex(codePoint, options.uppercaseHex);
+
+    if (char === "\n") output += "\\n";
+    else if (char === "\r") output += "\\r";
+    else if (char === "\t") output += "\\t";
+    else if (char === "\b") output += "\\b";
+    else if (char === "\f") output += "\\f";
+    else if (char === "\v") {
+      output += style === "json" ? "\\u000B" : "\\v";
+    } else if (char === '"') {
+      output +=
+        style === "json" || options.escapeQuotes ? '\\"' : '"';
+    } else if (char === "'") {
+      output +=
+        style !== "json" && options.escapeQuotes ? "\\'" : "'";
+    } else if (char === "`") {
+      output +=
+        style === "javascript" && options.escapeQuotes ? "\\`" : "`";
+    } else if (char === "\\") output += "\\\\";
+    else if (char === "/") {
+      output += options.escapeSlashes ? "\\/" : "/";
+    } else if (codePoint === 0) {
+      output +=
+        style === "json" ||
+        style === "unicode"
+          ? "\\u0000"
+          : style === "c"
+          ? "\\000"
+          : "\\x00";
+    } else if (
+      style ===
+        "javascript" &&
+      (codePoint ===
+        0x2028 ||
+        codePoint ===
+          0x2029)
+    ) {
+      output +=
+        `\\u${hex.padStart(
+          4,
+          "0"
+        )}`;
+    } else if (style === "unicode" && codePoint > 0x7e) {
+      output += unicodeEscape(codePoint, options.uppercaseHex);
+    } else if (
+      style === "hex" &&
+      codePoint <= 0xff &&
+      (options.escapeNonAscii || codePoint < 0x20 || codePoint > 0x7e)
+    ) {
+      output += `\\x${hex.padStart(2, "0")}`;
+    } else if (
+      style === "c" &&
+      options.escapeNonAscii &&
+      codePoint > 0x7e
+    ) {
+      output += cUnicodeEscape(codePoint, options.uppercaseHex);
+    } else if (
+      style === "json" &&
+      options.escapeNonAscii &&
+      codePoint > 0x7e
+    ) {
+      output += jsonUnicodeEscape(codePoint, options.uppercaseHex);
+    } else if (
+      options.escapeNonAscii &&
+      codePoint > 0x7e
+    ) {
+      output += unicodeEscape(codePoint, options.uppercaseHex);
+    } else if (codePoint < 0x20 || codePoint === 0x7f) {
+      output +=
+        style === "json"
+          ? jsonUnicodeEscape(codePoint, options.uppercaseHex)
+          : `\\u${hex.padStart(4, "0")}`;
+    } else if (isSurrogate(codePoint)) {
+      output += `\\u${hex.padStart(4, "0")}`;
+    } else {
+      output += char;
+    }
+  }
+
+  return output;
+}
+
+function utf16Display(char: string) {
+  const values: string[] = [];
+
+  for (let index = 0; index < char.length; index += 1) {
+    values.push(
+      `0x${char
+        .charCodeAt(index)
+        .toString(16)
+        .toUpperCase()
+        .padStart(4, "0")}`
+    );
+  }
+
+  return values.join(" ");
+}
+
+function displayCharacter(char: string) {
+  if (char === "\n") return "\\n";
+  if (char === "\r") return "\\r";
+  if (char === "\t") return "\\t";
+  if (char === "\b") return "\\b";
+  if (char === "\f") return "\\f";
+  if (char === "\v") return "\\v";
+  if (char === "\0") return "\\0";
+  if (char === " ") return "space";
+  return char;
+}
+
+function categorize(codePoint: number) {
+  if (isSurrogate(codePoint)) return "Lone surrogate";
+  if (codePoint < 32 || codePoint === 127) return "Control";
+  if (codePoint >= 48 && codePoint <= 57) return "Digit";
+  if (
+    (codePoint >= 65 && codePoint <= 90) ||
+    (codePoint >= 97 && codePoint <= 122)
+  ) {
+    return "Latin letter";
+  }
+  if (codePoint <= 127) return "ASCII symbol";
+  if (codePoint >= 0x1f300 && codePoint <= 0x1faff) {
+    return "Emoji / symbol";
+  }
+  return "Unicode";
+}
+
+function inspectCharacters(input: string) {
+  const rows: CharacterRow[] = [];
+  let codePointIndex = 0;
+  let utf16Index = 0;
+
+  for (const char of input) {
+    const point = char.codePointAt(0);
+    const codePoint =
+      typeof point === "number" ? point : 0;
+
+    rows.push({
+      codePointIndex,
+      utf16Index,
+      char,
+      display: displayCharacter(char),
+      codePoint,
+      unicode: `U+${codePoint
+        .toString(16)
+        .toUpperCase()
+        .padStart(4, "0")}`,
+      utf16: utf16Display(char),
+      utf8Bytes: new TextEncoder().encode(char).length,
+      category: categorize(codePoint),
     });
 
-    setResult(next);
-    setOutput(next.output);
-    setError("");
-    setCopied(false);
-  };
+    codePointIndex += 1;
+    utf16Index += char.length;
+  }
 
-  const copyOutput = async () => {
-    if (!output) return;
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
-  };
+  return rows;
+}
 
-  const loadExample = () => {
-    setInput(sampleInput);
-    setActionMode("decode");
-    setEscapeStyle("javascript");
-    setOutputMode("text");
-    setNewlineMode("preserve");
-    setTrimInput(false);
-    setUnwrapQuotes(true);
-    setEscapeNonAscii(false);
-    setEscapeQuotes(true);
-    setEscapeSlashes(false);
-    setUppercaseHex(true);
-    setWarnInvalidEscapes(true);
-    setWarnControlCharacters(true);
-    clearResult();
-  };
+function countBackslashSequences(input: string) {
+  let count = 0;
 
-  const resetAll = () => {
-    setInput("");
-    setActionMode("decode");
-    setEscapeStyle("javascript");
-    setOutputMode("text");
-    setNewlineMode("preserve");
-    setTrimInput(false);
-    setUnwrapQuotes(true);
-    setEscapeNonAscii(false);
-    setEscapeQuotes(true);
-    setEscapeSlashes(false);
-    setUppercaseHex(true);
-    setWarnInvalidEscapes(true);
-    setWarnControlCharacters(true);
-    clearResult();
-  };
+  for (let index = 0; index < input.length; index += 1) {
+    if (input.charAt(index) === "\\") {
+      count += 1;
+      index += 1;
+    }
+  }
 
-  return (
-    <ToolShell
-      title="String Escape Sequence Converter"
-      description="Decode and encode escaped strings for JavaScript, JSON, Unicode, hex, and C-style text. Inspect characters, clean copied values, and format results without sending text anywhere."
-    >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-900">Escaped String or Plain Text</label>
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Paste a copied string with escape sequences, Unicode escapes, hex escapes, JSON text, or normal text you want to encode.
-            </p>
-          </div>
+  return count;
+}
 
-          <textarea
-            value={input}
-            onChange={(event) => {
-              setInput(event.target.value);
-              clearResult();
-            }}
-            placeholder={sampleInput}
-            spellCheck={false}
-            className="w-full min-h-[420px] rounded-xl border border-gray-300 p-4 text-sm leading-6 font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-          />
-        </div>
+function csvCell(value: string) {
+  return `"${value.replace(/"/g, '""')}"`;
+}
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Conversion Settings</h3>
+function formatOutput(
+  result: Omit<Result, "output">,
+  outputMode: OutputMode,
+  actionMode: ActionMode,
+  escapeStyle: EscapeStyle
+) {
+  if (outputMode === "text") {
+    return result.convertedText;
+  }
 
-          <div className="mt-4 space-y-4">
-            <YoryantraSelect
-              label="Action"
-              value={actionMode}
-              onChange={(value) => {
-                setActionMode(value as ActionMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Decode escape sequences", value: "decode" },
-                { label: "Encode plain text", value: "encode" },
-                { label: "Inspect characters", value: "inspect" },
-                { label: "Normalize escaped text", value: "normalize" },
-              ]}
-            />
+  if (outputMode === "json") {
+    return JSON.stringify(
+      {
+        action: actionMode,
+        style: escapeStyle,
+        inputCodeUnits: result.inputCodeUnits,
+        outputCodeUnits: result.outputCodeUnits,
+        outputCodePoints: result.outputCodePoints,
+        utf8Bytes: result.utf8Bytes,
+        escapeCount: result.escapeCount,
+        lineCount: result.lineCount,
+        convertedText: result.convertedText,
+        issues: result.issues,
+        characters: result.rows.slice(0, 250),
+      },
+      null,
+      2
+    );
+  }
 
-            <YoryantraSelect
-              label="Escape Style"
-              value={escapeStyle}
-              onChange={(value) => {
-                setEscapeStyle(value as EscapeStyle);
-                clearResult();
-              }}
-              options={[
-                { label: "JavaScript / TypeScript", value: "javascript" },
-                { label: "JSON string", value: "json" },
-                { label: "Unicode escapes", value: "unicode" },
-                { label: "Hex escapes", value: "hex" },
-                { label: "C-style string", value: "c" },
-              ]}
-            />
+  if (outputMode === "markdown") {
+    const lines = [
+      "| # | UTF-16 index | Character | Unicode | UTF-16 | UTF-8 bytes | Type |",
+      "| ---: | ---: | --- | --- | --- | ---: | --- |",
+    ];
 
-            <YoryantraSelect
-              label="Output"
-              value={outputMode}
-              onChange={(value) => {
-                setOutputMode(value as OutputMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Converted text", value: "text" },
-                { label: "JSON report", value: "json" },
-                { label: "Markdown table", value: "markdown" },
-                { label: "CSV", value: "csv" },
-                { label: "Review checklist", value: "checklist" },
-              ]}
-            />
+    result.rows.slice(0, 250).forEach((row) => {
+      const safe = (value: string) =>
+        value
+          .replace(/\|/g, "\\|")
+          .replace(/\r?\n/g, " ");
 
-            <YoryantraSelect
-              label="Line Breaks"
-              value={newlineMode}
-              onChange={(value) => {
-                setNewlineMode(value as NewlineMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Preserve input style", value: "preserve" },
-                { label: "Normalize to LF", value: "lf" },
-                { label: "Normalize to CRLF", value: "crlf" },
-              ]}
-            />
-          </div>
-        </div>
-      </div>
+      lines.push(
+        `| ${row.codePointIndex} | ${row.utf16Index} | ${safe(
+          row.display
+        )} | ${row.unicode} | ${row.utf16} | ${row.utf8Bytes} | ${row.category} |`
+      );
+    });
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Options</h3>
-        <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
-          <Toggle checked={trimInput} onChange={setTrimInput} label="Trim outer whitespace" />
-          <Toggle checked={unwrapQuotes} onChange={setUnwrapQuotes} label="Unwrap matching quotes while decoding" />
-          <Toggle checked={escapeNonAscii} onChange={setEscapeNonAscii} label="Escape non-ASCII characters" />
-          <Toggle checked={escapeQuotes} onChange={setEscapeQuotes} label="Escape quotes" />
-          <Toggle checked={escapeSlashes} onChange={setEscapeSlashes} label="Escape forward slashes" />
-          <Toggle checked={uppercaseHex} onChange={setUppercaseHex} label="Use uppercase hex digits" />
-          <Toggle checked={warnInvalidEscapes} onChange={setWarnInvalidEscapes} label="Warn about invalid escapes" />
-          <Toggle checked={warnControlCharacters} onChange={setWarnControlCharacters} label="Warn about control characters" />
-        </div>
-        <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          These checks keep escaped text readable while still warning about invalid sequences, hidden control characters, and formatting changes.
-        </p>
-      </div>
+    return lines.join("\n");
+  }
 
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={processString}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-        >
-          Convert String
-        </button>
-        <button
-          type="button"
-          onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
-        >
-          Load Example
-        </button>
-        <button
-          type="button"
-          onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
-        >
-          Reset
-        </button>
-      </div>
+  if (outputMode === "csv") {
+    const lines = [
+      [
+        "code_point_index",
+        "utf16_index",
+        "character",
+        "unicode",
+        "utf16",
+        "utf8_bytes",
+        "type",
+      ]
+        .map(csvCell)
+        .join(","),
+    ];
 
-      {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+    result.rows.slice(0, 250).forEach((row) => {
+      lines.push(
+        [
+          String(row.codePointIndex),
+          String(row.utf16Index),
+          row.display,
+          row.unicode,
+          row.utf16,
+          String(row.utf8Bytes),
+          row.category,
+        ]
+          .map(csvCell)
+          .join(",")
+      );
+    });
 
-      {result ? (
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-                <p className="mt-1 text-sm text-gray-500">Converted text or formatted inspection result.</p>
-              </div>
-              <button
-                type="button"
-                onClick={copyOutput}
-                disabled={!output}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {copied ? "Copied" : "Copy Output"}
-              </button>
-            </div>
+    return lines.join("\n");
+  }
 
-            <pre className="mt-4 max-h-[520px] overflow-auto rounded-xl bg-gray-950 p-4 text-sm leading-6 text-gray-100 whitespace-pre-wrap break-words">
-              {output}
-            </pre>
-          </div>
+  const lines = [
+    `[${result.issues.some((issue) => issue.severity === "high") ? " " : "x"}] No high-severity syntax issue`,
+    `[${result.rows.some((row) => row.category === "Control") ? " " : "x"}] No control characters`,
+    `[${result.rows.some((row) => row.category === "Lone surrogate") ? " " : "x"}] No lone surrogate code units`,
+    `[x] Action: ${actionMode}`,
+    `[x] Escape style: ${escapeStyle}`,
+    `[x] Output code points: ${result.outputCodePoints}`,
+    `[x] UTF-8 bytes: ${result.utf8Bytes}`,
+  ];
 
-          <div className="space-y-4">
-            <StatCard label="Input Length" value={String(result.inputLength)} />
-            <StatCard label="Output Length" value={String(result.outputLength)} />
-            <StatCard label="Escapes Found" value={String(result.escapeCount)} />
-            <StatCard label="Lines" value={String(result.lineCount)} />
-          </div>
-        </div>
-      ) : null}
+  result.issues.forEach((issue) => {
+    lines.push(
+      `- ${issue.severity.toUpperCase()}: ${issue.title} — ${issue.message}`
+    );
+  });
 
-      {result && notes.length ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {notes.map((issue) => (
-              <div key={`${issue.title}-${issue.message}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-gray-600">{issue.message}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {result && result.rows.length ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Character Inspection</h3>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50 text-left text-gray-600">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">#</th>
-                  <th className="px-4 py-3 font-semibold">Character</th>
-                  <th className="px-4 py-3 font-semibold">Unicode</th>
-                  <th className="px-4 py-3 font-semibold">Hex</th>
-                  <th className="px-4 py-3 font-semibold">Type</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {result.rows.slice(0, 80).map((row) => (
-                  <tr key={`${row.index}-${row.unicode}`}>
-                    <td className="px-4 py-3 text-gray-500">{row.index}</td>
-                    <td className="px-4 py-3 font-mono text-gray-900">{row.display}</td>
-                    <td className="px-4 py-3 font-mono text-gray-700">{row.unicode}</td>
-                    <td className="px-4 py-3 font-mono text-gray-700">{row.hex}</td>
-                    <td className="px-4 py-3 text-gray-600">{row.category}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {result.rows.length > 80 ? (
-            <p className="mt-3 text-sm text-gray-500">Showing the first 80 characters to keep the table readable.</p>
-          ) : null}
-        </div>
-      ) : null}
-
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Converting Escaped Strings Without Guesswork</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Escaped strings appear everywhere: JSON payloads, JavaScript code, copied API responses, log files, error messages, CSV exports, command output, and configuration snippets. A value that should read like normal text can arrive as <code className="rounded bg-gray-100 px-1 py-0.5">Hello\nWorld</code>, <code className="rounded bg-gray-100 px-1 py-0.5">\u0935\u0930</code>, or <code className="rounded bg-gray-100 px-1 py-0.5">\x48\x69</code>.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This converter helps you turn those sequences back into readable text, or encode plain text into a safer escaped form, without needing to open a console or create a temporary script.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This Escape Sequence Converter Helps</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Reading copied JSON values with escaped newlines, tabs, quotes, Unicode characters, and backslashes.</p>
-            <p className="mt-2">Checking JavaScript strings before using them in examples, tests, or documentation.</p>
-            <p className="mt-2">Inspecting what <code className="rounded bg-white px-1 py-0.5">\uXXXX</code> and <code className="rounded bg-white px-1 py-0.5">\u{'{'}...{'}'}</code> sequences represent without opening a script.</p>
-            <p className="mt-2">Preparing safe output for JavaScript, JSON, Unicode, hex, or C-style escaped strings.</p>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the String Escape Sequence Converter</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste escaped text, copied JSON string content, Unicode escapes, hex escapes, or normal text into the input box.</li>
-            <li>Choose whether you want to decode, encode, inspect, or normalize the string.</li>
-            <li>Select the escape style that matches your source or target format.</li>
-            <li>Pick an output format such as converted text, JSON report, Markdown, CSV, or checklist.</li>
-            <li>Review the output, character table, and warnings before copying the result.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Escape Sequence Examples</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <div>
-              <div className="font-medium text-gray-900">JavaScript newline</div>
-              <div className="mt-1 font-mono">Input: Hello\nWorld</div>
-              <div className="mt-1 font-mono">Decoded: Hello World</div>
-            </div>
-            <div className="mt-4">
-              <div className="font-medium text-gray-900">Unicode escape</div>
-              <div className="mt-1 font-mono">Input: \u0935\u0930\u0941\u0923</div>
-              <div className="mt-1 font-mono">Decoded: वरुण</div>
-            </div>
-            <div className="mt-4">
-              <div className="font-medium text-gray-900">Hex bytes</div>
-              <div className="mt-1 font-mono">Input: \x48\x69</div>
-              <div className="mt-1 font-mono">Decoded: Hi</div>
-            </div>
-            <div className="mt-4">
-              <div className="font-medium text-gray-900">Tab character</div>
-              <div className="mt-1 font-mono">Input: Name\tValue</div>
-              <div className="mt-1 font-mono">Decoded: Name    Value</div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Choose the Escape Style Before You Trust the Output</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Similar-looking escape syntax is not interchangeable. JSON accepts escapes such as <code className="rounded bg-gray-100 px-1 py-0.5">\n</code>, <code className="rounded bg-gray-100 px-1 py-0.5">\t</code>, and <code className="rounded bg-gray-100 px-1 py-0.5">\uXXXX</code>, but it does not accept JavaScript-style <code className="rounded bg-gray-100 px-1 py-0.5">\xHH</code>, <code className="rounded bg-gray-100 px-1 py-0.5">\v</code>, <code className="rounded bg-gray-100 px-1 py-0.5">\0</code>, or braced <code className="rounded bg-gray-100 px-1 py-0.5">\u{'{'}1F680{'}'}</code> escapes. When JSON is selected, this tool keeps those invalid forms visible and warns instead of silently decoding them as if they were valid JSON.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Non-BMP characters such as many emoji need special handling in JSON. If non-ASCII escaping is enabled, JSON output uses a UTF-16 surrogate pair such as <code className="rounded bg-gray-100 px-1 py-0.5">\uD83D\uDE80</code> rather than JavaScript&apos;s braced form.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The C-style mode is intended for debugging common C escape notation, not for proving that a literal is valid for a particular compiler, execution character set, source encoding, or language standard mode. C octal and hexadecimal escapes have different consumption rules from JavaScript&apos;s fixed-width <code className="rounded bg-gray-100 px-1 py-0.5">\xHH</code> escape, so the selected style matters.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-          <h2 className="text-xl font-semibold text-gray-900">A Useful Debugging Habit</h2>
-          <p className="mt-3 text-gray-600 leading-relaxed">
-            If a copied API value looks double-escaped, decode once and inspect the result before decoding again. Repeated unescaping can change literal backslashes that were meant to remain part of the data. The character table is useful for spotting real control characters, Unicode code points, and invisible line breaks before you paste a value back into code or configuration.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-            <a href="https://www.rfc-editor.org/rfc/rfc8259.html#section-7" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">
-              JSON string escaping in RFC 8259 →
-            </a>
-            <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#escape_sequences" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] hover:underline">
-              JavaScript escape syntax on MDN →
-            </a>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/string-escape-sequence-converter" />
-        </div>
-      </section>
-    </ToolShell>
-  );
+  return lines.join("\n");
 }
 
 function buildResult(options: {
@@ -467,554 +1141,847 @@ function buildResult(options: {
   warnInvalidEscapes: boolean;
   warnControlCharacters: boolean;
 }): Result {
-  const prepared = prepareInput(options.input, options.trimInput, options.unwrapQuotes && options.actionMode === "decode");
-  const issues: Issue[] = [];
-  const escapeCount = countEscapeSequences(prepared);
+  const prepared = prepareInput(
+    options.input,
+    options.trimInput,
+    options.unwrapQuotes,
+    options.actionMode
+  );
+  const issues = prepared.issues.slice();
+  let convertedText = prepared.value;
+  let escapeCount = countBackslashSequences(prepared.value);
 
-  let convertedText = prepared;
+  if (
+    options.escapeStyle ===
+      "json" &&
+    (options.actionMode ===
+      "decode" ||
+      options.actionMode ===
+        "normalize") &&
+    /[\u0000-\u001F]/.test(
+      prepared.value
+    )
+  ) {
+    issues.push({
+      severity: "high",
+      title:
+        "Unescaped control character in JSON string content",
+      message:
+        "JSON strings cannot contain literal U+0000–U+001F control characters. Encode them with a valid JSON escape such as \\n, \\t or \\u00XX.",
+    });
+  }
+
   if (options.actionMode === "decode") {
-    const decoded = decodeEscapes(prepared, options.escapeStyle, options.warnInvalidEscapes);
-    convertedText = decoded.text;
-    issues.push(...decoded.issues);
+    const decoded = decodeEscapes(
+      prepared.value,
+      options.escapeStyle,
+      options.warnInvalidEscapes
+    );
+    convertedText = applyNewlineMode(
+      decoded.text,
+      options.newlineMode
+    );
+    escapeCount = decoded.recognizedEscapes;
+    decoded.issues.forEach((issue) => issues.push(issue));
   } else if (options.actionMode === "encode") {
-    convertedText = encodeEscapes(prepared, options.escapeStyle, {
-      escapeNonAscii: options.escapeNonAscii,
-      escapeQuotes: options.escapeQuotes,
-      escapeSlashes: options.escapeSlashes,
-      uppercaseHex: options.uppercaseHex,
-    });
+    const plain = applyNewlineMode(
+      prepared.value,
+      options.newlineMode
+    );
+    convertedText = encodeEscapes(
+      plain,
+      options.escapeStyle,
+      {
+        escapeNonAscii: options.escapeNonAscii,
+        escapeQuotes: options.escapeQuotes,
+        escapeSlashes: options.escapeSlashes,
+        uppercaseHex: options.uppercaseHex,
+      }
+    );
+    escapeCount = countBackslashSequences(convertedText);
   } else if (options.actionMode === "normalize") {
-    const decoded = decodeEscapes(prepared, options.escapeStyle, options.warnInvalidEscapes);
-    const normalizedDecoded = applyNewlineMode(decoded.text, options.newlineMode);
-    convertedText = encodeEscapes(normalizedDecoded, options.escapeStyle, {
-      escapeNonAscii: options.escapeNonAscii,
-      escapeQuotes: options.escapeQuotes,
-      escapeSlashes: options.escapeSlashes,
-      uppercaseHex: options.uppercaseHex,
-    });
-    issues.push(...decoded.issues);
+    const decoded = decodeEscapes(
+      prepared.value,
+      options.escapeStyle,
+      options.warnInvalidEscapes
+    );
+    const normalizedText = applyNewlineMode(
+      decoded.text,
+      options.newlineMode
+    );
+    convertedText = encodeEscapes(
+      normalizedText,
+      options.escapeStyle,
+      {
+        escapeNonAscii: options.escapeNonAscii,
+        escapeQuotes: options.escapeQuotes,
+        escapeSlashes: options.escapeSlashes,
+        uppercaseHex: options.uppercaseHex,
+      }
+    );
+    escapeCount = decoded.recognizedEscapes;
+    decoded.issues.forEach((issue) => issues.push(issue));
+  } else {
+    convertedText = applyNewlineMode(
+      prepared.value,
+      options.newlineMode
+    );
   }
 
-  convertedText = applyNewlineMode(convertedText, options.newlineMode);
   const rows = inspectCharacters(convertedText);
+  const controls = rows.filter(
+    (row) => row.category === "Control"
+  ).length;
+  const surrogates = rows.filter(
+    (row) => row.category === "Lone surrogate"
+  ).length;
 
-  if (options.warnControlCharacters) {
-    const controlCount = rows.filter((row) => row.category === "Control").length;
-    if (controlCount > 0) {
-      issues.push({
-        severity: "warning",
-        title: "Control characters found",
-        message: `${controlCount} control character${controlCount === 1 ? "" : "s"} appear in the converted text. Review them before copying into config files or code.`,
-      });
-    }
+  if (options.warnControlCharacters && controls) {
+    issues.push({
+      severity: "warning",
+      title: "Control characters found",
+      message:
+        `${controls} control character${
+          controls === 1 ? "" : "s"
+        } appear in the converted text. They can be meaningful (newline/tab) or accidental hidden data.`,
+    });
   }
 
-  if (options.actionMode === "encode" && options.escapeStyle === "json") {
+  if (surrogates) {
+    issues.push({
+      severity: "warning",
+      title:
+        "Lone surrogate code units found",
+      message:
+        `${surrogates} lone UTF-16 surrogate code unit${
+          surrogates === 1
+            ? ""
+            : "s"
+        } remain. JSON syntax can contain escaped unpaired surrogates, but Unicode interoperability is unpredictable. Browser TextEncoder replaces lone surrogates with U+FFFD when producing UTF-8, so the displayed UTF-8 byte count reflects that replacement behavior.`,
+    });
+  }
+
+  if (
+    (options.actionMode === "encode" ||
+      options.actionMode === "normalize") &&
+    options.escapeStyle === "json"
+  ) {
     try {
       JSON.parse(`"${convertedText}"`);
     } catch {
       issues.push({
         severity: "high",
-        title: "JSON string needs review",
-        message: "The encoded value could not be parsed as a JSON string. Check quotes, backslashes, or control characters.",
+        title: "Generated JSON string content is not valid",
+        message:
+          "Wrapping the generated content in JSON double quotes did not parse. Review quote/backslash handling before using it as JSON.",
       });
     }
   }
 
-  const resultBase = {
+  if (
+    options.escapeStyle === "hex" &&
+    options.escapeNonAscii &&
+    rows.some((row) => row.codePoint > 0xff)
+  ) {
+    issues.push({
+      severity: "info",
+      title: "Hex mode cannot represent every Unicode character as one \\xHH",
+      message:
+        "\\xHH represents one 8-bit value in this utility mode. Characters above U+00FF fall back to Unicode escapes rather than being truncated.",
+    });
+  }
+
+  if (
+    options.escapeStyle === "c" &&
+    (options.actionMode === "decode" ||
+      options.actionMode === "normalize")
+  ) {
+    issues.push({
+      severity: "info",
+      title: "C escapes depend on the execution character set",
+      message:
+        "C hexadecimal/octal escapes ultimately map through a C implementation's character model. This browser tool safely decodes values up to one byte and leaves ambiguous larger values visible instead of pretending JavaScript Unicode is the C runtime.",
+    });
+  }
+
+  const resultBase: Omit<Result, "output"> = {
     convertedText,
     rows,
     issues,
-    inputLength: options.input.length,
-    outputLength: convertedText.length,
+    inputCodeUnits: options.input.length,
+    outputCodeUnits: convertedText.length,
+    outputCodePoints: rows.length,
+    utf8Bytes: new TextEncoder().encode(convertedText).length,
     escapeCount,
-    lineCount: convertedText.length ? convertedText.split(/\r\n|\r|\n/).length : 0,
+    lineCount: convertedText.length
+      ? convertedText.split(/\r\n|\r|\n/).length
+      : 0,
   };
-
-  const output = formatOutput(resultBase, options.outputMode, options.actionMode, options.escapeStyle);
 
   return {
     ...resultBase,
-    output,
+    output: formatOutput(
+      resultBase,
+      options.outputMode,
+      options.actionMode,
+      options.escapeStyle
+    ),
   };
 }
 
-function prepareInput(input: string, trimInput: boolean, unwrapQuotes: boolean) {
-  let value = trimInput ? input.trim() : input;
-  if (unwrapQuotes && value.length >= 2) {
-    const first = value[0];
-    const last = value[value.length - 1];
-    if ((first === '"' && last === '"') || (first === "'" && last === "'") || (first === "`" && last === "`")) {
-      value = value.slice(1, -1);
-    }
-  }
-  return value;
+function getNotes(result: Result) {
+  return result.issues;
 }
 
-function decodeEscapes(
-  input: string,
-  style: EscapeStyle,
-  warnInvalidEscapes: boolean,
-): { text: string; issues: Issue[] } {
-  const issues: Issue[] = [];
-  let output = "";
+export default function ToolClient() {
+  const [input, setInput] = useState("");
+  const [actionMode, setActionMode] =
+    useState<ActionMode>("decode");
+  const [escapeStyle, setEscapeStyle] =
+    useState<EscapeStyle>("javascript");
+  const [outputMode, setOutputMode] =
+    useState<OutputMode>("text");
+  const [newlineMode, setNewlineMode] =
+    useState<NewlineMode>("preserve");
+  const [trimInput, setTrimInput] = useState(false);
+  const [unwrapQuotes, setUnwrapQuotes] = useState(true);
+  const [escapeNonAscii, setEscapeNonAscii] = useState(false);
+  const [escapeQuotes, setEscapeQuotes] = useState(true);
+  const [escapeSlashes, setEscapeSlashes] = useState(false);
+  const [uppercaseHex, setUppercaseHex] = useState(true);
+  const [warnInvalidEscapes, setWarnInvalidEscapes] =
+    useState(true);
+  const [warnControlCharacters, setWarnControlCharacters] =
+    useState(true);
+  const [result, setResult] =
+    useState<Result | null>(null);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
-  const warn = (title: string, message: string, severity: Issue["severity"] = "warning") => {
-    if (warnInvalidEscapes) issues.push({ severity, title, message });
+  const notes = useMemo(
+    () => (result ? getNotes(result) : []),
+    [result]
+  );
+
+  const clear = () => {
+    setResult(null);
+    setError("");
+    setCopied(false);
   };
 
-  for (let index = 0; index < input.length; index += 1) {
-    const current = input[index];
-    if (current !== "\\") {
-      output += current;
-      continue;
+  const processString = () => {
+    if (!input.length || (trimInput && !input.trim())) {
+      setError("Paste escaped text or plain text to convert.");
+      setResult(null);
+      return;
     }
 
-    const next = input[index + 1];
-    if (next === undefined) {
-      output += "\\";
-      warn("Trailing backslash", "The input ends with a single backslash, so it was kept as-is.");
-      continue;
-    }
+    try {
+      const next = buildResult({
+        input,
+        actionMode,
+        escapeStyle,
+        outputMode,
+        newlineMode,
+        trimInput,
+        unwrapQuotes,
+        escapeNonAscii,
+        escapeQuotes,
+        escapeSlashes,
+        uppercaseHex,
+        warnInvalidEscapes,
+        warnControlCharacters,
+      });
 
-    const jsonSimple: Record<string, string> = {
-      "\"": "\"",
-      "\\": "\\",
-      "/": "/",
-      b: "\b",
-      f: "\f",
-      n: "\n",
-      r: "\r",
-      t: "\t",
-    };
-
-    const javascriptSimple: Record<string, string> = {
-      ...jsonSimple,
-      v: "\v",
-      "'": "'",
-      "`": "`",
-    };
-
-    const cSimple: Record<string, string> = {
-      "\"": "\"",
-      "\\": "\\",
-      "'": "'",
-      "?": "?",
-      a: "\x07",
-      b: "\b",
-      f: "\f",
-      n: "\n",
-      r: "\r",
-      t: "\t",
-      v: "\v",
-    };
-
-    if (style === "javascript" && /^[0-9]$/.test(next)) {
-      const following = input[index + 2] ?? "";
-      if (next === "0" && !/^[0-9]$/.test(following)) {
-        output += "\0";
-      } else {
-        output += `\\${next}`;
-        warn(
-          "Legacy numeric escape not decoded",
-          `\\${next} is a legacy numeric/octal escape form in JavaScript and is restricted in strict-mode code. The sequence was kept unchanged instead of guessing legacy parser behavior.`,
-        );
-      }
-      index += 1;
-      continue;
-    }
-
-    if (style === "javascript" && (next === "\n" || next === "\r" || next === "\u2028" || next === "\u2029")) {
-      if (next === "\r" && input[index + 2] === "\n") index += 2;
-      else index += 1;
-      continue;
-    }
-
-    const simple = style === "json" ? jsonSimple : style === "c" ? cSimple : javascriptSimple;
-    if (Object.prototype.hasOwnProperty.call(simple, next)) {
-      output += simple[next];
-      index += 1;
-      continue;
-    }
-
-    if (style === "c" && /^[0-7]$/.test(next)) {
-      let end = index + 1;
-      while (end + 1 < input.length && end - index < 3 && /^[0-7]$/.test(input[end + 1])) end += 1;
-      const octal = input.slice(index + 1, end + 1);
-      const value = Number.parseInt(octal, 8);
-      if (value <= 0xff) output += String.fromCharCode(value);
-      else {
-        output += `\\${octal}`;
-        warn("C octal value is implementation-dependent", `\\${octal} is above 255. Mapping that value to a browser Unicode character would not reliably model a C execution character set, so the sequence was kept unchanged.`);
-      }
-      index = end;
-      continue;
-    }
-
-
-    if (next === "x") {
-      if (style === "json" || style === "unicode") {
-        const raw = input.slice(index, Math.min(index + 4, input.length));
-        output += raw;
-        warn(
-          "Escape is not valid for the selected style",
-          `\\x escapes are not valid ${style === "json" ? "JSON string" : "Unicode-only"} escapes. The sequence was kept unchanged.`,
-        );
-        index += raw.length - 1;
-        continue;
-      }
-
-      if (style === "c") {
-        let end = index + 2;
-        while (end < input.length && /^[0-9a-fA-F]$/.test(input[end])) end += 1;
-        const digits = input.slice(index + 2, end);
-        if (!digits) {
-          output += "\\x";
-          warn("Invalid C hex escape", `\\x at position ${index} is not followed by a hexadecimal digit.`);
-          index += 1;
-          continue;
-        }
-        const value = Number.parseInt(digits, 16);
-        if (value <= 0xff) output += String.fromCharCode(value);
-        else {
-          output += input.slice(index, end);
-          warn("C hex value is implementation-dependent", `\\x${digits} is above 255. C interprets hexadecimal escapes through its execution character set, so this browser tool left the sequence unchanged instead of mapping it to Unicode.`);
-        }
-        index = end - 1;
-        continue;
-      }
-
-      const hex = input.slice(index + 2, index + 4);
-      if (/^[0-9a-fA-F]{2}$/.test(hex)) {
-        output += String.fromCharCode(Number.parseInt(hex, 16));
-        index += 3;
-      } else {
-        output += "\\x";
-        warn("Invalid hex escape", `\\x at position ${index} does not have two valid hex digits.`);
-        index += 1;
-      }
-      continue;
-    }
-
-    if (next === "u") {
-      if (input[index + 2] === "{") {
-        const closeIndex = input.indexOf("}", index + 3);
-        const body = closeIndex > -1 ? input.slice(index + 3, closeIndex) : "";
-        const raw = closeIndex > -1 ? input.slice(index, closeIndex + 1) : "\\u{";
-
-        if (style === "json" || style === "c") {
-          output += raw;
-          warn(
-            "Braced Unicode escape is not valid for the selected style",
-            `\\u{...} is not valid in ${style === "json" ? "JSON strings" : "C universal character names"}. Use \\uXXXX${style === "c" ? " or \\UXXXXXXXX" : " (including a surrogate pair for non-BMP characters)"}.`,
-          );
-          if (closeIndex > -1) index = closeIndex;
-          else index += 2;
-          continue;
-        }
-
-        if (/^[0-9a-fA-F]{1,6}$/.test(body)) {
-          const codePoint = Number.parseInt(body, 16);
-          if (codePoint <= 0x10ffff) {
-            output += String.fromCodePoint(codePoint);
-            index = closeIndex;
-          } else {
-            output += raw;
-            warn("Unicode code point too large", `\\u{${body}} is above U+10FFFF.`);
-            index = closeIndex;
-          }
-        } else {
-          output += raw;
-          warn("Invalid braced Unicode escape", `A braced Unicode escape near position ${index} is incomplete or invalid.`);
-          if (closeIndex > -1) index = closeIndex;
-          else index += 2;
-        }
-      } else {
-        const hex = input.slice(index + 2, index + 6);
-        if (/^[0-9a-fA-F]{4}$/.test(hex)) {
-          output += String.fromCharCode(Number.parseInt(hex, 16));
-          index += 5;
-        } else {
-          output += "\\u";
-          warn("Invalid Unicode escape", `\\u at position ${index} does not have four valid hex digits.`);
-          index += 1;
-        }
-      }
-      continue;
-    }
-
-    if (next === "U") {
-      const hex = input.slice(index + 2, index + 10);
-      if (style !== "c") {
-        const raw = input.slice(index, Math.min(index + 10, input.length));
-        output += raw;
-        warn(
-          "Escape is not valid for the selected style",
-          "\\UXXXXXXXX is a C-style universal character name, not a JavaScript or JSON escape. The sequence was kept unchanged.",
-        );
-        index += raw.length - 1;
-        continue;
-      }
-      if (/^[0-9a-fA-F]{8}$/.test(hex)) {
-        const codePoint = Number.parseInt(hex, 16);
-        if (codePoint <= 0x10ffff) {
-          output += String.fromCodePoint(codePoint);
-          index += 9;
-        } else {
-          output += `\\U${hex}`;
-          warn("Unicode code point too large", `\\U${hex} is above U+10FFFF.`);
-          index += 9;
-        }
-      } else {
-        output += "\\U";
-        warn("Invalid C Unicode escape", `\\U at position ${index} does not have eight valid hex digits.`);
-        index += 1;
-      }
-      continue;
-    }
-
-    if (style === "javascript" && next !== "\n" && next !== "\r") {
-      output += next;
-      warn(
-        "JavaScript identity escape",
-        `\\${next} is not a named JavaScript escape. JavaScript string-literal parsing treats this as the character ${next} without the backslash; avoid relying on identity escapes in portable data formats.`,
-        "info",
+      setResult(next);
+      setError("");
+      setCopied(false);
+    } catch (caught) {
+      setResult(null);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to convert this escaped string."
       );
-      index += 1;
-      continue;
+    }
+  };
+
+  const loadExample = () => {
+    setInput(SAMPLE);
+    setActionMode("decode");
+    setEscapeStyle("javascript");
+    setOutputMode("text");
+    setNewlineMode("preserve");
+    setTrimInput(false);
+    setUnwrapQuotes(true);
+    setEscapeNonAscii(false);
+    setEscapeQuotes(true);
+    setEscapeSlashes(false);
+    setUppercaseHex(true);
+    setWarnInvalidEscapes(true);
+    setWarnControlCharacters(true);
+    clear();
+  };
+
+  const reset = () => {
+    setInput("");
+    setActionMode("decode");
+    setEscapeStyle("javascript");
+    setOutputMode("text");
+    setNewlineMode("preserve");
+    setTrimInput(false);
+    setUnwrapQuotes(true);
+    setEscapeNonAscii(false);
+    setEscapeQuotes(true);
+    setEscapeSlashes(false);
+    setUppercaseHex(true);
+    setWarnInvalidEscapes(true);
+    setWarnControlCharacters(true);
+    clear();
+  };
+
+  const copy = async () => {
+    if (!result || !result.output) {
+      return;
     }
 
-    output += `\\${next}`;
-    warn(
-      style === "json" ? "Invalid JSON escape" : "Unknown escape kept",
-      `\\${next} at position ${index} is not a recognized ${styleLabel(style)} escape, so it was kept unchanged.`,
-      style === "json" ? "warning" : "info",
-    );
-    index += 1;
-  }
+    try {
+      await navigator.clipboard.writeText(result.output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError(
+        "The converted output could not be copied. Select and copy it manually."
+      );
+    }
+  };
 
-  return { text: output, issues };
-}
-
-function encodeEscapes(
-  input: string,
-  style: EscapeStyle,
-  options: { escapeNonAscii: boolean; escapeQuotes: boolean; escapeSlashes: boolean; uppercaseHex: boolean },
-) {
-  let output = "";
-  for (const char of input) {
-    const codePoint = char.codePointAt(0) ?? 0;
-    const hex = formatHex(codePoint, options.uppercaseHex);
-
-    if (char === "\n") output += "\\n";
-    else if (char === "\r") output += "\\r";
-    else if (char === "\t") output += "\\t";
-    else if (char === "\b") output += "\\b";
-    else if (char === "\f") output += "\\f";
-    else if (char === "\v" && style !== "json") output += "\\v";
-    else if (char === "\"") output += options.escapeQuotes || style === "json" ? "\\\"" : char;
-    else if (char === "'") output += options.escapeQuotes && style !== "json" ? "\\'" : char;
-    else if (char === "\\") output += "\\\\";
-    else if (char === "/") output += options.escapeSlashes ? "\\/" : char;
-    else if (style === "unicode" && codePoint > 0x7e) output += unicodeEscape(codePoint, options.uppercaseHex);
-    else if (style === "hex" && codePoint <= 0xff && (options.escapeNonAscii || codePoint < 0x20 || codePoint > 0x7e)) output += `\\x${hex.padStart(2, "0")}`;
-    else if (style === "c" && options.escapeNonAscii && codePoint > 0x7e) output += cUnicodeEscape(codePoint, options.uppercaseHex);
-    else if (style === "json" && options.escapeNonAscii && codePoint > 0x7e) output += jsonUnicodeEscape(codePoint, options.uppercaseHex);
-    else if (options.escapeNonAscii && codePoint > 0x7e) output += unicodeEscape(codePoint, options.uppercaseHex);
-    else if (codePoint < 0x20) output += style === "json" ? jsonUnicodeEscape(codePoint, options.uppercaseHex) : unicodeEscape(codePoint, options.uppercaseHex);
-    else output += char;
-  }
-  return output;
-}
-
-function unicodeEscape(codePoint: number, uppercaseHex: boolean) {
-  const hex = formatHex(codePoint, uppercaseHex);
-  if (codePoint <= 0xffff) return `\\u${hex.padStart(4, "0")}`;
-  return `\\u{${hex}}`;
-}
-
-function jsonUnicodeEscape(codePoint: number, uppercaseHex: boolean) {
-  if (codePoint <= 0xffff) {
-    return `\\u${formatHex(codePoint, uppercaseHex).padStart(4, "0")}`;
-  }
-  const adjusted = codePoint - 0x10000;
-  const high = 0xd800 + (adjusted >> 10);
-  const low = 0xdc00 + (adjusted & 0x3ff);
-  return `\\u${formatHex(high, uppercaseHex).padStart(4, "0")}\\u${formatHex(low, uppercaseHex).padStart(4, "0")}`;
-}
-
-function cUnicodeEscape(codePoint: number, uppercaseHex: boolean) {
-  const hex = formatHex(codePoint, uppercaseHex);
-  return codePoint <= 0xffff ? `\\u${hex.padStart(4, "0")}` : `\\U${hex.padStart(8, "0")}`;
-}
-
-function styleLabel(style: EscapeStyle) {
-  if (style === "javascript") return "JavaScript";
-  if (style === "json") return "JSON";
-  if (style === "unicode") return "Unicode";
-  if (style === "hex") return "hex";
-  return "C-style";
-}
-
-function formatHex(value: number, uppercase: boolean) {
-  const text = value.toString(16);
-  return uppercase ? text.toUpperCase() : text.toLowerCase();
-}
-
-function countEscapeSequences(input: string) {
-  return (input.match(/\\(?:u\{[0-9a-fA-F]{1,6}\}|u[0-9a-fA-F]{0,4}|x[0-9a-fA-F]{0,2}|[nrtbfv0\\"'`/])/g) ?? []).length;
-}
-
-function applyNewlineMode(input: string, mode: NewlineMode) {
-  if (mode === "preserve") return input;
-  const normalized = input.replace(/\r\n|\r|\n/g, "\n");
-  return mode === "crlf" ? normalized.replace(/\n/g, "\r\n") : normalized;
-}
-
-function inspectCharacters(input: string): CharacterRow[] {
-  const rows: CharacterRow[] = [];
-  let position = 0;
-  for (const char of input) {
-    const codePoint = char.codePointAt(0) ?? 0;
-    rows.push({
-      index: position,
-      char,
-      display: displayCharacter(char),
-      codePoint,
-      unicode: `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`,
-      hex: `0x${codePoint.toString(16).toUpperCase()}`,
-      category: categorizeCharacter(codePoint),
-    });
-    position += 1;
-  }
-  return rows;
-}
-
-function displayCharacter(char: string) {
-  if (char === "\n") return "\\n";
-  if (char === "\r") return "\\r";
-  if (char === "\t") return "\\t";
-  if (char === " ") return "space";
-  if (char === "\0") return "\\0";
-  return char;
-}
-
-function categorizeCharacter(codePoint: number) {
-  if (codePoint < 32 || codePoint === 127) return "Control";
-  if (codePoint >= 48 && codePoint <= 57) return "Digit";
-  if ((codePoint >= 65 && codePoint <= 90) || (codePoint >= 97 && codePoint <= 122)) return "Latin letter";
-  if (codePoint <= 127) return "ASCII symbol";
-  if (codePoint >= 0x1f300 && codePoint <= 0x1faff) return "Emoji / symbol";
-  return "Unicode";
-}
-
-function formatOutput(
-  result: Omit<Result, "output">,
-  outputMode: OutputMode,
-  actionMode: ActionMode,
-  escapeStyle: EscapeStyle,
-) {
-  if (outputMode === "text") return result.convertedText;
-
-  if (outputMode === "json") {
-    return JSON.stringify(
-      {
-        action: actionMode,
-        style: escapeStyle,
-        inputLength: result.inputLength,
-        outputLength: result.outputLength,
-        escapeCount: result.escapeCount,
-        lineCount: result.lineCount,
-        convertedText: result.convertedText,
-        issues: result.issues,
-        characters: result.rows.slice(0, 200),
-      },
-      null,
-      2,
-    );
-  }
-
-  if (outputMode === "markdown") {
-    const lines = [
-      "| Field | Value |",
-      "|---|---|",
-      `| Action | ${actionMode} |`,
-      `| Escape style | ${escapeStyle} |`,
-      `| Input length | ${result.inputLength} |`,
-      `| Output length | ${result.outputLength} |`,
-      `| Escape sequences found | ${result.escapeCount} |`,
-      `| Lines | ${result.lineCount} |`,
-      "",
-      "```text",
-      result.convertedText,
-      "```",
-    ];
-    return lines.join("\n");
-  }
-
-  if (outputMode === "csv") {
-    const header = "index,character,unicode,hex,category";
-    const rows = result.rows.map((row) => [row.index, row.display, row.unicode, row.hex, row.category].map(csvEscape).join(","));
-    return [header, ...rows].join("\n");
-  }
-
-  const checklist = [
-    "String escape review checklist",
-    "",
-    `- [ ] Confirm the selected action is correct: ${actionMode}`,
-    `- [ ] Confirm the escape style is correct: ${escapeStyle}`,
-    `- [ ] Review output length: ${result.outputLength}`,
-    `- [ ] Review escape sequences found: ${result.escapeCount}`,
-    `- [ ] Check warnings: ${result.issues.length}`,
-    "- [ ] Copy the converted value only after checking quotes, slashes, and line breaks",
-  ];
-  return checklist.join("\n");
-}
-
-function csvEscape(value: string | number) {
-  const text = String(value);
-  if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
-  return text;
-}
-
-function getNotes(result: Result): Issue[] {
-  const notes = [...result.issues];
-  if (!notes.length) {
-    notes.push({
-      severity: "info",
-      title: "No major issues found",
-      message: "The conversion completed without obvious invalid escape warnings.",
-    });
-  }
-  if (result.outputLength > 5000) {
-    notes.push({
-      severity: "info",
-      title: "Large output",
-      message: "The converted string is long. Review line breaks and copy destination limits before using it elsewhere.",
-    });
-  }
-  return notes;
-}
-
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
   return (
-    <label className="flex items-center gap-2 text-sm text-gray-700">
+    <ToolShell
+      title="String Escape Sequence Converter"
+      description="Decode, encode, normalize or inspect JavaScript, JSON, Unicode, hex and C-style escape sequences while keeping the syntax differences, control characters, Unicode scalar values and UTF-16 surrogate edge cases visible."
+    >
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+          <label className="block text-sm font-semibold text-gray-900">
+            Escaped string or plain text
+          </label>
+          <textarea
+            value={input}
+            onChange={(event: { target: { value: string } }) => {
+              setInput(event.target.value);
+              clear();
+            }}
+            placeholder={SAMPLE}
+            spellCheck={false}
+            className="mt-3 min-h-[430px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          />
+        </div>
+
+        <div className="space-y-5 rounded-2xl border border-gray-200 bg-white p-5">
+          <YoryantraSelect
+            label="Action"
+            value={actionMode}
+            onChange={(value: string) => {
+              setActionMode(value as ActionMode);
+              clear();
+            }}
+            options={[
+              { label: "Decode escape sequences", value: "decode" },
+              { label: "Encode plain text", value: "encode" },
+              { label: "Inspect characters only", value: "inspect" },
+              { label: "Decode + re-encode / normalize", value: "normalize" },
+            ]}
+          />
+
+          <YoryantraSelect
+            label="Escape syntax"
+            value={escapeStyle}
+            onChange={(value: string) => {
+              setEscapeStyle(value as EscapeStyle);
+              clear();
+            }}
+            options={[
+              { label: "JavaScript / TypeScript string", value: "javascript" },
+              { label: "JSON string content", value: "json" },
+              { label: "Unicode escape utility", value: "unicode" },
+              { label: "Hex escape utility", value: "hex" },
+              { label: "C-style string", value: "c" },
+            ]}
+          />
+
+          <YoryantraSelect
+            label="Output"
+            value={outputMode}
+            onChange={(value: string) => {
+              setOutputMode(value as OutputMode);
+              clear();
+            }}
+            options={[
+              { label: "Converted text", value: "text" },
+              { label: "JSON report", value: "json" },
+              { label: "Markdown character table", value: "markdown" },
+              { label: "CSV character table", value: "csv" },
+              { label: "Review checklist", value: "checklist" },
+            ]}
+          />
+
+          <YoryantraSelect
+            label="Line breaks"
+            value={newlineMode}
+            onChange={(value: string) => {
+              setNewlineMode(value as NewlineMode);
+              clear();
+            }}
+            options={[
+              { label: "Preserve", value: "preserve" },
+              { label: "Normalize to LF", value: "lf" },
+              { label: "Normalize to CRLF", value: "crlf" },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <h3 className="font-semibold text-gray-900">Conversion options</h3>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <Toggle
+            checked={trimInput}
+            onChange={(value) => {
+              setTrimInput(value);
+              clear();
+            }}
+            title="Trim outer whitespace"
+            text="Off by default because leading/trailing whitespace may be data."
+          />
+          <Toggle
+            checked={unwrapQuotes}
+            onChange={(value) => {
+              setUnwrapQuotes(value);
+              clear();
+            }}
+            title="Remove matching outer quotes while decoding"
+            text="Removes the wrapper only; it never evaluates JavaScript/template expressions."
+          />
+          <Toggle
+            checked={escapeNonAscii}
+            onChange={(value) => {
+              setEscapeNonAscii(value);
+              clear();
+            }}
+            title="Escape non-ASCII while encoding"
+            text="JSON uses surrogate pairs for supplementary characters; C uses \\u/\\U."
+          />
+          <Toggle
+            checked={escapeQuotes}
+            onChange={(value) => {
+              setEscapeQuotes(value);
+              clear();
+            }}
+            title="Escape quote characters"
+            text="JSON double quotes are always escaped because otherwise the generated string content would be invalid."
+          />
+          <Toggle
+            checked={escapeSlashes}
+            onChange={(value) => {
+              setEscapeSlashes(value);
+              clear();
+            }}
+            title="Escape forward slashes"
+            text="Usually unnecessary; useful only for consumers that deliberately prefer \\/."
+          />
+          <Toggle
+            checked={uppercaseHex}
+            onChange={(value) => {
+              setUppercaseHex(value);
+              clear();
+            }}
+            title="Uppercase hexadecimal digits"
+            text="Changes spelling only, not the decoded value."
+          />
+          <Toggle
+            checked={warnInvalidEscapes}
+            onChange={(value) => {
+              setWarnInvalidEscapes(value);
+              clear();
+            }}
+            title="Report invalid/ambiguous escapes"
+            text="Keep enabled when diagnosing copied strings from an unknown format."
+          />
+          <Toggle
+            checked={warnControlCharacters}
+            onChange={(value) => {
+              setWarnControlCharacters(value);
+              clear();
+            }}
+            title="Report control characters"
+            text="Useful for hidden newlines, tabs, NUL and pasted control bytes."
+          />
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={processString}
+          className="yoryantra-btn"
+        >
+          Convert String
+        </button>
+        <button
+          type="button"
+          onClick={loadExample}
+          className="yoryantra-btn-outline"
+        >
+          Load Example
+        </button>
+        <button
+          type="button"
+          onClick={reset}
+          className="yoryantra-btn-outline"
+        >
+          Reset
+        </button>
+      </div>
+
+      {error ? (
+        <div className="mt-5 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
+      ) : null}
+
+      {result ? (
+        <div className="mt-8">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <Stat label="Escapes" value={String(result.escapeCount)} />
+            <Stat
+              label="Code points"
+              value={String(result.outputCodePoints)}
+            />
+            <Stat
+              label="UTF-16 units"
+              value={String(result.outputCodeUnits)}
+            />
+            <Stat
+              label="UTF-8 bytes"
+              value={String(result.utf8Bytes)}
+            />
+            <Stat label="Lines" value={String(result.lineCount)} />
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Output
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Output format: {outputMode}. Character inspection describes
+                  the converted text, not the original escape spelling.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={copy}
+                className="yoryantra-btn-outline whitespace-nowrap"
+              >
+                {copied ? "Copied" : "Copy Output"}
+              </button>
+            </div>
+
+            <pre className="yoryantra-output mt-4 min-h-[300px] max-h-[680px] overflow-auto whitespace-pre-wrap break-words font-mono text-sm">
+              {result.output}
+            </pre>
+          </div>
+
+          {notes.length ? (
+            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+              <h3 className="font-semibold text-yellow-900">
+                Syntax and Unicode review
+              </h3>
+              <div className="mt-4 space-y-3">
+                {notes.map((issue, index) => (
+                  <div
+                    key={`${issue.title}-${index}`}
+                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                  >
+                    <strong>
+                      {issue.severity.toUpperCase()} · {issue.title}
+                    </strong>
+                    <p className="mt-1">{issue.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {result.rows.length ? (
+            <div className="mt-6 overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50 text-left text-gray-600">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">#</th>
+                    <th className="px-4 py-3 font-semibold">UTF-16 index</th>
+                    <th className="px-4 py-3 font-semibold">Character</th>
+                    <th className="px-4 py-3 font-semibold">Unicode</th>
+                    <th className="px-4 py-3 font-semibold">UTF-16</th>
+                    <th className="px-4 py-3 font-semibold">UTF-8 bytes</th>
+                    <th className="px-4 py-3 font-semibold">Type</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-gray-700">
+                  {result.rows.slice(0, 100).map((row) => (
+                    <tr key={`${row.utf16Index}-${row.unicode}`}>
+                      <td className="px-4 py-3">{row.codePointIndex}</td>
+                      <td className="px-4 py-3">{row.utf16Index}</td>
+                      <td className="px-4 py-3 font-mono">{row.display}</td>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {row.unicode}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {row.utf16}
+                      </td>
+                      <td className="px-4 py-3">{row.utf8Bytes}</td>
+                      <td className="px-4 py-3">{row.category}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {result.rows.length > 100 ? (
+                <p className="p-4 text-sm text-gray-500">
+                  Showing the first 100 code-point rows in the browser table.
+                  JSON/CSV/Markdown output can include up to 250 inspection
+                  rows.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <pre className="yoryantra-output mt-8 min-h-[300px] whitespace-pre-wrap break-words text-sm">
+          Converted text, syntax diagnostics, Unicode/UTF-16 inspection and
+          export output will appear here.
+        </pre>
+      )}
+
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Conversion runs on the pasted text in your browser. The tool does not
+        evaluate JavaScript, compile C, execute template interpolation or upload
+        the string to a conversion API. Site-wide analytics or advertising
+        scripts, if enabled, are separate from this operation.
+      </div>
+
+      <section className="mt-12 border-t border-gray-200 pt-10">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            The Backslash Does Not Mean the Same Thing in Every String Format
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            <code>\n</code> is familiar across several languages, but the sets
+            quickly diverge. JSON allows a deliberately small escape grammar.
+            JavaScript adds forms such as <code>\xHH</code>,{" "}
+            <code>\u{"{...}"}</code>, line continuation and some identity
+            escapes. C has octal, greedy hexadecimal and{" "}
+            <code>\UXXXXXXXX</code> universal-character names.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Decoding every backslash with one universal regex can make malformed
+            JSON look valid or turn C bytes into invented Unicode characters.
+            The selected syntax determines which transformations are allowed.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
+            JSON Has No \xHH or \u{"{1F680}"} Escape
+          </h2>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            JSON strings use <code>\uXXXX</code> UTF-16 code-unit escapes. A
+            supplementary character such as 🚀 is represented with two{" "}
+            <code>\uXXXX</code> surrogate escapes when escaped, not the
+            JavaScript code-point form <code>\u{"{1F680}"}</code>.
+          </p>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            The JSON encoder on this page follows that distinction and
+            validates generated string content by wrapping it in quotes and
+            parsing it with JSON.parse.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            One Visible Character Can Be Two UTF-16 Code Units
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JavaScript strings are indexed as UTF-16 code units. Many emoji and
+            historic-script characters are outside the Basic Multilingual Plane
+            and use a surrogate pair, so a single Unicode code point can make{" "}
+            <code>string.length</code> increase by two.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The inspection table shows both a code-point row index and the
+            original UTF-16 offset so copied error positions and JavaScript
+            indexes are easier to reconcile.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h2 className="text-xl font-semibold text-red-900">
+            Lone Surrogates Are a Real Interoperability Edge Case
+          </h2>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            JSON grammar can carry escaped UTF-16 surrogate code units even
+            when they do not form a valid pair. Software differs in how well
+            such strings survive encoding, databases, APIs and Unicode
+            normalization.
+          </p>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            This converter preserves lone surrogate escapes for diagnosis and
+            reports them rather than silently replacing or combining them.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Newline Normalization Must Happen Before Encoding Plain Text
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Once a newline has become the two visible characters{" "}
+            <code>\</code> and <code>n</code>, changing LF to CRLF no longer
+            affects it. The encode path therefore normalizes actual line
+            separators first and only then turns them into escape sequences.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Normalize mode does the reverse in a deliberate order: decode →
+            normalize actual line breaks → encode using the selected syntax.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            C Hex Escapes Are Greedy
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            In C, <code>\x</code> consumes hexadecimal digits until the run
+            ends; it is not inherently limited to two digits. The resulting
+            value is then interpreted through the C implementation&apos;s
+            character model.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Browser Unicode is not a faithful substitute for every C execution
+            character set, so this checker decodes one-byte values and keeps
+            larger ambiguous hex runs visible with a warning.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Removing Quotes Is Not the Same as Parsing a Language Literal
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            When “unwrap matching quotes” is enabled, the first and last quote
+            characters are removed before escape conversion. The tool does not
+            evaluate JavaScript source, concatenate adjacent literals, process
+            template expressions or interpret a C compiler&apos;s source/execution
+            character sets.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-4 md:grid-cols-3">
+          <ReferenceCard
+            title="ECMAScript lexical grammar"
+            href="https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html"
+            text="Primary reference for JavaScript string escape sequences, Unicode escapes, hex escapes and line continuations."
+          />
+          <ReferenceCard
+            title="RFC 8259 — JSON"
+            href="https://www.rfc-editor.org/rfc/rfc8259.html"
+            text="Defines JSON string escaping and the interoperability concern around unpaired surrogate sequences."
+          />
+          <ReferenceCard
+            title="Unicode Standard"
+            href="https://www.unicode.org/versions/latest/"
+            text="Reference for Unicode code points, scalar values and UTF character representation."
+          />
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <YoryantraRelatedTools currentHref="/tools/string-escape-sequence-converter" />
+        </div>
+      </section>
+    </ToolShell>
+  );
+}
+
+function Toggle({
+  checked,
+  onChange,
+  title,
+  text,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  title: string;
+  text: string;
+}) {
+  return (
+    <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 text-sm leading-relaxed text-gray-700">
       <input
         type="checkbox"
         checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
+        onChange={(event: { target: { checked: boolean } }) =>
+          onChange(event.target.checked)
+        }
+        className="mt-1"
       />
-      <span>{label}</span>
+      <span>
+        <strong className="text-gray-900">{title}</strong>
+        <span className="mt-1 block text-gray-500">{text}</span>
+      </span>
     </label>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-gray-900">{value}</p>
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+      <div className="mt-2 break-words text-lg font-semibold text-gray-900">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ReferenceCard({
+  title,
+  href,
+  text,
+}: {
+  title: string;
+  href: string;
+  text: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="font-semibold text-[var(--green)] underline underline-offset-4"
+      >
+        {title}
+      </a>
+      <p className="mt-3 text-sm leading-relaxed text-gray-600">{text}</p>
     </div>
   );
 }
