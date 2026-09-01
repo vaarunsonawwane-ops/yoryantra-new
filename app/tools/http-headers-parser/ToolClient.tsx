@@ -55,6 +55,22 @@ function hasForbiddenFieldValueControl(value: string) {
   return /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(value);
 }
 
+function classifyStartLine(candidate: string) {
+  if (/^HTTP\/\d(?:\.\d)?\s+\d{3}(?:\s+.*)?$/.test(candidate)) {
+    return { kind: "response" as const, value: candidate };
+  }
+
+  if (
+    /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+\s+\S+\s+HTTP\/\d(?:\.\d)?$/.test(
+      candidate
+    )
+  ) {
+    return { kind: "request" as const, value: candidate };
+  }
+
+  return null;
+}
+
 function parseFieldLine(
   line: string,
   lineNumber: number
@@ -112,9 +128,7 @@ function parseFieldLine(
 
   if (separator === -1) {
     return {
-      diagnostics: [
-        `Line ${lineNumber}: no colon separator was found.`,
-      ],
+      diagnostics: [`Line ${lineNumber}: no colon separator was found.`],
     };
   }
 
@@ -161,60 +175,6 @@ function parseFieldLine(
   };
 }
 
-function classifyStartLine(candidate: string) {
-  if (/^HTTP\/\d(?:\.\d)?\s+\d{3}(?:\s+.*)?$/.test(candidate)) {
-    return {
-      kind: "response" as const,
-      value: candidate,
-    };
-  }
-
-  if (
-    /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+\s+\S+\s+HTTP\/\d(?:\.\d)?$/.test(
-      candidate
-    )
-  ) {
-    return {
-      kind: "request" as const,
-      value: candidate,
-    };
-  }
-
-  return null;
-}
-
-function addRepeatedFieldDiagnostics(
-  grouped: Record<string, FieldGroup>,
-  diagnostics: string[]
-) {
-  Object.keys(grouped).forEach((name) => {
-    const group = grouped[name];
-
-    if (group.count <= 1) return;
-
-    if (name === "set-cookie") {
-      group.combination = "keep-separate";
-      diagnostics.push(
-        `Set-Cookie appears ${group.count} times. Keep those field values separate; blindly comma-combining Set-Cookie changes its syntax.`
-      );
-      return;
-    }
-
-    if (name === "cookie") {
-      group.combination = "protocol-specific-cookie-handling";
-      diagnostics.push(
-        `Cookie appears ${group.count} times. HTTP/2 and HTTP/3 define special handling for Cookie field lines, so preserve order and protocol context while debugging.`
-      );
-      return;
-    }
-
-    group.combination = "field-definition-dependent";
-    diagnostics.push(
-      `Field "${name}" appears ${group.count} times. Whether repeated values may be combined depends on that field's specification; do not assume a comma join is always valid.`
-    );
-  });
-}
-
 function parseContentLengthValues(group: FieldGroup | undefined) {
   if (!group) return [];
 
@@ -229,6 +189,37 @@ function parseContentLengthValues(group: FieldGroup | undefined) {
   return values;
 }
 
+function addRepeatedDiagnostics(
+  grouped: Record<string, FieldGroup>,
+  diagnostics: string[]
+) {
+  Object.keys(grouped).forEach((name) => {
+    const group = grouped[name];
+    if (group.count <= 1) return;
+
+    if (name === "set-cookie") {
+      group.combination = "keep-separate";
+      diagnostics.push(
+        `Set-Cookie appears ${group.count} times. Keep those field values separate; blindly comma-combining Set-Cookie changes its syntax.`
+      );
+      return;
+    }
+
+    if (name === "cookie") {
+      group.combination = "protocol-specific-cookie-handling";
+      diagnostics.push(
+        `Cookie appears ${group.count} times. Preserve order and protocol context while debugging HTTP/2 or HTTP/3 captures.`
+      );
+      return;
+    }
+
+    group.combination = "field-definition-dependent";
+    diagnostics.push(
+      `Field "${name}" appears ${group.count} times. Whether repeated values can be combined depends on that field's definition.`
+    );
+  });
+}
+
 function addFramingDiagnostics(
   grouped: Record<string, FieldGroup>,
   diagnostics: string[]
@@ -238,53 +229,53 @@ function addFramingDiagnostics(
 
   if (contentLength && transferEncoding) {
     diagnostics.push(
-      "Both Content-Length and Transfer-Encoding are present. In HTTP/1.x this is a message-framing/security-sensitive combination; do not use this text parser as proof that the message is safe or acceptable."
+      "Both Content-Length and Transfer-Encoding are present. In HTTP/1.x this is a message-framing and security-sensitive combination that deserves manual review."
     );
   }
 
-  if (contentLength) {
-    const values = parseContentLengthValues(contentLength);
-    const invalid = values.some((value) => !/^\d+$/.test(value));
-    const distinct: string[] = [];
+  if (!contentLength) return;
 
-    values.forEach((value) => {
-      const normalized = /^\d+$/.test(value)
-        ? value.replace(/^0+(?=\d)/, "")
-        : value;
+  const values = parseContentLengthValues(contentLength);
+  const invalid = values.some((value) => !/^\d+$/.test(value));
+  const distinct: string[] = [];
 
-      if (distinct.indexOf(normalized) === -1) {
-        distinct.push(normalized);
-      }
-    });
+  values.forEach((value) => {
+    const normalized = /^\d+$/.test(value)
+      ? value.replace(/^0+(?=\d)/, "")
+      : value;
 
-    if (invalid) {
-      diagnostics.push(
-        "Content-Length contains a value that is not an unsigned decimal integer."
-      );
+    if (distinct.indexOf(normalized) === -1) {
+      distinct.push(normalized);
     }
+  });
 
-    if (distinct.length > 1) {
-      diagnostics.push(
-        "Content-Length contains conflicting values. Conflicting message-length values are invalid and are relevant to HTTP request-smuggling defenses."
-      );
-    } else if (values.length > 1) {
-      diagnostics.push(
-        "Content-Length is repeated with the same numeric text. Some recipients can normalize identical duplicates, but duplicates still deserve review when debugging raw HTTP/1.x framing."
-      );
-    }
+  if (invalid) {
+    diagnostics.push(
+      "Content-Length contains a value that is not an unsigned decimal integer."
+    );
+  }
+
+  if (distinct.length > 1) {
+    diagnostics.push(
+      "Content-Length contains conflicting values. Conflicting message lengths are invalid and relevant to HTTP request-smuggling defenses."
+    );
+  } else if (values.length > 1) {
+    diagnostics.push(
+      "Content-Length is repeated with the same numeric value. Duplicates still deserve review when inspecting raw HTTP/1.x framing."
+    );
   }
 }
 
-function addPseudoHeaderDiagnostics(
+function addPseudoDiagnostics(
   fields: ParsedField[],
   diagnostics: string[]
 ) {
   const pseudoFields = fields.filter((field) => field.pseudo);
   const regularFields = fields.filter((field) => !field.pseudo);
 
-  if (pseudoFields.length === 0) return;
+  if (!pseudoFields.length) return;
 
-  if (regularFields.length > 0) {
+  if (regularFields.length) {
     const lastPseudoLine = Math.max.apply(
       null,
       pseudoFields.map((field) => field.line)
@@ -296,21 +287,21 @@ function addPseudoHeaderDiagnostics(
 
     if (lastPseudoLine > firstRegularLine) {
       diagnostics.push(
-        "A pseudo-header appears after a regular field. HTTP/2 and HTTP/3 require pseudo-header fields to appear before regular fields."
+        "A pseudo-header appears after a regular field. HTTP/2 and HTTP/3 require pseudo-header fields before regular fields."
       );
     }
   }
 
-  const pseudoCounts = Object.create(null) as Record<string, number>;
+  const counts = Object.create(null) as Record<string, number>;
 
   pseudoFields.forEach((field) => {
-    pseudoCounts[field.name] = (pseudoCounts[field.name] || 0) + 1;
+    counts[field.name] = (counts[field.name] || 0) + 1;
   });
 
-  Object.keys(pseudoCounts).forEach((name) => {
-    if (pseudoCounts[name] > 1) {
+  Object.keys(counts).forEach((name) => {
+    if (counts[name] > 1) {
       diagnostics.push(
-        `Pseudo-header "${name}" appears ${pseudoCounts[name]} times. Pseudo-header fields are not ordinary repeatable HTTP fields.`
+        `Pseudo-header "${name}" appears ${counts[name]} times.`
       );
     }
   });
@@ -329,7 +320,7 @@ function addPseudoHeaderDiagnostics(
 
   if (hasStatus && hasRequestPseudo) {
     diagnostics.push(
-      "The block mixes :status with request pseudo-headers. A normal HTTP/2 or HTTP/3 field section is either request-oriented or response-oriented, not both."
+      "The block mixes :status with request pseudo-headers. A normal HTTP/2 or HTTP/3 field section is request-oriented or response-oriented, not both."
     );
   }
 
@@ -342,35 +333,11 @@ function addPseudoHeaderDiagnostics(
   });
 }
 
-function addRequestDiagnostics(
-  startLine: ParsedHeaders["startLine"],
-  grouped: Record<string, FieldGroup>,
-  diagnostics: string[]
-) {
-  if (!startLine || startLine.kind !== "request") return;
-
-  if (
-    /HTTP\/1\.1$/.test(startLine.value) &&
-    !grouped["host"]
-  ) {
-    diagnostics.push(
-      "This looks like a complete HTTP/1.1 request start line, but no Host field was parsed. A complete HTTP/1.1 request normally requires Host."
-    );
-  }
-
-  if (grouped["host"] && grouped["host"].count > 1) {
-    diagnostics.push(
-      "Host appears more than once. Multiple Host fields are invalid in an HTTP/1.1 request and can be security-sensitive."
-    );
-  }
-}
-
 function parseHeadersBlock(input: string): ParsedHeaders {
   const sourceLines = input.replace(/\r\n?/g, "\n").split("\n");
   const diagnostics: string[] = [];
   const fields: ParsedField[] = [];
   let startLine: ParsedHeaders["startLine"] = null;
-
   let firstMeaningful = -1;
 
   for (let index = 0; index < sourceLines.length; index += 1) {
@@ -414,30 +381,26 @@ function parseHeadersBlock(input: string): ParsedHeaders {
     headerStarted = true;
 
     if (/^[ \t]/.test(line)) {
-      if (fields.length === 0) {
+      if (!fields.length) {
         diagnostics.push(
           `Line ${lineNumber}: an indented continuation line appears before any field.`
         );
         return;
       }
 
-      const continuation = line.trim();
       const previous = fields[fields.length - 1];
-
-      previous.value += ` ${continuation}`;
+      previous.value += ` ${line.trim()}`;
       previous.obsFold = true;
 
       diagnostics.push(
-        `Line ${lineNumber}: obsolete line folding was unfolded with one space for inspection. Modern senders should not generate obs-fold.`
+        `Line ${lineNumber}: obsolete line folding was unfolded with one space for inspection.`
       );
       return;
     }
 
     const parsed = parseFieldLine(line, lineNumber);
 
-    parsed.diagnostics.forEach((diagnostic) =>
-      diagnostics.push(diagnostic)
-    );
+    parsed.diagnostics.forEach((item) => diagnostics.push(item));
 
     if (parsed.field) {
       fields.push(parsed.field);
@@ -448,7 +411,7 @@ function parseHeadersBlock(input: string): ParsedHeaders {
     diagnostics.push(
       `${ignoredAfterHeader} non-empty line${
         ignoredAfterHeader === 1 ? " was" : "s were"
-      } found after the first blank line and treated as message body or trailing text rather than headers.`
+      } found after the first blank line and treated as body or trailing text rather than headers.`
     );
   }
 
@@ -478,10 +441,26 @@ function parseHeadersBlock(input: string): ParsedHeaders {
     group.count += 1;
   });
 
-  addRepeatedFieldDiagnostics(grouped, diagnostics);
+  addRepeatedDiagnostics(grouped, diagnostics);
   addFramingDiagnostics(grouped, diagnostics);
-  addPseudoHeaderDiagnostics(fields, diagnostics);
-  addRequestDiagnostics(startLine, grouped, diagnostics);
+  addPseudoDiagnostics(fields, diagnostics);
+
+  if (
+    startLine &&
+    startLine.kind === "request" &&
+    /HTTP\/1\.1$/.test(startLine.value) &&
+    !grouped["host"]
+  ) {
+    diagnostics.push(
+      "This looks like an HTTP/1.1 request start line, but no Host field was parsed."
+    );
+  }
+
+  if (grouped["host"] && grouped["host"].count > 1) {
+    diagnostics.push(
+      "Host appears more than once. Multiple Host fields are invalid in an HTTP/1.1 request and can be security-sensitive."
+    );
+  }
 
   const sensitiveNames = [
     "authorization",
@@ -493,18 +472,18 @@ function parseHeadersBlock(input: string): ParsedHeaders {
     "x-auth-token",
   ];
 
-  const sensitive = fields.filter(
-    (field) =>
-      sensitiveNames.indexOf(field.normalizedName) !== -1
-  );
-
-  if (sensitive.length > 0) {
+  if (
+    fields.some(
+      (field) =>
+        sensitiveNames.indexOf(field.normalizedName) !== -1
+    )
+  ) {
     diagnostics.push(
       "This block contains a credential- or session-related field. Treat copied output as sensitive even though parsing is local."
     );
   }
 
-  if (fields.length === 0) {
+  if (!fields.length) {
     diagnostics.push("No valid HTTP field lines were parsed.");
   }
 
@@ -523,7 +502,7 @@ function parseHeadersBlock(input: string): ParsedHeaders {
     grouped,
     diagnostics,
     note:
-      "The ordered fields array preserves source order. Grouped names are case-insensitive for ordinary fields. Repeated-field combination is definition-dependent, and pseudo-headers are protocol metadata rather than ordinary HTTP/1.x header fields.",
+      "The ordered fields array preserves source order. Grouped ordinary names are case-insensitive. Repeated-field combination is definition-dependent, and pseudo-headers are protocol metadata rather than ordinary HTTP/1.x field lines.",
   };
 }
 
@@ -535,23 +514,18 @@ export default function ToolClient() {
 
   const lineCount = useMemo(
     () =>
-      input
-        ? input.replace(/\r\n?/g, "\n").split("\n").length
-        : 0,
+      input ? input.replace(/\r\n?/g, "\n").split("\n").length : 0,
     [input]
   );
 
-  const parseHeaders = () => {
+  const run = () => {
     if (!input.trim()) {
       setError("Enter an HTTP request or response header block.");
       setOutput("");
-      setCopied(false);
       return;
     }
 
-    const result = parseHeadersBlock(input);
-
-    setOutput(JSON.stringify(result, null, 2));
+    setOutput(JSON.stringify(parseHeadersBlock(input), null, 2));
     setError("");
     setCopied(false);
   };
@@ -565,14 +539,14 @@ export default function ToolClient() {
     setCopied(false);
   };
 
-  const resetAll = () => {
+  const reset = () => {
     setInput("");
     setOutput("");
     setError("");
     setCopied(false);
   };
 
-  const copyOutput = async () => {
+  const copy = async () => {
     if (!output) return;
 
     try {
@@ -590,7 +564,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HTTP Headers Parser"
-      description="Paste raw HTTP request or response headers to turn them into ordered structured data, keep repeated fields visible, and surface malformed lines or framing patterns that deserve attention."
+      description="Paste raw HTTP request or response headers to turn them into ordered structured data, preserve repeated fields, and surface malformed lines or message-framing patterns that deserve attention."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -599,13 +573,11 @@ export default function ToolClient() {
               HTTP Header Block
             </label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              You can paste headers from browser developer tools, an API
-              client, a proxy, a server log, or a raw HTTP/1.x message.
+              Paste headers from browser DevTools, curl, an API client, a proxy, or a server log.
             </p>
           </div>
           <p className="text-xs text-gray-500">
-            {lineCount.toLocaleString()} line
-            {lineCount === 1 ? "" : "s"}
+            {lineCount.toLocaleString()} line{lineCount === 1 ? "" : "s"}
           </p>
         </div>
 
@@ -624,27 +596,13 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={parseHeaders}
-          className="yoryantra-btn"
-        >
+        <button type="button" onClick={run} className="yoryantra-btn">
           Parse Headers
         </button>
-
-        <button
-          type="button"
-          onClick={loadExample}
-          className="yoryantra-btn-outline"
-        >
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
           Load Example
         </button>
-
-        <button
-          type="button"
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
+        <button type="button" onClick={reset} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
@@ -662,16 +620,11 @@ export default function ToolClient() {
               Parsed Header Data
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              The ordered field list is the safest view when duplicates matter.
+              The ordered field list is the safest view when duplicates or protocol details matter.
             </p>
           </div>
-
           {output ? (
-            <button
-              type="button"
-              onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
-            >
+            <button type="button" onClick={copy} className="yoryantra-btn-outline text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           ) : null}
@@ -688,151 +641,152 @@ export default function ToolClient() {
           Raw headers can contain credentials
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Authorization tokens, API keys, Cookie, and Set-Cookie values can
-          grant access to accounts or services. Parsing happens on the pasted
-          text in your browser and this tool does not send the header block to
-          a parsing API, but copied output remains sensitive. Site-wide
-          analytics or advertising scripts, if enabled, are separate from this
-          parsing operation.
+          Authorization tokens, API keys, Cookie, and Set-Cookie values can grant access to accounts or services. Parsing happens in your browser and this tool does not send the header block to a parsing API, but copied output remains sensitive. Site-wide analytics or advertising scripts, if enabled, are separate from this parsing operation.
         </p>
       </div>
 
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What HTTP Headers Are
+            Turning a Raw Header Block Into a Debugging Trail
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            HTTP headers are labeled pieces of information attached to a web
-            request or response. They tell the other side things that are not
-            normally part of the page or API body itself—what format is being
-            sent, whether a response can be cached, where a redirect points,
-            which credentials are presented, or which cookies should be stored.
+            HTTP headers are most useful when you read them as evidence of what happened between a client, an intermediary, and a server. One line can explain why a response was cached, another why the browser redirected, another why authentication failed, and another which representation was actually returned.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            For example, <code>Content-Type: application/json</code> tells the
-            receiver how to interpret the message content, while{" "}
-            <code>Location</code> commonly identifies the destination of a
-            redirect response. You do not need to know the entire HTTP
-            specification to use the parser: paste the block and inspect the
-            names and values first, then use the deeper diagnostics when you
-            are troubleshooting protocol behavior.
+            This parser keeps original field order and repeated values visible because that is often the information you lose first when headers are converted into a simple object. The grouped view is convenient for scanning; the ordered list is safer when duplicates, cookies, proxies, or message framing are involved.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Follow the Clues in This Response
+          </h2>
+          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`HTTP/1.1 302 Found
+Location: https://example.com/welcome?name=Sneha
+Cache-Control: no-store
+Set-Cookie: session=abc123; Path=/; Secure; HttpOnly`}</pre>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The first line says this is a 302 response. Location provides the redirect target. Cache-Control asks caches not to store the response. Set-Cookie asks the browser to create or update a cookie. That small block already tells you much more than the status code alone.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Request Headers and Response Headers Answer Different Questions
+            High-Value Fields to Recognize Quickly
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Request fields describe what the client is asking for or sending:
-            examples include <code>Accept</code>, <code>Authorization</code>,{" "}
-            <code>Cookie</code>, and <code>Content-Type</code>. Response fields
-            describe the server's reply: examples include{" "}
-            <code>Cache-Control</code>, <code>Location</code>,{" "}
-            <code>Set-Cookie</code>, and response{" "}
-            <code>Content-Type</code>. Some field names can appear in more than
-            one context, so the surrounding request/response matters.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Repeated Headers Cannot Always Be Turned Into One Value
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            A common programming mistake is to parse headers into a simple
-            object and let the last occurrence overwrite earlier ones. That
-            loses information. Even joining duplicates with commas is not a
-            universal solution because combination rules depend on the field.
-            <code>Set-Cookie</code> is the important everyday example: several
-            cookies are normally sent as separate Set-Cookie field lines.
-          </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            The output therefore provides both an ordered <code>fields</code>{" "}
-            array and a grouped view. Use the ordered array when exact
-            repetition and ordering matter.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Blank Lines Separate Headers From the Message Body
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            In a raw HTTP/1.x message, the empty line after the field section
-            marks the boundary before message content. If you paste a response
-            body below that blank line, the parser reports how many non-empty
-            lines followed it and does not reinterpret those body lines as
-            headers.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Advanced Checks: Pseudo-Headers, obs-fold, and Message Framing
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            HTTP/2 and HTTP/3 use pseudo-header fields such as{" "}
-            <code>:method</code>, <code>:path</code>, and{" "}
-            <code>:status</code> instead of the textual request/status lines
-            used by HTTP/1.x. When a capture contains pseudo-headers, this tool
-            checks their ordering, duplicate names, request/response mixing,
-            and lowercase regular field names.
-          </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Indented continuation lines are reported as obsolete line folding
-            and unfolded only for inspection. The parser also warns about
-            conflicting <code>Content-Length</code> values and the simultaneous
-            presence of <code>Content-Length</code> and{" "}
-            <code>Transfer-Encoding</code>, because HTTP/1.x message framing is
-            security-sensitive and inconsistent parsing between intermediaries
-            can contribute to request-smuggling vulnerabilities.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Parser Scope and Limitations
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            This is a structural text inspector. It does not make a network
-            request, verify TLS, decode HPACK or QPACK, parse a binary HTTP/2 or
-            HTTP/3 frame, or validate every field-specific grammar. For
-            example, understanding a complex <code>Cache-Control</code>, CSP,
-            CORS, signature, or authentication field can require a dedicated
-            parser for that field.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            HTTP References That Matter for This Parser
-          </h2>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <a
-              href="https://www.rfc-editor.org/rfc/rfc9110"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              RFC 9110 — HTTP Semantics
-            </a>
-            <a
-              href="https://www.rfc-editor.org/rfc/rfc9112"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              RFC 9112 — HTTP/1.1 Message Syntax and Routing
-            </a>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {[
+              ["Content-Type", "Tells the receiver how to interpret the message content, such as JSON, HTML, CSS, or an image."],
+              ["Location", "Commonly identifies a redirect destination or a resource URI, depending on response status."],
+              ["Cache-Control", "Controls how browsers and intermediaries may cache or reuse a response."],
+              ["Authorization", "Carries credentials or tokens and should be treated as sensitive."],
+              ["WWW-Authenticate", "Describes the authentication challenge associated with a 401 response."],
+              ["Cookie / Set-Cookie", "Cookie sends stored values with a request; Set-Cookie asks the browser to store state from a response."],
+            ].map(([name, description]) => (
+              <div key={name} className="rounded-xl border border-gray-200 p-4">
+                <h3 className="font-semibold text-gray-900">{name}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                  {description}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
+            Repeated Fields Cannot Always Be Flattened Safely
           </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            HTTP field names are case-insensitive, but repeated values do not all share one universal merge rule. Some field definitions allow a combined list. Others, especially Set-Cookie, need separate field values. Cookie also has protocol-specific handling in HTTP/2 and HTTP/3.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This is why the parser does not reduce everything to a last-value-wins object. It preserves ordered source fields and separately gives you grouped values for convenience.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            The Blank Line Is a Real Boundary
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            In HTTP/1.x text form, an empty line separates the header field section from the message body. If you paste curl -i output or a proxy trace that includes HTML, JSON, or another body below the headers, this parser reports the trailing lines instead of treating them as additional fields.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h2 className="text-xl font-semibold text-red-900">
+            Content-Length and Transfer-Encoding Deserve Extra Attention
+          </h2>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            HTTP/1.x recipients must agree on where one message ends and the next begins. Conflicting Content-Length values, or an ambiguous combination of Content-Length and Transfer-Encoding, are security-sensitive because different intermediaries can interpret message boundaries differently.
+          </p>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            The parser flags suspicious framing text, but it is not a request-smuggling scanner. Real analysis must account for the exact HTTP version and the behavior of every intermediary in the request path.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why HTTP/2 and HTTP/3 Captures Look Different
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            HTTP/2 and HTTP/3 use pseudo-header fields such as <code>:method</code>, <code>:path</code>, <code>:authority</code>, and <code>:status</code> instead of the textual request/status lines used by HTTP/1.x. Pseudo-headers have stricter ordering and duplication rules, so the parser checks them separately.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Browser DevTools may show these fields in readable text even though the wire format is compressed. This page inspects that readable representation; it does not decode HPACK, QPACK, or binary HTTP frames.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Obsolete Line Folding Can Hide What a Field Contains
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Older HTTP syntax allowed a field value to continue on an indented next line. Modern senders should not generate that obs-fold form. If it appears, this parser unfolds it with one space for inspection and reports that normalization instead of silently treating the input as ordinary modern syntax.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Practical Ways to Use the Parsed Result
+          </h2>
+          <ul className="mt-4 list-disc space-y-3 pl-5 leading-relaxed text-gray-600">
+            <li>Compare browser and API-client responses when only one client has a caching or authentication problem.</li>
+            <li>Check whether a redirect really includes the expected Location field.</li>
+            <li>Confirm that an API returned application/json rather than HTML or a generic binary type.</li>
+            <li>Inspect several Set-Cookie fields without losing one to object-key overwriting.</li>
+            <li>See which fields were added or changed by a CDN, reverse proxy, gateway, or origin server.</li>
+            <li>Spot malformed field names, whitespace-before-colon, control characters, or suspicious HTTP/1.x framing values.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Structural Parser, Not a Universal Header Validator
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Individual fields can have complex grammars of their own. Content Security Policy, Cache-Control, CORS, signatures, authentication challenges, structured fields, cookies, and content negotiation each need dedicated logic for deep validation. This page focuses on preserving the structure of a raw field section and surfacing high-value protocol diagnostics.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            References That Matter for Low-Level HTTP Debugging
+          </h2>
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            <a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              RFC 9110 — HTTP Semantics
+            </a>
+            <a href="https://www.rfc-editor.org/rfc/rfc9112" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              RFC 9112 — HTTP/1.1
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/http-headers-parser" />
         </div>
       </section>

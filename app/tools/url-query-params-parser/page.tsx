@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "URL Query Params Parser | Read URL Parameters | Yoryantra",
   description:
-    "Parse URL query parameters, see what values such as utm_source or repeated filters contain, preserve raw encoding and order, and diagnose malformed percent encoding.",
+    "Parse URL query parameters, understand long links, preserve repeated values and raw encoding, and diagnose plus signs, blank values, fragments, and malformed percent encoding.",
   alternates: {
     canonical: "https://yoryantra.com/tools/url-query-params-parser",
   },
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "URL Query Params Parser | Yoryantra",
     description:
-      "Parse URL parameters and understand repeated keys, blank values, plus signs, and percent encoding.",
+      "Parse URL parameters and understand repeated keys, blank values, plus signs, fragments, and percent encoding.",
   },
 };
 

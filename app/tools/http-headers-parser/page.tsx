@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "HTTP Headers Parser | Read Request & Response Headers | Yoryantra",
   description:
-    "Parse raw HTTP request or response headers into ordered fields, preserve repeated values, inspect start lines and pseudo-fields, and flag malformed or risky framing patterns.",
+    "Parse raw HTTP request or response headers, preserve repeated fields and order, inspect start lines and pseudo-headers, and flag malformed or risky framing patterns.",
   alternates: {
     canonical: "https://yoryantra.com/tools/http-headers-parser",
   },

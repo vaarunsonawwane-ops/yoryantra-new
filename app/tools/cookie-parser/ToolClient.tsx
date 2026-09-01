@@ -52,13 +52,8 @@ function createStringCountMap() {
   return Object.create(null) as Record<string, number>;
 }
 
-function createGroupMap<T>() {
-  return Object.create(null) as Record<string, T>;
-}
-
 function stripHeaderPrefix(line: string, expected: string) {
   const match = line.match(/^([^:]+):(.*)$/);
-
   if (!match) return line.trim();
 
   return match[1].trim().toLowerCase() === expected
@@ -69,7 +64,6 @@ function stripHeaderPrefix(line: string, expected: string) {
 function isCookieValueSyntaxValid(value: string) {
   for (let index = 0; index < value.length; index += 1) {
     const code = value.charCodeAt(index);
-
     const valid =
       code === 0x21 ||
       (code >= 0x23 && code <= 0x2b) ||
@@ -84,13 +78,9 @@ function isCookieValueSyntaxValid(value: string) {
 }
 
 function decodePercentPreview(value: string) {
-  if (value.indexOf("%") === -1) {
-    return {};
-  }
+  if (value.indexOf("%") === -1) return {};
 
-  const malformed = /%(?![0-9A-Fa-f]{2})/.test(value);
-
-  if (malformed) {
+  if (/%(?![0-9A-Fa-f]{2})/.test(value)) {
     return {
       percentDecodeIssue:
         "Contains a % that is not followed by two hexadecimal digits. Raw cookie syntax is preserved.",
@@ -99,10 +89,7 @@ function decodePercentPreview(value: string) {
 
   try {
     const decoded = decodeURIComponent(value);
-
-    return decoded === value
-      ? {}
-      : { percentDecoded: decoded };
+    return decoded === value ? {} : { percentDecoded: decoded };
   } catch {
     return {
       percentDecodeIssue:
@@ -113,12 +100,10 @@ function decodePercentPreview(value: string) {
 
 function parsePair(segment: string): ParsedCookiePair | null {
   const equals = segment.indexOf("=");
-
   if (equals <= 0) return null;
 
   const name = segment.slice(0, equals).trim();
   const rawValue = segment.slice(equals + 1).trim();
-
   if (!name) return null;
 
   const quoted =
@@ -126,10 +111,7 @@ function parsePair(segment: string): ParsedCookiePair | null {
     rawValue.charAt(0) === '"' &&
     rawValue.charAt(rawValue.length - 1) === '"';
 
-  const value = quoted
-    ? rawValue.slice(1, -1)
-    : rawValue;
-
+  const value = quoted ? rawValue.slice(1, -1) : rawValue;
   const preview = decodePercentPreview(value);
 
   return {
@@ -143,46 +125,33 @@ function parsePair(segment: string): ParsedCookiePair | null {
   };
 }
 
-function normalizeRequestCookieLines(input: string) {
+function parseRequestCookie(input: string): CookieResult {
   const lines = input
     .replace(/\r\n?/g, "\n")
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
 
-  const prefixed = lines.filter((line) => /^cookie\s*:/i.test(line));
+  const explicit = lines.filter((line) => /^cookie\s*:/i.test(line));
+  const sourceLines = explicit.length
+    ? explicit.map((line) => stripHeaderPrefix(line, "cookie"))
+    : lines;
 
-  if (prefixed.length > 0) {
-    return {
-      lines: prefixed.map((line) => stripHeaderPrefix(line, "cookie")),
-      ignoredLines: lines.length - prefixed.length,
-    };
-  }
-
-  return {
-    lines,
-    ignoredLines: 0,
-  };
-}
-
-function parseRequestCookie(input: string): CookieResult {
-  const normalized = normalizeRequestCookieLines(input);
   const diagnostics: string[] = [];
   const cookies: ParsedCookiePair[] = [];
   const counts = createStringCountMap();
 
-  if (normalized.ignoredLines > 0) {
+  if (explicit.length && explicit.length !== lines.length) {
     diagnostics.push(
-      `${normalized.ignoredLines} non-Cookie header line${
-        normalized.ignoredLines === 1 ? " was" : "s were"
+      `${lines.length - explicit.length} non-Cookie header line${
+        lines.length - explicit.length === 1 ? " was" : "s were"
       } ignored because explicit Cookie: lines were detected.`
     );
   }
 
-  normalized.lines.forEach((line, lineIndex) => {
+  sourceLines.forEach((line, lineIndex) => {
     line.split(";").forEach((segment, segmentIndex) => {
       const trimmed = segment.trim();
-
       if (!trimmed) return;
 
       const pair = parsePair(trimmed);
@@ -201,13 +170,13 @@ function parseRequestCookie(input: string): CookieResult {
 
       if (pair.nameSyntax === "invalid") {
         diagnostics.push(
-          `Cookie name "${pair.name}" contains characters outside the HTTP token syntax used for cookie names.`
+          `Cookie name "${pair.name}" contains characters outside normal HTTP token syntax.`
         );
       }
 
       if (pair.valueSyntax === "nonstandard") {
         diagnostics.push(
-          `Cookie "${pair.name}" contains characters outside the traditional RFC 6265 cookie-octet set. Browsers and frameworks can be more tolerant, so the raw value is preserved for inspection.`
+          `Cookie "${pair.name}" contains characters outside the traditional RFC 6265 cookie-octet set. The raw value is preserved for inspection.`
         );
       }
 
@@ -222,18 +191,18 @@ function parseRequestCookie(input: string): CookieResult {
   Object.keys(counts).forEach((name) => {
     if (counts[name] > 1) {
       diagnostics.push(
-        `Cookie name "${name}" appears ${counts[name]} times. The parser preserves every occurrence and its order instead of overwriting earlier values.`
+        `Cookie name "${name}" appears ${counts[name]} times. Every occurrence is preserved instead of overwriting earlier values.`
       );
     }
   });
 
-  if (normalized.lines.length > 1) {
+  if (sourceLines.length > 1) {
     diagnostics.push(
-      "More than one Cookie header line was supplied. The parser preserves the line order; protocol-specific combination behavior should be checked when debugging HTTP/2 or HTTP/3 captures."
+      "More than one Cookie header line was supplied. The parser preserves line order; protocol-specific combination behavior should be checked when debugging HTTP/2 or HTTP/3 captures."
     );
   }
 
-  if (cookies.length === 0) {
+  if (!cookies.length) {
     diagnostics.push("No cookie name=value pairs were found.");
   }
 
@@ -243,29 +212,7 @@ function parseRequestCookie(input: string): CookieResult {
     cookies,
     diagnostics,
     note:
-      "Cookie request values are treated as raw cookie syntax. Percent-decoded text is only a convenience preview because percent-decoding is not part of the Cookie header grammar.",
-  };
-}
-
-function normalizeSetCookieLines(input: string) {
-  const lines = input
-    .replace(/\r\n?/g, "\n")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const prefixed = lines.filter((line) => /^set-cookie\s*:/i.test(line));
-
-  if (prefixed.length > 0) {
-    return {
-      lines: prefixed.map((line) => stripHeaderPrefix(line, "set-cookie")),
-      ignoredLines: lines.length - prefixed.length,
-    };
-  }
-
-  return {
-    lines,
-    ignoredLines: 0,
+      "Percent-decoded values are convenience previews only. Percent-decoding is not part of the Cookie header grammar itself.",
   };
 }
 
@@ -296,102 +243,90 @@ function checkCookiePrefix(
   const httpOnly = hasAttribute(attributes, "HttpOnly");
   const domain = hasAttribute(attributes, "Domain");
   const path = attributeLookup(attributes, "Path");
-  const name = pair.name;
 
-  if (name.indexOf("__Secure-") === 0 && !secure) {
+  if (pair.name.indexOf("__Secure-") === 0 && !secure) {
     diagnostics.push(
-      'The __Secure- prefix requires the Secure attribute in supporting browsers and must be set from a secure origin.'
+      "The __Secure- prefix requires the Secure attribute in supporting browsers and must be set from a secure origin."
     );
   }
 
-  if (name.indexOf("__Host-") === 0) {
+  if (pair.name.indexOf("__Host-") === 0) {
     if (!secure) {
       diagnostics.push(
-        'The __Host- prefix requires the Secure attribute in supporting browsers.'
+        "The __Host- prefix requires Secure in supporting browsers."
       );
     }
 
     if (domain) {
       diagnostics.push(
-        'The __Host- prefix must not include a Domain attribute.'
+        "The __Host- prefix must not include a Domain attribute."
       );
     }
 
     if (!path || path.value !== "/") {
-      diagnostics.push(
-        'The __Host- prefix requires Path=/.'
-      );
+      diagnostics.push("The __Host- prefix requires Path=/.");
     }
   }
 
-  if (name.indexOf("__Http-") === 0) {
+  if (pair.name.indexOf("__Http-") === 0) {
     if (!secure) {
       diagnostics.push(
-        'The __Http- prefix requires the Secure attribute in supporting browsers.'
+        "The __Http- prefix requires Secure in supporting browsers."
       );
     }
 
     if (!httpOnly) {
       diagnostics.push(
-        'The __Http- prefix requires HttpOnly in supporting browsers.'
+        "The __Http- prefix requires HttpOnly in supporting browsers."
       );
     }
   }
 
-  if (name.indexOf("__Host-Http-") === 0 && !httpOnly) {
+  if (pair.name.indexOf("__Host-Http-") === 0 && !httpOnly) {
     diagnostics.push(
-      'The __Host-Http- prefix additionally requires HttpOnly in supporting browsers.'
+      "The __Host-Http- prefix additionally requires HttpOnly in supporting browsers."
     );
   }
 }
 
 function parseSetCookie(input: string): CookieResult {
-  const normalized = normalizeSetCookieLines(input);
+  const lines = input
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const explicit = lines.filter((line) => /^set-cookie\s*:/i.test(line));
+  const sourceLines = explicit.length
+    ? explicit.map((line) => stripHeaderPrefix(line, "set-cookie"))
+    : lines;
+
   const diagnostics: string[] = [];
   const parsedCookies: unknown[] = [];
 
-  if (normalized.ignoredLines > 0) {
+  if (explicit.length && explicit.length !== lines.length) {
     diagnostics.push(
-      `${normalized.ignoredLines} non-Set-Cookie header line${
-        normalized.ignoredLines === 1 ? " was" : "s were"
+      `${lines.length - explicit.length} non-Set-Cookie header line${
+        lines.length - explicit.length === 1 ? " was" : "s were"
       } ignored because explicit Set-Cookie: lines were detected.`
     );
   }
 
-  normalized.lines.forEach((line, lineIndex) => {
+  sourceLines.forEach((line, lineIndex) => {
     const segments = line.split(";");
     const pair = parsePair((segments.shift() || "").trim());
     const attributes: ParsedAttribute[] = [];
     const localDiagnostics: string[] = [];
-    const seenAttributes = createStringCountMap();
+    const seen = createStringCountMap();
 
     if (!pair) {
       localDiagnostics.push(
-        `Line ${lineIndex + 1} does not start with a valid cookie name=value pair.`
+        `Line ${lineIndex + 1} does not begin with a valid cookie name=value pair.`
       );
-    } else {
-      if (pair.nameSyntax === "invalid") {
-        localDiagnostics.push(
-          `Cookie name "${pair.name}" contains characters outside token syntax.`
-        );
-      }
-
-      if (pair.valueSyntax === "nonstandard") {
-        localDiagnostics.push(
-          `Cookie "${pair.name}" contains characters outside the traditional RFC 6265 cookie-octet set.`
-        );
-      }
-
-      if (pair.percentDecodeIssue) {
-        localDiagnostics.push(
-          `Cookie "${pair.name}": ${pair.percentDecodeIssue}`
-        );
-      }
     }
 
     segments.forEach((segment) => {
       const trimmed = segment.trim();
-
       if (!trimmed) return;
 
       const equals = trimmed.indexOf("=");
@@ -399,9 +334,7 @@ function parseSetCookie(input: string): CookieResult {
         equals === -1 ? trimmed : trimmed.slice(0, equals)
       ).trim();
       const value =
-        equals === -1
-          ? null
-          : trimmed.slice(equals + 1).trim();
+        equals === -1 ? null : trimmed.slice(equals + 1).trim();
       const lower = rawName.toLowerCase();
       const canonical = KNOWN_ATTRIBUTES[lower] || rawName;
 
@@ -412,25 +345,25 @@ function parseSetCookie(input: string): CookieResult {
         known: Boolean(KNOWN_ATTRIBUTES[lower]),
       });
 
-      seenAttributes[lower] = (seenAttributes[lower] || 0) + 1;
+      seen[lower] = (seen[lower] || 0) + 1;
 
       if (!TOKEN_PATTERN.test(rawName)) {
         localDiagnostics.push(
-          `Attribute name "${rawName}" contains characters outside token syntax.`
+          `Attribute name "${rawName}" contains characters outside normal token syntax.`
         );
       }
 
       if (FLAG_ATTRIBUTES.indexOf(lower) !== -1 && value !== null) {
         localDiagnostics.push(
-          `${canonical} is a flag attribute and normally appears without =${value}.`
+          `${canonical} is normally a flag attribute without =${value}.`
         );
       }
     });
 
-    Object.keys(seenAttributes).forEach((name) => {
-      if (seenAttributes[name] > 1) {
+    Object.keys(seen).forEach((name) => {
+      if (seen[name] > 1) {
         localDiagnostics.push(
-          `Attribute "${name}" appears ${seenAttributes[name]} times. Duplicate Set-Cookie attributes are discouraged and browser processing can be surprising.`
+          `Attribute "${name}" appears ${seen[name]} times. Duplicate Set-Cookie attributes deserve review.`
         );
       }
     });
@@ -481,7 +414,7 @@ function parseSetCookie(input: string): CookieResult {
 
     if (maxAge && expires) {
       localDiagnostics.push(
-        "Both Max-Age and Expires are present. When both are recognized, Max-Age takes precedence for cookie lifetime."
+        "Both Max-Age and Expires are present. When both are recognized, Max-Age takes precedence."
       );
     }
 
@@ -491,7 +424,7 @@ function parseSetCookie(input: string): CookieResult {
       Number.isNaN(Date.parse(expires.value))
     ) {
       localDiagnostics.push(
-        "Expires could not be parsed by JavaScript Date.parse(). Browser cookie-date parsing has its own rules, so treat this as a warning rather than proof of rejection."
+        "Expires could not be parsed by JavaScript Date.parse(). Treat this as a warning rather than proof a browser will reject it."
       );
     }
 
@@ -501,7 +434,7 @@ function parseSetCookie(input: string): CookieResult {
       domain.value.charAt(0) === "."
     ) {
       localDiagnostics.push(
-        "Domain starts with a leading dot. Modern cookie handling ignores the leading dot; it does not create different subdomain semantics."
+        "Domain starts with a leading dot. Modern cookie handling ignores that leading dot."
       );
     }
 
@@ -515,6 +448,8 @@ function parseSetCookie(input: string): CookieResult {
 
     checkCookiePrefix(pair, attributes, localDiagnostics);
 
+    const pathAttribute = attributeLookup(attributes, "Path");
+
     parsedCookies.push({
       line: lineIndex + 1,
       cookie: pair,
@@ -525,20 +460,20 @@ function parseSetCookie(input: string): CookieResult {
         sameSite: sameSite ? sameSite.value : null,
         partitioned,
         domain: domain ? domain.value : null,
-        path: attributeLookup(attributes, "Path")?.value || null,
+        path: pathAttribute ? pathAttribute.value : null,
       },
       diagnostics: localDiagnostics,
     });
   });
 
-  if (normalized.lines.length === 0) {
-    diagnostics.push("No Set-Cookie lines were found.");
+  if (sourceLines.length > 1) {
+    diagnostics.push(
+      "Multiple Set-Cookie fields are preserved separately. They should not be blindly comma-combined."
+    );
   }
 
-  if (normalized.lines.length > 1) {
-    diagnostics.push(
-      "Multiple Set-Cookie fields are preserved separately. They must not be blindly comma-combined into one field value."
-    );
+  if (!sourceLines.length) {
+    diagnostics.push("No Set-Cookie lines were found.");
   }
 
   return {
@@ -547,7 +482,7 @@ function parseSetCookie(input: string): CookieResult {
     cookies: parsedCookies,
     diagnostics,
     note:
-      "This is structural inspection, not a browser cookie-store simulator. Acceptance also depends on the response origin, scheme, domain/path matching, browser policy, public-suffix rules, cookie-store state, and feature support.",
+      "This is structural inspection, not a browser cookie-store simulator. Acceptance also depends on origin, scheme, Domain/Path matching, public-suffix rules, browser policy, feature support, and current cookie-store state.",
   };
 }
 
@@ -558,15 +493,13 @@ export default function ToolClient() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const inputLines = useMemo(
+  const lineCount = useMemo(
     () =>
-      input
-        ? input.replace(/\r\n?/g, "\n").split("\n").length
-        : 0,
+      input ? input.replace(/\r\n?/g, "\n").split("\n").length : 0,
     [input]
   );
 
-  const parseCookies = () => {
+  const run = () => {
     if (!input.trim()) {
       setError(
         mode === "cookie"
@@ -574,7 +507,6 @@ export default function ToolClient() {
           : "Enter one or more Set-Cookie response header lines."
       );
       setOutput("");
-      setCopied(false);
       return;
     }
 
@@ -589,29 +521,24 @@ export default function ToolClient() {
   };
 
   const loadExample = () => {
-    if (mode === "cookie") {
-      setInput(
-        "Cookie: display_name=Sneha; theme=dark; filter=one; filter=two"
-      );
-    } else {
-      setInput(
-        "Set-Cookie: session_id=abc123; Path=/; Secure; HttpOnly; SameSite=Lax\nSet-Cookie: display_name=Sneha; Max-Age=86400; Path=/"
-      );
-    }
-
+    setInput(
+      mode === "cookie"
+        ? "Cookie: display_name=Sneha; theme=dark; filter=one; filter=two"
+        : "Set-Cookie: session_id=abc123; Path=/; Secure; HttpOnly; SameSite=Lax\nSet-Cookie: display_name=Sneha; Max-Age=86400; Path=/"
+    );
     setOutput("");
     setError("");
     setCopied(false);
   };
 
-  const resetAll = () => {
+  const reset = () => {
     setInput("");
     setOutput("");
     setError("");
     setCopied(false);
   };
 
-  const copyOutput = async () => {
+  const copy = async () => {
     if (!output) return;
 
     try {
@@ -629,7 +556,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Cookie Parser"
-      description="Paste a Cookie request header or Set-Cookie response header to see the names, values, attributes, duplicates, and common browser-facing warnings in a readable structured form."
+      description="Paste a Cookie request header or Set-Cookie response header to see the names, values, attributes, duplicates, and practical browser-facing diagnostics in a readable structure."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <YoryantraSelect
@@ -642,14 +569,8 @@ export default function ToolClient() {
             setCopied(false);
           }}
           options={[
-            {
-              label: "Cookie request header",
-              value: "cookie",
-            },
-            {
-              label: "Set-Cookie response header(s)",
-              value: "set-cookie",
-            },
+            { label: "Cookie request header", value: "cookie" },
+            { label: "Set-Cookie response header(s)", value: "set-cookie" },
           ]}
         />
 
@@ -668,8 +589,7 @@ export default function ToolClient() {
               </p>
             </div>
             <p className="text-xs text-gray-500">
-              {inputLines.toLocaleString()} line
-              {inputLines === 1 ? "" : "s"}
+              {lineCount.toLocaleString()} line{lineCount === 1 ? "" : "s"}
             </p>
           </div>
 
@@ -693,27 +613,13 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={parseCookies}
-          className="yoryantra-btn"
-        >
+        <button type="button" onClick={run} className="yoryantra-btn">
           Parse Cookies
         </button>
-
-        <button
-          type="button"
-          onClick={loadExample}
-          className="yoryantra-btn-outline"
-        >
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
           Load Example
         </button>
-
-        <button
-          type="button"
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
+        <button type="button" onClick={reset} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
@@ -731,17 +637,11 @@ export default function ToolClient() {
               Parsed Cookie Data
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Raw values are kept alongside convenience diagnostics so the
-              parser does not silently rewrite the source.
+              Raw values stay visible so convenience diagnostics do not silently rewrite the source.
             </p>
           </div>
-
           {output ? (
-            <button
-              type="button"
-              onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
-            >
+            <button type="button" onClick={copy} className="yoryantra-btn-outline text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           ) : null}
@@ -749,102 +649,84 @@ export default function ToolClient() {
 
         <pre className="mt-4 yoryantra-output min-h-[260px] overflow-auto whitespace-pre-wrap break-words text-sm">
           {output ||
-            "Parsed cookie values, attributes, security summary, and diagnostics will appear here."}
+            "Parsed cookie values, attributes, duplicate names, security summary, and diagnostics will appear here."}
         </pre>
       </div>
 
       <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
         <h3 className="text-sm font-semibold text-yellow-900">
-          Cookies can contain account credentials
+          Cookies can contain live account credentials
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Session cookies can sometimes be enough to access an account. The
-          parser operates on the pasted text in your browser and does not send
-          it to a cookie-parsing API, but copying, saving, or sharing the
-          result can still expose live secrets. Site-wide analytics or
-          advertising scripts, if enabled, are separate from this parsing
-          operation.
+          Session cookies can sometimes be enough to access an account. The parser works on the pasted text in your browser and does not send it to a cookie-parsing API, but screenshots, copied output, or shared logs can still expose secrets. Site-wide analytics or advertising scripts, if enabled, are separate from this parsing operation.
         </p>
       </div>
 
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What a Browser Cookie Is
+            Reading a Cookie Header Without Guessing
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            A cookie is a small name-value item a website can use to remember
-            something between HTTP requests. A cookie might hold a session
-            identifier after you sign in, a language preference, a shopping
-            cart identifier, or another piece of application state.
+            Cookie headers look simple because most of them are short, but they can represent several different things at once: a login session, language choice, shopping-cart identifier, experiment assignment, analytics state, or some application-specific value. The first useful question is not “what is a cookie?” but “what is this browser actually sending or being asked to store?”
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The important distinction is direction. A server sends{" "}
-            <code>Set-Cookie</code> in a response when it wants the browser to
-            create or update a cookie. On later matching requests, the browser
-            can send stored cookie name-value pairs back in the{" "}
-            <code>Cookie</code> request header.
+            If you copied a line from browser developer tools, first identify its direction. A server sends <code>Set-Cookie</code> in a response when it wants the browser to create or update a cookie. On a later matching request, the browser can send stored name-value pairs back in the <code>Cookie</code> request header. Those two headers are related, but they do not contain the same information.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            A Quick Walkthrough
+          </h2>
+          <div className="mt-4 overflow-auto rounded-xl bg-white p-4 font-mono text-sm leading-7 text-gray-800">
+            Cookie: session_id=abc123; theme=dark; display_name=Sneha
+          </div>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This request says the browser is sending three stored cookies. It does not tell you when those cookies were created, whether they were marked HttpOnly, when they expire, or which Domain and Path originally scoped them. Those policy attributes are not repeated in the Cookie request header.
+          </p>
+          <div className="mt-4 overflow-auto rounded-xl bg-white p-4 font-mono text-sm leading-7 text-gray-800">
+            Set-Cookie: session_id=abc123; Path=/; Secure; HttpOnly; SameSite=Lax
+          </div>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This response is different: the server is asking the browser to store a cookie and is attaching policy information. That is where Secure, HttpOnly, SameSite, Domain, Path, Max-Age, Expires, and newer attributes appear.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Set-Cookie Attributes in Plain Language
+            What the Main Set-Cookie Attributes Actually Change
           </h2>
-          <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-7 text-gray-700">
-            <p>
-              <strong>Secure:</strong> send the cookie only over secure
-              connections, with browser-specific localhost handling.
-            </p>
-            <p>
-              <strong>HttpOnly:</strong> prevents ordinary page JavaScript from
-              reading the cookie through APIs such as{" "}
-              <code>document.cookie</code>. The browser can still send it with
-              matching HTTP requests.
-            </p>
-            <p>
-              <strong>SameSite:</strong> controls when a cookie is sent in
-              cross-site situations and is useful as part of CSRF defenses.
-            </p>
-            <p>
-              <strong>Domain and Path:</strong> limit the hosts and URL paths
-              for which the browser considers the cookie applicable.
-            </p>
-            <p>
-              <strong>Max-Age / Expires:</strong> control lifetime. When both
-              are recognized, <code>Max-Age</code> takes precedence.
-            </p>
-            <p>
-              <strong>Partitioned:</strong> requests partitioned cookie
-              storage in supporting browsers and requires{" "}
-              <code>Secure</code>.
-            </p>
+          <div className="mt-4 space-y-4 text-gray-600">
+            <p><strong>Secure</strong> restricts sending to secure transport. It is especially important for session cookies because a login token should not normally travel over an unencrypted HTTP connection.</p>
+            <p><strong>HttpOnly</strong> prevents ordinary page JavaScript from reading the cookie through APIs such as <code>document.cookie</code>. The browser can still send that cookie with matching HTTP requests.</p>
+            <p><strong>SameSite</strong> affects cross-site sending. Strict, Lax, and None change when the cookie can accompany cross-site navigations or requests. SameSite=None requires Secure in modern browsers.</p>
+            <p><strong>Domain</strong> and <strong>Path</strong> determine where the browser considers the cookie applicable. They are matching rules, not a general security boundary.</p>
+            <p><strong>Max-Age</strong> and <strong>Expires</strong> control lifetime. When both are understood, Max-Age takes precedence.</p>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Why the Same Cookie Name Can Appear More Than Once
+            Duplicate Cookie Names Can Be Legitimate
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Cookie names are not guaranteed to be unique inside every request
-            header. A browser can have cookies with the same name but
-            different Path or Domain scope. That is why this parser keeps an
-            ordered list instead of converting everything into an object where
-            the last value silently overwrites the first.
+            The same cookie name can exist with different Path or Domain scope, so a request can contain more than one pair with the same name. A parser that converts everything straight into a normal object can silently overwrite one value with another.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This tool keeps every occurrence and its order. If an application appears to read the “wrong” cookie, inspect what the browser actually stores, which Domain and Path each cookie uses, and how the server framework resolves duplicate names.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Percent-Encoding in Cookie Values Is an Application Choice
+            Why Cookie Values Sometimes Look Encoded
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            A value such as <code>Sneha%20Pune</code> may have been
-            percent-encoded by an application, but the Cookie header itself
-            does not define URL decoding. The parser therefore keeps the raw
-            value and shows a decoded preview only when{" "}
-            <code>decodeURIComponent()</code> can decode it cleanly.
+            Applications often place encoded text inside cookie values. You may see percent sequences, Base64, JWT-like strings, opaque random identifiers, or framework-specific serialization. The Cookie grammar itself does not say that every value should be URL-decoded.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            For that reason, the raw value remains the source of truth. If a value such as <code>Sneha%20Pune</code> can be percent-decoded cleanly, the parser shows a readable preview, but it does not pretend that percent decoding is part of cookie semantics.
           </p>
         </div>
 
@@ -853,69 +735,63 @@ export default function ToolClient() {
             Cookie Prefixes Add Browser-Enforced Restrictions
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Supporting browsers attach extra rules to names beginning with{" "}
-            <code>__Secure-</code>, <code>__Host-</code>,{" "}
-            <code>__Http-</code>, and <code>__Host-Http-</code>. For example,
-            a <code>__Host-</code> cookie requires <code>Secure</code>, cannot
-            specify <code>Domain</code>, and uses <code>Path=/</code>. The
-            parser checks the visible attributes, but it cannot prove that the
-            response came from the secure origin required for the prefix.
+            Supporting browsers attach additional rules to names beginning with <code>__Secure-</code>, <code>__Host-</code>, <code>__Http-</code>, and <code>__Host-Http-</code>. A <code>__Host-</code> cookie, for example, requires Secure, must use Path=/, and must not include Domain.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            These prefixes are useful when reviewing session cookies because they reduce some dangerous scoping choices. The parser can check visible attributes, but it cannot prove that the response came from the secure origin required for a prefix.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            What This Parser Cannot Prove
+            A Practical Debugging Path for Login Problems
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            A structurally sensible Set-Cookie line is not proof that a
-            browser will store it. Browser acceptance can also depend on the
-            current origin, HTTPS, public-suffix rules, Domain and Path
-            matching, third-party cookie policy, partitioning support,
-            SameSite context, cookie limits, and existing cookie-store state.
-          </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Likewise, <code>Secure</code>, <code>HttpOnly</code>, and{" "}
-            <code>SameSite</code> are useful protections, not a guarantee that
-            the application is secure. Session identifiers still need
-            unpredictable values, careful server-side validation, safe
-            lifetime management, and appropriate CSRF/XSS defenses.
+          <ol className="mt-4 list-decimal space-y-3 pl-5 leading-relaxed text-gray-600">
+            <li>Confirm that the login response actually contains the expected Set-Cookie line.</li>
+            <li>Check Secure, SameSite, Domain, Path, Max-Age, and Expires against the environment where the site runs.</li>
+            <li>Use browser storage tools to see whether the browser accepted the cookie.</li>
+            <li>On the next matching request, verify that the Cookie request header contains the expected value.</li>
+            <li>If the cookie is present but the user is still logged out, investigate server-side session lookup, expiry, signature validation, revocation, or key rotation.</li>
+          </ol>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-amber-900">
+            Secure + HttpOnly Does Not Mean the Whole Application Is Secure
+          </h2>
+          <p className="mt-4 leading-relaxed text-amber-900/90">
+            Cookie attributes reduce particular risks, but they do not replace secure session design. Session identifiers still need strong randomness, safe expiry and revocation, fixation defenses, appropriate CSRF protection, and application-level protection against XSS and account takeover. This parser can inspect the visible header; it cannot audit the authentication system behind it.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Useful Cookie References
+            Where This Tool Stops
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Cookie behavior changes at the browser-policy layer, so these
-            references add practical value when a production browser accepts or
-            rejects something differently from what a pasted header suggests.
+            A Set-Cookie line can look structurally correct and still be rejected by a browser. Real acceptance can depend on the response origin, HTTPS, public-suffix rules, third-party-cookie policy, partitioning support, browser limits, current cookie-store state, and feature support. Treat the result as a strong inspection aid, not as a browser acceptance guarantee.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            References Worth Using When Browser Behavior Matters
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Cookie behavior is one of the places where current browser documentation adds real value because browser policy and feature support can evolve.
           </p>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <a
-              href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
+            <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
               MDN Set-Cookie reference
             </a>
-            <a
-              href="https://www.rfc-editor.org/rfc/rfc6265"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
+            <a href="https://www.rfc-editor.org/rfc/rfc6265" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
               RFC 6265 — HTTP State Management
             </a>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <YoryantraRelatedTools currentHref="/tools/cookie-parser" />
         </div>
       </section>
