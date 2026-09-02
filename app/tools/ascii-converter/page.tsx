@@ -2,25 +2,25 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "ASCII Converter – Text to ASCII & ASCII to Text | Yoryantra",
+  title: "ASCII Converter | Text, Decimal, Hex & Binary | Yoryantra",
   description:
-    "Convert text to ASCII values and decode decimal, hex, or binary ASCII codes from 0–127. Non-ASCII characters are identified instead of mislabelled.",
+    "Convert standard ASCII text and values from 0–127 across decimal, hexadecimal, binary and octal, inspect control-code names, and reject non-ASCII text instead of mislabelling it.",
   alternates: {
     canonical: "https://yoryantra.com/tools/ascii-converter",
   },
   openGraph: {
-    title: "ASCII Converter – Text to ASCII & ASCII to Text | Yoryantra",
+    title: "ASCII Converter | Yoryantra",
     description:
-      "Convert text to standard ASCII values and decode decimal, hexadecimal, or binary ASCII codes from 0–127 in your browser.",
+      "Convert and inspect true 7-bit ASCII values with mixed-notation decoding, control-character names and a complete browser-side code reference.",
     url: "https://yoryantra.com/tools/ascii-converter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "ASCII Converter – Text to ASCII & ASCII to Text | Yoryantra",
+    card: "summary",
+    title: "ASCII Converter | Yoryantra",
     description:
-      "Convert text to ASCII values or decode decimal, hex, and binary ASCII codes from 0–127.",
+      "Convert true ASCII 0–127 between text, decimal, hex, binary and octal while keeping control codes and non-ASCII boundaries explicit.",
   },
 };
 

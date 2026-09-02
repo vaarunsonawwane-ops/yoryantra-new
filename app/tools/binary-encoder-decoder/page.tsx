@@ -2,25 +2,25 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Binary Encoder Decoder – UTF-8 Text & Binary | Yoryantra",
+  title: "Binary Encoder Decoder | UTF-8 Text & Bytes | Yoryantra",
   description:
-    "Convert UTF-8 text to 8-bit binary bytes and decode grouped or continuous binary back to text, with invalid byte and UTF-8 checks in your browser.",
+    "Encode Unicode text as UTF-8 binary bytes, decode strict UTF-8 from 8-bit binary, or inspect arbitrary byte values without silently replacing malformed text sequences.",
   alternates: {
     canonical: "https://yoryantra.com/tools/binary-encoder-decoder",
   },
   openGraph: {
-    title: "Binary Encoder Decoder – UTF-8 Text & Binary | Yoryantra",
+    title: "Binary Encoder Decoder | Yoryantra",
     description:
-      "Convert UTF-8 text to binary bytes and decode grouped, prefixed, or continuous binary back to text with strict UTF-8 validation.",
+      "Convert text and binary bytes with strict UTF-8 validation, byte inspection, multiple binary layouts and exact malformed-sequence diagnostics.",
     url: "https://yoryantra.com/tools/binary-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Binary Encoder Decoder – UTF-8 Text & Binary | Yoryantra",
+    card: "summary",
+    title: "Binary Encoder Decoder | Yoryantra",
     description:
-      "Convert UTF-8 text to 8-bit binary bytes and decode binary bytes back to text with validation.",
+      "Encode text to UTF-8 binary, decode complete 8-bit bytes strictly, or inspect binary that is not text.",
   },
 };
 

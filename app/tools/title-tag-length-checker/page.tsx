@@ -2,28 +2,28 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Title Tag Length Checker – Preview SEO Titles | Yoryantra",
+  title: "Title Tag Length Checker | Bulk SEO Title Audit | Yoryantra",
   description:
-    "Review title tag text, estimated display width, duplicate titles, target phrase and brand placement, separators, and SERP-style previews in your browser.",
+    "Review title tags for character and word length, duplicates, vague wording, repeated branding, target phrases and shared boilerplate without pretending Google has a fixed title limit.",
   alternates: {
     canonical: "https://yoryantra.com/tools/title-tag-length-checker",
   },
   openGraph: {
-    title: "Title Tag Length Checker – Preview SEO Titles | Yoryantra",
+    title: "Title Tag Length Checker | Yoryantra",
     description:
-      "Review title text, estimated display width, duplicate patterns, target phrases, brand placement, separators, and SERP-style previews.",
+      "Audit individual or bulk title tags for length, duplication, boilerplate and page differentiation using an editable review threshold rather than a fake Google limit.",
     url: "https://yoryantra.com/tools/title-tag-length-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Title Tag Length Checker – Preview SEO Titles | Yoryantra",
+    card: "summary",
+    title: "Title Tag Length Checker | Yoryantra",
     description:
-      "Review title length, estimated display width, duplicates, target phrases, brand placement, and SERP-style previews.",
+      "Check title-tag length and bulk title quality while keeping Google's title-link rewriting and lack of a fixed character limit explicit.",
   },
 };
 
-export default function TitleTagLengthCheckerPage() {
+export default function Page() {
   return <ToolClient />;
 }
