@@ -1234,10 +1234,11 @@ Asterisk form:  OPTIONS * HTTP/1.1`}</pre>
           <h2 className="text-xl font-semibold text-gray-900">
             Keep Tracing the Request
           </h2>
-
-          <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/http-request-formatter" />
-          </div>
+		  
+		  <div className="mt-4">
+		  <YoryantraRelatedTools currentHref="/tools/http-request-formatter" />
+        </div>
+        </div>
       </section>
     </ToolShell>
   );
