@@ -2,28 +2,28 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Sitemap URL Extractor | XML Sitemap Parser | Yoryantra",
+  title: "Sitemap URL Extractor | XML URL & Index Parser | Yoryantra",
   description:
-    "Extract page, child-sitemap, and image URLs from XML sitemaps. Review lastmod, limits, malformed URLs, duplicates, and export clean lists locally.",
+    "Extract page, child-sitemap and image URLs from sitemap XML with namespace-aware parsing, metadata, duplicate handling, sorting, filters and protocol diagnostics.",
   alternates: {
     canonical: "https://yoryantra.com/tools/sitemap-url-extractor",
   },
   openGraph: {
-    title: "Sitemap URL Extractor | XML Sitemap Parser | Yoryantra",
+    title: "Sitemap URL Extractor | Yoryantra",
     description:
-      "Extract and review URLs from pasted XML sitemaps and sitemap indexes, including image URLs and common protocol warnings.",
+      "Parse sitemap urlset or sitemapindex XML locally and export URLs without confusing extension loc elements with core sitemap entries.",
     url: "https://yoryantra.com/tools/sitemap-url-extractor",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Sitemap URL Extractor | XML Sitemap Parser | Yoryantra",
+    card: "summary",
+    title: "Sitemap URL Extractor | Yoryantra",
     description:
-      "Extract page, sitemap, and image URLs from XML sitemap content and review common sitemap issues locally.",
+      "Extract sitemap page, index and image URLs with metadata, deduplication, filters and XML diagnostics.",
   },
 };
 
-export default function SitemapUrlExtractorPage() {
+export default function Page() {
   return <ToolClient />;
 }
