@@ -447,7 +447,7 @@ function parseLongMount(
       service,
       target,
       title: "Unknown long-syntax mount type",
-      message: `Mount type "${type}" is not one of the Compose mount types this checker recognizes. Verify support in your Docker Compose version/platform.`,
+      message: `Mount type "${type}" is outside the Compose mount types recognized here. Verify support in the Docker Compose version and platform that will run the project.`,
     });
   }
 
@@ -802,9 +802,9 @@ export default function ToolClient() {
           className="mt-3 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          This version reads real YAML instead of extracting volume lines with
-          indentation heuristics. It reviews the pasted model as-is and does not
-          perform Docker Compose interpolation or file merging.
+          Compose files are parsed as YAML rather than by extracting indented
+          lines. The pasted model is reviewed as written; interpolation, multiple
+          Compose files, includes, and project-level merge resolution happen later in Docker Compose.
         </p>
       </div>
 
@@ -851,13 +851,13 @@ export default function ToolClient() {
           </div>
 
           {report.issues.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">Volume findings</h3>
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">Volume findings</h3>
               <div className="mt-4 space-y-3">
                 {report.issues.map((issue, index) => (
                   <div
                     key={`${issue.service}-${issue.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-900"
                   >
                     <strong>
                       {issue.severity.toUpperCase()} · {issue.title}
@@ -927,9 +927,9 @@ export default function ToolClient() {
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
         YAML parsing and mount review happen on the pasted Compose text in your
-        browser. The tool does not inspect host files, Docker volumes, the Docker
-        socket or the Engine. Site-wide analytics or advertising scripts, if
-        enabled, are separate from this review.
+        browser. No host files, Docker volumes, daemon socket, or Docker Engine
+        state are read during that review. Site-wide analytics or advertising
+        scripts, if enabled, are separate from the parsing step.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -944,24 +944,24 @@ export default function ToolClient() {
             repository is appropriate for the workload.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This checker therefore separates structural parsing from review
-            findings. A mount can remain syntactically recognizable while being
-            flagged as a serious security or portability concern.
+            Structural parsing and operational review are kept separate. A mount can
+            be perfectly recognizable as Compose syntax while still exposing more
+            of the host than the workload needs or tying the project to one machine.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             The Docker Socket Is Effectively an Administrative Interface
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Mounting <code>/var/run/docker.sock</code> allows software inside
             the container to send Docker API requests to the host daemon. In
             many configurations that can be used to create privileged
             containers, mount host directories or otherwise escape the normal
             application sandbox.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Some CI agents and management tools genuinely need daemon access.
             The important point is that this is not “just another Unix socket
             file.” Treat it as a high-trust capability.
@@ -981,23 +981,23 @@ export default function ToolClient() {
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             Named volumes reused by services belong in the Compose top-level{" "}
-            <code>volumes</code> mapping. The checker compares service references
-            with that declaration instead of assuming any non-path source exists.
+            <code>volumes</code> mapping. Service references can then be compared
+            with that declaration instead of assuming every non-path source already exists.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Short Bind Syntax Can Create a Host Directory You Did Not Mean to Create
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Docker Compose documents backward-compatible behavior where a
             missing bind source used through short syntax can be created as a
             directory on the host. A typo such as{" "}
             <code>./confg:/app/config</code> can therefore produce an empty
             directory rather than immediately exposing the misspelling.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Long syntax can set <code>bind.create_host_path: false</code>. For
             production configuration files, that can turn a silent mount
             surprise into an explicit startup failure.
@@ -1015,9 +1015,9 @@ export default function ToolClient() {
             caches normally need writable storage.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This checker only suggests read-only treatment for targets that look
-            configuration/static-oriented. It does not mark every read-write
-            mount as wrong.
+            Read-only suggestions are limited to targets that look like configuration
+            or static-content paths. Writable storage is normal for databases,
+            caches, queues, and any workload that is expected to persist changes.
           </p>
         </div>
 
@@ -1050,9 +1050,9 @@ export default function ToolClient() {
             <code>create_host_path</code>.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool identifies those types but focuses its security and
-            lifecycle analysis on common bind/named-volume cases. Platform- or
-            version-specific options still need Docker Compose validation.
+            Those mount types can be recognized in the pasted model, while the deeper
+            security and lifecycle checks stay focused on common bind and named-volume
+            cases. Platform- and version-specific options still need Docker Compose validation.
           </p>
         </div>
 
@@ -1093,8 +1093,13 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/docker-compose-volume-checker" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Trace the Rest of the Compose Model
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/docker-compose-volume-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>

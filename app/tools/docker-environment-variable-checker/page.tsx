@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "Docker Environment Variable Checker | Compose & .env | Yoryantra",
   description:
-    "Review Docker Compose environment blocks and .env files for duplicates, empty or unresolved values, interpolation, env_file precedence clues and secret-like variables.",
+    "Review Compose environment blocks and .env text for duplicates, empty or unresolved values, interpolation, env_file ordering, and secret-like variables.",
   alternates: {
     canonical: "https://yoryantra.com/tools/docker-environment-variable-checker",
   },

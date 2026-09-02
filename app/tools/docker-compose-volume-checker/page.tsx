@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "Docker Compose Volume Checker | Mount Review | Yoryantra",
   description:
-    "Parse Docker Compose YAML and review bind mounts, named volumes, anonymous mounts, Docker socket access, duplicate targets, read-only usage and volume declarations.",
+    "Review Docker Compose bind mounts, named volumes, socket exposure, duplicate targets, read-only settings, and top-level volume declarations from parsed YAML.",
   alternates: {
     canonical: "https://yoryantra.com/tools/docker-compose-volume-checker",
   },

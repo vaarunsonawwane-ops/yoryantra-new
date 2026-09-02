@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "JSON Array Filter Tool | Nested Record Filters | Yoryantra",
   description:
-    "Filter JSON arrays by nested field path, text, numbers, booleans, regex, existence or ranges while preserving original records and avoiding annotation key collisions.",
+    "Filter JSON arrays by nested field paths, text, numbers, booleans, regex, existence, or ranges while preserving source records and type distinctions.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-array-filter-tool",
   },

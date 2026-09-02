@@ -742,7 +742,7 @@ function parseComposeEnvironment(source: string) {
             key,
             title: "Invalid environment-variable name",
             message:
-              `"${key}" is not a portable variable name for this checker.`,
+              `"${key}" is outside the portable variable-name pattern used for this review.`,
           });
         }
 
@@ -845,7 +845,7 @@ function entryIssues(entry: EnvEntry, mode: "compose" | "env") {
     add(
       "note",
       "Interpolation expression present",
-      "The displayed value contains Compose-style $ interpolation. This checker does not know your shell, .env/--env-file inputs or interpolation precedence, so it does not claim a final resolved value."
+      "The displayed value contains Compose-style $ interpolation. Shell state, .env/--env-file inputs, and interpolation precedence are not available from the pasted text alone, so the final resolved value is intentionally left unresolved."
     );
   }
 
@@ -1183,15 +1183,15 @@ export default function ToolClient() {
           </div>
 
           {report.issues.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">
                 Environment findings
               </h3>
               <div className="mt-4 space-y-3">
                 {report.issues.map((issue, index) => (
                   <div
                     key={`${issue.scope}-${issue.key}-${issue.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-900"
                   >
                     <strong>
                       {issue.severity.toUpperCase()} · {issue.scope}
@@ -1276,10 +1276,10 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Review happens on the pasted text in your browser. The checker does not
-        read referenced env files, your shell environment, Docker images or a
-        running container. Site-wide analytics or advertising scripts, if
-        enabled, are separate from this review.
+        Review happens on the pasted text in your browser. Referenced env files,
+        the shell environment, Docker image metadata, and running containers are
+        not read. Site-wide analytics or advertising scripts, if enabled, are
+        separate from the parsing step.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1295,14 +1295,15 @@ export default function ToolClient() {
             rules.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This checker reviews the source you paste. It deliberately does not
-            invent a final value when the real resolution depends on files and
-            shell state it cannot see.
+            A pasted source can show where values are declared, but not every value that
+            reaches a running container. When resolution depends on shell state,
+            external env files, CLI overrides, or image metadata, the final value
+            is left open instead of being guessed.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Empty and Unresolved Are Not the Same State
           </h2>
           <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`environment:
@@ -1313,12 +1314,12 @@ export default function ToolClient() {
 environment:
   - EMPTY_VALUE=
   - FROM_SHELL`}</pre>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             The explicit empty forms create an empty-string value. A key with no
             value asks Compose to resolve it; if Compose cannot resolve it, the
             variable is unset and removed from the container environment.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             That distinction matters when application code treats “missing” as
             use-a-default but treats an empty string as a deliberate override.
           </p>
@@ -1337,8 +1338,8 @@ environment:
           <p className="mt-4 leading-relaxed text-gray-600">
             When multiple env_file entries are listed, Docker Compose processes
             them in order and a later file can override a variable from an
-            earlier file. This page shows references and ordering clues, but it
-            cannot read those files from your filesystem.
+            earlier file. The pasted Compose text can show those references and
+            their order, but not the contents of files that remain on your filesystem.
           </p>
         </div>
 
@@ -1362,22 +1363,22 @@ environment:
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Environment Variables Are Convenient, but They Are Not a Secret Store
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Passwords, API tokens and database URLs often arrive through
             environment variables because libraries support them. They can also
             leak through process inspection, debugging output, crash reports,
             deployment dashboards and accidental config dumps.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Docker&apos;s own Compose guidance recommends secrets instead of
             environment variables for sensitive information where practical.
-            This checker masks secret-like values by default, but name-based
-            detection is only a reminder—not proof that a value is secret or
-            safe.
+            Secret-like values are masked by default in the review output, but the
+            detection is based on names and patterns. A harmless value can look
+            sensitive, and a real secret can have an ordinary name.
           </p>
         </div>
 
@@ -1419,8 +1420,13 @@ environment:
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/docker-environment-variable-checker" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Follow the Value to Its Source
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/docker-environment-variable-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>

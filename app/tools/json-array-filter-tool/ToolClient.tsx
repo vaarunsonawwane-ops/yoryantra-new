@@ -1474,13 +1474,13 @@ export default function ToolClient() {
           </div>
 
           {result.issues.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">Filter review</h3>
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">Filter review</h3>
               <div className="mt-4 space-y-3">
                 {result.issues.map((issue, index) => (
                   <div
                     key={`${issue.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-900"
                   >
                     <strong>{issue.title}</strong>
                     <p className="mt-1">{issue.message}</p>
@@ -1524,9 +1524,9 @@ export default function ToolClient() {
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
         JSON parsing and filtering happen on the pasted array in your browser.
-        The tool does not upload the dataset or modify the original input.
-        Site-wide analytics or advertising scripts, if enabled, are separate
-        from this filtering operation.
+        The dataset is not uploaded as part of filtering, and the original input
+        text is left unchanged. Site-wide analytics or advertising scripts, if
+        enabled, are separate from the filtering step.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1548,18 +1548,18 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             user.role Is a Convenience Path, Not JSONPath
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
-            The field path syntax on this page is intentionally small.{" "}
+          <p className="mt-4 leading-relaxed text-gray-700">
+            The field path syntax is intentionally small.{" "}
             <code>user.role</code> walks object properties and{" "}
             <code>items.0.id</code> can walk an array index. It does not
             implement JSONPath filters, recursive descent or JSON Pointer
             escaping.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             If an object literally has a key named <code>user.role</code>, that
             direct key wins before nested traversal. The sample includes that
             case so the rule is visible rather than hidden.
@@ -1600,20 +1600,20 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Diagnostic Metadata Must Not Overwrite User Fields
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
-            Earlier filter designs often annotated matching objects with fields
-            such as <code>_index</code>, <code>_match</code> or{" "}
-            <code>_reason</code>. If the source record already used one of those
-            names, diagnostic output could overwrite real application data.
+          <p className="mt-4 leading-relaxed text-gray-700">
+            A common shortcut is to annotate matching objects with fields such as
+            <code>_index</code>, <code>_match</code> or <code>_reason</code>. If a
+            source record already uses one of those names, diagnostic output can
+            overwrite real application data.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
-            This version never injects metadata into original records.
-            Diagnostic mode wraps each record inside a separate object containing
-            sourceIndex, matched, reason and actualValue.
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Diagnostic metadata stays outside the original records. In diagnostic mode,
+            each source record is wrapped in a separate object containing
+            sourceIndex, matched, reason, and actualValue.
           </p>
         </div>
 
@@ -1627,10 +1627,26 @@ export default function ToolClient() {
 }`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
             JavaScript JSON parsing keeps the later member. A filter cannot
-            recover the earlier value from the parsed object. The tool scans the
-            source before filtering and warns when duplicate member names appear,
-            so a match is not mistaken for evidence that the original source was
-            unambiguous.
+            recover the earlier value from the parsed object. The source text is
+            checked for duplicate member names before filtering so a successful
+            match is not mistaken for evidence that the original JSON was unambiguous.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            A Regular Expression Can Be Valid and Still Be Expensive
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            JavaScript regular expressions run on the browser&apos;s main thread. A
+            pattern with heavy backtracking can take a long time on certain input
+            even when the pattern is syntactically valid. There is no regex timeout
+            or sandbox around a pasted pattern.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            For untrusted patterns or very large datasets, move the filter into a
+            controlled script or service where execution time and input size can be
+            limited.
           </p>
         </div>
 
@@ -1652,9 +1668,37 @@ export default function ToolClient() {
           </p>
         </div>
 
+        <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
+          JSON syntax and data-model details come from{" "}
+          <a
+            href="https://www.rfc-editor.org/rfc/rfc8259"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[var(--green)] underline underline-offset-4"
+          >
+            RFC 8259
+          </a>
+          . The dotted field syntax here is intentionally smaller than{" "}
+          <a
+            href="https://www.rfc-editor.org/rfc/rfc9535"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[var(--green)] underline underline-offset-4"
+          >
+            JSONPath (RFC 9535)
+          </a>
+          , so expressions such as recursive descent, slices, wildcards, and
+          filter selectors are not interpreted as JSONPath.
+        </div>
+
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/json-array-filter-tool" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Keep Working With the Same Data
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-array-filter-tool" />
+          </div>
         </div>
       </section>
     </ToolShell>
