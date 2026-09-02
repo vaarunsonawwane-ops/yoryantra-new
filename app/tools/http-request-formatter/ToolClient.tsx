@@ -1163,17 +1163,17 @@ Asterisk form:  OPTIONS * HTTP/1.1`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Copied Requests Often Contain Live Credentials
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-900/90">
             Authorization, Cookie, API-key, token, and credential-like headers
             are often exactly what makes a failing request reproducible. They
             are also the fields most likely to become a security incident when
             a capture is pasted into a public ticket or screenshot.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-900/90">
             Masking changes the formatted report and copied output; it does not
             erase the original textarea. Prefer placeholders whenever possible.
             If a real credential was shared outside its intended environment,
@@ -1234,7 +1234,9 @@ Asterisk form:  OPTIONS * HTTP/1.1`}</pre>
           <h2 className="text-xl font-semibold text-gray-900">
             Keep Tracing the Request
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/http-request-formatter" />
+		  
+		  <div className="mt-4">
+		  <YoryantraRelatedTools currentHref="/tools/http-request-formatter" />
         </div>
       </section>
     </ToolShell>
