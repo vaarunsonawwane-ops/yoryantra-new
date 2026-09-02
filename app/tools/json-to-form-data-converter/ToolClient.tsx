@@ -1118,13 +1118,13 @@ export default function ToolClient() {
           </div>
 
           {notes.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">Encoding review</h3>
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">Encoding review</h3>
               <div className="mt-4 space-y-3">
                 {notes.map((issue, index) => (
                   <div
                     key={`${issue.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-900"
                   >
                     <strong>{issue.title}</strong>
                     <p className="mt-1">{issue.message}</p>
@@ -1189,7 +1189,7 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
             Pick a Field Naming Convention the Server Actually Parses
           </h2>
@@ -1330,15 +1330,15 @@ tags=["api","forms"]`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Duplicate JSON Names Disappear During Normal Parsing
           </h2>
           <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`{
   "tag": "first",
   "tag": "second"
 }`}</pre>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             JavaScript keeps one <code>tag</code> property after parsing, so the
             two source members cannot later become two form fields. Duplicate
             names are flagged before the main parse so that overwrite risk stays
