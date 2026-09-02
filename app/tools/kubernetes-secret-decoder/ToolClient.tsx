@@ -856,7 +856,7 @@ export default function ToolClient() {
             </span>
           </label>
 
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-900">
+          <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
             Base64 is not encryption. A Secret manifest can contain production
             credentials, private keys, registry passwords or tokens. Prefer
             placeholders during testing and avoid copying unmasked output into
@@ -984,7 +984,7 @@ export default function ToolClient() {
                 )}
 
                 {document.notes.length ? (
-                  <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+                  <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
                     <ul className="list-disc space-y-2 pl-5">
                       {document.notes.map((note, index) => (
                         <li key={`${note}-${index}`}>{note}</li>
@@ -1075,17 +1075,17 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Base64 Is Not a Security Boundary
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Base64 changes representation; it does not provide confidentiality.
             Anyone who can read the encoded bytes can normally recover the
             original password, token, certificate, private key, or application
             value.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Real protection comes from access control, API authorization, Secret
             distribution, workload isolation, and encryption-at-rest choices.
             Keeping decoded values masked reduces accidental exposure on screen,
@@ -1111,11 +1111,11 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Built-In Secret Types Add Key-Level Rules
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             <code>Opaque</code> allows application-defined keys. Built-in types
             add expectations: TLS uses <code>tls.crt</code> and
             <code>tls.key</code>; Docker config uses
@@ -1124,7 +1124,7 @@ export default function ToolClient() {
             <code>username</code> and/or <code>password</code> according to the
             Kubernetes type rules.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Required key names are only the first check. Their presence does not
             prove that a TLS key matches its certificate, a registry login works,
             or an SSH private key is appropriate for the host you plan to trust.
@@ -1192,17 +1192,17 @@ stringData:
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Secret Size Has a Hard Limit
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Kubernetes limits an individual Secret to 1 MiB. Large certificates,
             bundles, generated credentials, or application blobs can push a
             Secret past that boundary faster than expected, especially once the
             complete API object is serialized.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             If the decoded effective data alone is already over 1 MiB, the
             manifest is beyond the documented Secret size limit before metadata
             and serialization overhead are considered. Large non-secret payloads
@@ -1257,7 +1257,10 @@ stringData:
           <h2 className="text-xl font-semibold text-gray-900">
             Check the Rest of the Manifest
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/kubernetes-secret-decoder" />
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/kubernetes-secret-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>
