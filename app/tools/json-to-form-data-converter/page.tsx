@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON to FormData Converter | Form Encoding | Yoryantra",
+  title: "JSON to FormData Converter | Nested Fields & Arrays | Yoryantra",
   description:
-    "Convert JSON objects into FormData calls, multipart field previews, URL-encoded bodies, cURL form flags and flattened fields with explicit array/null rules.",
+    "Convert a JSON object into FormData code, URL-encoded fields, cURL form fields or multipart previews with explicit rules for nesting, arrays and null values.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-to-form-data-converter",
   },
   openGraph: {
     title: "JSON to FormData Converter | Yoryantra",
     description:
-      "Flatten JSON deliberately for FormData, multipart/form-data and application/x-www-form-urlencoded workflows without guessing how nested data should map.",
+      "Map JSON objects, arrays, nulls and scalar values into explicit form field representations without hiding the flattening convention.",
     url: "https://yoryantra.com/tools/json-to-form-data-converter",
     siteName: "Yoryantra",
     type: "website",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "JSON to FormData Converter | Yoryantra",
     description:
-      "Convert JSON into FormData, multipart, URL-encoded and cURL field representations with nested-data warnings.",
+      "Generate FormData, URL-encoded, cURL and multipart field representations from JSON with clear nesting and array rules.",
   },
 };
 

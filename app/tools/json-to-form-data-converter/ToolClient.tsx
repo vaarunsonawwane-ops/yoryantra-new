@@ -52,7 +52,7 @@ type ConversionResult = {
 };
 
 const SAMPLE_INPUT = `{
-  "name": "Sneha",
+  "name": "Asha",
   "active": true,
   "tags": ["api", "forms", "debugging"],
   "profile": {
@@ -165,23 +165,22 @@ function detectDuplicateJsonKeys(source: string) {
   return duplicates;
 }
 
-function objectPath(path: string[], keyStyle: KeyStyle) {
-  if (!path.length) {
-    return "";
+function appendObjectKey(
+  base: string,
+  key: string,
+  keyStyle: KeyStyle
+) {
+  if (!base) {
+    return key;
   }
 
-  if (keyStyle === "dot") {
-    return path.join(".");
-  }
-
-  const first = path[0];
-  const rest = path.slice(1);
-
-  return `${first}${rest.map((part) => `[${part}]`).join("")}`;
+  return keyStyle === "dot"
+    ? `${base}.${key}`
+    : `${base}[${key}]`;
 }
 
-function arrayPath(
-  base: string[],
+function appendArrayIndex(
+  base: string,
   index: number,
   arrayMode: ArrayMode
 ) {
@@ -190,10 +189,10 @@ function arrayPath(
   }
 
   if (arrayMode === "brackets") {
-    return base.concat([""]);
+    return `${base}[]`;
   }
 
-  return base.concat([String(index)]);
+  return `${base}[${index}]`;
 }
 
 function scalarToString(
@@ -221,17 +220,14 @@ function flattenJson(
   const unsafeNumberPaths: string[] = [];
 
   const addScalar = (
-    path: string[],
+    path: string,
     value: string | number | boolean,
     depth: number,
     fromArray: boolean
   ) => {
     const fieldValue = scalarToString(value, options.trimStrings);
 
-    if (
-      !options.includeEmptyStrings &&
-      fieldValue === ""
-    ) {
+    if (!options.includeEmptyStrings && fieldValue === "") {
       return;
     }
 
@@ -240,11 +236,11 @@ function flattenJson(
       Number.isInteger(value) &&
       !Number.isSafeInteger(value)
     ) {
-      unsafeNumberPaths.push(objectPath(path, options.keyStyle));
+      unsafeNumberPaths.push(path || "(empty field name)");
     }
 
     fields.push({
-      key: objectPath(path, options.keyStyle),
+      key: path,
       value: fieldValue,
       sourceType: typeof value,
       depth,
@@ -254,7 +250,7 @@ function flattenJson(
 
   const walk = (
     current: unknown,
-    path: string[],
+    path: string,
     depth: number,
     fromArray: boolean
   ) => {
@@ -264,7 +260,7 @@ function flattenJson(
       }
 
       fields.push({
-        key: objectPath(path, options.keyStyle),
+        key: path,
         value: options.nullMode === "null" ? "null" : "",
         sourceType: "null",
         depth,
@@ -276,7 +272,7 @@ function flattenJson(
     if (Array.isArray(current)) {
       if (options.arrayMode === "json") {
         fields.push({
-          key: objectPath(path, options.keyStyle),
+          key: path,
           value: JSON.stringify(current),
           sourceType: "array",
           depth,
@@ -288,7 +284,7 @@ function flattenJson(
       current.forEach((item, index) => {
         walk(
           item,
-          arrayPath(path, index, options.arrayMode),
+          appendArrayIndex(path, index, options.arrayMode),
           depth + 1,
           true
         );
@@ -303,7 +299,7 @@ function flattenJson(
       Object.keys(objectValue).forEach((key) => {
         walk(
           objectValue[key],
-          path.concat([key]),
+          appendObjectKey(path, key, options.keyStyle),
           depth + 1,
           fromArray
         );
@@ -322,7 +318,7 @@ function flattenJson(
   };
 
   Object.keys(value).forEach((key) => {
-    walk(value[key], [key], 0, false);
+    walk(value[key], key, 0, false);
   });
 
   return {
@@ -361,6 +357,66 @@ function hasArray(value: unknown): boolean {
   const objectValue = value as Record<string, unknown>;
 
   return Object.keys(objectValue).some((key) => hasArray(objectValue[key]));
+}
+
+function hasArrayOfObjects(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    if (
+      value.some(
+        (item) => Boolean(item && typeof item === "object" && !Array.isArray(item))
+      )
+    ) {
+      return true;
+    }
+
+    return value.some((item) => hasArrayOfObjects(item));
+  }
+
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const objectValue = value as Record<string, unknown>;
+  return Object.keys(objectValue).some((key) => hasArrayOfObjects(objectValue[key]));
+}
+
+function findAmbiguousKeys(
+  value: unknown,
+  keyStyle: KeyStyle,
+  path: string = ""
+): string[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    let arrayIssues: string[] = [];
+    value.forEach((item, index) => {
+      arrayIssues = arrayIssues.concat(
+        findAmbiguousKeys(item, keyStyle, `${path}[${index}]`)
+      );
+    });
+    return arrayIssues;
+  }
+
+  const objectValue = value as Record<string, unknown>;
+  let issues: string[] = [];
+
+  Object.keys(objectValue).forEach((key) => {
+    const ambiguous =
+      keyStyle === "dot"
+        ? key.indexOf(".") !== -1
+        : key.indexOf("[") !== -1 || key.indexOf("]") !== -1;
+    const nextPath = path ? `${path}.${key}` : key;
+
+    if (ambiguous) {
+      issues.push(nextPath);
+    }
+
+    issues = issues.concat(findAmbiguousKeys(objectValue[key], keyStyle, nextPath));
+  });
+
+  return issues;
 }
 
 function hasControl(value: string) {
@@ -411,12 +467,18 @@ function validateCurlUrl(raw: string) {
   return url.href;
 }
 
+function jsStringLiteral(value: string) {
+  return JSON.stringify(value)
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
 function buildFormDataCode(fields: FieldRow[]) {
   const lines = ["const formData = new FormData();"];
 
   fields.forEach((field) => {
     lines.push(
-      `formData.append(${JSON.stringify(field.key)}, ${JSON.stringify(field.value)});`
+      `formData.append(${jsStringLiteral(field.key)}, ${jsStringLiteral(field.value)});`
     );
   });
 
@@ -473,7 +535,7 @@ function escapeDispositionName(value: string) {
 }
 
 function buildMultipartPreview(fields: FieldRow[]) {
-  const boundary = "----YoryantraPreviewBoundary";
+  const boundary = "----FormDataPreviewBoundary";
   const lines = [
     `Content-Type: multipart/form-data; boundary=${boundary}`,
     "",
@@ -525,6 +587,8 @@ function buildIssues(
     duplicateJsonKeys: string[];
     unsafeNumberPaths: string[];
     outputMode: OutputMode;
+    ambiguousKeys: string[];
+    hasArrayOfObjects: boolean;
   }
 ) {
   const issues: ReviewIssue[] = [];
@@ -544,6 +608,29 @@ function buildIssues(
       title: "Array representation is API-specific",
       message:
         `Arrays use "${options.arrayMode}" mode. Repeated keys, [] suffixes, numeric indexes and JSON-string arrays are all used by real APIs, but none is universal.`,
+    });
+  }
+
+
+  if (options.ambiguousKeys.length) {
+    issues.push({
+      severity: "warning",
+      title: "A source key collides with the flattening syntax",
+      message:
+        `${options.ambiguousKeys.length} JSON key${
+          options.ambiguousKeys.length === 1 ? "" : "s"
+        } contain characters used by the selected ${options.keyStyle} path convention: ${options.ambiguousKeys
+          .slice(0, 6)
+          .join(", ")}${options.ambiguousKeys.length > 6 ? "…" : ""}. Confirm how the server distinguishes literal key characters from nested paths.`,
+    });
+  }
+
+  if (options.hasArrayOfObjects && options.arrayMode === "repeat") {
+    issues.push({
+      severity: "warning",
+      title: "Repeated names can lose array-item grouping",
+      message:
+        "An array contains objects while array mode is set to repeat field names. Multiple object items can flatten into repeated child names without a reliable boundary between one item and the next.",
     });
   }
 
@@ -706,6 +793,8 @@ function convertJson(options: {
       duplicateJsonKeys,
       unsafeNumberPaths: flattened.unsafeNumberPaths,
       outputMode: options.outputMode,
+      ambiguousKeys: findAmbiguousKeys(parsed, options.keyStyle),
+      hasArrayOfObjects: hasArrayOfObjects(parsed),
     }
   );
 
@@ -835,7 +924,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON to FormData Converter"
-      description="Translate a JSON object into explicit form field representations while making nested-object, array, null, string, multipart and URL-encoding decisions visible instead of guessing what your API expects."
+      description="JSON and form submissions use different data models. Choose how nested objects, arrays, nulls, and scalar values should become form fields."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -1076,51 +1165,53 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Conversion happens on the pasted JSON in your browser. The tool does not
-        submit a form or call the cURL/Fetch target. Site-wide analytics or
-        advertising scripts, if enabled, are separate from this conversion
-        operation.
+        The pasted JSON is converted in your browser. No form submission, Fetch
+        request, or cURL command is run. Site-wide analytics or advertising
+        scripts, if enabled, are separate from the conversion step.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            JSON and FormData Have Different Data Models
+            JSON and Form Data Do Not Describe the Same Shapes
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON has objects, arrays, numbers, booleans, strings and null.
-            Browser FormData is an ordered list of field names whose values are
-            strings or Blob/File objects. There is no built-in FormData concept
-            of a nested object.
+            JSON has objects, arrays, numbers, booleans, strings, and null.
+            Browser FormData is an ordered list of names whose values are
+            strings or Blob/File objects. There is no built-in FormData type for
+            a nested object and no universal rule that says how an array should
+            be flattened.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            That mismatch is the real job of this converter. It makes the
-            flattening decision visible instead of pretending{" "}
-            <code>{"{ profile: { role: 'developer' } }"}</code> has one
-            universally correct multipart representation.
+            That gap is where most integration bugs happen. Decide the field
+            naming convention from the server contract first, then generate the
+            request body to match it.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
-            profile.role and profile[role] Are Conventions, Not HTTP Standards
+            Pick a Field Naming Convention the Server Actually Parses
           </h2>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            Frameworks often interpret dot or bracket notation because their
-            form parsers chose that convention. Another API may treat the
-            literal field name <code>profile[role]</code> as just a string key
-            with brackets in it.
+            Names such as <code>profile.role</code> and
+            <code>profile[role]</code> are conventions used by frameworks and
+            form parsers. HTTP does not assign nesting semantics to either one.
+            A server can just as easily treat the brackets or dot as literal
+            characters in the field name.
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            Match the API contract or server parser. When you control both
-            sides, document the convention so frontend and backend code do not
-            silently drift.
+            Literal JSON keys can also collide with a flattening convention. A
+            source key named <code>profile.role</code> becomes ambiguous when a
+            dot is also being used to mean “nested property.” Rename the field,
+            choose a different contract, or confirm how the receiving parser
+            resolves that ambiguity.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Arrays Need an Explicit Agreement Too
+            Arrays Can Lose Structure When They Are Flattened
           </h2>
           <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`Repeated:
 tags=api
@@ -1137,131 +1228,151 @@ tags[1]=forms
 JSON text:
 tags=["api","forms"]`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
-            All four patterns exist in real APIs. Repeated field names fit the
-            underlying ordered-pair model naturally. Brackets and indexes encode
-            extra structure into the field name. JSON text keeps the array
-            intact but requires the server to parse that one field as JSON.
+            All four patterns exist in production APIs. Repeated names match the
+            underlying entry-list model well for simple scalar arrays. Brackets
+            and numeric indexes put extra structure into the field name. JSON
+            text keeps the whole array together but requires a second JSON parse
+            on the server.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Arrays of objects need extra care. Repeating child names can lose the
+            boundary between item 0 and item 1. Indexed names or a JSON field are
+            usually easier to interpret when object grouping matters.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            Do Not Set multipart/form-data Content-Type Manually in Browser Fetch
+            Let the Browser Add the Multipart Boundary
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            When Fetch sends a FormData body, the browser generates the
-            multipart boundary and serializes the parts. If application code
-            manually sets <code>Content-Type: multipart/form-data</code> without
-            the matching generated boundary, servers often cannot parse the
-            request.
+            When Fetch sends a FormData body, the browser serializes the entries
+            and generates the multipart boundary. Setting
+            <code>Content-Type: multipart/form-data</code> by hand usually leaves
+            out that generated boundary, so the server cannot split the parts
+            correctly.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The Fetch output intentionally leaves Content-Type alone. The
-            multipart mode on this page is a framing preview for learning and
-            debugging, not a boundary you should copy into browser FormData
-            code.
+            Leave the Content-Type header unset for browser FormData unless you
+            are deliberately constructing the multipart body yourself. A manual
+            multipart preview is useful for reading the framing, not for copying
+            a fixed boundary into Fetch code.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            application/x-www-form-urlencoded Is Form Encoding, Not Generic URL Encoding
+            URL-Encoded Forms and Multipart Forms Solve Different Problems
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            URL-encoded form bodies serialize field pairs with an
-            application/x-www-form-urlencoded algorithm. In that format, spaces
-            become <code>+</code>, repeated names are possible, and reserved
-            characters are percent-encoded according to form rules.
+            <code>application/x-www-form-urlencoded</code> is compact and works
+            well for ordinary text fields, OAuth token requests, and older form
+            endpoints. Spaces are represented as <code>+</code>, and other bytes
+            are percent-encoded using the form encoding algorithm.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            It is excellent for small text field sets and common OAuth/token
-            endpoints. It cannot carry a File/Blob part the way multipart form
-            data can.
+            <code>multipart/form-data</code> is built from separate parts and can
+            carry file content as well as text fields. A URL-encoded body cannot
+            represent a browser File or Blob part in the same way.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
           <h2 className="text-xl font-semibold text-red-900">
-            A JSON Filename Is Still Just Text
+            A Filename String Is Not a File Upload
           </h2>
           <p className="mt-4 leading-relaxed text-red-900/90">
-            <code>{"{ \"avatar\": \"/tmp/photo.jpg\" }"}</code> does not contain
-            the photo. It contains a path string. A real browser upload requires
-            a File or Blob object, while cURL file upload uses syntax such as{" "}
-            <code>--form avatar=@photo.jpg</code>.
+            <code>{"{ \"avatar\": \"/tmp/photo.jpg\" }"}</code> contains a
+            path string, not the bytes of the photo. Browser uploads need a File
+            or Blob object. cURL file upload has its own file-reading syntax such
+            as <code>--form avatar=@photo.jpg</code>.
           </p>
           <p className="mt-4 leading-relaxed text-red-900/90">
-            This converter deliberately uses cURL <code>--form-string</code> so
-            pasted text cannot unexpectedly turn an <code>@filename</code> value
-            into a local file read.
+            Generated cURL fields use <code>--form-string</code> so an input value
+            beginning with <code>@</code> stays text instead of unexpectedly
+            reading a local file. Add an actual file part separately when that is
+            what the endpoint expects.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Missing, Empty and null Can Be Three Different API States
+            Missing, Empty, and null Can Mean Different Things
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON can explicitly say null. Form submissions do not have a
-            universal typed null value. Some APIs interpret an empty string as
-            clearing a value, a missing field as “leave unchanged,” and the text
-            <code>null</code> as an ordinary string.
+            JSON has a real null value. Form fields do not have one universal
+            typed null representation. An update endpoint may treat an omitted
+            field as “leave unchanged,” an empty string as “clear it,” and the
+            text <code>null</code> as five ordinary characters.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Choose null handling from the endpoint semantics rather than from
-            aesthetics. This tool keeps that decision visible because a
-            converter cannot infer update semantics from JSON alone.
+            Pick the null rule from the endpoint semantics, not from how tidy the
+            generated request looks. The same warning applies to empty strings;
+            dropping them can change meaning when the server distinguishes an
+            empty value from a missing field.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Large JSON Integers Can Lose Digits Before FormData Is Involved
+            Large Numeric IDs Are Safer as JSON Strings
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON number syntax can represent integer literals larger than
-            JavaScript&apos;s exact safe-integer range. JSON.parse produces a
-            JavaScript Number, so a very large account ID or database key can
-            already be rounded before the converter turns it into a string.
+            JSON number syntax allows integer literals beyond JavaScript&apos;s exact
+            safe-integer range. <code>JSON.parse()</code> produces a JavaScript
+            Number, so a large database ID can lose digits before any form
+            encoding happens.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            If every digit matters, encode that identifier as a JSON string at
-            the source. The tool reports unsafe integer values it can detect
-            after parsing.
+            If every digit is an identifier rather than a quantity, send it as a
+            JSON string at the source. Turning an already-rounded Number back
+            into text cannot recover the missing digits.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
-            Duplicate JSON Keys Are Lost by Normal JSON Parsing
+            Duplicate JSON Names Disappear During Normal Parsing
           </h2>
           <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`{
   "tag": "first",
   "tag": "second"
 }`}</pre>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            JavaScript&apos;s JSON parser leaves one <code>tag</code> property,
-            so a converter cannot turn the two source members into repeated form
-            fields after parsing. Yoryantra scans the source for duplicate
-            member names first and warns when that overwrite risk exists.
+            JavaScript keeps one <code>tag</code> property after parsing, so the
+            two source members cannot later become two form fields. Duplicate
+            names are flagged before the main parse so that overwrite risk stays
+            visible.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-2">
-          <ReferenceCard
-            title="XMLHttpRequest Standard — FormData"
-            href="https://xhr.spec.whatwg.org/#interface-formdata"
-            text="Defines the browser FormData interface and its ordered entry list, including append() behavior."
-          />
-          <ReferenceCard
-            title="RFC 7578 — multipart/form-data"
-            href="https://www.rfc-editor.org/rfc/rfc7578"
-            text="Defines multipart/form-data media type, boundaries, Content-Disposition fields and multipart form conventions."
-          />
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Specifications Behind the Encoding
+          </h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <ReferenceCard
+              title="XMLHttpRequest Standard — FormData"
+              href="https://xhr.spec.whatwg.org/#interface-formdata"
+              text="Defines FormData as an ordered entry list and the append() behavior for string and Blob/File values."
+            />
+            <ReferenceCard
+              title="Fetch Standard"
+              href="https://fetch.spec.whatwg.org/"
+              text="Defines how a FormData request body is serialized and how the multipart/form-data boundary is generated."
+            />
+            <ReferenceCard
+              title="RFC 7578 — multipart/form-data"
+              href="https://www.rfc-editor.org/rfc/rfc7578"
+              text="Defines multipart boundaries, Content-Disposition form-data parts, field names, and file parts."
+            />
+          </div>
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            When the Server Still Rejects the Payload
+          </h2>
           <YoryantraRelatedTools currentHref="/tools/json-to-form-data-converter" />
         </div>
       </section>

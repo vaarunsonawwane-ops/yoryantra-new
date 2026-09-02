@@ -42,10 +42,10 @@ const SAMPLE_REQUEST = `POST /api/users?source=web&active=true HTTP/1.1
 Host: api.example.com
 Content-Type: application/json
 Authorization: Bearer YOUR_TOKEN_HERE
-User-Agent: Yoryantra-Test
+User-Agent: ExampleClient/1.0
 Content-Length: 49
 
-{"name":"Sneha","role":"developer","active":true}`;
+{"name":"Asha","role":"developer","active":true}`;
 
 const SENSITIVE_HEADERS = [
   "authorization",
@@ -56,6 +56,25 @@ const SENSITIVE_HEADERS = [
   "api-key",
   "x-auth-token",
 ];
+
+const STANDARD_METHODS = [
+  "GET",
+  "HEAD",
+  "POST",
+  "PUT",
+  "DELETE",
+  "CONNECT",
+  "OPTIONS",
+  "TRACE",
+];
+
+function hasMalformedPercentEscape(value: string) {
+  return /%(?![0-9A-Fa-f]{2})/.test(value);
+}
+
+function looksLikeConnectAuthority(target: string) {
+  return /^(?:\[[^\]]+\]|[^:\s]+):\d+$/.test(target);
+}
 
 function isToken(value: string) {
   return /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(value);
@@ -153,7 +172,7 @@ function classifyTarget(method: string, target: string) {
   }
 
   if (
-    method.toUpperCase() === "CONNECT" &&
+    method === "CONNECT" &&
     target.charAt(0) !== "/" &&
     !/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(target)
   ) {
@@ -467,6 +486,52 @@ function buildDiagnostics(options: {
     });
   }
 
+  if (
+    STANDARD_METHODS.indexOf(options.method.toUpperCase()) !== -1 &&
+    options.method !== options.method.toUpperCase()
+  ) {
+    diagnostics.push({
+      severity: "warning",
+      title: "Method name uses non-standard casing",
+      message:
+        `HTTP method names are case-sensitive. "${options.method}" is not the same method token as "${options.method.toUpperCase()}".`,
+    });
+  }
+
+  if (
+    options.targetForm === "asterisk-form" &&
+    options.method !== "OPTIONS"
+  ) {
+    diagnostics.push({
+      severity: "warning",
+      title: "Asterisk-form with a non-OPTIONS method",
+      message:
+        `The asterisk request target is defined for server-wide OPTIONS requests. Here it appears with ${options.method}.`,
+    });
+  }
+
+  if (
+    options.method === "CONNECT" &&
+    options.targetForm === "authority-form" &&
+    !looksLikeConnectAuthority(options.target)
+  ) {
+    diagnostics.push({
+      severity: "warning",
+      title: "CONNECT authority is missing a clear host:port form",
+      message:
+        "CONNECT normally uses an authority target containing a host and port, for example example.com:443 or [2001:db8::1]:443.",
+    });
+  }
+
+  if (hasMalformedPercentEscape(options.target)) {
+    diagnostics.push({
+      severity: "warning",
+      title: "Malformed percent escape in request target",
+      message:
+        "A percent sign in a URI component should be followed by two hexadecimal digits when it begins a percent-encoded byte.",
+    });
+  }
+
   if (options.target.indexOf("#") !== -1) {
     diagnostics.push({
       severity: "warning",
@@ -597,7 +662,7 @@ function buildDiagnostics(options: {
 
   if (
     !options.body &&
-    options.method.toUpperCase() === "GET" &&
+    options.method === "GET" &&
     options.contentType
   ) {
     diagnostics.push({
@@ -827,7 +892,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HTTP Request Formatter"
-      description="Turn an HTTP/1.x request capture into a readable request-line, header, query, body and framing review without replaying or sending the request."
+      description="Read an HTTP/1.x request as the protocol sees it: request line, headers, query, body, and message-framing warnings."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -873,7 +938,7 @@ export default function ToolClient() {
           </label>
 
           <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
-            <strong className="text-gray-900">This formatter reviews:</strong>
+            <strong className="text-gray-900">The report separates:</strong>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>HTTP/1.0 and HTTP/1.1 request lines</li>
               <li>origin, absolute, authority and asterisk targets</li>
@@ -975,156 +1040,200 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Parsing happens on the text in your browser. Yoryantra does not send the
-        request to its target, contact the Host value, or replay credentials.
-        Site-wide analytics or advertising scripts, if enabled, are separate
-        from this formatting operation.
+        The pasted text is parsed in your browser. No request is sent to the
+        target or Host value, and credentials are not replayed. Site-wide
+        analytics or advertising scripts, if enabled, are separate from the
+        parsing step.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Start With the Request Target—It Explains More Than the URL Alone
+            Read the Request Line Before the Headers
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            An HTTP/1.x request line contains a method, a request target and an
-            HTTP version. Most origin requests use origin-form such as{" "}
-            <code>GET /products?page=2 HTTP/1.1</code>. Forward proxies can
-            receive absolute-form with a complete URL. CONNECT uses
-            authority-form, and OPTIONS can use the special{" "}
-            <code>*</code> target.
+            An HTTP/1.x request starts with three pieces: the method, the request
+            target, and the HTTP version. A normal request sent directly to an
+            origin usually looks like <code>GET /products?page=2 HTTP/1.1</code>.
+            A proxy can receive a complete absolute URI, CONNECT uses an
+            authority such as <code>example.com:443</code>, and server-wide
+            OPTIONS can use <code>*</code>.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Distinguishing those forms matters when debugging proxies, routing
-            and Host mismatches. A formatter that assumes every target is just a
-            pathname can give the wrong explanation for a perfectly deliberate
-            proxy request.
+            Those forms are not cosmetic. They affect how a proxy reconstructs
+            the target URI and how the Host field should line up with the
+            request. If a request works directly but fails through a proxy,
+            compare the request target and Host before changing application
+            code.
+          </p>
+          <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`Origin form:    GET /items?q=desk HTTP/1.1
+Absolute form:  GET https://example.com/items?q=desk HTTP/1.1
+Authority form: CONNECT example.com:443 HTTP/1.1
+Asterisk form:  OPTIONS * HTTP/1.1`}</pre>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Method Names Are Case-Sensitive
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            <code>GET</code> and <code>get</code> are different method tokens.
+            Servers and frameworks often normalize familiar method names, which
+            can hide this detail until a request reaches a stricter proxy,
+            gateway, signature check, or test harness.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The same principle matters for CONNECT and OPTIONS because their
+            request-target rules are tied to those exact standardized methods.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
-            Content-Length Counts Octets, Not JavaScript Characters
+            Content-Length Is a Byte Count
           </h2>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            A body containing only ASCII characters often has the same character
-            count and UTF-8 byte count. Add emoji, accented text or another
-            multi-byte character and those numbers diverge. HTTP framing uses
-            octets.
+            ASCII text often makes character count and byte count look the same.
+            Add an emoji or an accented character and the numbers can diverge.
+            HTTP message framing counts octets, not JavaScript characters.
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            Yoryantra compares Content-Length with the UTF-8 byte length of the
-            pasted body. That can expose a likely mismatch, but a copied log may
-            already have changed line endings or decoded transfer/content
-            codings, so the original wire capture remains the authority.
+            The comparison here uses the UTF-8 byte length of the pasted body.
+            Treat a mismatch as a clue, not proof that the original request was
+            malformed. Logs and copied captures can normalize line endings,
+            decompress content, or omit transfer framing before you ever paste
+            them.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Transfer-Encoding Plus Content-Length Deserves Immediate Attention
+            Transfer-Encoding and Content-Length Should Not Compete
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            HTTP request framing has strict rules because two recipients
-            disagreeing about where one request ends and the next begins can
-            create request-smuggling vulnerabilities. A captured HTTP/1.1
-            request containing both Transfer-Encoding and Content-Length is not
-            something to “format away.”
+            HTTP/1.1 has strict message-length rules because two recipients must
+            agree on exactly where a request ends. A request carrying both
+            Transfer-Encoding and Content-Length deserves immediate attention.
+            RFC 9112 treats that combination as a framing risk and discusses it
+            directly in the context of request smuggling.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The tool flags the combination and preserves repeated Content-Length
-            lines rather than collapsing them into a dictionary. When this comes
-            from a real reverse-proxy path, inspect how every hop parses and
-            normalizes the message.
+            Repeated Content-Length fields also need care. Identical values can
+            arise in old or intermediary-generated traffic, while conflicting
+            values are a clear ambiguity. Do not fix a production capture by
+            simply deleting whichever field looks inconvenient; trace how each
+            hop parsed the original bytes.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            Query + and Form + Do Not Mean the Same Thing Everywhere
+            A Plus Sign Is Not Always a Space
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            In a generic URI query component, a plus sign can be a literal plus.
-            In <code>application/x-www-form-urlencoded</code> parsing, plus is
-            conventionally decoded as a space. Treating both contexts with the
-            same decoder can silently change data.
+            In a generic URI query component, <code>+</code> can be literal data.
+            In <code>application/x-www-form-urlencoded</code>, a plus sign is the
+            conventional encoding for a space. Applying form decoding to every
+            query string can silently change values such as product codes,
+            signatures, or search terms that contain a real plus.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This formatter percent-decodes request-target query components while
-            preserving +, but uses URLSearchParams-style form decoding for an
-            x-www-form-urlencoded message body.
+            Percent escapes are another common source of confusion. A percent
+            sign that starts an encoded byte needs two hexadecimal digits. A
+            malformed escape is left visible and reported instead of being
+            silently repaired.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Content-Type Tells You What the Body Claims to Be
+            Content-Type Is a Claim About the Body
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON is formatted only when the media type says JSON or the body
-            strongly resembles JSON. If a JSON media type is declared but the
-            text does not parse, the tool keeps the original body and reports
-            the parse failure instead of relabeling malformed JSON as valid.
+            <code>Content-Type: application/json</code> says the enclosed
+            representation is JSON. If the body does not parse as JSON, the
+            useful fact is the disagreement itself. Reformatting malformed text
+            until it looks valid can hide the bug you were trying to find.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Multipart bodies need a boundary parameter. URL-encoded bodies use a
-            different escaping model. Unknown media types stay as pasted text,
-            because guessing a custom representation is less useful than
-            preserving it.
+            Multipart bodies need a boundary parameter, and that boundary must
+            appear in the body framing. URL-encoded forms use a different
+            encoding model. Unknown media types are best kept as pasted text
+            unless you know the format well enough to parse it deliberately.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
           <h2 className="text-xl font-semibold text-red-900">
-            Raw Request Captures Commonly Contain Credentials
+            Copied Requests Often Contain Live Credentials
           </h2>
           <p className="mt-4 leading-relaxed text-red-900/90">
-            Authorization, Cookie and API-key fields are often exactly the
-            information needed to reproduce an API problem—and exactly the
-            information that should not be pasted into public tickets,
-            screenshots or documentation.
+            Authorization, Cookie, API-key, token, and credential-like headers
+            are often exactly what makes a failing request reproducible. They
+            are also the fields most likely to become a security incident when
+            a capture is pasted into a public ticket or screenshot.
           </p>
           <p className="mt-4 leading-relaxed text-red-900/90">
-            Redaction affects the formatted/copy report, not the textarea you
-            pasted. Use placeholders whenever possible and rotate a real
-            credential if it was shared outside its intended environment.
+            Masking changes the formatted report and copied output; it does not
+            erase the original textarea. Prefer placeholders whenever possible.
+            If a real credential was shared outside its intended environment,
+            rotate it instead of relying on redaction after the fact.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Why HTTP/2 and HTTP/3 Captures Look Different
+            A Text Capture Is Not a Packet Capture
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            HTTP semantics are shared across versions, but HTTP/2 and HTTP/3 do
-            not put a textual <code>METHOD /path HTTP/1.1</code> request line on
-            the wire. They use framed fields and pseudo-fields such as{" "}
-            <code>:method</code>, <code>:scheme</code>, <code>:authority</code>
-            and <code>:path</code>.
+            Debuggers, reverse proxies, logs, and browser tools often show a
+            reconstructed request. They may normalize CRLF line endings, decode
+            transfer coding, decompress content, hide TLS, or omit bytes that
+            were present on the wire. That is why byte counts and framing notes
+            should be checked against the original capture when the problem is
+            low-level HTTP behavior.
           </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Some debugging tools render HTTP/2/3 back into HTTP/1-like text for
-            readability. This formatter deliberately calls its input
-            HTTP/1.x-style so a human-readable reconstruction is not mistaken
-            for the actual wire encoding.
-          </p>
-        </div>
-
-        <div className="mt-12 grid gap-4 md:grid-cols-2">
-          <ReferenceCard
-            title="RFC 9110 — HTTP Semantics"
-            href="https://www.rfc-editor.org/rfc/rfc9110"
-            text="Defines HTTP methods, fields, representations and request semantics shared across HTTP versions."
-          />
-          <ReferenceCard
-            title="RFC 9112 — HTTP/1.1"
-            href="https://www.rfc-editor.org/rfc/rfc9112"
-            text="Defines the HTTP/1.1 textual message format, request-target forms, Host and message framing."
-          />
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            HTTP/2 and HTTP/3 Look Different on the Wire
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            HTTP semantics carry across versions, but HTTP/2 and HTTP/3 do not
+            send a textual <code>METHOD /path HTTP/1.1</code> request line. They
+            use framed fields and pseudo-fields such as <code>:method</code>,
+            <code>:scheme</code>, <code>:authority</code>, and <code>:path</code>.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A debugging program may render those fields as HTTP/1-like text for
+            readability. Treat that as a human-readable reconstruction, not the
+            original HTTP/2 or HTTP/3 wire format.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            HTTP Rules Worth Checking
+          </h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <ReferenceCard
+              title="RFC 9110 — HTTP Semantics"
+              href="https://www.rfc-editor.org/rfc/rfc9110"
+              text="Methods, fields, representations, target URIs, and semantics shared across HTTP versions."
+            />
+            <ReferenceCard
+              title="RFC 9112 — HTTP/1.1"
+              href="https://www.rfc-editor.org/rfc/rfc9112"
+              text="Request-line syntax, request-target forms, Host, field parsing, Content-Length, Transfer-Encoding, and HTTP/1.1 message framing."
+            />
+          </div>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Keep Tracing the Request
+          </h2>
           <YoryantraRelatedTools currentHref="/tools/http-request-formatter" />
         </div>
       </section>
