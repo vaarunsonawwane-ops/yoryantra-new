@@ -1020,7 +1020,7 @@ export default function ToolClient() {
                     key={`${item.title}-${index}`}
                     className={`rounded-xl border p-4 text-sm leading-relaxed ${
                       item.severity === "warning"
-                        ? "border-yellow-200 bg-yellow-50 text-yellow-900"
+                        ? "border-amber-200 bg-amber-50 text-gray-700"
                         : "border-gray-200 bg-gray-50 text-gray-700"
                     }`}
                   >
@@ -1088,16 +1088,16 @@ Asterisk form:  OPTIONS * HTTP/1.1`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Content-Length Is a Byte Count
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             ASCII text often makes character count and byte count look the same.
             Add an emoji or an accented character and the numbers can diverge.
             HTTP message framing counts octets, not JavaScript characters.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             The comparison here uses the UTF-8 byte length of the pasted body.
             Treat a mismatch as a clue, not proof that the original request was
             malformed. Logs and copied captures can normalize line endings,
@@ -1167,13 +1167,13 @@ Asterisk form:  OPTIONS * HTTP/1.1`}</pre>
           <h2 className="text-xl font-semibold text-gray-900">
             Copied Requests Often Contain Live Credentials
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Authorization, Cookie, API-key, token, and credential-like headers
             are often exactly what makes a failing request reproducible. They
             are also the fields most likely to become a security incident when
             a capture is pasted into a public ticket or screenshot.
           </p>
-          <p className="mt-4 leading-relaxed text-gray-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Masking changes the formatted report and copied output; it does not
             erase the original textarea. Prefer placeholders whenever possible.
             If a real credential was shared outside its intended environment,
@@ -1234,10 +1234,10 @@ Asterisk form:  OPTIONS * HTTP/1.1`}</pre>
           <h2 className="text-xl font-semibold text-gray-900">
             Keep Tracing the Request
           </h2>
-		  
-		  <div className="mt-4">
-		  <YoryantraRelatedTools currentHref="/tools/http-request-formatter" />
-        </div>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/http-request-formatter" />
+          </div>
         </div>
       </section>
     </ToolShell>
