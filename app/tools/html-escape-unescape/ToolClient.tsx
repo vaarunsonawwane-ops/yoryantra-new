@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -12,14 +12,12 @@ type Result = {
   output: string;
   inputLength: number;
   outputLength: number;
-  convertedCount: number;
-  convertedLabel: string;
   mode: Mode;
+  escapeStyle: EscapeStyle;
 };
 
 const escapeExample = `<div class="message">Yoryantra & tools</div>`;
-const unescapeExample =
-  `&lt;div class=&quot;message&quot;&gt;Yoryantra &amp; tools&lt;/div&gt;`;
+const unescapeExample = `&lt;div class=&quot;message&quot;&gt;Yoryantra &amp; tools&lt;/div&gt;`;
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -46,54 +44,31 @@ export default function ToolClient() {
   };
 
   const convertHtml = () => {
-    if (input.length === 0) {
+    if (!input.trim()) {
       setError(
         mode === "escape"
           ? "Please enter HTML or text to escape."
-          : "Please enter HTML character references to unescape."
+          : "Please enter text containing HTML character references to decode."
       );
-      setResult(null);
       setOutput("");
-      setCopied(false);
-      return;
-    }
-
-    const source = trimInput ? input.trim() : input;
-
-    if (source.length === 0) {
-      setError("The input is empty after trimming outer whitespace.");
       setResult(null);
-      setOutput("");
       setCopied(false);
       return;
     }
 
     try {
+      const source = trimInput ? input.trim() : input;
       const nextOutput =
         mode === "escape"
-          ? escapeHtml(source, {
-              escapeStyle,
-              escapeQuotes,
-              escapeApostrophes,
-            })
+          ? escapeHtml(source, { escapeStyle, escapeQuotes, escapeApostrophes })
           : unescapeHtml(source);
-
-      const convertedCount =
-        mode === "escape"
-          ? countEscapedCharacters(source, {
-              escapeQuotes,
-              escapeApostrophes,
-            })
-          : countDecodedReferences(source);
 
       setResult({
         output: nextOutput,
         inputLength: source.length,
         outputLength: nextOutput.length,
-        convertedCount,
-        convertedLabel:
-          mode === "escape" ? "Characters escaped" : "References decoded",
         mode,
+        escapeStyle,
       });
       setOutput(nextOutput);
       setError("");
@@ -102,10 +77,10 @@ export default function ToolClient() {
       setError(
         mode === "escape"
           ? "Unable to escape this text."
-          : "Unable to decode this HTML character-reference text."
+          : "Unable to decode this HTML text in the browser."
       );
-      setResult(null);
       setOutput("");
+      setResult(null);
       setCopied(false);
     }
   };
@@ -116,10 +91,11 @@ export default function ToolClient() {
     try {
       await navigator.clipboard.writeText(output);
       setCopied(true);
+      setError("");
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
-      setError("The output could not be copied. Select and copy it manually.");
       setCopied(false);
+      setError("The output could not be copied. Select it and copy it manually.");
     }
   };
 
@@ -141,7 +117,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HTML Escape Unescape"
-      description="Escape HTML special characters or decode HTML character references for literal text, debugging, CMS content, APIs, and documentation. The tool keeps output encoding separate from HTML sanitization so the result is easier to use safely."
+      description="Escape HTML-sensitive characters or decode HTML character references for code samples, CMS content, templates, API debugging, and frontend work."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="mb-4">
@@ -149,8 +125,8 @@ export default function ToolClient() {
             Input HTML or Text
           </label>
           <p className="mt-1 text-sm leading-relaxed text-gray-500">
-            Paste raw markup-looking text, normal text, CMS content, API values,
-            or existing HTML character references.
+            Paste raw text or markup to escape, or paste entity-encoded text to decode.
+            The tool processes the value in this browser tab.
           </p>
         </div>
 
@@ -167,9 +143,7 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Conversion Settings
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900">Conversion Settings</h3>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <YoryantraSelect
@@ -194,16 +168,14 @@ export default function ToolClient() {
                 clearResult();
               }}
               options={[
-                { label: "Common named references", value: "named" },
-                { label: "Decimal numeric references", value: "numeric" },
+                { label: "Named entities", value: "named" },
+                { label: "Decimal numeric entities", value: "numeric" },
               ]}
             />
           ) : (
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
-              Unescape mode uses the browser&apos;s HTML parser for named and
-              numeric character references. Historical semicolon-omission
-              behavior can vary by parsing context, so generated references on
-              this page always include semicolons.
+              Decode mode uses the browser&apos;s HTML character-reference parsing rules,
+              including recognized named and numeric references.
             </div>
           )}
         </div>
@@ -246,8 +218,8 @@ export default function ToolClient() {
 
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
           {mode === "escape"
-            ? "Ampersands and angle brackets are always escaped. Quote options are useful when the value is intended for a quoted HTML attribute, but the correct output encoding still depends on the final parsing context."
-            : "Decoding changes character references back into characters. It does not sanitize markup or make untrusted HTML safe to inject into a page."}
+            ? "This encoder targets &, <, >, double quotes, and apostrophes. It does not convert every Unicode character into an entity."
+            : "Decoding is a single pass. For example, &amp;lt; becomes &lt;, not <, because the outer reference is decoded first."}
         </p>
       </div>
 
@@ -256,25 +228,20 @@ export default function ToolClient() {
           {mode === "escape" ? "Escape HTML" : "Unescape HTML"}
         </button>
 
-        <button
-          type="button"
-          onClick={loadExample}
-          className="yoryantra-btn-outline"
-        >
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
           Load Example
         </button>
 
-        <button
-          type="button"
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
+        <button type="button" onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 overflow-auto rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto"
+        >
           {error}
         </div>
       ) : null}
@@ -285,10 +252,8 @@ export default function ToolClient() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-                <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                  Copy the result for code samples, CMS fields, API tests, or
-                  documentation after checking that the destination context
-                  matches the encoding.
+                <p className="mt-1 text-sm text-gray-500">
+                  Review the result in the context where you will use it before copying it into production code.
                 </p>
               </div>
 
@@ -308,167 +273,164 @@ export default function ToolClient() {
           </div>
 
           <div className="space-y-4">
+            <StatCard label="Input length" value={`${result.inputLength.toLocaleString()} chars`} />
+            <StatCard label="Output length" value={`${result.outputLength.toLocaleString()} chars`} />
+            <StatCard label="Mode" value={result.mode === "escape" ? "Escape" : "Unescape"} />
             <StatCard
-              label="Input length"
-              value={`${result.inputLength.toLocaleString()} chars`}
-            />
-            <StatCard
-              label="Output length"
-              value={`${result.outputLength.toLocaleString()} chars`}
-            />
-            <StatCard
-              label="Mode"
-              value={result.mode === "escape" ? "Escape" : "Unescape"}
-            />
-            <StatCard
-              label={result.convertedLabel}
-              value={result.convertedCount.toLocaleString()}
+              label="Entity style"
+              value={result.mode === "escape" ? (result.escapeStyle === "named" ? "Named" : "Decimal numeric") : "Browser decode"}
             />
           </div>
         </div>
       ) : null}
 
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-amber-900">Privacy and security boundary</h3>
+        <p className="mt-2 text-sm leading-relaxed text-amber-800">
+          Conversion is performed by client-side JavaScript in your browser. This tool does not send the pasted value to an application server. HTML escaping is context-specific output encoding, however; it is not a substitute for validating URLs, encoding JavaScript or CSS contexts, or sanitizing HTML that you intend to render as markup.
+        </p>
+      </div>
+
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            HTML Escaping Is Context-Specific Output Encoding
+            What HTML Escaping Actually Changes
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            HTML character references let special characters appear as data
-            instead of being interpreted as HTML syntax. For example,
-            &amp;lt; represents a literal less-than sign and &amp;amp;
-            represents an ampersand. This is useful for code samples,
-            user-entered text, CMS fields, logs, and other values that should
-            be displayed literally.
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            HTML character references let source text represent characters that otherwise have a special role in HTML syntax. The two references most commonly needed in normal HTML text are <code className="font-mono text-sm">&amp;lt;</code> for a literal less-than sign and <code className="font-mono text-sm">&amp;amp;</code> for a literal ampersand. Quotes become especially important when a value is placed inside a quoted HTML attribute.
           </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            HTML text, quoted HTML attributes, JavaScript, CSS, and URLs are
-            different parsing contexts. Encoding that is appropriate for one
-            context is not automatically correct for another. This tool
-            performs HTML character-reference encoding; it is not a JavaScript,
-            CSS, shell, or URL encoder.
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            This tool deliberately escapes a small, practical set of HTML-sensitive characters rather than replacing every non-ASCII character. With a correctly declared UTF-8 document, characters such as ©, é, ₹, or emoji can normally remain as literal Unicode text. Character references are still useful when a character is syntactically significant, difficult to type, or required by a particular workflow.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            What the Escape Options Change
-          </h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>Ampersand and angle brackets:</strong> escaped by
-                default because they are central to HTML markup and character
-                references.
-              </li>
-              <li>
-                <strong>Double quote:</strong> useful when a value may appear
-                inside a double-quoted HTML attribute.
-              </li>
-              <li>
-                <strong>Apostrophe:</strong> useful when a value may appear
-                inside a single-quoted HTML attribute.
-              </li>
-              <li>
-                <strong>Named vs numeric:</strong> changes the representation,
-                not the decoded character. Generated references always include
-                a semicolon.
-              </li>
-            </ul>
+          <h2 className="text-xl font-semibold text-gray-900">Named vs Numeric Character References</h2>
+
+          <div className="mt-5 overflow-x-auto rounded-xl border border-gray-200">
+            <table className="w-full min-w-[620px] border-collapse text-left text-sm">
+              <thead className="bg-gray-50 text-gray-900">
+                <tr>
+                  <th className="border-b border-gray-200 px-4 py-3 font-semibold">Character</th>
+                  <th className="border-b border-gray-200 px-4 py-3 font-semibold">Named output</th>
+                  <th className="border-b border-gray-200 px-4 py-3 font-semibold">Numeric output</th>
+                  <th className="border-b border-gray-200 px-4 py-3 font-semibold">Why it matters</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                <ReferenceRow character={"&"} named={"&amp;"} numeric={"&#38;"} note="Starts character-reference syntax." />
+                <ReferenceRow character={"<"} named={"&lt;"} numeric={"&#60;"} note="Can start an HTML tag or markup construct." />
+                <ReferenceRow character={">"} named={"&gt;"} numeric={"&#62;"} note="Often encoded for symmetry; it is less frequently required in plain text." />
+                <ReferenceRow character={'"'} named={"&quot;"} numeric={"&#34;"} note="Important inside double-quoted attribute values." />
+                <ReferenceRow character={"'"} named={"&#39;"} numeric={"&#39;"} note="Important inside single-quoted attribute values." />
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+            The named mode uses a decimal reference for the apostrophe so the output is explicit and broadly familiar. Decode mode accepts the browser-recognized named and numeric forms, not only the five forms generated by this encoder.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">HTML Context Matters More Than the Word “Escape”</h2>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <InfoCard title="HTML text between tags">
+              Encoding <code className="font-mono text-xs">&amp;</code> and <code className="font-mono text-xs">&lt;</code> prevents text from being interpreted as character-reference syntax or markup. Encoding <code className="font-mono text-xs">&gt;</code> is commonly harmless but is not universally required in ordinary text.
+            </InfoCard>
+            <InfoCard title="Quoted HTML attributes">
+              Keep the attribute value quoted and encode the quote character that delimits it. A generic five-character encoder is helpful for inspection, but application code should use a framework or encoder designed for the exact output context.
+            </InfoCard>
+            <InfoCard title="JavaScript, CSS, and URLs">
+              HTML entity encoding is not the correct general-purpose encoding for inline JavaScript, CSS values, or URL components. Those parsers have different escaping rules.
+            </InfoCard>
+            <InfoCard title="HTML that must remain markup">
+              If users are intentionally allowed to submit formatted HTML, escaping will make the tags visible as text. That workflow needs an HTML sanitizer and a carefully controlled rendering path instead.
+            </InfoCard>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Named References and Missing Semicolons
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            HTML supports a large standardized table of named character
-            references. Some historical names may be recognized without a
-            trailing semicolon in specific parser states, but the HTML
-            specification treats many missing-semicolon cases as parse errors
-            and the result can depend on whether the text appears in normal
-            data or an attribute. Yoryantra therefore emits complete references
-            such as &amp;amp; and &amp;quot;.
+          <h2 className="text-xl font-semibold text-gray-900">Double Encoding and Single-Pass Decoding</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A common production bug is escaping text that has already been escaped. For example, escaping <code className="font-mono text-sm">&amp;lt;</code> produces <code className="font-mono text-sm">&amp;amp;lt;</code>. A browser then displays <code className="font-mono text-sm">&amp;lt;</code> instead of the intended <code className="font-mono text-sm">&lt;</code>. The fix is usually to identify the correct encoding boundary rather than repeatedly decoding until the text “looks right.”
+          </p>
+
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">{`Raw text:             <strong>Hi</strong>
+Escaped once:         &lt;strong&gt;Hi&lt;/strong&gt;
+Escaped twice:        &amp;lt;strong&amp;gt;Hi&amp;lt;/strong&amp;gt;
+Decode one pass:      &lt;strong&gt;Hi&lt;/strong&gt;`}</pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">What Unescape Mode Uses</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Unescape mode asks the browser&apos;s HTML parser to interpret character references and returns the resulting text. That means it can decode decimal references such as <code className="font-mono text-sm">&amp;#169;</code>, hexadecimal references such as <code className="font-mono text-sm">&amp;#xA9;</code>, and recognized named references such as <code className="font-mono text-sm">&amp;copy;</code>.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            HTML also retains some legacy named references that browsers accept without a semicolon in limited situations. Do not treat successful decoding as proof that the original source used the clearest or most portable syntax. When you generate HTML yourself, prefer complete references with their terminating semicolon.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Unescaping Can Produce Markup-Looking Text
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Unescape mode uses browser HTML character-reference behavior, so
-            references such as &amp;copy; and &amp;#169; can become their
-            corresponding characters. The output box itself renders the result
-            as text. If decoded untrusted content is later passed to an HTML
-            sink such as <code>innerHTML</code>, decoding has not made that
-            content safe.
-          </p>
+          <h2 className="text-xl font-semibold text-gray-900">Common Mistakes to Check Before Shipping</h2>
+
+          <ul className="mt-4 list-disc space-y-3 pl-6 text-gray-600 leading-relaxed">
+            <li><strong>Escaping too early:</strong> data is encoded in storage and then encoded again by the rendering layer.</li>
+            <li><strong>Escaping for the wrong parser:</strong> HTML encoding is applied to data that will actually be inserted into JavaScript, CSS, or a URL component.</li>
+            <li><strong>Turning sanitization into encoding:</strong> rich HTML is escaped, which prevents XSS but also destroys the intended formatting.</li>
+            <li><strong>Turning encoding into sanitization:</strong> untrusted HTML is decoded and then inserted with an unsafe HTML sink because the text “looked encoded.”</li>
+            <li><strong>Changing whitespace unintentionally:</strong> enable the trim option only when leading and trailing whitespace are not significant to the target format.</li>
+          </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Escaping Is Not the Same as HTML Sanitization
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Output encoding is appropriate when untrusted data should remain
-            plain text in a known context. Sanitization is a different task:
-            it is used when an application intentionally allows some HTML and
-            needs to remove or restrict unsafe markup. Keep framework
-            auto-escaping enabled where possible and use a maintained sanitizer
-            when rich HTML must be accepted.
-          </p>
-        </div>
+          <h2 className="text-xl font-semibold text-gray-900">Standards and Security References</h2>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Browser-Local Conversion
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            The escape and unescape operations run in your browser. This tool
-            does not send the pasted text to an encoding or decoding API.
-            Site-wide analytics or advertising scripts, if enabled by the
-            website, are separate from the conversion operation itself.
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            These primary and security references are useful when the output will be used in production rather than only inspected during debugging.
           </p>
-        </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Official References
-          </h2>
-          <div className="mt-4 space-y-3 text-sm leading-relaxed">
-            <p>
+          <ul className="mt-4 space-y-3 text-gray-600">
+            <li>
               <a
                 href="https://html.spec.whatwg.org/multipage/named-characters.html"
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-[var(--green)] underline underline-offset-4"
               >
-                WHATWG HTML Standard — named character references
+                WHATWG HTML — named character references
               </a>
-            </p>
-            <p>
+            </li>
+            <li>
               <a
-                href="https://html.spec.whatwg.org/multipage/parsing.html#named-character-reference-state"
+                href="https://developer.mozilla.org/en-US/docs/Glossary/Character_reference"
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-[var(--green)] underline underline-offset-4"
               >
-                WHATWG HTML parsing rules — named character reference state
+                MDN — character reference overview
               </a>
-            </p>
-            <p>
+            </li>
+            <li>
               <a
                 href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-[var(--green)] underline underline-offset-4"
               >
-                OWASP Cross Site Scripting Prevention Cheat Sheet
+                OWASP — Cross Site Scripting Prevention Cheat Sheet
               </a>
-            </p>
-          </div>
+            </li>
+          </ul>
         </div>
 
         <div>
@@ -489,59 +451,88 @@ function escapeHtml(
   }
 ) {
   return value.replace(/[&<>"']/g, (character) => {
-    if (character === "&") {
-      return options.escapeStyle === "numeric" ? "&#38;" : "&amp;";
-    }
-    if (character === "<") {
-      return options.escapeStyle === "numeric" ? "&#60;" : "&lt;";
-    }
-    if (character === ">") {
-      return options.escapeStyle === "numeric" ? "&#62;" : "&gt;";
-    }
+    if (character === "&") return options.escapeStyle === "numeric" ? "&#38;" : "&amp;";
+    if (character === "<") return options.escapeStyle === "numeric" ? "&#60;" : "&lt;";
+    if (character === ">") return options.escapeStyle === "numeric" ? "&#62;" : "&gt;";
     if (character === '"') {
-      if (!options.escapeQuotes) return character;
-      return options.escapeStyle === "numeric" ? "&#34;" : "&quot;";
+      return options.escapeQuotes
+        ? options.escapeStyle === "numeric"
+          ? "&#34;"
+          : "&quot;"
+        : character;
     }
-    if (character === "'") {
-      if (!options.escapeApostrophes) return character;
-      return options.escapeStyle === "numeric" ? "&#39;" : "&apos;";
-    }
+    if (character === "'") return options.escapeApostrophes ? "&#39;" : character;
     return character;
   });
 }
 
 function unescapeHtml(value: string) {
-  const textarea = document.createElement("textarea");
-  textarea.innerHTML = value;
-  return textarea.value;
+  let output = "";
+  let index = 0;
+
+  while (index < value.length) {
+    if (value[index] !== "&") {
+      output += value[index];
+      index += 1;
+      continue;
+    }
+
+    const decoded = decodeHtmlReferenceAt(value, index);
+
+    if (!decoded) {
+      output += "&";
+      index += 1;
+      continue;
+    }
+
+    output += decoded.value;
+    index += decoded.length;
+  }
+
+  return output;
 }
 
-function countEscapedCharacters(
-  input: string,
-  options: { escapeQuotes: boolean; escapeApostrophes: boolean }
-) {
-  let count = 0;
+function decodeHtmlReferenceAt(source: string, start: number) {
+  const remaining = source.slice(start);
+  const numeric = remaining.match(/^&#(?:[xX][0-9A-Fa-f]+|[0-9]+);?/);
 
-  for (const character of input) {
-    if (character === "&" || character === "<" || character === ">") {
-      count += 1;
-    } else if (character === '"' && options.escapeQuotes) {
-      count += 1;
-    } else if (character === "'" && options.escapeApostrophes) {
-      count += 1;
+  if (numeric) {
+    const decoded = decodeSingleHtmlReference(numeric[0]);
+    if (decoded !== numeric[0]) {
+      return { value: decoded, length: numeric[0].length };
     }
   }
 
-  return count;
+  const named = remaining.match(/^&([A-Za-z][A-Za-z0-9]*)(;?)/);
+  if (!named) return null;
+
+  const name = named[1];
+  const hasSemicolon = named[2] === ";";
+
+  if (hasSemicolon) {
+    const candidate = `&${name};`;
+    const decoded = decodeSingleHtmlReference(candidate);
+    if (decoded !== candidate) {
+      return { value: decoded, length: candidate.length };
+    }
+  }
+
+  for (let end = name.length; end >= 1; end -= 1) {
+    const candidate = `&${name.slice(0, end)}`;
+    const decoded = decodeSingleHtmlReference(candidate);
+
+    if (decoded !== candidate) {
+      return { value: decoded, length: candidate.length };
+    }
+  }
+
+  return null;
 }
 
-function countDecodedReferences(input: string) {
-  const candidates =
-    input.match(/&(?:#(?:x[0-9a-f]+|\d+)|[a-z][a-z0-9]+);?/gi) || [];
-
-  return candidates.reduce((count, candidate) => {
-    return count + (unescapeHtml(candidate) !== candidate ? 1 : 0);
-  }, 0);
+function decodeSingleHtmlReference(reference: string) {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = reference;
+  return textarea.value;
 }
 
 function Toggle({
@@ -554,12 +545,12 @@ function Toggle({
   label: string;
 }) {
   return (
-    <label className="flex items-center gap-3 text-sm text-gray-700">
+    <label className="flex items-start gap-3 text-sm text-gray-700">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
+        className="mt-1 shrink-0 h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
       />
       <span>{label}</span>
     </label>
@@ -570,9 +561,37 @@ function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5">
       <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">
-        {value}
-      </p>
+      <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
     </div>
+  );
+}
+
+function InfoCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+      <h3 className="font-semibold text-gray-900">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-gray-600">{children}</p>
+    </div>
+  );
+}
+
+function ReferenceRow({
+  character,
+  named,
+  numeric,
+  note,
+}: {
+  character: string;
+  named: string;
+  numeric: string;
+  note: string;
+}) {
+  return (
+    <tr>
+      <td className="border-b border-gray-100 px-4 py-3 font-mono text-gray-900">{character}</td>
+      <td className="border-b border-gray-100 px-4 py-3 font-mono">{named}</td>
+      <td className="border-b border-gray-100 px-4 py-3 font-mono">{numeric}</td>
+      <td className="border-b border-gray-100 px-4 py-3">{note}</td>
+    </tr>
   );
 }

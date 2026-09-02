@@ -2,25 +2,34 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "HTML Escape Unescape | Yoryantra",
+  title: "HTML Escape & Unescape Tool | Encode and Decode Entities",
   description:
-    "Escape HTML special characters or decode HTML character references locally in your browser, with context-specific security guidance and standards references.",
+    "Escape or unescape HTML character references in your browser. Compare named and numeric entities, avoid double encoding, and understand context and security limits.",
+  keywords: [
+    "html escape unescape",
+    "html entity encoder decoder",
+    "escape html",
+    "unescape html",
+    "html character references",
+    "encode html entities",
+    "decode html entities",
+  ],
   alternates: {
     canonical: "https://yoryantra.com/tools/html-escape-unescape",
   },
   openGraph: {
-    title: "HTML Escape Unescape | Yoryantra",
+    title: "HTML Escape & Unescape Tool | Yoryantra",
     description:
-      "Escape HTML special characters, decode named or numeric character references, and review the output context before using the result.",
+      "Encode HTML-sensitive characters or decode HTML character references with practical guidance about contexts, double encoding, and sanitization.",
     url: "https://yoryantra.com/tools/html-escape-unescape",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "HTML Escape Unescape | Yoryantra",
+    title: "HTML Escape & Unescape Tool | Yoryantra",
     description:
-      "Encode HTML special characters and decode HTML character references locally in your browser.",
+      "Escape HTML-sensitive characters or decode HTML character references directly in your browser.",
   },
 };
 

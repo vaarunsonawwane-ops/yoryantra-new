@@ -2,25 +2,33 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Validator | Syntax & Duplicate Keys | Yoryantra",
+  title: "JSON Validator & Syntax Checker | Find JSON Errors",
   description:
-    "Validate JSON syntax, locate parser errors, flag duplicate object keys and risky number values, and format valid JSON while preserving source tokens.",
+    "Validate JSON syntax in your browser, locate parse errors, pretty-print valid JSON, and flag duplicate keys or large integers that can cause interoperability issues.",
+  keywords: [
+    "json validator",
+    "json syntax checker",
+    "validate json",
+    "json error checker",
+    "json parser error",
+    "json formatter",
+  ],
   alternates: {
     canonical: "https://yoryantra.com/tools/json-validator",
   },
   openGraph: {
-    title: "JSON Validator | Yoryantra",
+    title: "JSON Validator & Syntax Checker | Yoryantra",
     description:
-      "Check JSON syntax, parser errors, duplicate keys, root value type, number interoperability, and formatted structure directly in your browser.",
+      "Validate JSON syntax, inspect parse errors, and format valid JSON with practical interoperability warnings.",
     url: "https://yoryantra.com/tools/json-validator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "JSON Validator | Yoryantra",
+    title: "JSON Validator & Syntax Checker | Yoryantra",
     description:
-      "Validate JSON syntax and inspect duplicate keys, parser locations, risky numbers, and formatted output locally in your browser.",
+      "Validate JSON syntax, locate errors, and format valid JSON directly in your browser.",
   },
 };
 
