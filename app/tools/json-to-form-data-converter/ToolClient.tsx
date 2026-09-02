@@ -1277,17 +1277,17 @@ tags=["api","forms"]`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             A Filename String Is Not a File Upload
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-900/90">
             <code>{"{ \"avatar\": \"/tmp/photo.jpg\" }"}</code> contains a
             path string, not the bytes of the photo. Browser uploads need a File
             or Blob object. cURL file upload has its own file-reading syntax such
             as <code>--form avatar=@photo.jpg</code>.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-900/90">
             Generated cURL fields use <code>--form-string</code> so an input value
             beginning with <code>@</code> stays text instead of unexpectedly
             reading a local file. Add an actual file part separately when that is
@@ -1373,8 +1373,10 @@ tags=["api","forms"]`}</pre>
           <h2 className="text-xl font-semibold text-gray-900">
             When the Server Still Rejects the Payload
           </h2>
+		  <div className="mt-4">
           <YoryantraRelatedTools currentHref="/tools/json-to-form-data-converter" />
         </div>
+		</div>
       </section>
     </ToolShell>
   );
