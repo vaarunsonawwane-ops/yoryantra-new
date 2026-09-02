@@ -2,25 +2,25 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "URL Encoder Decoder | Percent-Encoding Tool | Yoryantra",
+  title: "URL Encoder Decoder — Component, Full URL & Form | Yoryantra",
   description:
-    "Encode and decode URL components, full URI text, and form-style values with RFC 3986 percent-encoding guidance, UTF-8 handling, and malformed-escape checks.",
+    "Encode and decode URL components, complete URLs, and form values. Understand percent-encoding, UTF-8, + vs %20, malformed escapes, and double encoding.",
   alternates: {
     canonical: "https://yoryantra.com/tools/url-encoder-decoder",
   },
   openGraph: {
-    title: "URL Encoder Decoder | Percent-Encoding Tool | Yoryantra",
+    title: "URL Encoder Decoder — Component, Full URL & Form | Yoryantra",
     description:
-      "Encode or decode URL components, full URI text, and form-style values with context-aware percent encoding.",
+      "Percent-encode and decode URL components, full URLs, and form-style values with practical guidance on reserved characters and encoding context.",
     url: "https://yoryantra.com/tools/url-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "URL Encoder Decoder | Yoryantra",
     description:
-      "Encode or decode URL components, full URI text, and form-style query values.",
+      "Encode and decode URL components, full URLs, and form-style values with context-aware modes.",
   },
 };
 
