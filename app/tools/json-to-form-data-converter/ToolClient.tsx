@@ -1190,17 +1190,17 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+          <h2 className="text-xl font-semibold text-gray-900">
             Pick a Field Naming Convention the Server Actually Parses
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Names such as <code>profile.role</code> and
             <code>profile[role]</code> are conventions used by frameworks and
             form parsers. HTTP does not assign nesting semantics to either one.
             A server can just as easily treat the brackets or dot as literal
             characters in the field name.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Literal JSON keys can also collide with a flattening convention. A
             source key named <code>profile.role</code> becomes ambiguous when a
             dot is also being used to mean “nested property.” Rename the field,
@@ -1281,13 +1281,13 @@ tags=["api","forms"]`}</pre>
           <h2 className="text-xl font-semibold text-gray-900">
             A Filename String Is Not a File Upload
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             <code>{"{ \"avatar\": \"/tmp/photo.jpg\" }"}</code> contains a
             path string, not the bytes of the photo. Browser uploads need a File
             or Blob object. cURL file upload has its own file-reading syntax such
             as <code>--form avatar=@photo.jpg</code>.
           </p>
-          <p className="mt-4 leading-relaxed text-gray-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Generated cURL fields use <code>--form-string</code> so an input value
             beginning with <code>@</code> stays text instead of unexpectedly
             reading a local file. Add an actual file part separately when that is
@@ -1373,10 +1373,11 @@ tags=["api","forms"]`}</pre>
           <h2 className="text-xl font-semibold text-gray-900">
             When the Server Still Rejects the Payload
           </h2>
-		  <div className="mt-4">
-          <YoryantraRelatedTools currentHref="/tools/json-to-form-data-converter" />
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-to-form-data-converter" />
+          </div>
         </div>
-		</div>
       </section>
     </ToolShell>
   );
