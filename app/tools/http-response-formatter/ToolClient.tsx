@@ -847,15 +847,15 @@ export default function ToolClient() {
           ) : null}
 
           {result.diagnostics.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">
                 Response diagnostics
               </h3>
               <div className="mt-4 space-y-3">
                 {result.diagnostics.map((item, index) => (
                   <div
                     key={`${item.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-700"
                   >
                     <strong>{item.title}</strong>
                     <p className="mt-1">{item.message}</p>
@@ -897,17 +897,17 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             JSON-Looking Text Is Not Automatically Valid JSON
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             A response can advertise <code>application/json</code> and still
             contain a truncated object, HTML error page or malformed JSON.
             Earlier formatters often attempted pretty-printing and then still
             labelled a failed body as JSON.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             This version keeps the original body and labels it{" "}
             <strong>invalid JSON</strong> when the media type claims JSON but
             parsing fails. That distinction matters when debugging API gateways
@@ -950,16 +950,16 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Transfer-Encoding Plus Content-Length Is a Security-Sensitive Framing Combination
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             HTTP/1.1 has explicit precedence and recipient rules for message
             framing because different parsers disagreeing about where a message
             ends can create serious intermediary vulnerabilities.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             The formatter flags both fields appearing together and preserves
             duplicate values. If the capture comes from a proxy-chain security
             incident, use raw protocol-aware tooling instead of relying on a
@@ -1033,7 +1033,10 @@ export default function ToolClient() {
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/http-response-formatter" />
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/http-response-formatter" />
+          </div>
         </div>
       </section>
     </ToolShell>

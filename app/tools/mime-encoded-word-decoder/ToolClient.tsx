@@ -1234,7 +1234,7 @@ export default function ToolClient() {
                       </div>
                     </div>
                     {word.errors.length || word.warnings.length ? (
-                      <ul className="mt-3 list-disc space-y-1 pl-5 text-xs leading-relaxed text-yellow-900">
+                      <ul className="mt-3 list-disc space-y-1 pl-5 text-xs leading-relaxed text-gray-700">
                         {word.errors.map((item, itemIndex) => (
                           <li key={`e-${itemIndex}`}>
                             <strong>Error:</strong> {item}
@@ -1254,15 +1254,15 @@ export default function ToolClient() {
           ) : null}
 
           {result.issues.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-700">
                 Header review
               </h3>
               <div className="mt-4 space-y-3">
                 {result.issues.map((issue, index) => (
                   <div
                     key={`${issue.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-700"
                   >
                     <strong>{issue.title}</strong>
                     <p className="mt-1">{issue.message}</p>
@@ -1305,16 +1305,16 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-700">
             Q Encoding Is Not the Same as Quoted-Printable Body Encoding
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700/90">
             The syntax is related, but RFC 2047 gives Q encoded-words their own
             rules. Inside an encoded-word, underscore represents an ASCII space,
             and bytes can be written as <code>=HH</code> hexadecimal escapes.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700/90">
             That means <code>=?UTF-8?Q?Sneha_Yoryantra?=</code> decodes the
             underscore as a space. Treating the encoded-text as a normal URL or
             generic quoted-printable string can produce the wrong result.
@@ -1373,18 +1373,18 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Encoded-Words Are Allowed Only in Specific Header Contexts
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             RFC 2047 does not authorize replacing arbitrary header syntax with
             encoded-words. They are used in text/phrase contexts such as Subject
             and display names, with restrictions. Received is not a generic
             encoded-word field, and MIME parameters such as filename have their
             own parameter-encoding mechanisms.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             This tool decodes recognizable tokens for diagnostics, but it does
             not pretend to be a complete RFC 5322 address parser or MIME
             parameter parser.
@@ -1424,7 +1424,10 @@ export default function ToolClient() {
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/mime-encoded-word-decoder" />
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/mime-encoded-word-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>

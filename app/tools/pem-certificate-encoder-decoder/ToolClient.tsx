@@ -977,7 +977,7 @@ export default function ToolClient() {
                   </div>
 
                   {block.errors.length || block.warnings.length ? (
-                    <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-yellow-900">
+                    <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-gray-700">
                       {block.errors.map((item, index) => (
                         <li key={`e-${index}`}>
                           <strong>Error:</strong> {item}
@@ -996,13 +996,13 @@ export default function ToolClient() {
           ) : null}
 
           {result.issues.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">PEM review</h3>
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-700">PEM review</h3>
               <div className="mt-4 space-y-3">
                 {result.issues.map((issue, index) => (
                   <div
                     key={`${issue.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-700"
                   >
                     <strong>{issue.title}</strong>
                     <p className="mt-1">{issue.message}</p>
@@ -1045,17 +1045,17 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-700">
             A Certificate Bundle Is Several PEM Blocks, Not One Bigger Certificate
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Certificate-chain files commonly concatenate a leaf certificate and
             intermediate certificates. Each object keeps its own{" "}
             <code>BEGIN CERTIFICATE</code>, Base64 body and{" "}
             <code>END CERTIFICATE</code> boundary.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             The older normalization pattern of joining all Base64 bodies and
             wrapping them once destroys those object boundaries. This version
             normalizes every block independently and preserves the original
@@ -1115,18 +1115,18 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Private-Key PEM Is Secret Material Even When the Formatting Operation Is Local
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Certificates and public keys are designed for distribution. Private
             keys are not. Local browser processing avoids intentionally sending
             the key to a formatting API, but clipboard history, screenshots,
             browser extensions, local logs and screen sharing remain real
             exposure paths.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Prefer test keys when learning or checking formatting. If a
             production private key is accidentally exposed outside its intended
             environment, treat rotation as an operational security decision—not
@@ -1185,7 +1185,10 @@ export default function ToolClient() {
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/pem-certificate-encoder-decoder" />
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/pem-certificate-encoder-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>
