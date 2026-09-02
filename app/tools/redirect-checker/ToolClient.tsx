@@ -57,7 +57,7 @@ type AnalysisResult = {
   redirectCount: number;
 };
 
-const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
+const REDIRECT_STATUSES = [300, 301, 302, 303, 307, 308];
 
 const SAMPLE_HEADERS = `HTTP/2 301
 location: /docs/
@@ -311,6 +311,10 @@ function methodFinding(
   status: number,
   method: MethodState
 ) {
+  if (status === 300) {
+    return `The incoming method is ${method}. A 300 can point to a preferred choice with Location, but it does not authorize the historical POST-to-GET rewrite used by 301/302. Clients are not required to auto-follow a 300 choice.`;
+  }
+
   if (status === 303) {
     return `The incoming method state is ${method}. A 303 directs the next retrieval to GET, except a HEAD request remains HEAD.`;
   }
@@ -332,7 +336,7 @@ function methodFinding(
     return `The incoming method state is ${method}. For historical compatibility, a user agent may rewrite POST to GET when following HTTP ${status}; later-hop method analysis therefore remains uncertain until you inspect the real client trace.`;
   }
 
-  return `The incoming method is ${method}. HTTP ${status} does not create the same explicit method-preservation guarantee as 307/308 for every workflow; verify the real client behavior.`;
+  return `The incoming method is ${method}. RFC 9110's historical rewrite allowance for HTTP ${status} is specifically POST to GET; other methods are not given that rewrite allowance. Unsafe requests still deserve verification with the real client trace.`;
 }
 
 function resolveLocation(location: string, currentUrl: string) {
@@ -351,7 +355,7 @@ function resolveLocation(location: string, currentUrl: string) {
     return {
       url: "",
       error:
-        `Location resolves to ${parsed.protocol}. This HTTP-chain checker does not follow non-HTTP(S) destinations.`,
+        `Location resolves to ${parsed.protocol}. Only HTTP and HTTPS redirect destinations are analyzed.`,
     };
   }
 
@@ -412,10 +416,15 @@ function analyzeRedirects(
       !hasLocation
     ) {
       findings.push({
-        severity: "high",
-        title: `HTTP ${response.status} redirect has no Location`,
+        severity: response.status === 300 ? "info" : "high",
+        title:
+          response.status === 300
+            ? "HTTP 300 has no preferred Location"
+            : `HTTP ${response.status} redirect has no Location`,
         message:
-          `Response ${index + 1} uses a redirect status but supplies no Location URI reference.`,
+          response.status === 300
+            ? `Response ${index + 1} can legitimately describe multiple choices without naming one preferred Location. No automatic destination can be reconstructed from the supplied headers.`
+            : `Response ${index + 1} uses a redirect status but supplies no Location URI reference.`,
       });
     }
 
@@ -427,7 +436,7 @@ function analyzeRedirects(
         severity: "info",
         title: "Location appears on a non-redirect status",
         message:
-          `Response ${index + 1} is HTTP ${response.status}. Location can have semantics outside automatic redirection in some statuses, so this checker does not turn it into a redirect hop.`,
+          `Response ${index + 1} is HTTP ${response.status}. Location can have semantics outside automatic redirection in some statuses, so the field is reported without inventing another hop.`,
       });
     }
 
@@ -582,12 +591,19 @@ function analyzeRedirects(
   if (hops.length) {
     const last = hops[hops.length - 1];
 
-    if (last.isRedirect) {
+    if (last.isRedirect && last.status !== 300) {
       findings.push({
         severity: "warning",
         title: "Pasted chain ends on a redirect",
         message:
           `The final supplied response is HTTP ${last.status}. Another Location hop may be missing from the pasted trace.`,
+      });
+    } else if (last.status === 300 && last.hasLocation) {
+      findings.push({
+        severity: "info",
+        title: "Pasted chain ends on HTTP 300",
+        message:
+          "HTTP 300 can name a preferred choice with Location, but a client is not required to follow it automatically. The supplied trace can therefore end here without proving that another request is missing.",
       });
     }
   }
@@ -710,7 +726,7 @@ export default function ToolClient() {
               severity: "info",
               title: "URL syntax checked; no redirect fetched",
               message:
-                "This browser-local checker does not make the network request. Collect the real headers with cURL, DevTools or another HTTP client and paste them here.",
+                "No network request is made from the pasted analysis. Collect the real headers with cURL, DevTools or another HTTP client and paste them here.",
             },
           ],
           finalUrl: normalizedStart,
@@ -786,7 +802,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Redirect Checker"
-      description="Analyze real HTTP response headers that you paste, resolve each Location hop, inspect method semantics and catch loops, protocol downgrades, ambiguous destinations and incomplete chains without pretending a URL string is a live redirect test."
+      description="Paste HTTP response headers to trace Location hops, resolve relative redirects, compare request-method behavior, and spot loops, protocol downgrades, ambiguous destinations or an incomplete chain."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -984,15 +1000,15 @@ export default function ToolClient() {
           </div>
 
           {result.findings.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">
                 Redirect review
               </h3>
               <div className="mt-4 space-y-3">
                 {result.findings.map((finding, index) => (
                   <div
                     key={`${finding.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-700"
                   >
                     <strong>
                       {finding.severity.toUpperCase()} · {finding.title}
@@ -1012,10 +1028,10 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        This page analyzes the URL and response-header text in your browser. It
-        does not fetch the URL, follow redirects, send credentials or verify the
-        live server. Site-wide analytics or advertising scripts, if enabled,
-        are separate from this analysis.
+        The URL and pasted response headers are analyzed in the browser. No URL
+        is fetched, no redirect is followed, and no credentials are sent to the
+        destination. Site-wide analytics or advertising scripts, if enabled,
+        are separate from the header analysis.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1030,26 +1046,28 @@ export default function ToolClient() {
             status plus its Location field.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            That is why this tool stays browser-local and asks you to paste
-            headers collected from the real environment. It can then reason
-            about relative Locations and chains without making a false “live
-            checked” claim.
+            Pasted response headers keep those two questions separate: what the
+            server actually returned, and how that response changes the next
+            request. Relative Location values can then be resolved one hop at a
+            time without claiming that the live server was contacted.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             301/302 and 307/308 Solve Different Method Problems
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             For historical compatibility, clients may turn a POST into GET when
             following 301 or 302. HTTP 307 and 308 exist specifically so an
             automatic redirect does not change the request method. A 303
             intentionally points to a separate retrieval, normally GET.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             That distinction can be invisible on a normal page navigation and
-            critical on login, checkout, webhook or API endpoints.
+            critical on login, checkout, webhook or API endpoints. HTTP 300 is
+            different again: a Location value can identify a preferred choice,
+            but a client is not required to automatically follow that choice.
           </p>
         </div>
 
@@ -1064,22 +1082,23 @@ export default function ToolClient() {
             that hop, not always against the original URL.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The checker advances one URL at a time so a second relative Location
-            is resolved from the first redirect destination.
+            Resolution therefore has to advance one URL at a time. A second
+            relative Location is resolved from the first redirect destination,
+            not from the URL where the chain originally started.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             HTTPS → HTTP Is More Than an SEO Cleanliness Issue
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Downgrading a redirect destination from HTTPS to HTTP changes the
             transport security of the next request. Depending on HSTS, browser
             state and infrastructure, the user may be upgraded again or may
             briefly enter an insecure path.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             During migrations, prefer a direct HTTPS destination when the target
             supports it rather than relying on a later redirect to repair the
             scheme.
@@ -1144,8 +1163,13 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/redirect-checker" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Keep Tracing the Redirect
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/redirect-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>

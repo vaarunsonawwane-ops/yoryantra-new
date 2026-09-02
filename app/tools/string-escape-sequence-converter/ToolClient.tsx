@@ -47,7 +47,7 @@ type Result = {
   lineCount: number;
 };
 
-const SAMPLE = String.raw`Hello\nSneha\nUnicode: \u0935\u0930\u0941\u0923\nEmoji: \u{1F680}`;
+const SAMPLE = String.raw`Hello\nWorld\nUnicode: \u0935\u0930\u0941\u0923\nEmoji: \u{1F680}`;
 
 function styleLabel(style: EscapeStyle) {
   if (style === "javascript") return "JavaScript";
@@ -72,6 +72,23 @@ function isLowSurrogate(value: number) {
 
 function isSurrogate(value: number) {
   return value >= 0xd800 && value <= 0xdfff;
+}
+
+function isValidCUniversalCharacterName(value: number) {
+  if (value > 0x10ffff || isSurrogate(value)) {
+    return false;
+  }
+
+  if (
+    value < 0x00a0 &&
+    value !== 0x0024 &&
+    value !== 0x0040 &&
+    value !== 0x0060
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 function applyNewlineMode(input: string, mode: NewlineMode) {
@@ -124,7 +141,7 @@ function prepareInput(
           severity: "warning",
           title: "Template interpolation is not evaluated",
           message:
-            "The unwrapped backtick text contains ${...}. This converter never executes JavaScript or evaluates template expressions.",
+            "The unwrapped backtick text contains ${...}. No JavaScript is executed and template expressions are not evaluated.",
         });
       }
     }
@@ -264,15 +281,13 @@ function decodeCFixedUniversal(
   const raw =
     `\\u${hex}`;
 
-  if (
-    isSurrogate(codePoint)
-  ) {
+  if (!isValidCUniversalCharacterName(codePoint)) {
     pushIssue(
       issues,
       warn,
       "high",
-      "C universal escape names a surrogate",
-      `${raw} does not identify a Unicode scalar value and was kept unchanged.`
+      "C universal-character name is outside the allowed range",
+      `${raw} is not a valid C universal-character name. C rejects surrogates, values above U+10FFFF, and most values below U+00A0 except U+0024 ($), U+0040 (@), and U+0060 (grave accent). Use a simple, octal or hexadecimal escape for control bytes.`
     );
 
     return {
@@ -326,7 +341,7 @@ function decodeBracedUnicode(
     pushIssue(
       issues,
       warn,
-      "warning",
+      "high",
       "Braced Unicode escape is not valid for this style",
       `\\u{...} is not a ${style === "json" ? "JSON string" : "C universal-character-name"} escape. The sequence was kept unchanged.`
     );
@@ -416,13 +431,13 @@ function decodeCUniversal(
   const codePoint = Number.parseInt(hex, 16);
   const raw = `\\U${hex}`;
 
-  if (codePoint > 0x10ffff || isSurrogate(codePoint)) {
+  if (!isValidCUniversalCharacterName(codePoint)) {
     pushIssue(
       issues,
       warn,
       "high",
-      "Invalid Unicode value in C universal escape",
-      `${raw} does not identify a Unicode scalar value.`
+      "Invalid C universal-character name",
+      `${raw} is outside C's universal-character-name constraints. Surrogates, values above U+10FFFF, and most values below U+00A0 are not permitted.`
     );
 
     return {
@@ -430,6 +445,66 @@ function decodeCUniversal(
       nextIndex: index + 9,
       recognized: false,
     };
+  }
+
+  return {
+    text: String.fromCodePoint(codePoint),
+    nextIndex: index + 9,
+    recognized: true,
+  };
+}
+
+function decodeLongUnicodeUtility(
+  input: string,
+  index: number,
+  issues: Issue[],
+  warn: boolean
+) {
+  const hex = input.slice(index + 2, index + 10);
+
+  if (!/^[0-9A-Fa-f]{8}$/.test(hex)) {
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Invalid \\U escape",
+      `\\U at UTF-16 position ${index} is not followed by exactly eight hexadecimal digits.`
+    );
+
+    return {
+      text: "\\U",
+      nextIndex: index + 1,
+      recognized: false,
+    };
+  }
+
+  const codePoint = Number.parseInt(hex, 16);
+  const raw = `\\U${hex}`;
+
+  if (codePoint > 0x10ffff) {
+    pushIssue(
+      issues,
+      warn,
+      "high",
+      "Unicode code point is too large",
+      `${raw} is above Unicode's maximum U+10FFFF and was kept unchanged.`
+    );
+
+    return {
+      text: raw,
+      nextIndex: index + 9,
+      recognized: false,
+    };
+  }
+
+  if (isSurrogate(codePoint)) {
+    pushIssue(
+      issues,
+      warn,
+      "warning",
+      "Surrogate value in 8-digit Unicode escape",
+      `${raw} names a surrogate value rather than a Unicode scalar value. The UTF-16 code unit is preserved for inspection.`
+    );
   }
 
   return {
@@ -547,6 +622,17 @@ function decodeEscapes(
     if (Object.prototype.hasOwnProperty.call(simple, next)) {
       output += simple[next];
       recognizedEscapes += 1;
+
+      if (style === "c" && next === "?") {
+        pushIssue(
+          issues,
+          warnInvalidEscapes,
+          "info",
+          "Question-mark escape is valid but usually unnecessary in C23",
+          "\\? remains a valid C escape for a question mark. It was historically useful for avoiding trigraph recognition; C23 removed trigraphs, so that particular reason no longer applies."
+        );
+      }
+
       index += 1;
       continue;
     }
@@ -569,7 +655,7 @@ function decodeEscapes(
         warnInvalidEscapes,
         "warning",
         "Legacy numeric/octal JavaScript escape kept",
-        `\\${next} begins a legacy numeric escape form. It is restricted in strict-mode/module code, so this converter does not guess legacy octal semantics.`
+        `\\${next} begins a legacy numeric escape form. It is restricted in strict-mode/module code, so legacy octal meaning is not guessed here.`
       );
       index += 1;
       continue;
@@ -597,9 +683,9 @@ function decodeEscapes(
         pushIssue(
           issues,
           warnInvalidEscapes,
-          "warning",
-          "C octal value kept",
-          `\\${octal} is above 255. Mapping it to browser Unicode text would not reliably model a C execution character set.`
+          "high",
+          "C octal value is outside ordinary char range",
+          `\\${octal} is above 255. In the ordinary unprefixed C string mode modeled here, an octal escape must fit unsigned char; prefixed literals use different corresponding types. The sequence was kept unchanged.`
         );
       }
 
@@ -613,7 +699,7 @@ function decodeEscapes(
         pushIssue(
           issues,
           warnInvalidEscapes,
-          "warning",
+          style === "json" ? "high" : "warning",
           "\\x is outside the selected syntax",
           `\\xHH is not a ${style === "json" ? "JSON" : "Unicode-only"} escape.`
         );
@@ -656,9 +742,9 @@ function decodeEscapes(
           pushIssue(
             issues,
             warnInvalidEscapes,
-            "warning",
-            "C hex value is execution-character-set dependent",
-            `\\x${digits} is above 255. The sequence was preserved instead of inventing a browser Unicode mapping.`
+            "high",
+            "C hex value is outside ordinary char range",
+            `\\x${digits} is above 255. In the ordinary unprefixed C string mode modeled here, a hexadecimal escape must fit unsigned char; prefixed literals use different corresponding types. The sequence was kept unchanged.`
           );
         }
 
@@ -732,28 +818,21 @@ function decodeEscapes(
       continue;
     }
 
-    if (next === "U") {
-      if (style !== "c" && style !== "unicode") {
-        output += "\\U";
-        pushIssue(
-          issues,
-          warnInvalidEscapes,
-          "warning",
-          "\\UXXXXXXXX is outside the selected syntax",
-          `C/Unicode utility mode can inspect \\UXXXXXXXX; ${styleLabel(
-            style
-          )} mode keeps it unchanged.`
-        );
-        index += 1;
-        continue;
-      }
-
-      const decoded = decodeCUniversal(
-        input,
-        index,
-        issues,
-        warnInvalidEscapes
-      );
+    if (next === "U" && (style === "c" || style === "unicode")) {
+      const decoded =
+        style === "c"
+          ? decodeCUniversal(
+              input,
+              index,
+              issues,
+              warnInvalidEscapes
+            )
+          : decodeLongUnicodeUtility(
+              input,
+              index,
+              issues,
+              warnInvalidEscapes
+            );
       output += decoded.text;
       index = decoded.nextIndex;
 
@@ -852,6 +931,7 @@ function encodeEscapes(
     else if (char === "\t") output += "\\t";
     else if (char === "\b") output += "\\b";
     else if (char === "\f") output += "\\f";
+    else if (codePoint === 0x07 && style === "c") output += "\\a";
     else if (char === "\v") {
       output += style === "json" ? "\\u000B" : "\\v";
     } else if (char === '"') {
@@ -900,7 +980,10 @@ function encodeEscapes(
       options.escapeNonAscii &&
       codePoint > 0x7e
     ) {
-      output += cUnicodeEscape(codePoint, options.uppercaseHex);
+      output +=
+        codePoint < 0x00a0 && codePoint <= 0xff
+          ? `\\${codePoint.toString(8).padStart(3, "0")}`
+          : cUnicodeEscape(codePoint, options.uppercaseHex);
     } else if (
       style === "json" &&
       options.escapeNonAscii &&
@@ -916,6 +999,8 @@ function encodeEscapes(
       output +=
         style === "json"
           ? jsonUnicodeEscape(codePoint, options.uppercaseHex)
+          : style === "c"
+          ? `\\${codePoint.toString(8).padStart(3, "0")}`
           : `\\u${hex.padStart(4, "0")}`;
     } else if (isSurrogate(codePoint)) {
       output += `\\u${hex.padStart(4, "0")}`;
@@ -1300,7 +1385,7 @@ function buildResult(options: {
       severity: "info",
       title: "C escapes depend on the execution character set",
       message:
-        "C hexadecimal/octal escapes ultimately map through a C implementation's character model. This browser tool safely decodes values up to one byte and leaves ambiguous larger values visible instead of pretending JavaScript Unicode is the C runtime.",
+        "C mode models ordinary unprefixed string escapes. Octal and hexadecimal values must fit unsigned char; prefixed u8/u/U/L literals have different corresponding ranges and are not simulated here. Character meaning can still depend on the implementation's literal/execution encoding.",
     });
   }
 
@@ -1459,7 +1544,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="String Escape Sequence Converter"
-      description="Decode, encode, normalize or inspect JavaScript, JSON, Unicode, hex and C-style escape sequences while keeping the syntax differences, control characters, Unicode scalar values and UTF-16 surrogate edge cases visible."
+      description="Decode, encode, normalize or inspect JavaScript, JSON and C string escapes while keeping control characters, Unicode scalar values, UTF-16 surrogates and syntax-specific edge cases visible."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -1570,7 +1655,7 @@ export default function ToolClient() {
               clear();
             }}
             title="Escape non-ASCII while encoding"
-            text="JSON uses surrogate pairs for supplementary characters; C uses \\u/\\U."
+            text="JSON uses surrogate pairs for supplementary characters; C uses \\u/\\U where permitted and simple or numeric escapes for low control values."
           />
           <Toggle
             checked={escapeQuotes}
@@ -1695,15 +1780,15 @@ export default function ToolClient() {
           </div>
 
           {notes.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">
                 Syntax and Unicode review
               </h3>
               <div className="mt-4 space-y-3">
                 {notes.map((issue, index) => (
                   <div
                     key={`${issue.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-700"
                   >
                     <strong>
                       {issue.severity.toUpperCase()} · {issue.title}
@@ -1765,10 +1850,10 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Conversion runs on the pasted text in your browser. The tool does not
-        evaluate JavaScript, compile C, execute template interpolation or upload
-        the string to a conversion API. Site-wide analytics or advertising
-        scripts, if enabled, are separate from this operation.
+        The pasted string is processed in the browser. JavaScript is not
+        evaluated, C is not compiled, template expressions are not executed,
+        and the text is not sent to a conversion API. Site-wide analytics or
+        advertising scripts, if enabled, are separate from this operation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1791,20 +1876,21 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             JSON Has No \xHH or \u{"{1F680}"} Escape
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             JSON strings use <code>\uXXXX</code> UTF-16 code-unit escapes. A
             supplementary character such as 🚀 is represented with two{" "}
             <code>\uXXXX</code> surrogate escapes when escaped, not the
             JavaScript code-point form <code>\u{"{1F680}"}</code>.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
-            The JSON encoder on this page follows that distinction and
-            validates generated string content by wrapping it in quotes and
-            parsing it with JSON.parse.
+          <p className="mt-4 leading-relaxed text-gray-700">
+            A useful validation check is to wrap generated JSON string content
+            in double quotes and pass it through <code>JSON.parse</code>. That
+            catches a quote, backslash or control character that would make the
+            generated JSON string invalid.
           </p>
         </div>
 
@@ -1825,19 +1911,21 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Lone Surrogates Are a Real Interoperability Edge Case
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             JSON grammar can carry escaped UTF-16 surrogate code units even
             when they do not form a valid pair. Software differs in how well
             such strings survive encoding, databases, APIs and Unicode
             normalization.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
-            This converter preserves lone surrogate escapes for diagnosis and
-            reports them rather than silently replacing or combining them.
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Lone surrogate escapes are kept visible during diagnosis rather
+            than silently replaced or combined. That makes the malformed or
+            non-interoperable code-unit sequence easier to trace back to its
+            source.
           </p>
         </div>
 
@@ -1868,9 +1956,32 @@ export default function ToolClient() {
             character model.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Browser Unicode is not a faithful substitute for every C execution
-            character set, so this checker decodes one-byte values and keeps
-            larger ambiguous hex runs visible with a warning.
+            The C mode here models an ordinary unprefixed string, so an octal
+            or hexadecimal escape must fit the range of unsigned char. Larger
+            values stay visible as high-severity findings instead of being
+            assigned an invented browser-Unicode meaning. Prefixed u8, u, U and
+            L literals have different corresponding ranges and are outside this
+            mode.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            C Universal-Character Names Are Not General Control-Byte Escapes
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            C places extra constraints on <code>\uXXXX</code> and{" "}
+            <code>\UXXXXXXXX</code>. Surrogates are not permitted, values above
+            U+10FFFF are not permitted, and most code points below U+00A0 cannot
+            be written as universal-character names.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Control characters therefore use the ordinary C escapes such as{" "}
+            <code>\a</code>, <code>\n</code> and <code>\t</code>, or a
+            numeric octal/hex escape when no simple spelling exists. Fixed
+            three-digit octal output avoids both an invalid low-value{" "}
+            <code>\u</code> escape and the greedy-length problem of{" "}
+            <code>\x</code>.
           </p>
         </div>
 
@@ -1879,15 +1990,15 @@ export default function ToolClient() {
             Removing Quotes Is Not the Same as Parsing a Language Literal
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            When “unwrap matching quotes” is enabled, the first and last quote
-            characters are removed before escape conversion. The tool does not
-            evaluate JavaScript source, concatenate adjacent literals, process
-            template expressions or interpret a C compiler&apos;s source/execution
-            character sets.
+            When “unwrap matching quotes” is enabled, only the first and last
+            matching quote characters are removed before escape conversion.
+            JavaScript source is not evaluated, adjacent literals are not
+            concatenated, template expressions are not processed, and a C
+            compiler&apos;s source/execution character sets are not simulated.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-3">
+        <div className="mt-12 grid gap-4 md:grid-cols-2">
           <ReferenceCard
             title="ECMAScript lexical grammar"
             href="https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html"
@@ -1903,11 +2014,21 @@ export default function ToolClient() {
             href="https://www.unicode.org/versions/latest/"
             text="Reference for Unicode code points, scalar values and UTF character representation."
           />
+          <ReferenceCard
+            title="C23 working draft — WG14 N3096"
+            href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3096.pdf"
+            text="Public WG14 draft showing C escape-sequence grammar and universal-character-name constraints, including the low-value, surrogate and U+10FFFF limits."
+          />
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/string-escape-sequence-converter" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Keep Working With the String
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/string-escape-sequence-converter" />
+          </div>
         </div>
       </section>
     </ToolShell>

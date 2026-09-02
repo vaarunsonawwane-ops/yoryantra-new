@@ -43,6 +43,8 @@ type ParsedRobots = {
   issues: ParseIssue[];
   sitemaps: string[];
   bytes: number;
+  parsedBytes: number;
+  truncated: boolean;
 };
 
 type TestResult = {
@@ -103,6 +105,63 @@ function googleLikeToken(value: string) {
   return match ? match[0] : "";
 }
 
+function hasMalformedPercentEscape(value: string) {
+  return /%(?![0-9A-Fa-f]{2})/.test(value);
+}
+
+function hasLoneSurrogate(value: string) {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        index += 1;
+      } else {
+        return true;
+      }
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function truncateUtf8(input: string, maxBytes: number) {
+  const encoded = new TextEncoder().encode(input);
+
+  if (encoded.length <= maxBytes) {
+    return {
+      text: input,
+      totalBytes: encoded.length,
+      parsedBytes: encoded.length,
+      truncated: false,
+    };
+  }
+
+  let end = maxBytes;
+  const fatalDecoder = new TextDecoder("utf-8", { fatal: true });
+  let decoded = "";
+
+  while (end > 0) {
+    try {
+      decoded = fatalDecoder.decode(encoded.slice(0, end));
+      break;
+    } catch {
+      end -= 1;
+    }
+  }
+
+  return {
+    text: decoded,
+    totalBytes: encoded.length,
+    parsedBytes: end,
+    truncated: true,
+  };
+}
+
 function stripComment(rawLine: string) {
   const hash = rawLine.indexOf("#");
 
@@ -111,22 +170,41 @@ function stripComment(rawLine: string) {
     : rawLine.slice(0, hash);
 }
 
-function parseRobots(input: string): ParsedRobots {
+function parseRobots(
+  input: string,
+  maxBytes?: number
+): ParsedRobots {
   const groups: Group[] = [];
   const issues: ParseIssue[] = [];
   const sitemaps: string[] = [];
-  const bytes = new TextEncoder().encode(input).length;
+  const limited =
+    typeof maxBytes === "number"
+      ? truncateUtf8(input, maxBytes)
+      : {
+          text: input,
+          totalBytes: new TextEncoder().encode(input).length,
+          parsedBytes: new TextEncoder().encode(input).length,
+          truncated: false,
+        };
+  const bytes = limited.totalBytes;
 
-  if (bytes > 512000) {
+  if (limited.truncated) {
     issues.push({
       severity: "warning",
       line: 0,
       message:
-        `The pasted robots.txt is ${bytes.toLocaleString()} UTF-8 bytes. RFC 9309 requires crawlers to support at least 500 KiB but permits parsing limits, so rules beyond a crawler's limit can be ignored.`,
+        `Google-style mode parses only the first 500 KiB (${limited.parsedBytes.toLocaleString()} UTF-8 bytes) here because Google's documented robots.txt limit ignores content after that point. The pasted file is ${bytes.toLocaleString()} bytes.`,
+    });
+  } else if (bytes > 512000) {
+    issues.push({
+      severity: "warning",
+      line: 0,
+      message:
+        `The pasted robots.txt is ${bytes.toLocaleString()} UTF-8 bytes. RFC 9309 requires support for at least 500 KiB but permits crawler-specific parsing limits, so a generic product-token result can differ from a crawler that stops earlier.`,
     });
   }
 
-  const normalized = input
+  const normalized = limited.text
     .replace(/^\uFEFF/, "")
     .replace(/\r\n?/g, "\n");
   const lines = normalized.split("\n");
@@ -166,6 +244,15 @@ function parseRobots(input: string): ParsedRobots {
         line: lineNumber,
         message:
           "This line contains a control character outside normal horizontal whitespace and may not be a valid UTF-8 robots.txt record.",
+      });
+    }
+
+    if (hasLoneSurrogate(rawLine)) {
+      issues.push({
+        severity: "warning",
+        line: lineNumber,
+        message:
+          "This line contains an unpaired UTF-16 surrogate. It cannot be represented as a Unicode scalar value in valid UTF-8; matching uses U+FFFD replacement bytes for that invalid browser string sequence.",
       });
     }
 
@@ -247,14 +334,32 @@ function parseRobots(input: string): ParsedRobots {
         return;
       }
 
-      if (value.charAt(0) !== "/") {
+      if (value.charAt(0) !== "/" && value.charAt(0) !== "*") {
         issues.push({
           severity: "warning",
           line: lineNumber,
           message:
-            `${name} pattern "${value}" does not begin with "/". RFC 9309 path-pattern syntax begins with "/" so this rule was ignored by the tester.`,
+            `${name} pattern "${value}" begins with neither "/" nor "*", so it was ignored. Current Google guidance recommends a leading "/"; RFC 9309's own wildcard example uses a leading "*".`,
         });
         return;
+      }
+
+      if (value.charAt(0) === "*") {
+        issues.push({
+          severity: "info",
+          line: lineNumber,
+          message:
+            `Pattern "${value}" starts with "*". RFC 9309's ABNF says a path-pattern begins with "/", but Section 5.1 uses "*.gif$"; reported erratum 7995 proposes allowing "*" in that position. The pattern is matched for interoperability, while "/*..." remains the clearer spelling for Google-oriented files.`,
+        });
+      }
+
+      if (hasMalformedPercentEscape(value)) {
+        issues.push({
+          severity: "warning",
+          line: lineNumber,
+          message:
+            `${name} pattern "${value}" contains a percent sign that is not followed by two hexadecimal digits. It remains visible for comparison, but URI percent-encoding is malformed and crawler behavior can differ.`,
+        });
       }
 
       if (
@@ -282,6 +387,29 @@ function parseRobots(input: string): ParsedRobots {
     if (name === "sitemap") {
       if (value) {
         sitemaps.push(value);
+
+        try {
+          const sitemapUrl = new URL(value);
+
+          if (
+            sitemapUrl.protocol !== "http:" &&
+            sitemapUrl.protocol !== "https:"
+          ) {
+            issues.push({
+              severity: "warning",
+              line: lineNumber,
+              message:
+                `Sitemap value "${value}" is absolute but does not use HTTP or HTTPS. Google documents Sitemap records as fully qualified URLs.`,
+            });
+          }
+        } catch {
+          issues.push({
+            severity: "warning",
+            line: lineNumber,
+            message:
+              `Sitemap value "${value}" is not a fully qualified URL. Google expects an absolute Sitemap URL including the protocol and host.`,
+          });
+        }
       }
 
       if (agents.length) {
@@ -326,6 +454,8 @@ function parseRobots(input: string): ParsedRobots {
     issues,
     sitemaps,
     bytes,
+    parsedBytes: limited.parsedBytes,
+    truncated: limited.truncated,
   };
 }
 
@@ -360,6 +490,12 @@ function normalizeOctets(value: string) {
     const codePoint = value.codePointAt(index);
 
     if (
+      typeof codePoint === "number" &&
+      codePoint >= 0xd800 &&
+      codePoint <= 0xdfff
+    ) {
+      output += "%EF%BF%BD";
+    } else if (
       typeof codePoint === "number" &&
       codePoint > 0x7f
     ) {
@@ -672,6 +808,24 @@ function evaluateRobots(
     matchedRule.type === "allow";
   const issues = parsed.issues.slice();
 
+  if (hasMalformedPercentEscape(targetInput)) {
+    issues.push({
+      severity: "warning",
+      line: 0,
+      message:
+        "The tested URL/path contains a percent sign that is not followed by two hexadecimal digits. The text was kept visible, but a malformed URI escape can be normalized or rejected differently by real clients and crawlers.",
+    });
+  }
+
+  if (hasLoneSurrogate(targetInput)) {
+    issues.push({
+      severity: "warning",
+      line: 0,
+      message:
+        "The tested URL/path contains an unpaired UTF-16 surrogate. Valid URLs are serialized as Unicode scalar values/UTF-8 bytes, so matching uses U+FFFD replacement bytes for that invalid browser string sequence.",
+    });
+  }
+
   if (
     agentMode === "product-token" &&
     !strictProductToken(userAgent)
@@ -865,7 +1019,10 @@ export default function ToolClient() {
     }
 
     try {
-      const parsed = parseRobots(robotsInput);
+      const parsed = parseRobots(
+        robotsInput,
+        agentMode === "full-user-agent" ? 512000 : undefined
+      );
       setResult(
         evaluateRobots(
           parsed,
@@ -923,7 +1080,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Robots.txt Tester"
-      description="Test a URL path against robots.txt Allow/Disallow rules with RFC 9309 group merging, octet-aware path normalization and longest-match precedence, or explicitly model Google's most-specific token selection from a full User-Agent string."
+      description="Compare a URL path with robots.txt Allow/Disallow rules using RFC 9309 group selection, percent-encoding rules and longest-match precedence, with a separate Google-style full User-Agent mode."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(330px,0.85fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -1047,7 +1204,7 @@ export default function ToolClient() {
             className={`rounded-2xl border p-6 ${
               result.allowed
                 ? "border-green-200 bg-green-50"
-                : "border-red-200 bg-red-50"
+                : "border-amber-200 bg-amber-50"
             }`}
           >
             <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -1139,15 +1296,15 @@ export default function ToolClient() {
           ) : null}
 
           {result.issues.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">
                 robots.txt review
               </h3>
               <div className="mt-4 space-y-3">
                 {result.issues.map((issue, index) => (
                   <div
                     key={`${issue.line}-${issue.message}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-700"
                   >
                     <strong>
                       {issue.severity.toUpperCase()}
@@ -1178,10 +1335,10 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Testing runs on the robots.txt text and URL/path you provide in your
-        browser. The tool does not fetch the live robots.txt file or impersonate
-        a crawler. Site-wide analytics or advertising scripts, if enabled, are
-        separate from this test.
+        The pasted robots.txt text and URL/path are evaluated in the browser.
+        No live robots.txt request is made and no crawler identity is sent to a
+        website. Site-wide analytics or advertising scripts, if enabled, are
+        separate from the rule evaluation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1204,19 +1361,20 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Multiple Matching Groups Are Merged; the Wildcard Group Is Not Added on Top
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Two separate <code>User-agent: Googlebot</code> groups contribute
             rules to the same effective group. But once that specific group
             exists, <code>User-agent: *</code> is not combined with it.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             This matters when a global Disallow appears stricter than the
-            crawler-specific group. A tester that merges both can falsely block
-            a URL that the crawler would actually allow.
+            crawler-specific group. Merging the wildcard rules on top of a
+            specific group can falsely block a URL that the crawler would
+            actually allow.
           </p>
         </div>
 
@@ -1231,10 +1389,10 @@ export default function ToolClient() {
             Allow should win.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Percent-encoded bytes therefore cannot be measured correctly by
-            simply counting JavaScript characters. The tester canonicalizes
-            unreserved escapes and counts a remaining <code>%HH</code> triplet
-            as one encoded octet for specificity.
+            Percent-encoded bytes therefore cannot be compared reliably by
+            simply counting JavaScript characters. Unreserved escapes are
+            canonicalized before matching, while a remaining <code>%HH</code>
+            triplet represents one encoded byte in the normalized path.
           </p>
         </div>
 
@@ -1252,6 +1410,20 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             Characters such as <code>.</code>, <code>+</code>, parentheses and
             square brackets are literal URL characters here, not regex syntax.
+            RFC 9309 contains a small inconsistency here: its ABNF starts a
+            path-pattern with <code>/</code>, while its own example uses{" "}
+            <code>*.gif$</code>.{" "}
+            <a
+              href="https://www.rfc-editor.org/errata/eid7995"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              Reported erratum 7995
+            </a>{" "}
+            proposes allowing a leading <code>*</code>. That spelling is
+            accepted for interoperability, but <code>/*.gif$</code> is clearer
+            for Google-oriented files.
           </p>
         </div>
 
@@ -1268,17 +1440,17 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             robots.txt Is Public Crawl Guidance, Not Access Control
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Disallow tells compliant crawlers not to fetch a path. It does not
             stop a person, browser or non-compliant bot from requesting it, and
             publishing a sensitive pathname in robots.txt can make that pathname
             easier to discover.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Use authentication/authorization for private content. Use page or
             response indexing controls when the actual problem is indexing
             rather than crawling.
@@ -1287,7 +1459,7 @@ export default function ToolClient() {
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            The Served File Has Operational Rules This Text Tester Cannot Verify
+            Pasted Text Cannot Tell You How /robots.txt Was Served
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             RFC 9309 expects the file at lowercase top-level{" "}
@@ -1297,8 +1469,12 @@ export default function ToolClient() {
             result.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Because this page only sees pasted content, deployment path, HTTP
-            status, Content-Type and caching need a live HTTP check separately.
+            Pasted content also cannot prove the deployment path, HTTP status,
+            Content-Type, cache state or the original raw byte encoding before
+            the browser produced Unicode text. Google documents a 500 KiB
+            parsing limit; Google-style mode applies that limit to the UTF-8
+            bytes of the pasted text, while generic RFC product-token mode keeps
+            the full text and warns that another crawler may stop earlier.
           </p>
         </div>
 
@@ -1316,8 +1492,13 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/robots-txt-tester" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Check the Rest of the Crawl Setup
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/robots-txt-tester" />
+          </div>
         </div>
       </section>
     </ToolShell>
