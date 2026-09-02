@@ -1070,18 +1070,20 @@ function Toggle({
 }) {
   return (
     <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event: { target: { checked: boolean } }) =>
-          onChange(event.target.checked)
-        }
-        className="mt-1"
-      />
-      <span>
-        <strong className="text-gray-900">{title}</strong>
-        <span className="mt-1 block text-gray-500">{text}</span>
-      </span>
+		<input
+		  type="checkbox"
+		  checked={checked}
+		  onChange={(event: { target: { checked: boolean } }) =>
+			onChange(event.target.checked)
+		  }
+		  className="mt-1 shrink-0"
+		/>
+		<span className="min-w-0 flex-1">
+		  <strong className="block break-words text-gray-900">{title}</strong>
+		  <span className="mt-1 block break-words text-gray-500">
+			{text}
+		  </span>
+		</span>
     </label>
   );
 }
