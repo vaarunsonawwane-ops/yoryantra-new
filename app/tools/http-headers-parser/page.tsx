@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "HTTP Headers Parser | Read Request & Response Headers | Yoryantra",
+  title: "HTTP Headers Parser | Request & Response Fields | Yoryantra",
   description:
-    "Parse raw HTTP request or response headers, preserve repeated fields and order, inspect start lines and pseudo-headers, and flag malformed or risky framing patterns.",
+    "Parse raw HTTP request or response fields while preserving order and duplicates, then inspect start lines, pseudo-headers, malformed syntax and framing risks.",
   alternates: {
     canonical: "https://yoryantra.com/tools/http-headers-parser",
   },
   openGraph: {
-    title: "HTTP Headers Parser | Read Request & Response Headers | Yoryantra",
+    title: "HTTP Headers Parser | Request & Response Fields | Yoryantra",
     description:
-      "Turn pasted HTTP headers into structured data while preserving duplicates, order, start lines, and useful diagnostics.",
+      "Read HTTP request and response fields without losing order or duplicates, including pseudo-header and framing diagnostics.",
     url: "https://yoryantra.com/tools/http-headers-parser",
     siteName: "Yoryantra",
     type: "website",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "HTTP Headers Parser | Yoryantra",
     description:
-      "Parse and understand raw HTTP request and response headers without silently losing repeated fields.",
+      "Read raw HTTP request and response fields without silently losing repeated values or order.",
   },
 };
 

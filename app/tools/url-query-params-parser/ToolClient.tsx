@@ -96,22 +96,42 @@ function extractQuery(input: string, mode: InputMode) {
   if (useUrl) {
     if (trimmed !== input) {
       diagnostics.push(
-        "Leading or trailing whitespace was ignored while parsing the value as a URL."
+        "Leading or trailing whitespace was ignored while validating the value as a URL."
       );
     }
 
     try {
       const parsed = new URL(trimmed, "https://yoryantra.invalid");
+      const hashIndex = trimmed.indexOf("#");
+      const queryIndex = trimmed.indexOf("?");
+      const hasQueryDelimiter =
+        queryIndex !== -1 &&
+        (hashIndex === -1 || queryIndex < hashIndex);
+      const queryEnd = hashIndex === -1 ? trimmed.length : hashIndex;
+      const rawQuery = hasQueryDelimiter
+        ? trimmed.slice(queryIndex + 1, queryEnd)
+        : "";
+      const rawFragment = hashIndex === -1 ? null : trimmed.slice(hashIndex + 1);
+
+      if (!hasQueryDelimiter) {
+        diagnostics.push("The URL has no query delimiter before its fragment.");
+      } else if (rawQuery === "") {
+        diagnostics.push("The URL contains ? but its query component is empty.");
+      }
+
+      if (/[\r\n\t]/.test(rawQuery)) {
+        diagnostics.push(
+          "The original URL query contains a tab or line break. URL parsing can remove or normalize ASCII whitespace, so the raw spelling is preserved separately."
+        );
+      }
 
       return {
-        query: parsed.search ? parsed.search.slice(1) : "",
-        fragment: parsed.hash ? parsed.hash.slice(1) : null,
-        source:
-          mode === "url" ? "URL" : "URL detected automatically",
-        diagnostics: parsed.search
-          ? diagnostics
-          : [...diagnostics, "The URL has no query component after ?."],
+        query: rawQuery,
+        fragment: rawFragment,
+        source: mode === "url" ? "URL" : "URL detected automatically",
+        diagnostics,
         fatal: false,
+        serializedQuery: parsed.search ? parsed.search.slice(1) : "",
       };
     } catch {
       return {
@@ -123,6 +143,7 @@ function extractQuery(input: string, mode: InputMode) {
           "The input could not be parsed as a URL. It was not silently reinterpreted as a raw query string.",
         ],
         fatal: true,
+        serializedQuery: "",
       };
     }
   }
@@ -144,12 +165,10 @@ function extractQuery(input: string, mode: InputMode) {
   return {
     query,
     fragment: null,
-    source:
-      mode === "query"
-        ? "raw query string"
-        : "raw query string detected automatically",
+    source: mode === "query" ? "raw query string" : "raw query string detected automatically",
     diagnostics,
     fatal: false,
+    serializedQuery: query,
   };
 }
 
@@ -177,7 +196,10 @@ function parseQuery(input: string, mode: InputMode): QueryResult {
     };
   }
 
-  extracted.query.split("&").forEach((part, zeroIndex) => {
+  const rawParts = extracted.query.split("&");
+  const emptySequences = rawParts.filter((part) => part === "").length;
+
+  rawParts.forEach((part, zeroIndex) => {
     if (part === "") return;
 
     const equals = part.indexOf("=");
@@ -213,6 +235,23 @@ function parseQuery(input: string, mode: InputMode): QueryResult {
     grouped[entry.name].indexes.push(entry.index);
     grouped[entry.name].rawNames.push(entry.rawName);
   });
+
+  if (emptySequences) {
+    diagnostics.push(
+      `${emptySequences} empty query sequence${
+        emptySequences === 1 ? " was" : "s were"
+      } ignored between or after & separators, matching browser form-style parsing.`
+    );
+  }
+
+  if (
+    extracted.source.indexOf("URL") !== -1 &&
+    extracted.serializedQuery !== extracted.query
+  ) {
+    diagnostics.push(
+      "The browser URL parser would serialize the query differently from the original spelling. Raw query text is kept as the source view so normalization does not erase evidence."
+    );
+  }
 
   Object.keys(grouped).forEach((name) => {
     if (grouped[name].values.length > 1) {
@@ -427,12 +466,12 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">
           Long links can contain private tokens
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Password-reset links, OAuth authorization codes, signed download links, invitation tokens, and API credentials sometimes appear in URLs. This parser works on the pasted text in your browser and does not request the URL or send it to a query-parsing API, but copied output can still expose those values. Site-wide analytics or advertising scripts, if enabled, are separate from this parsing operation.
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          Password-reset links, OAuth authorization codes, signed download links, invitation tokens, and API credentials sometimes appear in URLs. Parsing stays in your browser; the destination is not requested and no query-parsing API receives the pasted text. Copied output can still expose those values. Site-wide analytics or advertising scripts, if enabled, are separate from this parsing operation.
         </p>
       </div>
 
@@ -445,7 +484,7 @@ export default function ToolClient() {
             Long URLs often look harder than they really are. The query portion is usually a list of small name-value pairs. A shopping site may use them for filters, a search page for the search term, an analytics link for campaign tags, or an API for pagination and options.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            You do not need to be a developer to get value from the parser. Paste a link and you can see which pieces are parameters, which values repeat, what encoded text means, and which fragment after <code>#</code> is separate from the query.
+            Reading the pieces separately is often enough to explain a long link: which names repeat, which characters were encoded, which values are blank, and which fragment after <code>#</code> sits outside the query.
           </p>
         </div>
 
@@ -482,7 +521,7 @@ export default function ToolClient() {
             A query is an ordered sequence of pairs, not necessarily a one-key-one-value object. <code>?tag=books&amp;tag=music</code> can intentionally represent two selected tags. Different frameworks expose repeated values differently: some return arrays, some return the first value, some the last, and some require a dedicated “get all” method.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool keeps every occurrence in order and also gives you a grouped array view, making it easier to compare the original URL with what your backend or analytics system received.
+            Keeping every occurrence in order avoids silently collapsing a repeated parameter. A grouped array view can then sit beside the ordered source without choosing a first-value or last-value policy on behalf of the receiving application.
           </p>
         </div>
 
@@ -491,7 +530,7 @@ export default function ToolClient() {
             +, %20, and %2B Are Easy to Confuse
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Browser query handling commonly uses <code>application/x-www-form-urlencoded</code> rules. In that form, <code>+</code> represents a space. A real plus sign is normally serialized as <code>%2B</code>. A space can also appear as <code>%20</code>.
+            Browser query APIs commonly use <code>application/x-www-form-urlencoded</code> rules. In that form, <code>+</code> represents a space. A real plus sign is normally serialized as <code>%2B</code>, while a space can also appear as <code>%20</code>. This is the same tuple parsing model defined for <code>URLSearchParams</code> by the WHATWG URL Standard.
           </p>
           <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 font-mono text-sm leading-7 text-gray-800">
             <div>q=hello+world → hello world</div>
@@ -499,7 +538,7 @@ export default function ToolClient() {
             <div>q=2%2B2 → 2+2</div>
           </div>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The decoded results may look similar even though their raw source differed. Preserving both views is useful when a client and server disagree about encoding.
+            The decoded results may look similar even though their raw source differed. Preserving both views is useful when a client and server disagree about encoding. Browser serialization can also change spelling: mutating <code>URLSearchParams</code> may turn a space into <code>+</code> or re-encode characters even when the decoded value stays the same.
           </p>
         </div>
 
@@ -520,7 +559,7 @@ export default function ToolClient() {
             flag and flag= Are Not Textually Identical
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Common browser query APIs expose both <code>?flag</code> and <code>?flag=</code> as an empty decoded value, but the original spelling is different. <code>?=value</code> has an empty name. Backend frameworks can normalize these edge cases differently, so the parser records whether the equals sign was actually present.
+            Common browser query APIs expose both <code>?flag</code> and <code>?flag=</code> as an empty decoded value, but the original spelling is different. <code>?=value</code> has an empty name. Backend frameworks can normalize these edge cases differently, so the output keeps track of whether the equals sign was actually present.
           </p>
         </div>
 
@@ -529,15 +568,15 @@ export default function ToolClient() {
             The Fragment After # Is Kept Separate
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            In a full URL, the fragment begins at <code>#</code>. Browsers commonly use it for in-page navigation or client-side state, and it is not sent as part of the HTTP request target. In raw-query mode, however, the parser cannot assume that <code>#</code> has fragment meaning, so it treats it as data and warns you about the ambiguity.
+            In a full URL, the fragment begins at <code>#</code>. Browsers commonly use it for in-page navigation or client-side state, and it is not sent as part of the HTTP request target. In raw-query mode there is no surrounding URL context to prove that <code>#</code> starts a fragment, so it stays in the query data and the ambiguity is reported.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Be Careful With Reset, OAuth, Invitation, and Signed Links
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Query parameters can contain secrets. Password-reset tokens, authorization codes, pre-signed download credentials, invitation codes, payment state, and API tokens are often placed in URLs. Understanding the parameters does not make them safe to publish. Avoid exposing live sensitive links in screenshots, tickets, forums, or public logs.
           </p>
         </div>
@@ -550,13 +589,16 @@ export default function ToolClient() {
             Browser URL parsing is intentionally tolerant. An incomplete percent escape may remain as literal text, while invalid UTF-8 byte sequences can decode with replacement characters. That helps browsers handle imperfect URLs, but it can hide data-quality problems in APIs and signature workflows.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This parser follows browser-style decoded behavior while keeping the raw component and reporting warnings. A successful decoded value therefore means the browser parser produced something, not that the source encoding was clean or canonical.
+            Browser-style decoding can still produce text from imperfect input, so the raw component stays beside the decoded value and warnings remain visible. A decoded result therefore means a browser-compatible parser produced something, not that the source encoding was clean or canonical. The exact parsing and serialization model comes from the{" "}
+            <a href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              WHATWG URL Standard
+            </a>.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Auto-Detect Is Convenient, Explicit Mode Is Safer for Ambiguous Text
+            Ambiguous Text Needs an Explicit Input Type
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             Auto mode tries to distinguish a URL from a bare query string. Most inputs are obvious, but some custom schemes, relative paths, or unusual raw queries can be ambiguous. If you know what the source is, selecting Full or relative URL or Raw query string removes that guess.
@@ -565,30 +607,21 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            What This Parser Does Not Decide for You
+            Parsing Cannot Tell You Which Parameters Are Safe to Remove
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The tool can show parameter names, values, order, duplicates, fragments, raw encoding, and decoding warnings. It cannot tell you whether a parameter is safe to remove, whether a tracking parameter also changes server logic, whether a signed URL is still valid, or which repeated value your backend framework will choose. Those answers depend on the application receiving the URL.
+            Parameter names, values, order, duplicates, fragments, raw encoding, and decoding warnings can be read from the URL itself. The URL alone cannot prove that a parameter is safe to remove, that a tracking-looking parameter has no server-side effect, that a signed URL is still valid, or which repeated value a particular backend framework will choose. Those answers belong to the receiving application.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Browser Query Parsing Reference
+            Follow the URL Into the Next Debugging Step
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            The WHATWG URL Standard adds real value here because it defines browser URL parsing, URLSearchParams ordering, plus handling, and percent decoding.
-          </p>
-          <p className="mt-4 text-sm">
-            <a href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
-              WHATWG URL Standard
-            </a>
-          </p>
-        </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/url-query-params-parser" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/url-query-params-parser" />
+          </div>
         </div>
       </section>
     </ToolShell>

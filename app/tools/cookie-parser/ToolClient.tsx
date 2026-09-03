@@ -198,7 +198,7 @@ function parseRequestCookie(input: string): CookieResult {
 
   if (sourceLines.length > 1) {
     diagnostics.push(
-      "More than one Cookie header line was supplied. The parser preserves line order; protocol-specific combination behavior should be checked when debugging HTTP/2 or HTTP/3 captures."
+      "More than one Cookie header line was supplied. Line order is preserved; HTTP/2 and HTTP/3 can split Cookie across field lines and define how those values are recombined."
     );
   }
 
@@ -374,6 +374,52 @@ function parseSetCookie(input: string): CookieResult {
     const maxAge = attributeLookup(attributes, "Max-Age");
     const expires = attributeLookup(attributes, "Expires");
     const domain = attributeLookup(attributes, "Domain");
+    const path = attributeLookup(attributes, "Path");
+
+    if (
+      domain &&
+      (domain.value === null || domain.value === "")
+    ) {
+      localDiagnostics.push(
+        "Domain is present without a domain value. Browser acceptance depends on the full Set-Cookie processing rules and the response origin."
+      );
+    }
+
+    if (
+      path &&
+      (path.value === null || path.value === "" || path.value.charAt(0) !== "/")
+    ) {
+      localDiagnostics.push(
+        "Path is empty or does not begin with /. User agents fall back to a default path rather than treating that text as an ordinary absolute cookie path."
+      );
+    }
+
+    if (
+      sameSite &&
+      (sameSite.value === null || sameSite.value === "")
+    ) {
+      localDiagnostics.push(
+        "SameSite is present without a value. It does not express Strict, Lax, or None."
+      );
+    }
+
+    if (
+      maxAge &&
+      (maxAge.value === null || maxAge.value === "")
+    ) {
+      localDiagnostics.push(
+        "Max-Age is present without an integer value."
+      );
+    }
+
+    if (
+      expires &&
+      (expires.value === null || expires.value === "")
+    ) {
+      localDiagnostics.push(
+        "Expires is present without a date value."
+      );
+    }
 
     if (
       sameSite &&
@@ -448,7 +494,23 @@ function parseSetCookie(input: string): CookieResult {
 
     checkCookiePrefix(pair, attributes, localDiagnostics);
 
-    const pathAttribute = attributeLookup(attributes, "Path");
+    const commaCombinedPair =
+      line.match(/,\s*[!#$%&'*+\-.^_`|~0-9A-Za-z]+\s*=/);
+
+    if (commaCombinedPair) {
+      localDiagnostics.push(
+        "The line looks as though more than one Set-Cookie field may have been comma-combined. Set-Cookie field lines are kept separate; a comma inside Expires is not a safe splitting boundary."
+      );
+    }
+
+    if (
+      pair &&
+      /^(?:__Secure-|__Host-|__Http-|__Host-Http-)/.test(pair.name)
+    ) {
+      localDiagnostics.push(
+        "A cookie-name prefix also depends on the response being accepted from an appropriate secure origin. That origin context is not present in pasted header text."
+      );
+    }
 
     parsedCookies.push({
       line: lineIndex + 1,
@@ -460,7 +522,7 @@ function parseSetCookie(input: string): CookieResult {
         sameSite: sameSite ? sameSite.value : null,
         partitioned,
         domain: domain ? domain.value : null,
-        path: pathAttribute ? pathAttribute.value : null,
+        path: path ? path.value : null,
       },
       diagnostics: localDiagnostics,
     });
@@ -556,7 +618,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Cookie Parser"
-      description="Paste a Cookie request header or Set-Cookie response header to see the names, values, attributes, duplicates, and practical browser-facing diagnostics in a readable structure."
+      description="Read Cookie request headers and Set-Cookie response fields without losing duplicate names, raw values, attributes, or browser-facing warnings."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <YoryantraSelect
@@ -584,8 +646,8 @@ export default function ToolClient() {
               </label>
               <p className="mt-1 text-sm leading-relaxed text-gray-500">
                 {mode === "cookie"
-                  ? "Use this for cookies a browser sends to a website."
-                  : "Use this for cookies a server asks a browser to store."}
+                  ? "A request Cookie header carries stored name-value pairs back to a matching site."
+                  : "A response Set-Cookie field asks the browser to create or update stored state."}
               </p>
             </div>
             <p className="text-xs text-gray-500">
@@ -653,12 +715,12 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">
           Cookies can contain live account credentials
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Session cookies can sometimes be enough to access an account. The parser works on the pasted text in your browser and does not send it to a cookie-parsing API, but screenshots, copied output, or shared logs can still expose secrets. Site-wide analytics or advertising scripts, if enabled, are separate from this parsing operation.
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          Session cookies can sometimes be enough to access an account. Parsing stays in your browser and no cookie-parsing API receives the pasted text, but screenshots, copied output, or shared logs can still expose secrets. Site-wide analytics or advertising scripts, if enabled, are separate from this parsing operation.
         </p>
       </div>
 
@@ -711,10 +773,13 @@ export default function ToolClient() {
             Duplicate Cookie Names Can Be Legitimate
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The same cookie name can exist with different Path or Domain scope, so a request can contain more than one pair with the same name. A parser that converts everything straight into a normal object can silently overwrite one value with another.
+            The same cookie name can exist with different Path or Domain scope, so a request can contain more than one pair with the same name. Converting everything straight into a normal object can silently overwrite one value with another.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool keeps every occurrence and its order. If an application appears to read the “wrong” cookie, inspect what the browser actually stores, which Domain and Path each cookie uses, and how the server framework resolves duplicate names.
+            Keeping every occurrence and its order matters here. HTTP/2 and HTTP/3 can even split a request <code>Cookie</code> field across multiple field lines for compression and define recombination with <code>; </code>; that does not make comma-combining multiple response <code>Set-Cookie</code> fields safe. The HTTP/2 rule is spelled out in{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc9113" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              RFC 9113
+            </a>. If an application appears to read the “wrong” cookie, inspect what the browser actually stores, which Domain and Path each cookie uses, and how the server framework resolves duplicate names.
           </p>
         </div>
 
@@ -726,7 +791,22 @@ export default function ToolClient() {
             Applications often place encoded text inside cookie values. You may see percent sequences, Base64, JWT-like strings, opaque random identifiers, or framework-specific serialization. The Cookie grammar itself does not say that every value should be URL-decoded.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            For that reason, the raw value remains the source of truth. If a value such as <code>Sneha%20Pune</code> can be percent-decoded cleanly, the parser shows a readable preview, but it does not pretend that percent decoding is part of cookie semantics.
+            For that reason, the raw value remains the source of truth. If a value such as <code>Sneha%20Pune</code> can be percent-decoded cleanly, a readable preview can sit beside it without pretending that percent decoding is part of cookie semantics.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why fetch() May Not Expose Set-Cookie
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Frontend JavaScript cannot read <code>Set-Cookie</code> from a Fetch or XMLHttpRequest response the way it can read ordinary response fields. Browsers filter it from responses exposed to page code. Cross-origin requests also need the right credentials mode before a returned Set-Cookie field can affect the cookie store.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            That distinction explains a common debugging puzzle: the network panel can show a Set-Cookie field while <code>response.headers.get("set-cookie")</code> does not reveal it. The browser behavior is documented alongside the{" "}
+            <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              Set-Cookie header rules
+            </a>.
           </p>
         </div>
 
@@ -738,13 +818,16 @@ export default function ToolClient() {
             Supporting browsers attach additional rules to names beginning with <code>__Secure-</code>, <code>__Host-</code>, <code>__Http-</code>, and <code>__Host-Http-</code>. A <code>__Host-</code> cookie, for example, requires Secure, must use Path=/, and must not include Domain.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            These prefixes are useful when reviewing session cookies because they reduce some dangerous scoping choices. The parser can check visible attributes, but it cannot prove that the response came from the secure origin required for a prefix.
+            These prefixes reduce some dangerous scoping choices, but the header alone cannot prove that the response came from the secure origin required for the prefix. Current browser behavior for these prefixes and the <code>Partitioned</code> attribute is documented in the{" "}
+            <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              Set-Cookie reference on MDN
+            </a>.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            A Practical Debugging Path for Login Problems
+            When Login Works Once but the Session Disappears
           </h2>
           <ol className="mt-4 list-decimal space-y-3 pl-5 leading-relaxed text-gray-600">
             <li>Confirm that the login response actually contains the expected Set-Cookie line.</li>
@@ -756,43 +839,34 @@ export default function ToolClient() {
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-xl font-semibold text-amber-900">
+          <h2 className="text-xl font-semibold text-gray-900">
             Secure + HttpOnly Does Not Mean the Whole Application Is Secure
           </h2>
-          <p className="mt-4 leading-relaxed text-amber-900/90">
-            Cookie attributes reduce particular risks, but they do not replace secure session design. Session identifiers still need strong randomness, safe expiry and revocation, fixation defenses, appropriate CSRF protection, and application-level protection against XSS and account takeover. This parser can inspect the visible header; it cannot audit the authentication system behind it.
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Cookie attributes reduce particular risks, but they do not replace secure session design. Session identifiers still need strong randomness, safe expiry and revocation, fixation defenses, appropriate CSRF protection, and application-level protection against XSS and account takeover. A pasted header contains only the cookie metadata that is visible there; it says nothing about the authentication system behind it.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Where This Tool Stops
+            Header Syntax Cannot Predict Browser Acceptance
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            A Set-Cookie line can look structurally correct and still be rejected by a browser. Real acceptance can depend on the response origin, HTTPS, public-suffix rules, third-party-cookie policy, partitioning support, browser limits, current cookie-store state, and feature support. Treat the result as a strong inspection aid, not as a browser acceptance guarantee.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            References Worth Using When Browser Behavior Matters
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Cookie behavior is one of the places where current browser documentation adds real value because browser policy and feature support can evolve.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
-              MDN Set-Cookie reference
-            </a>
+            A Set-Cookie line can look structurally correct and still be rejected by a browser. Real acceptance can depend on the response origin, HTTPS, public-suffix rules, third-party-cookie policy, partitioning support, browser limits, current cookie-store state, and feature support. Core Cookie and Set-Cookie syntax is defined by{" "}
             <a href="https://www.rfc-editor.org/rfc/rfc6265" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
-              RFC 6265 — HTTP State Management
-            </a>
-          </div>
+              RFC 6265
+            </a>, while newer browser behavior continues to evolve beyond that original RFC.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/cookie-parser" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Follow the Session Beyond the Cookie Header
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/cookie-parser" />
+          </div>
         </div>
       </section>
     </ToolShell>

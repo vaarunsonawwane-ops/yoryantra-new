@@ -101,7 +101,7 @@ function parseFieldLine(
 
     if (KNOWN_PSEUDO.indexOf(name) === -1) {
       diagnostics.push(
-        `Line ${lineNumber}: "${name}" is not one of the standard pseudo-header names recognized by this parser.`
+        `Line ${lineNumber}: "${name}" is not one of the standard pseudo-header names recognized in this inspection.`
       );
     }
 
@@ -268,6 +268,7 @@ function addFramingDiagnostics(
 
 function addPseudoDiagnostics(
   fields: ParsedField[],
+  grouped: Record<string, FieldGroup>,
   diagnostics: string[]
 ) {
   const pseudoFields = fields.filter((field) => field.pseudo);
@@ -301,27 +302,131 @@ function addPseudoDiagnostics(
   Object.keys(counts).forEach((name) => {
     if (counts[name] > 1) {
       diagnostics.push(
-        `Pseudo-header "${name}" appears ${counts[name]} times.`
+        `Pseudo-header "${name}" appears ${counts[name]} times. HTTP/2 and HTTP/3 do not allow repeated pseudo-header names in one field section.`
       );
     }
   });
 
-  const hasStatus = pseudoFields.some(
-    (field) => field.name === ":status"
-  );
-  const hasRequestPseudo = pseudoFields.some(
-    (field) =>
-      field.name === ":method" ||
-      field.name === ":scheme" ||
-      field.name === ":authority" ||
-      field.name === ":path" ||
-      field.name === ":protocol"
-  );
+  const hasPseudo = (name: string) =>
+    pseudoFields.some((field) => field.name === name);
+  const pseudoValue = (name: string) => {
+    const found = pseudoFields.find((field) => field.name === name);
+    return found ? found.value : "";
+  };
+
+  const hasStatus = hasPseudo(":status");
+  const method = pseudoValue(":method");
+  const scheme = pseudoValue(":scheme");
+  const authority = pseudoValue(":authority");
+  const path = pseudoValue(":path");
+  const protocol = pseudoValue(":protocol");
+  const hasRequestPseudo = [
+    ":method",
+    ":scheme",
+    ":authority",
+    ":path",
+    ":protocol",
+  ].some(hasPseudo);
 
   if (hasStatus && hasRequestPseudo) {
     diagnostics.push(
       "The block mixes :status with request pseudo-headers. A normal HTTP/2 or HTTP/3 field section is request-oriented or response-oriented, not both."
     );
+  }
+
+  if (hasStatus) {
+    const status = pseudoValue(":status");
+    if (!/^\d{3}$/.test(status)) {
+      diagnostics.push(
+        ':status should contain exactly three decimal digits in an HTTP/2 or HTTP/3 response field section.'
+      );
+    } else {
+      const statusCode = Number(status);
+      if (statusCode < 100 || statusCode > 599) {
+        diagnostics.push(
+          `:status is ${status}; ordinary HTTP status codes are in the 100-599 range.`
+        );
+      }
+    }
+  }
+
+  if (hasRequestPseudo && !hasPseudo(":method")) {
+    diagnostics.push("A request-style pseudo-header block is missing :method.");
+  } else if (hasPseudo(":method") && method === "") {
+    diagnostics.push(":method is present but empty.");
+  }
+
+  if (hasPseudo(":protocol") && method !== "CONNECT") {
+    diagnostics.push(
+      ":protocol is defined for Extended CONNECT rather than an ordinary request method."
+    );
+  }
+
+  if (method) {
+    const extendedConnect = method === "CONNECT" && hasPseudo(":protocol");
+
+    if (method === "CONNECT" && !extendedConnect) {
+      if (!hasPseudo(":authority") || !authority) {
+        diagnostics.push("A CONNECT request needs a non-empty :authority.");
+      }
+      if (hasPseudo(":scheme") || hasPseudo(":path")) {
+        diagnostics.push(
+          "An ordinary CONNECT request omits :scheme and :path. Extended CONNECT has different requirements."
+        );
+      }
+    } else {
+      if (!hasPseudo(":scheme")) {
+        diagnostics.push("A non-CONNECT request-style block is missing :scheme.");
+      } else if (!scheme) {
+        diagnostics.push(":scheme is present but empty.");
+      }
+      if (!hasPseudo(":path")) {
+        diagnostics.push("A non-CONNECT request-style block is missing :path.");
+      } else if (!path) {
+        diagnostics.push(":path is present but empty.");
+      }
+      if (extendedConnect && (!hasPseudo(":authority") || !authority)) {
+        diagnostics.push("Extended CONNECT needs a non-empty :authority.");
+      }
+      if (extendedConnect && !protocol) {
+        diagnostics.push(":protocol is present but empty on an Extended CONNECT request.");
+      }
+      if (extendedConnect) {
+        diagnostics.push(
+          "Extended CONNECT also requires protocol support to have been negotiated with the peer; pasted field text cannot prove that negotiation happened."
+        );
+      }
+      if ((scheme === "http" || scheme === "https") && !authority && !grouped["host"]) {
+        diagnostics.push(`A ${scheme} request needs authority information in :authority or Host.`);
+      }
+    }
+  }
+
+
+  if (authority && grouped["host"]) {
+    const host = grouped["host"].values[0] || "";
+    if (host && authority.toLowerCase() !== host.toLowerCase()) {
+      diagnostics.push(
+        `:authority is "${authority}" while Host is "${host}". HTTP/2 and HTTP/3 require these to identify the same authority when both are present.`
+      );
+    }
+  }
+
+  ["connection", "proxy-connection", "keep-alive", "transfer-encoding", "upgrade"].forEach((name) => {
+    if (grouped[name]) {
+      diagnostics.push(
+        `Field "${name}" is connection-specific and is not allowed in HTTP/2 or HTTP/3 field sections.`
+      );
+    }
+  });
+
+  if (grouped["te"]) {
+    const invalidTe = grouped["te"].values.some(
+      (value) => value.trim().toLowerCase() !== "trailers"
+    );
+    if (invalidTe) {
+      diagnostics.push('In HTTP/2 and HTTP/3 requests, TE is only permitted with the value "trailers".');
+    }
   }
 
   regularFields.forEach((field) => {
@@ -443,7 +548,38 @@ function parseHeadersBlock(input: string): ParsedHeaders {
 
   addRepeatedDiagnostics(grouped, diagnostics);
   addFramingDiagnostics(grouped, diagnostics);
-  addPseudoDiagnostics(fields, diagnostics);
+  addPseudoDiagnostics(fields, grouped, diagnostics);
+
+  const hasPseudoHeaders = fields.some((field) => field.pseudo);
+
+  if (
+    startLine &&
+    /HTTP\/(?:2(?:\.0)?|3(?:\.0)?)/.test(startLine.value)
+  ) {
+    diagnostics.push(
+      "HTTP/2 and HTTP/3 do not carry an HTTP/1-style textual start line on the wire. Treat this as a human-readable capture produced by another program."
+    );
+  }
+
+  if (
+    startLine &&
+    /HTTP\/1\./.test(startLine.value) &&
+    hasPseudoHeaders
+  ) {
+    diagnostics.push(
+      "Pseudo-header fields belong to HTTP/2 and HTTP/3, not an HTTP/1.x field section. The pasted block mixes two representations."
+    );
+  }
+
+  if (
+    startLine &&
+    /HTTP\/1\.0/.test(startLine.value) &&
+    grouped["transfer-encoding"]
+  ) {
+    diagnostics.push(
+      "Transfer-Encoding is an HTTP/1.1 framing mechanism. Its presence in an HTTP/1.0 textual message deserves investigation."
+    );
+  }
 
   if (
     startLine &&
@@ -636,12 +772,12 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">
           Raw headers can contain credentials
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Authorization tokens, API keys, Cookie, and Set-Cookie values can grant access to accounts or services. Parsing happens in your browser and this tool does not send the header block to a parsing API, but copied output remains sensitive. Site-wide analytics or advertising scripts, if enabled, are separate from this parsing operation.
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          Authorization tokens, API keys, Cookie, and Set-Cookie values can grant access to accounts or services. Parsing stays in your browser and no header-parsing API receives the pasted block, but copied output remains sensitive. Site-wide analytics or advertising scripts, if enabled, are separate from this parsing operation.
         </p>
       </div>
 
@@ -654,7 +790,7 @@ export default function ToolClient() {
             HTTP headers are most useful when you read them as evidence of what happened between a client, an intermediary, and a server. One line can explain why a response was cached, another why the browser redirected, another why authentication failed, and another which representation was actually returned.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This parser keeps original field order and repeated values visible because that is often the information you lose first when headers are converted into a simple object. The grouped view is convenient for scanning; the ordered list is safer when duplicates, cookies, proxies, or message framing are involved.
+            Original field order and repeated values need to stay visible because that is often the information lost first when headers are converted into a simple object. A grouped view is convenient for scanning; the ordered list is safer when duplicates, cookies, proxies, or message framing are involved.
           </p>
         </div>
 
@@ -702,7 +838,11 @@ Set-Cookie: session=abc123; Path=/; Secure; HttpOnly`}</pre>
             HTTP field names are case-insensitive, but repeated values do not all share one universal merge rule. Some field definitions allow a combined list. Others, especially Set-Cookie, need separate field values. Cookie also has protocol-specific handling in HTTP/2 and HTTP/3.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This is why the parser does not reduce everything to a last-value-wins object. It preserves ordered source fields and separately gives you grouped values for convenience.
+            Reducing the block to a last-value-wins object would lose that evidence. Ordered source fields and a separate grouped view keep both representations available.{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              RFC 9110
+            </a>{" "}
+            explains when repeated field lines can be recombined and calls out Set-Cookie as a special case.
           </p>
         </div>
 
@@ -711,19 +851,23 @@ Set-Cookie: session=abc123; Path=/; Secure; HttpOnly`}</pre>
             The Blank Line Is a Real Boundary
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            In HTTP/1.x text form, an empty line separates the header field section from the message body. If you paste curl -i output or a proxy trace that includes HTML, JSON, or another body below the headers, this parser reports the trailing lines instead of treating them as additional fields.
+            In HTTP/1.x text form, an empty line separates the header field section from the message body. If a curl <code>-i</code> capture or proxy trace also contains HTML, JSON, or another body, the non-empty lines after that boundary are counted as trailing text rather than treated as more header fields. A chunked trailer section is not reconstructed from pasted body text.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Content-Length and Transfer-Encoding Deserve Extra Attention
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             HTTP/1.x recipients must agree on where one message ends and the next begins. Conflicting Content-Length values, or an ambiguous combination of Content-Length and Transfer-Encoding, are security-sensitive because different intermediaries can interpret message boundaries differently.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
-            The parser flags suspicious framing text, but it is not a request-smuggling scanner. Real analysis must account for the exact HTTP version and the behavior of every intermediary in the request path.
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Suspicious framing text can be surfaced from a pasted field section, but request-smuggling analysis still depends on the exact bytes and the behavior of every intermediary in the path.{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc9112" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              RFC 9112
+            </a>{" "}
+            defines the HTTP/1.1 message-length precedence rules behind these warnings.
           </p>
         </div>
 
@@ -732,10 +876,20 @@ Set-Cookie: session=abc123; Path=/; Secure; HttpOnly`}</pre>
             Why HTTP/2 and HTTP/3 Captures Look Different
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            HTTP/2 and HTTP/3 use pseudo-header fields such as <code>:method</code>, <code>:path</code>, <code>:authority</code>, and <code>:status</code> instead of the textual request/status lines used by HTTP/1.x. Pseudo-headers have stricter ordering and duplication rules, so the parser checks them separately.
+            HTTP/2 and HTTP/3 use pseudo-header fields such as <code>:method</code>, <code>:path</code>, <code>:authority</code>, and <code>:status</code> instead of the textual request/status lines used by HTTP/1.x. Pseudo-headers have stricter ordering, duplication, required-field, lowercase-name, and connection-specific-field rules. Those rules are defined in{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc9113" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              RFC 9113 for HTTP/2
+            </a>{" "}
+            and{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc9114" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              RFC 9114 for HTTP/3
+            </a>. Extended CONNECT adds <code>:protocol</code> through{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc8441" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              RFC 8441
+            </a>, with HTTP/3 WebSocket use carried forward by RFC 9220.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Browser DevTools may show these fields in readable text even though the wire format is compressed. This page inspects that readable representation; it does not decode HPACK, QPACK, or binary HTTP frames.
+            Browser DevTools may show these fields in readable text even though the wire format is compressed. Readable field text is enough for structural inspection, but it is not an HPACK, QPACK, or binary-frame decoder.
           </p>
         </div>
 
@@ -744,13 +898,13 @@ Set-Cookie: session=abc123; Path=/; Secure; HttpOnly`}</pre>
             Obsolete Line Folding Can Hide What a Field Contains
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Older HTTP syntax allowed a field value to continue on an indented next line. Modern senders should not generate that obs-fold form. If it appears, this parser unfolds it with one space for inspection and reports that normalization instead of silently treating the input as ordinary modern syntax.
+            Older HTTP syntax allowed a field value to continue on an indented next line. Modern senders should not generate that obs-fold form. When it appears, joining the continuation with one space makes the value readable while still reporting that the source used obsolete syntax.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Practical Ways to Use the Parsed Result
+            Questions the Header Block Can Answer
           </h2>
           <ul className="mt-4 list-disc space-y-3 pl-5 leading-relaxed text-gray-600">
             <li>Compare browser and API-client responses when only one client has a caching or authentication problem.</li>
@@ -764,30 +918,21 @@ Set-Cookie: session=abc123; Path=/; Secure; HttpOnly`}</pre>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Structural Parser, Not a Universal Header Validator
+            Structure Is Not the Same as Full Field Validation
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Individual fields can have complex grammars of their own. Content Security Policy, Cache-Control, CORS, signatures, authentication challenges, structured fields, cookies, and content negotiation each need dedicated logic for deep validation. This page focuses on preserving the structure of a raw field section and surfacing high-value protocol diagnostics.
+            Individual fields can have complex grammars of their own. Content Security Policy, Cache-Control, CORS, signatures, authentication challenges, Structured Fields, cookies, and content negotiation each need dedicated rules for deep validation. Preserving the raw field-section structure is a different job from fully validating every registered field.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            References That Matter for Low-Level HTTP Debugging
+            Trace the Message Beyond the Header Block
           </h2>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
-              RFC 9110 — HTTP Semantics
-            </a>
-            <a href="https://www.rfc-editor.org/rfc/rfc9112" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
-              RFC 9112 — HTTP/1.1
-            </a>
-          </div>
-        </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/http-headers-parser" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/http-headers-parser" />
+          </div>
         </div>
       </section>
     </ToolShell>

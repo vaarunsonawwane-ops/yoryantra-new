@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "URL Query Params Parser | Read URL Parameters | Yoryantra",
+  title: "URL Query Params Parser | Decode Query Strings | Yoryantra",
   description:
-    "Parse URL query parameters, understand long links, preserve repeated values and raw encoding, and diagnose plus signs, blank values, fragments, and malformed percent encoding.",
+    "Parse a full URL or raw query string while preserving original encoding, repeated parameters, empty names and values, fragments, and decoding warnings.",
   alternates: {
     canonical: "https://yoryantra.com/tools/url-query-params-parser",
   },
   openGraph: {
-    title: "URL Query Params Parser | Read URL Parameters | Yoryantra",
+    title: "URL Query Params Parser | Decode Query Strings | Yoryantra",
     description:
-      "Read the parameters after ? in a URL, preserve repeated values, and compare raw and decoded forms.",
+      "Read the query after ?, preserve repeated values and original encoding, and compare raw with decoded forms.",
     url: "https://yoryantra.com/tools/url-query-params-parser",
     siteName: "Yoryantra",
     type: "website",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "URL Query Params Parser | Yoryantra",
     description:
-      "Parse URL parameters and understand repeated keys, blank values, plus signs, fragments, and percent encoding.",
+      "Read URL query parameters, repeated names, blank values, fragments, plus signs, and percent encoding.",
   },
 };
 
