@@ -16,8 +16,8 @@ type Result = {
   escapeStyle: EscapeStyle;
 };
 
-const escapeExample = `<div class="message">Yoryantra & tools</div>`;
-const unescapeExample = `&lt;div class=&quot;message&quot;&gt;Yoryantra &amp; tools&lt;/div&gt;`;
+const escapeExample = `<div class="message">Sneha & API docs</div>`;
+const unescapeExample = `&lt;div class=&quot;message&quot;&gt;Sneha &amp; API docs&lt;/div&gt;`;
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -44,11 +44,11 @@ export default function ToolClient() {
   };
 
   const convertHtml = () => {
-    if (!input.trim()) {
+    if (input.length === 0 || (trimInput && !input.trim())) {
       setError(
         mode === "escape"
-          ? "Please enter HTML or text to escape."
-          : "Please enter text containing HTML character references to decode."
+          ? "Enter HTML or text to escape."
+          : "Enter text containing HTML character references to decode."
       );
       setOutput("");
       setResult(null);
@@ -125,8 +125,8 @@ export default function ToolClient() {
             Input HTML or Text
           </label>
           <p className="mt-1 text-sm leading-relaxed text-gray-500">
-            Paste raw text or markup to escape, or paste entity-encoded text to decode.
-            The tool processes the value in this browser tab.
+            Paste raw text or markup to escape, or paste character-reference text to decode.
+            The conversion runs in this browser tab.
           </p>
         </div>
 
@@ -218,7 +218,7 @@ export default function ToolClient() {
 
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
           {mode === "escape"
-            ? "This encoder targets &, <, >, double quotes, and apostrophes. It does not convert every Unicode character into an entity."
+            ? "Escape mode targets &, <, >, double quotes, and apostrophes. Ordinary Unicode text is left alone."
             : "Decoding is a single pass. For example, &amp;lt; becomes &lt;, not <, because the outer reference is decoded first."}
         </p>
       </div>
@@ -285,9 +285,11 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
-        <h3 className="text-sm font-semibold text-amber-900">Privacy and security boundary</h3>
-        <p className="mt-2 text-sm leading-relaxed text-amber-800">
-          Conversion is performed by client-side JavaScript in your browser. This tool does not send the pasted value to an application server. HTML escaping is context-specific output encoding, however; it is not a substitute for validating URLs, encoding JavaScript or CSS contexts, or sanitizing HTML that you intend to render as markup.
+        <h3 className="text-sm font-semibold text-gray-900">
+          What stays local—and what escaping cannot protect
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          The pasted value is transformed by client-side JavaScript; no application-server request is made with that value. HTML escaping only protects the HTML context it was designed for. URL components, JavaScript, CSS, and intentionally rendered HTML each need their own handling.
         </p>
       </div>
 
@@ -302,7 +304,7 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool deliberately escapes a small, practical set of HTML-sensitive characters rather than replacing every non-ASCII character. With a correctly declared UTF-8 document, characters such as ©, é, ₹, or emoji can normally remain as literal Unicode text. Character references are still useful when a character is syntactically significant, difficult to type, or required by a particular workflow.
+            Replacing every non-ASCII character is usually unnecessary. With a correctly declared UTF-8 document, characters such as ©, é, ₹, or emoji can normally remain as literal Unicode text. Character references earn their place when a character is syntactically significant, difficult to type, or required by the surrounding format.
           </p>
         </div>
 
@@ -324,13 +326,13 @@ export default function ToolClient() {
                 <ReferenceRow character={"<"} named={"&lt;"} numeric={"&#60;"} note="Can start an HTML tag or markup construct." />
                 <ReferenceRow character={">"} named={"&gt;"} numeric={"&#62;"} note="Often encoded for symmetry; it is less frequently required in plain text." />
                 <ReferenceRow character={'"'} named={"&quot;"} numeric={"&#34;"} note="Important inside double-quoted attribute values." />
-                <ReferenceRow character={"'"} named={"&#39;"} numeric={"&#39;"} note="Important inside single-quoted attribute values." />
+                <ReferenceRow character={"'"} named={"&apos;"} numeric={"&#39;"} note="Important inside single-quoted attribute values." />
               </tbody>
             </table>
           </div>
 
           <p className="mt-3 text-sm leading-relaxed text-gray-500">
-            The named mode uses a decimal reference for the apostrophe so the output is explicit and broadly familiar. Decode mode accepts the browser-recognized named and numeric forms, not only the five forms generated by this encoder.
+            Named mode emits the HTML named references for these five characters, including <code className="font-mono text-xs">&amp;apos;</code>. Numeric mode uses decimal references. Decode mode accepts the much larger set of browser-recognized named and numeric references.
           </p>
         </div>
 
@@ -348,7 +350,7 @@ export default function ToolClient() {
               HTML entity encoding is not the correct general-purpose encoding for inline JavaScript, CSS values, or URL components. Those parsers have different escaping rules.
             </InfoCard>
             <InfoCard title="HTML that must remain markup">
-              If users are intentionally allowed to submit formatted HTML, escaping will make the tags visible as text. That workflow needs an HTML sanitizer and a carefully controlled rendering path instead.
+              If users are intentionally allowed to submit formatted HTML, escaping will make the tags visible as text. That case needs an HTML sanitizer and a carefully controlled rendering path instead.
             </InfoCard>
           </div>
         </div>
@@ -381,7 +383,7 @@ Decode one pass:      &lt;strong&gt;Hi&lt;/strong&gt;`}</pre>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common Mistakes to Check Before Shipping</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Where HTML escaping usually goes wrong</h2>
 
           <ul className="mt-4 list-disc space-y-3 pl-6 text-gray-600 leading-relaxed">
             <li><strong>Escaping too early:</strong> data is encoded in storage and then encoded again by the rendering layer.</li>
@@ -393,49 +395,50 @@ Decode one pass:      &lt;strong&gt;Hi&lt;/strong&gt;`}</pre>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Standards and Security References</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            The browser rules behind the references
+          </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            These primary and security references are useful when the output will be used in production rather than only inspected during debugging.
+            The exact character-reference grammar and the browser&apos;s longest-match parsing behavior come from the{" "}
+            <a
+              href="https://html.spec.whatwg.org/multipage/syntax.html#character-references"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              WHATWG HTML syntax
+            </a>
+            {" "}and its{" "}
+            <a
+              href="https://html.spec.whatwg.org/multipage/named-characters.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              named-character-reference table
+            </a>
+            . When the question is security rather than syntax, OWASP&apos;s{" "}
+            <a
+              href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              XSS Prevention Cheat Sheet
+            </a>
+            {" "}is the better reference because it separates HTML text, attributes, JavaScript, CSS, URL contexts, sanitization, and unsafe sinks.
           </p>
-
-          <ul className="mt-4 space-y-3 text-gray-600">
-            <li>
-              <a
-                href="https://html.spec.whatwg.org/multipage/named-characters.html"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-[var(--green)] underline underline-offset-4"
-              >
-                WHATWG HTML — named character references
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://developer.mozilla.org/en-US/docs/Glossary/Character_reference"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-[var(--green)] underline underline-offset-4"
-              >
-                MDN — character reference overview
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-[var(--green)] underline underline-offset-4"
-              >
-                OWASP — Cross Site Scripting Prevention Cheat Sheet
-              </a>
-            </li>
-          </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/html-escape-unescape" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            When the next problem is not HTML text
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/html-escape-unescape" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -461,7 +464,13 @@ function escapeHtml(
           : "&quot;"
         : character;
     }
-    if (character === "'") return options.escapeApostrophes ? "&#39;" : character;
+    if (character === "'") {
+      return options.escapeApostrophes
+        ? options.escapeStyle === "numeric"
+          ? "&#39;"
+          : "&apos;"
+        : character;
+    }
     return character;
   });
 }

@@ -13,6 +13,7 @@ type ValidationResult = {
   lineCount: number;
   duplicateKeys: string[];
   unsafeIntegers: string[];
+  loneSurrogates: number;
 };
 
 type JsonErrorDetail = {
@@ -25,7 +26,7 @@ type JsonErrorDetail = {
 };
 
 const exampleJson = `{
-  "tool": "JSON Validator",
+  "name": "Sneha",
   "active": true,
   "tags": ["api", "debugging"],
   "limits": {
@@ -60,6 +61,14 @@ export default function ToolClient() {
       const more = result.unsafeIntegers.length > 4 ? ` and ${result.unsafeIntegers.length - 4} more` : "";
       next.push(
         `Integer token${result.unsafeIntegers.length === 1 ? "" : "s"} outside JavaScript's safe-integer range: ${examples}${more}. The JSON text is valid, but parsing into a JavaScript number can lose integer precision.`
+      );
+    }
+
+    if (result.loneSurrogates > 0) {
+      next.push(
+        `${result.loneSurrogates} unpaired UTF-16 surrogate occurrence${
+          result.loneSurrogates === 1 ? "" : "s"
+        } ${result.loneSurrogates === 1 ? "was" : "were"} found inside JSON string data. RFC 8259 notes that such strings can be accepted by the grammar but behave unpredictably across software.`
       );
     }
 
@@ -110,6 +119,7 @@ export default function ToolClient() {
       const cleanSource = input.trim();
       const duplicateKeys = findDuplicateObjectKeys(cleanSource);
       const unsafeIntegers = findUnsafeIntegerTokens(cleanSource);
+      const loneSurrogates = countLoneSurrogatesInJsonStrings(cleanSource);
 
       setOutput(formatJsonText(cleanSource, Number(indentSize)));
       setResult({
@@ -118,6 +128,7 @@ export default function ToolClient() {
         lineCount: cleanSource.split(/\r\n|\r|\n/).length,
         duplicateKeys,
         unsafeIntegers,
+        loneSurrogates,
       });
       setError(null);
       setCopied(false);
@@ -259,8 +270,8 @@ export default function ToolClient() {
 
       {warnings.length > 0 ? (
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Interoperability warnings</h3>
-          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-amber-800">
+          <h3 className="text-sm font-semibold text-gray-900">Interoperability warnings</h3>
+          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-gray-700">
             {warnings.map((warning) => (
               <li key={warning}>{warning}</li>
             ))}
@@ -289,17 +300,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
-        <h3 className="text-sm font-semibold text-amber-900">Privacy note</h3>
-        <p className="mt-2 text-sm leading-relaxed text-amber-800">
-          Validation, formatting, and the warning checks on this page run in client-side JavaScript. This tool does not send the JSON you paste to an application server. Avoid pasting secrets into any page you do not trust, and remember that browser extensions or managed-device software may have their own access.
+        <h3 className="text-sm font-semibold text-gray-900">
+          The JSON stays in the browser tab during validation
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          Parsing, formatting, and the extra warning checks run in client-side JavaScript; the pasted JSON is not sent to an application server by these actions. Secrets still deserve care because browser extensions, managed-device software, screenshots, and clipboard history are separate exposure paths.
         </p>
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">What This JSON Validator Checks</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Syntax is only the first question</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The validator checks whether the input can be parsed as JSON by the browser&apos;s built-in <code className="font-mono text-sm">JSON.parse()</code>. That catches grammar errors such as missing commas, trailing commas, single-quoted strings, unescaped control characters, malformed escape sequences, invalid number forms, and unbalanced braces or brackets.
+            The first check is whether the input can be parsed by the browser&apos;s built-in <code className="font-mono text-sm">JSON.parse()</code>. That catches grammar errors such as missing commas, trailing commas, single-quoted strings, unescaped control characters, malformed escape sequences, invalid number forms, and unbalanced braces or brackets.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
             Syntax validation answers one narrow question: “is this JSON text grammatically parseable?” It does not prove that the data has the fields your API requires, that IDs exist, that URLs are reachable, or that values satisfy a business rule. Those are schema or application-level checks.
@@ -339,7 +352,7 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Duplicate Object Names: Validity vs Interoperability</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            RFC 8259 says names within an object should be unique. Parsers commonly accept duplicate names anyway, but their behavior is not reliably interoperable: one implementation may keep the last value, another may expose every pair, and another may reject the document. This validator therefore treats duplicate names as a warning rather than a syntax error and preserves them in formatted output so you can see the problem.
+            RFC 8259 says names within an object should be unique. Parsers commonly accept duplicate names anyway, but their behavior is not reliably interoperable: one implementation may keep the last value, another may expose every pair, and another may reject the document. Duplicate names therefore remain visible in formatted output and are reported as an interoperability warning rather than being silently collapsed.
           </p>
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <pre className="whitespace-pre-wrap break-words">{`{
@@ -362,7 +375,7 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">How Error Locations Should Be Read</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Parse error wording is produced by the browser engine and can differ between browsers. When the engine reports a character position or line and column, this tool shows a nearby line with a caret. The location is a debugging hint: the actual mistake can be just before the reported character, such as a missing comma on the previous property.
+            Parse error wording is produced by the browser engine and can differ between browsers. When the engine reports a character position or line and column, a nearby line is shown with a caret. Treat that location as a debugging hint: the actual mistake can sit just before the reported character, such as a missing comma on the previous property.
           </p>
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <ul className="space-y-3">
@@ -384,37 +397,56 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">BOMs, Unicode, and Portable JSON</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            RFC 8259 requires JSON exchanged between systems outside a closed ecosystem to use UTF-8 and says generators must not add a byte-order mark (BOM). Parsers are permitted to ignore a BOM for interoperability, so different software can behave differently. This browser-based validator reports a leading BOM explicitly instead of silently removing it.
+            RFC 8259 requires JSON exchanged between systems outside a closed ecosystem to use UTF-8 and says generators must not add a byte-order mark (BOM). Parsers are permitted to ignore a BOM for interoperability, so different software can behave differently. A leading BOM is reported explicitly instead of being silently removed.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON strings can contain Unicode characters directly or through <code className="font-mono text-sm">\uXXXX</code> escapes. A syntactically accepted Unicode sequence can still create interoperability issues in downstream systems, so syntax validation should not be confused with text normalization or application-level validation.
+            JSON strings can contain Unicode characters directly or through <code className="font-mono text-sm">\uXXXX</code> escapes. A paired surrogate escape can represent a character outside the Basic Multilingual Plane, while an unpaired surrogate can still fit the JSON grammar and yet behave unpredictably across software. Those lone surrogate cases are reported separately from syntax errors.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Official References</h2>
-          <ul className="mt-4 space-y-3 text-gray-600">
-            <li>
-              <a href="https://www.rfc-editor.org/rfc/rfc8259.html" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
-                RFC 8259 — The JavaScript Object Notation (JSON) Data Interchange Format
-              </a>
-            </li>
-            <li>
-              <a href="https://ecma-international.org/publications-and-standards/standards/ecma-404/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
-                ECMA-404 — The JSON Data Interchange Syntax
-              </a>
-            </li>
-            <li>
-              <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
-                MDN — JSON.parse()
-              </a>
-            </li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">
+            The grammar and the browser parser are two different references
+          </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Interchange rules such as UTF-8, duplicate-name interoperability, number guidance, BOM handling, and Unicode edge cases come from{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc8259.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 8259
+            </a>
+            .{" "}
+            <a
+              href="https://ecma-international.org/publications-and-standards/standards/ecma-404/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              ECMA-404
+            </a>
+            {" "}defines the JSON syntax itself. The actual parse result and error wording in this page come from the JavaScript engine&apos;s{" "}
+            <a
+              href="https://tc39.es/ecma262/#sec-json.parse"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              JSON.parse semantics in ECMAScript
+            </a>
+            .
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/json-validator" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            After syntax, check the data contract
+          </h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-validator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -745,6 +777,72 @@ function findUnsafeIntegerTokens(source: string) {
   }
 
   return unsafe;
+}
+
+function countLoneSurrogatesInJsonStrings(source: string) {
+  let count = 0;
+  let inString = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const code = source.charCodeAt(index);
+    const character = source[index];
+
+    if (!inString) {
+      if (character === '"') inString = true;
+      continue;
+    }
+
+    if (character === '"') {
+      inString = false;
+      continue;
+    }
+
+    if (character === "\\") {
+      const escapeType = source[index + 1];
+
+      if (escapeType === "u" && /^[0-9A-Fa-f]{4}$/.test(source.slice(index + 2, index + 6))) {
+        const value = Number.parseInt(source.slice(index + 2, index + 6), 16);
+
+        if (value >= 0xd800 && value <= 0xdbff) {
+          const nextEscape = source.slice(index + 6, index + 12);
+          const lowMatch = nextEscape.match(/^\\u([0-9A-Fa-f]{4})$/);
+          const low = lowMatch ? Number.parseInt(lowMatch[1], 16) : -1;
+
+          if (low >= 0xdc00 && low <= 0xdfff) {
+            index += 11;
+            continue;
+          }
+
+          count += 1;
+        } else if (value >= 0xdc00 && value <= 0xdfff) {
+          count += 1;
+        }
+
+        index += 5;
+        continue;
+      }
+
+      index += 1;
+      continue;
+    }
+
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = source.charCodeAt(index + 1);
+
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        index += 1;
+      } else {
+        count += 1;
+      }
+      continue;
+    }
+
+    if (code >= 0xdc00 && code <= 0xdfff) {
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
 function isOutsideSafeIntegerRange(token: string) {

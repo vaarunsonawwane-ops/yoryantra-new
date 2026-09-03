@@ -50,14 +50,14 @@ type ConverterNote = {
 
 const sampleSchema = `{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "YoryantraTool",
+  "title": "ProfileRecord",
   "type": "object",
-  "description": "A tool entry used on the Yoryantra website.",
+  "description": "A profile record returned by an API.",
   "required": ["title", "href", "category"],
   "properties": {
     "title": {
       "type": "string",
-      "description": "Tool display name"
+      "description": "Profile display name"
     },
     "description": {
       "type": "string"
@@ -151,7 +151,7 @@ export default function ToolClient() {
     } catch (err) {
       setError(
         err instanceof SyntaxError
-          ? "The JSON Schema is not valid JSON. Please fix it and try again."
+          ? schemaJsonErrorMessage(input, err.message)
           : err instanceof Error
           ? err.message
           : "Unable to convert this JSON Schema."
@@ -183,7 +183,7 @@ export default function ToolClient() {
 
   const loadExample = () => {
     setInput(sampleSchema);
-    setRootName("YoryantraTool");
+    setRootName("ProfileRecord");
     setOutputStyle("interface");
     setPropertyStyle("preserve");
     setArrayStyle("array");
@@ -218,7 +218,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Schema to TypeScript Converter"
-      description="Convert practical JSON Schema structures into TypeScript interfaces or type aliases, resolve local JSON Pointer references, and surface schema rules that still need runtime validation."
+      description="Translate JSON Schema structures into TypeScript interfaces or type aliases, resolve local JSON Pointer references, and keep runtime-only constraints visible."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -442,18 +442,18 @@ export default function ToolClient() {
 
       {notes.length > 0 && (
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
+          <h3 className="text-sm font-semibold text-gray-900">
             TypeScript notes
           </h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-amber-900">
+                <p className="text-sm font-semibold text-gray-900">
                   {note.title}
                 </p>
 
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                <p className="mt-1 text-sm leading-relaxed text-gray-700">
                   {note.message}
                 </p>
               </div>
@@ -480,8 +480,9 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        <strong>Privacy and scope:</strong> conversion runs in client-side JavaScript and this tool does not send the pasted schema to an application server. Generated TypeScript is a static typing aid, not a runtime validator; keep your JSON Schema validator in the data path when runtime enforcement matters.
+      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
+        <strong className="text-gray-900">The schema stays in this browser tab during conversion.</strong>{" "}
+        No application-server request is made with the pasted schema. The generated TypeScript describes static shapes for the compiler; it does not enforce JSON Schema assertions at runtime.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
@@ -495,7 +496,7 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A property with <code className="font-mono text-sm">type: &quot;string&quot;</code> maps naturally to <code className="font-mono text-sm">string</code>. A rule such as <code className="font-mono text-sm">minLength: 3</code>, <code className="font-mono text-sm">pattern</code>, <code className="font-mono text-sm">minimum</code>, or most <code className="font-mono text-sm">format</code> checks does not have an equivalent ordinary TypeScript property type. The converter keeps the useful static shape and reports warnings for important rules that remain runtime concerns.
+            A property with <code className="font-mono text-sm">type: &quot;string&quot;</code> maps naturally to <code className="font-mono text-sm">string</code>. A rule such as <code className="font-mono text-sm">minLength: 3</code>, <code className="font-mono text-sm">pattern</code>, <code className="font-mono text-sm">minimum</code>, or most <code className="font-mono text-sm">format</code> checks does not have an equivalent ordinary TypeScript property type. Those rules stay visible as warnings because the static shape is only part of the contract.
           </p>
         </div>
 
@@ -570,11 +571,11 @@ interface GeneratedType {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            External references such as another file or HTTPS URL are deliberately not fetched by this browser-only converter. A direct recursive reference back to the root can map to the generated root type, while recursive local-definition patterns that cannot be emitted safely are detected and use <code className="font-mono text-sm">unknown</code> or <code className="font-mono text-sm">any</code> at the unsupported recursive edge. Those fallbacks appear in the warning panel before you copy the code.
+            External references such as another file or HTTPS URL are not fetched. A direct recursive reference back to the root can map to the generated root type, while recursive local-definition patterns that cannot be emitted safely use <code className="font-mono text-sm">unknown</code> or <code className="font-mono text-sm">any</code> at the unsupported recursive edge. Those fallbacks appear in the warning panel before you copy the code.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Draft 2020-12 also allows useful behavior around reference siblings and dynamic references. This converter does not claim full evaluator semantics for those features; it reports unsupported or partially represented cases instead of silently treating generated TypeScript as equivalent validation logic.
+            Draft 2020-12 also allows sibling keywords beside <code className="font-mono text-sm">$ref</code> and introduces dynamic references. Those evaluator semantics are not reproduced by a plain TypeScript declaration, so unsupported or partially represented cases are reported instead of being treated as equivalent validation logic.
           </p>
         </div>
 
@@ -586,7 +587,7 @@ interface GeneratedType {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Older schema drafts used an array in <code className="font-mono text-sm">items</code> for tuple positions and <code className="font-mono text-sm">additionalItems</code> for the tail. The converter recognizes that older shape as a compatibility path and emits a warning so you know draft-specific behavior is involved.
+            Older schema drafts used an array in <code className="font-mono text-sm">items</code> for tuple positions and <code className="font-mono text-sm">additionalItems</code> for the tail. That older shape is recognized as a compatibility path and is called out so the draft-specific behavior does not disappear in generated code.
           </p>
         </div>
 
@@ -594,11 +595,11 @@ interface GeneratedType {
           <h2 className="text-xl font-semibold text-gray-900">additionalProperties Is Not the Same as an Exact TypeScript Object</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Schema allows additional object names by default. With <strong>Add index signature</strong> selected, the converter makes that openness visible with a string index signature. If <code className="font-mono text-sm">additionalProperties</code> contains its own schema, that value type is included too.
+            JSON Schema allows additional object names by default. With <strong>Add index signature</strong> selected, that openness appears as a string index signature. If <code className="font-mono text-sm">additionalProperties</code> contains its own schema, that value type is included too.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            There is no perfect ordinary TypeScript equivalent for “these known properties have their own types, while every other string key must satisfy another schema.” An index signature must also be compatible with the declared properties, so the generated signature may be broader than the JSON Schema rule. The converter warns when it has to make that compromise.
+            There is no perfect ordinary TypeScript equivalent for “these known properties have their own types, while every other string key must satisfy another schema.” An index signature must also be compatible with the declared properties, so the generated signature may be broader than the JSON Schema rule. That widening is reported because it changes what the static type appears to allow.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -636,12 +637,12 @@ interface GeneratedType {
           <h2 className="text-xl font-semibold text-gray-900">Boolean Schemas: true and false</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Schema permits a schema itself to be the boolean value <code className="font-mono text-sm">true</code> or <code className="font-mono text-sm">false</code>. A true schema accepts every instance, so this converter maps it to the selected fallback type—<code className="font-mono text-sm">unknown</code> by default. A false schema accepts no instance and maps naturally to TypeScript <code className="font-mono text-sm">never</code>.
+            JSON Schema permits a schema itself to be the boolean value <code className="font-mono text-sm">true</code> or <code className="font-mono text-sm">false</code>. A true schema accepts every instance, so it maps to the selected fallback type—<code className="font-mono text-sm">unknown</code> by default. A false schema accepts no instance and maps naturally to TypeScript <code className="font-mono text-sm">never</code>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">A Safer Production Workflow</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Before generated types go into a codebase</h2>
 
           <ol className="mt-4 list-decimal space-y-3 pl-6 text-gray-600 leading-relaxed">
             <li>Validate that the source document is the JSON Schema draft and dialect your system actually uses.</li>
@@ -654,55 +655,50 @@ interface GeneratedType {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Official References</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            The two specifications meet at different boundaries
+          </h2>
 
-          <ul className="mt-4 space-y-3 text-gray-600">
-            <li>
-              <a
-                href="https://json-schema.org/draft/2020-12"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-[var(--green)] underline underline-offset-4"
-              >
-                JSON Schema — Draft 2020-12 specification documents
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://json-schema.org/specification"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-[var(--green)] underline underline-offset-4"
-              >
-                JSON Schema — specification overview
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://www.typescriptlang.org/docs/handbook/2/everyday-types.html"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-[var(--green)] underline underline-offset-4"
-              >
-                TypeScript Handbook — everyday types, unions, aliases, and interfaces
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://www.typescriptlang.org/docs/handbook/2/objects.html"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-[var(--green)] underline underline-offset-4"
-              >
-                TypeScript Handbook — object types and property modifiers
-              </a>
-            </li>
-          </ul>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Tuple behavior, <code className="font-mono text-sm">$ref</code> siblings, vocabularies, and runtime assertions follow the{" "}
+            <a
+              href="https://json-schema.org/draft/2020-12"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              JSON Schema Draft 2020-12 documents
+            </a>
+            . Local pointer references use the escaping rules from{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc6901"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 6901
+            </a>
+            . Once a schema becomes TypeScript, assignability, optional properties, index signatures, and excess-property checks follow the{" "}
+            <a
+              href="https://www.typescriptlang.org/docs/handbook/2/objects.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              TypeScript object-type rules
+            </a>
+            , which are intentionally not the same thing as runtime JSON Schema validation.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/json-schema-to-typescript-converter" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Keep the runtime contract beside the generated types
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-schema-to-typescript-converter" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -739,6 +735,29 @@ function MappingRow({
       <td className="border-b border-gray-100 px-4 py-3">{caveat}</td>
     </tr>
   );
+}
+
+function schemaJsonErrorMessage(source: string, message: string) {
+  const positionMatch = message.match(/position\s+(\d+)/i);
+
+  if (!positionMatch) {
+    return `The JSON Schema is not valid JSON. ${message}`;
+  }
+
+  const position = Math.min(Number(positionMatch[1]), source.length);
+  let line = 1;
+  let column = 1;
+
+  for (let index = 0; index < position; index += 1) {
+    if (source[index] === "\n") {
+      line += 1;
+      column = 1;
+    } else {
+      column += 1;
+    }
+  }
+
+  return `The JSON Schema is not valid JSON near line ${line}, column ${column}. ${message}`;
 }
 
 type ConvertOptions = {
@@ -794,6 +813,22 @@ function convertJsonSchemaToTypeScript(schema: SchemaNode, options: ConvertOptio
       context,
       "Property-name conversion changes the keys described by the schema. Camel-case output does not directly describe raw JSON unless your application also transforms those keys."
     );
+  }
+
+  if (typeof schema === "object") {
+    const dialect = typeof schema.$schema === "string" ? schema.$schema : "";
+
+    if (!dialect) {
+      pushWarning(
+        context,
+        "No $schema dialect is declared. Draft-specific keywords are interpreted primarily with Draft 2020-12 behavior, with a limited compatibility path for older tuple-style items arrays."
+      );
+    } else if (dialect.indexOf("2020-12") === -1) {
+      pushWarning(
+        context,
+        `The declared schema dialect is ${dialect}. Draft-specific behavior should be reviewed because the main mappings follow Draft 2020-12, with only limited compatibility for older tuple syntax.`
+      );
+    }
   }
 
   collectUnsupportedKeywordWarnings(schema, context);
@@ -860,7 +895,7 @@ function schemaToTs(schema: SchemaNode, nameHint: string, context: ConvertContex
     if (siblingKeys.length > 0) {
       pushWarning(
         context,
-        `Reference ${schema.$ref} has sibling schema keywords (${siblingKeys.join(", ")}). This converter resolves the reference but does not intersect sibling constraints with it.`
+        `Reference ${schema.$ref} has sibling schema keywords (${siblingKeys.join(", ")}). The referenced shape is resolved, but the sibling constraints are not intersected into the generated TypeScript.`
       );
     }
 
@@ -1252,7 +1287,16 @@ function refToType(ref: string, context: ConvertContext, depth: number) {
   if (!ref.startsWith("#/")) {
     pushWarning(
       context,
-      `External or non-pointer reference ${ref} is not resolved. A fallback type was used.`
+      `External, anchor-based, or non-pointer reference ${ref} is not resolved. A fallback type was used.`
+    );
+    return fallbackType(context);
+  }
+
+  const pointerProblem = localPointerProblem(ref);
+  if (pointerProblem) {
+    pushWarning(
+      context,
+      `Local reference ${ref} is not a valid JSON Pointer fragment: ${pointerProblem}. A fallback type was used.`
     );
     return fallbackType(context);
   }
@@ -1260,7 +1304,7 @@ function refToType(ref: string, context: ConvertContext, depth: number) {
   if (context.resolvingRefs.has(ref)) {
     pushWarning(
       context,
-      `Recursive reference ${ref} was detected. Recursive declarations are not generated by this converter, so a fallback type was used at the recursive edge.`
+      `Recursive reference ${ref} was detected. A safe recursive declaration could not be emitted for this local definition, so a fallback type was used at the recursive edge.`
     );
     return fallbackType(context);
   }
@@ -1278,6 +1322,26 @@ function refToType(ref: string, context: ConvertContext, depth: number) {
   context.resolvingRefs.delete(ref);
   context.refCache.set(ref, resolved);
   return resolved;
+}
+
+function localPointerProblem(ref: string) {
+  const segments = ref.slice(2).split("/");
+
+  for (const rawSegment of segments) {
+    let decoded: string;
+
+    try {
+      decoded = decodeURIComponent(rawSegment);
+    } catch {
+      return "a reference token contains malformed percent-encoding";
+    }
+
+    if (/~(?:[^01]|$)/.test(decoded)) {
+      return 'a reference token contains "~" that is not followed by 0 or 1';
+    }
+  }
+
+  return "";
 }
 
 function resolveLocalRef(root: SchemaNode, ref: string): SchemaNode | undefined {

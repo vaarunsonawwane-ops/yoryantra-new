@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Validator & Syntax Checker | Find JSON Errors",
+  title: "JSON Validator | Find Syntax Errors & Duplicate Keys",
   description:
-    "Validate JSON syntax in your browser, locate parse errors, pretty-print valid JSON, and flag duplicate keys or large integers that can cause interoperability issues.",
+    "Validate JSON syntax, locate parser errors, pretty-print valid JSON, and flag duplicate keys, unsafe integers, BOMs, and lone surrogate edge cases.",
   keywords: [
     "json validator",
     "json syntax checker",
@@ -17,18 +17,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/json-validator",
   },
   openGraph: {
-    title: "JSON Validator & Syntax Checker | Yoryantra",
+    title: "JSON Validator | Yoryantra",
     description:
-      "Validate JSON syntax, inspect parse errors, and format valid JSON with practical interoperability warnings.",
+      "Validate JSON syntax, inspect parser errors, and keep duplicate keys, large integers, and Unicode interoperability warnings visible.",
     url: "https://yoryantra.com/tools/json-validator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "JSON Validator & Syntax Checker | Yoryantra",
+    title: "JSON Validator | Yoryantra",
     description:
-      "Validate JSON syntax, locate errors, and format valid JSON directly in your browser.",
+      "Validate JSON syntax, locate errors, and format valid JSON with interoperability warnings.",
   },
 };
 

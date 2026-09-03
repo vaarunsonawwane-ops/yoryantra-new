@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Schema to TypeScript Converter | Interfaces & Types",
+  title: "JSON Schema to TypeScript | Interfaces, Types & Local $ref",
   description:
-    "Convert JSON Schema to TypeScript interfaces or type aliases in your browser. Handles local refs and Draft 2020-12 tuples with warnings for runtime-only rules.",
+    "Convert JSON Schema to TypeScript interfaces or type aliases. Handles local JSON Pointer refs, Draft 2020-12 tuples, optional fields, and runtime-only constraints.",
   keywords: [
     "JSON Schema to TypeScript",
     "JSON Schema TypeScript converter",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/json-schema-to-typescript-converter",
   },
   openGraph: {
-    title: "JSON Schema to TypeScript Converter | Yoryantra",
+    title: "JSON Schema to TypeScript | Yoryantra",
     description:
-      "Generate TypeScript from JSON Schema with local-reference handling, tuple support, and explicit warnings where static types cannot reproduce runtime validation.",
+      "Generate TypeScript from JSON Schema with local pointer references, tuple handling, and warnings where static types cannot reproduce runtime validation.",
     url: "https://yoryantra.com/tools/json-schema-to-typescript-converter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "JSON Schema to TypeScript Converter | Yoryantra",
+    title: "JSON Schema to TypeScript | Yoryantra",
     description:
-      "Generate TypeScript from JSON Schema with local-reference handling, tuple support, and explicit warnings where static types cannot reproduce runtime validation.",
+      "Generate TypeScript from JSON Schema with local pointer references, tuple handling, and warnings where static types cannot reproduce runtime validation.",
   },
 };
 
