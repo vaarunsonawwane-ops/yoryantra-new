@@ -153,7 +153,13 @@ function validW3cDate(value: string) {
   if (dateTime[7] !== "Z") {
     const offsetHour = Number(dateTime[8]);
     const offsetMinute = Number(dateTime[9]);
-    if (offsetHour > 23 || offsetMinute > 59) return false;
+    if (
+      offsetHour > 14 ||
+      offsetMinute > 59 ||
+      (offsetHour === 14 && offsetMinute !== 0)
+    ) {
+      return false;
+    }
   }
 
   return Number.isFinite(Date.parse(value));
@@ -185,12 +191,9 @@ function parseSitemap(xml: string) {
   }
 
   if (/<!DOCTYPE/i.test(xml)) {
-    issues.push({
-      severity: "warning",
-      title: "DOCTYPE present",
-      message:
-        "Sitemap XML does not need a DTD/DOCTYPE. Remove unnecessary external-entity machinery from generated sitemap files.",
-    });
+    throw new Error(
+      "DOCTYPE declarations are not accepted here. Standard sitemap XML does not need a DTD, and rejecting it avoids unnecessary entity-processing risk."
+    );
   }
 
   const parser = new DOMParser();
@@ -234,9 +237,13 @@ function parseSitemap(xml: string) {
   }
 
   const entries: Entry[] = [];
+  let primaryNodeCount = 0;
+  let repeatedUrlMetadataEntries = 0;
+  let repeatedIndexLastmodEntries = 0;
 
   if (sitemapType === "urlset") {
     const nodes = directChildren(root, "url", SITEMAP_NS);
+    primaryNodeCount = nodes.length;
 
     nodes.forEach((node, index) => {
       const locs = directChildren(node, "loc", SITEMAP_NS);
@@ -260,6 +267,14 @@ function parseSitemap(xml: string) {
         return;
       }
 
+      if (
+        ["lastmod", "changefreq", "priority"].some(
+          (name) => directChildren(node, name, SITEMAP_NS).length > 1
+        )
+      ) {
+        repeatedUrlMetadataEntries += 1;
+      }
+
       entries.push({
         type: "url",
         loc,
@@ -274,6 +289,7 @@ function parseSitemap(xml: string) {
 
   if (sitemapType === "sitemapindex") {
     const nodes = directChildren(root, "sitemap", SITEMAP_NS);
+    primaryNodeCount = nodes.length;
 
     nodes.forEach((node, index) => {
       const locs = directChildren(node, "loc", SITEMAP_NS);
@@ -288,7 +304,18 @@ function parseSitemap(xml: string) {
       }
 
       const loc = (locs[0].textContent || "").trim();
-      if (!loc) return;
+      if (!loc) {
+        issues.push({
+          severity: "high",
+          title: "Empty child sitemap loc",
+          message: `Child sitemap entry ${index + 1} has an empty <loc>.`,
+        });
+        return;
+      }
+
+      if (directChildren(node, "lastmod", SITEMAP_NS).length > 1) {
+        repeatedIndexLastmodEntries += 1;
+      }
 
       entries.push({
         type: "sitemap",
@@ -308,12 +335,36 @@ function parseSitemap(xml: string) {
     );
   }
 
-  if (entries.length > MAX_ENTRIES) {
+  if (repeatedUrlMetadataEntries) {
+    issues.push({
+      severity: "warning",
+      title: "Repeated optional fields inside URL entries",
+      message:
+        `${repeatedUrlMetadataEntries} URL entr${
+          repeatedUrlMetadataEntries === 1 ? "y contains" : "ies contain"
+        } more than one lastmod, changefreq or priority element. Keep at most one value for each core field.`,
+    });
+  }
+
+  if (repeatedIndexLastmodEntries) {
+    issues.push({
+      severity: "warning",
+      title: "Repeated lastmod inside sitemap-index entries",
+      message:
+        `${repeatedIndexLastmodEntries} child sitemap entr${
+          repeatedIndexLastmodEntries === 1 ? "y contains" : "ies contain"
+        } more than one lastmod element.`,
+    });
+  }
+
+  if (primaryNodeCount > MAX_ENTRIES) {
     issues.push({
       severity: "high",
       title: "Entry count exceeds Sitemap limit",
       message:
-        `${entries.length.toLocaleString()} primary entries were extracted. A sitemap or sitemap index is limited to 50,000 entries.`,
+        `${primaryNodeCount.toLocaleString()} direct ${
+          sitemapType === "sitemapindex" ? "sitemap" : "URL"
+        } entries were found. A sitemap or sitemap index is limited to 50,000 entries.`,
     });
   }
 
@@ -335,6 +386,37 @@ function parseSitemap(xml: string) {
         `${invalidUrls.length} primary loc value${
           invalidUrls.length === 1 ? " is" : "s are"
         } not an absolute HTTP(S) URL.`,
+    });
+  }
+
+  let invalidImageUrls = 0;
+  let longImageUrls = 0;
+  entries.forEach((entry) => {
+    entry.images.forEach((imageUrl) => {
+      if (!isHttpUrl(imageUrl)) invalidImageUrls += 1;
+      if (imageUrl.length >= 2048) longImageUrls += 1;
+    });
+  });
+
+  if (invalidImageUrls) {
+    issues.push({
+      severity: "warning",
+      title: "Image extension contains invalid URLs",
+      message:
+        `${invalidImageUrls} image loc value${
+          invalidImageUrls === 1 ? " is" : "s are"
+        } not an absolute HTTP(S) URL.`,
+    });
+  }
+
+  if (longImageUrls) {
+    issues.push({
+      severity: "warning",
+      title: "Very long image URLs",
+      message:
+        `${longImageUrls} image loc value${
+          longImageUrls === 1 ? " is" : "s are"
+        } 2,048 characters or longer.`,
     });
   }
 
@@ -487,7 +569,26 @@ function imageEntries(entries: Entry[]) {
         changefreq: "",
         priority: "",
         images: [],
-        sourceIndex: index,
+        sourceIndex: entry.sourceIndex * 1000 + index,
+      });
+    });
+  });
+  return output;
+}
+
+function entriesWithImages(entries: Entry[]) {
+  const output: Entry[] = [];
+  entries.forEach((entry) => {
+    output.push(entry);
+    entry.images.forEach((loc, index) => {
+      output.push({
+        type: "image",
+        loc,
+        lastmod: "",
+        changefreq: "",
+        priority: "",
+        images: [],
+        sourceIndex: entry.sourceIndex * 1000 + index,
       });
     });
   });
@@ -658,7 +759,7 @@ function buildResult(options: {
     selected = images;
   } else {
     selected = options.includeImages
-      ? parsed.entries.concat(images)
+      ? entriesWithImages(parsed.entries)
       : parsed.entries.slice();
   }
 
@@ -787,7 +888,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Sitemap URL Extractor"
-      description="Parse sitemap XML locally and extract core page URLs, child sitemap URLs and optional image extension URLs with namespace-aware direct-child handling, metadata validation, filtering, sorting and exports."
+      description="Read sitemap XML as urlset or sitemapindex data, keep core URLs separate from image-extension URLs, and review namespaces, dates, duplicates and file limits before exporting the rows you need."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block text-sm font-semibold text-gray-900">
@@ -919,17 +1020,17 @@ export default function ToolClient() {
               value={String(result.outputEntries.length)}
             />
             <Stat label="High findings" value={String(highCount)} />
-            <Stat label="UTF-8 bytes" value={result.sourceBytes.toLocaleString()} />
+            <Stat label="Pasted UTF-8 bytes" value={result.sourceBytes.toLocaleString()} />
           </div>
 
           {result.issues.length ? (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">Sitemap review</h3>
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">Sitemap review</h3>
               <div className="mt-4 space-y-3">
                 {result.issues.map((issue, index) => (
                   <div
                     key={`${issue.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-700"
                   >
                     <strong>
                       {issue.severity.toUpperCase()} · {issue.title}
@@ -962,11 +1063,11 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        XML parsing and extraction happen on the pasted document in your
-        browser. The tool does not fetch child sitemaps, submit URLs, check HTTP
-        status/canonical/indexability or verify Google indexing. Site-wide
-        analytics or advertising scripts, if enabled, are separate from this
-        operation.
+        XML parsing happens on the pasted document in the browser. Child
+        sitemaps are not fetched, URLs are not submitted, and HTTP status,
+        canonical signals, robots rules, indexability and Google indexing are
+        not checked. Site-wide analytics or advertising scripts, if enabled,
+        are separate from the XML parsing itself.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -976,10 +1077,10 @@ export default function ToolClient() {
         <p className="mt-4 leading-relaxed text-gray-600">
           Sitemap XML can contain extension namespaces for images, video, news
           and other metadata. Those extensions can also contain elements named{" "}
-          <code>loc</code>. A generic “find every loc tag” extractor can mix
+          <code>loc</code>. A simple “find every loc tag” search can mix
           image URLs into the primary page list. This parser reads direct core
-          Sitemap children in the standard namespace, then extracts image
-          extension URLs separately.
+          Sitemap children in the standard namespace, while image-extension URLs
+          are kept in a separate set.
         </p>
 
         <h2 className="mt-10 text-xl font-semibold text-gray-900">
@@ -988,15 +1089,15 @@ export default function ToolClient() {
         <p className="mt-4 leading-relaxed text-gray-600">
           A <code>urlset</code> lists content URLs. A{" "}
           <code>sitemapindex</code> lists sitemap files that must be fetched
-          separately to discover the pages inside them. The extractor never
-          reports a child sitemap URL as if it were an indexed content page.
+          separately to discover the pages inside them. A child sitemap URL is
+          therefore kept distinct from a content-page URL.
         </p>
 
-        <div className="mt-10 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             lastmod Should Describe Real Modification Time
           </h2>
-          <p className="mt-3 leading-relaxed text-yellow-900/90">
+          <p className="mt-3 leading-relaxed text-gray-700">
             A syntactically valid date is not automatically useful. lastmod
             should reflect meaningful modification of the URL or child sitemap,
             not the time your sitemap generator ran. Search engines can ignore
@@ -1014,6 +1115,23 @@ export default function ToolClient() {
         </p>
 
         <h2 className="mt-10 text-xl font-semibold text-gray-900">
+          Pasted XML Cannot Prove the Original File Encoding or Location Scope
+        </h2>
+        <p className="mt-4 leading-relaxed text-gray-600">
+          By the time XML is pasted into a textarea, the browser already has
+          Unicode text. The byte count shown above is the UTF-8 size of that
+          pasted text, not a forensic measurement of the original file bytes.
+          The XML declaration can be checked for an encoding claim, but the
+          original transfer encoding cannot be recovered from pasted text alone.
+        </p>
+        <p className="mt-4 leading-relaxed text-gray-600">
+          Sitemap placement also affects URL scope. Without the sitemap file&apos;s
+          own URL, a pasted document can reveal mixed hosts or protocols, but it
+          cannot prove whether every entry falls under the allowed path or a
+          verified cross-site submission arrangement.
+        </p>
+
+        <h2 className="mt-10 text-xl font-semibold text-gray-900">
           Extracted Does Not Mean Indexable
         </h2>
         <p className="mt-4 leading-relaxed text-gray-600">
@@ -1028,8 +1146,8 @@ export default function ToolClient() {
             Google Ignores changefreq and priority
           </h2>
           <p className="mt-3 leading-relaxed text-gray-600">
-            They remain part of the Sitemap protocol and this tool preserves
-            them for audits, but Google documents that it ignores those values.
+            They remain part of the Sitemap protocol and are preserved in
+            exports, but Google documents that it ignores those values.
             Do not spend maintenance effort tuning them as if they controlled
             crawl frequency or ranking priority.
           </p>
@@ -1049,8 +1167,12 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/sitemap-url-extractor" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Follow the URLs Beyond the XML
+          </h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/sitemap-url-extractor" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -1070,20 +1192,18 @@ function Toggle({
 }) {
   return (
     <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-		<input
-		  type="checkbox"
-		  checked={checked}
-		  onChange={(event: { target: { checked: boolean } }) =>
-			onChange(event.target.checked)
-		  }
-		  className="mt-1 shrink-0"
-		/>
-		<span className="min-w-0 flex-1">
-		  <strong className="block break-words text-gray-900">{title}</strong>
-		  <span className="mt-1 block break-words text-gray-500">
-			{text}
-		  </span>
-		</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event: { target: { checked: boolean } }) =>
+          onChange(event.target.checked)
+        }
+        className="mt-1"
+      />
+      <span>
+        <strong className="text-gray-900">{title}</strong>
+        <span className="mt-1 block text-gray-500">{text}</span>
+      </span>
     </label>
   );
 }

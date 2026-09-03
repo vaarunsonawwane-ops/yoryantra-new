@@ -4,14 +4,14 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "Canonical URL Checker | HTML & Link Header Review | Yoryantra",
   description:
-    "Compare a page URL with canonical declarations from a URL, HTML link element or HTTP Link header and review fragments, tracking parameters, host, path and query differences.",
+    "Inspect canonical declarations from URLs, HTML link elements or HTTP Link headers and compare scheme, host, path, query, fragments and conflicting signals.",
   alternates: {
     canonical: "https://yoryantra.com/tools/canonical-url-checker",
   },
   openGraph: {
     title: "Canonical URL Checker | Yoryantra",
     description:
-      "Review canonical URL declarations structurally without pretending to fetch the page or know a search engine's selected canonical.",
+      "Compare a page URL with its canonical declaration and review structural conflicts without pretending to know the search engine selected canonical.",
     url: "https://yoryantra.com/tools/canonical-url-checker",
     siteName: "Yoryantra",
     type: "website",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Canonical URL Checker | Yoryantra",
     description:
-      "Compare page and canonical URLs, inspect HTML/HTTP declarations, and surface conflicting structural signals locally.",
+      "Inspect canonical URLs, HTML link elements and HTTP Link headers for structural conflicts and common implementation mistakes.",
   },
 };
 

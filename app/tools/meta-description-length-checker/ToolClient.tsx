@@ -27,6 +27,7 @@ type Row = {
 type Result = {
   rows: Row[];
   issues: Issue[];
+  globalIssues: Issue[];
   total: number;
   duplicateGroups: number;
   averageLength: number;
@@ -42,6 +43,18 @@ function normalizeSpace(value: string) {
 
 function decodeEntities(value: string) {
   return value
+    .replace(/&#x([0-9a-f]+);/gi, (_match, hex: string) => {
+      const codePoint = Number.parseInt(hex, 16);
+      return Number.isFinite(codePoint) && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : "�";
+    })
+    .replace(/&#([0-9]+);/g, (_match, decimal: string) => {
+      const codePoint = Number.parseInt(decimal, 10);
+      return Number.isFinite(codePoint) && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : "�";
+    })
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
@@ -61,31 +74,75 @@ function htmlAttribute(tag: string, name: string) {
   return unquoted ? unquoted[1] : "";
 }
 
+type MetaDescriptionEntry = {
+  value: string;
+  tag: string;
+  index: number;
+};
+
+function metaDescriptionEntries(input: string) {
+  const values: MetaDescriptionEntry[] = [];
+  const regex = /<meta\b[^>]*>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(input)) !== null) {
+    const tag = match[0];
+    const name = htmlAttribute(tag, "name").toLowerCase();
+    if (name !== "description") continue;
+
+    values.push({
+      value: decodeEntities(htmlAttribute(tag, "content")),
+      tag,
+      index: match.index,
+    });
+  }
+
+  return values;
+}
+
+function looksLikeHtmlDocument(input: string) {
+  return /<(?:html|head|body)\b/i.test(input);
+}
+
+function isInsideHead(input: string, index: number) {
+  const before = input.slice(0, index);
+  let lastOpen = -1;
+  let lastClose = -1;
+  let match: RegExpExecArray | null;
+  const open = /<head\b[^>]*>/gi;
+  const close = /<\/head\s*>/gi;
+
+  while ((match = open.exec(before)) !== null) {
+    lastOpen = match.index;
+  }
+  while ((match = close.exec(before)) !== null) {
+    lastClose = match.index;
+  }
+
+  return lastOpen !== -1 && lastOpen > lastClose;
+}
+
 function extractDescriptions(input: string, mode: InputMode) {
   if (mode === "single") {
     return [input];
   }
 
   if (mode === "lines") {
-    return input.replace(/\r\n?/g, "\n").split("\n");
+    const lines = input.replace(/\r\n?/g, "\n").split("\n");
+    while (lines.length && !lines[lines.length - 1].trim()) {
+      lines.pop();
+    }
+    return lines;
   }
 
-  const tags = input.match(/<meta\b[^>]*>/gi) || [];
-  const values: string[] = [];
-
-  tags.forEach((tag) => {
-    const name = htmlAttribute(tag, "name").toLowerCase();
-    if (name !== "description") return;
-    values.push(decodeEntities(htmlAttribute(tag, "content")));
-  });
-
-  if (!values.length) {
+  const entries = metaDescriptionEntries(input);
+  if (!entries.length) {
     throw new Error(
       'No <meta name="description" content="..."> element was found in the pasted HTML.'
     );
   }
 
-  return values;
+  return entries.map((entry) => entry.value);
 }
 
 function countPhrase(text: string, phrase: string) {
@@ -136,7 +193,7 @@ function analyzeRow(
       severity: "high",
       title: "Empty description",
       message:
-        "This row contains no description text. A page without a meta description can still appear in search, but the search engine must rely on other page text for a snippet.",
+        "No description text was found for this row. A page can still appear in search without one because the snippet can come from visible page content.",
     });
   } else if (characters < options.reviewMin) {
     status = "brief";
@@ -144,7 +201,7 @@ function analyzeRow(
       severity: "info",
       title: "Brief description",
       message:
-        `${characters} characters is below the selected editing review range. Short descriptions are not invalid; check whether this one still communicates the page-specific value clearly.`,
+        `${characters} characters is below the selected editing review range. Short descriptions are not invalid; check whether the wording still gives a specific, accurate summary of the page.`,
     });
   } else if (characters > options.reviewMax) {
     status = "long";
@@ -161,7 +218,7 @@ function analyzeRow(
       severity: "warning",
       title: "Very little page-specific information",
       message:
-        "The description is extremely short in words. That may be intentional, but it often leaves little room to explain what makes the page useful.",
+        "The description is extremely short in words. That may be intentional, but it leaves little room to distinguish the page from nearby results.",
     });
   }
 
@@ -359,7 +416,38 @@ function analyzeDescriptions(options: {
   );
 
   const duplicate = duplicateIssues(rows);
-  const issues = duplicate.slice();
+  const globalIssues = duplicate.slice();
+
+  if (options.inputMode === "html") {
+    const entries = metaDescriptionEntries(options.input);
+
+    if (entries.length > 1) {
+      globalIssues.push({
+        severity: "high",
+        title: "Multiple meta descriptions in one HTML document",
+        message:
+          `${entries.length} meta description elements were found. Keep one clear page description rather than relying on crawler-specific conflict handling.`,
+      });
+    }
+
+    if (looksLikeHtmlDocument(options.input)) {
+      const outsideHead = entries.filter(
+        (entry) => !isInsideHead(options.input, entry.index)
+      ).length;
+      if (outsideHead) {
+        globalIssues.push({
+          severity: "high",
+          title: "Meta description appears outside the head",
+          message:
+            `${outsideHead} description element${
+              outsideHead === 1 ? " is" : "s are"
+            } outside the document head. Metadata belongs in a valid head section.`,
+        });
+      }
+    }
+  }
+
+  const issues = globalIssues.slice();
   rows.forEach((row) => row.issues.forEach((issue) => issues.push(issue)));
 
   const nonEmpty = rows.filter((row) => row.description);
@@ -373,6 +461,7 @@ function analyzeDescriptions(options: {
   const base: Omit<Result, "output"> = {
     rows,
     issues,
+    globalIssues,
     total: rows.length,
     duplicateGroups: duplicate.length,
     averageLength,
@@ -411,8 +500,8 @@ export default function ToolClient() {
   };
 
   const run = () => {
-    if (!input.trim() && inputMode !== "lines") {
-      setError("Enter a meta description or HTML to review.");
+    if (!input.trim()) {
+      setError("Enter a meta description, a line list, or HTML to review.");
       setResult(null);
       return;
     }
@@ -477,7 +566,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Meta Description Length Checker"
-      description="Review description length, duplicates, generic wording and optional topic usage while keeping the central limitation explicit: Google does not publish a fixed meta-description character limit, and snippets can be shortened or rewritten."
+      description="Review meta descriptions from plain text, line lists or HTML, including length, duplicate wording, empty values and optional phrase repetition without treating a character count as a Google limit."
     >
       <div className="grid gap-5 md:grid-cols-2">
         <YoryantraSelect
@@ -578,9 +667,8 @@ export default function ToolClient() {
       </div>
 
       <p className="mt-3 text-sm leading-relaxed text-gray-500">
-        The default 70–165 range is only an editable review window for this
-        tool. It is not a Google limit, ranking factor or guarantee of how a
-        snippet will render.
+        The default 70–165 range is only an editable review window. It is not a
+        Google limit, ranking factor or guarantee of how a snippet will render.
       </p>
 
       <div className="mt-5 flex flex-wrap gap-3">
@@ -610,6 +698,25 @@ export default function ToolClient() {
             <Stat label="High findings" value={String(highCount)} />
           </div>
 
+          {result.globalIssues.length ? (
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">Page-level findings</h3>
+              <div className="mt-4 space-y-3">
+                {result.globalIssues.map((issue, index) => (
+                  <div
+                    key={`${issue.title}-${index}`}
+                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-700"
+                  >
+                    <strong>
+                      {issue.severity.toUpperCase()} · {issue.title}
+                    </strong>
+                    <p className="mt-1">{issue.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-6 space-y-4">
             {result.rows.map((row, index) => (
               <div
@@ -626,13 +733,15 @@ export default function ToolClient() {
                   {row.description || "(empty)"}
                 </p>
                 {row.issues.length ? (
-                  <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-yellow-900">
-                    {row.issues.map((issue, issueIndex) => (
-                      <li key={`${issue.title}-${issueIndex}`}>
-                        <strong>{issue.title}:</strong> {issue.message}
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
+                    <ul className="list-disc space-y-2 pl-5">
+                      {row.issues.map((issue, issueIndex) => (
+                        <li key={`${issue.title}-${issueIndex}`}>
+                          <strong>{issue.title}:</strong> {issue.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : null}
               </div>
             ))}
@@ -657,15 +766,15 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Review runs on text pasted into your browser. The tool does not fetch
-        Google results, measure a live SERP layout or know which snippet Google
-        will generate. Site-wide analytics or advertising scripts, if enabled,
-        are separate from this operation.
+        The review runs on text pasted into the browser. No Google result is
+        fetched, no live result width is measured, and the generated snippet for
+        a particular query cannot be predicted here. Site-wide analytics or
+        advertising scripts, if enabled, are separate from the text review.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
         <h2 className="text-2xl font-semibold text-gray-900">
-          Meta Descriptions Are Snippet Suggestions, Not Fixed-Width Ad Copy
+          Meta Descriptions Are Inputs to Snippet Generation, Not Fixed-Width Fields
         </h2>
         <p className="mt-4 leading-relaxed text-gray-600">
           Search engines may use your meta description when it helps explain the
@@ -686,11 +795,31 @@ export default function ToolClient() {
           presented as a validation rule.
         </p>
 
-        <div className="mt-10 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <h2 className="mt-10 text-xl font-semibold text-gray-900">
+          Character Count Is Not the Same as Rendered Width
+        </h2>
+        <p className="mt-4 leading-relaxed text-gray-600">
+          Two descriptions with the same character count can occupy very
+          different widths because letters, punctuation, device size and the
+          surrounding result layout differ. A review range is best treated as an
+          editing aid, not a pixel-accurate preview.
+        </p>
+
+        <h2 className="mt-10 text-xl font-semibold text-gray-900">
+          More Than One Description Tag Creates an Avoidable Conflict
+        </h2>
+        <p className="mt-4 leading-relaxed text-gray-600">
+          When pasted HTML contains several <code>meta name="description"</code>
+          elements, there is no reason to depend on which one a crawler or parser
+          happens to use. Keep one description in the document head and fix the
+          template that produced the duplicate tags.
+        </p>
+
+        <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Duplicate Descriptions Are Usually a Content-Differentiation Problem
           </h2>
-          <p className="mt-3 leading-relaxed text-yellow-900/90">
+          <p className="mt-3 leading-relaxed text-gray-700">
             Reusing one generic sentence across many pages may not break HTML,
             but it removes an opportunity to describe what is unique about each
             result. For programmatic sites, a useful description template still
@@ -703,14 +832,14 @@ export default function ToolClient() {
           Exact Keyword Presence Is Optional
         </h2>
         <p className="mt-4 leading-relaxed text-gray-600">
-          This tool can count a target phrase to catch accidental omission or
-          awkward repetition, but it deliberately does not call missing exact
-          text an SEO error. Natural synonyms can be clearer and Google does not
-          require a verbatim target phrase in the meta description.
+          An optional phrase count can reveal accidental omission or awkward
+          repetition, but missing exact text is not treated as an SEO error.
+          Natural synonyms can be clearer, and Google does not require a verbatim
+          target phrase in the meta description.
         </p>
 
         <h2 className="mt-10 text-xl font-semibold text-gray-900">
-          HTML Extraction Is Useful for Audits, but Live Pages Need Live Inspection
+          Pasted HTML and Live HTML Are Not Always the Same
         </h2>
         <p className="mt-4 leading-relaxed text-gray-600">
           HTML mode finds pasted <code>meta name="description"</code> elements
@@ -734,8 +863,12 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/meta-description-length-checker" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Check the Rest of the Search Snippet
+          </h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/meta-description-length-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>

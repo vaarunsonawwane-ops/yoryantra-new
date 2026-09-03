@@ -75,10 +75,19 @@ function htmlAttribute(tag: string, name: string) {
   return unquoted ? unquoted[1] : "";
 }
 
+type HtmlCanonicalEntry = {
+  href: string;
+  tag: string;
+  index: number;
+};
+
 function extractHtmlCanonicals(input: string) {
-  const tags = input.match(/<link\b[^>]*>/gi) || [];
-  const values: string[] = [];
-  tags.forEach((tag) => {
+  const values: HtmlCanonicalEntry[] = [];
+  const regex = /<link\b[^>]*>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(input)) !== null) {
+    const tag = match[0];
     const rel = htmlAttribute(tag, "rel");
     if (
       !rel ||
@@ -86,12 +95,39 @@ function extractHtmlCanonicals(input: string) {
         .split(/\s+/)
         .some((token) => token.toLowerCase() === "canonical")
     ) {
-      return;
+      continue;
     }
-    const href = htmlAttribute(tag, "href");
-    if (href) values.push(decodeEntities(href.trim()));
-  });
+
+    values.push({
+      href: decodeEntities(htmlAttribute(tag, "href").trim()),
+      tag,
+      index: match.index,
+    });
+  }
+
   return values;
+}
+
+function looksLikeHtmlDocument(input: string) {
+  return /<(?:html|head|body)\b/i.test(input);
+}
+
+function isInsideHead(input: string, index: number) {
+  const before = input.slice(0, index);
+  let lastOpen = -1;
+  let lastClose = -1;
+  let match: RegExpExecArray | null;
+  const open = /<head\b[^>]*>/gi;
+  const close = /<\/head\s*>/gi;
+
+  while ((match = open.exec(before)) !== null) {
+    lastOpen = match.index;
+  }
+  while ((match = close.exec(before)) !== null) {
+    lastClose = match.index;
+  }
+
+  return lastOpen !== -1 && lastOpen > lastClose;
 }
 
 function splitLinkValues(input: string) {
@@ -145,31 +181,50 @@ function splitLinkValues(input: string) {
   return values;
 }
 
-function relTokens(linkValue: string) {
-  const tokens: string[] = [];
+function relParameters(linkValue: string) {
+  const values: string[] = [];
   const regex = /;\s*rel\s*=\s*(?:"([^"]*)"|'([^']*)'|([^;,\s]+))/gi;
   let match: RegExpExecArray | null;
+
   while ((match = regex.exec(linkValue)) !== null) {
-    const raw = match[1] || match[2] || match[3] || "";
-    raw
-      .split(/\s+/)
-      .filter(Boolean)
-      .forEach((token) => tokens.push(token.toLowerCase()));
+    values.push(match[1] || match[2] || match[3] || "");
   }
-  return tokens;
+
+  return values;
 }
+
+function relTokens(linkValue: string) {
+  const first = relParameters(linkValue)[0] || "";
+  return first
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => token.toLowerCase());
+}
+
+type HeaderCanonicalEntry = {
+  href: string;
+  raw: string;
+  repeatedRel: boolean;
+  hasAnchor: boolean;
+};
 
 function extractHeaderCanonicals(input: string) {
   const unfolded = input.replace(/\r?\n[ \t]+/g, " ");
   const withoutName = unfolded.replace(/^\s*Link\s*:\s*/i, "");
   const linkValues = splitLinkValues(withoutName);
-  const values: string[] = [];
+  const values: HeaderCanonicalEntry[] = [];
 
   linkValues.forEach((part) => {
     const target = part.match(/^\s*<([^>]*)>/);
     if (!target) return;
+    const rels = relParameters(part);
     if (relTokens(part).indexOf("canonical") !== -1) {
-      values.push(target[1].trim());
+      values.push({
+        href: target[1].trim(),
+        raw: part,
+        repeatedRel: rels.length > 1,
+        hasAnchor: /;\s*anchor\s*=/i.test(part),
+      });
     }
   });
 
@@ -180,28 +235,109 @@ function extractCanonical(input: string): Extraction {
   const findings: Finding[] = [];
   const html = extractHtmlCanonicals(input);
   if (html.length) {
-    if (html.length > 1) {
+    const usable = html.filter((entry) => entry.href);
+    const missingHref = html.length - usable.length;
+
+    if (missingHref) {
       findings.push({
         severity: "high",
-        title: "Multiple canonical link elements",
+        title: "Canonical link has no href",
         message:
-          `${html.length} canonical link elements were found. Multiple declarations can create conflicting signals; this comparison uses the first value but you should remove the ambiguity.`,
+          `${missingHref} rel=canonical link element${
+            missingHref === 1 ? " has" : "s have"
+          } no readable href value.`,
       });
     }
-    return { values: html, source: "html", findings };
+
+    const unique = Array.from(new Set(usable.map((entry) => entry.href)));
+    if (usable.length > 1) {
+      findings.push({
+        severity: unique.length > 1 ? "high" : "warning",
+        title:
+          unique.length > 1
+            ? "Conflicting canonical link elements"
+            : "Repeated canonical link element",
+        message:
+          unique.length > 1
+            ? `${usable.length} canonical link elements point to ${unique.length} different targets. Keep one clear canonical preference for the page.`
+            : `${usable.length} canonical link elements repeat the same target. The duplication is unnecessary and makes templates harder to audit.`,
+      });
+    }
+
+    const documentLike = looksLikeHtmlDocument(input);
+    html.forEach((entry) => {
+      const alternateAttributes = ["hreflang", "lang", "media", "type"].filter(
+        (name) => Boolean(htmlAttribute(entry.tag, name))
+      );
+
+      if (alternateAttributes.length) {
+        findings.push({
+          severity: "high",
+          title: "Canonical link carries alternate-version attributes",
+          message:
+            `Google does not use rel=canonical annotations with ${alternateAttributes.join(
+              ", "
+            )} for canonicalization. Keep alternate-language/device metadata on separate link annotations.`,
+        });
+      }
+
+      if (documentLike && !isInsideHead(input, entry.index)) {
+        findings.push({
+          severity: "high",
+          title: "Canonical link is outside the HTML head",
+          message:
+            "Google accepts the rel=canonical link element only in the HTML head. Move the declaration into a valid head section.",
+        });
+      }
+    });
+
+    return {
+      values: usable.map((entry) => entry.href),
+      source: "html",
+      findings,
+    };
   }
 
   const header = extractHeaderCanonicals(input);
   if (header.length) {
+    const unique = Array.from(new Set(header.map((entry) => entry.href)));
     if (header.length > 1) {
       findings.push({
-        severity: "high",
-        title: "Multiple canonical Link relations",
+        severity: unique.length > 1 ? "high" : "warning",
+        title:
+          unique.length > 1
+            ? "Conflicting canonical Link relations"
+            : "Repeated canonical Link relation",
         message:
-          `${header.length} canonical targets were found in the pasted Link header. This comparison uses the first one, but the response should not send conflicting canonical relations.`,
+          unique.length > 1
+            ? `${header.length} canonical Link relations point to ${unique.length} different targets. Keep one unambiguous canonical relation for the response.`
+            : `${header.length} canonical Link relations repeat the same target. One declaration is easier to maintain and audit.`,
       });
     }
-    return { values: header, source: "http-header", findings };
+
+    if (header.some((entry) => entry.repeatedRel)) {
+      findings.push({
+        severity: "warning",
+        title: "A Link value repeats the rel parameter",
+        message:
+          "RFC 8288 says rel must not appear more than once in one link-value and parsers ignore occurrences after the first. The canonical check follows that first-rel rule.",
+      });
+    }
+
+    if (header.some((entry) => entry.hasAnchor)) {
+      findings.push({
+        severity: "warning",
+        title: "Link relation changes its context with anchor",
+        message:
+          "An anchor parameter changes the link context under RFC 8288. That is not the ordinary page-level canonical pattern, so verify the original response before treating it as the page canonical.",
+      });
+    }
+
+    return {
+      values: header.map((entry) => entry.href),
+      source: "http-header",
+      findings,
+    };
   }
 
   return {
@@ -342,7 +478,13 @@ function analyzeCanonical(pageInput: string, canonicalInput: string): Result {
   const page = parseHttpUrl(pageInput, "Page URL");
   const extracted = extractCanonical(canonicalInput);
   const raw = extracted.values[0] || "";
-  if (!raw) throw new Error("No canonical URL could be extracted.");
+  if (!raw) {
+    throw new Error(
+      extracted.source === "html"
+        ? 'A rel="canonical" link element was found, but no href target could be read.'
+        : "No canonical URL could be extracted."
+    );
+  }
 
   const relative = !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw);
   let canonical: URL;
@@ -411,7 +553,7 @@ function analyzeCanonical(pageInput: string, canonicalInput: string): Result {
       severity: "warning",
       title: "Cross-origin canonical",
       message:
-        "Cross-domain canonicalization can be legitimate, but this tool cannot verify that the two pages are duplicate or sufficiently similar.",
+        "Cross-domain canonicalization can be legitimate, but URL comparison alone cannot verify that the two pages are duplicate or sufficiently similar.",
     });
   }
 
@@ -573,7 +715,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Canonical URL Checker"
-      description="Compare a page URL with a canonical URL, HTML link element or HTTP Link relation; resolve relative targets and review fragments, host/path/query changes and common tracking parameters without making a live fetch."
+      description="Compare a page URL with a canonical declaration from a URL, HTML link element or HTTP Link header, then inspect how the scheme, host, path, query and fragment differ."
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <Field
@@ -640,13 +782,13 @@ export default function ToolClient() {
             </pre>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-            <h3 className="font-semibold text-yellow-900">Canonical findings</h3>
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <h3 className="font-semibold text-gray-900">Canonical findings</h3>
             <div className="mt-4 space-y-3">
               {result.findings.map((finding, index) => (
                 <div
                   key={`${finding.title}-${index}`}
-                  className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
+                  className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-700"
                 >
                   <strong>
                     {finding.severity.toUpperCase()} · {finding.title}
@@ -678,11 +820,10 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Comparison runs on the values you paste in your browser. This tool does
-        not fetch the page, inspect rendered HTML, follow redirects or know the
-        canonical selected by Google or another search engine. Site-wide
-        analytics or advertising scripts, if enabled, are separate from this
-        comparison.
+        The comparison runs on the values pasted into the browser. No page is
+        fetched, no redirect is followed, and no rendered DOM or search-engine
+        selected canonical is inspected. Site-wide analytics or advertising
+        scripts, if enabled, are separate from the comparison itself.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -712,10 +853,31 @@ export default function ToolClient() {
         <p className="mt-4 leading-relaxed text-gray-600">
           A Link header can contain several comma-separated link-values, and
           quoted parameter values can themselves contain commas. Splitting the
-          header on every comma can therefore invent fake links. This checker
+          header on every comma can therefore invent fake links. The parser
           separates link-values only outside URI angle brackets and quoted
-          parameter text, then looks for a rel token containing{" "}
-          <code>canonical</code>.
+          parameter text, then reads the first <code>rel</code> parameter as
+          RFC 8288 requires.
+        </p>
+
+        <h2 className="mt-10 text-xl font-semibold text-gray-900">
+          The HTML Canonical Belongs in the Head
+        </h2>
+        <p className="mt-4 leading-relaxed text-gray-600">
+          Google accepts the canonical <code>link</code> element from the HTML
+          <code>head</code>. It also ignores canonical annotations that carry
+          <code>hreflang</code>, <code>lang</code>, <code>media</code> or
+          <code>type</code>, because those attributes describe alternate versions.
+          Keep language or device alternatives on their own link annotations.
+        </p>
+
+        <h2 className="mt-10 text-xl font-semibold text-gray-900">
+          A Canonical Is a Preference, Not a Command
+        </h2>
+        <p className="mt-4 leading-relaxed text-gray-600">
+          Google can choose a different canonical when content similarity and
+          other signals disagree with the declaration. Redirects, internal links,
+          sitemap URLs and HTTPS choices are easier to reason about when they all
+          reinforce the same preferred URL.
         </p>
 
         <h2 className="mt-10 text-xl font-semibold text-gray-900">
@@ -729,34 +891,43 @@ export default function ToolClient() {
           than content.
         </p>
 
-        <div className="mt-10 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             A Structurally Valid Canonical Can Still Be Wrong
           </h2>
-          <p className="mt-3 leading-relaxed text-red-900/90">
-            This checker cannot compare page bodies. A category page can
-            syntactically canonicalize to a product page and still be a bad
-            canonical choice. Before consolidating across paths or domains,
-            verify that the target genuinely represents the duplicate content.
+          <p className="mt-3 leading-relaxed text-gray-700">
+            URL syntax cannot tell whether two pages actually contain duplicate
+            or very similar content. A category page can point cleanly at a
+            product URL and still be the wrong consolidation choice. Compare the
+            content and intent before merging signals across paths or domains.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
           <ReferenceCard
-            title="Google: Canonicalization"
+            title="Google: Canonical URLs"
             href="https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls"
-            text="Guidance on canonical signals, redirects, sitemaps, absolute URLs and duplicate-page consolidation."
+            text="Current guidance on canonical signals, absolute URLs, HTML-head placement, alternate-version attributes, redirects and sitemap consistency."
+          />
+          <ReferenceCard
+            title="RFC 6596 — Canonical Link Relation"
+            href="https://www.rfc-editor.org/rfc/rfc6596.html"
+            text="Defines canonical as the preferred IRI for duplicative or superset content and explains important misuse cases."
           />
           <ReferenceCard
             title="RFC 8288 — Web Linking"
             href="https://www.rfc-editor.org/rfc/rfc8288.html"
-            text="Defines the HTTP Link header framework and relation-type parameters used by rel=canonical."
+            text="Defines the HTTP Link header serialization, rel parameter handling and link-context rules."
           />
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/canonical-url-checker" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Keep the URL Signals Consistent
+          </h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/canonical-url-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>
