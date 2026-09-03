@@ -54,7 +54,7 @@ function normalizeCode(input: string) {
 
   if (!/^[a-z]{2}$/.test(language) || !ISO_LANGUAGES.has(language)) {
     errors.push(
-      `Unsupported language code "${parts[0]}". This Google-oriented generator expects an assigned ISO 639-1 two-letter language code.`
+      `Unsupported language code "${parts[0]}". Google hreflang expects an assigned ISO 639-1 two-letter language code.`
     );
   }
 
@@ -69,7 +69,7 @@ function normalizeCode(input: string) {
 
     if (!ISO_SCRIPTS.has(script)) {
       warnings.push(
-        `Script code "${script}" is structurally valid but is not in this tool's bundled ISO 15924 list. Verify it before publishing.`
+        `Script code "${script}" has the right four-letter shape but is not in the local ISO 15924 snapshot. Confirm the assignment before publishing.`
       );
     }
 
@@ -97,7 +97,7 @@ function normalizeCode(input: string) {
 
   if (index < parts.length) {
     errors.push(
-      "Additional BCP 47 variants/extensions are outside the Google hreflang format supported by this generator."
+      "Additional BCP 47 variants/extensions are outside the Google hreflang format handled here."
     );
   }
 
@@ -335,7 +335,7 @@ function buildResult(
     }
   } else {
     notes.push(
-      "Add the current page URL if you want this local generator to check whether the set contains a self-reference."
+      "Add the current page URL to check whether the entered set contains a self-reference."
     );
   }
 
@@ -346,7 +346,7 @@ function buildResult(
   }
 
   notes.push(
-    "This generator checks the set you enter. It cannot confirm reciprocal return links on the live alternate pages because it makes no network requests."
+    "Only the entered alternate set is checked locally. Reciprocal return links on live pages cannot be confirmed without fetching those pages, and no network requests are made here."
   );
 
   if (mode === "sitemap") {
@@ -391,6 +391,7 @@ export default function ToolClient() {
   const [currentPageUrl, setCurrentPageUrl] = useState("");
   const [mode, setMode] = useState<OutputMode>("html");
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
 
   const result = useMemo(
     () =>
@@ -416,6 +417,7 @@ export default function ToolClient() {
       )
     );
     setCopied(false);
+    setCopyError("");
   };
 
   const addRow = () => {
@@ -424,6 +426,7 @@ export default function ToolClient() {
       { language: "", url: "" },
     ]);
     setCopied(false);
+    setCopyError("");
   };
 
   const removeRow = (index: number) => {
@@ -431,6 +434,7 @@ export default function ToolClient() {
       current.filter((_, rowIndex) => rowIndex !== index)
     );
     setCopied(false);
+    setCopyError("");
   };
 
   const loadExample = () => {
@@ -452,6 +456,7 @@ export default function ToolClient() {
     setCurrentPageUrl("https://example.com/in/product");
     setMode("html");
     setCopied(false);
+    setCopyError("");
   };
 
   const reset = () => {
@@ -464,6 +469,7 @@ export default function ToolClient() {
     setCurrentPageUrl("");
     setMode("html");
     setCopied(false);
+    setCopyError("");
   };
 
   const copyOutput = async () => {
@@ -472,9 +478,11 @@ export default function ToolClient() {
     try {
       await navigator.clipboard.writeText(result.output);
       setCopied(true);
+      setCopyError("");
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
+      setCopyError("Clipboard access was blocked. Select the generated markup and copy it manually.");
     }
   };
 
@@ -548,6 +556,7 @@ export default function ToolClient() {
             onChange={(event: { target: { value: string } }) => {
               setXDefaultUrl(event.target.value);
               setCopied(false);
+              setCopyError("");
             }}
             placeholder="https://example.com/choose-language"
             spellCheck={false}
@@ -565,6 +574,7 @@ export default function ToolClient() {
             onChange={(event: { target: { value: string } }) => {
               setCurrentPageUrl(event.target.value);
               setCopied(false);
+              setCopyError("");
             }}
             placeholder="https://example.com/in/product"
             spellCheck={false}
@@ -582,6 +592,7 @@ export default function ToolClient() {
           onChange={(event: { target: { value: string } }) => {
             setMode(event.target.value as OutputMode);
             setCopied(false);
+            setCopyError("");
           }}
           className="w-full rounded-xl border border-gray-300 bg-white p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] md:max-w-md"
         >
@@ -624,6 +635,12 @@ export default function ToolClient() {
         </button>
       </div>
 
+      {copyError ? (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {copyError}
+        </div>
+      ) : null}
+
       {result.errors.length ? (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           <strong>Fix before using the output:</strong>
@@ -636,7 +653,7 @@ export default function ToolClient() {
       ) : null}
 
       {result.warnings.length ? (
-        <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-900">
           <strong>Implementation checks:</strong>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {result.warnings.map((item) => (
@@ -675,13 +692,16 @@ export default function ToolClient() {
             The most important part of hreflang is the relationship between localized URLs. If an English page, an Indian-English page, and a German page are alternatives of the same content, each participating page should expose the relevant alternate set—including itself. A single correct-looking tag on only one page does not establish the complete relationship.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Google also expects return links. If one localized page points to another as an alternate, the other page should point back. This generator can check the rows you enter and optionally verify that a supplied current-page URL is in the set, but it cannot crawl your live alternates to prove reciprocity.
+            Google also expects return links. If one localized page points to another as an alternate, the other page should point back. The rows entered here can be checked for a local self-reference, but reciprocity on live pages cannot be proved without crawling them. Google documents the full relationship rules in its{" "}
+            <a href="https://developers.google.com/search/docs/specialty/international/localized-versions" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              localized-versions guidance
+            </a>.
           </p>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            A Practical Three-Page Example
+            Three Localized Pages in One Alternate Set
           </h2>
           <div className="mt-4 space-y-3 text-sm leading-relaxed text-gray-700">
             <p><code>en</code> → a general English page.</p>
@@ -702,15 +722,18 @@ export default function ToolClient() {
             The first hreflang segment identifies the language, such as <code>en</code>, <code>de</code>, or <code>hi</code>. An optional two-letter region can narrow the audience, such as <code>en-IN</code> or <code>en-GB</code>. A region cannot stand alone because <code>IN</code> tells Google a country, not what language the page is written in.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Script codes are useful when the writing system matters, for example <code>zh-Hans</code> and <code>zh-Hant</code>. They can also be combined with a region where that level of targeting is genuinely needed.
+            Script codes are useful when the writing system matters, for example <code>zh-Hans</code> and <code>zh-Hant</code>. They can also be combined with a region where that level of targeting is genuinely needed. Script identifiers come from the{" "}
+            <a href="https://www.unicode.org/iso15924/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              ISO 15924 registry maintained by Unicode
+            </a>.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             UK, EU, and “Looks Plausible” Are Common Code Traps
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Google expects assigned ISO 3166-1 alpha-2 region codes. The United Kingdom is <code>GB</code>, not <code>UK</code>. Reserved or non-country values such as <code>EU</code> and <code>UN</code> do not work as normal hreflang regions. A code can look syntactically neat and still be ignored if it is not an assigned value Google supports.
           </p>
         </div>
@@ -735,7 +758,7 @@ export default function ToolClient() {
             A valid localized sitemap does not contain one free-floating list of alternate links. Each <code>&lt;url&gt;</code> entry has its own <code>&lt;loc&gt;</code> and repeats the complete set of <code>&lt;xhtml:link&gt;</code> alternates. The sitemap root also needs the XHTML namespace.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            That is why the tool generates the alternate block rather than pretending a few <code>xhtml:link</code> lines are a complete sitemap. Place that block inside every corresponding URL entry generated by your sitemap system.
+            The generated sitemap output is therefore an alternate-link block, not a complete sitemap. Place the same block inside every corresponding URL entry produced by your sitemap system.
           </p>
         </div>
 
@@ -768,28 +791,11 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Google’s Localized-Page Guidance
+            Check the Other Signals Around a Localized Page
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Google Search Central is directly useful for this tool because it defines the implementation rules the generator is trying to help you follow: supported methods, self-references, return links, fully qualified URLs, x-default, and supported language/region formats.
-          </p>
-          <p className="mt-4 text-sm">
-            <a
-              href="https://developers.google.com/search/docs/specialty/international/localized-versions"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              Google Search Central — localized versions
-            </a>
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-          <YoryantraRelatedTools currentHref="/tools/hreflang-tag-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/hreflang-tag-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>

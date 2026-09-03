@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "UTM Builder | Campaign URL Generator | Yoryantra",
   description:
-    "Build campaign URLs with Google Analytics UTM parameters, preserve existing query parameters and fragments, review existing tags, and keep campaign naming consistent.",
+    "Build Google Analytics campaign URLs with UTM parameters, preserve destination queries and fragments, review existing tags, and keep campaign names consistent.",
   alternates: {
     canonical: "https://yoryantra.com/tools/utm-builder",
   },

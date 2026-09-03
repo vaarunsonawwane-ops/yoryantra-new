@@ -50,7 +50,17 @@ const UTM_KEYS: Array<[keyof CampaignFields, string]> = [
 ];
 
 const SECRETISH_QUERY_NAME =
-  /(?:token|secret|signature|sig|password|passwd|api[_-]?key|access[_-]?key|auth|authorization|code)/i;
+  /^(?:token|secret|signature|sig|password|passwd|api[_-]?key|access[_-]?key|auth|authorization|code|id[_-]?token|access[_-]?token|refresh[_-]?token|x-amz-signature|x-goog-signature)$/i;
+
+const SIGNED_QUERY_NAME =
+  /^(?:signature|sig|x-amz-signature|x-goog-signature)$/i;
+
+const AUTO_TAG_KEYS = new Set([
+  "gclid",
+  "dclid",
+  "gbraid",
+  "wbraid",
+]);
 
 function parseHttpUrl(input: string) {
   const trimmed = input.trim();
@@ -273,6 +283,27 @@ function buildCampaignUrl(
     );
   }
 
+  try {
+    const trimmedOriginal = baseUrl.trim();
+    const hashIndex = trimmedOriginal.indexOf("#");
+    const queryIndex = trimmedOriginal.indexOf("?");
+    const rawQuery =
+      queryIndex !== -1 && (hashIndex === -1 || queryIndex < hashIndex)
+        ? trimmedOriginal.slice(
+            queryIndex + 1,
+            hashIndex === -1 ? trimmedOriginal.length : hashIndex
+          )
+        : "";
+
+    if (rawQuery && new URLSearchParams(rawQuery).toString() !== rawQuery) {
+      notes.push(
+        "The browser URL serializer normalizes parts of the original query spelling (for example spaces or some percent-encoded characters). Parameter values are preserved semantically, but a byte-sensitive signed URL should be verified after editing."
+      );
+    }
+  } catch {
+    // URL validation above already reports malformed destinations.
+  }
+
   const secretishNames: string[] = [];
 
   parsed.searchParams.forEach((_, key) => {
@@ -289,6 +320,35 @@ function buildCampaignUrl(
       `The destination includes query names that may contain sensitive values (${secretishNames.join(
         ", "
       )}). Review them before sharing the campaign URL widely.`
+    );
+  }
+
+  const signedNames: string[] = [];
+  const autoTagNames: string[] = [];
+
+  parsed.searchParams.forEach((_, key) => {
+    if (SIGNED_QUERY_NAME.test(key) && signedNames.indexOf(key) === -1) {
+      signedNames.push(key);
+    }
+
+    if (AUTO_TAG_KEYS.has(key.toLowerCase()) && autoTagNames.indexOf(key) === -1) {
+      autoTagNames.push(key);
+    }
+  });
+
+  if (signedNames.length) {
+    warnings.push(
+      `The destination appears to contain a signed query (${signedNames.join(
+        ", "
+      )}). Adding or rewriting any query parameter can invalidate a signature; verify the final URL with the service that issued it.`
+    );
+  }
+
+  if (autoTagNames.length && hasAnyFinalUtm) {
+    notes.push(
+      `Automatic advertising click identifiers are present (${autoTagNames.join(
+        ", "
+      )}) alongside manual UTM parameters. Attribution precedence depends on the Analytics and ad-platform integration.`
     );
   }
 
@@ -358,6 +418,7 @@ export default function ToolClient() {
   const [importMessage, setImportMessage] =
     useState("");
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
 
   const result = useMemo(
     () =>
@@ -378,6 +439,7 @@ export default function ToolClient() {
       [field]: value,
     }));
     setCopied(false);
+    setCopyError("");
     setImportMessage("");
   };
 
@@ -394,6 +456,7 @@ export default function ToolClient() {
       "Existing UTM values were loaded into the form. The destination URL itself was not changed."
     );
     setCopied(false);
+    setCopyError("");
   };
 
   const loadExample = () => {
@@ -414,6 +477,7 @@ export default function ToolClient() {
     setClearExisting(false);
     setImportMessage("");
     setCopied(false);
+    setCopyError("");
   };
 
   const reset = () => {
@@ -422,6 +486,7 @@ export default function ToolClient() {
     setClearExisting(false);
     setImportMessage("");
     setCopied(false);
+    setCopyError("");
   };
 
   const copyUrl = async () => {
@@ -430,9 +495,11 @@ export default function ToolClient() {
     try {
       await navigator.clipboard.writeText(result.url);
       setCopied(true);
+      setCopyError("");
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
+      setCopyError("Clipboard access was blocked. Select the campaign URL and copy it manually.");
     }
   };
 
@@ -442,7 +509,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="UTM Builder"
-      description="Build campaign URLs without damaging the destination: preserve existing query parameters and fragments, review old UTM tags, and apply a consistent Google Analytics campaign taxonomy."
+      description="Build campaign URLs while keeping existing query parameters and fragments in place, reviewing old UTM tags, and applying a consistent Google Analytics campaign taxonomy."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -455,6 +522,7 @@ export default function ToolClient() {
             setBaseUrl(event.target.value);
             setImportMessage("");
             setCopied(false);
+            setCopyError("");
           }}
           placeholder="https://example.com/page?ref=nav#section"
           spellCheck={false}
@@ -561,6 +629,7 @@ export default function ToolClient() {
           onChange={(event: { target: { checked: boolean } }) => {
             setClearExisting(event.target.checked);
             setCopied(false);
+            setCopyError("");
           }}
           className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
         />
@@ -598,6 +667,12 @@ export default function ToolClient() {
         </button>
       </div>
 
+      {copyError ? (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {copyError}
+        </div>
+      ) : null}
+
       {result.errors.length ? (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           <ul className="list-disc space-y-1 pl-5">
@@ -622,7 +697,7 @@ export default function ToolClient() {
       </div>
 
       {result.warnings.length ? (
-        <div className="mt-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-900">
           <strong>Review before publishing:</strong>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {result.warnings.map((warning) => (
@@ -651,7 +726,7 @@ export default function ToolClient() {
             Adding <code>utm_source=email</code> to a URL is easy. The harder part is deciding whether every email system, teammate, agency, and campaign will use the same source and medium names six months from now. Analytics reports group by the values you send, so <code>newsletter</code>, <code>Newsletter</code>, and <code>email_newsletter</code> can become separate reporting values even when people meant the same source.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The builder deliberately does not auto-lowercase or rewrite your taxonomy. Silent cleanup can be just as damaging as inconsistency if your organization already has established names. Instead, it warns about likely fragmentation and leaves the naming decision visible.
+            Values are not silently lowercased or rewritten. Automatic cleanup can be just as damaging as inconsistency when an organization already has established names, so likely fragmentation is surfaced without changing the taxonomy.
           </p>
         </div>
 
@@ -674,7 +749,7 @@ https://example.com/pricing?plan=pro&ref=homepage&utm_source=newsletter&utm_medi
             Existing UTM Tags Are Preserved by Default
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            An already-tagged destination may have been copied from an ad platform, CRM, email workflow, or previous campaign. Blank form fields should not silently mean “delete those tags.” In this version of the builder, an empty field leaves the existing key alone. Entering a new value replaces that key.
+            An already-tagged destination may have been copied from an ad platform, CRM, email workflow, or previous campaign. Blank form fields should not silently mean “delete those tags.” An empty field leaves the existing key alone. Entering a new value replaces that key.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             When you intentionally want a clean slate, enable <strong>Clear existing UTM parameters</strong>. The separate “Load Existing UTMs Into Fields” action is useful when you want to inspect and edit an existing campaign link rather than starting over.
@@ -714,7 +789,11 @@ https://example.com/pricing?plan=pro&ref=homepage&utm_source=newsletter&utm_medi
             </table>
           </div>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Google Analytics recommends using those three together. <code>utm_id</code> can provide a stable campaign identifier, while <code>utm_source_platform</code> can describe the platform responsible for directing the traffic. Term and content are useful for keyword or creative-level distinctions when your measurement plan needs them.
+            Google Analytics recommends using those three together. <code>utm_id</code> can provide a stable campaign identifier, while <code>utm_source_platform</code> can describe the platform responsible for directing the traffic. Term and content are useful for keyword or creative-level distinctions when the measurement plan needs them. Google’s current{" "}
+            <a href="https://support.google.com/analytics/answer/10917952" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              campaign URL guidance
+            </a>{" "}
+            lists the supported manual parameters and their reporting roles.
           </p>
         </div>
 
@@ -734,11 +813,11 @@ https://example.com/pricing?plan=pro&ref=homepage&utm_source=newsletter&utm_medi
           </p>
         </div>
 
-        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Do Not Use Acquisition UTMs as a Substitute for Internal Click Tracking
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             UTM parameters are primarily for campaign links bringing users to your site. Adding them to navigation between your own pages can muddy acquisition reporting or change how analytics systems interpret campaign context. If you need to measure which internal button, card, or navigation item was clicked, use an event or another purpose-built internal measurement method.
           </p>
         </div>
@@ -748,7 +827,10 @@ https://example.com/pricing?plan=pro&ref=homepage&utm_source=newsletter&utm_medi
             Manual UTMs and Ad-Platform Auto-Tagging Can Interact
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Advertising platforms may add their own click identifiers, and Google Ads can use auto-tagging. Google Analytics documents precedence behavior when manual and automatic tagging coexist. Before adding UTMs to links that are already auto-tagged through an integrated ad platform, confirm which values your reporting setup will actually use.
+            Advertising platforms may add their own click identifiers, and Google Ads can use auto-tagging. When manual tags and automatic identifiers coexist, attribution precedence depends on the integration and whether the click identifier can be used. Google documents those rules in its{" "}
+            <a href="https://support.google.com/analytics/answer/11242870" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              traffic-source tagging guidance
+            </a>.
           </p>
         </div>
 
@@ -760,7 +842,7 @@ https://example.com/pricing?plan=pro&ref=homepage&utm_source=newsletter&utm_medi
             Query strings can appear in browser history, analytics systems, logs, copied messages, screenshots, referrer data, and third-party tools. UTM values themselves should describe campaigns, not carry personal data, passwords, API keys, authorization codes, or private customer details.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The builder flags query-parameter names that look credential-related, but that is only a warning heuristic. It cannot determine whether an innocent-looking value is actually sensitive.
+            Credential-like query names are flagged as a warning heuristic, but an innocent-looking name can still carry sensitive data and a suspicious-looking name can be harmless.
           </p>
         </div>
 
@@ -769,34 +851,17 @@ https://example.com/pricing?plan=pro&ref=homepage&utm_source=newsletter&utm_medi
             Test the Final Click Path, Not Only the Generated String
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Email systems, link shorteners, social platforms, redirect services, consent tooling, and server redirects can modify or remove query parameters after you copy the URL. Before launching an important campaign, click through the real published link and verify the landing URL and analytics data rather than assuming the builder's output survives every intermediary unchanged.
+            Email systems, link shorteners, social platforms, redirect services, consent tooling, and server redirects can modify or remove query parameters after you copy the URL. Signed download or CDN URLs deserve extra care: changing the query can invalidate the signature even when the destination still looks correct. Before launching an important campaign, click through the real published link and verify the landing URL and analytics data rather than assuming the copied URL survives every intermediary unchanged.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Google Analytics Campaign-Tagging Guidance
+            Inspect the Destination Before You Publish It
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Google’s current campaign URL documentation adds direct value here because it defines the UTM parameter set, notes case sensitivity and naming consistency, and explains which parameters are currently reported.
-          </p>
-          <p className="mt-4 text-sm">
-            <a
-              href="https://support.google.com/analytics/answer/10917952"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              Google Analytics — collect campaign data with custom URLs
-            </a>
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-          <YoryantraRelatedTools currentHref="/tools/utm-builder" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/utm-builder" />
+          </div>
         </div>
       </section>
     </ToolShell>

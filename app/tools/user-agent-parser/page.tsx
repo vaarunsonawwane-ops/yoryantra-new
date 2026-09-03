@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "User Agent Parser | Browser, OS & Device Heuristics | Yoryantra",
   description:
-    "Inspect User-Agent strings for browser or client family, version, operating system, device hints, engine, bot signals, architecture clues, and reduced or frozen data.",
+    "Inspect User-Agent strings for browser or client family, OS, device clues, engine hints, bot tokens, architecture signals, and reduced or frozen values.",
   alternates: {
     canonical: "https://yoryantra.com/tools/user-agent-parser",
   },

@@ -183,7 +183,9 @@ function parseUserAgentString(input: string): ParsedUA {
   } else if (
     /FxiOS\/|CriOS\/|EdgiOS\//.test(ua)
   ) {
-    engine = "WebKit-based iOS browser";
+    engine = /AppleWebKit\//.test(ua)
+      ? "AppleWebKit token present; actual iOS engine not proven"
+      : "iOS browser token; engine not reliably exposed";
   } else if (/Firefox\//.test(ua)) {
     engine = "Gecko";
   } else if (/AppleWebKit\//.test(ua)) {
@@ -453,6 +455,7 @@ export default function ToolClient() {
     useState<ParsedUA | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
 
   const parse = () => {
     if (!userAgent.trim()) {
@@ -461,12 +464,14 @@ export default function ToolClient() {
       );
       setResult(null);
       setCopied(false);
+      setCopyError("");
       return;
     }
 
     setResult(parseUserAgentString(userAgent));
     setError("");
     setCopied(false);
+    setCopyError("");
   };
 
   const useCurrentBrowser = () => {
@@ -476,6 +481,7 @@ export default function ToolClient() {
     setResult(parseUserAgentString(current));
     setError("");
     setCopied(false);
+    setCopyError("");
   };
 
   const loadCrawlerExample = () => {
@@ -486,6 +492,7 @@ export default function ToolClient() {
     setResult(parseUserAgentString(example));
     setError("");
     setCopied(false);
+    setCopyError("");
   };
 
   const reset = () => {
@@ -493,6 +500,7 @@ export default function ToolClient() {
     setResult(null);
     setError("");
     setCopied(false);
+    setCopyError("");
   };
 
   const copyResult = async () => {
@@ -503,9 +511,11 @@ export default function ToolClient() {
         resultText(result)
       );
       setCopied(true);
+      setCopyError("");
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
+      setCopyError("Clipboard access was blocked. Select the parsed text and copy it manually.");
     }
   };
 
@@ -525,6 +535,7 @@ export default function ToolClient() {
             setResult(null);
             setError("");
             setCopied(false);
+            setCopyError("");
           }}
           placeholder="Mozilla/5.0 (...) Chrome/143.0.0.0 Safari/537.36"
           spellCheck={false}
@@ -569,10 +580,16 @@ export default function ToolClient() {
         </div>
       ) : null}
 
+      {copyError ? (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {copyError}
+        </div>
+      ) : null}
+
       <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Parsing is performed on the supplied string in your browser. Choosing
-        “Use Current Browser” reads <code>navigator.userAgent</code> locally;
-        the parser itself does not send the value to a User-Agent lookup API.
+        Parsing stays in your browser. Choosing “Use Current Browser” reads
+        <code>navigator.userAgent</code> locally; no User-Agent lookup API receives
+        the supplied string.
         Site-wide analytics or advertising scripts, if enabled, are separate
         from this parsing operation.
       </div>
@@ -616,15 +633,15 @@ export default function ToolClient() {
               Modern User-Agent strings are not a clean hardware inventory. Chromium-based browsers deliberately freeze or reduce several values to limit passive fingerprinting. On Windows, the old <code>Windows NT 10.0</code> token can represent both Windows 10 and Windows 11. On reduced Android strings, the platform may appear as Android 10 and the model as a generic <code>K</code> even when the real device is newer.
             </p>
             <p className="mt-4 leading-relaxed text-gray-600">
-              That means a parser should sometimes say “unknown” or “Windows 10/11” instead of manufacturing precision that the string does not contain.
+              That means a careful interpretation should sometimes say “unknown” or “Windows 10/11” instead of manufacturing precision that the string does not contain.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-            <h3 className="font-semibold text-yellow-900">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <h3 className="font-semibold text-gray-900">
               Do not turn this into a security identity
             </h3>
-            <p className="mt-3 text-sm leading-relaxed text-yellow-900/90">
+            <p className="mt-3 text-sm leading-relaxed text-gray-700">
               User-Agent is supplied by the client and can be copied, modified, or completely fabricated. A browser-looking string does not prove that request came from that browser, and a Googlebot-looking string does not verify Googlebot. Authentication, authorization, fraud controls, and crawler verification need stronger evidence.
             </p>
           </div>
@@ -638,7 +655,7 @@ export default function ToolClient() {
             Many browser User-Agents start with <code>Mozilla/5.0</code> even though the browser is not Mozilla Firefox. Chromium browsers also contain AppleWebKit and Safari-looking tokens for compatibility. Edge, Opera, and Samsung Internet can contain Chrome tokens because they are Chromium-family browsers.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Detection order therefore matters. This parser looks for the more specific Edge, Opera, Samsung Internet, Firefox, Chrome, Chromium, Safari, and Internet Explorer tokens before assigning a browser-like family.
+            Detection order therefore matters. More specific Edge, Opera, Samsung Internet, Firefox, Chrome, Chromium, Safari, and Internet Explorer tokens are checked before a browser-like family is assigned.
           </p>
         </div>
 
@@ -647,10 +664,10 @@ export default function ToolClient() {
             Not Every User-Agent Belongs to a Browser
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            APIs and server logs often contain User-Agent values from command-line tools, SDKs, monitoring agents, crawlers, mobile apps, or HTTP libraries. A string such as <code>curl/8.7.1</code> should not be forced into a fake browser classification simply because the page is called a User Agent Parser.
+            APIs and server logs often contain User-Agent values from command-line tools, SDKs, monitoring agents, crawlers, mobile apps, or HTTP libraries. A string such as <code>curl/8.7.1</code> should remain a software-client result rather than being forced into a browser classification.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The tool recognizes several common non-browser clients—including curl, Wget, PostmanRuntime, python-requests, okhttp, Go’s HTTP client, and Apache HttpClient—and reports them as software clients rather than desktops or mobiles.
+            Common non-browser tokens such as curl, Wget, PostmanRuntime, python-requests, okhttp, Go’s HTTP client, and Apache HttpClient are reported as software clients rather than desktops or mobiles.
           </p>
         </div>
 
@@ -700,7 +717,10 @@ export default function ToolClient() {
             iPhone Browsers Are a Special Parsing Case
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Firefox, Chrome, and Edge on iOS use tokens such as <code>FxiOS</code>, <code>CriOS</code>, and <code>EdgiOS</code>. Their product branding differs, but their engine situation on iOS is not the same as the desktop versions of those browsers. That is why the parser separates browser-like family from the engine heuristic instead of assuming “Chrome” always means Blink.
+            Firefox, Chrome, and Edge on iOS use product tokens such as <code>FxiOS</code>, <code>CriOS</code>, and <code>EdgiOS</code>, but a product token is not a dependable engine identifier. Apple now provides alternative-browser-engine entitlements in some regions, so “Chrome on iOS” cannot safely be translated into either “Blink” or “WebKit” from the User-Agent alone. Apple describes that platform change in its{" "}
+            <a href="https://developer.apple.com/support/alternative-browser-engines/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              alternative browser engine guidance
+            </a>.
           </p>
         </div>
 
@@ -709,28 +729,21 @@ export default function ToolClient() {
             When You Need More Detail Than the Reduced String Provides
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Supporting browsers can expose additional User-Agent Client Hint data when the site requests appropriate hints. That is a different mechanism from parsing the legacy User-Agent string, and it comes with privacy and permissions considerations of its own.
-          </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            MDN’s User-Agent reduction guide is useful for this particular tool because it documents the frozen Android, macOS, Windows, ChromeOS, Linux, and minor-version patterns that explain why some parsed values are intentionally imprecise.
-          </p>
-          <p className="mt-4 text-sm">
-            <a
-              href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/User-agent_reduction"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              MDN — User-Agent reduction
-            </a>
+            Supporting browsers can expose additional User-Agent Client Hint data when the site requests appropriate hints. That is a different mechanism from parsing the legacy User-Agent string, and it comes with privacy considerations of its own. MDN’s{" "}
+            <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/User-agent_reduction" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              User-Agent reduction guide
+            </a>{" "}
+            documents the frozen and reduced patterns that explain why several legacy fields are intentionally imprecise.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
+            Inspect the Request Beyond Its User-Agent
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/user-agent-parser" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/user-agent-parser" />
+          </div>
         </div>
       </section>
     </ToolShell>
