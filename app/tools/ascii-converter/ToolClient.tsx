@@ -39,8 +39,8 @@ type Result = {
   formats: string[];
 };
 
-const SAMPLE_TEXT = "Sneha & Yoryantra";
-const SAMPLE_VALUES = "83 0x6E 01100101 0o150 97 32 38 32 89 111 114 121 97 110 116 114 97";
+const SAMPLE_TEXT = "ASCII: A-Z, 0-9 & symbols";
+const SAMPLE_VALUES = "72 101 108 108 111 44 32 65 83 67 73 73 33";
 
 const CONTROL_NAMES = [
   "NUL — Null",
@@ -142,9 +142,12 @@ function parseAsciiToken(token: string): ParsedValue {
   if (/^0x[0-9a-f]{1,2}$/i.test(token)) {
     value = Number.parseInt(token.slice(2), 16);
     notation = "hex";
-  } else if (/^\\x[0-9a-f]{1,2}$/i.test(token)) {
+  } else if (/^\\x[0-9a-f]{2}$/i.test(token)) {
     value = Number.parseInt(token.slice(2), 16);
     notation = "hex escape";
+  } else if (/^\\u[0-9a-f]{4}$/i.test(token)) {
+    value = Number.parseInt(token.slice(2), 16);
+    notation = "Unicode escape";
   } else if (/^0b[01]{1,8}$/i.test(token)) {
     value = Number.parseInt(token.slice(2), 2);
     notation = "binary";
@@ -164,7 +167,7 @@ function parseAsciiToken(token: string): ParsedValue {
     throw new Error(
       `Could not parse ${JSON.stringify(
         token
-      )}. Accepted forms include 65, 0x41, \\x41, 01000001, 0b01000001, 0o101 and U+0041.`
+      )}. Accepted forms include 65, 0x41, \\x41, \\u0041, 01000001, 0b01000001, 0o101 and U+0041.`
     );
   }
 
@@ -526,7 +529,7 @@ export default function ToolClient() {
         {actionMode === "decode" ? (
           <p className="mt-2 text-sm leading-relaxed text-gray-500">
             You can mix decimal (<code>65</code>), hex (
-            <code>0x41</code> or <code>\x41</code>), 8-bit
+            <code>0x41</code>, <code>\x41</code> or <code>\u0041</code>), 8-bit
             binary (<code>01000001</code>), prefixed binary (
             <code>0b01000001</code>), octal (<code>0o101</code>)
             and ASCII-range code points (<code>U+0041</code>).
@@ -602,7 +605,7 @@ export default function ToolClient() {
           </div>
 
           {result.controlCount ? (
-            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
               The conversion contains {result.controlCount} ASCII control
               value{result.controlCount === 1 ? "" : "s"}. A decoded NUL,
               tab, carriage return, line feed or ESC can be invisible or alter
@@ -704,25 +707,25 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        The conversion uses only the text you paste in your browser. It does
-        not send the ASCII data to a conversion API. Site-wide analytics or
-        advertising scripts, if enabled, are separate from this operation.
+        Conversion happens on the text you paste in your browser. No ASCII
+        conversion request is sent to a separate API. Site-wide analytics or
+        advertising scripts, if enabled, are separate from that local conversion.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             “Extended ASCII” Is Not One Character Set
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Standard ASCII has exactly 128 values: 0 through 127. The phrase
             “extended ASCII” is often used for many incompatible 8-bit
             encodings—Windows-1252, ISO-8859 families, DOS code pages and
             others. The byte 0x80 therefore has no single universal
             “extended-ASCII character.”
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
-            This tool refuses values above 127 on purpose. If you have bytes
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Values above 127 are rejected on purpose. If you have bytes
             128–255, first identify the actual encoding rather than guessing
             from the number.
           </p>
@@ -737,6 +740,12 @@ export default function ToolClient() {
             write the same integer. ASCII assigns the integer 65 to uppercase
             A. Nothing changes about the character when that number is written
             as hexadecimal 0x41, binary 01000001 or octal 0o101.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            ASCII itself is a seven-bit code. The binary view pads each value to
+            eight bits because byte-oriented dumps normally show the unused high
+            bit as zero; <code>A</code> is therefore shown as <code>01000001</code>
+            even though its significant ASCII bits are <code>1000001</code>.
           </p>
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 font-mono text-sm leading-7 text-gray-700">
             A&nbsp;&nbsp;&nbsp;&nbsp;65&nbsp;&nbsp;&nbsp;&nbsp;0x41&nbsp;&nbsp;&nbsp;&nbsp;01000001&nbsp;&nbsp;&nbsp;&nbsp;0o101
@@ -759,24 +768,23 @@ export default function ToolClient() {
             characters “10.”
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This is why the tool keeps a named control-code view beside the
-            converted text. Copying invisible controls into terminals, CSV,
-            logs or source code can change behavior even when the output box
-            appears empty.
+            Named control-code labels make those invisible values easier to spot.
+            Copying controls into terminals, CSV, logs or source code can change
+            behavior even when the visible text looks blank.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Newline Problems Often Come Down to CR and LF
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             ASCII assigns CR to 13 and LF to 10. Unix-style text normally uses
             LF as its line ending, while CRLF is common in Internet protocols
             and Windows text. Seeing <code>13 10</code> in a byte dump is
             therefore different from seeing only <code>10</code>.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             When debugging protocol headers or copied files, inspect the
             individual codes rather than assuming every visual line break uses
             the same bytes.
@@ -802,7 +810,7 @@ export default function ToolClient() {
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            When This Tool Is the Wrong Tool
+            When ASCII Is Not the Right Model
           </h2>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <UseCard
@@ -820,23 +828,27 @@ export default function ToolClient() {
           </div>
         </div>
 
-        <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
-          <a
+        <div className="mt-12 grid gap-4 md:grid-cols-2">
+          <ReferenceCard
+            title="RFC 20 — ASCII format for network interchange"
             href="https://www.rfc-editor.org/rfc/rfc20"
-            target="_blank"
-            rel="noreferrer"
-            className="font-semibold text-[var(--green)] underline underline-offset-4"
-          >
-            RFC 20
-          </a>{" "}
-          documents the 7-bit US-ASCII format for network interchange,
-          including the control-character abbreviations used in the reference
-          table.
+            text="The historic Internet Standard for 7-bit US-ASCII, including the familiar control abbreviations. RFC 20 also shows the common practice of carrying seven ASCII bits in an eight-bit byte with the high bit set to zero."
+          />
+          <ReferenceCard
+            title="Unicode — C0 Controls and Basic Latin"
+            href="https://www.unicode.org/charts/nameslist/c_0000.html"
+            text="Unicode preserves the ASCII-range assignments at U+0000 through U+007F and provides current names and aliases for the control and graphic characters."
+          />
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/ascii-converter" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Continue With the Right Encoding
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/ascii-converter" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -873,6 +885,30 @@ function UseCard({
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
       <h3 className="font-semibold text-gray-900">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-gray-600">{text}</p>
+    </div>
+  );
+}
+
+function ReferenceCard({
+  title,
+  href,
+  text,
+}: {
+  title: string;
+  href: string;
+  text: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="font-semibold text-[var(--green)] underline underline-offset-4"
+      >
+        {title}
+      </a>
+      <p className="mt-3 text-sm leading-relaxed text-gray-600">{text}</p>
     </div>
   );
 }

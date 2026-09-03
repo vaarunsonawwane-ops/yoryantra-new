@@ -45,82 +45,53 @@ type Result = {
   output: string;
 };
 
-const SAMPLE_TITLES = `Title Tag Length Checker | Yoryantra
-Canonical URL Checker | Yoryantra
-Sitemap URL Extractor | Yoryantra
+const SAMPLE_TITLES = `Invoice API Reference | Example Docs
+Authentication Guide | Example Docs
+Webhook Retry Policy | Example Docs
 Home
-JSON Formatter | Yoryantra
-JSON Formatter | Yoryantra`;
+Rate Limit Reference | Example Docs
+Rate Limit Reference | Example Docs`;
 
 function normalizeSpace(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function decodeEntities(value: string) {
-  return value
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">");
-}
-
-function stripTags(value: string) {
-  return value.replace(/<[^>]*>/g, "");
-}
-
 function parseRows(input: string, mode: InputMode) {
   if (mode === "html") {
-    const matches =
-      input.match(/<title\b[^>]*>[\s\S]*?<\/title\s*>/gi) || [];
+    const document = new DOMParser().parseFromString(input, "text/html");
+    const titles = Array.from(document.querySelectorAll("title"));
 
-    if (!matches.length) {
+    if (!titles.length) {
       throw new Error(
         "No HTML <title> element was found in the pasted source."
       );
     }
 
-    return matches.map((match, index) => {
-      const inner = match
-        .replace(/^<title\b[^>]*>/i, "")
-        .replace(/<\/title\s*>$/i, "");
-
-      return {
-        title: normalizeSpace(
-          decodeEntities(stripTags(inner))
-        ),
-        url: "",
-        sourceIndex: index,
-      };
-    });
+    return titles.map((element, index) => ({
+      title: normalizeSpace(element.textContent || ""),
+      url: "",
+      sourceIndex: index,
+    }));
   }
 
   const lines = input
     .replace(/\r\n?/g, "\n")
     .split("\n");
 
-  while (
-    lines.length &&
-    !lines[0].trim()
-  ) {
+  while (lines.length && !lines[0].trim()) {
     lines.shift();
   }
 
-  while (
-    lines.length &&
-    !lines[lines.length - 1].trim()
-  ) {
+  while (lines.length && !lines[lines.length - 1].trim()) {
     lines.pop();
   }
 
   if (mode === "titles") {
-    return lines.map(
-      (line, index) => ({
-        title: line.trim(),
-        url: "",
-        sourceIndex: index,
-      })
-    );
+    return lines.map((line, index) => ({
+      title: line.trim(),
+      url: "",
+      sourceIndex: index,
+    }));
   }
 
   const rows: Array<{
@@ -129,16 +100,10 @@ function parseRows(input: string, mode: InputMode) {
     sourceIndex: number;
   }> = [];
 
-  for (
-    let index = 0;
-    index < lines.length;
-    index += 2
-  ) {
+  for (let index = 0; index < lines.length; index += 2) {
     rows.push({
-      title:
-        (lines[index] || "").trim(),
-      url:
-        (lines[index + 1] || "").trim(),
+      title: (lines[index] || "").trim(),
+      url: (lines[index + 1] || "").trim(),
       sourceIndex: index / 2,
     });
   }
@@ -146,31 +111,28 @@ function parseRows(input: string, mode: InputMode) {
   return rows;
 }
 
-function countOccurrences(text: string, value: string) {
-  if (!value) return 0;
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-  let count = 0;
-  let position = 0;
-
-  while (position <= text.length) {
-    const found =
-      text.indexOf(
-        value,
-        position
-      );
-
-    if (found === -1) break;
-
-    count += 1;
-    position =
-      found +
-      Math.max(
-        value.length,
-        1
-      );
+function literalMatches(text: string, value: string) {
+  if (!value) {
+    return [] as number[];
   }
 
-  return count;
+  const expression = new RegExp(escapeRegExp(value), "gi");
+  const positions: number[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = expression.exec(text)) !== null) {
+    positions.push(match.index);
+
+    if (!match[0]) {
+      expression.lastIndex += 1;
+    }
+  }
+
+  return positions;
 }
 
 function genericTitle(title: string) {
@@ -329,19 +291,9 @@ function analyzeRow(
     wanted &&
     title
   ) {
-    const lowerTitle =
-      title.toLocaleLowerCase();
-    const lowerWanted =
-      wanted.toLocaleLowerCase();
-    const first =
-      lowerTitle.indexOf(
-        lowerWanted
-      );
-    const count =
-      countOccurrences(
-        lowerTitle,
-        lowerWanted
-      );
+    const matches = literalMatches(title, wanted);
+    const first = matches.length ? matches[0] : -1;
+    const count = matches.length;
 
     if (first === -1) {
       targetPhrase = "not used";
@@ -386,19 +338,9 @@ function analyzeRow(
     brand &&
     title
   ) {
-    const lowerTitle =
-      title.toLocaleLowerCase();
-    const lowerBrand =
-      brand.toLocaleLowerCase();
-    const first =
-      lowerTitle.indexOf(
-        lowerBrand
-      );
-    const count =
-      countOccurrences(
-        lowerTitle,
-        lowerBrand
-      );
+    const matches = literalMatches(title, brand);
+    const first = matches.length ? matches[0] : -1;
+    const count = matches.length;
 
     if (first === -1) {
       brandPlacement =
@@ -408,14 +350,14 @@ function analyzeRow(
         first === 0
           ? "starts title"
           : first +
-              lowerBrand.length ===
-            lowerTitle.length
+              brand.length ===
+            title.length
           ? "ends title"
           : "inside title";
 
       if (
-        lowerTitle ===
-        lowerBrand
+        title.toLowerCase() ===
+        brand.toLowerCase()
       ) {
         findings.push({
           severity: "warning",
@@ -483,7 +425,7 @@ function analyzeRow(
 
 function normalizedTitle(value: string) {
   return normalizeSpace(
-    value.toLocaleLowerCase()
+    value.toLowerCase()
   );
 }
 
@@ -599,11 +541,11 @@ function detectBoilerplate(
 
     const prefix =
       parts[0]
-        .toLocaleLowerCase();
+        .toLowerCase();
     const suffix =
       parts[
         parts.length - 1
-      ].toLocaleLowerCase();
+      ].toLowerCase();
 
     prefixCount[prefix] =
       (prefixCount[prefix] ||
@@ -1070,10 +1012,10 @@ export default function ToolClient() {
     setInputMode("titles");
     setOutputMode("summary");
     setTargetPhrase(
-      "title tag length checker"
+      "webhook retry policy"
     );
     setBrandName(
-      "Yoryantra"
+      "Example Docs"
     );
     setReviewMaximum(65);
     setUseReviewMaximum(true);
@@ -1197,7 +1139,7 @@ export default function ToolClient() {
           rows={13}
           placeholder={
             inputMode === "html"
-              ? "<html><head><title>Canonical URL Checker | Yoryantra</title></head></html>"
+              ? "<html><head><title>Webhook Retry Policy | Example Docs</title></head></html>"
               : SAMPLE_TITLES
           }
           spellCheck={false}
@@ -1206,8 +1148,8 @@ export default function ToolClient() {
 
         {inputMode === "pairs" ? (
           <p className="mt-2 text-sm leading-relaxed text-gray-500">
-            Pair mode preserves the earlier Yoryantra workflow: title on one
-            line, its URL on the next, then repeat.
+            Pair mode expects a title on one line and its URL on the next. Repeat
+            that two-line pattern for each page.
           </p>
         ) : null}
       </div>
@@ -1321,7 +1263,7 @@ export default function ToolClient() {
                 );
                 clear();
               }}
-              placeholder="Yoryantra"
+              placeholder="Example Docs"
               className="mt-2 w-full rounded-lg border border-gray-300 bg-white p-3"
             />
             <label className="mt-3 flex items-start gap-2 text-sm text-gray-700">
@@ -1449,17 +1391,17 @@ export default function ToolClient() {
           </div>
 
           {result.boilerplate.length ? (
-            <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-5">
-              <h3 className="font-semibold text-blue-900">
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-gray-900">
                 Shared title segments
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-blue-900/90">
+              <p className="mt-2 text-sm leading-relaxed text-gray-700">
                 This is not automatically a problem. It is a batch-level view
                 of repeated prefix/suffix segments so you can see whether
                 branding or section boilerplate is crowding out unique page
                 wording.
               </p>
-              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-blue-900">
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-gray-900">
                 {result.boilerplate.map(
                   (item, index) => (
                     <li
@@ -1522,7 +1464,7 @@ export default function ToolClient() {
                   ) : null}
 
                   {row.findings.length ? (
-                    <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-yellow-900">
+                    <ul className="mt-4 list-disc space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-4 pl-9 text-sm leading-relaxed text-gray-700">
                       {row.findings.map(
                         (
                           finding,
@@ -1572,10 +1514,10 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Title analysis runs on the text or HTML you paste in your browser. The
-        tool does not fetch paired URLs, inspect live headings or query Google.
-        Site-wide analytics or advertising scripts, if enabled, are separate
-        from this audit.
+        Title analysis runs on the text or HTML you paste in your browser. Paired
+        URLs are not fetched, live headings are not inspected, and Google is not
+        queried. Site-wide analytics or advertising scripts, if enabled, are
+        separate from that local analysis.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1591,28 +1533,26 @@ export default function ToolClient() {
             document.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This version therefore keeps length visible but refuses to label a
-            title “SEO valid” merely because it sits under a number. If you use
-            the local threshold, the finding says exactly what it is: your
-            editing cutoff.
+            Length stays visible without turning an editing threshold into a fake
+            pass/fail rule. If you set a local maximum, the finding is labelled
+            as your editing cutoff—not as a Google limit.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Google Does Not Promise to Use Your &lt;title&gt; Verbatim
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Google generates title links automatically. Its documented sources
             can include the HTML title element, the main visual title, heading
             elements, <code>og:title</code>, prominent page text, anchor text
             and other signals.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             So a preview that says “this is exactly what Google will show” is
-            misleading. The useful job of a title checker is to improve the
-            source title and identify conflicts worth checking on the real
-            page.
+            misleading. Improve the source title, then compare the real page
+            signals when Google chooses a different title link.
           </p>
         </div>
 
@@ -1634,21 +1574,21 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Boilerplate Is Useful Until It Overwhelms the Unique Part
           </h2>
-          <div className="mt-4 space-y-4 text-sm leading-relaxed text-yellow-900/90">
+          <div className="mt-4 space-y-4 text-sm leading-relaxed text-gray-700">
             <div>
               <strong>Useful:</strong>{" "}
-              <code>Canonical URL Checker | Yoryantra</code>
+              <code>Webhook Retry Policy | Example Docs</code>
             </div>
             <div>
               <strong>Weak differentiation:</strong>{" "}
-              <code>Developer Tools | SEO Tools | URL Tools | Page 14 | Yoryantra</code>
+              <code>Docs | API | Integrations | Webhooks | Example Docs</code>
             </div>
           </div>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Branding is not the enemy. Repetition becomes a problem when users
             must scan past several generic segments before discovering what the
             page actually contains.
@@ -1660,10 +1600,10 @@ export default function ToolClient() {
             Exact Target Phrases Are Optional, Not a Pass/Fail SEO Rule
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The optional phrase check exists for editorial QA—for example,
-            verifying whether a product/tool name made it into a generated
-            title. If the phrase is missing, the tool reports that fact as
-            information rather than calling the title invalid.
+            The optional phrase check is editorial QA—for example, confirming that
+            a product name or required topic made it into a generated title.
+            A missing phrase is reported as information rather than treated as
+            an SEO failure.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             Search language is flexible. A natural synonym or clearer wording
@@ -1676,21 +1616,27 @@ export default function ToolClient() {
             HTML Mode Checks the Document Title Itself
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Pasting HTML is useful when debugging generated head markup. The
-            parser extracts <code>&lt;title&gt;</code> text, decodes common
-            entities and reports multiple title elements in one document.
+            Pasting HTML is useful when debugging generated head markup. A browser
+            HTML parser reads the <code>&lt;title&gt;</code> elements and resolves
+            character references the same way normal HTML parsing does.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            It still cannot see JavaScript mutations after load or compare the
-            title with H1/og:title without those signals being supplied. Use a
-            live-page inspection when the source and rendered document may
-            differ.
+            Pasted source still cannot show later JavaScript mutations or compare the
+            document title with a live H1, <code>og:title</code>, anchor text or
+            other page signals. Inspect the rendered page when source and live
+            DOM can differ.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Browser HTML parsing is deliberately error-tolerant. Extracting a
+            title successfully does not prove the surrounding markup is
+            conforming HTML; it only shows what the browser parser recovered
+            from the pasted source.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            A Practical Title Review Order
+            A Better Order for Reviewing Titles
           </h2>
           <ol className="mt-4 list-decimal space-y-3 pl-6 leading-relaxed text-gray-600">
             <li>
@@ -1729,8 +1675,13 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/title-tag-length-checker" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Check the Rest of the Search Snippet
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/title-tag-length-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>

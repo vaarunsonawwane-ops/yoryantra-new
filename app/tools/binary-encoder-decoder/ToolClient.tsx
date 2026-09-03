@@ -40,9 +40,9 @@ type Result = {
   codePoints: number;
 };
 
-const SAMPLE_TEXT = "Sneha 🚀";
+const SAMPLE_TEXT = "Hello 🚀";
 const SAMPLE_BINARY =
-  "01010011 01101110 01100101 01101000 01100001 00100000 11110000 10011111 10011010 10000000";
+  "01001000 01100101 01101100 01101100 01101111 00100000 11110000 10011111 10011010 10000000";
 
 function findUnpairedSurrogate(input: string) {
   for (let index = 0; index < input.length; index += 1) {
@@ -445,6 +445,19 @@ function findingsFor(
         } encoded to ${bytes.length} byte${
           bytes.length === 1 ? "" : "s"
         }. This is normal for non-ASCII Unicode text.`,
+    });
+  }
+
+  if (
+    action === "encode" &&
+    typeof text.normalize === "function" &&
+    text !== text.normalize("NFC")
+  ) {
+    findings.push({
+      severity: "info",
+      title: "Text is not NFC-normalized",
+      message:
+        "Visually similar Unicode text can have different code-point sequences and therefore different UTF-8 bytes. Encoding preserves the exact input sequence; no Unicode normalization is applied automatically.",
     });
   }
 
@@ -898,7 +911,7 @@ export default function ToolClient() {
                 (finding, index) => (
                   <div
                     key={`${finding.title}-${index}`}
-                    className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900"
+                    className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700"
                   >
                     <strong>
                       {finding.severity.toUpperCase()} ·{" "}
@@ -1000,9 +1013,9 @@ export default function ToolClient() {
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
         Encoding, strict UTF-8 decoding and byte inspection run on the pasted
-        data in your browser. The tool does not upload the text or byte
-        sequence. Site-wide analytics or advertising scripts, if enabled, are
-        separate from this conversion.
+        data in your browser. No text or byte sequence is sent to a separate
+        conversion API. Site-wide analytics or advertising scripts, if enabled,
+        are separate from that local processing.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1017,23 +1030,23 @@ export default function ToolClient() {
             completely different format.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            That is why this page has a separate <strong>Inspect bytes</strong>
-            operation. It lets you examine binary without first asserting that
-            the bytes are text.
+            That distinction is why <strong>Inspect bytes</strong> is separate from UTF-8
+            decoding: the byte values can be examined without first asserting
+            that the stream is text.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Complete Bytes Can Still Be Invalid UTF-8
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Eight bits always make a byte, but not every byte sequence makes a
             UTF-8 string. Bytes C0 and C1 cannot begin legal UTF-8 characters;
             F5–FF are also invalid as UTF-8 lead bytes; continuation bytes
             80–BF need an appropriate preceding lead byte.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Decode mode uses <code>TextDecoder("utf-8", {"{ fatal: true }"})</code>.
             Malformed input therefore produces an error instead of silently
             turning bad bytes into replacement characters and making the
@@ -1064,22 +1077,22 @@ export default function ToolClient() {
           </div>
           <p className="mt-4 leading-relaxed text-gray-600">
             A “binary character” is therefore not a fixed eight-bit concept for
-            Unicode text. The encoder converts the whole string to UTF-8 bytes
-            first and only then prints every byte as eight binary digits.
+            Unicode text. UTF-8 encoding turns the string into bytes first;
+            each resulting byte is then printed as eight binary digits.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Separated Bits Mean You Are Claiming Byte Boundaries
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             If you paste <code>01000001 01000010</code>, the spaces say “these
             are two bytes.” A seven-bit or nine-bit token between separators
             is therefore rejected. With continuous input, the only requirement
             is that the total number of bits is divisible by eight.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             That strictness catches a common copy/paste error where one missing
             bit shifts every byte that follows.
           </p>
@@ -1096,10 +1109,30 @@ export default function ToolClient() {
             TextEncoder converts lone surrogates to U+FFFD.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            For a diagnostic converter that substitution is dangerous because
-            it changes the data. This encoder detects the bad code-unit
-            position first and returns that specific error instead of hiding it
-            behind a generic encoding failure.
+            For diagnostics, that substitution is dangerous because it changes the
+            data. An unpaired surrogate is reported at its UTF-16 code-unit
+            position before UTF-8 encoding begins.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Same-Looking Text Can Produce Different Bytes
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Unicode can represent some visible text in more than one canonically
+            equivalent way. For example, <code>é</code> can be one code point
+            (U+00E9) or <code>e</code> followed by COMBINING ACUTE ACCENT
+            (U+0065 U+0301). Those strings can look the same while producing
+            different UTF-8 byte sequences.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            No normalization is applied before encoding, because silently
+            changing code points would also change the bytes being inspected.
+            When byte-for-byte equality matters for identifiers, signatures,
+            hashes or security checks, decide on a normalization policy at the
+            application boundary rather than assuming visual equality means
+            binary equality.
           </p>
         </div>
 
@@ -1168,22 +1201,27 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
-          The browser APIs used by this tool follow the{" "}
-          <a
+        <div className="mt-12 grid gap-4 md:grid-cols-2">
+          <ReferenceCard
+            title="WHATWG Encoding Standard"
             href="https://encoding.spec.whatwg.org/"
-            target="_blank"
-            rel="noreferrer"
-            className="font-semibold text-[var(--green)] underline underline-offset-4"
-          >
-            WHATWG Encoding Standard
-          </a>
-          , including UTF-8 encoding and fatal decoding behavior.
+            text="Defines the browser TextEncoder/TextDecoder APIs and the UTF-8 encoder/decoder behavior used by modern web applications."
+          />
+          <ReferenceCard
+            title="RFC 3629 — UTF-8"
+            href="https://www.rfc-editor.org/rfc/rfc3629"
+            text="Documents valid UTF-8 byte-sequence ranges, the preserved US-ASCII range, surrogate exclusion, BOM considerations and security issues around visually equivalent Unicode sequences."
+          />
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/binary-encoder-decoder" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Keep Following the Bytes
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/binary-encoder-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -1223,6 +1261,30 @@ function ExampleCard({
       <div className="text-xl font-semibold text-gray-900">{title}</div>
       <div className="mt-2 font-mono text-sm text-gray-700">{text}</div>
       <div className="mt-2 text-xs font-medium text-gray-500">{note}</div>
+    </div>
+  );
+}
+
+function ReferenceCard({
+  title,
+  href,
+  text,
+}: {
+  title: string;
+  href: string;
+  text: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="font-semibold text-[var(--green)] underline underline-offset-4"
+      >
+        {title}
+      </a>
+      <p className="mt-3 text-sm leading-relaxed text-gray-600">{text}</p>
     </div>
   );
 }

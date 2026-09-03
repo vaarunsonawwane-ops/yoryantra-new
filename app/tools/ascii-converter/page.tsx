@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "ASCII Converter | Text, Decimal, Hex & Binary | Yoryantra",
+  title: "ASCII Converter | 0–127 Text, Decimal, Hex & Binary | Yoryantra",
   description:
-    "Convert standard ASCII text and values from 0–127 across decimal, hexadecimal, binary and octal, inspect control-code names, and reject non-ASCII text instead of mislabelling it.",
+    "Translate standard 7-bit ASCII values 0–127 between text, decimal, hexadecimal, byte-padded binary and octal, with control-code names and strict non-ASCII rejection.",
   alternates: {
     canonical: "https://yoryantra.com/tools/ascii-converter",
   },
   openGraph: {
     title: "ASCII Converter | Yoryantra",
     description:
-      "Convert and inspect true 7-bit ASCII values with mixed-notation decoding, control-character names and a complete browser-side code reference.",
+      "Read standard ASCII 0–127 across decimal, hexadecimal, byte-padded binary and octal, including the named control-code range.",
     url: "https://yoryantra.com/tools/ascii-converter",
     siteName: "Yoryantra",
     type: "website",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "ASCII Converter | Yoryantra",
     description:
-      "Convert true ASCII 0–127 between text, decimal, hex, binary and octal while keeping control codes and non-ASCII boundaries explicit.",
+      "Translate ASCII 0–127 between text and common numeric notations while keeping control codes and the U+007F boundary explicit.",
   },
 };
 
