@@ -4,14 +4,14 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "MIME Type Finder | File Extension to Media Type | Yoryantra",
   description:
-    "Look up common media types from file names or extensions, reverse-check known Content-Type values, and distinguish extension conventions from actual file-content detection.",
+    "Match common file names and extensions with media types, inspect Content-Type values, and distinguish filename conventions from actual file-content detection.",
   alternates: {
     canonical: "https://yoryantra.com/tools/mime-type-finder",
   },
   openGraph: {
     title: "MIME Type Finder | File Extension to Media Type | Yoryantra",
     description:
-      "Find practical Content-Type mappings for common extensions and inspect known media type names.",
+      "Find common Content-Type mappings for file extensions and inspect known media type names.",
     url: "https://yoryantra.com/tools/mime-type-finder",
     siteName: "Yoryantra",
     type: "website",

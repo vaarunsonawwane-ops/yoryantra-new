@@ -131,6 +131,7 @@ export default function ToolClient() {
   const [output, setOutput] = useState("");
   const [matches, setMatches] = useState<StatusEntry[]>([]);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
   const registeredCount = useMemo(
     () => STATUS_CODES.filter((entry) => !entry.state || entry.state === "registered").length,
@@ -141,6 +142,7 @@ export default function ToolClient() {
     const cleaned = query.trim().toLowerCase();
 
     setCopied(false);
+    setError("");
 
     if (!cleaned) {
       setOutput("");
@@ -181,8 +183,9 @@ export default function ToolClient() {
           `${cleaned} — unassigned in this bundled IANA-based table`,
           "",
           `Class: ${statusClass(numeric)}`,
-          "Meaning: No standard HTTP semantics are assigned to this value in the registry snapshot used by this tool.",
-          "Note: Frameworks, reverse proxies, CDNs, and vendors sometimes use non-standard status codes. Check the product documentation before assigning meaning to an unregistered number.",
+          "Meaning: No specific standard HTTP semantics are assigned to this value in the bundled registry snapshot.",
+          `Client fallback: RFC 9110 says an unrecognized ${String(numeric).charAt(0)}xx code is handled as the x00 code of the same class. For example, an unknown 471 is treated like 400 for class-level behavior.`,
+          "Note: Frameworks, reverse proxies, CDNs, and vendors sometimes use non-standard status codes. Check the product documentation before assigning a vendor-specific meaning.",
         ].join("\n")
       );
       return;
@@ -195,6 +198,8 @@ export default function ToolClient() {
         entry.summary,
         entry.note || "",
         entry.reference,
+        statusClass(entry.code),
+        registryLabel(entry),
       ]
         .join(" ")
         .toLowerCase();
@@ -212,7 +217,7 @@ export default function ToolClient() {
     if (found.length > 1) {
       setOutput(
         [
-          `${found.length} matching registered entries`,
+          `${found.length} matching status entries`,
           "",
           ...found
             .slice(0, 20)
@@ -235,6 +240,7 @@ export default function ToolClient() {
     setOutput("");
     setMatches([]);
     setCopied(false);
+    setError("");
   };
 
   const copyOutput = async () => {
@@ -243,16 +249,18 @@ export default function ToolClient() {
     try {
       await navigator.clipboard.writeText(output);
       setCopied(true);
+      setError("");
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
+      setError("The status result could not be copied. Select and copy it manually.");
     }
   };
 
   return (
     <ToolShell
       title="HTTP Status Code Explorer"
-      description="Look up standard HTTP response status codes by number, name, or meaning and review the semantics that matter while debugging APIs, redirects, authentication, caching, rate limits, gateways, and server failures."
+      description="Search HTTP response status codes by number, name, or meaning, then read the protocol semantics behind redirects, authentication, caching, rate limits, gateways, and server failures."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block text-sm font-semibold text-gray-900">
@@ -271,6 +279,7 @@ export default function ToolClient() {
             setOutput("");
             setMatches([]);
             setCopied(false);
+            setError("");
           }}
           onKeyDown={(event) => {
             if (event.key === "Enter") runSearch();
@@ -329,6 +338,12 @@ export default function ToolClient() {
         </pre>
       </div>
 
+      {error ? (
+        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
+      ) : null}
+
       {matches.length > 1 ? (
         <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
           Tip: refine a broad search such as <code>redirect</code> or{" "}
@@ -340,89 +355,78 @@ export default function ToolClient() {
       <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Read the Code Together With the Request Context
+            The Number Is Only the Start of the Diagnosis
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            A status code is only one part of an HTTP response. Debugging often
-            depends on the request method, response fields, cache validators,
-            authentication challenges, redirect target, retry guidance, or the
-            relationship between a gateway and its upstream server. A{" "}
-            <code>404</code> does not tell you whether a routing rule, origin
-            application, CDN, or authorization policy produced it.
+            A status code describes the result of an HTTP request, but it rarely
+            explains the whole failure by itself. The request method, response
+            fields, cache validators, authentication challenge, redirect target,
+            retry guidance, and any gateway or upstream relationship can all
+            change what the response means operationally.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Likewise, a code that is syntactically in the 100–599 range is not
-            automatically standardized. IANA assigns specific values and leaves
-            the remaining numbers unassigned until a registration is approved.
+            The first digit gives the response class. RFC 9110 requires clients
+            to understand that class even when they do not recognize the exact
+            code. An unknown <code>471</code>, for example, is handled like a
+            generic <code>400</code>-class response rather than being given a
+            made-up meaning.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Redirect Codes That Look Similar but Behave Differently
+            301, 302, 303, 307, and 308 Are Not Interchangeable
           </h2>
           <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <pre className="whitespace-pre-wrap break-words">{`301 Moved Permanently   → permanent; historical clients can rewrite POST
 302 Found               → temporary; historical clients can rewrite POST
-303 See Other           → follow another URI using GET/HEAD semantics
+303 See Other           → follow another URI using GET or HEAD semantics
 307 Temporary Redirect  → temporary and method-preserving
 308 Permanent Redirect  → permanent and method-preserving
 304 Not Modified        → cache validation, not an ordinary redirect`}</pre>
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Authentication, Authorization, Rate Limits, and Availability
-          </h2>
-          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
-            <li>
-              <strong>401</strong> is about authentication credentials and an
-              authentication challenge; <strong>403</strong> means the server
-              understood the request but refuses it.
-            </li>
-            <li>
-              <strong>429</strong> describes a client exceeding a rate policy;
-              <strong>503</strong> describes temporary server unavailability.
-            </li>
-            <li>
-              <strong>502</strong> means a gateway received an invalid upstream
-              response; <strong>504</strong> means the needed upstream response
-              did not arrive in time.
-            </li>
-            <li>
-              <strong>409</strong>, <strong>412</strong>, and{" "}
-              <strong>428</strong> can all appear in concurrency or conditional
-              request workflows, but they describe different conditions.
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Temporary, Unused, and Vendor-Specific Values
-          </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Status 104 is a temporary IANA registration at the time of this
-            freeze. Codes 306 and 418 are listed as unused, while 510 is
-            retained as obsoleted. Separately, products may define their own
-            non-standard codes. A vendor-specific response can be useful in
-            that product without becoming general HTTP semantics.
+            A redirect investigation therefore needs both the status and the
+            <code> Location</code> field. Method preservation matters especially
+            for non-GET requests where silently turning a POST into a GET can
+            change application behavior.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Why the IANA Registry Is Worth Checking Here
+            401 and 403 Point to Different Problems
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This is one of the tools where an authoritative reference adds
-            direct value because registrations can change and temporary values
-            can expire. The bundled table is designed for fast lookup; use the
-            live registry when a new, unusual, or temporary code affects a
-            production protocol decision.
+            <code>401 Unauthorized</code> is an authentication response: the
+            request lacks valid credentials and the response carries an
+            authentication challenge. <code>403 Forbidden</code> means the
+            server understood the request but refuses to fulfill it. Sending a
+            different password or token does not automatically turn a 403 into
+            an allowed request.
           </p>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Similar distinctions matter elsewhere. <code>429</code> describes a
+            rate policy, while <code>503</code> describes temporary server
+            unavailability. <code>502</code> is an invalid upstream response;
+            <code>504</code> is an upstream timeout. Reading those pairs
+            correctly often tells you which layer to inspect next.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Status 104 Is Still Temporary
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            IANA currently lists <code>104 Upload Resumption Supported</code> as
+            a temporary registration that expires on 13 November 2026 unless it
+            is extended or made permanent. Code that depends on 104 should
+            therefore check the live registry rather than assuming the current
+            registration is permanent.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            The live{" "}
             <a
               href="https://www.iana.org/assignments/http-status-codes/"
               target="_blank"
@@ -430,33 +434,61 @@ export default function ToolClient() {
               className="font-medium text-[var(--green)] underline underline-offset-4"
             >
               IANA HTTP Status Code Registry
-            </a>
+            </a>{" "}
+            is the authority for assigned, temporary, unused, and obsoleted
+            values. The general status semantics are defined in{" "}
             <a
               href="https://www.rfc-editor.org/rfc/rfc9110"
               target="_blank"
               rel="noreferrer"
               className="font-medium text-[var(--green)] underline underline-offset-4"
             >
-              RFC 9110 — HTTP Semantics
-            </a>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Local Lookup, Not a Live HTTP Test
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            This page searches a bundled reference table in your browser. It
-            does not request a URL, contact your API, follow redirects, inspect
-            response headers, or determine why a particular server returned a
-            code.
+              RFC 9110
+            </a>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/http-status-code-explorer" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Unassigned and Vendor-Specific Codes Need Context
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A three-digit value between 100 and 599 can be syntactically valid
+            without having a registered meaning. Products sometimes use such
+            values internally, but that does not make them portable HTTP
+            semantics. When an unfamiliar code appears in logs, keep the
+            response class in mind and then check the software that generated
+            it.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Codes 306 and 418 are currently listed as unused, while 510 is
+            retained as obsoleted. Those labels are different from
+            “unassigned”: an unused or historical value has an explicit
+            registry history.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            A Local Reference Cannot Explain a Live Response
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The search is performed against bundled status data in the browser.
+            No URL is requested, no redirect is followed, and no response
+            headers are fetched. If the question is why a particular server
+            returned a code, inspect the real request and response alongside
+            application, proxy, CDN, or upstream logs.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Continue From the Response
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/http-status-code-explorer" />
+          </div>
         </div>
       </section>
     </ToolShell>

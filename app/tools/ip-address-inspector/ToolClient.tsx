@@ -176,8 +176,19 @@ function parseIPv6(value: string): ParsedIPv6 | null {
     bytes.push((group >> 8) & 255, group & 255);
   });
 
+  const mapped =
+    groups.slice(0, 5).every((group) => group === 0) &&
+    groups[5] === 0xffff
+      ? [
+          (groups[6] >> 8) & 255,
+          groups[6] & 255,
+          (groups[7] >> 8) & 255,
+          groups[7] & 255,
+        ].join(".")
+      : "";
+
   return {
-    normalized: compressIPv6(groups),
+    normalized: mapped ? `::ffff:${mapped}` : compressIPv6(groups),
     expanded: groups.map((group) => group.toString(16).padStart(4, "0")).join(":"),
     groups,
     bytes,
@@ -295,11 +306,13 @@ export default function ToolClient() {
   const [ip, setIp] = useState("");
   const [output, setOutput] = useState("");
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
   const inspectIP = () => {
     let value = ip.trim();
 
     setCopied(false);
+    setError("");
 
     if (!value) {
       setOutput("");
@@ -308,7 +321,7 @@ export default function ToolClient() {
 
     if (value.indexOf("/") !== -1) {
       setOutput(
-        "Enter one IP address without a CIDR prefix. Use the CIDR Calculator when you need network or prefix calculations."
+        "Enter one IP address without a CIDR prefix. Remove the /prefix when the goal is to inspect a single address."
       );
       return;
     }
@@ -355,7 +368,7 @@ export default function ToolClient() {
 
       if (bracketed) {
         setOutput(
-          "Square brackets are a URI host notation for IPv6 literals. Do not wrap an IPv4 address in brackets for this inspector."
+          "Square brackets are used around IPv6 literals in URI host notation. They are not valid around an IPv4 address here."
         );
         return;
       }
@@ -458,7 +471,7 @@ export default function ToolClient() {
     }
 
     setOutput(
-      "Invalid IP address syntax. The inspector accepts strict dotted-decimal IPv4 and standard IPv6 forms, including :: compression, IPv4-embedded IPv6, optional IPv6 brackets, and optional zone identifiers."
+      "Invalid IP address syntax. Accepted input includes strict dotted-decimal IPv4 and standard IPv6 forms with :: compression, IPv4-embedded IPv6, optional IPv6 brackets, and optional zone identifiers."
     );
   };
 
@@ -466,6 +479,7 @@ export default function ToolClient() {
     setIp("");
     setOutput("");
     setCopied(false);
+    setError("");
   };
 
   const copyOutput = async () => {
@@ -474,16 +488,18 @@ export default function ToolClient() {
     try {
       await navigator.clipboard.writeText(output);
       setCopied(true);
+      setError("");
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
+      setError("The inspection result could not be copied. Select and copy it manually.");
     }
   };
 
   return (
     <ToolShell
       title="IP Address Inspector"
-      description="Validate strict IPv4 and IPv6 syntax, normalize IPv6 notation, inspect IPv4-mapped addresses and zone identifiers, and recognize common special-purpose address ranges without pretending to perform geolocation or ownership lookup."
+      description="Validate IPv4 and IPv6 text, normalize IPv6 notation, inspect IPv4-mapped addresses and zone identifiers, and recognize common special-purpose ranges without making ownership or geolocation claims."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block text-sm font-semibold text-gray-900">
@@ -501,6 +517,7 @@ export default function ToolClient() {
             setIp(event.target.value);
             setOutput("");
             setCopied(false);
+            setError("");
           }}
           onKeyDown={(event) => {
             if (event.key === "Enter") inspectIP();
@@ -553,137 +570,183 @@ export default function ToolClient() {
         </pre>
       </div>
 
+      {error ? (
+        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
+      ) : null}
+
       <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Syntax Validation Is Not an Ownership or Geolocation Lookup
+            A Valid Address Can Still Be the Wrong Address
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            An address can be syntactically valid without being assigned,
-            reachable, globally routed, or owned by the organization you expect.
-            This inspector works entirely from the address text and a bundled
-            special-purpose range table. It does not query WHOIS, RDAP, DNS,
-            routing tables, geolocation databases, your network interface, or
-            the public Internet.
+            Syntax alone cannot tell you who owns an address, whether it is
+            allocated, whether a route exists, or whether the host is reachable.
+            Those questions require live registration, DNS, routing, or network
+            information. Here, the address text is parsed locally and compared
+            with a bundled set of special-purpose prefixes.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A lack of a special-purpose match should therefore be read as
+            “nothing in this bundled list matched,” not as proof that an address
+            is public, assigned, or safe to trust.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Why Most-Specific-Prefix Matching Matters
+            The Most Specific Prefix Wins
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             Special-purpose registries contain broad blocks with smaller
-            assignments inside them. For example, <code>192.0.0.0/24</code> is
-            an IETF protocol-assignment block, while addresses such as{" "}
-            <code>192.0.0.9/32</code> and <code>192.0.0.10/32</code> have their
-            own anycast purposes. The inspector sorts candidate ranges by
-            prefix length so a specific assignment is not hidden by a broader
-            parent range.
+            assignments inside them. <code>192.0.0.0/24</code>, for example,
+            contains the more-specific <code>192.0.0.9/32</code> PCP anycast
+            address and <code>192.0.0.10/32</code> TURN anycast address. Matching
+            the broad /24 first would give the wrong classification, so ranges
+            are checked from longest prefix to shortest.
           </p>
         </div>
 
-        <div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            Private, Shared, Link-Local, and Documentation Space Are Different
+            “Private,” “Shared,” and “Link-Local” Are Different Categories
           </h2>
-          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-700">
             <li>
-              IPv4 RFC 1918 private-use space is <code>10.0.0.0/8</code>,{" "}
+              RFC 1918 private IPv4 space is <code>10.0.0.0/8</code>,{" "}
               <code>172.16.0.0/12</code>, and{" "}
               <code>192.168.0.0/16</code>.
             </li>
             <li>
-              <code>100.64.0.0/10</code> is Shared Address Space, often used
-              with carrier-grade NAT. It is not RFC 1918 private space.
+              <code>100.64.0.0/10</code> is Shared Address Space, commonly
+              associated with carrier-grade NAT. It is not RFC 1918 private
+              space.
             </li>
             <li>
-              IPv4 <code>169.254.0.0/16</code> and IPv6{" "}
-              <code>fe80::/10</code> are link-local rather than ordinary
-              globally routed addresses.
+              <code>169.254.0.0/16</code> and <code>fe80::/10</code> are
+              link-local. They are meaningful on a local link rather than as
+              ordinary globally routed addresses.
             </li>
             <li>
-              TEST-NET IPv4 blocks and IPv6 documentation prefixes are
-              deliberately reserved so documentation can avoid using real
-              production addresses.
+              TEST-NET IPv4 ranges and IPv6 documentation prefixes exist so
+              examples can avoid borrowing real production addresses.
             </li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            IPv6 Normalization and Zone Identifiers
+            IPv6 Text Has Many Valid Spellings
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            IPv6 allows zero compression and leading-zero omission. The
-            normalized value follows the common RFC 5952 style: hexadecimal is
-            lowercase, leading zeroes in a group are removed, and the longest
-            eligible run of zero groups is compressed. The expanded line shows
-            all eight 16-bit groups for debugging.
+            IPv6 permits leading-zero omission and <code>::</code> compression.
+            The normalized form follows RFC 5952: lowercase hexadecimal,
+            suppressed leading zeroes, the longest eligible zero run compressed,
+            and the first run chosen when two runs have the same length.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            A suffix such as <code>%eth0</code> is a zone identifier used by
-            APIs and operating systems for scoped IPv6 addresses. It is not
-            part of the 128 address bits. URI syntax has additional escaping
-            rules for zone identifiers, so do not blindly copy an operating
-            system address string into a URL.
+            IPv4-mapped IPv6 addresses are shown in mixed notation such as{" "}
+            <code>::ffff:192.0.2.10</code>. RFC 5952 recommends that readable
+            form when a well-known prefix identifies the embedded IPv4 address.
+            The expanded line still shows all eight 16-bit groups when the raw
+            bits are what you need to compare.
           </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Leading Zeroes in IPv4 Are Rejected Deliberately
-          </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The inspector accepts canonical dotted-decimal IPv4 octets from 0
-            through 255 and rejects multi-digit octets with a leading zero.
-            Historical software has interpreted ambiguous IPv4 text using
-            non-decimal forms, so strict dotted decimal is safer for a tool
-            whose purpose is validation and comparison.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Registry References Add Value for Address Classification
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Special-purpose assignments can evolve, so the live IANA
-            registries are useful when an unusual address affects a production
-            networking decision. The bundled table focuses on common ranges
-            rather than claiming to replace the registries.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <a
-              href="https://www.iana.org/assignments/iana-ipv4-special-registry/"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              IANA IPv4 Special-Purpose Registry
-            </a>
-            <a
-              href="https://www.iana.org/assignments/iana-ipv6-special-registry/"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              IANA IPv6 Special-Purpose Registry
-            </a>
+            The normalization rules come from{" "}
             <a
               href="https://www.rfc-editor.org/rfc/rfc5952"
               target="_blank"
               rel="noreferrer"
               className="font-medium text-[var(--green)] underline underline-offset-4"
             >
-              RFC 5952 — IPv6 Text Representation
-            </a>
-          </div>
+              RFC 5952
+            </a>, while the underlying IPv6 address forms are defined by RFC
+            4291.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/ip-address-inspector" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            A Zone Identifier Belongs to the Local Interface Context
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Text such as <code>fe80::1%eth0</code> combines an IPv6 address with
+            a host-specific zone identifier. The <code>%eth0</code> part is not
+            one of the 128 address bits; it tells the local system which zone or
+            interface applies to a scoped address.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 9844 now describes zone identifiers as a user-interface
+            concern and completely obsoletes the older RFC 6874 URI approach.
+            A raw operating-system form should not be assumed to be a portable
+            URI host string. Zone names and numeric interface indexes can also
+            differ from one machine to another.
+          </p>
+          <p className="mt-4 text-sm">
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc9844"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 9844 — Entering IPv6 Zone Identifiers in User Interfaces
+            </a>
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Strict Dotted Decimal Avoids Old IPv4 Ambiguities
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Each IPv4 octet is accepted only as one to three decimal digits
+            from 0 through 255. Multi-digit values with a leading zero are
+            rejected. Older APIs have accepted octal, hexadecimal, or shortened
+            IPv4 forms, which can make the same text mean different things in
+            different parsers. Strict dotted decimal avoids that ambiguity.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Special-Purpose Assignments Change Over Time
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The bundled classifications are a convenience snapshot, not a
+            replacement for the registries. When an unusual range affects
+            routing, filtering, abuse handling, or an allowlist, compare it
+            with IANA's live{" "}
+            <a
+              href="https://www.iana.org/assignments/iana-ipv4-special-registry/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              IPv4 special-purpose registry
+            </a>{" "}
+            or{" "}
+            <a
+              href="https://www.iana.org/assignments/iana-ipv6-special-registry/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              IPv6 special-purpose registry
+            </a>. IANA also records whether each registered block is valid as a
+            source or destination, forwardable, and globally reachable.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Continue From the Address
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/ip-address-inspector" />
+          </div>
         </div>
       </section>
     </ToolShell>

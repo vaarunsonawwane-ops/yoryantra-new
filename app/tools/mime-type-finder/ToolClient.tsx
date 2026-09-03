@@ -84,11 +84,11 @@ const MEDIA_ENTRIES: MediaEntry[] = [
   { type: "audio/mpeg", extensions: ["mp3"], note: "MPEG audio, commonly MP3." },
   { type: "audio/aac", extensions: ["aac"], note: "AAC audio." },
   { type: "audio/ogg", extensions: ["oga", "ogg"], note: "Ogg audio. The generic .ogg extension is not enough to prove that the contained streams are audio-only; application/ogg or video/ogg can be appropriate in other Ogg workflows." },
-  { type: "audio/wav", extensions: ["wav"], note: "Widely used Content-Type for WAVE audio in browsers and web servers. Treat this as a practical mapping rather than an IANA main-registry claim.", status: "common-unregistered" },
+  { type: "audio/wav", extensions: ["wav"], note: "Widely used Content-Type for WAVE audio in browsers and web servers. It is treated here as a common web mapping rather than an IANA main-registry registration.", status: "common-unregistered" },
 
   { type: "video/mp4", extensions: ["mp4", "m4v"], note: "MP4 video." },
   { type: "video/ogg", extensions: ["ogv"], note: "Ogg video." },
-  { type: "video/webm", extensions: ["webm"], note: "Widely used WebM Content-Type in browsers and web servers. A .webm extension alone cannot prove whether video/webm or audio/webm best describes the contained streams. Treat this as a practical web mapping rather than an IANA main-registry claim.", status: "common-unregistered" },
+  { type: "video/webm", extensions: ["webm"], note: "Widely used WebM Content-Type in browsers and web servers. A .webm extension alone cannot prove whether video/webm or audio/webm best describes the contained streams. It is treated here as a common web mapping rather than an IANA main-registry registration.", status: "common-unregistered" },
 
   { type: "font/woff", extensions: ["woff"], note: "WOFF web fonts." },
   { type: "font/woff2", extensions: ["woff2"], note: "WOFF2 web fonts." },
@@ -97,6 +97,10 @@ const MEDIA_ENTRIES: MediaEntry[] = [
 ];
 
 const TYPE_TOKEN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+
+function stripContentTypeFieldName(raw: string) {
+  return raw.replace(/^content-type\s*:\s*/i, "").trim();
+}
 
 function splitMediaTypeInput(raw: string) {
   const semicolon = raw.indexOf(";");
@@ -225,10 +229,10 @@ function resultText(result: LookupResult) {
   if (result.kind === "media-type") {
     const status =
       result.entry.status === "common-unregistered"
-        ? "Practical web mapping (not represented here as an IANA main-registry registration)"
+        ? "Common web mapping (not listed here as an IANA main-registry registration)"
         : result.alias
-        ? "Known alias / alternate form in this table"
-        : "Known media type in this table";
+        ? "Known alias or alternate form"
+        : "Known media type";
 
     const lines = [
       status,
@@ -254,7 +258,7 @@ function resultText(result: LookupResult) {
 
     if (result.alias && result.inputType !== result.entry.type) {
       lines.push(
-        `Alias note: ${result.inputType} maps to ${result.entry.type} in this practical table.`
+        `Alias note: ${result.inputType} maps to ${result.entry.type} in the bundled mapping data.`
       );
     }
 
@@ -264,7 +268,7 @@ function resultText(result: LookupResult) {
   if (result.kind === "extension") {
     const status =
       result.entry.status === "common-unregistered"
-        ? "Practical extension mapping"
+        ? "Common extension mapping"
         : "Common extension mapping";
 
     return [
@@ -295,7 +299,7 @@ function resultText(result: LookupResult) {
         : []),
       ...(result.suffixHint ? [`Suffix note: ${result.suffixHint}`] : []),
       "",
-      "An unknown result here does not mean the media type is invalid. The IANA registry contains far more registrations than this practical lookup table.",
+      "No match here does not mean the media type is invalid. The IANA registry contains far more registrations than the bundled common-type list.",
     ].join("\n");
   }
 
@@ -314,6 +318,7 @@ export default function ToolClient() {
   const [result, setResult] = useState<LookupResult | null>(null);
   const [output, setOutput] = useState("");
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
   const tableStats = useMemo(() => {
     const registeredLike = MEDIA_ENTRIES.filter(
@@ -329,9 +334,10 @@ export default function ToolClient() {
   }, []);
 
   const runLookup = () => {
-    const raw = input.trim();
+    const raw = stripContentTypeFieldName(input.trim());
 
     setCopied(false);
+    setError("");
 
     if (!raw) {
       setResult(null);
@@ -341,6 +347,22 @@ export default function ToolClient() {
 
     if (looksLikeMediaType(raw)) {
       const parsed = splitMediaTypeInput(raw);
+
+      if (
+        parsed.base === "*/*" ||
+        parsed.base.endsWith("/*")
+      ) {
+        setResult(null);
+        setOutput(
+          [
+            `${parsed.base} is a media range, not a concrete media type.`,
+            "",
+            "Wildcards belong in negotiation fields such as Accept. A Content-Type value identifies the actual representation and therefore uses a specific type/subtype.",
+          ].join("\n")
+        );
+        return;
+      }
+
       const found = findByMediaType(parsed.base);
 
       const next: LookupResult = found
@@ -402,6 +424,7 @@ export default function ToolClient() {
     setResult(null);
     setOutput("");
     setCopied(false);
+    setError("");
   };
 
   const copyOutput = async () => {
@@ -410,16 +433,18 @@ export default function ToolClient() {
     try {
       await navigator.clipboard.writeText(output);
       setCopied(true);
+      setError("");
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
+      setError("The media-type result could not be copied. Select and copy it manually.");
     }
   };
 
   return (
     <ToolShell
       title="MIME Type Finder"
-      description="Look up practical media-type mappings from common file names and extensions, or reverse-check a known Content-Type value without confusing filename conventions with real content detection."
+      description="Match common file names and extensions with media types, or inspect a Content-Type value while keeping filename conventions separate from actual file-content detection."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block text-sm font-semibold text-gray-900">
@@ -438,6 +463,7 @@ export default function ToolClient() {
             setResult(null);
             setOutput("");
             setCopied(false);
+            setError("");
           }}
           onKeyDown={(event) => {
             if (event.key === "Enter") runLookup();
@@ -469,7 +495,7 @@ export default function ToolClient() {
           value={String(tableStats.registeredLike)}
         />
         <StatCard
-          label="Practical web-only mappings"
+          label="Common web-only mappings"
           value={String(tableStats.practicalOnly)}
         />
       </div>
@@ -481,8 +507,8 @@ export default function ToolClient() {
               Media Type Result
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              The table is designed for common developer workflows, not as a
-              complete copy of every registered media type.
+              Common mappings are bundled for quick lookup; the IANA registry
+              contains many more registered media types.
             </p>
           </div>
 
@@ -503,149 +529,168 @@ export default function ToolClient() {
         </pre>
       </div>
 
+      {error ? (
+        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
+      ) : null}
+
       {result && result.kind === "unknown-type" && result.suffixHint ? (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-blue-800">
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
           Structured syntax suffixes such as <code>+json</code> and{" "}
-          <code>+xml</code> can tell a generic processor something useful about
-          representation syntax even when the full media type is not in this
-          bundled table.
+          <code>+xml</code> describe an underlying representation family even
+          when the full media type is not present in the bundled list.
         </div>
       ) : null}
 
       <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            A File Extension Is a Naming Convention, Not Content Proof
+            A Filename Can Suggest a Format; It Cannot Prove One
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            A media type—historically called a MIME type—describes the format of
-            transferred content. Filename extensions are useful conventions,
-            but they are not authoritative evidence about the bytes inside a
-            file. Renaming executable or HTML content to{" "}
-            <code>photo.jpg</code> does not turn it into a JPEG image.
+            A media type describes transferred content. A filename extension is
+            only a naming convention. Renaming HTML, executable data, or a ZIP
+            archive to <code>photo.jpg</code> does not turn those bytes into a
+            JPEG image.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            That distinction matters for uploads. An extension allowlist can
-            improve usability, but security-sensitive validation should also
-            use trusted server-side checks appropriate to the file type and
-            should store user-controlled content with safe serving rules.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Content-Type Parameters Are Separate From the Base Media Type
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            In a header such as{" "}
-            <code>Content-Type: text/html; charset=utf-8</code>, the base media
-            type is <code>text/html</code> and <code>charset=utf-8</code> is a
-            parameter. Parameters are not universally interchangeable: each
-            media type defines which parameters it accepts and what they mean.
-            This finder uses the base type for lookup and shows supplied
-            parameters separately.
+            That distinction is important in upload handling. Extension checks
+            are useful for user feedback, but security-sensitive validation
+            needs server-side inspection appropriate to the format and safe
+            storage and serving rules for user-controlled content.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Compound File Names Describe Layers
+            Content-Type Has a Type, a Subtype, and Sometimes Parameters
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            A name such as <code>backup.tar.gz</code> tells you that gzip is the
-            outer file layer. Looking up the last extension therefore returns{" "}
-            <code>application/gzip</code>. That does not inspect or promise
-            that the decompressed payload is actually a TAR archive. Similar
-            layered names should be interpreted as hints about a processing
-            pipeline, not as byte-level verification.
+            In <code>Content-Type: text/html; charset=utf-8</code>,{" "}
+            <code>text/html</code> is the media type and{" "}
+            <code>charset=utf-8</code> is a parameter. Parameters are defined by
+            the media type's specification; they are not a universal list that
+            can be copied from one type to another.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Pasting the full <code>Content-Type:</code> field is accepted, but
+            lookup is performed on the base type/subtype. A wildcard such as{" "}
+            <code>image/*</code> is different: it is a media range used in
+            negotiation fields such as <code>Accept</code>, not a concrete
+            Content-Type for one representation.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Modern Media-Type Details That Commonly Cause Confusion
-          </h2>
-          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
-            <li>
-              JavaScript uses <code>text/javascript</code>; IANA marks{" "}
-              <code>application/javascript</code> obsolete in favor of it.
-            </li>
-            <li>
-              YAML has the registered <code>application/yaml</code> media type.
-            </li>
-            <li>
-              Structured suffixes such as <code>+json</code> and{" "}
-              <code>+xml</code> communicate underlying representation syntax,
-              but the full media-type name still needs its own registration or
-              protocol definition.
-            </li>
-            <li>
-              SVG is <code>image/svg+xml</code>, but treating SVG as “just an
-              image” can be unsafe in upload and embedding workflows because
-              SVG is XML-based and can contain active features.
-            </li>
-            <li>
-              Some values such as <code>audio/wav</code> and{" "}
-              <code>video/webm</code> are widely used on the web even though
-              this tool does not present them as main IANA registry entries.
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Browser MIME Sniffing Is a Different Problem
+            archive.tar.gz Describes Two Layers
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Browsers can apply MIME-sniffing rules in some contexts when a
-            response type is missing or ambiguous. This page does not implement
-            those sniffing algorithms and does not download a resource. If you
-            are debugging an HTTP response, inspect the actual{" "}
-            <code>Content-Type</code>, <code>X-Content-Type-Options</code>,
-            request context, and browser behavior rather than relying only on a
-            filename.
+            The last extension in <code>archive.tar.gz</code> describes the
+            outer gzip layer, so <code>.gz</code> maps to{" "}
+            <code>application/gzip</code>. The filename still does not prove
+            that the decompressed bytes form a TAR archive. Compound names are
+            best read as processing hints rather than byte-level evidence.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Registration and Common Web Usage Are Not the Same List
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            IANA maintains the authoritative registry of media-type names, but
+            it is not a universal filename-extension database. Some extension
+            mappings come from platform or browser conventions, and some widely
+            seen web values are not main-registry registrations.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            For example, <code>text/javascript</code> is the registered
+            JavaScript type and IANA marks <code>application/javascript</code>
+            obsolete in its favor. <code>application/yaml</code> is registered
+            for YAML. Values such as <code>audio/wav</code> and{" "}
+            <code>video/webm</code> are common in web software but are kept
+            clearly separate from claims about IANA registration.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            When the IANA Registry Adds Value
+            +json and +xml Tell You About Syntax, Not Registration
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            IANA is useful when you need to confirm whether a media-type name is
-            registered or whether an older name has been obsoleted. It does not
-            define a universal filename-extension database, which is why this
-            tool labels extension results as practical mappings instead of
-            pretending the extension itself is an IANA assignment.
+            A structured syntax suffix can let generic software recognize an
+            underlying representation family. A subtype ending in{" "}
+            <code>+json</code> signals JSON-based representation semantics;
+            <code>+xml</code> does the same for XML. That suffix does not by
+            itself prove that the complete media-type name is registered or
+            appropriate for a particular protocol.
           </p>
-          <p className="mt-4 text-sm">
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            SVG and MIME Sniffing Need Separate Security Decisions
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            <code>image/svg+xml</code> is an image media type, but SVG is
+            XML-based and can contain active features. Upload rules that treat
+            every <code>image/*</code> value as an inert bitmap can therefore
+            create a security boundary that is much weaker than it looks.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Browsers can also apply MIME-sniffing behavior in some contexts
+            when a response type is absent or ambiguous. A filename lookup does
+            not reproduce those algorithms. For a live HTTP problem, inspect
+            the real <code>Content-Type</code>,{" "}
+            <code>X-Content-Type-Options</code>, request context, and browser
+            behavior.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            When the Exact Registration Matters
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The{" "}
             <a
               href="https://www.iana.org/assignments/media-types/"
               target="_blank"
               rel="noreferrer"
               className="font-medium text-[var(--green)] underline underline-offset-4"
             >
-              IANA Media Types Registry
-            </a>
+              IANA Media Types registry
+            </a>{" "}
+            is the place to confirm whether a type/subtype is registered,
+            obsoleted, or associated with a particular specification. The
+            registration framework is described by RFC 6838, while individual
+            types often point to their own defining RFC or standards document.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Local Lookup and Privacy Boundary
+            Only the Text You Enter Is Examined
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The lookup runs against a bundled table in your browser. No file is
-            uploaded, opened, sniffed, or sent to a media-detection API. If you
-            paste a file path or URL, only the text itself is examined by this
-            tool. Site-wide analytics or advertising scripts, if enabled, are
-            separate from the lookup operation.
+            Lookup runs against bundled mapping data in the browser. A file is
+            not uploaded or opened, a URL is not fetched, and no content
+            sniffing is performed. If a path or URL is pasted, only its text is
+            used to find the apparent extension. Site-wide analytics or
+            advertising scripts, if enabled, are separate from that lookup.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/mime-type-finder" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Continue From the Content Type
+          </h2>
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/mime-type-finder" />
+          </div>
         </div>
       </section>
     </ToolShell>

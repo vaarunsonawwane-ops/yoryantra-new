@@ -4,14 +4,14 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "HTTP Status Code Explorer | 1xx–5xx Reference | Yoryantra",
   description:
-    "Look up registered HTTP status codes, search by name or meaning, and review redirect, authentication, caching, rate-limit, gateway, and server-error semantics.",
+    "Search registered HTTP status codes by number, name, or meaning and understand redirect, authentication, caching, rate-limit, gateway, and server-error semantics.",
   alternates: {
     canonical: "https://yoryantra.com/tools/http-status-code-explorer",
   },
   openGraph: {
     title: "HTTP Status Code Explorer | Yoryantra",
     description:
-      "Search HTTP status codes and review practical 1xx–5xx semantics with registry-status notes.",
+      "Search HTTP status codes and read 1xx–5xx semantics, registry status, and important protocol distinctions.",
     url: "https://yoryantra.com/tools/http-status-code-explorer",
     siteName: "Yoryantra",
     type: "website",
