@@ -205,6 +205,8 @@ function inspectYamlDocument(
       }
 
       if (
+        node !== null &&
+        typeof node === "object" &&
         "tag" in node &&
         typeof node.tag === "string" &&
         node.tag
