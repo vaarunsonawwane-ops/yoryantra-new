@@ -4,14 +4,14 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: ".env File Parser | Inspect Environment Variables | Yoryantra",
   description:
-    "Parse Node-style .env text, inspect quotes, comments, multiline values and duplicates, compare effective values, and mask likely secrets in visible output.",
+    "Parse Node-style .env text in source order, inspect quoting, comments, multiline values and duplicates, compare effective values, and mask likely credentials.",
   alternates: {
     canonical: "https://yoryantra.com/tools/env-file-parser",
   },
   openGraph: {
     title: ".env File Parser | Inspect Environment Variables | Yoryantra",
     description:
-      "Inspect dotenv assignments in source order, spot duplicate variables, understand quoting and comments, and mask likely secrets.",
+      "Inspect Node-style dotenv assignments in source order, including quoting, comments, multiline values, duplicate names, effective values, and optional credential masking.",
     url: "https://yoryantra.com/tools/env-file-parser",
     siteName: "Yoryantra",
     type: "website",

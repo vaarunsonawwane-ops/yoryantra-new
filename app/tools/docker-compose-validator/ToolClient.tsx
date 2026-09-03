@@ -102,20 +102,55 @@ function looksLikePathSource(source: string) {
   return false;
 }
 
-function containsInterpolation(value: string) {
-  return /\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[^}]+\})/.test(value);
-}
-
 function extractInterpolationTokens(input: string) {
-  const matches =
-    input.match(/\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[^}\r\n]+\})/g) || [];
   const unique: string[] = [];
+  let index = 0;
 
-  matches.forEach((item) => {
-    if (unique.indexOf(item) === -1) unique.push(item);
-  });
+  while (index < input.length) {
+    if (input.charAt(index) !== "$") {
+      index += 1;
+      continue;
+    }
+
+    if (input.charAt(index + 1) === "$") {
+      index += 2;
+      continue;
+    }
+
+    const start = index;
+    const next = input.charAt(index + 1);
+
+    if (next === "{") {
+      const close = input.indexOf("}", index + 2);
+
+      if (close !== -1 && close > index + 2) {
+        const token = input.slice(start, close + 1);
+        if (unique.indexOf(token) === -1) unique.push(token);
+        index = close + 1;
+        continue;
+      }
+    } else if (/[A-Za-z_]/.test(next)) {
+      index += 2;
+      while (
+        index < input.length &&
+        /[A-Za-z0-9_]/.test(input.charAt(index))
+      ) {
+        index += 1;
+      }
+
+      const token = input.slice(start, index);
+      if (unique.indexOf(token) === -1) unique.push(token);
+      continue;
+    }
+
+    index += 1;
+  }
 
   return unique;
+}
+
+function containsInterpolation(value: string) {
+  return extractInterpolationTokens(value).length > 0;
 }
 
 function inspectNamedVolumeReferences(
@@ -289,21 +324,28 @@ function inspectServiceReferences(
     }
   });
 
-  if (
-    typeof service.network_mode === "string" &&
-    service.network_mode.indexOf("service:") === 0
-  ) {
-    const target = service.network_mode.slice("service:".length);
+  ["network_mode", "ipc", "pid"].forEach((field) => {
+    const value = service[field];
 
-    if (serviceNames.indexOf(target) === -1) {
-      addFinding(
-        findings,
-        "warning",
-        `services.${serviceName}.network_mode`,
-        `References service "${target}" through network_mode, but that service is not declared in this file.`
-      );
+    if (
+      typeof value === "string" &&
+      value.indexOf("service:") === 0
+    ) {
+      const target = value.slice("service:".length);
+
+      if (
+        serviceNames.indexOf(target) === -1 &&
+        !containsInterpolation(target)
+      ) {
+        addFinding(
+          findings,
+          "warning",
+          `services.${serviceName}.${field}`,
+          `References service "${target}" through ${field}, but that service is not declared in this file.`
+        );
+      }
     }
-  }
+  });
 
   if (isObject(service.extends)) {
     const localService = service.extends.service;
@@ -375,7 +417,7 @@ function inspectSecuritySensitiveSettings(
       findings,
       "review",
       base,
-      "This service joins a host namespace. That can be legitimate for infrastructure tooling but reduces isolation."
+      "The service joins a host namespace. That can be legitimate for infrastructure tooling but reduces isolation."
     );
   }
 
@@ -400,17 +442,22 @@ function inspectSecuritySensitiveSettings(
 
   if (Array.isArray(service.volumes)) {
     service.volumes.forEach((item, index) => {
-      const text = typeof item === "string" ? item : "";
+      const source =
+        typeof item === "string"
+          ? item.split(":")[0]
+          : isObject(item) && typeof item.source === "string"
+          ? item.source
+          : "";
 
       if (
-        text.indexOf("/var/run/docker.sock") !== -1 ||
-        text.indexOf("/run/docker.sock") !== -1
+        source === "/var/run/docker.sock" ||
+        source === "/run/docker.sock"
       ) {
         addFinding(
           findings,
           "review",
           `${base}.volumes[${index}]`,
-          "This mount exposes a Docker socket path. Access to the Docker daemon can effectively provide host-level control."
+          "A Docker socket path is mounted into the service. Access to the Docker daemon can effectively provide host-level control."
         );
       }
     });
@@ -563,6 +610,13 @@ function inspectService(
           `${base}.profiles[${index}]`,
           "Profile names must be non-empty strings."
         );
+      } else if (!/^[A-Za-z0-9][A-Za-z0-9_.-]+$/.test(profile)) {
+        addFinding(
+          findings,
+          "error",
+          `${base}.profiles[${index}]`,
+          `Profile name "${profile}" does not match the Compose profile-name pattern [a-zA-Z0-9][a-zA-Z0-9_.-]+.`
+        );
       }
     });
   }
@@ -664,21 +718,55 @@ function inspectComposeDocument(
     );
   }
 
-  if (
-    hasOwn(parsed, "include") &&
-    !(
-      typeof parsed.include === "string" ||
-      Array.isArray(parsed.include)
-    )
-  ) {
-    addFinding(
-      findings,
-      "error",
-      "include",
-      `Expected include to be a string or array, found ${typeName(
-        parsed.include
-      )}.`
-    );
+  if (hasOwn(parsed, "include")) {
+    if (!Array.isArray(parsed.include)) {
+      addFinding(
+        findings,
+        "error",
+        "include",
+        `Expected include to be an array, found ${typeName(parsed.include)}.`
+      );
+    } else {
+      parsed.include.forEach((item, index) => {
+        const path = `include[${index}]`;
+
+        if (typeof item === "string") {
+          if (!item.trim()) {
+            addFinding(findings, "error", path, "Included Compose path is empty.");
+          }
+          return;
+        }
+
+        if (!isObject(item)) {
+          addFinding(
+            findings,
+            "error",
+            path,
+            `Expected an included path string or mapping, found ${typeName(item)}.`
+          );
+          return;
+        }
+
+        const includePath = item.path;
+        const validPath =
+          typeof includePath === "string"
+            ? Boolean(includePath.trim())
+            : Array.isArray(includePath) &&
+              includePath.length > 0 &&
+              includePath.every(
+                (value) => typeof value === "string" && value.trim()
+              );
+
+        if (!validPath) {
+          addFinding(
+            findings,
+            "error",
+            `${path}.path`,
+            "Long include syntax requires path as a non-empty string or non-empty array of path strings."
+          );
+        }
+      });
+    }
   }
 
   const servicesMap = parsed.services;
@@ -717,7 +805,7 @@ function inspectComposeDocument(
       findings,
       "info",
       "include",
-      "This file uses include. References that appear missing locally may be provided by included Compose applications."
+      "The file uses include. References that appear missing locally may be provided by included Compose applications."
     );
   }
 
@@ -728,7 +816,7 @@ function inspectComposeDocument(
       "$",
       `Detected ${interpolationTokens.length} distinct Compose-style interpolation token${
         interpolationTokens.length === 1 ? "" : "s"
-      }. This browser check does not resolve environment values, defaults, required-variable expressions, or interpolation precedence.`
+      }. Environment values, defaults, required-variable expressions, and interpolation precedence are intentionally left unresolved.`
     );
   }
 
@@ -737,7 +825,7 @@ function inspectComposeDocument(
       findings,
       "info",
       "$",
-      "No problems were found by the structural and reference checks in this browser tool."
+      "No problems were found by the structural and reference checks implemented for the pasted file."
     );
   }
 
@@ -884,7 +972,7 @@ volumes:
   return (
     <ToolShell
       title="Docker Compose Validator"
-      description="Check Compose YAML structure, service references, named resources, interpolation clues, and several risky host-facing settings before you hand the file to Docker Compose."
+      description="Inspect Compose YAML structure, local cross-references, interpolation clues, named resources, and host-facing settings before checking the resolved project with Docker Compose."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -893,8 +981,8 @@ volumes:
               Docker Compose YAML
             </label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Paste one Compose file. This checker reads the YAML as written; it
-              does not load sibling override files or your local environment.
+              Paste one Compose file. The text is read as written; sibling
+              overrides, includes, env files, and shell variables are not loaded.
             </p>
           </div>
 
@@ -977,16 +1065,16 @@ volumes:
         </pre>
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">
           Local file inspection only
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          The YAML is parsed in your browser and is not sent to a Compose
-          validation API. The tool does not read your shell variables, .env
-          files, included files, override files, images, build context, Docker
-          Engine, or host filesystem. Site-wide analytics or advertising
-          scripts, if enabled, are separate from this validation operation.
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          YAML parsing stays in your browser and no Compose-validation API receives
+          the pasted file. Shell variables, .env files, includes, overrides,
+          images, build context, the Docker Engine, and the host filesystem are
+          not read. Site-wide analytics or advertising scripts, if enabled, are
+          separate from this inspection.
         </p>
       </div>
 
@@ -1005,10 +1093,12 @@ volumes:
             environment variables and override files are applied.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool sits between a generic YAML validator and the real Docker
-            CLI. It is designed to catch useful mistakes quickly without
-            pretending to reproduce the complete rolling Compose
-            Specification.
+            A local structural pass can catch relationships that plain YAML parsing
+            cannot see, but the final application model still belongs to Docker
+            Compose. The current Compose Specification is documented in the{" "}
+            <a href="https://docs.docker.com/reference/compose-file/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              Compose file reference
+            </a>.
           </p>
         </div>
 
@@ -1036,8 +1126,8 @@ networks:
             depends_on value should name another service, frontend should exist
             as a network in the resolved Compose model, and app-data should be
             a declared named volume unless another Compose file supplies it.
-            Those cross-references are exactly the kind of mistake a YAML-only
-            checker cannot see.
+            Those cross-references are exactly the kind of mistake plain YAML
+            parsing cannot see.
           </p>
         </div>
 
@@ -1052,11 +1142,13 @@ networks:
             file can legitimately appear in the final resolved model.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The browser checker therefore reports unresolved local references
-            as warnings. If the complete project really is contained in one
-            file, those warnings are strong signals. If the project is
-            modular, use the resolved Compose configuration before deciding a
-            reference is broken.
+            Unresolved local references are therefore warnings rather than automatic
+            failures. If the project really is contained in one file, they are
+            strong signals. In a modular project, inspect the resolved model
+            before deciding that a reference is broken. Docker documents how
+            <a href="https://docs.docker.com/reference/compose-file/include/" target="_blank" rel="noreferrer" className="ml-1 font-medium text-[var(--green)] underline underline-offset-4">
+              include copies resources into the application model
+            </a>.
           </p>
         </div>
 
@@ -1073,8 +1165,12 @@ networks:
             according to the version text.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Keeping version is not normally a fatal problem, so this checker
-            reports it as a warning instead of an error.
+            Keeping version is not normally a fatal problem, so it is reported as a
+            warning instead of an error. Docker describes the field as obsolete
+            and informational in its{" "}
+            <a href="https://docs.docker.com/reference/compose-file/version-and-name/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              version and name documentation
+            </a>.
           </p>
         </div>
 
@@ -1092,24 +1188,29 @@ networks:
             other substituted value.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The tool counts interpolation tokens so you know when this gap
-            exists. It intentionally does not ask you to paste secrets merely
-            to make the browser result look more authoritative.
+            Interpolation tokens are counted without treating <code>$$</code> as a
+            variable reference, because Compose uses a double dollar sign for a
+            literal dollar. Values are deliberately left unresolved rather than
+            asking for shell or env-file secrets. Docker's{" "}
+            <a href="https://docs.docker.com/reference/compose-file/interpolation/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              interpolation rules
+            </a>{" "}
+            cover defaults, required forms, nesting, and escaping.
           </p>
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-xl font-semibold text-amber-900">
+          <h2 className="text-xl font-semibold text-gray-900">
             Some Compose Settings Deserve a Security Review, Not Just Schema Validation
           </h2>
-          <p className="mt-4 leading-relaxed text-amber-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             A Compose file can be syntactically valid and still grant a
-            container unusually broad access to the host. This checker calls
+            container unusually broad access to the host. Those settings are called
             attention to a small set of high-impact examples such as{" "}
             <code>privileged: true</code>, host networking or namespaces,{" "}
             <code>cap_add: [ALL]</code>, and Docker socket mounts.
           </p>
-          <p className="mt-4 leading-relaxed text-amber-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             These settings are not automatically malicious—monitoring agents,
             development tools, and infrastructure workloads sometimes need
             them. The point is to make them visible before running an
@@ -1125,9 +1226,8 @@ networks:
             In <code>./data:/app/data</code>, the source is a host path. In{" "}
             <code>app-data:/app/data</code>, the source is a named volume. In{" "}
             <code>/app/data</code>, the entry can describe an anonymous volume.
-            The checker only tries to resolve the named-volume case against the
-            top-level volumes mapping; bind paths do not need a top-level
-            declaration.
+            Only the named-volume case is resolved against the top-level
+            volumes mapping; bind paths do not need a top-level declaration.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             Variable interpolation and platform-specific path syntax make this
@@ -1143,36 +1243,23 @@ networks:
           <p className="mt-4 leading-relaxed text-gray-600">
             Before deployment, run the same files and environment through{" "}
             <code>docker compose config</code>. Docker documents that command as
-            parsing, resolving, merging, and rendering the actual Compose model.
-            If you only need validation without printing the model,{" "}
-            <code>docker compose config -q</code> performs the configuration
-            check quietly.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            parsing, resolving, merging, and rendering the actual application
+            model. If only validation is needed, <code>docker compose config -q</code>
+            performs the configuration check quietly. The{" "}
             <a
               href="https://docs.docker.com/reference/cli/docker/compose/config/"
               target="_blank"
               rel="noreferrer"
               className="font-medium text-[var(--green)] underline underline-offset-4"
             >
-              Docker: docker compose config
-            </a>
-            <a
-              href="https://docs.docker.com/reference/compose-file/"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              Docker Compose file reference
-            </a>
-          </div>
-        </div>
+              docker compose config reference
+            </a>{" "}
+            covers the same resolution boundary.
+          </p>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-          <YoryantraRelatedTools currentHref="/tools/docker-compose-validator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/docker-compose-validator" />
+          </div>
         </div>
       </section>
     </ToolShell>

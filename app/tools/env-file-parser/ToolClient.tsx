@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
-type QuoteKind = "'" | '"' | null;
+type QuoteKind = "'" | '"' | "`" | null;
 
 type EnvEntry = {
   key: string;
@@ -50,7 +50,7 @@ function parseQuotedValue(
   lines: string[],
   startIndex: number,
   initial: string,
-  quote: "'" | '"',
+  quote: "'" | '"' | "`",
   diagnostics: Diagnostic[]
 ) {
   let index = startIndex;
@@ -91,7 +91,11 @@ function parseQuotedValue(
       level: "error",
       line: startIndex + 1,
       message: `Unterminated ${
-        quote === '"' ? "double" : "single"
+        quote === '"'
+          ? "double"
+          : quote === "'"
+          ? "single"
+          : "backtick"
       }-quoted value.`,
     });
   } else if (
@@ -137,9 +141,9 @@ function parseEnvText(text: string): EnvParseResult {
     let declaration = trimmedStart;
     let exported = false;
 
-    if (/^export\s+/.test(declaration)) {
+    if (/^export +/.test(declaration)) {
       exported = true;
-      declaration = declaration.replace(/^export\s+/, "");
+      declaration = declaration.replace(/^export +/, "");
     }
 
     const equals = declaration.indexOf("=");
@@ -181,9 +185,13 @@ function parseEnvText(text: string): EnvParseResult {
     let quote: QuoteKind = null;
     let endIndex = index;
 
-    if (rest.charAt(0) === '"' || rest.charAt(0) === "'") {
+    if (
+      rest.charAt(0) === '"' ||
+      rest.charAt(0) === "'" ||
+      rest.charAt(0) === "`"
+    ) {
       quoted = true;
-      quote = rest.charAt(0) as "'" | '"';
+      quote = rest.charAt(0) as "'" | '"' | "`";
 
       const parsed = parseQuotedValue(
         lines,
@@ -296,7 +304,9 @@ function formatResult(
       entry.quoted
         ? entry.quote === '"'
           ? "double-quoted"
-          : "single-quoted"
+          : entry.quote === "'"
+          ? "single-quoted"
+          : "backtick-quoted"
         : "unquoted"
     );
 
@@ -344,7 +354,7 @@ function formatResult(
     "",
     "Parser profile",
     "--------------",
-    "This tool follows the documented Node.js dotenv model for variable names, comments, whitespace, export prefixes, and quoted/multiline values. It does not perform variable expansion or execute shell syntax.",
+    "Parser profile: Node.js dotenv behavior for names, values, comments, whitespace, export prefixes, and quoted/multiline values. Variable expansion and shell execution are not performed.",
   ].join("\n");
 }
 
@@ -536,18 +546,18 @@ export NODE_ENV=production`);
         </pre>
       </div>
 
-      <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-4">
-        <h3 className="text-sm font-semibold text-red-900">
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">
           Treat real .env files as secret material
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-red-800">
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
           .env files often contain database passwords, cloud keys, API tokens,
-          signing secrets, and connection strings. Parsing happens in your
-          browser and this tool does not send the pasted file to a parsing API,
-          but the input still exists on your screen and secret masking applies
-          only to the visible result. Avoid screenshots, screen sharing, or
-          copying unmasked credentials. Site-wide analytics or advertising
-          scripts, if enabled, are separate from this parsing operation.
+          signing secrets, and connection strings. Parsing stays in your browser
+          and no dotenv-parsing API receives the pasted text, but the input still
+          exists on your screen and masking applies only to the visible result.
+          Avoid screenshots, screen sharing, or copying unmasked credentials.
+          Site-wide analytics or advertising scripts, if enabled, are separate
+          from this parsing operation.
         </p>
       </div>
 
@@ -565,10 +575,11 @@ export NODE_ENV=production`);
             more than once.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This parser keeps the original assignment order visible first. Only
-            after that does it show an effective key/value view. That prevents a
-            duplicate near the bottom of the file from disappearing silently
-            behind an object conversion.
+            Keeping the original assignment order visible prevents a duplicate near
+            the bottom of the file from disappearing silently behind an object
+            conversion. The later-value-wins view is shown separately because
+            Node's <code>util.parseEnv()</code> also resolves repeated names to the
+            later value.
           </p>
         </div>
 
@@ -650,27 +661,31 @@ FEATURE=true`}</pre>
             lines.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The parser keeps single-quoted and double-quoted entries labeled
-            separately. It does not try to turn the file into shell syntax,
-            because dotenv quoting and shell quoting are related-looking but
-            different configuration languages.
+            Single, double, and backtick-quoted entries are labeled separately.
+            Double-quoted <code>\n</code> becomes a newline in Node's parser;
+            single and backtick quoting keep that sequence literal. None of these
+            forms turns the file into shell syntax.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             There Is No Universal .env Standard
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             “Dotenv” is a convention used by many ecosystems, not one universal
             cross-platform file format. Node.js documents its own grammar.
             Docker Compose has its own env-file/interpolation behavior. Popular
             dotenv libraries and frameworks can differ on expansion, escaping,
             comments, delimiters, override precedence, and multiline syntax.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
-            Yoryantra therefore states its parser profile instead of claiming
-            that one browser result predicts every runtime.
+          <p className="mt-4 leading-relaxed text-gray-700">
+            The parser profile is therefore stated explicitly instead of implying
+            that one dotenv result predicts every runtime. Node.js itself notes
+            that there is no formal cross-ecosystem dotenv specification in its{" "}
+            <a href="https://nodejs.org/api/environment_variables.html#dotenv" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              environment-variable documentation
+            </a>.
           </p>
         </div>
 
@@ -701,39 +716,29 @@ FEATURE=true`}</pre>
             also mask a harmless variable whose name contains SECRET or TOKEN.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Use masking to reduce accidental exposure in copied parser output,
-            not as a security guarantee. The safest workflow is still to use
-            placeholder credentials whenever possible.
+            Masking reduces accidental exposure in copied output; it is not a
+            security guarantee. Placeholder credentials remain safer whenever
+            real values are unnecessary.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Why the Node.js Documentation Is Relevant Here
+            Follow the Variable Into Its Runtime
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Because dotenv behavior varies between ecosystems, an explicit
-            parser baseline adds value. Node.js documents variable-name rules,
-            string values, whitespace, # comments, multiline quoted values, and
-            the optional export prefix used by this inspector.
+            Parsing explains what the file text means. The next question is which
+            source wins when the process starts: the parent environment, one or
+            more <code>--env-file</code> inputs, a framework loader, or deployment
+            configuration. Node documents its own CLI precedence in the{" "}
+            <a href="https://nodejs.org/api/cli.html#--env-filefile" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              --env-file option
+            </a>.
           </p>
-          <p className="mt-4 text-sm">
-            <a
-              href="https://nodejs.org/api/environment_variables.html#dotenv"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              Node.js DotEnv documentation
-            </a>
-          </p>
-        </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-          <YoryantraRelatedTools currentHref="/tools/env-file-parser" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/env-file-parser" />
+          </div>
         </div>
       </section>
     </ToolShell>

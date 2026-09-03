@@ -81,6 +81,111 @@ function inspectStringMap(
   });
 }
 
+function isDnsSubdomain(value: string) {
+  if (!value || value.length > 253) return false;
+  const labels = value.split(".");
+  return labels.every(
+    (label) =>
+      label.length > 0 &&
+      label.length <= 63 &&
+      /^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$/.test(label)
+  );
+}
+
+function isLabelName(value: string, allowEmpty: boolean) {
+  if (!value) return allowEmpty;
+  return (
+    value.length <= 63 &&
+    /^[A-Za-z0-9](?:[-_.A-Za-z0-9]*[A-Za-z0-9])?$/.test(value)
+  );
+}
+
+function isLabelKey(value: string) {
+  const slash = value.indexOf("/");
+
+  if (slash === -1) return isLabelName(value, false);
+  if (value.indexOf("/", slash + 1) !== -1) return false;
+
+  const prefix = value.slice(0, slash);
+  const name = value.slice(slash + 1);
+
+  return isDnsSubdomain(prefix) && isLabelName(name, false);
+}
+
+function inspectLabels(
+  value: unknown,
+  path: string,
+  findings: Finding[]
+) {
+  if (typeof value === "undefined") return;
+
+  if (!isObject(value)) {
+    addFinding(findings, "error", path, "Expected a mapping/object.");
+    return;
+  }
+
+  Object.keys(value).forEach((key) => {
+    if (!isLabelKey(key)) {
+      addFinding(
+        findings,
+        "error",
+        `${path}.${key}`,
+        `Label key "${key}" does not match Kubernetes label-key syntax.`
+      );
+    }
+
+    const labelValue = value[key];
+    if (typeof labelValue !== "string") {
+      addFinding(
+        findings,
+        "error",
+        `${path}.${key}`,
+        `Expected a string label value, found ${Array.isArray(labelValue) ? "array" : labelValue === null ? "null" : typeof labelValue}.`
+      );
+    } else if (!isLabelName(labelValue, true)) {
+      addFinding(
+        findings,
+        "error",
+        `${path}.${key}`,
+        `Label value "${labelValue}" must be 63 characters or less and, when non-empty, begin and end with an alphanumeric character.`
+      );
+    }
+  });
+}
+
+function inspectAnnotations(
+  value: unknown,
+  path: string,
+  findings: Finding[]
+) {
+  if (typeof value === "undefined") return;
+
+  if (!isObject(value)) {
+    addFinding(findings, "error", path, "Expected a mapping/object.");
+    return;
+  }
+
+  Object.keys(value).forEach((key) => {
+    if (!isLabelKey(key)) {
+      addFinding(
+        findings,
+        "error",
+        `${path}.${key}`,
+        `Annotation key "${key}" does not match Kubernetes annotation-key syntax.`
+      );
+    }
+
+    if (typeof value[key] !== "string") {
+      addFinding(
+        findings,
+        "error",
+        `${path}.${key}`,
+        `Expected a string annotation value, found ${Array.isArray(value[key]) ? "array" : value[key] === null ? "null" : typeof value[key]}.`
+      );
+    }
+  });
+}
+
 function inspectMetadata(
   resource: PlainObject,
   basePath: string,
@@ -114,12 +219,12 @@ function inspectMetadata(
     );
   }
 
-  inspectStringMap(
+  inspectLabels(
     metadata.labels,
     `${basePath}.metadata.labels`,
     findings
   );
-  inspectStringMap(
+  inspectAnnotations(
     metadata.annotations,
     `${basePath}.metadata.annotations`,
     findings
@@ -179,6 +284,15 @@ function selectorMatches(
       const expected = selector.matchLabels as PlainObject;
       const value = expected[key];
 
+      if (!isLabelKey(key)) {
+        addFinding(
+          findings,
+          "error",
+          `${path}.selector.matchLabels.${key}`,
+          `Selector label key "${key}" is not valid Kubernetes label syntax.`
+        );
+      }
+
       if (typeof value !== "string") {
         addFinding(
           findings,
@@ -187,6 +301,15 @@ function selectorMatches(
           "Selector matchLabels values must be strings."
         );
         return;
+      }
+
+      if (!isLabelName(value, true)) {
+        addFinding(
+          findings,
+          "error",
+          `${path}.selector.matchLabels.${key}`,
+          `Selector label value "${value}" is not valid Kubernetes label syntax.`
+        );
       }
 
       if (labels[key] !== value) {
@@ -262,6 +385,26 @@ function selectorMatches(
         return;
       }
 
+      if (!isLabelKey(key)) {
+        addFinding(
+          findings,
+          "error",
+          `${path}.selector.matchExpressions[${index}].key`,
+          `Selector label key "${key}" is not valid Kubernetes label syntax.`
+        );
+      }
+
+      values.forEach((value, valueIndex) => {
+        if (!isLabelName(value, true)) {
+          addFinding(
+            findings,
+            "error",
+            `${path}.selector.matchExpressions[${index}].values[${valueIndex}]`,
+            `Selector label value "${value}" is not valid Kubernetes label syntax.`
+          );
+        }
+      });
+
       const labelValue = labels[key];
       const labelExists = typeof labelValue === "string";
       let matches = true;
@@ -319,7 +462,7 @@ function selectorMatches(
           findings,
           "warning",
           `${path}.selector.matchExpressions[${index}].operator`,
-          `Operator "${operator}" is not evaluated by this browser checker.`
+          `Operator "${operator}" is outside the selector operators evaluated here.`
         );
         return;
       }
@@ -334,6 +477,86 @@ function selectorMatches(
       }
     });
   }
+}
+
+function isPrintableEnvName(value: string) {
+  if (!value || value.indexOf("=") !== -1) return false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code < 0x20 || code > 0x7e) return false;
+  }
+
+  return true;
+}
+
+function isBase64Text(value: string) {
+  if (!value || value.length % 4 !== 0) return value === "";
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value)) return false;
+
+  const firstPadding = value.indexOf("=");
+  return firstPadding === -1 || firstPadding >= value.length - 2;
+}
+
+function inspectEnvFrom(
+  envFrom: unknown,
+  path: string,
+  findings: Finding[]
+) {
+  if (typeof envFrom === "undefined") return;
+
+  if (!Array.isArray(envFrom)) {
+    addFinding(findings, "error", path, "envFrom must be an array.");
+    return;
+  }
+
+  envFrom.forEach((item, index) => {
+    const itemPath = `${path}[${index}]`;
+
+    if (!isObject(item)) {
+      addFinding(findings, "error", itemPath, "envFrom entry must be an object.");
+      return;
+    }
+
+    if (hasOwn(item, "prefix")) {
+      if (
+        typeof item.prefix !== "string" ||
+        (String(item.prefix) !== "" &&
+          !isPrintableEnvName(String(item.prefix)))
+      ) {
+        addFinding(
+          findings,
+          "error",
+          `${itemPath}.prefix`,
+          "envFrom.prefix may contain printable ASCII characters except =."
+        );
+      }
+    }
+
+    const sources = ["configMapRef", "secretRef"].filter((key) =>
+      hasOwn(item, key)
+    );
+
+    if (sources.length !== 1) {
+      addFinding(
+        findings,
+        "error",
+        itemPath,
+        "envFrom entry must select exactly one configMapRef or secretRef."
+      );
+      return;
+    }
+
+    const source = item[sources[0]];
+    if (!isObject(source) || !hasNonEmptyString(source, "name")) {
+      addFinding(
+        findings,
+        "error",
+        `${itemPath}.${sources[0]}.name`,
+        `${sources[0]} requires a non-empty name.`
+      );
+    }
+  });
 }
 
 function inspectEnv(
@@ -372,6 +595,15 @@ function inspectEnv(
       );
     } else {
       const name = String(item.name);
+
+      if (!isPrintableEnvName(name)) {
+        addFinding(
+          findings,
+          "error",
+          `${itemPath}.name`,
+          "Environment variable names may contain printable ASCII characters except =."
+        );
+      }
 
       if (seen[name]) {
         addFinding(
@@ -413,6 +645,22 @@ function inspectEnv(
         `${itemPath}.valueFrom`,
         "env.valueFrom must be an object."
       );
+    } else if (hasValueFrom && isObject(item.valueFrom)) {
+      const sourceKeys = [
+        "fieldRef",
+        "resourceFieldRef",
+        "configMapKeyRef",
+        "secretKeyRef",
+      ].filter((key) => hasOwn(item.valueFrom as PlainObject, key));
+
+      if (sourceKeys.length !== 1) {
+        addFinding(
+          findings,
+          "error",
+          `${itemPath}.valueFrom`,
+          "env.valueFrom must select exactly one fieldRef, resourceFieldRef, configMapKeyRef, or secretKeyRef."
+        );
+      }
     }
   });
 }
@@ -465,15 +713,12 @@ function inspectVolumeMounts(
       );
     }
 
-    if (
-      hasOwn(mount, "mountPath") &&
-      typeof mount.mountPath !== "string"
-    ) {
+    if (!hasNonEmptyString(mount, "mountPath")) {
       addFinding(
         findings,
         "error",
         `${path}[${index}].mountPath`,
-        "mountPath must be a string."
+        "volumeMount requires a non-empty mountPath string."
       );
     }
   });
@@ -631,6 +876,7 @@ function inspectContainers(
     }
 
     inspectEnv(container.env, `${itemPath}.env`, findings);
+    inspectEnvFrom(container.envFrom, `${itemPath}.envFrom`, findings);
     inspectVolumeMounts(
       container.volumeMounts,
       volumeNames,
@@ -702,12 +948,25 @@ function inspectContainers(
       }
 
       inspectEnv(container.env, `${itemPath}.env`, findings);
+      inspectEnvFrom(container.envFrom, `${itemPath}.envFrom`, findings);
       inspectVolumeMounts(
         container.volumeMounts,
         volumeNames,
         `${itemPath}.volumeMounts`,
         findings
       );
+
+      if (
+        isObject(container.securityContext) &&
+        container.securityContext.privileged === true
+      ) {
+        addFinding(
+          findings,
+          "review",
+          `${itemPath}.securityContext.privileged`,
+          "The init container requests privileged mode. Review whether it genuinely requires broad node-facing privileges."
+        );
+      }
     });
   }
 
@@ -820,7 +1079,7 @@ function inspectController(
       `${kind} requires a Pod template.`
     );
   } else {
-    inspectStringMap(
+    inspectLabels(
       isObject(template.metadata)
         ? template.metadata.labels
         : undefined,
@@ -1007,25 +1266,98 @@ function inspectConfigMapOrSecret(
   basePath: string,
   findings: Finding[]
 ) {
+  const keyPattern = /^[A-Za-z0-9._-]+$/;
+
+  const inspectKeyMap = (
+    value: unknown,
+    path: string,
+    requireBase64: boolean
+  ) => {
+    if (typeof value === "undefined") return [] as string[];
+
+    if (!isObject(value)) {
+      addFinding(findings, "error", path, "Expected a mapping/object.");
+      return [] as string[];
+    }
+
+    const keys = Object.keys(value);
+
+    keys.forEach((key) => {
+      if (!keyPattern.test(key)) {
+        addFinding(
+          findings,
+          "error",
+          `${path}.${key}`,
+          `Key "${key}" may contain only letters, numbers, ., -, and _.`
+        );
+      }
+
+      if (typeof value[key] !== "string") {
+        addFinding(
+          findings,
+          "error",
+          `${path}.${key}`,
+          `Expected a string value, found ${Array.isArray(value[key]) ? "array" : value[key] === null ? "null" : typeof value[key]}.`
+        );
+      } else if (requireBase64 && !isBase64Text(String(value[key]))) {
+        addFinding(
+          findings,
+          "error",
+          `${path}.${key}`,
+          "Secret data values must use standard base64 without embedded whitespace."
+        );
+      }
+    });
+
+    return keys;
+  };
+
   if (kind === "ConfigMap") {
-    inspectStringMap(
+    const dataKeys = inspectKeyMap(
       resource.data,
       `${basePath}.data`,
-      findings
+      false
     );
+    const binaryKeys = inspectKeyMap(
+      resource.binaryData,
+      `${basePath}.binaryData`,
+      true
+    );
+
+    binaryKeys.forEach((key) => {
+      if (dataKeys.indexOf(key) !== -1) {
+        addFinding(
+          findings,
+          "error",
+          `${basePath}.binaryData.${key}`,
+          `ConfigMap key "${key}" appears in both data and binaryData.`
+        );
+      }
+    });
   }
 
   if (kind === "Secret") {
-    inspectStringMap(
+    const dataKeys = inspectKeyMap(
       resource.data,
       `${basePath}.data`,
-      findings
+      true
     );
-    inspectStringMap(
+    const stringDataKeys = inspectKeyMap(
       resource.stringData,
       `${basePath}.stringData`,
-      findings
+      false
     );
+
+    stringDataKeys.forEach((key) => {
+      if (dataKeys.indexOf(key) !== -1) {
+        addFinding(
+          findings,
+          "warning",
+          `${basePath}.stringData.${key}`,
+          `Secret key "${key}" appears in both data and stringData; stringData overwrites data when the object is written.`
+        );
+      }
+    });
 
     if (
       hasOwn(resource, "type") &&
@@ -1313,7 +1645,7 @@ function formatResults(
     "",
     "Cluster validation boundary",
     "---------------------------",
-    "This browser checker does not know your cluster OpenAPI schema, CRDs, admission webhooks/policies, feature gates, namespace policy, defaults, or Kubernetes version. Use kubectl validation and, when appropriate, a server-side dry run against the target cluster.",
+    "The pasted manifest does not provide the target cluster OpenAPI schema, CRDs, admission policies, feature gates, defaults, namespace policy, or Kubernetes version. Use kubectl validation and, when appropriate, a server-side dry run against the target cluster.",
   ].join("\n");
 }
 
@@ -1539,17 +1871,17 @@ spec:
         </pre>
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">
           No cluster is contacted
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          The YAML is parsed locally in your browser. This tool does not send
-          the manifest to a validation service or contact your Kubernetes
-          cluster. It therefore cannot know installed CRDs, admission policies,
-          namespace rules, server-side defaults, feature gates, or the target
-          API-server version. Site-wide analytics or advertising scripts, if
-          enabled, are separate from this validation operation.
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          YAML parsing stays in your browser. The manifest is not sent to a
+          validation service or Kubernetes cluster. Installed CRDs, admission
+          policies, namespace rules, server-side defaults, feature gates, and
+          the target API-server version therefore remain outside the local
+          result. Site-wide analytics or advertising scripts, if enabled, are
+          separate from this inspection.
         </p>
       </div>
 
@@ -1567,9 +1899,10 @@ spec:
             in the cluster.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            A generic YAML checker only covers the first layer. This tool adds
-            practical Kubernetes-aware checks without claiming it can replace
-            your cluster's API server.
+            A generic YAML parse covers only the first layer. Local Kubernetes-aware
+            checks can catch relationships such as selectors, Pod templates,
+            volumes, mounts, env sources, and common API versions, but the target
+            API server remains authoritative for its installed schemas and policy.
           </p>
         </div>
 
@@ -1596,6 +1929,11 @@ spec:
             Pod spec, and the Pod spec needs usable container definitions. A
             typo in any one of those places can make a manifest structurally
             wrong even though every colon and indentation level is valid YAML.
+            Kubernetes defines label-key/value syntax and selector semantics in
+            its{" "}
+            <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              labels and selectors documentation
+            </a>.
           </p>
         </div>
 
@@ -1612,9 +1950,10 @@ spec:
             cluster.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The browser checker knows a small set of high-value built-in
-            workload patterns. Unknown kinds are not automatically errors; they
-            may be perfectly valid custom resources.
+            Only a focused set of built-in workload relationships is evaluated
+            locally. Unknown kinds are not automatically errors; they may be
+            valid custom resources whose schemas exist only through CRDs in the
+            target cluster.
           </p>
         </div>
 
@@ -1632,8 +1971,8 @@ spec:
           <p className="mt-4 leading-relaxed text-gray-600">
             The same issue appears in labels, annotations, ConfigMap data, and
             Secret stringData, where accidental YAML booleans or numbers can
-            cause validation failures. This checker reports several of those
-            high-value type mistakes.
+            cause validation failures. Those high-value type mismatches are
+            reported while the original YAML remains untouched.
           </p>
         </div>
 
@@ -1645,25 +1984,51 @@ spec:
             Container names must be unique within a Pod, and a volumeMount
             refers to a volume by name. If the mount says{" "}
             <code>name: app-data</code> while the Pod defines{" "}
-            <code>name: data</code>, the relationship is broken. The validator
-            keeps these checks local to each Pod template so similarly named
-            volumes in another resource do not accidentally satisfy the
-            reference.
+            <code>name: data</code>, the relationship is broken. These checks
+            stay local to each Pod template so similarly named volumes in another
+            resource do not accidentally satisfy the reference.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Environment Sources and Secret Data Have Their Own Rules
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Current Kubernetes allows environment-variable names to contain
+            printable ASCII characters except <code>=</code>. An <code>env</code>
+            entry can hold a literal string or one <code>valueFrom</code> source;
+            <code>envFrom</code> selects a ConfigMap or Secret source. Ordering also
+            matters when values reference earlier variables. The{" "}
+            <a href="https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              Kubernetes environment-variable guide
+            </a>{" "}
+            describes these runtime rules.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Secret <code>data</code> values are standard base64 strings, while
+            <code>stringData</code> accepts plain strings and overwrites a matching
+            <code>data</code> key when written. Base64 is encoding, not encryption.
+            Kubernetes' own{" "}
+            <a href="https://kubernetes.io/docs/concepts/security/secrets-good-practices/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              Secret guidance
+            </a>{" "}
+            recommends treating manifests containing credentials as sensitive.
           </p>
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-xl font-semibold text-amber-900">
+          <h2 className="text-xl font-semibold text-gray-900">
             Structural Validity and Workload Safety Are Different Questions
           </h2>
-          <p className="mt-4 leading-relaxed text-amber-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Kubernetes intentionally supports powerful features such as
             privileged containers, host namespaces, and hostPath volumes. They
             can be necessary for node agents or infrastructure workloads, but
-            they also reduce isolation. This validator marks a few obvious
-            examples for review instead of declaring them invalid.
+            they also reduce isolation. A few obvious cases are marked for
+            review instead of being declared invalid.
           </p>
-          <p className="mt-4 leading-relaxed text-amber-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             A full security review also needs RBAC, Pod Security admission,
             image provenance, capabilities, seccomp/AppArmor, network policy,
             secret handling, service accounts, supply-chain controls, and the
@@ -1683,9 +2048,8 @@ spec:
             CronJob contains a Job template, which then contains a Pod template.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The validator follows those nesting relationships so a missing
-            CronJob schedule or a missing nested Pod template is reported near
-            the place where you need to fix it.
+            Following those nesting relationships keeps a missing CronJob
+            schedule or nested Pod template close to the path that needs fixing.
           </p>
         </div>
 
@@ -1700,9 +2064,9 @@ spec:
             when object one is fine and object four has the problem.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Yoryantra therefore reports findings per document and expands List
-            items for inspection while retaining their source location in the
-            result path.
+            Findings stay attached to each document, and List items are expanded
+            for inspection while retaining their source location in the result
+            path.
           </p>
         </div>
 
@@ -1733,8 +2097,13 @@ spec:
             Kubernetes server-side field validation uses the schemas available
             to the actual API server and can detect unknown or duplicate fields.
             Admission webhooks and policies can add organization-specific
-            requirements after ordinary schema checks. CRDs add resource types
-            that do not exist in a generic browser bundle.
+            requirements after ordinary schema checks, while CRDs add resource
+            types and validation rules that are not present in the pasted YAML.
+            Kubernetes documents the strict, warn, and ignore validation modes in
+            the{" "}
+            <a href="https://kubernetes.io/docs/reference/kubectl/generated/kubectl_apply/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              kubectl apply reference
+            </a>.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             When you need to know whether the target cluster would accept the
@@ -1743,31 +2112,21 @@ spec:
             server-side dry run submits the request for server processing
             without persisting the resource.
           </p>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <a
-              href="https://kubernetes.io/docs/concepts/overview/working-with-objects/"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              Kubernetes objects and validation
-            </a>
-            <a
-              href="https://kubernetes.io/docs/reference/kubectl/generated/kubectl_apply/"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              kubectl apply reference
-            </a>
-          </div>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A server-side dry run submits the request for normal server processing
+            without persisting the resource, which is the closest check available
+            before an actual write.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
+            Keep Following the Manifest's Dependencies
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/kubernetes-yaml-validator" />
+
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/kubernetes-yaml-validator" />
+          </div>
         </div>
       </section>
     </ToolShell>
