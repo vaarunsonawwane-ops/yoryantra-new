@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "XML Formatter & Well-Formedness Check | Yoryantra",
+  title: "XML Formatter — Well-Formedness & xml:space | Yoryantra",
   description:
-    "Format XML with 2- or 4-space indentation and check well-formedness in your browser. Understand mixed content, xml:space, namespaces, parser errors, and limits.",
+    "Format XML with 2- or 4-space indentation and check well-formedness while accounting for mixed content, xml:space, DTDs, and DOM serialization limits.",
   alternates: {
     canonical: "https://yoryantra.com/tools/xml-formatter",
   },
   openGraph: {
-    title: "XML Formatter & Well-Formedness Check | Yoryantra",
+    title: "XML Formatter — Well-Formedness & xml:space | Yoryantra",
     description:
-      "Pretty-print element-oriented XML while respecting mixed-content and xml:space boundaries, with practical XML parser guidance.",
+      "Indent XML without blindly changing mixed-content whitespace, and understand what browser parsing and serialization can normalize.",
     url: "https://yoryantra.com/tools/xml-formatter",
     siteName: "Yoryantra",
     type: "website",
@@ -19,7 +19,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "XML Formatter | Yoryantra",
-    description: "Format XML, check well-formedness, and understand whitespace-sensitive XML limitations.",
+    description:
+      "Check XML well-formedness and format structural XML while respecting mixed content and whitespace-sensitive boundaries.",
   },
 };
 

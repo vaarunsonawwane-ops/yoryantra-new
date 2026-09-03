@@ -6,32 +6,37 @@ import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
 type EncodingMode = "component" | "url" | "form";
 
+function hasMalformedPercentEscape(value: string) {
+  return /%(?![0-9A-Fa-f]{2})/.test(value);
+}
+
+function hasPercentEscape(value: string) {
+  return /%[0-9A-Fa-f]{2}/.test(value);
+}
+
 function describeEncodingError(action: "encode" | "decode") {
   return action === "encode"
-    ? "Unable to encode this input. Check for malformed Unicode characters such as an unpaired surrogate, then try again."
-    : "Unable to decode this input. Check that every percent escape uses two hexadecimal digits (for example %20) and that the bytes form valid UTF-8.";
+    ? "Encoding failed because the JavaScript string contains malformed Unicode, such as an unpaired UTF-16 surrogate."
+    : "Decoding failed. Check the percent escapes and make sure the encoded bytes form valid UTF-8.";
 }
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
+  const [note, setNote] = useState("");
   const [mode, setMode] = useState<EncodingMode>("component");
   const [copyStatus, setCopyStatus] = useState("");
+  const [hasResult, setHasResult] = useState(false);
 
   const clearResultState = () => {
     setError("");
+    setNote("");
     setCopyStatus("");
   };
 
   const encodeURL = () => {
     clearResultState();
-
-    if (!input) {
-      setOutput("");
-      setError("Enter a URL, URL component, query value, or form value to encode.");
-      return;
-    }
 
     try {
       let encoded = "";
@@ -47,8 +52,16 @@ export default function ToolClient() {
       }
 
       setOutput(encoded);
+      setHasResult(true);
+
+      if (hasPercentEscape(input)) {
+        setNote(
+          "The input already contains percent-encoded-looking text. Encoding it again changes % to %25, which is correct only when the percent sign itself is data."
+        );
+      }
     } catch {
       setOutput("");
+      setHasResult(false);
       setError(describeEncodingError("encode"));
     }
   };
@@ -56,9 +69,12 @@ export default function ToolClient() {
   const decodeURL = () => {
     clearResultState();
 
-    if (!input) {
+    if (hasMalformedPercentEscape(input)) {
       setOutput("");
-      setError("Enter percent-encoded text to decode.");
+      setHasResult(false);
+      setError(
+        "A percent sign that begins an escape must be followed by exactly two hexadecimal digits, such as %20 or %E2."
+      );
       return;
     }
 
@@ -74,14 +90,16 @@ export default function ToolClient() {
       }
 
       setOutput(decoded);
+      setHasResult(true);
     } catch {
       setOutput("");
+      setHasResult(false);
       setError(describeEncodingError("decode"));
     }
   };
 
   const copyOutput = async () => {
-    if (!output) return;
+    if (!hasResult) return;
 
     try {
       await navigator.clipboard.writeText(output);
@@ -95,19 +113,21 @@ export default function ToolClient() {
     setInput("");
     setOutput("");
     setError("");
+    setNote("");
     setCopyStatus("");
+    setHasResult(false);
     setMode("component");
   };
 
   return (
     <ToolShell
       title="URL Encoder Decoder"
-      description="Percent-encode or decode URL components, complete URLs, and form-style values while keeping the encoding context explicit."
+      description="Percent-encode or decode a URL component, a complete URL-shaped string, or one form value without mixing their different delimiter rules."
     >
       <div>
         <label
           htmlFor="url-encoding-mode"
-          className="block mb-2 text-sm font-medium text-gray-700"
+          className="mb-2 block text-sm font-medium text-gray-700"
         >
           Encoding context
         </label>
@@ -115,26 +135,28 @@ export default function ToolClient() {
         <select
           id="url-encoding-mode"
           value={mode}
-          onChange={(e) => {
-            setMode(e.target.value as EncodingMode);
+          onChange={(event) => {
+            setMode(event.target.value as EncodingMode);
             setOutput("");
+            setHasResult(false);
             setError("");
+            setNote("");
             setCopyStatus("");
           }}
-          className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm text-gray-800 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         >
           <option value="component">URL component / query parameter value</option>
-          <option value="url">Complete URL</option>
+          <option value="url">Complete URL-shaped string</option>
           <option value="form">Form value (application/x-www-form-urlencoded)</option>
         </select>
 
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
           {mode === "component" &&
-            "Best for a single query value, path segment, fragment value, or other data that will be inserted into a URL."}
+            "Choose this for data that belongs inside one URL component, such as a query value or path segment."}
           {mode === "url" &&
-            "Keeps URL syntax delimiters such as :, /, ?, #, and & readable instead of encoding the whole address as one component."}
+            "Choose this when characters such as :, /, ?, #, and & are already acting as URL syntax and should stay readable."}
           {mode === "form" &&
-            "Uses form-style encoding where spaces become + and literal plus signs are percent-encoded."}
+            "Choose this for one form-style name or value, where a space is serialized as + and a literal + becomes %2B."}
         </p>
       </div>
 
@@ -143,19 +165,23 @@ export default function ToolClient() {
           <label htmlFor="url-input" className="text-sm font-medium text-gray-700">
             Input
           </label>
-          <span className="text-xs text-gray-500">{input.length.toLocaleString()} characters</span>
+          <span className="text-xs text-gray-500">
+            {input.length.toLocaleString()} characters
+          </span>
         </div>
 
         <textarea
           id="url-input"
-          className="w-full min-h-[240px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-          placeholder="Example: hello world & tea=green"
+          className="min-h-[240px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          placeholder="Example: tea & coffee + Pune"
           value={input}
           spellCheck={false}
-          onChange={(e) => {
-            setInput(e.target.value);
+          onChange={(event) => {
+            setInput(event.target.value);
             setOutput("");
+            setHasResult(false);
             setError("");
+            setNote("");
             setCopyStatus("");
           }}
         />
@@ -165,17 +191,15 @@ export default function ToolClient() {
         <button type="button" onClick={encodeURL} className="yoryantra-btn">
           Encode
         </button>
-
         <button type="button" onClick={decodeURL} className="yoryantra-btn-outline">
           Decode
         </button>
-
         <button type="button" onClick={resetAll} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
 
-      {error && (
+      {error ? (
         <div
           role="alert"
           aria-live="polite"
@@ -183,76 +207,101 @@ export default function ToolClient() {
         >
           {error}
         </div>
-      )}
+      ) : null}
+
+      {note ? (
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
+          {note}
+        </div>
+      ) : null}
 
       <div className="mt-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-
-          {output && (
-            <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+          {hasResult ? (
+            <button
+              type="button"
+              onClick={copyOutput}
+              className="yoryantra-btn-outline text-sm"
+            >
               Copy
             </button>
-          )}
+          ) : null}
         </div>
 
         <pre className="yoryantra-output min-h-[180px] overflow-auto whitespace-pre-wrap break-words text-sm">
-          {output || "Encoded or decoded output will appear here..."}
+          {hasResult
+            ? output || "(empty string)"
+            : "Encoded or decoded output will appear here..."}
         </pre>
 
-        {copyStatus && (
+        {copyStatus ? (
           <p aria-live="polite" className="mt-2 text-sm text-gray-600">
             {copyStatus}
           </p>
-        )}
+        ) : null}
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">Privacy and security boundary</h3>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          The transformations on this page run in your browser using built-in JavaScript URL encoding APIs. The tool does not send the text to a Yoryantra conversion API. URL encoding is not encryption, access control, or input validation, so encoded secrets are still secrets and untrusted decoded values still need context-appropriate validation.
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">
+          Percent-encoding does not hide a value
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          The transformation happens in the browser with JavaScript&apos;s URI APIs and
+          <code> URLSearchParams</code>. Nothing here encrypts a token, password, path,
+          or query value. Treat encoded secrets exactly like the original secret, and
+          validate decoded data for the place where it will actually be used.
         </p>
       </div>
 
       <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            URL encoding is contextual, not a one-button operation
+            Encode the data before it becomes a delimiter
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Percent-encoding represents bytes with a percent sign followed by two hexadecimal digits. A space, for example, is commonly represented as <code>%20</code>. The important detail is that a complete URL and a single value inside that URL do not have the same reserved-character rules. Encoding the wrong scope can either destroy URL structure or leave data characters acting as delimiters.
+            A URL is made from components, and several characters have structural
+            jobs inside those components. An ampersand can separate query fields, a
+            slash can separate path segments, and a question mark can begin a query.
+            When one of those characters is ordinary data instead, it may need to be
+            percent-encoded before the final URL is assembled.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool therefore separates three practical contexts. <strong>URL component</strong> mode uses <code>encodeURIComponent()</code> / <code>decodeURIComponent()</code>. <strong>Complete URL</strong> mode uses <code>encodeURI()</code> / <code>decodeURI()</code>. <strong>Form value</strong> mode follows the common <code>application/x-www-form-urlencoded</code> convention where spaces are represented with <code>+</code>.
+            Percent-encoding writes a byte as <code>%HH</code>. For text outside
+            ASCII, modern web APIs first encode the characters as UTF-8 and then
+            percent-encode the resulting bytes. That is why <code>प</code> becomes
+            several <code>%HH</code> sequences rather than one escape.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Choose the right mode</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            The same text changes depending on where it belongs
+          </h2>
           <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
             <table className="min-w-full text-left text-sm text-gray-700">
               <thead className="bg-gray-50 text-gray-900">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Input you have</th>
-                  <th className="px-4 py-3 font-semibold">Use</th>
-                  <th className="px-4 py-3 font-semibold">Why</th>
+                  <th className="px-4 py-3 font-semibold">Input</th>
+                  <th className="px-4 py-3 font-semibold">Context</th>
+                  <th className="px-4 py-3 font-semibold">Result / reason</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 <tr>
-                  <td className="px-4 py-3">A search value such as <code>tea & coffee</code></td>
+                  <td className="px-4 py-3"><code>tea &amp; coffee</code></td>
                   <td className="px-4 py-3">URL component</td>
-                  <td className="px-4 py-3">The ampersand is data here, so it must not become a query separator.</td>
+                  <td className="px-4 py-3"><code>tea%20%26%20coffee</code> — the ampersand is data, not a separator.</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3">A whole address such as <code>https://example.com/a b?q=x</code></td>
-                  <td className="px-4 py-3">Complete URL</td>
-                  <td className="px-4 py-3">The scheme, slashes, question mark, and other structural delimiters need to remain structural.</td>
+                  <td className="px-4 py-3"><code>https://example.com/a b?q=x</code></td>
+                  <td className="px-4 py-3">Complete URL-shaped string</td>
+                  <td className="px-4 py-3">The scheme and delimiters stay structural while the space is encoded.</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3">A traditional HTML form field value</td>
+                  <td className="px-4 py-3"><code>A+B C</code></td>
                   <td className="px-4 py-3">Form value</td>
-                  <td className="px-4 py-3">Form encoding treats spaces as <code>+</code>, which is different from generic component encoding.</td>
+                  <td className="px-4 py-3"><code>A%2BB+C</code> — literal plus is escaped and the space becomes <code>+</code>.</td>
                 </tr>
               </tbody>
             </table>
@@ -260,73 +309,115 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Worked examples</h2>
-          <div className="mt-4 space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <div>
-              <p className="font-medium text-gray-900">Query value</p>
-              <pre className="mt-2 whitespace-pre-wrap break-words">{`Input:  tea & coffee
-Output: tea%20%26%20coffee`}</pre>
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Unicode component</p>
-              <pre className="mt-2 whitespace-pre-wrap break-words">{`Input:  पुणे
-Output: %E0%A4%AA%E0%A5%81%E0%A4%A3%E0%A5%87`}</pre>
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Form value</p>
-              <pre className="mt-2 whitespace-pre-wrap break-words">{`Input:  A+B C
-Output: A%2BB+C`}</pre>
-            </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            A plus sign is only a space in form-style decoding
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Generic URI percent-decoding does not turn <code>+</code> into a space.
+            The plus-for-space convention belongs to
+            <code> application/x-www-form-urlencoded</code>. That difference matters
+            for search terms, signed parameters, identifiers, and any value where a
+            literal plus sign carries meaning.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Form mode follows the browser&apos;s <code>URLSearchParams</code> behavior for
+            one value. It is not a whole-query parser: repeated names, ordering, and
+            blank fields are properties of the complete tuple list, not of a single
+            value by itself.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Decode only after the URL has been separated into components
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Decoding <code>%2F</code> to <code>/</code> or <code>%3F</code> to
+            <code>?</code> too early can change the structure you thought you were
+            inspecting. RFC 3986 explicitly recommends separating components before
+            decoding percent-encoded octets that could become delimiters.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            The same caution applies to repeated transformations. If <code>%20</code>
+            is already an encoded space, another encoding pass turns it into
+            <code>%2520</code>. That may be required by a nested protocol layer, but
+            it should be deliberate rather than automatic.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Malformed percent escapes and malformed Unicode fail for different reasons
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A percent escape needs two hexadecimal digits. Even when every escape is
+            shaped correctly, decoding can still fail if the resulting byte sequence
+            is not valid UTF-8. Encoding has a different failure mode: JavaScript URI
+            functions reject an unpaired UTF-16 surrogate because it cannot be turned
+            into a Unicode scalar value for UTF-8 encoding.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Those errors are left visible rather than repaired. Guessing at a missing
+            byte or malformed character can produce a URL that looks plausible while
+            identifying different data.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            RFC 3986 and browser URLs describe different layers
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc3986"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 3986
+            </a>{" "}
+            explains URI syntax, reserved characters, percent-encoding, and why the
+            same string should not be blindly encoded or decoded more than once. The
+            modern browser parsing model is defined by the{" "}
+            <a
+              href="https://url.spec.whatwg.org/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              WHATWG URL Standard
+            </a>
+            , which also defines <code>application/x-www-form-urlencoded</code> and
+            its plus-for-space behavior.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Complete URL mode intentionally uses JavaScript&apos;s <code>encodeURI()</code>
+            and <code>decodeURI()</code>. It does not run the string through the
+            WHATWG <code>URL</code> parser, so it will not normalize a hostname,
+            default port, dot segments, or an internationalized domain name.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            What a text transformation cannot decide
+          </h2>
+          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
+            <li>Whether a complete URL exists, resolves, redirects, or is safe to visit.</li>
+            <li>Whether a decoded value is authorized, trusted, or valid for an application.</li>
+            <li>Whether an encoded slash should remain data or become a path separator.</li>
+            <li>Whether double encoding is accidental or required by another serialization layer.</li>
+            <li>Whether URL encoding is the right defense for HTML, SQL, shell, filesystem, or redirect handling.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            After the value is encoded correctly
+          </h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/url-encoder-decoder" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common mistakes that cause real bugs</h2>
-          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li><strong>Encoding an entire URL with component rules:</strong> <code>https://</code>, slashes, question marks, and equals signs become encoded data instead of URL syntax.</li>
-            <li><strong>Encoding an already encoded value again:</strong> <code>%20</code> becomes <code>%2520</code>. RFC 3986 specifically warns against repeated encoding or decoding of the same string without knowing its state.</li>
-            <li><strong>Treating <code>+</code> as a space everywhere:</strong> generic URI decoding does not define plus as space. That convention belongs to form-style query serialization.</li>
-            <li><strong>Decoding before parsing a URL into components:</strong> decoding an encoded delimiter such as <code>%2F</code> or <code>%3F</code> too early can change how the URL is interpreted.</li>
-            <li><strong>Assuming encoding makes a value safe:</strong> percent-encoding is transport syntax. It does not neutralize SQL, HTML, shell, path traversal, redirect, or authorization risks by itself.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Malformed escapes, UTF-8, and decoding failures</h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            JavaScript decoding functions throw when a percent escape is incomplete (for example <code>%E0%A4</code>) or when the decoded byte sequence is not valid UTF-8. Encoding can also fail for malformed JavaScript strings containing an unpaired UTF-16 surrogate. This tool reports those failures instead of silently returning a partly transformed value.
-          </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            A decoder also cannot tell whether a syntactically valid encoded delimiter was intended as data. If <code>%2F</code> appears inside a path, decoding it to <code>/</code> may change path segmentation. Decode only after you know which URL component you are working with.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Limits of this browser utility</h2>
-          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li>It transforms text; it does not check whether a complete URL resolves, is reachable, or is safe to navigate to.</li>
-            <li>Complete URL mode uses JavaScript&apos;s URI functions rather than reconstructing the address through the WHATWG <code>URL</code> parser, so it does not normalize hosts, ports, dot segments, or IDNs.</li>
-            <li>Form mode is for a single value, not for parsing a whole multi-parameter query string.</li>
-            <li>Percent-encoding does not hide sensitive values. Anyone who sees the encoded URL can decode it.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Standards and primary references</h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            For protocol-level URI syntax, see RFC 3986. For modern browser URL parsing and percent-encode sets, the WHATWG URL Standard is the primary living standard. MDN documents the JavaScript functions used by this page.
-          </p>
-          <ul className="mt-4 space-y-2 text-sm">
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc3986" target="_blank" rel="noreferrer">RFC 3986 — URI Generic Syntax</a></li>
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer">WHATWG URL Standard</a></li>
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent" target="_blank" rel="noreferrer">MDN — encodeURIComponent()</a></li>
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURI" target="_blank" rel="noreferrer">MDN — encodeURI()</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/url-encoder-decoder" />
         </div>
       </section>
     </ToolShell>

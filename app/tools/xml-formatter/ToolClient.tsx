@@ -15,7 +15,10 @@ function escapeAttributeValue(value: string) {
 
 function openingTag(element: Element, selfClosing: boolean) {
   const attributes = Array.from(element.attributes)
-    .map((attribute) => ` ${attribute.name}="${escapeAttributeValue(attribute.value)}"`)
+    .map(
+      (attribute) =>
+        ` ${attribute.name}="${escapeAttributeValue(attribute.value)}"`
+    )
     .join("");
 
   return `<${element.tagName}${attributes}${selfClosing ? "/>" : ">"}`;
@@ -48,21 +51,36 @@ function formatNode(
     }
 
     const hasMeaningfulText = children.some(
-      (child) => child.nodeType === Node.TEXT_NODE && (child.nodeValue || "").trim() !== ""
+      (child) =>
+        child.nodeType === Node.TEXT_NODE &&
+        (child.nodeValue || "").trim() !== ""
     );
-    const hasCdata = children.some((child) => child.nodeType === Node.CDATA_SECTION_NODE);
+    const hasCdata = children.some(
+      (child) => child.nodeType === Node.CDATA_SECTION_NODE
+    );
     const structuralChildren = children.filter(
-      (child) => !(child.nodeType === Node.TEXT_NODE && (child.nodeValue || "").trim() === "")
+      (child) =>
+        !(
+          child.nodeType === Node.TEXT_NODE &&
+          (child.nodeValue || "").trim() === ""
+        )
     );
 
-    // Mixed/text content and xml:space="preserve" are kept compact so the
-    // formatter does not inject indentation into content where whitespace may matter.
-    if (preserve || hasMeaningfulText || hasCdata || structuralChildren.length === 0) {
+    // Do not inject indentation into text/mixed content, CDATA, whitespace-only
+    // content, or an xml:space="preserve" subtree.
+    if (
+      preserve ||
+      hasMeaningfulText ||
+      hasCdata ||
+      structuralChildren.length === 0
+    ) {
       return `${indent}${serializer.serializeToString(element)}`;
     }
 
     const body = structuralChildren
-      .map((child) => formatNode(child, depth + 1, indentSize, serializer, preserve))
+      .map((child) =>
+        formatNode(child, depth + 1, indentSize, serializer, preserve)
+      )
       .filter(Boolean)
       .join("\n");
 
@@ -86,9 +104,13 @@ function formatNode(
   return "";
 }
 
-function formatXMLDocument(source: string, document: XMLDocument, indentSize: number) {
+function formatXMLDocument(
+  source: string,
+  document: XMLDocument,
+  indentSize: number
+) {
   const serializer = new XMLSerializer();
-  const declarationMatch = source.match(/^\s*(<\?xml\s+[\s\S]*?\?>)/i);
+  const declarationMatch = source.match(/^\s*(<\?xml\s+[\s\S]*?\?>)/);
   const declaration = declarationMatch ? declarationMatch[1] : "";
   const lines = Array.from(document.childNodes)
     .map((node) => formatNode(node, 0, indentSize, serializer, false))
@@ -98,12 +120,19 @@ function formatXMLDocument(source: string, document: XMLDocument, indentSize: nu
   return declaration ? `${declaration}\n${body}`.trim() : body.trim();
 }
 
-function getParserError(document: XMLDocument, parserErrorNamespace: string | null) {
+function getParserError(
+  document: XMLDocument,
+  parserErrorNamespace: string | null
+) {
   let errorNode: Element | null = null;
 
   if (parserErrorNamespace) {
-    errorNode = document.getElementsByTagNameNS(parserErrorNamespace, "parsererror")[0] || null;
-  } else {
+    errorNode =
+      document.getElementsByTagNameNS(parserErrorNamespace, "parsererror")[0] ||
+      null;
+  }
+
+  if (!errorNode) {
     const candidates = Array.from(document.getElementsByTagName("parsererror"));
     errorNode =
       candidates.find((candidate) => {
@@ -124,15 +153,39 @@ function getParserError(document: XMLDocument, parserErrorNamespace: string | nu
   return text.length > 360 ? `${text.slice(0, 357)}...` : text;
 }
 
+function buildSerializationNote(source: string) {
+  const notes: string[] = [];
+  const declaration = source.match(/^\s*<\?xml\s+([\s\S]*?)\?>/);
+  const encoding = declaration
+    ? declaration[1].match(/\bencoding\s*=\s*(["'])([^"']+)\1/i)
+    : null;
+
+  if (/<!DOCTYPE\b/i.test(source)) {
+    notes.push(
+      "A DOCTYPE is present. Parsing and serializing can normalize DTD declarations and entity references, so do not treat the formatted text as a lexical or signature-preserving round trip."
+    );
+  }
+
+  if (encoding) {
+    notes.push(
+      `The declaration says encoding=\"${encoding[2]}\", but pasted textarea content is already a JavaScript Unicode string. Formatting cannot recover or verify the original file bytes or character encoding.`
+    );
+  }
+
+  return notes.join(" ");
+}
+
 export default function ToolClient() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
+  const [note, setNote] = useState("");
   const [indentSize, setIndentSize] = useState(2);
   const [copyStatus, setCopyStatus] = useState("");
 
   const formatXML = () => {
     setError("");
+    setNote("");
     setCopyStatus("");
 
     if (!input.trim()) {
@@ -144,7 +197,8 @@ export default function ToolClient() {
     try {
       const parser = new DOMParser();
       const parserProbe = parser.parseFromString("<", "application/xml");
-      const probeError = parserProbe.getElementsByTagName("parsererror")[0] || null;
+      const probeError =
+        parserProbe.getElementsByTagName("parsererror")[0] || null;
       const parserErrorNamespace = probeError ? probeError.namespaceURI : null;
       const xml = parser.parseFromString(input, "application/xml");
       const parserError = getParserError(xml, parserErrorNamespace);
@@ -156,6 +210,7 @@ export default function ToolClient() {
       }
 
       setOutput(formatXMLDocument(input, xml, indentSize));
+      setNote(buildSerializationNote(input));
     } catch (caught) {
       setOutput("");
       setError(
@@ -181,6 +236,7 @@ export default function ToolClient() {
     setInput("");
     setOutput("");
     setError("");
+    setNote("");
     setCopyStatus("");
     setIndentSize(2);
   };
@@ -188,22 +244,26 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="XML Formatter"
-      description="Check XML well-formedness and pretty-print element-oriented XML while taking mixed content and xml:space into account."
+      description={'Check XML well-formedness and indent element-oriented XML without blindly inserting whitespace into mixed content or xml:space="preserve" subtrees.'}
     >
       <div>
-        <label htmlFor="xml-indent" className="block mb-2 text-sm font-medium text-gray-700">
+        <label
+          htmlFor="xml-indent"
+          className="mb-2 block text-sm font-medium text-gray-700"
+        >
           Indentation
         </label>
         <select
           id="xml-indent"
           value={indentSize}
-          onChange={(e) => {
-            setIndentSize(Number(e.target.value));
+          onChange={(event) => {
+            setIndentSize(Number(event.target.value));
             setOutput("");
             setError("");
+            setNote("");
             setCopyStatus("");
           }}
-          className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm text-gray-800 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         >
           <option value={2}>2 spaces</option>
           <option value={4}>4 spaces</option>
@@ -215,19 +275,22 @@ export default function ToolClient() {
           <label htmlFor="xml-input" className="text-sm font-medium text-gray-700">
             XML input
           </label>
-          <span className="text-xs text-gray-500">{input.length.toLocaleString()} characters</span>
+          <span className="text-xs text-gray-500">
+            {input.length.toLocaleString()} characters
+          </span>
         </div>
 
         <textarea
           id="xml-input"
-          className="w-full min-h-[260px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-          placeholder={'<users><user id="1"><name>Asha</name></user></users>'}
+          className="min-h-[260px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          placeholder={'<users><user id="1"><name>Sneha</name></user></users>'}
           value={input}
           spellCheck={false}
-          onChange={(e) => {
-            setInput(e.target.value);
+          onChange={(event) => {
+            setInput(event.target.value);
             setOutput("");
             setError("");
+            setNote("");
             setCopyStatus("");
           }}
         />
@@ -242,160 +305,231 @@ export default function ToolClient() {
         </button>
       </div>
 
-      {error && (
+      {error ? (
         <div
           role="alert"
           aria-live="polite"
-          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700 overflow-auto"
+          className="mt-6 overflow-auto rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
         >
           {error}
         </div>
-      )}
+      ) : null}
+
+      {note ? (
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
+          {note}
+        </div>
+      ) : null}
 
       <div className="mt-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">Formatted XML</h3>
-          {output && (
-            <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+          {output ? (
+            <button
+              type="button"
+              onClick={copyOutput}
+              className="yoryantra-btn-outline text-sm"
+            >
               Copy
             </button>
-          )}
+          ) : null}
         </div>
 
         <pre className="yoryantra-output min-h-[240px] overflow-auto whitespace-pre-wrap break-words text-sm">
           {output || "Formatted XML will appear here..."}
         </pre>
 
-        {copyStatus && (
+        {copyStatus ? (
           <p aria-live="polite" className="mt-2 text-sm text-gray-600">
             {copyStatus}
           </p>
-        )}
+        ) : null}
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">Privacy and parser boundary</h3>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Parsing and formatting run in your browser with <code>DOMParser</code> and <code>XMLSerializer</code>; the text is not sent to a Yoryantra formatting API. This is a well-formedness check, not XSD/DTD validation or a security scanner. Avoid treating formatted output as trusted simply because it parsed successfully, and be cautious with very large or hostile XML because parsing happens on the browser&apos;s main thread.
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">
+          Formatting can change whitespace and lexical spelling
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          Parsing happens in the browser with <code>DOMParser</code>, and DOM nodes are
+          serialized with <code>XMLSerializer</code>. No request to an XML endpoint is
+          made by the page code. Successful parsing proves well-formedness only; it
+          does not prove schema validity, signature validity, trust, or safety in the
+          server-side XML parser that will eventually consume the document.
         </p>
       </div>
 
       <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Pretty-printing XML without pretending whitespace never matters</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Pretty indentation is safe only when the inserted whitespace is not data
+          </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            XML formatters usually insert line breaks and indentation between nested elements. That is convenient for API responses, sitemaps, SOAP envelopes, configuration documents, RSS/Atom feeds, and other element-oriented XML. But XML whitespace can be data. A formatter that blindly inserts spaces around every tag can change mixed-content documents such as prose, code, poetry, or elements using <code>xml:space=&quot;preserve&quot;</code>.
+            Element-oriented XML is easy to read when nested elements start on their
+            own lines. Mixed content is different. In
+            <code> &lt;p&gt;Hello &lt;strong&gt;world&lt;/strong&gt;!&lt;/p&gt;</code>, inserting
+            line breaks around <code>&lt;strong&gt;</code> can change the text seen by an
+            application.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This formatter first asks the browser&apos;s XML parser whether the document is well-formed. For elements that contain meaningful text, CDATA, or an inherited <code>xml:space=&quot;preserve&quot;</code> instruction, it keeps the subtree compact rather than injecting new indentation inside that content. Element-only structures are expanded using your selected 2- or 4-space indentation.
+            Elements containing meaningful text, CDATA, whitespace-only content, or
+            an inherited <code>xml:space=&quot;preserve&quot;</code> instruction are therefore
+            kept compact. The 2- or 4-space indentation is applied to structural,
+            element-oriented subtrees instead of being forced through every node.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">What “well-formed XML” means on this page</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Well-formed does not mean valid for your application
+          </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The tool checks <strong>well-formedness</strong>: matching start/end tags, proper nesting, quoted attributes, legal entity/reference syntax, a single document element, and other rules enforced by the browser XML parser. It does <strong>not</strong> validate your document against an XSD, Relax NG schema, or application-specific contract.
+            XML well-formedness covers syntax such as matching start and end tags,
+            proper nesting, quoted attributes, legal references, and one document
+            element. A document can satisfy all of those rules and still violate an
+            XSD, DTD validity constraint, or an application contract.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            For example, <code>&lt;order&gt;&lt;total&gt;abc&lt;/total&gt;&lt;/order&gt;</code> can be well-formed XML even if your application schema requires <code>total</code> to be numeric. Formatting cannot answer that schema question.
+            For example,
+            <code> &lt;order&gt;&lt;total&gt;abc&lt;/total&gt;&lt;/order&gt;</code> is structurally
+            plausible XML even if the receiving system requires <code>total</code> to
+            be numeric. Formatting cannot answer that data-model question.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">What the formatter preserves and what it may normalize</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            What survives the DOM round trip, and what may look different
+          </h2>
           <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li><strong>Namespaces:</strong> element and attribute namespace information is parsed as XML and retained in the serialized structure.</li>
-            <li><strong>Comments and processing instructions:</strong> these nodes are kept and indented when they occur in element-oriented content.</li>
-            <li><strong>CDATA:</strong> CDATA-containing elements are left compact to avoid inserting whitespace into text content.</li>
-            <li><strong>XML declaration:</strong> when the input begins with an XML declaration, the formatter keeps that declaration at the top.</li>
-            <li><strong>Whitespace-only text between structural children:</strong> this is the whitespace that pretty-printing replaces with new indentation. If byte-for-byte or whitespace-node identity matters, do not use a beautifier as a round-trip serializer.</li>
-            <li><strong>Lexical representation:</strong> quote style, empty-element spelling, entity spelling, and other equivalent surface details may be normalized by browser parsing/serialization even when the XML information represented is equivalent.</li>
-            <li><strong>DTD-defined entities:</strong> browser parsing may resolve or normalize entity references before serialization. Do not use this formatter when preserving DTD/entity-reference spelling is part of the document contract.</li>
+            <li><strong>Element and attribute names:</strong> the parsed DOM keeps namespace information, but serialization may alter an equivalent namespace prefix arrangement.</li>
+            <li><strong>Comments and processing instructions:</strong> they remain nodes and are retained in structural output.</li>
+            <li><strong>CDATA:</strong> a CDATA-containing element stays compact so indentation is not injected into its text.</li>
+            <li><strong>XML declaration:</strong> an initial declaration is kept as written at the top, but its encoding label cannot verify the bytes that existed before the text was pasted into the browser.</li>
+            <li><strong>Whitespace-only nodes:</strong> structural indentation can replace them when the subtree is treated as element-oriented.</li>
+            <li><strong>Lexical details:</strong> quote style, empty-element spelling, attribute normalization, namespace prefixes, and entity spelling are not guaranteed to round-trip byte for byte.</li>
+            <li><strong>DOCTYPE/entity spelling:</strong> parsing and serialization may normalize declarations or resolved entity content, so canonicalization and signature work need purpose-built XML tooling.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Worked examples</h2>
-          <div className="mt-4 space-y-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Element-only data and mixed content need different treatment
+          </h2>
+          <div className="mt-4 space-y-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <div>
-              <p className="font-medium text-gray-900">Element-oriented XML</p>
-              <pre className="mt-2 whitespace-pre-wrap break-words">{`Input:
-<users><user id="1"><name>Asha</name></user></users>
+              <p className="font-medium text-gray-900">Element-oriented input</p>
+              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words">{`Input:
+<users><user id="1"><name>Sneha</name></user></users>
 
 Formatted:
 <users>
   <user id="1">
-    <name>Asha</name>
+    <name>Sneha</name>
   </user>
 </users>`}</pre>
             </div>
             <div>
               <p className="font-medium text-gray-900">Mixed content</p>
-              <pre className="mt-2 whitespace-pre-wrap break-words">{`<p>Hello <strong>world</strong>!</p>`}</pre>
-              <p className="mt-2 leading-relaxed">The formatter does not split this sentence across indented lines, because added whitespace could become part of the text content.</p>
+              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words">{`<p>Hello <strong>world</strong>!</p>`}</pre>
+              <p className="mt-2 leading-relaxed">
+                The sentence remains compact because new indentation between the text
+                and <code>&lt;strong&gt;</code> could become part of the content.
+              </p>
             </div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Troubleshooting parser errors</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Most parser failures come from a small set of XML rules
+          </h2>
           <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li><strong>Mismatched tags:</strong> XML is case-sensitive, so <code>&lt;Item&gt;&lt;/item&gt;</code> does not match.</li>
-            <li><strong>Unescaped ampersands:</strong> literal <code>&amp;</code> inside text or attributes must normally be written as <code>&amp;amp;</code> unless it begins a valid entity/reference.</li>
-            <li><strong>Multiple root elements:</strong> a document cannot contain two independent top-level elements such as <code>&lt;a/&gt;&lt;b/&gt;</code>.</li>
-            <li><strong>HTML-style boolean attributes:</strong> XML requires attribute values, so <code>disabled</code> by itself is not valid XML syntax.</li>
-            <li><strong>Unquoted attributes:</strong> write <code>id=&quot;1&quot;</code>, not <code>id=1</code>.</li>
-            <li><strong>HTML entities:</strong> XML predefines only a small core set such as <code>&amp;amp;</code>, <code>&amp;lt;</code>, <code>&amp;gt;</code>, <code>&amp;quot;</code>, and <code>&amp;apos;</code> unless additional entities are declared.</li>
+            <li><strong>Case matters:</strong> <code>&lt;Item&gt;&lt;/item&gt;</code> has mismatched element names.</li>
+            <li><strong>Ampersands introduce references:</strong> a literal ampersand normally needs <code>&amp;amp;</code>.</li>
+            <li><strong>Attributes need quoted values:</strong> write <code>id=&quot;1&quot;</code>, not <code>id=1</code>.</li>
+            <li><strong>HTML boolean-attribute syntax does not carry over:</strong> XML cannot use a bare attribute such as <code>disabled</code>.</li>
+            <li><strong>There is one document element:</strong> <code>&lt;a/&gt;&lt;b/&gt;</code> is not one well-formed XML document.</li>
+            <li><strong>Only five entities are predefined by XML itself:</strong> <code>&amp;amp;</code>, <code>&amp;lt;</code>, <code>&amp;gt;</code>, <code>&amp;quot;</code>, and <code>&amp;apos;</code>. Other named entities need declarations.</li>
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            A browser parse says nothing about how a backend handles external XML features
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Different server-side parsers can enable external entities, schema loading,
+            network access, or other features that are unrelated to pretty-printing.
+            A document that formats cleanly here has not been tested for XXE resistance,
+            expansion limits, schema trust, or the configuration of another runtime.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Keep resource limits and external-resource policy in the parser that will
+            actually consume untrusted XML. Do not move a parsed DOM into an active HTML
+            document and assume formatting has sanitized its elements or attributes.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            The XML specification explains why whitespace needs care
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The{" "}
+            <a
+              href="https://www.w3.org/TR/xml/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              W3C XML 1.0 specification
+            </a>{" "}
+            defines well-formedness and says processors pass non-markup characters to
+            applications. It also defines <code>xml:space</code> as the signal for
+            preserving whitespace intent. Browser-side parsing and serialization are
+            documented by{" "}
+            <a
+              href="https://developer.mozilla.org/en-US/docs/Web/API/DOMParser/parseFromString"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              DOMParser.parseFromString()
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer/serializeToString"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              XMLSerializer.serializeToString()
+            </a>
+            .
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Where a formatter should stop
+          </h2>
+          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
+            <li>XSD, Relax NG, DTD validity, or application-schema checking.</li>
+            <li>Canonical XML and digital-signature byte-for-byte workflows.</li>
+            <li>Verifying an XML declaration&apos;s encoding against original file bytes.</li>
+            <li>Testing the security configuration of a backend XML parser.</li>
+            <li>Preserving every lexical choice, entity reference, prefix, or whitespace node exactly as typed.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Security, DTDs, and external data</h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Formatting success is not a security guarantee. Server-side XML processors can have dangerous features such as external entity resolution, network access, schema loading, or application-specific entity processing depending on their configuration. A browser formatter cannot tell you that another runtime is hardened against XXE or resource-exhaustion attacks.
-          </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Treat untrusted XML according to the parser and platform that will actually consume it. Disable unnecessary external resource features there, set sensible input/resource limits, and validate expected structure separately. This page does not fetch an XSD or remote DTD to validate your document.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">When formatting is useful—and when it is not</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-gray-200 p-4">
-              <h3 className="font-semibold text-gray-900">Good fit</h3>
-              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-gray-600">
-                <li>Inspecting minified SOAP or API responses.</li>
-                <li>Reading XML sitemaps, RSS/Atom feeds, and config documents.</li>
-                <li>Finding nesting mistakes after a parser reports an error.</li>
-                <li>Preparing element-oriented XML for a code review or support ticket.</li>
-              </ul>
-            </div>
-            <div className="rounded-xl border border-gray-200 p-4">
-              <h3 className="font-semibold text-gray-900">Use another check</h3>
-              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-gray-600">
-                <li>XSD/DTD/schema validation.</li>
-                <li>Canonical XML or digital-signature workflows.</li>
-                <li>Byte-for-byte round trips where whitespace and lexical form must not change.</li>
-                <li>Security testing of the XML parser used by your backend.</li>
-              </ul>
-            </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            When XML needs more than formatting
+          </h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/xml-formatter" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Standards and primary references</h2>
-          <ul className="mt-4 space-y-2 text-sm">
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://www.w3.org/TR/xml/" target="_blank" rel="noreferrer">W3C — XML 1.0 (Fifth Edition)</a></li>
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/API/DOMParser" target="_blank" rel="noreferrer">MDN — DOMParser</a></li>
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer" target="_blank" rel="noreferrer">MDN — XMLSerializer</a></li>
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/XML/Guides/Parsing_and_serializing_XML" target="_blank" rel="noreferrer">MDN — Parsing and serializing XML</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/xml-formatter" />
         </div>
       </section>
     </ToolShell>

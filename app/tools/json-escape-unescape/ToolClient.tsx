@@ -4,26 +4,63 @@ import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
+function countUnpairedSurrogates(value: string) {
+  let count = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = index + 1 < value.length ? value.charCodeAt(index + 1) : -1;
+
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        index += 1;
+      } else {
+        count += 1;
+      }
+
+      continue;
+    }
+
+    if (code >= 0xdc00 && code <= 0xdfff) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
 export default function ToolClient() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
+  const [note, setNote] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const [hasResult, setHasResult] = useState(false);
 
-  const escapeJSON = () => {
+  const clearMessages = () => {
     setError("");
+    setNote("");
     setCopyStatus("");
+  };
 
-    if (!input) {
-      setOutput('""');
-      setHasResult(true);
-      return;
-    }
+  const escapeJSON = () => {
+    clearMessages();
 
     try {
-      setOutput(JSON.stringify(input));
+      const unpaired = countUnpairedSurrogates(input);
+      const serialized = JSON.stringify(input);
+
+      setOutput(serialized);
       setHasResult(true);
+
+      if (unpaired) {
+        setNote(
+          `${unpaired} unpaired UTF-16 surrogate${
+            unpaired === 1 ? " was" : "s were"
+          } found. Modern JSON.stringify() escapes lone surrogates, but JSON containing them can behave differently across non-JavaScript systems.`
+        );
+      }
     } catch {
       setOutput("");
       setHasResult(false);
@@ -32,8 +69,7 @@ export default function ToolClient() {
   };
 
   const unescapeJSON = () => {
-    setError("");
-    setCopyStatus("");
+    clearMessages();
 
     if (!input.trim()) {
       setOutput("");
@@ -49,20 +85,30 @@ export default function ToolClient() {
         setOutput("");
         setHasResult(false);
         setError(
-          "This tool unescapes one JSON string literal, not a JSON object, array, number, boolean, or null. Use the JSON Validator for complete JSON documents."
+          "The input is valid JSON, but it is not a JSON string value. Paste one quoted string literal rather than an object, array, number, boolean, or null."
         );
         return;
       }
 
       setOutput(parsed);
       setHasResult(true);
+
+      const unpaired = countUnpairedSurrogates(parsed);
+
+      if (unpaired) {
+        setNote(
+          `The decoded value contains ${unpaired} unpaired UTF-16 surrogate${
+            unpaired === 1 ? "" : "s"
+          }. RFC 8259 notes that JSON texts containing such values can produce unpredictable behavior between implementations.`
+        );
+      }
     } catch (caught) {
       setOutput("");
       setHasResult(false);
       setError(
         caught instanceof SyntaxError
           ? `Invalid JSON string literal: ${caught.message}`
-          : "Unable to unescape this JSON string literal."
+          : "Unable to decode this JSON string literal."
       );
     }
   };
@@ -82,6 +128,7 @@ export default function ToolClient() {
     setInput("");
     setOutput("");
     setError("");
+    setNote("");
     setCopyStatus("");
     setHasResult(false);
   };
@@ -89,10 +136,12 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Escape Unescape"
-      description="Turn plain text into a valid JSON string literal, or decode one JSON string literal back to its text value."
+      description="Turn plain text into one JSON string literal, or decode one quoted JSON string back to its text value without changing the value into another JSON type."
     >
-      <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-relaxed text-blue-900">
-        <strong>Scope:</strong> this tool works with <em>JSON strings</em>. Escape wraps your text in JSON quotation marks and applies the required backslash escapes. Unescape expects a complete quoted JSON string literal such as <code>&quot;hello\\nworld&quot;</code>.
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Escape starts with ordinary text and produces a quoted JSON string literal.
+        Unescape starts with one complete quoted JSON string such as
+        <code> &quot;hello\\nworld&quot;</code>. Objects and arrays are a different job.
       </div>
 
       <div className="mt-5">
@@ -100,22 +149,25 @@ export default function ToolClient() {
           <label htmlFor="json-string-input" className="text-sm font-medium text-gray-700">
             Input
           </label>
-          <span className="text-xs text-gray-500">{input.length.toLocaleString()} characters</span>
+          <span className="text-xs text-gray-500">
+            {input.length.toLocaleString()} characters
+          </span>
         </div>
 
         <textarea
           id="json-string-input"
           value={input}
-          onChange={(e) => {
-            setInput(e.target.value);
+          onChange={(event) => {
+            setInput(event.target.value);
             setOutput("");
             setHasResult(false);
             setError("");
+            setNote("");
             setCopyStatus("");
           }}
           placeholder={'Plain text to escape, or a JSON string literal such as "line\\nnext"'}
           spellCheck={false}
-          className="w-full min-h-[240px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="min-h-[240px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
       </div>
 
@@ -131,146 +183,229 @@ export default function ToolClient() {
         </button>
       </div>
 
-      {error && (
+      {error ? (
         <div
           role="alert"
           aria-live="polite"
-          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700 overflow-auto"
+          className="mt-6 overflow-auto rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
         >
           {error}
         </div>
-      )}
+      ) : null}
+
+      {note ? (
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
+          {note}
+        </div>
+      ) : null}
 
       <div className="mt-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">Result</h3>
-          {hasResult && (
-            <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+          {hasResult ? (
+            <button
+              type="button"
+              onClick={copyOutput}
+              className="yoryantra-btn-outline text-sm"
+            >
               Copy
             </button>
-          )}
+          ) : null}
         </div>
 
         <pre className="yoryantra-output min-h-[180px] overflow-auto whitespace-pre-wrap break-words text-sm">
-          {hasResult ? output || "(empty string)" : "Escaped or unescaped text will appear here..."}
+          {hasResult
+            ? output || "(empty string)"
+            : "Escaped or unescaped text will appear here..."}
         </pre>
 
-        {copyStatus && (
+        {copyStatus ? (
           <p aria-live="polite" className="mt-2 text-sm text-gray-600">
             {copyStatus}
           </p>
-        )}
+        ) : null}
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">Privacy and security boundary</h3>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Escaping and unescaping on this page uses the browser&apos;s built-in <code>JSON.stringify()</code> and <code>JSON.parse()</code> functions; the text is not sent to a Yoryantra conversion API. JSON escaping is syntax handling, not sanitization. A correctly escaped string can still contain unsafe HTML, SQL, shell commands, secrets, or application data, so validate and encode again for the destination context when required.
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">
+          JSON escaping is not sanitization
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          Serialization and parsing happen in the browser with
+          <code> JSON.stringify()</code> and <code>JSON.parse()</code>. A valid JSON
+          string can still contain HTML, SQL, shell text, secrets, or another nested
+          data format. Encode or validate again for the destination context rather
+          than treating the JSON layer as a security boundary.
         </p>
       </div>
 
       <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">What this tool actually escapes</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            A JSON string is a value, not just text with backslashes
+          </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON has a specific grammar for strings. A JSON string starts and ends with a double quotation mark. Inside it, quotation marks, backslashes, and control characters such as newline, tab, carriage return, backspace, and form feed must be represented with escape sequences. RFC 8259 requires every control character from U+0000 through U+001F to be escaped.
+            JSON strings begin and end with double quotation marks. Inside those
+            quotes, the quotation mark itself, the backslash, and control characters
+            from U+0000 through U+001F need escape syntax. Newline and tab have short
+            forms such as <code>\\n</code> and <code>\\t</code>; any 16-bit code unit
+            can also be written with <code>\\uXXXX</code> syntax.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Clicking <strong>Escape as JSON String</strong> takes the textarea&apos;s plain text value and serializes that one value as JSON. That means the result includes the surrounding quotation marks. Clicking <strong>Unescape JSON String</strong> does the inverse, but only if the input parses to a JSON string value.
+            Escaping plain text therefore includes the outer quotation marks. That is
+            important when the result is going into a JSON property. Removing the
+            quotes afterward does not produce the same JSON value; it produces a
+            fragment of text whose meaning depends on another layer.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Examples that show the boundary</h2>
-          <div className="mt-4 space-y-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Quotes, paths, and nested JSON show three different layers
+          </h2>
+          <div className="mt-4 space-y-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <div>
-              <p className="font-medium text-gray-900">Quotes and a newline</p>
-              <pre className="mt-2 whitespace-pre-wrap break-words">{`Plain text:
-She said "hello".
+              <p className="font-medium text-gray-900">A quote and a newline</p>
+              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words">{`Plain text:
+Sneha said "hello".
 Next line
 
 JSON string literal:
-"She said \\"hello\\".\\nNext line"`}</pre>
+"Sneha said \\"hello\\".\\nNext line"`}</pre>
             </div>
             <div>
-              <p className="font-medium text-gray-900">Windows-style path</p>
-              <pre className="mt-2 whitespace-pre-wrap break-words">{`Plain text: C:\\temp\\file.txt
+              <p className="font-medium text-gray-900">A Windows path</p>
+              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words">{`Plain text: C:\\temp\\file.txt
 JSON string literal: "C:\\\\temp\\\\file.txt"`}</pre>
             </div>
             <div>
-              <p className="font-medium text-gray-900">Unicode</p>
-              <pre className="mt-2 whitespace-pre-wrap break-words">{`Plain text: पुणे 😀
-Possible JSON output: "पुणे 😀"`}</pre>
-              <p className="mt-2 leading-relaxed">JSON does not require ordinary non-ASCII characters to be converted to <code>\\uXXXX</code> escapes. Literal Unicode is valid when the JSON text is encoded as UTF-8.</p>
+              <p className="font-medium text-gray-900">JSON stored as a string</p>
+              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words">{`Original JSON object text:
+{"name":"Sneha"}
+
+The same characters stored as one JSON string value:
+"{\\"name\\":\\"Sneha\\"}"`}</pre>
             </div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">JSON string escaping is not the same as escaping a whole JSON document</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            An object and a string containing an object are different data
+          </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            An object such as <code>{`{"name":"Asha"}`}</code> is already a JSON object text. If you paste that object as plain text and escape it here, the tool intentionally creates a <em>string containing the object text</em>: <code>{`"{\\"name\\":\\"Asha\\"}"`}</code>. That is useful when JSON itself must travel inside another JSON string, but it is not the same data type as the original object.
+            <code>{`{"name":"Sneha"}`}</code> is a JSON object. If those characters
+            are escaped as plain text, the result is a JSON string whose value happens
+            to look like object syntax. The receiver must parse another JSON layer if
+            it genuinely expects nested JSON text.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Likewise, unescape rejects an object, array, number, boolean, or <code>null</code>. That guard prevents a common runtime mistake where a parsed object is treated as displayable text. Use a JSON validator or formatter when your input is a complete JSON document rather than one JSON string literal.
+            Unescape deliberately rejects objects, arrays, numbers, booleans, and
+            <code> null</code>. That keeps a string-decoding operation from quietly
+            turning into a general JSON parser. For complete documents, validation
+            and formatting belong at the document level instead.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Double escaping may be a bug or a real second serialization layer
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            A newline represented by <code>\\n</code> becomes <code>\\\\n</code>
+            when that already-escaped text is serialized again. Sometimes that is
+            exactly what a nested message, log envelope, or database field requires.
+            Sometimes it means the same value was escaped twice by accident.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            The characters alone cannot tell you which case you have. Follow the data
+            across each serialization boundary and count how many times a JSON parser
+            will run before the final string is consumed.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common mistakes and double escaping</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Unicode normally stays readable, but lone surrogates deserve attention
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Ordinary Unicode characters do not need to be converted to
+            <code>\\uXXXX</code>. A JSON text exchanged between systems is normally
+            encoded as UTF-8, so text such as <code>पुणे 😀</code> can remain visible
+            in the serialized string.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JavaScript strings are sequences of UTF-16 code units, which means they
+            can contain an isolated high or low surrogate. Modern
+            <code> JSON.stringify()</code> serializes lone surrogates with escape
+            syntax so the JSON text remains well formed. RFC 8259 nevertheless warns
+            that strings containing unpaired surrogates can behave unpredictably
+            across implementations, so a notice appears when one is detected.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            JSON permits more than JavaScript source and less than many config files
+          </h2>
           <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li><strong>Escaping twice:</strong> a backslash created during the first serialization becomes escaped during the second. <code>\\n</code> can become <code>\\\\n</code> depending on the layer.</li>
-            <li><strong>Removing the outer quotes blindly:</strong> the quotation marks are part of the JSON string literal grammar. Stripping them may leave content that is no longer valid JSON.</li>
-            <li><strong>Confusing JSON with JavaScript source:</strong> JSON is a data format with its own grammar. A JavaScript template literal, single-quoted string, regular expression, or object literal can follow different rules.</li>
-            <li><strong>Using JSON escaping for HTML safety:</strong> a JSON string embedded into an HTML or script context may need additional context-specific handling. JSON escaping alone is not a complete XSS defense.</li>
-            <li><strong>Assuming <code>\/</code> is mandatory:</strong> JSON permits a slash to be escaped, but ordinary <code>/</code> is also valid. JavaScript&apos;s <code>JSON.stringify()</code> normally leaves it unescaped.</li>
+            <li>JSON strings use double quotes; single-quoted JavaScript strings are not JSON strings.</li>
+            <li>Unknown escapes such as <code>\\x41</code> are not JSON string escapes, even though JavaScript source has additional escape forms.</li>
+            <li>A solidus may appear as <code>/</code> or <code>\\/</code>; escaping it is optional in JSON.</li>
+            <li>Comments and trailing commas belong to other formats or extensions, not standard JSON.</li>
+            <li>U+2028 and U+2029 are valid JSON string characters; embedding JSON into another language or HTML context can add separate requirements.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Control characters, Unicode escapes, and surrogate pairs</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            The grammar comes from JSON, while the behavior here comes from JavaScript
+          </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON provides short escapes such as <code>\\n</code>, <code>\\t</code>, <code>\\r</code>, <code>\\b</code>, and <code>\\f</code>, plus the general <code>\\uXXXX</code> form. Characters outside the Basic Multilingual Plane can be represented as a pair of UTF-16 surrogate escapes, although modern JSON commonly carries the actual Unicode character directly in UTF-8.
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc8259"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 8259
+            </a>{" "}
+            defines interoperable JSON syntax and UTF-8 expectations, including the
+            warning about unpaired surrogates. The concise syntax definition is also
+            published as{" "}
+            <a
+              href="https://ecma-international.org/publications-and-standards/standards/ecma-404/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              ECMA-404
+            </a>
+            . The actual escape and unescape operations on this page follow the
+            browser&apos;s ECMAScript <code>JSON.stringify()</code> and
+            <code> JSON.parse()</code> implementations.
           </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Unescaping follows the browser&apos;s JSON parser. Invalid escape names, incomplete <code>\\u</code> sequences, unescaped control characters, missing closing quotes, or other grammar errors are rejected instead of guessed.
-          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Practical workflows</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            What the JSON layer cannot decide
+          </h2>
           <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li>Preparing a multiline message to place in a JSON configuration value.</li>
-            <li>Inspecting a JSON-encoded log field whose content contains visible backslash sequences.</li>
-            <li>Creating a nested payload where one system expects an entire JSON document as a string field rather than as an object.</li>
-            <li>Checking whether a copied string literal contains valid JSON escapes before inserting it into test data.</li>
-            <li>Separating a JSON-layer problem from later HTML, URL, shell, or database escaping requirements.</li>
+            <li>Whether a nested JSON-looking string was intentionally serialized twice.</li>
+            <li>Whether a string is safe for HTML, a URL, SQL, a shell, XML, or a filesystem path.</li>
+            <li>Whether an object follows a schema or an application&apos;s business rules.</li>
+            <li>Whether a secret should have been present in the copied text in the first place.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Limits</h2>
-          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li>This page does not validate object schemas, required properties, data types inside an object, or business rules.</li>
-            <li>It does not pretty-print an object because its unescape operation is intentionally restricted to one JSON string value.</li>
-            <li>It does not convert text to JavaScript, HTML, XML, SQL, shell, CSV, or URL-safe syntax. Those destinations have different escaping rules.</li>
-            <li>It cannot tell whether an apparently double-escaped value is accidental or required by a nested serialization layer; that depends on the receiving system.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Standards and primary references</h2>
-          <ul className="mt-4 space-y-2 text-sm">
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc8259" target="_blank" rel="noreferrer">RFC 8259 — The JavaScript Object Notation (JSON) Data Interchange Format</a></li>
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://ecma-international.org/publications-and-standards/standards/ecma-404/" target="_blank" rel="noreferrer">ECMA-404 — The JSON Data Interchange Syntax</a></li>
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify" target="_blank" rel="noreferrer">MDN — JSON.stringify()</a></li>
-            <li><a className="text-[var(--green)] underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse" target="_blank" rel="noreferrer">MDN — JSON.parse()</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/json-escape-unescape" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            When the next layer is JSON itself
+          </h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-escape-unescape" />
+          </div>
         </div>
       </section>
     </ToolShell>
