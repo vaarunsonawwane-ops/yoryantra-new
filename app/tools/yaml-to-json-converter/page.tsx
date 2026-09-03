@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "YAML to JSON Converter | Loss Checks | Yoryantra",
   description:
-    "Convert YAML to JSON with multi-document support and clear warnings for anchors, aliases, tags, complex keys, and YAML-only features that JSON cannot preserve.",
+    "Convert YAML to JSON with multi-document handling and warnings for anchors, aliases, complex keys, scalar resolution, and conversion loss.",
   alternates: {
     canonical: "https://yoryantra.com/tools/yaml-to-json-converter",
   },

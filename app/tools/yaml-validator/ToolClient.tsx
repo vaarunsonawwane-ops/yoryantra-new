@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import {
+  isAlias,
   isMap,
   isScalar,
   isSeq,
   parseAllDocuments,
+  visit,
 } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
@@ -18,72 +20,22 @@ type ValidationResult = {
   documentCount: number;
 };
 
-function countReferenceTokens(
-  source: string,
-  token: "&" | "*"
-) {
-  let count = 0;
-  let single = false;
-  let double = false;
-  let comment = false;
-  let escaped = false;
+const MAX_INPUT_CHARACTERS = 2_000_000;
 
-  for (let index = 0; index < source.length; index += 1) {
-    const char = source[index];
+function lineNumberAt(source: string, offset: number) {
+  let line = 1;
 
-    if (char === "\n") {
-      comment = false;
-    }
-
-    if (comment) continue;
-
-    if (double) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === '"') {
-        double = false;
-      }
-
-      continue;
-    }
-
-    if (single) {
-      if (char === "'" && source[index + 1] === "'") {
-        index += 1;
-      } else if (char === "'") {
-        single = false;
-      }
-
-      continue;
-    }
-
-    if (char === "#") {
-      comment = true;
-      continue;
-    }
-
-    if (char === '"') {
-      double = true;
-      continue;
-    }
-
-    if (char === "'") {
-      single = true;
-      continue;
-    }
-
-    if (
-      char === token &&
-      /[\s\[\]{},?:-]/.test(source[index - 1] || "\n") &&
-      /[A-Za-z0-9_-]/.test(source[index + 1] || "")
-    ) {
-      count += 1;
+  for (
+    let index = 0;
+    index < offset && index < source.length;
+    index += 1
+  ) {
+    if (source.charCodeAt(index) === 10) {
+      line += 1;
     }
   }
 
-  return count;
+  return line;
 }
 
 function rootType(contents: unknown) {
@@ -139,23 +91,58 @@ function formatParserDiagnostic(
   }`;
 }
 
-function findYaml11BooleanWords(source: string) {
-  const lines = source.replace(/\r\n?/g, "\n").split("\n");
-  const hits: string[] = [];
+function inspectDocumentNodes(
+  document: ReturnType<typeof parseAllDocuments>[number],
+  source: string
+) {
+  let anchors = 0;
+  let aliases = 0;
+  const yaml11PlainWords: string[] = [];
 
-  lines.forEach((line, index) => {
-    const withoutComment = line.split("#")[0];
+  try {
+    visit(document, (_key, node) => {
+      if (isAlias(node)) {
+        aliases += 1;
+        return;
+      }
 
-    if (
-      /(?:^|:\s+|-\s+)(?:yes|no|on|off|y|n)(?:\s*$|\s*,|\s*\]|\s*\})/i.test(
-        withoutComment
-      )
-    ) {
-      hits.push(`line ${index + 1}`);
-    }
-  });
+      if (
+        (isMap(node) || isSeq(node) || isScalar(node)) &&
+        typeof node.anchor === "string" &&
+        node.anchor
+      ) {
+        anchors += 1;
+      }
 
-  return hits;
+      if (
+        isScalar(node) &&
+        node.type === "PLAIN" &&
+        typeof node.source === "string" &&
+        /^(?:yes|no|on|off|y|n)$/i.test(node.source.trim())
+      ) {
+        const offset =
+          node.range && typeof node.range[0] === "number"
+            ? node.range[0]
+            : 0;
+
+        yaml11PlainWords.push(
+          `${JSON.stringify(node.source.trim())} on line ${lineNumberAt(
+            source,
+            offset
+          )}`
+        );
+      }
+    });
+  } catch {
+    // Parser diagnostics remain authoritative if a partially composed
+    // document cannot be traversed safely.
+  }
+
+  return {
+    anchors,
+    aliases,
+    yaml11PlainWords,
+  };
 }
 
 function validateYaml(source: string): ValidationResult {
@@ -165,6 +152,18 @@ function validateYaml(source: string): ValidationResult {
       output: "",
       warnings: [],
       errors: ["YAML content is empty."],
+      documentCount: 0,
+    };
+  }
+
+  if (source.length > MAX_INPUT_CHARACTERS) {
+    return {
+      valid: false,
+      output: "",
+      warnings: [],
+      errors: [
+        "The YAML input is larger than 2,000,000 characters. Validation was stopped before parsing to avoid freezing the browser on unusually large pasted data.",
+      ],
       documentCount: 0,
     };
   }
@@ -196,6 +195,11 @@ function validateYaml(source: string): ValidationResult {
   const warnings: string[] = [];
   const documentLines: string[] = [];
 
+  let anchors = 0;
+  let aliases = 0;
+  const yaml11PlainWords: string[] = [];
+  let explicitYaml11 = false;
+
   documents.forEach((document, index) => {
     document.errors.forEach((diagnostic) => {
       errors.push(
@@ -209,27 +213,64 @@ function validateYaml(source: string): ValidationResult {
       );
     });
 
+    const version =
+      document.directives &&
+      document.directives.yaml &&
+      document.directives.yaml.version
+        ? document.directives.yaml.version
+        : "1.2";
+    const versionIsExplicit = Boolean(
+      document.directives &&
+        document.directives.yaml &&
+        document.directives.yaml.explicit
+    );
+
+    if (versionIsExplicit && version === "1.1") {
+      explicitYaml11 = true;
+    }
+
     documentLines.push(
-      `Document ${index + 1}: ${rootType(document.contents)}`
+      `Document ${index + 1}: ${rootType(
+        document.contents
+      )}; YAML ${version}${
+        versionIsExplicit ? " directive" : " default"
+      }.`
+    );
+
+    const nodeInfo = inspectDocumentNodes(
+      document,
+      source
+    );
+    anchors += nodeInfo.anchors;
+    aliases += nodeInfo.aliases;
+    yaml11PlainWords.push(
+      ...nodeInfo.yaml11PlainWords
     );
   });
 
-  const anchors = countReferenceTokens(source, "&");
-  const aliases = countReferenceTokens(source, "*");
-
   if (anchors || aliases) {
     warnings.push(
-      `Anchors/aliases detected: ${anchors} anchor token${
+      `Anchors/aliases present: ${anchors} anchored node${
         anchors === 1 ? "" : "s"
-      }, ${aliases} alias token${
+      }, ${aliases} alias node${
         aliases === 1 ? "" : "s"
       }. Valid syntax does not prove that alias expansion is safe or appropriate for the application consuming the file.`
     );
   }
 
-  if (/^%YAML\s+1\.1\s*$/m.test(source)) {
+  if (explicitYaml11) {
     warnings.push(
-      "This stream explicitly declares YAML 1.1. Scalar resolution and legacy types can differ from YAML 1.2; validate against the same version/schema used by the target application."
+      "At least one document explicitly declares YAML 1.1. Its scalar resolution and legacy types can differ from YAML 1.2; compare the result with the version and schema used by the target application."
+    );
+  }
+
+  if (yaml11PlainWords.length && !explicitYaml11) {
+    warnings.push(
+      `YAML 1.1-style boolean words appear as plain scalars: ${yaml11PlainWords
+        .slice(0, 6)
+        .join(", ")}${
+        yaml11PlainWords.length > 6 ? " …" : ""
+      }. Under the YAML 1.2 core schema they are strings; older 1.1-oriented consumers may interpret them differently.`
     );
   }
 
@@ -239,20 +280,6 @@ function validateYaml(source: string): ValidationResult {
     );
   }
 
-  const yaml11Words = findYaml11BooleanWords(source);
-
-  if (
-    yaml11Words.length &&
-    !/^%YAML\s+1\.1\s*$/m.test(source)
-  ) {
-    warnings.push(
-      `Plain words such as yes/no/on/off appear on ${yaml11Words
-        .slice(0, 6)
-        .join(", ")}${
-        yaml11Words.length > 6 ? " …" : ""
-      }. YAML 1.2 core treats these as strings, while some YAML 1.1-oriented consumers historically resolve them as booleans.`
-    );
-  }
 
   if (/\t/.test(source)) {
     warnings.push(
@@ -272,7 +299,7 @@ function validateYaml(source: string): ValidationResult {
   const valid = errors.length === 0;
   const summary = [
     valid
-      ? "YAML syntax is valid under strict YAML 1.2 parsing."
+      ? "YAML syntax is valid under strict parsing. YAML 1.2 is the default when a document has no explicit version directive."
       : "YAML syntax / composition problems were found.",
     `Documents parsed: ${documents.length}`,
     `Parser errors: ${errors.length}`,
@@ -299,6 +326,7 @@ export default function ToolClient() {
   const [result, setResult] =
     useState<ValidationResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
 
   const lineCount = useMemo(
     () =>
@@ -311,6 +339,7 @@ export default function ToolClient() {
   const validate = () => {
     setResult(validateYaml(input));
     setCopied(false);
+    setCopyError("");
   };
 
   const loadBrokenExample = () => {
@@ -326,6 +355,8 @@ export default function ToolClient() {
     setInput(example);
     setResult(validateYaml(example));
     setCopied(false);
+    setCopyError("");
+    setCopyError("");
   };
 
   const loadValidExample = () => {
@@ -350,6 +381,7 @@ service:
     setInput("");
     setResult(null);
     setCopied(false);
+    setCopyError("");
   };
 
   const copyResult = async () => {
@@ -372,9 +404,13 @@ service:
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+      setCopyError("");
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
+      setCopyError(
+        "Clipboard access was blocked by the browser. Select the diagnostics and copy them manually."
+      );
     }
   };
 
@@ -386,7 +422,7 @@ service:
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <label className="block text-sm font-semibold text-gray-900">
+            <label htmlFor="yaml-validator-input" className="block text-sm font-semibold text-gray-900">
               YAML input
             </label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
@@ -400,11 +436,13 @@ service:
         </div>
 
         <textarea
+          id="yaml-validator-input"
           value={input}
           onChange={(event: { target: { value: string } }) => {
             setInput(event.target.value);
             setResult(null);
             setCopied(false);
+            setCopyError("");
           }}
           placeholder={`profile:\n  name: Sneha\n  roles:\n    - editor\n    - reviewer`}
           spellCheck={false}
@@ -460,6 +498,12 @@ service:
         </pre>
       </div>
 
+      {copyError ? (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {copyError}
+        </div>
+      ) : null}
+
       {result && result.errors.length ? (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-800">
           <strong>Parser errors:</strong>
@@ -474,7 +518,7 @@ service:
       ) : null}
 
       {result && result.warnings.length ? (
-        <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-900">
           <strong>Warnings / compatibility notes:</strong>
           <ul className="mt-2 list-disc space-y-2 pl-5">
             {result.warnings.map((warning) => (
@@ -488,9 +532,9 @@ service:
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
         Validation is performed on the pasted text in your browser using the
-        bundled YAML parser. The tool does not upload the YAML or fetch a
-        product-specific schema. Site-wide analytics or advertising scripts,
-        if enabled, are separate from this validation operation.
+        bundled YAML parser. No validation API receives the YAML, and no
+        product-specific schema is fetched. Site-wide analytics or advertising
+        scripts, if enabled, are separate from the validation operation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -502,11 +546,12 @@ service:
             YAML uses indentation and punctuation to express structure, so a
             parser error reported on line 12 may have been caused by a missing
             quote, colon, closing bracket, or indentation change on line 11.
-            The validator reports the parser's line and column instead of trying
-            to diagnose YAML with quote counts or indentation heuristics alone.
+            Parser diagnostics include the line and column where composition
+            failed instead of guessing from quote counts or indentation
+            heuristics alone.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Read the highlighted location as the place where the parser could no
+            Read the highlighted location as the point where parsing could no
             longer continue confidently—not always as the exact character you
             should edit.
           </p>
@@ -557,17 +602,18 @@ service:
           </div>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Duplicate Mapping Keys Are Not a Harmless “Last One Wins” Style
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             YAML mappings require unique keys. Silently keeping the last value
             can hide configuration mistakes—especially when a long deployment
             file contains two copies of <code>image</code>,{" "}
             <code>environment</code>, or another important setting. This
-            validator keeps unique-key checking enabled and reports duplicates
-            as errors.
+            strict parsing keeps unique-key checking enabled and reports
+            duplicates as errors. YAML 1.2 defines a mapping as a set of
+            key/value pairs whose keys are unique.
           </p>
         </div>
 
@@ -582,10 +628,10 @@ service:
             volume, or a CI workflow uses supported action keys.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            That is why Yoryantra has separate Kubernetes and Docker Compose
-            validators. Use this generic YAML validator when your first question
-            is “does this parse as YAML?” and a product-specific validator when
-            your question is “will this configuration work?”
+            Syntax validation answers “does this parse as YAML?” A second,
+            product-specific pass is still needed for questions such as “does
+            this Kubernetes resource satisfy its API schema?” or “does this
+            Compose service reference something that actually exists?”
           </p>
         </div>
 
@@ -602,10 +648,22 @@ service:
             tags and conversions.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The validator defaults documents without a version directive to
-            YAML 1.2 and warns about several common compatibility patterns. A
-            clean result still does not promise that another application's YAML
-            library resolves every scalar in exactly the same way.
+            Documents without a version directive use YAML 1.2 as the default;
+            an explicit <code>%YAML 1.1</code> directive is reported separately.
+            The{" "}
+            <a
+              href="https://yaml.org/spec/1.2.2/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              YAML 1.2.2 specification
+            </a>{" "}
+            defines the core schema in which <code>true</code> and{" "}
+            <code>false</code> are booleans while words such as{" "}
+            <code>yes</code> and <code>on</code> remain strings. A clean parse
+            still does not promise that another application's YAML library uses
+            the same version, schema, or custom tags.
           </p>
         </div>
 
@@ -621,9 +679,9 @@ service:
             ordinary values.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The validator reports their presence as a review note rather than
-            an error. For untrusted YAML, the consuming parser should also have
-            sensible resource limits so deliberately large alias graphs cannot
+            Their presence is reported as a review note rather than an error.
+            For untrusted YAML, the consuming parser should also have sensible
+            alias and resource limits so deliberately expansive graphs cannot
             exhaust memory or processing time.
           </p>
         </div>
@@ -640,17 +698,18 @@ service:
             resource.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This page parses the complete stream and reports each document's
-            root type so you can tell whether you actually supplied one mapping,
-            several objects, a sequence, a scalar, or an empty document.
+            The complete stream is parsed and each document's root type and
+            effective YAML version are reported, making it clear whether the
+            input contains one mapping, several documents, a sequence, a scalar,
+            or an empty document.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Validate Rendered YAML, Not Only the Template Source
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             Helm, Jinja-style templates, CI substitutions, and other generators
             may contain <code>{"{{ ... }}"}</code> or other syntax that is not
             the final YAML sent to the application. The template can be
@@ -658,7 +717,7 @@ service:
             of values—or the template source can fail a generic YAML parser even
             though rendering would remove the placeholders.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             For deployment confidence, render with representative production
             values and validate the resulting YAML as a separate step.
           </p>
@@ -666,32 +725,11 @@ service:
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            The YAML Specification Is Useful When a Parser Disagreement Matters
+            Move From YAML Syntax to the Configuration It Represents
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            Most everyday errors can be fixed from the parser message alone.
-            The YAML 1.2.2 specification becomes valuable when two tools
-            disagree about directives, scalar syntax, mappings, anchors, or
-            another edge case and you need the language rule rather than a
-            framework convention.
-          </p>
-          <p className="mt-4 text-sm">
-            <a
-              href="https://yaml.org/spec/1.2.2/"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              YAML 1.2.2 specification
-            </a>
-          </p>
-        </div>
-
-        <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-          <YoryantraRelatedTools currentHref="/tools/yaml-validator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/yaml-validator" />
+          </div>
         </div>
       </section>
     </ToolShell>

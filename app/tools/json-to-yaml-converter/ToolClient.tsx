@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import * as yaml from "js-yaml";
+import { stringify } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
@@ -25,6 +25,110 @@ const DEFAULT_OPTIONS: Options = {
   forceQuotes: false,
   sortKeys: false,
 };
+
+const MAX_INPUT_CHARACTERS = 2_000_000;
+const MAX_JSON_NESTING = 512;
+
+function jsonNestingDepth(source: string) {
+  let depth = 0;
+  let maximum = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{" || char === "[") {
+      depth += 1;
+      maximum = Math.max(maximum, depth);
+    } else if (char === "}" || char === "]") {
+      depth = Math.max(0, depth - 1);
+    }
+  }
+
+  return maximum;
+}
+
+function hasUnpairedSurrogate(value: string) {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) {
+        return true;
+      }
+      index += 1;
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function containsUnpairedSurrogate(value: unknown) {
+  const stack: unknown[] = [value];
+  let visited = 0;
+
+  while (stack.length) {
+    const current = stack.pop();
+    visited += 1;
+
+    if (visited > 100_000) {
+      return "The parsed JSON contains more than 100,000 values. Conversion was stopped to keep browser-side processing bounded.";
+    }
+
+    if (typeof current === "string") {
+      if (hasUnpairedSurrogate(current)) {
+        return "The JSON contains an unpaired UTF-16 surrogate in a string value. That sequence does not represent a portable Unicode scalar value for YAML output.";
+      }
+      continue;
+    }
+
+    if (!current || typeof current !== "object") {
+      continue;
+    }
+
+    if (Array.isArray(current)) {
+      for (let index = current.length - 1; index >= 0; index -= 1) {
+        stack.push(current[index]);
+      }
+      continue;
+    }
+
+    const object = current as Record<string, unknown>;
+    const keys = Object.keys(object);
+
+    for (let index = keys.length - 1; index >= 0; index -= 1) {
+      const key = keys[index];
+
+      if (hasUnpairedSurrogate(key)) {
+        return "The JSON contains an unpaired UTF-16 surrogate in an object name. That sequence does not represent a portable Unicode scalar value for YAML output.";
+      }
+
+      stack.push(object[key]);
+    }
+  }
+
+  return "";
+}
 
 function scanJsonNumberTokens(source: string) {
   const tokens: string[] = [];
@@ -299,6 +403,28 @@ function convertJsonToYaml(
     };
   }
 
+  if (source.length > MAX_INPUT_CHARACTERS) {
+    return {
+      output: "",
+      error:
+        "The JSON input is larger than 2,000,000 characters. Conversion was stopped before parsing to avoid freezing the browser on unusually large pasted data.",
+      warnings: [],
+      notes: [],
+    };
+  }
+
+  const nesting = jsonNestingDepth(source);
+
+  if (nesting > MAX_JSON_NESTING) {
+    return {
+      output: "",
+      error:
+        `The JSON nesting depth is ${nesting}, above the browser-side limit of ${MAX_JSON_NESTING}. Deeply nested data can overflow recursive parsers and serializers even when the JSON syntax itself is valid.`,
+      warnings: [],
+      notes: [],
+    };
+  }
+
   let parsed: unknown;
 
   try {
@@ -362,7 +488,26 @@ function convertJsonToYaml(
     };
   }
 
-  const duplicates = findDuplicateKeys(source);
+  const surrogateProblem = containsUnpairedSurrogate(parsed);
+
+  if (surrogateProblem) {
+    return {
+      output: "",
+      error: surrogateProblem,
+      warnings,
+      notes,
+    };
+  }
+
+  let duplicates: string[] = [];
+
+  try {
+    duplicates = findDuplicateKeys(source);
+  } catch {
+    warnings.push(
+      "Duplicate-name scanning could not finish safely for this unusually complex JSON structure. The parsed value can still be converted, but duplicate object names may have been collapsed by JSON.parse."
+    );
+  }
 
   if (duplicates.length) {
     const unique = Array.from(new Set(duplicates));
@@ -391,15 +536,21 @@ function convertJsonToYaml(
   notes.push(`Parsed JSON root: ${rootType(parsed)}.`);
 
   try {
-    const output = yaml
-      .dump(parsed, {
-        indent: options.indent,
-        lineWidth: options.lineWidth,
-        noRefs: true,
-        forceQuotes: options.forceQuotes,
-        sortKeys: options.sortKeys,
-      })
-      .replace(/\s+$/, "");
+    const output = stringify(parsed, {
+      indent: options.indent,
+      lineWidth:
+        options.lineWidth === -1 ? 0 : options.lineWidth,
+      sortMapEntries: options.sortKeys,
+      aliasDuplicateObjects: false,
+      ...(options.forceQuotes
+        ? {
+            defaultStringType: "QUOTE_DOUBLE" as const,
+            defaultKeyType: "PLAIN" as const,
+            doubleQuotedAsJSON: true,
+            blockQuote: false,
+          }
+        : {}),
+    }).replace(/\s+$/, "");
 
     return {
       output,
@@ -427,6 +578,7 @@ export default function ToolClient() {
   const [result, setResult] =
     useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
 
   const lineCount = useMemo(
     () =>
@@ -439,6 +591,7 @@ export default function ToolClient() {
   const convert = () => {
     setResult(convertJsonToYaml(input, options));
     setCopied(false);
+    setCopyError("");
   };
 
   const loadExample = () => {
@@ -456,6 +609,7 @@ export default function ToolClient() {
     setInput(example);
     setResult(convertJsonToYaml(example, options));
     setCopied(false);
+    setCopyError("");
   };
 
   const reset = () => {
@@ -463,6 +617,7 @@ export default function ToolClient() {
     setOptions(DEFAULT_OPTIONS);
     setResult(null);
     setCopied(false);
+    setCopyError("");
   };
 
   const copyOutput = async () => {
@@ -471,9 +626,13 @@ export default function ToolClient() {
     try {
       await navigator.clipboard.writeText(result.output);
       setCopied(true);
+      setCopyError("");
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
+      setCopyError(
+        "Clipboard access was blocked by the browser. Select the YAML output and copy it manually."
+      );
     }
   };
 
@@ -485,7 +644,7 @@ export default function ToolClient() {
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <label className="block text-sm font-semibold text-gray-900">
+            <label htmlFor="json-yaml-input" className="block text-sm font-semibold text-gray-900">
               JSON input
             </label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
@@ -499,11 +658,13 @@ export default function ToolClient() {
         </div>
 
         <textarea
+          id="json-yaml-input"
           value={input}
           onChange={(event: { target: { value: string } }) => {
             setInput(event.target.value);
             setResult(null);
             setCopied(false);
+            setCopyError("");
           }}
           placeholder='{"person":"Sneha","enabled":true,"ports":[80,443]}'
           spellCheck={false}
@@ -513,17 +674,21 @@ export default function ToolClient() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label htmlFor="json-yaml-indent" className="mb-2 block text-sm font-medium text-gray-700">
             Indentation
           </label>
           <select
+            id="json-yaml-indent"
             value={options.indent}
-            onChange={(event: { target: { value: string } }) =>
+            onChange={(event: { target: { value: string } }) => {
               setOptions((current) => ({
                 ...current,
                 indent: Number(event.target.value),
-              }))
-            }
+              }));
+              setResult(null);
+              setCopied(false);
+              setCopyError("");
+            }}
             className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm"
           >
             <option value={2}>2 spaces</option>
@@ -532,17 +697,21 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label htmlFor="json-yaml-line-width" className="mb-2 block text-sm font-medium text-gray-700">
             Line width
           </label>
           <select
+            id="json-yaml-line-width"
             value={options.lineWidth}
-            onChange={(event: { target: { value: string } }) =>
+            onChange={(event: { target: { value: string } }) => {
               setOptions((current) => ({
                 ...current,
                 lineWidth: Number(event.target.value),
-              }))
-            }
+              }));
+              setResult(null);
+              setCopied(false);
+              setCopyError("");
+            }}
             className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm"
           >
             <option value={-1}>No wrapping</option>
@@ -555,12 +724,15 @@ export default function ToolClient() {
           <input
             type="checkbox"
             checked={options.forceQuotes}
-            onChange={(event: { target: { checked: boolean } }) =>
+            onChange={(event: { target: { checked: boolean } }) => {
               setOptions((current) => ({
                 ...current,
                 forceQuotes: event.target.checked,
-              }))
-            }
+              }));
+              setResult(null);
+              setCopied(false);
+              setCopyError("");
+            }}
             className="h-4 w-4 accent-[#d9a928]"
           />
           Quote all strings
@@ -570,12 +742,15 @@ export default function ToolClient() {
           <input
             type="checkbox"
             checked={options.sortKeys}
-            onChange={(event: { target: { checked: boolean } }) =>
+            onChange={(event: { target: { checked: boolean } }) => {
               setOptions((current) => ({
                 ...current,
                 sortKeys: event.target.checked,
-              }))
-            }
+              }));
+              setResult(null);
+              setCopied(false);
+              setCopyError("");
+            }}
             className="h-4 w-4 accent-[#d9a928]"
           />
           Sort object keys
@@ -601,7 +776,7 @@ export default function ToolClient() {
       ) : null}
 
       {result && result.warnings.length ? (
-        <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-900">
           <strong>Conversion risks:</strong>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {result.warnings.map((warning) => (
@@ -650,10 +825,16 @@ export default function ToolClient() {
         </pre>
       </div>
 
+      {copyError ? (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {copyError}
+        </div>
+      ) : null}
+
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Conversion runs on the pasted text in your browser. The tool does not
-        send the JSON to a conversion API. Site-wide analytics or advertising
-        scripts, if enabled, are separate from this conversion operation.
+        Conversion runs on the pasted text in your browser. No conversion API
+        receives the JSON. Site-wide analytics or advertising scripts, if enabled,
+        are separate from the conversion operation.
       </div>
 
       <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
@@ -664,8 +845,18 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             JSON has a deliberately small data model: objects, arrays, strings,
             numbers, booleans, and null. YAML can represent all of those values,
-            so ordinary JSON usually converts cleanly. The converter parses the
-            JSON first and then serializes that value as YAML.
+            so ordinary JSON usually converts cleanly. The input is parsed as JSON
+            first and the resulting value is then serialized as YAML.{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc8259"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 8259
+            </a>{" "}
+            defines the JSON data-interchange format, including the interoperability
+            warning around repeated object names and very large numbers.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             That distinction matters. Indentation, quotes, line wrapping, and
@@ -710,26 +901,26 @@ active: true`}</pre>
             <code>JSON.parse()</code>.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool scans integer tokens before conversion and warns when they
-            exceed the safe-integer range. It also warns about unusually
-            high-precision decimal/exponent tokens. If a number overflows the
-            finite JavaScript range entirely, conversion stops instead of
-            silently emitting YAML infinity.
+            Integer tokens are checked before conversion so values beyond the
+            safe-integer range do not quietly look exact after <code>JSON.parse()</code>.
+            High-precision decimal and exponent forms are also called out. If a
+            number overflows JavaScript's finite range entirely, conversion stops
+            instead of silently turning the source into YAML infinity.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             Duplicate JSON Object Names Are Already Lossy Before YAML Exists
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             JSON texts in the wild sometimes contain the same object name more
             than once. JavaScript's JSON parser keeps the later value, so by the
-            time a normal object reaches the YAML serializer the earlier value
-            is gone. The converter scans for duplicates and reports them rather
-            than making the resulting YAML look lossless.
+            time a normal object reaches YAML serialization the earlier value is
+            gone. A source-level duplicate-name check keeps that loss visible
+            instead of making the resulting YAML look lossless.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-700">
             If duplicate names matter, fix the source or use a representation
             designed to preserve repeated entries, such as an array of
             name/value objects.
@@ -745,7 +936,18 @@ active: true`}</pre>
             that resembles a boolean, number, null value, indicator, or other
             special-looking scalar can need quotes so that loading the YAML
             produces the original string rather than a different type. The
-            serializer handles necessary quoting automatically.
+            YAML serialization handles necessary quoting automatically. The{" "}
+            <a
+              href="https://yaml.org/spec/1.2.2/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              YAML 1.2.2 specification
+            </a>{" "}
+            is the useful reference when a plain scalar, quoted scalar, or type
+            resolution rule behaves differently from what a configuration file
+            appears to suggest.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             The “Quote all strings” option is therefore a readability or policy
@@ -790,43 +992,22 @@ active: true`}</pre>
             schema. Validate the generated YAML with the target system before
             deployment.
           </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Standards Behind the Conversion Boundary
-          </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The references are useful on this converter because the core
-            question is exactly where the JSON and YAML data models overlap.
-            RFC 8259 defines JSON's portable data interchange format, while
-            YAML 1.2 was designed so JSON fits within the YAML model.
+            Unpaired UTF-16 surrogate escapes are another boundary worth stopping
+            at. JSON's grammar can contain such sequences, but they do not name a
+            Unicode scalar value and RFC 8259 notes that implementations can
+            disagree about them. Conversion stops rather than emitting YAML whose
+            Unicode meaning is not portable.
           </p>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <a
-              href="https://www.rfc-editor.org/rfc/rfc8259"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              RFC 8259 — JSON
-            </a>
-            <a
-              href="https://yaml.org/spec/1.2.2/"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--green)] underline underline-offset-4"
-            >
-              YAML 1.2.2 specification
-            </a>
-          </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
+            Keep Checking the Data After the Format Changes
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/json-to-yaml-converter" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-to-yaml-converter" />
+          </div>
         </div>
       </section>
     </ToolShell>
