@@ -721,7 +721,7 @@ environment:
             </p>
           </div>
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <div className="self-start rounded-2xl border border-amber-200 bg-amber-50 p-5">
             <h3 className="font-semibold text-gray-900">
               Predictable scalar types over ecosystem guessing
             </h3>
