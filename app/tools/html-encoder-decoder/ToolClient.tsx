@@ -34,6 +34,16 @@ function encodeHtml(text: string, mode: EncodeMode): string {
       if (mode === "ascii-safe") {
         const codePoint = character.codePointAt(0);
         if (typeof codePoint === "number" && codePoint > 0x7f) {
+          if (codePoint >= 0xd800 && codePoint <= 0xdfff) {
+            throw new Error(
+              `U+${codePoint.toString(16).toUpperCase()} is an unpaired UTF-16 surrogate, not a Unicode scalar value. Replace or remove it before generating numeric HTML references.`
+            );
+          }
+          if (codePoint >= 0x80 && codePoint <= 0x9f) {
+            throw new Error(
+              `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")} is a C1 control character. HTML numeric character-reference parsing has legacy remapping rules in this range, so an ASCII-only numeric reference would not be a reliable round trip.`
+            );
+          }
           return `&#x${codePoint.toString(16).toUpperCase()};`;
         }
       }
@@ -83,9 +93,15 @@ export default function ToolClient() {
       return;
     }
 
-    setOutput(encodeHtml(input, encodeMode));
-    setError("");
-    setCopied(false);
+    try {
+      setOutput(encodeHtml(input, encodeMode));
+      setError("");
+      setCopied(false);
+    } catch (encodeError) {
+      setOutput("");
+      setCopied(false);
+      setError(encodeError instanceof Error ? encodeError.message : "Unable to encode this text.");
+    }
   };
 
   const handleDecode = () => {
@@ -217,32 +233,32 @@ export default function ToolClient() {
           )}
         </div>
 
-        <pre className="yoryantra-output min-h-[220px] overflow-auto whitespace-pre-wrap break-words text-sm">
+        <pre aria-live="polite" className="yoryantra-output min-h-[220px] overflow-auto whitespace-pre-wrap break-words text-sm">
           {output || "Encoded or decoded output will appear here..."}
         </pre>
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h2 className="text-sm font-semibold text-yellow-900">Privacy and security boundary</h2>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          This component transforms the text in your browser and does not send the value to a conversion API. Encoding is not the same as sanitizing untrusted HTML, and decoding an entity does not make its resulting markup safe to insert into a page.
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h2 className="text-sm font-semibold text-gray-900">What stays local, and what escaping cannot protect</h2>
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          Encoding and decoding happen in the browser without sending the entered value to a conversion API. Escaping characters is still different from sanitizing untrusted HTML, and decoded text should not be inserted into an active page as markup unless that destination is handled safely.
         </p>
       </div>
 
       <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">HTML character references: what the tool actually changes</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Character references change the spelling, not the character</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            HTML can represent certain characters with character references. A named reference uses a name such as <code>&amp;amp;</code> or <code>&amp;lt;</code>. A decimal numeric reference looks like <code>&amp;#169;</code>, while a hexadecimal numeric reference looks like <code>&amp;#xA9;</code>. Browsers interpret those references as characters when they are allowed by the HTML parsing context.
+            HTML can write a character directly or represent it with a character reference. <code>&amp;amp;</code> is a named reference, <code>&amp;#38;</code> is decimal, and <code>&amp;#x26;</code> is hexadecimal; all three can represent an ampersand in an HTML context where character references are recognized. The syntax and parsing rules come from the <a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://html.spec.whatwg.org/multipage/syntax.html#character-references" target="_blank" rel="noreferrer">WHATWG HTML character-reference rules</a>.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The default encoder deliberately changes only the small group of characters that commonly need attention when developers want literal markup to appear as text: ampersand, angle brackets, and quotes. The optional ASCII-safe mode also emits numeric references for non-ASCII characters. That second mode is useful for inspecting code points or working with a legacy text pipeline, but modern HTML is Unicode and normally does not require characters such as é, ₹, 日本語, or 😀 to be entity-encoded.
+            For ordinary modern HTML, readable Unicode is normally preferable to turning every non-ASCII character into a numeric reference. The reserved-character mode focuses on ampersand, angle brackets, quotes, and apostrophes. The ASCII-safe option is mainly for inspecting code points or working with a text pipeline that genuinely requires ASCII-only source.
           </p>
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">Encoding example</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Literal markup in documentation</h2>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">Input:</p>
             <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-sm text-gray-800">{`<p title="A & B">Café ☕</p>`}</pre>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">Reserved-character output:</p>
@@ -250,131 +266,90 @@ export default function ToolClient() {
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">Numeric references</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Numeric references and Unicode</h2>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              In ASCII-safe mode, non-ASCII code points are represented in hexadecimal form. For example, <strong>é</strong> becomes <code>&amp;#xE9;</code> and 😀 becomes <code>&amp;#x1F600;</code>.
+              In ASCII-safe mode, <strong>é</strong> becomes <code>&amp;#xE9;</code> and 😀 becomes <code>&amp;#x1F600;</code>. Supplementary characters are handled by Unicode code point, so an emoji becomes one numeric reference rather than two UTF-16 surrogate references.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              The decoder accepts named references as well as decimal and hexadecimal numeric references supported by the browser&apos;s HTML parser. Unknown entity-like text is left unchanged instead of being guessed.
+              Turning Unicode into references does not repair a wrong charset declaration or corrupted bytes. It only changes how the same character is written in HTML source.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-gray-600">
+              C1 controls (U+0080–U+009F) and unpaired UTF-16 surrogates are rejected in ASCII-safe mode. HTML has legacy numeric-reference remapping in the C1 range, while surrogate references become the replacement character, so emitting those references would not preserve the original code unit faithfully.
             </p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">HTML encoding is context-sensitive</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Escape for the place where the value will be inserted</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Escaping a few characters is useful, but secure output handling depends on where the value is inserted. Text between normal HTML elements, a quoted attribute, a URL-valued attribute, inline JavaScript, and inline CSS are different contexts. A transformation that is appropriate for one context is not automatically correct for another.
+            HTML text, quoted attributes, URLs, JavaScript, and CSS are different output contexts. Escaping literal markup for a paragraph is not a universal security transformation. Frameworks normally apply the right escaping when values are inserted through ordinary text or attribute bindings; bypassing those protections deserves deliberate review.
           </p>
           <div className="mt-5 overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full min-w-[680px] text-left text-sm">
+            <table className="w-full min-w-[700px] text-left text-sm">
               <thead className="bg-gray-50 text-gray-900">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Situation</th>
-                  <th className="px-4 py-3 font-semibold">What matters</th>
-                </tr>
+                <tr><th className="px-4 py-3 font-semibold">Destination</th><th className="px-4 py-3 font-semibold">What to keep in mind</th></tr>
               </thead>
               <tbody className="divide-y divide-gray-200 text-gray-600">
-                <tr>
-                  <td className="px-4 py-3">Showing literal markup as text</td>
-                  <td className="px-4 py-3">Escape markup-significant characters so tags are displayed rather than interpreted.</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3">Quoted HTML attribute</td>
-                  <td className="px-4 py-3">The matching quote and ampersand require particular care; use your framework&apos;s normal attribute escaping.</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3">Untrusted rich HTML</td>
-                  <td className="px-4 py-3">Entity encoding alone is not a sanitizer. Use a well-maintained allow-list sanitizer and avoid unsafe DOM sinks.</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3">JavaScript, CSS, or URL context</td>
-                  <td className="px-4 py-3">Use the encoder designed for that context; HTML entity encoding is not a universal escaping mechanism.</td>
-                </tr>
+                <tr><td className="px-4 py-3">Visible HTML text</td><td className="px-4 py-3">Escape markup-significant characters so literal tags remain text.</td></tr>
+                <tr><td className="px-4 py-3">Quoted attribute</td><td className="px-4 py-3">The matching quote and ampersand matter; prefer the framework&apos;s normal attribute binding.</td></tr>
+                <tr><td className="px-4 py-3">Untrusted rich HTML</td><td className="px-4 py-3">Character escaping alone cannot decide which elements, attributes, or URLs are safe.</td></tr>
+                <tr><td className="px-4 py-3">JavaScript, CSS, or URL data</td><td className="px-4 py-3">Apply the rules for that language or URL component rather than HTML entity encoding.</td></tr>
               </tbody>
             </table>
           </div>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            For untrusted rich HTML, the <a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html" target="_blank" rel="noreferrer">OWASP Cross Site Scripting Prevention Cheat Sheet</a> is a better security reference than treating entity encoding as sanitization.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">Missing semicolons can be context-dependent</h2>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            HTML keeps historical support for a limited set of named references without a final semicolon. Parsing can also differ inside attributes when letters, digits, or an equals sign follow the candidate. The decoder therefore handles complete semicolon-terminated named references and numeric references rather than guessing every legacy named form.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            The <a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://html.spec.whatwg.org/multipage/named-characters.html" target="_blank" rel="noreferrer">WHATWG named-character table</a> shows the supported names, including the small historical subset that can appear without a semicolon in some parsing states.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common mistakes and edge cases</h2>
+          <h2 className="text-xl font-semibold text-gray-900">When encoded text starts looking strange</h2>
           <div className="mt-5 grid gap-5 md:grid-cols-2">
             <div className="rounded-xl border border-gray-200 p-5">
               <h3 className="font-semibold text-gray-900">Double encoding</h3>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                Encoding <code>&amp;lt;</code> again produces <code>&amp;amp;lt;</code>. Decode only when you know a value is entity-encoded, and encode once at the final output boundary rather than repeatedly through every application layer.
+                Encoding <code>&amp;lt;</code> again produces <code>&amp;amp;lt;</code>. If a page displays <code>&amp;lt;</code> instead of <code>&lt;</code>, trace which layer encoded an already encoded value rather than adding another decode step blindly.
               </p>
             </div>
             <div className="rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-gray-900">Missing semicolons</h3>
+              <h3 className="font-semibold text-gray-900">Different spellings can mean the same character</h3>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                HTML has legacy parsing rules for a limited set of semicolon-less named references, but those forms can be ambiguous beside letters or digits. This tool deliberately targets complete named references ending in a semicolon rather than guessing legacy context-dependent forms.
+                An apostrophe can be written literally or with a numeric/named reference. Comparing raw source strings can therefore show a difference even when the browser displays the same character.
               </p>
             </div>
             <div className="rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-gray-900">Apostrophe representations</h3>
+              <h3 className="font-semibold text-gray-900">Entity decoding is not JSON unescaping</h3>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                This encoder emits <code>&amp;#39;</code> for an apostrophe. HTML also defines named forms, but numeric output is compact and widely understood. Different valid spellings can decode to the same character.
+                <code>&amp;#10;</code> belongs to HTML character-reference syntax; <code>\n</code> and <code>\u000A</code> belong to JSON/JavaScript string syntax. Decode the layer that actually produced the data.
               </p>
             </div>
             <div className="rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-gray-900">Unicode does not need “fixing”</h3>
+              <h3 className="font-semibold text-gray-900">Unknown names stay visible</h3>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                Emoji and multilingual characters are valid Unicode text. Converting them to numeric references changes representation, not meaning, and usually does not solve an incorrect character-encoding declaration or a broken data pipeline.
+                A semicolon-terminated candidate that the browser does not recognize is left unchanged. That makes misspellings easier to spot instead of silently inventing a character.
               </p>
             </div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Practical developer workflows</h2>
-          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li><strong>Documentation and code examples:</strong> encode literal tags before placing a raw snippet in HTML source.</li>
-            <li><strong>CMS debugging:</strong> decode stored entities to see the text a browser will display, then inspect where double encoding entered the pipeline.</li>
-            <li><strong>API inspection:</strong> distinguish HTML character references from JSON string escapes such as <code>\n</code> or <code>\u003C</code>; they are different encoding layers.</li>
-            <li><strong>Legacy ASCII-only systems:</strong> use numeric references for non-ASCII code points only when the receiving HTML pipeline genuinely requires that representation.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Limitations of this browser tool</h2>
-          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li>The encoder is a text transformation, not an HTML sanitizer, templating engine, validator, or Content Security Policy.</li>
-            <li>The decoder follows the browser&apos;s HTML character-reference behavior. It does not parse and execute the decoded result as page markup.</li>
-            <li>The reserved-character mode encodes five common characters; it does not attempt to rewrite every character that has a named HTML reference.</li>
-            <li>ASCII-safe mode operates by Unicode code point, so supplementary characters such as emoji become a single numeric reference rather than UTF-16 surrogate references.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Official references</h2>
+          <h2 className="text-xl font-semibold text-gray-900">When the problem belongs to another encoding layer</h2>
           <p className="mt-3 leading-relaxed text-gray-600">
-            These specifications and security references are useful when deciding how character references should be handled in production code:
+            URL percent-encoding, JSON string escapes, Base64, and HTML character references solve different representation problems. Following the data from its source to its final destination usually makes it clear which layer needs attention.
           </p>
-          <ul className="mt-4 list-disc space-y-3 pl-6 text-gray-600">
-            <li>
-              <a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://html.spec.whatwg.org/multipage/syntax.html#character-references" target="_blank" rel="noreferrer">
-                WHATWG HTML — Character references
-              </a>
-            </li>
-            <li>
-              <a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://html.spec.whatwg.org/multipage/named-characters.html" target="_blank" rel="noreferrer">
-                WHATWG HTML — Named character references
-              </a>
-            </li>
-            <li>
-              <a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html" target="_blank" rel="noreferrer">
-                OWASP — Cross Site Scripting Prevention Cheat Sheet
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 leading-relaxed text-gray-600">
-            Use related encoding and data tools when the problem belongs to a different layer, such as URL percent-encoding, JSON string escaping, Base64, or general HTML escaping workflows.
-          </p>
-          <YoryantraRelatedTools currentHref="/tools/html-encoder-decoder" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/html-encoder-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>

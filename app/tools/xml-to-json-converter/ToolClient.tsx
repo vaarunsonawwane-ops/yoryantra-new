@@ -83,9 +83,15 @@ function addWarning(state: ConversionState, key: string, message: string) {
 }
 
 function parserErrorMessage(documentNode: Document): string | null {
-  const byName = documentNode.getElementsByTagName("parsererror").item(0);
-  const byNamespace = documentNode.getElementsByTagNameNS("*", "parsererror").item(0);
-  const errorNode = byName || byNamespace;
+  const mozillaNamespace = "http://www.mozilla.org/newlayout/xml/parsererror.xml";
+  const xhtmlNamespace = "http://www.w3.org/1999/xhtml";
+  const mozillaError = documentNode.getElementsByTagNameNS(mozillaNamespace, "parsererror").item(0);
+  const xhtmlErrors = Array.from(documentNode.getElementsByTagNameNS(xhtmlNamespace, "parsererror"));
+  const xhtmlError = xhtmlErrors.find((node) => {
+    const text = (node.textContent || "").toLowerCase();
+    return node.hasAttribute("style") || text.includes("error on line") || text.includes("following errors");
+  });
+  const errorNode = mozillaError || xhtmlError || null;
   if (!errorNode) return null;
 
   const text = (errorNode.textContent || "").replace(/\s+/g, " ").trim();
@@ -108,7 +114,7 @@ function compactElement(
   depth: number
 ): CompactValue {
   if (depth > MAX_TREE_DEPTH) {
-    throw new Error(`XML nesting is deeper than this tool's ${MAX_TREE_DEPTH}-level conversion limit.`);
+    throw new Error(`XML nesting is deeper than the ${MAX_TREE_DEPTH}-level browser conversion limit.`);
   }
 
   const preserveSpace = preserveAllWhitespace || shouldPreserveSpace(element, inheritedPreserve);
@@ -181,11 +187,11 @@ function compactElement(
     }
   });
 
-  if (elementChildCount > 0 && hasMeaningfulText) {
+  if (elementChildCount > 0 && (hasMeaningfulText || (preserveSpace && textSegments.some((value) => value.length > 0)))) {
     addWarning(
       state,
       "compact-mixed-content",
-      "Mixed content was detected. Compact mode cannot preserve the exact order between text and child elements; use ordered mode when that order matters."
+      "Text and child elements occur together. Compact mode cannot preserve their exact sequence; ordered mode is safer when mixed text or preserved whitespace carries meaning."
     );
   }
 
@@ -206,7 +212,7 @@ function compactElement(
 
 function orderedNode(node: Node, depth: number): OrderedNode | null {
   if (depth > MAX_TREE_DEPTH) {
-    throw new Error(`XML nesting is deeper than this tool's ${MAX_TREE_DEPTH}-level conversion limit.`);
+    throw new Error(`XML nesting is deeper than the ${MAX_TREE_DEPTH}-level browser conversion limit.`);
   }
 
   if (node.nodeType === 1) {
@@ -246,6 +252,45 @@ function orderedNode(node: Node, depth: number): OrderedNode | null {
   return null;
 }
 
+function reviewParsedDocument(documentNode: Document, input: string, state: ConversionState, mode: MappingMode) {
+  const declaration = input.match(/^\s*<\?xml\s+[^?]*encoding\s*=\s*(["'])([^"']+)\1[^?]*\?>/i);
+  if (declaration) {
+    addWarning(
+      state,
+      "xml-declaration-encoding",
+      `The XML declaration says encoding="${declaration[2]}". A pasted JavaScript string has already been decoded to Unicode, so the original byte encoding cannot be verified from this text alone.`
+    );
+  }
+
+  const elements = [documentNode.documentElement, ...Array.from(documentNode.getElementsByTagName("*"))];
+  const seen = new Set<Element>();
+  elements.forEach((element) => {
+    if (!element || seen.has(element)) return;
+    seen.add(element);
+    const xmlSpace = element.getAttributeNS(XML_NAMESPACE, "space") || element.getAttribute("xml:space");
+    if (xmlSpace && xmlSpace !== "default" && xmlSpace !== "preserve") {
+      addWarning(
+        state,
+        "invalid-xml-space",
+        `xml:space="${xmlSpace}" is outside the XML 1.0 values default/preserve. The value is left visible, but compact whitespace handling does not assign it a special meaning.`
+      );
+    }
+  });
+
+  if (mode === "compact") {
+    const documentLevelNodes = Array.from(documentNode.childNodes).filter(
+      (node) => node !== documentNode.documentElement && (node.nodeType === 7 || node.nodeType === 8)
+    );
+    if (documentLevelNodes.length > 0) {
+      addWarning(
+        state,
+        "compact-document-misc",
+        "Comments or processing instructions outside the root element are omitted by compact mapping. Ordered mode keeps those parsed document-level nodes."
+      );
+    }
+  }
+}
+
 function convertXml(input: string, mode: MappingMode, preserveWhitespace: boolean): { output: string; warnings: string[] } {
   if (input.trim().length === 0) {
     throw new Error("Enter XML before converting.");
@@ -253,7 +298,7 @@ function convertXml(input: string, mode: MappingMode, preserveWhitespace: boolea
 
   if (containsDoctypeDeclaration(input)) {
     throw new Error(
-      "DOCTYPE declarations are intentionally not supported by this browser converter. Remove the DOCTYPE or process trusted DTD/entity-dependent XML in an XML environment designed for that document."
+      "DOCTYPE declarations are intentionally rejected here. Remove the DOCTYPE, or process trusted DTD/entity-dependent XML in an XML environment designed for that document."
     );
   }
 
@@ -264,6 +309,7 @@ function convertXml(input: string, mode: MappingMode, preserveWhitespace: boolea
   if (!documentNode.documentElement) throw new Error("The XML document has no root element.");
 
   const state: ConversionState = { warnings: [], warningKeys: new Set<string>() };
+  reviewParsedDocument(documentNode, input, state, mode);
 
   if (mode === "compact") {
     const root = documentNode.documentElement;
@@ -435,8 +481,8 @@ export default function ToolClient() {
       )}
 
       {warnings.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <h2 className="font-semibold">Mapping notes for this conversion</h2>
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-gray-700">
+          <h2 className="font-semibold text-gray-900">Details that may change the meaning of the mapping</h2>
           <ul className="mt-2 list-disc space-y-2 pl-5 leading-relaxed">
             {warnings.map((warning) => <li key={warning}>{warning}</li>)}
           </ul>
@@ -453,36 +499,36 @@ export default function ToolClient() {
         <pre className="yoryantra-output min-h-[260px] overflow-auto whitespace-pre-wrap break-words text-sm">{output || "Converted JSON will appear here..."}</pre>
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h2 className="text-sm font-semibold text-yellow-900">Privacy and parser boundary</h2>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Conversion happens in this browser component with <code>DOMParser</code>, and parsed nodes are serialized as text rather than inserted into the visible page. This tool intentionally rejects XML containing a DOCTYPE, reducing ambiguity around DTD/entity processing. Do not treat conversion as sanitization or as validation against an XSD, DTD, or business schema.
+      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h2 className="text-sm font-semibold text-gray-900">The XML is parsed locally, not validated as an application contract</h2>
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          Parsing and mapping happen in the browser with <code>DOMParser</code>; parsed values are serialized as JSON text rather than inserted into the active page. DOCTYPE input is rejected before parsing. A successful conversion still does not mean the document satisfies an XSD, DTD, SOAP profile, feed format, or business rule.
         </p>
       </div>
 
       <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">There is no single universal XML-to-JSON mapping</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">XML and JSON do not share one universal data model</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON and XML have different data models. JSON has objects, arrays, strings, numbers, booleans, and null. XML has elements, attributes, ordered child nodes, namespaces, text nodes, comments, processing instructions, CDATA sections, and document-level constructs. A converter must therefore choose a mapping; it cannot simply reveal one standard JSON form hidden inside every XML document.
+            JSON has objects, arrays, strings, numbers, booleans, and null. XML has elements, attributes, ordered child nodes, namespace bindings, character data, comments, processing instructions, CDATA sections, and document-level syntax. A JSON representation therefore has to choose what to preserve and what to simplify; there is no single standard mapping hidden inside every XML document.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool makes that choice visible. <strong>Compact mode</strong> is convenient when the source resembles API data with nested elements. <strong>Ordered mode</strong> is intended for inspection when node sequence, mixed content, namespaces, or node types matter more than compactness.
+            Compact mapping works well for element-centric API data. Ordered mapping stays closer to the parsed XML node sequence when mixed content, namespaces, comments, processing instructions, or exact child order matter. The underlying XML concepts are defined by <a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://www.w3.org/TR/xml/" target="_blank" rel="noreferrer">XML 1.0</a>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Compact mapping rules used by this tool</h2>
+          <h2 className="text-xl font-semibold text-gray-900">How compact mapping turns XML features into JSON</h2>
           <div className="mt-5 overflow-x-auto rounded-xl border border-gray-200">
             <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="bg-gray-50 text-gray-900"><tr><th className="px-4 py-3">XML feature</th><th className="px-4 py-3">Compact JSON representation</th></tr></thead>
+              <thead className="bg-gray-50 text-gray-900"><tr><th className="px-4 py-3">XML feature</th><th className="px-4 py-3">Compact representation</th></tr></thead>
               <tbody className="divide-y divide-gray-200 text-gray-600">
-                <tr><td className="px-4 py-3">Leaf element</td><td className="px-4 py-3">Its direct text becomes a JSON string when there are no attributes or child elements.</td></tr>
-                <tr><td className="px-4 py-3">Attributes</td><td className="px-4 py-3">Collected under an <code>@attributes</code> object using their qualified names.</td></tr>
-                <tr><td className="px-4 py-3">Direct text beside attributes/children</td><td className="px-4 py-3">Stored under <code>#text</code>.</td></tr>
-                <tr><td className="px-4 py-3">Repeated child names</td><td className="px-4 py-3">Converted to a JSON array under that child name.</td></tr>
-                <tr><td className="px-4 py-3">CDATA</td><td className="px-4 py-3">Merged into text; the CDATA-vs-text distinction is lost.</td></tr>
-                <tr><td className="px-4 py-3">Comments / processing instructions</td><td className="px-4 py-3">Omitted, with a conversion warning when encountered.</td></tr>
+                <tr><td className="px-4 py-3">Leaf element</td><td className="px-4 py-3">Direct character data becomes a JSON string when there are no attributes or child elements.</td></tr>
+                <tr><td className="px-4 py-3">Attributes</td><td className="px-4 py-3">Collected under <code>@attributes</code> using qualified attribute names.</td></tr>
+                <tr><td className="px-4 py-3">Text beside attributes/children</td><td className="px-4 py-3">Collected under <code>#text</code>.</td></tr>
+                <tr><td className="px-4 py-3">Repeated child names</td><td className="px-4 py-3">Become an array under that qualified child name.</td></tr>
+                <tr><td className="px-4 py-3">CDATA</td><td className="px-4 py-3">Merged into text, so the CDATA boundary is no longer distinguishable.</td></tr>
+                <tr><td className="px-4 py-3">Comments / processing instructions</td><td className="px-4 py-3">Omitted in compact mode and reported in the mapping notes.</td></tr>
               </tbody>
             </table>
           </div>
@@ -490,7 +536,7 @@ export default function ToolClient() {
 
         <div className="grid gap-5 md:grid-cols-2">
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">Compact example</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Element-centric data stays compact</h2>
             <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-sm text-gray-800">{`<book id="7">
   <title>XML in Practice</title>
   <tag>api</tag>
@@ -505,83 +551,73 @@ export default function ToolClient() {
 }`}</pre>
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">Mixed content needs order</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Mixed content needs sequence</h2>
             <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-sm text-gray-800">{`<p>Hello <strong>world</strong>!</p>`}</pre>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              A compact object can store the <code>strong</code> child and the surrounding text, but it cannot faithfully express that <code>Hello </code> occurs before the child and <code>!</code> occurs after it. Ordered mode represents each text and element node in sequence.
+              The words before and after <code>strong</code> are separate text nodes. Grouping child elements by name cannot say that <code>Hello </code> came first and <code>!</code> came last. Ordered mapping keeps those nodes in sequence.
             </p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Namespaces: prefixes are not the namespace identity</h2>
+          <h2 className="text-xl font-semibold text-gray-900">A namespace prefix is only a label</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            In namespace-aware XML, the namespace URI identifies the vocabulary; a prefix is only a binding used in the document. Two documents can use different prefixes for the same namespace URI. Compact mode keeps qualified names such as <code>soap:Body</code> and namespace declaration attributes, which is practical but not fully namespace-normalized. Ordered mode records <code>name</code>, <code>localName</code>, <code>prefix</code>, and <code>namespaceURI</code> separately for elements and attributes.
+            Namespace identity comes from the namespace URI, not from the particular prefix written in the file. Two documents can use different prefixes for the same vocabulary, and the same prefix can be rebound in different scopes. <a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://www.w3.org/TR/xml-names/" target="_blank" rel="noreferrer">Namespaces in XML</a> defines that relationship.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Compact mapping keeps qualified names such as <code>soap:Body</code> and the namespace declaration attributes but does not attach a namespace URI to every element. Ordered mapping records <code>name</code>, <code>localName</code>, <code>prefix</code>, and <code>namespaceURI</code> separately. Unprefixed attributes remain in no namespace even when a default element namespace is active.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">Whitespace can be data</h2>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Pretty-printed API XML often contains indentation that is not useful in the resulting data model, while prose, source code, signatures, and other document-oriented XML can depend on whitespace. Compact mapping trims direct text by default; the checkbox keeps it, and an inherited <code>xml:space=&quot;preserve&quot;</code> request also keeps it.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-700">
+            XML 1.0 describes <a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://www.w3.org/TR/xml/#sec-white-space" target="_blank" rel="noreferrer"><code>xml:space</code> and application whitespace handling</a>. Values other than <code>default</code> and <code>preserve</code> are reported because assigning them a private meaning would make the mapping harder to reason about.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Whitespace and xml:space</h2>
+          <h2 className="text-xl font-semibold text-gray-900">DOCTYPE and entity-dependent XML need an XML-native path</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            XML processors pass character data to applications, and whitespace can be meaningful. Pretty-printed XML also commonly contains indentation that an API consumer does not want as data. In compact mode, this tool trims direct text by default, while the optional whitespace setting keeps it. An inherited <code>xml:space=&quot;preserve&quot;</code> request is treated as an instruction to retain direct text whitespace even when the checkbox is off. Ordered mode always keeps parsed text nodes exactly as the DOM exposes them.
+            A DTD can declare entities, default attributes, and validity constraints. External entity handling has also been a security-sensitive area in server-side XML stacks. DOCTYPE input is rejected before browser parsing so the page does not pretend to support DTD-dependent documents or external entity resolution.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            That policy is a conversion choice, not a universal XML rule. If whitespace has document-level meaning—publishing, signatures, mixed prose, or protocol-specific canonicalization—prefer an XML-native workflow or inspect ordered mode rather than relying on compact JSON.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">DOCTYPE, entities, and security boundaries</h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            DTDs can define entities and document constraints, and entity handling has historically been a security-sensitive area in server-side XML libraries. This browser tool does not need a DTD to perform its mapping, so it rejects any input containing a DOCTYPE rather than pretending to support DTD-dependent documents safely and consistently.
-          </p>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            The parsed XML is not inserted into the active document. Even so, the JSON output should still be treated as data. If you later render values as HTML, build URLs, query a database, or pass them to another interpreter, apply the validation or output encoding required by that destination context.
+            The five predefined XML entities and numeric character references do not require a DTD. After parsing, references have already become characters, so the JSON cannot tell whether a character was written literally, with <code>&amp;#x...</code>, or with a predefined entity such as <code>&amp;amp;</code>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Well-formed XML is not the same as valid XML</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Well-formed is not the same as valid for your system</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The browser XML parser can reject malformed syntax such as mismatched tags. Passing that parser check only means the document is well-formed enough to create an XML DOM. This tool does not validate an XSD, Relax NG schema, DTD, SOAP contract, feed profile, or application-specific rules. A perfectly well-formed document can still be invalid for the system that expects it.
+            Browser <code>DOMParser</code> can identify malformed XML such as mismatched tags or unbound namespace prefixes. MDN documents that XML parsing returns a document containing a <code>parsererror</code> node when parsing fails; browser engines do not expose one universal exception object for every XML parse error. See <a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/API/DOMParser/parseFromString" target="_blank" rel="noreferrer">DOMParser.parseFromString()</a> for that browser behavior.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Passing the parser only establishes a browser-parsed XML document. It does not check XSD, Relax NG, DTD validity, SOAP rules, RSS/Atom profiles, or application-specific constraints. A perfectly well-formed document can still be unusable by the receiving system.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Information that cannot be round-tripped exactly</h2>
+          <h2 className="text-xl font-semibold text-gray-900">What cannot be reconstructed after parsing</h2>
           <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li>The XML declaration is not represented as an ordinary DOM child and is not reproduced by these JSON mappings.</li>
-            <li>Character references are resolved by the XML parser, so the JSON cannot tell whether a character originally appeared literally or as a numeric/predefined entity reference.</li>
-            <li>Compact mode loses sibling ordering semantics, CDATA boundaries, comments, processing instructions, and some namespace identity detail.</li>
-            <li>Ordered mode preserves much more of the parsed node model, but not original lexical choices such as quote style, exact entity spelling, or byte-level formatting.</li>
-            <li>Attribute values are strings. The converter does not guess that <code>"001"</code> is a number, <code>"true"</code> is a boolean, or an empty value should become null.</li>
+            <li>The XML declaration is not represented as an ordinary child node; a pasted string also cannot prove the original byte encoding named by that declaration.</li>
+            <li>Character and predefined entity references are resolved to characters.</li>
+            <li>Compact mapping loses exact sibling sequence across differently named children, CDATA boundaries, comments, processing instructions, and some namespace identity detail.</li>
+            <li>Ordered mapping keeps far more of the parsed node model but still loses lexical choices such as quote style, exact entity spelling, original byte encoding, and source formatting.</li>
+            <li>Attribute and text values remain strings. <code>&quot;001&quot;</code>, <code>&quot;true&quot;</code>, and an empty string are not guessed into numbers, booleans, or null.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Practical developer workflows</h2>
-          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
-            <li><strong>Legacy API inspection:</strong> convert a simple XML response to compact JSON before adapting it to a JavaScript or TypeScript data model.</li>
-            <li><strong>SOAP debugging:</strong> use ordered mode when namespace URIs, prefixes, or element sequence are relevant to the envelope/body structure.</li>
-            <li><strong>RSS or feed exploration:</strong> compact mode can make repetitive elements easier to inspect, but preserve XML-native semantics if mixed content or namespaces drive downstream behavior.</li>
-            <li><strong>Migration planning:</strong> compare what each mapping loses before designing a permanent server-side XML-to-JSON contract. Do not let a convenience converter silently define your production data model.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Official references</h2>
-          <ul className="mt-4 list-disc space-y-3 pl-6 text-gray-600">
-            <li><a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://www.w3.org/TR/xml/" target="_blank" rel="noreferrer">W3C — Extensible Markup Language (XML) 1.0</a></li>
-            <li><a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://www.w3.org/TR/xml-names/" target="_blank" rel="noreferrer">W3C — Namespaces in XML</a></li>
-            <li><a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://www.w3.org/XML/1998/namespace" target="_blank" rel="noreferrer">W3C — The xml: namespace, including xml:space</a></li>
-            <li><a className="font-medium text-[var(--green)] underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/API/DOMParser/parseFromString" target="_blank" rel="noreferrer">MDN — DOMParser.parseFromString()</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <p className="mt-3 leading-relaxed text-gray-600">Use an XML formatter when you need readable XML without changing data models, a JSON validator after conversion when you need JSON syntax checks, or schema-specific tooling when the receiving application has a formal contract.</p>
-          <YoryantraRelatedTools currentHref="/tools/xml-to-json-converter" />
+          <h2 className="text-xl font-semibold text-gray-900">Choose the next step from what you are trying to preserve</h2>
+          <p className="mt-3 leading-relaxed text-gray-600">
+            If readability is the only goal, keep the data as XML and format it. If a JSON contract is the goal, decide explicitly how attributes, namespaces, arrays, mixed content, and types should map before making that representation part of an API.
+          </p>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/xml-to-json-converter" />
+          </div>
         </div>
       </section>
     </ToolShell>

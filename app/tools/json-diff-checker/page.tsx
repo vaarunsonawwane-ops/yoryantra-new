@@ -1,16 +1,16 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "JSON Diff Checker | Structural JSON Comparison | Yoryantra",
+  title: "JSON Diff Checker | Compare JSON by Path | Yoryantra",
   description:
-    "Compare two JSON values structurally by JSON Pointer path. Ignore formatting and object member order while detecting added, removed, changed, and type-changed data.",
+    "Compare two JSON documents by JSON Pointer path, ignoring formatting and object order while preserving array order, exact numbers, and duplicate-name warnings.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-diff-checker",
   },
   openGraph: {
-    title: "JSON Diff Checker | Structural JSON Comparison | Yoryantra",
+    title: "JSON Diff Checker | Compare JSON by Path | Yoryantra",
     description:
-      "Compare JSON structurally with path-based differences, order-sensitive arrays, exact number handling, and duplicate-member warnings.",
+      "Compare JSON by path with order-sensitive arrays, exact decimal-number comparison, duplicate-name warnings, and clear added, removed, changed, or type-changed results.",
     url: "https://yoryantra.com/tools/json-diff-checker",
     siteName: "Yoryantra",
     type: "website",
@@ -19,7 +19,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "JSON Diff Checker | Yoryantra",
     description:
-      "Find structural JSON differences by path without formatting or object-order noise.",
+      "Compare parsed JSON values by path without treating formatting or object-member order as data changes.",
   },
 };
 
