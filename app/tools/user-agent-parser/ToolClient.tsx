@@ -637,7 +637,7 @@ export default function ToolClient() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <div className="self-start rounded-2xl border border-amber-200 bg-amber-50 p-5">
             <h3 className="font-semibold text-gray-900">
               Do not turn this into a security identity
             </h3>
