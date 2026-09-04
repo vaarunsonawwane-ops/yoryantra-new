@@ -2323,11 +2323,11 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
             Private-Key PEM Blocks Deserve a Different Handling Rule
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             A certificate is designed to be shared. A private key is not.
             Browser-local processing reduces one category of exposure, but
             copying production key material into an unnecessary tool still
@@ -2335,7 +2335,7 @@ export default function ToolClient() {
             screenshots, screen sharing, browser extensions, local logging, or
             accidental reuse in examples.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             If a private-key block is pasted, Yoryantra reports its envelope,
             byte length and fingerprint but deliberately avoids a decoded-byte
             preview. Use purpose-built key tooling when you need key

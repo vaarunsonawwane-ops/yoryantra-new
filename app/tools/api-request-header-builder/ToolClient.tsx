@@ -1181,18 +1181,18 @@ Accept: application/problem+json, application/json`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
             CR/LF in a Header Value Is Not a Clever Way to Add a Second Header
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             Building a header block from user-controlled text without rejecting
             line breaks can create header-injection or response/request
             splitting problems in vulnerable systems. Modern HTTP libraries
             generally prohibit this, but code generators should not normalize
             dangerous input into apparently valid examples.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             CR, LF, NUL, DEL and unsafe control characters are rejected
             in field values. If the API needs a multiline logical value, use
             that field&apos;s defined encoding/serialization rather than raw
