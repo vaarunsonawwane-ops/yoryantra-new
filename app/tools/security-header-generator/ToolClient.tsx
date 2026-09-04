@@ -180,8 +180,12 @@ function buildSecurityHeaders(
         );
       }
 
+      warnings.push(
+        "HSTS preloading is a separate, long-lived opt-in. The Chrome preload service recommends deploying HSTS carefully and does not recommend preloading as a default step."
+      );
+
       notes.push(
-        "The preload token alone does not place a domain on a browser preload list. Preloading is a separate submission and long-term HTTPS commitment."
+        "The preload token alone does not place a domain on a browser preload list. Submission also requires a valid certificate, HTTP-to-HTTPS redirect behavior, HTTPS across subdomains, includeSubDomains, preload, and at least a one-year max-age."
       );
     }
 
@@ -451,7 +455,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Security Header Generator"
-      description="Build a deliberate browser-security header starter and review the commitments and breakage risks behind HSTS, CSP, framing, MIME handling, referrer policy, feature permissions, and cross-origin isolation controls."
+      description="Build browser security headers while explaining HSTS, CSP, framing, MIME, referrer, permissions, and isolation tradeoffs."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-gray-900">
@@ -519,10 +523,11 @@ export default function ToolClient() {
             HSTS rollout
           </h3>
 
-          <label className="mt-4 block text-sm font-medium text-gray-700">
+          <label htmlFor="hsts-max-age" className="mt-4 block text-sm font-medium text-gray-700">
             max-age in seconds
           </label>
           <input
+            id="hsts-max-age"
             value={
               options.hstsMaxAge
             }
@@ -799,21 +804,21 @@ export default function ToolClient() {
           onClick={
             generateHeaders
           }
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Generate Headers
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -881,7 +886,7 @@ export default function ToolClient() {
                 onClick={
                   copyOutput
                 }
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -936,15 +941,15 @@ export default function ToolClient() {
             are protected, or your backend trusts unsafe input.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This generator therefore produces policy starters and explains the
+            The generated policies are starters that explain the
             commitments behind them. It does not award a fake “A+” because six
             familiar header names are present.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
-            HSTS Is Easy to Add and Potentially Expensive to Undo
+            HSTS Is Simple to Add and Potentially Expensive to Undo
           </h2>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
             Once a browser receives a valid HSTS policy over HTTPS, future
@@ -957,8 +962,17 @@ export default function ToolClient() {
             A preload commitment is stronger because participating browsers can
             know the rule before the user&apos;s first visit. The{" "}
             <code>preload</code> token is not defined by RFC 6797 itself and
-            does not submit a domain anywhere. Browser preload lists have their
-            own operational requirements and removal delays.
+            does not submit a domain anywhere. The official{" "}
+            <a
+              href="https://hstspreload.org/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium underline underline-offset-4"
+            >
+              HSTS preload service
+            </a>{" "}
+            documents the additional requirements, slow-removal risk, and why
+            preloading should be a deliberate opt-in rather than a default.
           </p>
         </div>
 
@@ -1037,7 +1051,7 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Permissions-Policy Can Break Features That Work Perfectly in Development
           </h2>
@@ -1076,7 +1090,7 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
-          The most useful references for this generator are the{" "}
+          Authoritative references for these policies include the{" "}
           <a
             href="https://www.rfc-editor.org/rfc/rfc6797"
             target="_blank"
@@ -1102,7 +1116,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/security-header-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/security-header-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -1123,7 +1139,7 @@ function ToggleCard({
   text: string;
 }) {
   return (
-    <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+    <label className="self-start flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
       <input
         type="checkbox"
         checked={checked}

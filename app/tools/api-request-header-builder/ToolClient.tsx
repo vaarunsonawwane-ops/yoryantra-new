@@ -98,13 +98,13 @@ const BROWSER_FORBIDDEN_EXACT = [
   "content-length",
   "cookie",
   "cookie2",
+  "set-cookie",
   "date",
   "dnt",
   "expect",
   "host",
   "keep-alive",
   "origin",
-  "permissions-policy",
   "referer",
   "te",
   "trailer",
@@ -310,7 +310,7 @@ function validateRows(
         throw new Error(
           `Row ${
             index + 1
-          }: HTTP/2 and HTTP/3 pseudo-fields such as ${row.name} are protocol framing fields, not ordinary API request headers for this builder.`
+          }: HTTP/2 and HTTP/3 pseudo-fields such as ${row.name} are protocol framing fields, not ordinary API request headers in generated request-header snippets.`
         );
       }
 
@@ -332,7 +332,7 @@ function validateRows(
         throw new Error(
           `Row ${
             index + 1
-          }: ${row.name} contains CR, LF, NUL, DEL, or another unsafe control character. Header values cannot contain raw line breaks in this builder.`
+          }: ${row.name} contains CR, LF, NUL, DEL, or another unsafe control character. Raw line breaks are not accepted in generated header values.`
         );
       }
     }
@@ -785,7 +785,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="API Request Header Builder"
-      description="Build API request-header snippets without sending a request: validate field-name/value syntax, preserve repeated fields where the output format can represent them, flag browser-controlled headers, and separate authentication, representation and CORS concerns."
+      description="Build request-header snippets while validating names, values, repetitions, browser-controlled fields, authentication, and CORS boundaries."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -850,6 +850,7 @@ export default function ToolClient() {
                     )
                   }
                   placeholder="Header name"
+                  aria-label={`Header name for row ${header.id}`}
                   spellCheck={false}
                   className="rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
                 />
@@ -870,6 +871,7 @@ export default function ToolClient() {
                     )
                   }
                   placeholder="Header value"
+                  aria-label={`Header value for ${header.name || `row ${header.id}`}`}
                   spellCheck={false}
                   className="rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
                 />
@@ -881,7 +883,7 @@ export default function ToolClient() {
                       header.id
                     )
                   }
-                  className="yoryantra-btn-outline whitespace-nowrap"
+                  className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
                 >
                   Remove
                 </button>
@@ -894,7 +896,7 @@ export default function ToolClient() {
           <button
             type="button"
             onClick={addHeader}
-            className="yoryantra-btn-outline"
+            className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
           >
             Add Header
           </button>
@@ -912,7 +914,7 @@ export default function ToolClient() {
                     preset.value
                   )
                 }
-                className="yoryantra-btn-outline"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {preset.label}
               </button>
@@ -960,21 +962,21 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={generate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Build Headers
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -1042,7 +1044,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyOutput}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1100,8 +1102,7 @@ export default function ToolClient() {
             be wrong when the request body is multipart data.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This builder validates the structural layer and surfaces common
-            browser/API traps. The target API contract remains the authority on
+            The structural checks cover field syntax and common browser/API traps. The target API contract remains the authority on
             required authentication schemes, media types, versions and custom
             fields.
           </p>
@@ -1125,7 +1126,7 @@ Accept: application/problem+json, application/json`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Browsers Do Not Let JavaScript Control Every HTTP Request Field
           </h2>
@@ -1136,7 +1137,7 @@ Accept: application/problem+json, application/json`}</pre>
             network request like a raw TCP header editor.
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            When Fetch output contains one of those names, this tool warns
+            When Fetch output contains one of those names, a warning appears
             rather than producing a false promise that the browser will send
             the line exactly as written. cURL, backend clients and proxy
             libraries have different levels of control.
@@ -1192,7 +1193,7 @@ Accept: application/problem+json, application/json`}</pre>
             dangerous input into apparently valid examples.
           </p>
           <p className="mt-4 leading-relaxed text-red-900/90">
-            This builder rejects CR, LF, NUL, DEL and unsafe control characters
+            CR, LF, NUL, DEL and unsafe control characters are rejected
             in field values. If the API needs a multiline logical value, use
             that field&apos;s defined encoding/serialization rather than raw
             message framing characters.
@@ -1245,7 +1246,7 @@ Accept: application/problem+json, application/json`}</pre>
             from Windows Command Prompt or PowerShell quoting.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool labels its cURL output as POSIX-shell flags and escapes
+            The cURL output is labelled as POSIX-shell flags and escapes
             embedded single quotes accordingly. If you paste those flags into
             another shell, translate the shell quoting rather than modifying
             the actual HTTP header value.
@@ -1259,8 +1260,8 @@ Accept: application/problem+json, application/json`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
             Bearer tokens and API keys routinely escape through issue trackers,
             copied terminal commands, screenshots, browser history, chat logs,
-            code examples and CI output. A header builder makes snippets easy to
-            copy, so it should also make that risk visible.
+            code examples and CI output. Copyable snippets make accidental
+            disclosure easier, so keep reusable examples without real secrets.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             Use obvious placeholders in reusable snippets. When a real secret
@@ -1287,7 +1288,9 @@ Accept: application/problem+json, application/json`}</pre>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/api-request-header-builder" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/api-request-header-builder" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -1323,7 +1326,7 @@ function ReferenceCard({
   text: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
       <a
         href={href}
         target="_blank"

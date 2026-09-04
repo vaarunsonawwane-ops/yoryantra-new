@@ -1110,7 +1110,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HTTP Header Diff Checker"
-      description="Compare two HTTP field sections without losing case-insensitive field-name semantics, repeated field lines, pseudo-fields, start/status lines, malformed-line evidence, or sensitive values that should stay redacted in reports."
+      description="Compare HTTP header sets while preserving case-insensitive names, repeated fields, malformed lines, and redaction needs."
     >
       <div className="grid gap-6 md:grid-cols-2">
         <HeaderInput
@@ -1142,7 +1142,7 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        <label className="self-start flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
           <input
             type="checkbox"
             checked={
@@ -1169,7 +1169,7 @@ export default function ToolClient() {
           </span>
         </label>
 
-        <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        <label className="self-start flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
           <input
             type="checkbox"
             checked={
@@ -1203,28 +1203,28 @@ export default function ToolClient() {
           onClick={
             compareHeaders
           }
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Compare Headers
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -1322,7 +1322,7 @@ export default function ToolClient() {
                 onClick={
                   copyReport
                 }
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1431,14 +1431,14 @@ export default function ToolClient() {
             comparison can lose that evidence.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This checker stores every parsed field line in order. If the before
+            Every parsed field line stays in source order. If the before
             response contains two <code>Warning</code> lines and the after
             response reverses or changes them, that remains visible instead of
             being flattened away.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Set-Cookie Is the Classic Reason “Just Join Duplicates With a Comma” Is Dangerous
           </h2>
@@ -1467,7 +1467,7 @@ export default function ToolClient() {
             the parser before comparison.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Internal characters are preserved. This tool does not reorder CSP
+            Internal characters are preserved. The comparison does not reorder CSP
             directives, split Cache-Control tokens, normalize media types, sort
             Vary values, or reinterpret each registered field&apos;s grammar.
             Those transformations could incorrectly turn a real semantic change
@@ -1529,7 +1529,7 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Security-Header Diffs Need Behavior Testing, Not “More Headers = Better”
           </h2>
@@ -1582,7 +1582,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/http-header-diff-checker" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/http-header-diff-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -1619,6 +1621,7 @@ function HeaderInput({
           )
         }
         placeholder={placeholder}
+        aria-label={`${label} HTTP header section`}
         spellCheck={false}
         className="mt-2 w-full min-h-[340px] rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
       />

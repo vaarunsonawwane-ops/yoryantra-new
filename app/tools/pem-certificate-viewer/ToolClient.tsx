@@ -172,7 +172,7 @@ function readTag(
 
       if (count > 5) {
         throw new Error(
-          "ASN.1 high-tag-number form is too large for this viewer."
+          "ASN.1 high-tag-number form is too large for browser-side inspection."
         );
       }
 
@@ -280,7 +280,7 @@ function parseAsn1Node(
 ): Asn1Node {
   if (depth > 40) {
     throw new Error(
-      "ASN.1 nesting is deeper than this viewer will inspect."
+      "ASN.1 nesting is deeper than the browser-side parser will inspect."
     );
   }
 
@@ -1671,7 +1671,7 @@ async function parsePemBlocks(
     ) {
       privateKeyBlocks += 1;
       warnings.push(
-        "Private-key material is present. This viewer intentionally does not display decoded key bytes or attempt to export them."
+        "Private-key material is present. Decoded private-key bytes are intentionally not displayed or exported."
       );
     }
 
@@ -1708,7 +1708,7 @@ async function parsePemBlocks(
     certificateBlocks > 1
   ) {
     reportWarnings.push(
-      "Multiple certificate blocks were found. Their order may represent a leaf/intermediate chain, but this viewer does not validate chain order, signatures, trust anchors, revocation, or path building."
+      "Multiple certificate blocks were found. Their order may represent a leaf/intermediate chain, but chain order, signatures, trust anchors, revocation, and path building are not validated."
     );
   }
 
@@ -1814,7 +1814,7 @@ function formatPemReport(
 
   lines.push(
     "",
-    "Boundary: this viewer does not establish certificate trust, validate signatures/chains, check revocation, prove hostname coverage, or verify that a private key matches a certificate."
+    "Boundary: browser-side inspection does not establish certificate trust, validate signatures or chains, check revocation, prove hostname coverage, or verify that a private key matches a certificate."
   );
 
   return lines.join("\n");
@@ -1902,13 +1902,14 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="PEM Certificate Viewer"
-      description="Inspect PEM boundaries and decoded bytes, then surface useful X.509 certificate fields such as subject, issuer, serial, validity, SANs, algorithms and SHA-256 fingerprint without pretending to perform certificate trust validation."
+      description="Inspect PEM certificates for boundaries, X.509 fields, validity, SANs, algorithms, and fingerprints without claiming trust validation."
     >
       <div>
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="pem-input" className="block text-sm font-semibold text-gray-900">
           PEM input
         </label>
         <textarea
+          id="pem-input"
           value={input}
           onChange={(event: {
             target: {
@@ -1937,7 +1938,7 @@ export default function ToolClient() {
           onClick={
             inspectCertificate
           }
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Inspect PEM
         </button>
@@ -1946,21 +1947,21 @@ export default function ToolClient() {
           onClick={
             loadExample
           }
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Certificate Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -2178,7 +2179,7 @@ export default function ToolClient() {
             <button
               type="button"
               onClick={copyReport}
-              className="yoryantra-btn-outline whitespace-nowrap"
+              className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
             >
               {copied
                 ? "Copied"
@@ -2214,7 +2215,7 @@ export default function ToolClient() {
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             An X.509 certificate is normally represented in PEM by wrapping its
-            DER-encoded ASN.1 Certificate value. This viewer first verifies the
+            DER-encoded ASN.1 Certificate value. The parser first verifies the
             envelope and Base64, then walks enough DER structure to expose the
             certificate fields that are most useful during debugging.
           </p>
@@ -2265,12 +2266,12 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             “Not Expired” Is Only One Condition in Certificate Validation
           </h2>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            The browser clock can tell this viewer whether the current instant
+            The browser clock can show whether the current time
             falls between the encoded <code>notBefore</code> and{" "}
             <code>notAfter</code> values. That is useful operational
             information, but a certificate inside its time window can still
@@ -2296,7 +2297,7 @@ export default function ToolClient() {
             cannot be proven from labels alone.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This viewer shows each certificate independently. It does not verify
+            Each certificate is shown independently. The browser-side inspection does not verify
             that certificate 1 was signed by certificate 2, build alternate
             paths to a trust anchor, or decide which root store a client uses.
             Use a real X.509 path validator or TLS client for those questions.
@@ -2314,7 +2315,7 @@ export default function ToolClient() {
             key-usage semantics.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This viewer decodes the common Basic Constraints shape when
+            The parser decodes the common Basic Constraints shape when
             present. It does not evaluate the full interaction of Basic
             Constraints, Key Usage, Extended Key Usage, Name Constraints,
             policy extensions, critical-extension processing and the
@@ -2379,7 +2380,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/pem-certificate-viewer" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/pem-certificate-viewer" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -2434,7 +2437,7 @@ function ReferenceCard({
   text: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
       <a
         href={href}
         target="_blank"
