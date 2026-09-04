@@ -137,9 +137,9 @@ function validateCronField(
     return [`${config.label} cannot be empty.`];
   }
 
-  if (/[?LW#]/.test(value)) {
+  if (/[?#]/.test(value)) {
     return [
-      `${config.label}: ?, L, W, and # are Quartz/vendor-style tokens and are outside this traditional five-field crontab subset.`,
+      `${config.label}: ? and # are Quartz/vendor-style tokens and are outside this traditional five-field crontab subset.`,
     ];
   }
 
@@ -533,16 +533,20 @@ export default function ToolClient() {
       description="Build and validate five-field cron schedules without mixing in Quartz or vendor-specific syntax."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label
+          htmlFor="cron-import"
+          className="block text-sm font-semibold text-gray-900"
+        >
           Import an existing five-field expression
         </label>
         <p className="mt-1 text-sm leading-relaxed text-gray-500">
-          Useful when you want to inspect or edit a schedule rather than start
-          from individual fields.
+          Paste all five fields here when you already have a schedule and want
+          to inspect or edit it.
         </p>
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <input
+            id="cron-import"
             value={importText}
             onChange={(event: { target: { value: string } }) => {
               setImportText(event.target.value);
@@ -563,7 +567,7 @@ export default function ToolClient() {
         </div>
 
         {importError ? (
-          <p className="mt-3 text-sm text-red-700">
+          <p role="alert" className="mt-3 text-sm text-red-700">
             {importError}
           </p>
         ) : null}
@@ -579,10 +583,14 @@ export default function ToolClient() {
 
           return (
             <div key={field.name}>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+              <label
+                htmlFor={`cron-${field.name}`}
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
                 {config.label}
               </label>
               <input
+                id={`cron-${field.name}`}
                 type="text"
                 value={field.value}
                 onChange={(event: { target: { value: string } }) => {
@@ -658,12 +666,14 @@ export default function ToolClient() {
       </div>
 
       {copyError ? (
-        <p className="mt-3 text-sm text-red-700">{copyError}</p>
+        <p role="alert" className="mt-3 text-sm text-red-700">
+          {copyError}
+        </p>
       ) : null}
 
       <div className="mt-8">
         <h3 className="text-lg font-semibold text-gray-900">
-          Common starting points
+          Start from a familiar schedule
         </h3>
         <div className="mt-3 flex flex-wrap gap-3">
           {PRESETS.map((preset) => (
@@ -682,7 +692,10 @@ export default function ToolClient() {
       </div>
 
       {validation.errors.length ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           <strong>Syntax issues:</strong>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {validation.errors.map(
@@ -697,7 +710,10 @@ export default function ToolClient() {
       ) : null}
 
       {validation.warnings.length ? (
-        <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+        <div
+          role="status"
+          className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900"
+        >
           <strong>Schedule review:</strong>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {validation.warnings.map(
@@ -735,9 +751,10 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Schedule editing and validation run in browser memory; no cron expression
-        is sent to a scheduler or server. Site-wide analytics or advertising
-        scripts, if enabled, are separate from the schedule data itself.
+        Editing and validating the five fields happens in browser memory. Nothing
+        is submitted to cron, installed in a crontab, or sent to a scheduler.
+        Normal site analytics or advertising, when present, are outside that
+        schedule operation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -753,7 +770,7 @@ export default function ToolClient() {
             command is created, no crontab is installed, and no server is contacted.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            That separation is useful when a schedule looks right in isolation
+            That separation matters when a schedule looks right in isolation
             but the real job still fails because of environment variables,
             permissions, working directory, PATH, shell differences, or the
             command itself.
@@ -920,9 +937,10 @@ export default function ToolClient() {
             schedules.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This page intentionally does not blur those dialects together. If
-            the destination is not a traditional Unix-style crontab, validate
-            the copied expression against that product&apos;s own documentation.
+            A five-field Unix expression should not be assumed portable across
+            those dialects. If the destination is not a traditional Unix-style
+            crontab, validate the copied expression against that product&apos;s own
+            documentation.
           </p>
         </div>
 
@@ -946,7 +964,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/cron-expression-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/cron-expression-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>

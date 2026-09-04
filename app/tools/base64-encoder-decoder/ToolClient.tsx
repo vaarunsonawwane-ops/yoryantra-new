@@ -75,7 +75,7 @@ function base64ErrorHint(input: string) {
   }
 
   if (/[-_]/.test(trimmed)) {
-    return "The input contains - or _, which suggests the Base64URL alphabet. Standard Base64 uses + and /. Use Yoryantra's Base64URL tool for URL-safe data.";
+    return "The input contains - or _, which suggests the Base64URL alphabet. Standard Base64 uses + and /. URL-safe values such as JWT segments need Base64URL decoding rules.";
   }
 
   return "";
@@ -193,7 +193,7 @@ function decodeBase64Input(
 
   if (text === null) {
     notes.push(
-      "The decoded bytes are not valid UTF-8 text. Use the hex view when the payload is binary or uses another character encoding."
+      "The decoded bytes are not valid UTF-8 text. The hex view preserves the actual byte values when the payload is binary or uses another character encoding."
     );
   }
 
@@ -338,7 +338,10 @@ export default function ToolClient() {
       description="Encode UTF-8 text to standard Base64, or inspect decoded bytes as text or hex."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label
+          htmlFor="base64-input"
+          className="block text-sm font-semibold text-gray-900"
+        >
           Input
         </label>
         <p className="mt-1 text-sm leading-relaxed text-gray-500">
@@ -346,6 +349,7 @@ export default function ToolClient() {
         </p>
 
         <textarea
+          id="base64-input"
           value={input}
           onChange={(event: { target: { value: string } }) => {
             setInput(event.target.value);
@@ -359,10 +363,14 @@ export default function ToolClient() {
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="base64-decode-validation"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
             Decode validation
           </label>
           <select
+            id="base64-decode-validation"
             value={decodeMode}
             onChange={(event: { target: { value: string } }) => {
               setDecodeMode(
@@ -382,10 +390,14 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="base64-decoded-output"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
             Decoded output
           </label>
           <select
+            id="base64-decoded-output"
             value={decodeView}
             onChange={(event: { target: { value: string } }) => {
               setDecodeView(
@@ -440,7 +452,10 @@ export default function ToolClient() {
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
@@ -502,9 +517,9 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Encoding and decoding run in browser memory; no Base64 API request is
-        made with the supplied value. Site-wide analytics or advertising scripts,
-        if enabled, are separate from the conversion itself.
+        Encoding and decoding happen in browser memory. The entered value is not
+        posted to a Base64 service. Normal site analytics or advertising, when
+        present, operate separately from the conversion code.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -513,8 +528,8 @@ export default function ToolClient() {
             Base64 Is a Way to Carry Bytes Through Text-Only Places
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Base64 is useful when a system needs binary data expressed with a
-            small ASCII alphabet. Three input bytes are represented as four
+            Base64 fits situations where a system needs binary data expressed
+            with a small ASCII alphabet. Three input bytes are represented as four
             Base64 characters, so the encoded form is larger than the original
             bytes. The tradeoff is that the result travels conveniently through
             formats and protocols that are designed around text.
@@ -602,10 +617,10 @@ export default function ToolClient() {
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             RFC 4648 explicitly treats Base64URL as a distinct encoding
-            alphabet. This page therefore reports URL-safe characters instead
-            of quietly converting them. Use the dedicated Base64URL converter
-            when the input comes from JWTs, URL tokens, or another URL-safe
-            format.
+            alphabet. URL-safe characters are therefore reported rather than
+            silently converted. JWT segments, URL tokens, and other URL-safe
+            values need Base64URL decoding rules instead of standard Base64
+            rules.
           </p>
         </div>
 
@@ -617,13 +632,13 @@ export default function ToolClient() {
             The unused pad bits at the end of an encoding should be zero. If
             they are not, two different Base64 strings can decode to the same
             bytes. Strict mode re-encodes the decoded bytes and rejects a
-            non-canonical spelling, which is useful when encoded values are
-            compared literally, cached, hashed, or used inside signed data.
+            non-canonical spelling. That distinction matters when encoded values
+            are compared literally, cached, hashed, or used inside signed data.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            RFC 4648 is a useful reference here because it defines the standard
-            alphabet, padding, treatment of non-alphabet characters, and
-            canonical pad-bit requirement implemented by the strict decoder.{" "}
+            RFC 4648 defines the standard alphabet, padding, treatment of
+            non-alphabet characters, and canonical pad-bit requirement implemented
+            by the strict decoder.{" "}
             <a
               href="https://www.rfc-editor.org/rfc/rfc4648"
               target="_blank"
@@ -644,8 +659,8 @@ export default function ToolClient() {
             <code>data:image/png;base64,</code> contains a media type and a data
             URL prefix before the actual Base64 characters. Passing the whole
             URL to an ordinary Base64 decoder is a format mismatch. Remove the
-            prefix—or use a tool designed to parse data URLs—before decoding the
-            payload.
+            prefix before decoding the payload, or parse the value as a data URL
+            rather than as raw Base64.
           </p>
         </div>
 
@@ -671,7 +686,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/base64-encoder-decoder" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/base64-encoder-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>

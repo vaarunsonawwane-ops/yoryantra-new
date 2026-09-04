@@ -330,7 +330,7 @@ export default function ToolClient() {
 
       if (!description.trim()) {
         warnings.push(
-          "No meta description was supplied. Search engines can build snippets from page content, but a useful page-specific description is still worth providing."
+          "No meta description was supplied. Search engines can build snippets from page content, but a clear page-specific description is still worth providing."
         );
       }
 
@@ -503,10 +503,14 @@ export default function ToolClient() {
     >
       <div className="grid gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="meta-page-title"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
             Page title
           </label>
           <input
+            id="meta-page-title"
             value={title}
             onChange={(event: { target: { value: string } }) => {
               setTitle(event.target.value);
@@ -522,10 +526,14 @@ export default function ToolClient() {
         </div>
 
         <div className="md:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="meta-description"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
             Meta description
           </label>
           <textarea
+            id="meta-description"
             value={description}
             onChange={(event: { target: { value: string } }) => {
               setDescription(event.target.value);
@@ -542,6 +550,7 @@ export default function ToolClient() {
         </div>
 
         <Field
+          id="meta-page-url"
           label="Canonical / page URL"
           value={url}
           setValue={setUrl}
@@ -550,6 +559,7 @@ export default function ToolClient() {
         />
 
         <Field
+          id="meta-site-name"
           label="Open Graph site name (optional)"
           value={siteName}
           setValue={setSiteName}
@@ -558,6 +568,7 @@ export default function ToolClient() {
         />
 
         <Field
+          id="meta-social-image"
           label="Social image URL (optional)"
           value={image}
           setValue={setImage}
@@ -566,6 +577,7 @@ export default function ToolClient() {
         />
 
         <Field
+          id="meta-social-image-alt"
           label="Social image alt text (optional)"
           value={imageAlt}
           setValue={setImageAlt}
@@ -574,10 +586,14 @@ export default function ToolClient() {
         />
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="meta-robots"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
             Robots meta
           </label>
           <select
+            id="meta-robots"
             value={robotsMode}
             onChange={(event: { target: { value: string } }) => {
               setRobotsMode(
@@ -606,10 +622,14 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="meta-og-type"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
             Open Graph type
           </label>
           <select
+            id="meta-og-type"
             value={ogType}
             onChange={(event: { target: { value: string } }) => {
               setOgType(
@@ -650,7 +670,10 @@ export default function ToolClient() {
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
@@ -681,7 +704,10 @@ export default function ToolClient() {
           </pre>
 
           {result.warnings.length ? (
-            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+            <div
+              role="status"
+              className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900"
+            >
               <strong>Review before publishing:</strong>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 {result.warnings.map(
@@ -714,10 +740,10 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Markup is assembled from the entered values in browser memory. No
-        request is made to the page URL, image URL, search engine, or social
-        preview service. Site-wide analytics or advertising scripts, if enabled,
-        are separate from the metadata values themselves.
+        Markup generation happens in browser memory. It does not fetch the page
+        URL or image, and it does not contact a search engine or social preview
+        service. Normal site analytics or advertising, when present, are
+        separate from those metadata operations.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -772,8 +798,8 @@ export default function ToolClient() {
             >
               snippet guidance
             </a>{" "}
-            are useful when displayed search text behaves differently from the
-            HTML you supplied.
+            explain why displayed search text can differ from the HTML you
+            supplied.
           </p>
         </div>
 
@@ -820,8 +846,10 @@ export default function ToolClient() {
             The robots selector defaults to omission because ordinary indexable
             pages do not need an explicit <code>index, follow</code> tag. Choose
             <code>noindex</code> or <code>nofollow</code> only when that restriction
-            is intentional. Google documents the supported rules and their
-            crawler behavior in its{" "}
+            is intentional. Other directives such as <code>nosnippet</code>,
+            <code>max-snippet</code>, and <code>max-image-preview</code> are outside
+            this small selector and should be added only when the page needs them.
+            Google documents the supported rules and their crawler behavior in its{" "}
             <a
               href="https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"
               target="_blank"
@@ -920,10 +948,9 @@ export default function ToolClient() {
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             The old <code>&lt;meta name="keywords"&gt;</code> pattern still
-            appears in many generic “SEO meta generator” templates, but Google
-            does not use that tag for web ranking. Adding a keyword textarea
-            would add interface weight without providing useful Google search
-            metadata.
+            appears in older SEO guides and code examples, but Google does not
+            use that tag for web ranking. Adding a keyword textarea would add
+            interface weight without improving Google search metadata.
           </p>
         </div>
 
@@ -941,8 +968,8 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             For dynamically rendered sites, also confirm that crawlers receive
             the metadata in the response or rendered page in the way your
-            framework expects. A correct snippet stored in a component is not
-            useful if it never reaches the final document head.
+            framework expects. A correct snippet stored in a component has no
+            effect if it never reaches the final document head.
           </p>
         </div>
 
@@ -950,7 +977,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/meta-tag-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/meta-tag-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -958,12 +987,14 @@ export default function ToolClient() {
 }
 
 function Field({
+  id,
   label,
   value,
   setValue,
   clearResult,
   placeholder,
 }: {
+  id: string;
   label: string;
   value: string;
   setValue: (value: string) => void;
@@ -972,10 +1003,14 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-gray-700">
+      <label
+        htmlFor={id}
+        className="mb-2 block text-sm font-medium text-gray-700"
+      >
         {label}
       </label>
       <input
+        id={id}
         value={value}
         onChange={(event: { target: { value: string } }) => {
           setValue(event.target.value);
