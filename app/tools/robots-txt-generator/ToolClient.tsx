@@ -392,7 +392,7 @@ function buildRobotsTxt(
     .join("\n\n");
 
   notes.push(
-    "The generator intentionally omits non-standard directives such as Crawl-delay. Some crawlers support extra fields, but RFC 9309 standardizes User-agent, Allow, and Disallow; other records are crawler-specific extensions."
+    "Non-standard directives such as Crawl-delay are intentionally omitted. Some crawlers support extra fields, but RFC 9309 standardizes User-agent, Allow, and Disallow; other records are crawler-specific extensions."
   );
 
   notes.push(
@@ -575,10 +575,10 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Robots.txt Generator"
-      description="Build RFC 9309-style crawler groups deliberately: validate product tokens and path patterns, expose duplicate-group merging, keep Sitemap records separate, and avoid presenting robots.txt as privacy or indexing control."
+      description="Build RFC 9309-style crawler groups, validate product tokens and patterns, and keep Sitemap records separate."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="robots-site-origin" className="block text-sm font-semibold text-gray-900">
           Site origin{" "}
           <span className="font-normal text-gray-500">
             (optional)
@@ -589,6 +589,7 @@ export default function ToolClient() {
           review sitemap origins. Nothing is fetched.
         </p>
         <input
+          id="robots-site-origin"
           value={siteOrigin}
           onChange={(event: {
             target: { value: string };
@@ -631,17 +632,18 @@ export default function ToolClient() {
                         group.id
                       )
                     }
-                    className="yoryantra-btn-outline whitespace-nowrap"
+                    className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
                   >
                     Remove Group
                   </button>
                 ) : null}
               </div>
 
-              <label className="mt-5 block text-sm font-medium text-gray-700">
+              <label htmlFor={`robots-user-agents-${group.id}`} className="mt-5 block text-sm font-medium text-gray-700">
                 User-agent product tokens
               </label>
               <textarea
+                id={`robots-user-agents-${group.id}`}
                 value={
                   group.userAgents
                 }
@@ -668,10 +670,11 @@ export default function ToolClient() {
 
               <div className="mt-5 grid gap-5 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label htmlFor={`robots-allow-${group.id}`} className="block text-sm font-medium text-gray-700">
                     Allow patterns
                   </label>
                   <textarea
+                    id={`robots-allow-${group.id}`}
                     value={
                       group.allow
                     }
@@ -694,10 +697,11 @@ export default function ToolClient() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label htmlFor={`robots-disallow-${group.id}`} className="block text-sm font-medium text-gray-700">
                     Disallow patterns
                   </label>
                   <textarea
+                    id={`robots-disallow-${group.id}`}
                     value={
                       group.disallow
                     }
@@ -734,19 +738,20 @@ export default function ToolClient() {
       <button
         type="button"
         onClick={addGroup}
-        className="yoryantra-btn-outline mt-5"
+        className="yoryantra-btn-outline mt-5 shrink-0 whitespace-nowrap"
       >
         Add Rule Group
       </button>
 
       <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="robots-sitemaps" className="block text-sm font-semibold text-gray-900">
           Sitemap URLs{" "}
           <span className="font-normal text-gray-500">
             (optional)
           </span>
         </label>
         <textarea
+          id="robots-sitemaps"
           value={sitemaps}
           onChange={(event: {
             target: { value: string };
@@ -771,28 +776,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={generate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Generate robots.txt
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -848,7 +853,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyOutput}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -882,10 +887,10 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Generation is local to your browser. The tool does not request your
-        existing robots.txt or test how Googlebot, Bingbot, or another crawler
-        currently interprets a deployed file. Site-wide analytics or
-        advertising scripts, if enabled, are separate from generation.
+        Generation stays in browser memory. No existing robots.txt file is
+        requested, and no live Googlebot, Bingbot, or other crawler behavior is
+        tested. Site-wide analytics or advertising scripts, if enabled, are
+        separate from generation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -918,8 +923,8 @@ Allow: /private/public/`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
             RFC 9309 requires matching groups for the same product token to be
             combined before their rules are evaluated. The second block does
-            not erase the first. This is why the generator warns when one
-            product token is spread across several groups.
+            not erase the first. A repeated product token is therefore flagged
+            when it is spread across several groups.
           </p>
         </div>
 
@@ -943,7 +948,7 @@ Allow: /private/public/`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             # Is a Comment Marker, So a Literal Hash Must Not Be Pasted Raw Into a Rule
           </h2>
@@ -999,17 +1004,18 @@ Allow: /private/public/`}</pre>
           >
             RFC 9309
           </a>{" "}
-          is the central reference for this generator because it standardizes
-          group matching, product tokens, Allow/Disallow path rules,
-          specificity, special characters, UTF-8, caching behavior, and the
-          required top-level <code>/robots.txt</code> location.
+          standardizes group matching, product tokens, Allow/Disallow path
+          rules, specificity, special characters, UTF-8, caching behavior, and
+          the required top-level <code>/robots.txt</code> location.
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/robots-txt-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/robots-txt-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>

@@ -214,7 +214,7 @@ function buildOpenGraph(values: OgValues): BuildResult {
     Boolean(imageWidth) !== Boolean(imageHeight)
   ) {
     warnings.push(
-      "Only one image dimension was supplied. Width and height are usually more useful together when both values are known."
+      "Only one image dimension was supplied. Width and height are more informative together when both values are known."
     );
   }
 
@@ -241,13 +241,14 @@ function buildOpenGraph(values: OgValues): BuildResult {
   }
 
   if (
-    values.type.trim() !== "website" &&
-    values.type.trim() !== "article" &&
+    ["website", "article", "book", "profile"].indexOf(
+      values.type.trim()
+    ) === -1 &&
     values.type.trim().indexOf(".") === -1 &&
     values.type.trim().indexOf(":") === -1
   ) {
     notes.push(
-      `og:type "${values.type.trim()}" is not one of the common website/article values and has no visible namespace separator. Confirm the intended Open Graph object type.`
+      `og:type "${values.type.trim()}" is not one of the common simple Open Graph types and has no visible namespace separator. Confirm the intended object type or namespace.`
     );
   }
 
@@ -405,7 +406,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Open Graph Generator"
-      description="Create Open Graph metadata for one social object, with strict URL handling, escaped attributes, structured image details, and review notes that stay separate from platform-specific preview behavior."
+      description="Create Open Graph metadata with escaped attributes, strict URLs, image details, and separate preview caveats."
     >
       <div className="grid gap-5 md:grid-cols-2">
         <Field
@@ -500,10 +501,11 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5">
-        <label className="block text-sm font-medium text-gray-700">
+        <label htmlFor="og-description" className="block text-sm font-medium text-gray-700">
           og:description (optional)
         </label>
         <textarea
+          id="og-description"
           value={values.description}
           onChange={(event: {
             target: { value: string };
@@ -527,28 +529,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={generate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Generate Open Graph Tags
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -586,7 +588,7 @@ export default function ToolClient() {
             <button
               type="button"
               onClick={copyOutput}
-              className="yoryantra-btn-outline whitespace-nowrap"
+              className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -617,10 +619,10 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Generation runs on the values in your browser. The tool does not fetch
-        the page, image, Facebook scraper, X card, or any other social preview.
-        Site-wide analytics or advertising scripts, if enabled, are separate
-        from this markup generation.
+        Generation stays in browser memory for the values entered here. No page,
+        image, Facebook scraper, X card, or other social-preview endpoint is
+        fetched. Site-wide analytics or advertising scripts, if enabled, are
+        separate from the markup generation itself.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -672,15 +674,15 @@ export default function ToolClient() {
             contains several social images.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This generator creates one image group, so those properties are
-            emitted immediately after <code>og:image</code>. If you later add
+            The generated output contains one image group, so those properties
+            are emitted immediately after <code>og:image</code>. If you later add
             multiple images manually, keep each image&apos;s structured
             properties together instead of putting every width or alt field at
             the end of the head.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Image Dimensions Help a Consumer, but They Do Not Validate the Image
           </h2>
@@ -703,7 +705,7 @@ export default function ToolClient() {
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             The Open Graph protocol describes <code>og:image:alt</code> as text
-            describing what is in the image, not as a caption. A useful value is
+            describing what is in the image, not as a caption. A descriptive value is
             therefore closer to “Browser address bar showing highlighted URL
             parts” than “The ultimate guide you cannot miss.”
           </p>
@@ -716,13 +718,13 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             Sharing links often arrive with <code>utm_source</code>,{" "}
             <code>gclid</code>, <code>fbclid</code>, or another acquisition
-            parameter. Those parameters can be useful for measuring a visit,
-            while the Open Graph object should often continue identifying the
+            parameter. Those parameters can measure a visit, while the Open
+            Graph object should often continue identifying the
             stable page URL.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The tool warns about common campaign parameters instead of removing
-            them automatically because query strings sometimes identify
+            Common campaign parameters are flagged instead of removed
+            automatically because query strings sometimes identify
             genuinely different content.
           </p>
         </div>
@@ -737,8 +739,8 @@ export default function ToolClient() {
           >
             Open Graph protocol
           </a>{" "}
-          is directly useful for this generator because it defines the four
-          basic properties, optional locale/site-name/description fields,
+          defines the four basic properties, optional locale, site-name and
+          description fields,
           structured image properties, arrays, and the ordering relationship
           between an image and its structured properties.
         </div>
@@ -747,7 +749,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/open-graph-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/open-graph-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -765,12 +769,18 @@ function Field({
   onChange: (value: string) => void;
   placeholder: string;
 }) {
+  const inputId = `open-graph-${label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")}`;
+
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700">
+      <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
         {label}
       </label>
       <input
+        id={inputId}
         value={value}
         onChange={(event: {
           target: { value: string };

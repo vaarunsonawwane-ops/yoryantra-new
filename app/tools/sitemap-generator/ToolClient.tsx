@@ -386,7 +386,7 @@ function buildSitemap(
   }
 
   notes.push(
-    "This generator intentionally omits changefreq and priority. The Sitemap protocol defines them, but Google states that it ignores those values."
+    "changefreq and priority are intentionally omitted. The Sitemap protocol defines them, but Google states that it ignores those values."
   );
 
   const body = entries
@@ -532,10 +532,10 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="XML Sitemap Generator"
-      description="Turn a deliberate URL list into sitemap.xml without inventing crawl data: validate absolute URLs, XML escaping, optional page lastmod values, duplicate entries, sitemap scope, URL count, loc length, and uncompressed UTF-8 size."
+      description="Create sitemap.xml from deliberate URLs while validating escaping, lastmod values, duplicates, scope, count, and size."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="sitemap-location" className="block text-sm font-semibold text-gray-900">
           Sitemap location{" "}
           <span className="font-normal text-gray-500">
             (optional)
@@ -546,6 +546,7 @@ export default function ToolClient() {
           default host/path scope. Nothing is uploaded or submitted.
         </p>
         <input
+          id="sitemap-location"
           value={sitemapLocation}
           onChange={(event: {
             target: { value: string };
@@ -562,10 +563,11 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-6">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="sitemap-entries" className="block text-sm font-semibold text-gray-900">
           Sitemap entries
         </label>
         <textarea
+          id="sitemap-entries"
           value={input}
           onChange={(event: {
             target: { value: string };
@@ -592,28 +594,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={generate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Generate sitemap.xml
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -674,7 +676,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyOutput}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -708,11 +710,10 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Generation runs only on the URL list in your browser. The tool does not
-        crawl those URLs, discover pages, determine canonicals, verify index
-        eligibility, calculate modification dates, upload the file, or submit it
-        to a search engine. Site-wide analytics or advertising scripts, if
-        enabled, are separate from generation.
+        Generation runs only on the URL list in browser memory. No URL is
+        crawled, and no canonical, indexability, modification date, upload, or
+        search-engine submission is inferred or performed. Site-wide analytics
+        or advertising scripts, if enabled, are separate from generation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -752,7 +753,7 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             XML Escaping Changes the File Syntax Without Changing the URL
           </h2>
@@ -781,10 +782,10 @@ Inside XML
             host.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Search engines such as Google support verified cross-site submission
-            arrangements, which is why this generator reports scope differences
-            rather than blindly deleting those URLs. If you are not intentionally
-            using cross-submission, keep each sitemap aligned with its site.
+            Google supports verified cross-site submission arrangements, so scope
+            differences are reported rather than used to delete URLs automatically.
+            If you are not intentionally using cross-submission, keep each sitemap
+            aligned with its site.
           </p>
         </div>
 
@@ -810,8 +811,8 @@ Inside XML
             A Valid Sitemap Does Not Prove the URLs Are Indexable
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This generator has no way to know whether a listed page returns
-            200, redirects, carries noindex, is blocked by robots.txt, declares a
+            The generated XML cannot reveal whether a listed page returns 200,
+            redirects, carries noindex, is blocked by robots.txt, declares a
             different canonical, requires authentication, or is soft-404
             content. XML validity and search eligibility are separate checks.
           </p>
@@ -851,7 +852,9 @@ Inside XML
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/sitemap-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/sitemap-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>

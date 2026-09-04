@@ -274,10 +274,7 @@ function collectOgImages(items: MetaItem[]) {
           "property:".length
         );
 
-      if (
-        property === "og:image" ||
-        property === "og:image:url"
-      ) {
+      if (property === "og:image") {
         current = {
           url: item.value,
           alt: "",
@@ -286,6 +283,22 @@ function collectOgImages(items: MetaItem[]) {
           type: "",
         };
         images.push(current);
+        return;
+      }
+
+      if (property === "og:image:url") {
+        if (!current) {
+          current = {
+            url: item.value,
+            alt: "",
+            width: "",
+            height: "",
+            type: "",
+          };
+          images.push(current);
+        } else {
+          current.url = item.value;
+        }
         return;
       }
 
@@ -498,9 +511,7 @@ function inspectSocialMetadata(
     [data.ogTitle, "og:title"],
     [data.ogType, "og:type"],
     [
-      data.ogImages.length
-        ? data.ogImages[0].url
-        : "",
+      firstValue(items, ["property:og:image"]),
       "og:image",
     ],
     [data.ogUrl, "og:url"],
@@ -951,14 +962,20 @@ export default function ToolClient() {
       : data
       ? data.twitterImage
       : "";
+  const warningIssues = report
+    ? report.issues.filter((item) => item.level === "Warning")
+    : [];
+  const noteIssues = report
+    ? report.issues.filter((item) => item.level === "Note")
+    : [];
 
   return (
     <ToolShell
       title="Open Graph Preview Checker"
-      description="Inspect the social metadata actually declared in pasted HTML, keep Open Graph arrays and fallbacks separate, resolve relative URLs when page context is supplied, and build only an approximate content preview."
+      description="Inspect declared social metadata, preserve Open Graph arrays and fallbacks, and build only an approximate preview."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="social-page-url" className="block text-sm font-semibold text-gray-900">
           Page URL{" "}
           <span className="font-normal text-gray-500">
             (optional)
@@ -969,6 +986,7 @@ export default function ToolClient() {
           request is made.
         </p>
         <input
+          id="social-page-url"
           type="url"
           value={pageUrl}
           onChange={(event: {
@@ -987,10 +1005,11 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-6">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="social-html-source" className="block text-sm font-semibold text-gray-900">
           HTML source
         </label>
         <textarea
+          id="social-html-source"
           value={input}
           onChange={(event: {
             target: { value: string };
@@ -1008,9 +1027,8 @@ export default function ToolClient() {
           className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          This checker parses only the supplied HTML. It does not fetch the
-          page, image, redirects, HTTP headers, or a social platform&apos;s
-          cached preview.
+          Only the supplied HTML is parsed. No page, image, redirect, HTTP
+          header, or social platform&apos;s cached preview is fetched.
         </p>
       </div>
 
@@ -1018,28 +1036,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={inspect}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Inspect Social Metadata
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -1117,31 +1135,33 @@ export default function ToolClient() {
             </p>
           </div>
 
-          {report.issues.length ? (
+          {warningIssues.length ? (
             <div className="mt-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
-              <strong>Social metadata review:</strong>
+              <strong>Warnings to review:</strong>
               <ul className="mt-2 list-disc space-y-2 pl-5">
-                {report.issues.map(
-                  (item, index) => (
-                    <li
-                      key={`${item.message}-${index}`}
-                    >
-                      <strong>
-                        {item.level}:
-                      </strong>{" "}
-                      {item.message}
-                    </li>
-                  )
-                )}
+                {warningIssues.map((item, index) => (
+                  <li key={`${item.message}-${index}`}>{item.message}</li>
+                ))}
               </ul>
             </div>
           ) : (
             <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm leading-relaxed text-green-800">
-              No common structural issue was found in the pasted social
+              No common structural warning was found in the pasted social
               metadata. Live crawler access and platform rendering still need
               separate verification.
             </div>
           )}
+
+          {noteIssues.length ? (
+            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+              <strong className="text-gray-900">Review notes:</strong>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                {noteIssues.map((item, index) => (
+                  <li key={`${item.message}-${index}`}>{item.message}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1158,7 +1178,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1191,8 +1211,8 @@ export default function ToolClient() {
             A Fallback Can Make the Preview Look Fine While the Open Graph Markup Is Still Incomplete
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            A normal HTML title and meta description can provide useful text for
-            this approximate card. Some real services also use fallbacks. But
+            A normal HTML title and meta description can supply text for this
+            approximate card. Some real services also use fallbacks. But
             seeing a readable title in a preview should not be confused with
             actually declaring the four Open Graph core properties.
           </p>
@@ -1216,8 +1236,8 @@ export default function ToolClient() {
             values.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The checker treats repeated image roots as candidates and attaches
-            width, height, type, and alt properties to the image that precedes
+            Repeated image roots remain distinct candidates, with width, height,
+            type, and alt properties attached to the image that precedes
             them in source order.
           </p>
         </div>
@@ -1239,9 +1259,9 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
-            The Checker Cannot Tell Whether the Image URL Actually Works
+            Pasted HTML Cannot Prove Whether the Image URL Actually Works
           </h2>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
             A syntactically valid <code>og:image</code> can still return 404,
@@ -1250,9 +1270,9 @@ export default function ToolClient() {
             version. None of those facts exists in pasted HTML.
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            Use this tool to inspect declarations. Use the target platform&apos;s
-            live debugging or card refresh workflow to verify what its crawler
-            can actually fetch.
+            Inspect the declarations here, then use the target platform&apos;s live
+            debugging or card refresh workflow to verify what its crawler can
+            actually fetch.
           </p>
         </div>
 
@@ -1281,7 +1301,7 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             A page can deliberately use a shorter <code>twitter:title</code> or
             different social description while preserving the same underlying
-            page identity. The checker reports the difference as a note rather
+            page identity. The report shows the difference as a note rather
             than forcing Open Graph and X values to be identical.
           </p>
         </div>
@@ -1296,16 +1316,17 @@ export default function ToolClient() {
           >
             Open Graph protocol
           </a>{" "}
-          is particularly useful for this checker because it defines the four
-          core properties, repeated-value ordering, and the attachment of
-          structured image properties to root image tags.
+          defines the four core properties, repeated-value ordering, and the
+          attachment of structured image properties to root image tags.
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/open-graph-preview-checker" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/open-graph-preview-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>
