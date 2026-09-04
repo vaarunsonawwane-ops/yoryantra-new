@@ -746,8 +746,8 @@ function inspectImpossibleDates(
   if (
     !dom.valid ||
     !month.valid ||
-    !dom.restricted ||
-    !month.restricted
+    dom.source.indexOf("*") !== -1 ||
+    month.source.indexOf("*") !== -1
   ) {
     return;
   }
@@ -778,9 +778,9 @@ function inspectImpossibleDates(
         } ${impossibleDays.join(
           ", "
         )} cannot occur in any selected month. ${
-          dow.restricted
+          dow.source.indexOf("*") === -1
             ? "Traditional cron may still run on matching day-of-week values because its two day fields use OR-like matching when both are restricted."
-            : "With an unrestricted day-of-week field, those day/month combinations will never match."
+            : "With a wildcard day-of-week field, those day/month combinations will never match."
         }`,
     });
   }
@@ -936,11 +936,11 @@ function validateCronExpression(
   }
 
   const domOrRestricted =
-    dom.source.charAt(0) !==
-    "*";
+    dom.source.indexOf("*") ===
+    -1;
   const dowOrRestricted =
-    dow.source.charAt(0) !==
-    "*";
+    dow.source.indexOf("*") ===
+    -1;
 
   if (
     domOrRestricted &&
@@ -1096,7 +1096,7 @@ function formatCronReport(
     );
   } else {
     lines.push(
-      "No additional issue from this validator."
+      "No additional issue was found."
     );
   }
 
@@ -1198,13 +1198,14 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Cron Expression Validator"
-      description="Validate a deliberate five-field Unix-style cron subset and inspect each field's selected values, day-field interaction, impossible calendar combinations, high-frequency schedules, and scheduler boundaries instead of treating every cron dialect as interchangeable."
+      description="Validate five-field Unix cron expressions and inspect field values, day interactions, impossible dates, and scheduler limits."
     >
       <div>
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="cron-expression" className="block text-sm font-semibold text-gray-900">
           Five-field cron expression
         </label>
         <input
+          id="cron-expression"
           value={input}
           onChange={(event: {
             target: {
@@ -1241,7 +1242,7 @@ export default function ToolClient() {
                 );
                 clearResult();
               }}
-              className="yoryantra-btn-outline"
+              className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
             >
               {preset.label}
             </button>
@@ -1253,28 +1254,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={validate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Validate Cron
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -1317,15 +1318,15 @@ export default function ToolClient() {
                   Field interpretation
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Selected values are expanded by this validator&apos;s portable
-                  subset so range/list/step mistakes are visible.
+                  Selected values are expanded with the documented portable subset so
+                  range/list/step mistakes are visible.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1341,7 +1342,7 @@ export default function ToolClient() {
                       key={
                         field.shortName
                       }
-                      className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+                      className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-gray-900">
@@ -1413,24 +1414,35 @@ export default function ToolClient() {
             )}
           </div>
 
-          {report.issues.length ? (
-            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
-              <strong>
-                Schedule review:
-              </strong>
+          {report.issues.some((item) => item.level === "Error") ? (
+            <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+              <strong>Errors:</strong>
               <ul className="mt-2 list-disc space-y-2 pl-5">
-                {report.issues.map(
-                  (item, index) => (
-                    <li
-                      key={`${item.message}-${index}`}
-                    >
-                      <strong>
-                        {item.level}:
-                      </strong>{" "}
-                      {item.message}
-                    </li>
-                  )
-                )}
+                {report.issues.filter((item) => item.level === "Error").map((item, index) => (
+                  <li key={`${item.message}-${index}`}>{item.message}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {report.issues.some((item) => item.level === "Warning") ? (
+            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+              <strong>Warnings:</strong>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                {report.issues.filter((item) => item.level === "Warning").map((item, index) => (
+                  <li key={`${item.message}-${index}`}>{item.message}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {report.issues.some((item) => item.level === "Note") ? (
+            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+              <strong>Review notes:</strong>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                {report.issues.filter((item) => item.level === "Note").map((item, index) => (
+                  <li key={`${item.message}-${index}`}>{item.message}</li>
+                ))}
               </ul>
             </div>
           ) : null}
@@ -1451,8 +1463,8 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Cron parsing runs on the expression in your browser. This tool does not
-        schedule a task, read a system crontab, or know the production
+        Cron parsing runs on the expression in your browser. It does not schedule
+        a task, read a system crontab, or know the production
         scheduler&apos;s timezone, DST policy, environment variables, command,
         locking or missed-run behavior. Site-wide analytics or advertising
         scripts, if enabled, are separate from validation.
@@ -1472,12 +1484,12 @@ export default function ToolClient() {
             incorrectly.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            That is why this page expands the selected field values and reports
-            schedule semantics instead of stopping at “five fields found.”
+            Selected field values are expanded so schedule semantics remain
+            visible instead of stopping at “five fields found.”
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Day-of-Month and Day-of-Week Are the Cron Trap Worth Memorizing
           </h2>
@@ -1510,9 +1522,8 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             A validator that accepts every symbol used by any of those systems
             is not “more compatible”; it can accidentally approve an expression
-            that your real scheduler rejects. Yoryantra therefore validates a
-            deliberately portable five-field subset and rejects vendor-specific
-            tokens rather than guessing.
+            that your real scheduler rejects. The accepted grammar is therefore a
+            deliberately portable five-field subset; vendor-specific tokens are rejected rather than guessed.
           </p>
         </div>
 
@@ -1540,17 +1551,16 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             Numeric range validation alone says that day 31 is legal and
             February is legal. The pair <code>31 2</code> still has no calendar
-            date. This validator checks restricted day-of-month values against
-            selected months and warns when a selected day cannot occur.
+            date. Restricted day-of-month values are checked against selected months,
+            with a warning when a selected day cannot occur.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            February 29 is kept possible because leap years exist. The validator
-            does not invent a specific future year just to mark a legal leap-day
+            February 29 is kept possible because leap years exist. No specific future year is invented merely to mark a legal leap-day
             schedule as broken.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             DST Can Create a Missing Run or a Repeated Local Time
           </h2>
@@ -1580,7 +1590,7 @@ export default function ToolClient() {
             accounts.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Use absolute paths where appropriate, capture useful logs, test the
+            Use absolute paths where appropriate, capture diagnostic logs, test the
             command under the same account/environment, and consider locking or
             idempotency when a previous execution can overlap the next one.
           </p>
@@ -1597,8 +1607,8 @@ export default function ToolClient() {
             billing task, email sender or long-running batch job.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Yoryantra reports that frequency as a warning instead of declaring
-            the expression invalid. Syntax validators should not silently turn
+            That frequency is reported as a warning instead of making the
+            expression invalid. Syntax validators should not silently turn
             operational judgment into grammar.
           </p>
         </div>
@@ -1613,7 +1623,7 @@ export default function ToolClient() {
           >
             crontab(5)
           </a>{" "}
-          is useful for field ranges, names, step values, day matching and DST
+          covers field ranges, names, step values, day matching and DST
           behavior. For a managed scheduler such as{" "}
           <a
             href="https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/"
@@ -1630,7 +1640,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/cron-expression-validator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/cron-expression-validator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -1645,7 +1657,7 @@ function Stat({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </div>

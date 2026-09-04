@@ -709,9 +709,9 @@ function analyzeRobotsTxt(
           issues.push({
             line:
               lineNumber,
-            level: "Error",
+            level: "Warning",
             message:
-              `${directive} appears before a User-agent group. It has no RFC 9309 group to belong to.`,
+              `${directive} appears before a User-agent group. RFC 9309 says crawlers should ignore Allow/Disallow rules that are not inside a group.`,
           });
           return;
         }
@@ -804,9 +804,9 @@ function analyzeRobotsTxt(
   if (!groups.length) {
     issues.push({
       line: 0,
-      level: "Error",
+      level: "Note",
       message:
-        "No User-agent group was found.",
+        "No User-agent group was found. RFC 9309 permits no groups; in that case no Allow/Disallow rules apply. Standalone Sitemap records may still be interpreted by supporting search engines.",
     });
   }
 
@@ -1130,7 +1130,7 @@ function formatRobotsReport(
 
   if (!report.issues.length) {
     lines.push(
-      "No additional issue from this validator."
+      "No additional issue was found."
     );
   }
 
@@ -1249,16 +1249,17 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Robots.txt Validator"
-      description="Inspect robots.txt as RFC 9309 groups and rules: validate crawler product tokens and path patterns, expose duplicate-group merging and Allow/Disallow conflicts, keep Sitemap and crawler-specific extensions separate, and review the deployment path without pretending to crawl the live site."
+      description="Validate RFC 9309 robots.txt groups, rules, tokens, conflicts, Sitemap records, and deployment path assumptions."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="robots-deployed-url" className="block text-sm font-semibold text-gray-900">
           Deployed robots.txt URL{" "}
           <span className="font-normal text-gray-500">
             (optional)
           </span>
         </label>
         <input
+          id="robots-deployed-url"
           value={serviceUrl}
           onChange={(event: {
             target: {
@@ -1282,10 +1283,11 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-6">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="robots-content" className="block text-sm font-semibold text-gray-900">
           robots.txt content
         </label>
         <textarea
+          id="robots-content"
           value={input}
           onChange={(event: {
             target: {
@@ -1310,28 +1312,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={validate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Validate Robots.txt
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -1370,28 +1372,41 @@ export default function ToolClient() {
             />
           </div>
 
-          {report.issues.length ? (
-            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
-              <strong>
-                robots.txt review:
-              </strong>
+          {report.issues.some((item) => item.level === "Error") ? (
+            <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 text-red-700 p-4 text-sm leading-relaxed">
+              <strong>Errors:</strong>
               <ul className="mt-2 list-disc space-y-2 pl-5">
-                {report.issues.map(
-                  (item, index) => (
-                    <li
-                      key={`${item.message}-${item.line}-${index}`}
-                    >
-                      <strong>
-                        {item.level}
-                        {item.line
-                          ? ` · line ${item.line}`
-                          : ""}
-                        :
-                      </strong>{" "}
-                      {item.message}
-                    </li>
-                  )
-                )}
+                {report.issues.filter((item) => item.level === "Error").map((item, index) => (
+                  <li key={`${item.message}-${item.line}-${index}`}>
+                    {item.line ? `Line ${item.line}: ` : ""}{item.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {report.issues.some((item) => item.level === "Warning") ? (
+            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 p-4 text-sm leading-relaxed">
+              <strong>Warnings:</strong>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                {report.issues.filter((item) => item.level === "Warning").map((item, index) => (
+                  <li key={`${item.message}-${item.line}-${index}`}>
+                    {item.line ? `Line ${item.line}: ` : ""}{item.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {report.issues.some((item) => item.level === "Note") ? (
+            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 p-4 text-sm leading-relaxed">
+              <strong>Review notes:</strong>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                {report.issues.filter((item) => item.level === "Note").map((item, index) => (
+                  <li key={`${item.message}-${item.line}-${index}`}>
+                    {item.line ? `Line ${item.line}: ` : ""}{item.message}
+                  </li>
+                ))}
               </ul>
             </div>
           ) : null}
@@ -1411,7 +1426,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1520,10 +1535,10 @@ export default function ToolClient() {
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
         Validation runs on the pasted text and optional deployment URL in your
-        browser. The tool does not request the live robots.txt, inspect its HTTP
-        status/redirects/cache headers, or ask a crawler how it currently treats
-        your site. Site-wide analytics or advertising scripts, if enabled, are
-        separate from validation.
+        browser. The live robots.txt is not requested, its HTTP status, redirects
+        and cache headers are not inspected, and no crawler is asked how it
+        currently treats your site. Site-wide analytics or advertising scripts, if
+        enabled, are separate from validation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1539,8 +1554,8 @@ export default function ToolClient() {
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             That means adding a second Googlebot or ExampleBot block lower in
-            the file does not erase the first block. This validator builds a
-            merged-token view specifically to expose that mistake.
+            the file does not erase the first block. A merged-token view exposes
+            the combined rule set instead of implying “last line wins.”
           </p>
         </div>
 
@@ -1577,12 +1592,12 @@ Allow: /private/public-guide`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
             Matching also involves percent-encoded URI octets. A malformed{" "}
             <code>%</code> escape can make a rule difficult to reason about, so
-            this validator reports it instead of pretending the visible text
+            malformed escapes are reported instead of assuming the visible text
             has obvious request-path semantics.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             A Raw # Starts a Comment—It Does Not Describe a URL Fragment Rule
           </h2>
@@ -1612,8 +1627,8 @@ Allow: /private/public-guide`}</pre>
             the whole site.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The optional deployment URL exists because valid content published
-            at the wrong location is still operationally ineffective.
+            The optional HTTP(S) deployment URL exists because valid content
+            published at the wrong location is still operationally ineffective.
           </p>
         </div>
 
@@ -1631,22 +1646,22 @@ Allow: /private/public-guide`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
             <code>Crawl-delay</code> is crawler-specific rather than an RFC 9309
             standard directive. Supporting it in one bot does not make it
-            portable to another. This validator reports such extensions as
-            extensions, not as universal robots syntax.
+            portable to another. Such records are reported as extensions, not as
+            universal robots syntax.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
             robots.txt Is Public Crawl Guidance, Not Access Control
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             The file itself is publicly retrievable and often advertises the
             paths you are trying to discourage crawlers from fetching.
             Compliant crawler behavior is not authentication. Sensitive admin,
             account, document or API data needs real authorization.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             Blocking crawl also does not guarantee a URL disappears from search
             results if the URL is discovered from other sources. Crawling,
             indexing and authorization are separate controls.
@@ -1691,7 +1706,9 @@ Allow: /private/public-guide`}</pre>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/robots-txt-validator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/robots-txt-validator" />
+          </div>
         </div>
       </section>
     </ToolShell>

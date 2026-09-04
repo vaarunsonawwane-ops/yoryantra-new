@@ -1414,7 +1414,7 @@ function analyzeSitemap(
     entry:
       "Validation boundary",
     message:
-      "A protocol-valid sitemap does not prove listed URLs return 200, are canonical, are allowed to be indexed, are unblocked by robots.txt, contain useful content, or have been accepted by a search engine.",
+      "A protocol-valid sitemap does not prove listed URLs return 200, are canonical, are allowed to be indexed, are unblocked by robots.txt, contain substantive content, or have been accepted by a search engine.",
   });
 
   const valid =
@@ -1474,7 +1474,7 @@ function formatSitemapReport(
     "Sitemap validation",
     `Status: ${
       report.valid
-        ? "No protocol/XML error found by this checker"
+        ? "No protocol/XML error found"
         : "Needs correction"
     }`,
     `Root: ${report.rootType}`,
@@ -1713,16 +1713,17 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Sitemap Validator"
-      description="Validate sitemap.xml or sitemap-index XML against the protocol shape that matters: namespace-aware root/entry structure, absolute loc URLs, lastmod, changefreq, priority, duplicates, deployment scope, 50,000-entry limits, and 50 MB UTF-8 size."
+      description="Validate sitemap XML structure, URLs, lastmod values, duplicates, namespace, deployment scope, entry limits, and size."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="sitemap-deployed-url" className="block text-sm font-semibold text-gray-900">
           Deployed sitemap URL{" "}
           <span className="font-normal text-gray-500">
             (optional)
           </span>
         </label>
         <input
+          id="sitemap-deployed-url"
           value={deployedUrl}
           onChange={(event: {
             target: {
@@ -1745,10 +1746,11 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-6">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="sitemap-xml" className="block text-sm font-semibold text-gray-900">
           Sitemap XML
         </label>
         <textarea
+          id="sitemap-xml"
           value={input}
           onChange={(event: {
             target: {
@@ -1773,35 +1775,35 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={validate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Validate Sitemap
         </button>
         <button
           type="button"
           onClick={loadUrlset}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load URL Set
         </button>
         <button
           type="button"
           onClick={loadIndex}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Sitemap Index
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -1863,25 +1865,41 @@ export default function ToolClient() {
             />
           </div>
 
-          {report.issues.length ? (
-            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
-              <strong>
-                Sitemap review:
-              </strong>
+          {report.issues.some((item) => item.level === "Error") ? (
+            <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 text-red-700 p-4 text-sm leading-relaxed">
+              <strong>Errors:</strong>
               <ul className="mt-2 list-disc space-y-2 pl-5">
-                {report.issues.map(
-                  (item, index) => (
-                    <li
-                      key={`${item.entry}-${item.message}-${index}`}
-                    >
-                      <strong>
-                        {item.level} ·{" "}
-                        {item.entry}:
-                      </strong>{" "}
-                      {item.message}
-                    </li>
-                  )
-                )}
+                {report.issues.filter((item) => item.level === "Error").map((item, index) => (
+                  <li key={`${item.entry}-${item.message}-${index}`}>
+                    <strong>{item.entry}:</strong>{" "}{item.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {report.issues.some((item) => item.level === "Warning") ? (
+            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 p-4 text-sm leading-relaxed">
+              <strong>Warnings:</strong>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                {report.issues.filter((item) => item.level === "Warning").map((item, index) => (
+                  <li key={`${item.entry}-${item.message}-${index}`}>
+                    <strong>{item.entry}:</strong>{" "}{item.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {report.issues.some((item) => item.level === "Note") ? (
+            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 p-4 text-sm leading-relaxed">
+              <strong>Review notes:</strong>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                {report.issues.filter((item) => item.level === "Note").map((item, index) => (
+                  <li key={`${item.entry}-${item.message}-${index}`}>
+                    <strong>{item.entry}:</strong>{" "}{item.message}
+                  </li>
+                ))}
               </ul>
             </div>
           ) : null}
@@ -1901,7 +1919,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1975,9 +1993,9 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Sitemap parsing runs on the pasted XML in your browser. The tool does
-        not crawl listed URLs, fetch child sitemaps, verify canonicals/noindex,
-        inspect robots.txt, upload the file, or submit it to a search engine.
+        Sitemap parsing runs on the pasted XML in your browser. Listed URLs are not
+        crawled, child sitemaps are not fetched, and canonicals, noindex,
+        robots.txt, uploads, or search-engine submission are not verified here.
         Site-wide analytics or advertising scripts, if enabled, are separate
         from validation.
       </div>
@@ -1994,15 +2012,15 @@ export default function ToolClient() {
             not a valid Sitemap protocol document.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This validator checks the XML layer and then the Sitemap layer:
+            Validation covers the XML layer and then the Sitemap layer:
             correct root type, protocol namespace, direct entry elements,
             required loc values, optional field shapes, duplicates, file limits
             and deployment scope.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12 self-start rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             The Namespace URI Is Part of the Meaning
           </h2>
           <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`Correct protocol namespace:
@@ -2010,12 +2028,11 @@ export default function ToolClient() {
 
 Not equivalent:
 <urlset>`}</pre>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-600">
             The two roots have the same visible local name but not the same XML
-            expanded name. The current production validator mostly looked at tag
-            names; this freeze version checks the Sitemap namespace explicitly
-            and only treats direct children in that namespace as core protocol
-            entries.
+            expanded name. Core protocol entries are recognized by namespace as well
+            as local tag name, and only direct children in the Sitemap namespace are treated as
+            core entries.
           </p>
         </div>
 
@@ -2062,18 +2079,18 @@ Not equivalent:
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             The Sitemap protocol defines valid <code>changefreq</code> values and
-            a <code>priority</code> range from 0.0 through 1.0, so this validator
-            still checks their syntax when present.
+            a <code>priority</code> range from 0.0 through 1.0, so their syntax is
+            still checked when present.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             Google Search documentation states that Google ignores both values.
             That makes them poor fields to spend engineering time updating if
-            Google discovery is the only consumer. Accurate URLs and meaningful
-            lastmod values are usually more useful.
+            Google discovery is the only consumer. Accurate URLs and trustworthy
+            lastmod values usually matter more.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             50,000 Entries and 50 MB Are File Limits, Not Site Limits
           </h2>
@@ -2085,8 +2102,8 @@ Not equivalent:
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
             Compression reduces transfer size but does not increase the
-            uncompressed protocol limit. This page measures the pasted source
-            after UTF-8 encoding.
+            uncompressed protocol limit. The pasted source is measured after
+            UTF-8 encoding.
           </p>
         </div>
 
@@ -2135,23 +2152,23 @@ Not equivalent:
             tags simply because their local names are unfamiliar.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Yoryantra records non-core namespace URIs and leaves their detailed
-            validation to the relevant extension documentation rather than
-            hard-coding a shallow imitation of every search vertical.
+            Non-core namespace URIs are listed while detailed validation stays with
+            the relevant extension documentation rather than imitating every search
+            vertical incompletely.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 self-start rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
             A Valid Sitemap Does Not Make a URL Indexable
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-600">
             A listed URL can redirect, return 404, be blocked from crawl, carry
             noindex, canonicalize elsewhere, require authentication, or contain
             low-value/duplicate content. Sitemap submission is a discovery and
             canonicalization signal, not an indexing command.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-gray-600">
             After protocol validation, use Search Console and targeted URL
             inspection when the actual question is whether Google discovered,
             selected and indexed a particular page.
@@ -2178,7 +2195,7 @@ Not equivalent:
           >
             sitemap guidance
           </a>{" "}
-          is useful for current Search-specific behavior such as accurate
+          covers current Search-specific behavior such as accurate
           lastmod usage and ignoring changefreq/priority.
         </div>
 
@@ -2186,7 +2203,9 @@ Not equivalent:
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/sitemap-validator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/sitemap-validator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -2201,7 +2220,7 @@ function Stat({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </div>
@@ -2220,7 +2239,7 @@ function Info({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </div>

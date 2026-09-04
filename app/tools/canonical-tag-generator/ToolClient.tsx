@@ -433,7 +433,7 @@ function analyzeCanonical(
   issues.push({
     level: "Note",
     message:
-      "This generator cannot verify whether the canonical target returns 200, redirects, is indexable, carries noindex, is blocked from crawling, declares its own conflicting canonical, or contains substantially equivalent content.",
+      "Local URL inspection cannot verify whether the canonical target returns 200, redirects, is indexable, carries noindex, is blocked from crawling, declares its own conflicting canonical, or contains substantially equivalent content.",
   });
 
   return issues;
@@ -591,13 +591,13 @@ export default function ToolClient() {
     );
   const [error, setError] =
     useState("");
-  const [copied, setCopied] =
-    useState(false);
+  const [copiedTarget, setCopiedTarget] =
+    useState<"output" | "report" | null>(null);
 
   const clearResult = () => {
     setResult(null);
     setError("");
-    setCopied(false);
+    setCopiedTarget(null);
   };
 
   const generate = () => {
@@ -610,7 +610,7 @@ export default function ToolClient() {
         )
       );
       setError("");
-      setCopied(false);
+      setCopiedTarget(null);
     } catch (caught) {
       setResult(null);
       setError(
@@ -618,7 +618,7 @@ export default function ToolClient() {
           ? caught.message
           : "Unable to generate this canonical reference."
       );
-      setCopied(false);
+      setCopiedTarget(null);
     }
   };
 
@@ -651,13 +651,13 @@ export default function ToolClient() {
       await navigator.clipboard.writeText(
         result.output
       );
-      setCopied(true);
+      setCopiedTarget("output");
       window.setTimeout(
-        () => setCopied(false),
+        () => setCopiedTarget(null),
         1400
       );
     } catch {
-      setCopied(false);
+      setCopiedTarget(null);
       setError(
         "The generated canonical output could not be copied. Select and copy it manually."
       );
@@ -673,13 +673,13 @@ export default function ToolClient() {
           result
         )
       );
-      setCopied(true);
+      setCopiedTarget("report");
       window.setTimeout(
-        () => setCopied(false),
+        () => setCopiedTarget(null),
         1400
       );
     } catch {
-      setCopied(false);
+      setCopiedTarget(null);
       setError(
         "The canonical report could not be copied. Select and copy it manually."
       );
@@ -689,14 +689,15 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Canonical Tag Generator"
-      description="Generate clean rel=canonical output for HTML, HTTP Link headers or Next.js, while separately reviewing URL fragments, campaign/session parameters, HTTPS, and the relationship between the current page and preferred URL."
+      description="Generate canonical markup while reviewing fragments, campaign parameters, HTTPS, and the current-to-preferred URL relationship."
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
-          <label className="block text-sm font-semibold text-gray-900">
+          <label htmlFor="canonical-url" className="block text-sm font-semibold text-gray-900">
             Canonical URL
           </label>
           <input
+            id="canonical-url"
             value={canonicalUrl}
             onChange={(event: {
               target: {
@@ -721,13 +722,14 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-900">
+          <label htmlFor="current-page-url" className="block text-sm font-semibold text-gray-900">
             Current page URL{" "}
             <span className="font-normal text-gray-500">
               (optional)
             </span>
           </label>
           <input
+            id="current-page-url"
             value={
               currentPageUrl
             }
@@ -746,9 +748,8 @@ export default function ToolClient() {
             className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
           <p className="mt-2 text-sm leading-relaxed text-gray-500">
-            Supplying the page URL lets the tool distinguish self-reference,
-            parameter cleanup, host/protocol changes and cross-domain
-            canonicalization.
+            Supplying the page URL makes self-reference, parameter cleanup,
+            host/protocol changes and cross-domain canonicalization visible.
           </p>
         </div>
       </div>
@@ -793,28 +794,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={generate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Generate Canonical
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -836,15 +837,15 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyOutput}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
-                {copied
+                {copiedTarget === "output"
                   ? "Copied"
                   : "Copy Output"}
               </button>
             </div>
 
-            <pre className="yoryantra-output mt-4 min-h-[220px] overflow-auto whitespace-pre-wrap break-words font-mono text-sm">
+            <pre className="yoryantra-output mt-4 min-h-[120px] overflow-auto whitespace-pre-wrap break-words font-mono text-sm">
               {result.output}
             </pre>
           </div>
@@ -857,9 +858,9 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
-                Copy Full Report
+                {copiedTarget === "report" ? "Copied" : "Copy Full Report"}
               </button>
             </div>
 
@@ -876,37 +877,39 @@ export default function ToolClient() {
             </ul>
           </div>
 
-          <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
-            <strong>
-              Canonical review:
-            </strong>
-            <ul className="mt-2 list-disc space-y-2 pl-5">
-              {result.issues.map(
-                (item, index) => (
-                  <li
-                    key={`${item.message}-${index}`}
-                  >
-                    <strong>
-                      {item.level}:
-                    </strong>{" "}
-                    {item.message}
-                  </li>
-                )
-              )}
-            </ul>
-          </div>
+          {result.issues.some((item) => item.level === "Warning") ? (
+            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+              <strong>Warnings:</strong>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                {result.issues.filter((item) => item.level === "Warning").map((item, index) => (
+                  <li key={`${item.message}-${index}`}>{item.message}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {result.issues.some((item) => item.level === "Note") ? (
+            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+              <strong>Review notes:</strong>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                {result.issues.filter((item) => item.level === "Note").map((item, index) => (
+                  <li key={`${item.message}-${index}`}>{item.message}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       ) : (
-        <pre className="yoryantra-output mt-8 min-h-[260px] overflow-auto whitespace-pre-wrap break-words text-sm">
+        <pre className="yoryantra-output mt-8 min-h-[180px] overflow-auto whitespace-pre-wrap break-words text-sm">
           Canonical markup plus current-page relationship and URL review notes
           will appear here.
         </pre>
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Generation and URL comparison run in your browser. The tool does not
-        request the current page or canonical target, inspect live HTML/headers,
-        or ask a search engine which URL it selected as canonical. Site-wide
+        Generation and URL comparison run in your browser. No request is made to
+        the current page or canonical target. Live HTML/headers are not inspected,
+        and no search engine is asked which URL it selected as canonical. Site-wide
         analytics or advertising scripts, if enabled, are separate from this
         operation.
       </div>
@@ -917,8 +920,8 @@ export default function ToolClient() {
             Canonicalization Starts With a Preferred URL, Not With a Tag
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The markup is the easy part. The harder decision is whether several
-            crawlable URLs are truly duplicate or near-duplicate representations
+            Generating the markup is only one part. The harder decision is whether
+            several crawlable URLs are truly duplicate or near-duplicate representations
             of one page and which URL should represent that set in search.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
@@ -947,7 +950,7 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Query Parameters Are Not Automatically “Non-Canonical”
           </h2>
@@ -958,8 +961,8 @@ export default function ToolClient() {
             part of the preferred URL design.
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            This generator specifically warns about familiar campaign/click and
-            session-like parameters, but it does not strip every query string.
+            Familiar campaign/click and session-like parameters are flagged for review
+            without stripping every query string automatically.
             Canonicalization should follow content identity, not a rule that says
             “URLs with ? are bad.”
           </p>
@@ -976,10 +979,8 @@ export default function ToolClient() {
             publishers not to use URL fragments for rel=canonical.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The previous production generator removed the fragment first and
-            then tried to detect it later, so its own fragment warning could
-            never fire. This version records the original fragment, removes it
-            from generated output, and explains the normalization.
+            The original fragment is recorded before normalization, removed from
+            generated output, and reported separately so the change stays visible.
           </p>
         </div>
 
@@ -995,7 +996,7 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             If an old URL has permanently moved and users should no longer
             access it, a permanent redirect is usually a more direct mechanism.
-            Canonical links are especially useful when duplicate variants still
+            Canonical links are especially appropriate when duplicate variants still
             need to exist for users or application behavior.
           </p>
         </div>
@@ -1008,7 +1009,7 @@ export default function ToolClient() {
             HTML pages commonly declare{" "}
             <code>&lt;link rel="canonical" href="…" &gt;</code> in the document
             head. HTTP&apos;s Link response header can express the same registered
-            relation outside HTML and is useful for non-HTML resources such as
+            relation outside HTML and can cover non-HTML resources such as
             PDFs when the consuming search engine supports it.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
@@ -1018,17 +1019,17 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
             A Perfect Tag Can Point to a Bad Target
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
-            This generator can verify URL shape, not the target&apos;s live state.
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            URL-shape checks do not establish the target&apos;s live state.
             A canonical URL can redirect through several hops, return 404, carry
             noindex, be blocked from crawl, require authentication, or point to
             substantially different content.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             Before a sitewide rollout, sample real pages and verify that their
             canonical targets are fetchable preferred pages and that the target
             does not declare a contradictory canonical back elsewhere.
@@ -1066,7 +1067,7 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             When canonical tags, redirects, internal links, hreflang sets and
             sitemap URLs conflict, a search engine has to resolve your
-            contradictory signals. Consistency is more useful than generating
+            contradictory signals. Consistency matters more than generating
             any one tag perfectly.
           </p>
         </div>
@@ -1081,9 +1082,18 @@ export default function ToolClient() {
           >
             canonicalization guidance
           </a>{" "}
-          is the useful operational reference for HTML/HTTP rel=canonical,
+          covers operational HTML/HTTP rel=canonical behavior,
           redirects, sitemaps, duplicate-URL signals and implementation
-          mistakes. For the HTTP header syntax itself,{" "}
+          mistakes. The canonical link relation itself is registered in{" "}
+          <a
+            href="https://www.rfc-editor.org/rfc/rfc6596"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[var(--green)] underline underline-offset-4"
+          >
+            RFC 6596
+          </a>
+          . For the HTTP header syntax itself,{" "}
           <a
             href="https://www.rfc-editor.org/rfc/rfc8288"
             target="_blank"
@@ -1099,7 +1109,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/canonical-tag-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/canonical-tag-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
