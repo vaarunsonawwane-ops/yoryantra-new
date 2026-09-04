@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "DNS Records Checker | Yoryantra",
     description:
-      "Inspect resolver-visible A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA records with practical DNS response interpretation.",
+      "Inspect resolver-visible A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA records with clear DNS response interpretation.",
     url: "https://yoryantra.com/tools/dns-records-checker",
     siteName: "Yoryantra",
     type: "website",

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Meta Tags Checker | Yoryantra",
     description:
-      "Check search and social metadata in pasted HTML with practical implementation diagnostics.",
+      "Check search and social metadata in pasted HTML with clear implementation diagnostics.",
   },
 };
 

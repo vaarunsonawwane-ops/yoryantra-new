@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -67,6 +67,43 @@ const DNS_STATUS_LABELS: Record<number, string> = {
   4: "NOTIMP",
   5: "REFUSED",
 };
+
+
+function readDnsAnswers(value: unknown): DnsAnswer[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const answers: DnsAnswer[] = [];
+
+  value.forEach((item) => {
+    if (!item || typeof item !== "object") {
+      return;
+    }
+
+    const candidate = item as Partial<DnsAnswer>;
+
+    if (
+      typeof candidate.name !== "string" ||
+      typeof candidate.type !== "number" ||
+      !Number.isInteger(candidate.type) ||
+      typeof candidate.TTL !== "number" ||
+      !Number.isFinite(candidate.TTL) ||
+      typeof candidate.data !== "string"
+    ) {
+      return;
+    }
+
+    answers.push({
+      name: candidate.name,
+      type: candidate.type,
+      TTL: candidate.TTL,
+      data: candidate.data,
+    });
+  });
+
+  return answers;
+}
 
 function typeLabel(type: number) {
   return TYPE_LABELS[type] || `TYPE${type}`;
@@ -308,8 +345,13 @@ async function fetchDnsRecord(
       };
     }
 
+    const rawData: unknown =
+      await response.json();
     const data =
-      (await response.json()) as DnsJsonResponse;
+      rawData &&
+      typeof rawData === "object"
+        ? (rawData as DnsJsonResponse)
+        : {};
     const status =
       typeof data.Status === "number" &&
       Number.isInteger(data.Status)
@@ -324,12 +366,12 @@ async function fetchDnsRecord(
           ? "Unknown"
           : DNS_STATUS_LABELS[status] ||
             `RCODE ${status}`,
-      answers: Array.isArray(data.Answer)
-        ? data.Answer
-        : [],
-      authority: Array.isArray(data.Authority)
-        ? data.Authority
-        : [],
+      answers: readDnsAnswers(
+        data.Answer
+      ),
+      authority: readDnsAnswers(
+        data.Authority
+      ),
       authenticatedData:
         typeof data.AD === "boolean"
           ? data.AD
@@ -444,8 +486,11 @@ export default function ToolClient() {
     useState(false);
   const [copied, setCopied] =
     useState(false);
+  const requestVersion = useRef(0);
 
   const checkDnsRecords = async () => {
+    const requestId =
+      ++requestVersion.current;
     const targetDomain =
       normalizeDnsName(domain);
 
@@ -456,6 +501,7 @@ export default function ToolClient() {
       setResults([]);
       setQueriedName("");
       setCopied(false);
+      setLoading(false);
       return;
     }
 
@@ -481,18 +527,39 @@ export default function ToolClient() {
           )
         );
 
+      if (
+        requestId !==
+        requestVersion.current
+      ) {
+        return;
+      }
+
       setResults(nextResults);
     } catch {
+      if (
+        requestId !==
+        requestVersion.current
+      ) {
+        return;
+      }
+
       setError(
         "Unable to complete the DNS queries."
       );
       setResults([]);
     } finally {
-      setLoading(false);
+      if (
+        requestId ===
+        requestVersion.current
+      ) {
+        setLoading(false);
+      }
     }
   };
 
   const loadExample = () => {
+    requestVersion.current += 1;
+    setLoading(false);
     setDomain("example.com");
     setSelectedType("ALL");
     setQueriedName("");
@@ -502,6 +569,7 @@ export default function ToolClient() {
   };
 
   const resetAll = () => {
+    requestVersion.current += 1;
     setDomain("");
     setSelectedType("ALL");
     setQueriedName("");
@@ -525,6 +593,7 @@ export default function ToolClient() {
         )
       );
       setCopied(true);
+      setError("");
       window.setTimeout(
         () => setCopied(false),
         1400
@@ -540,14 +609,18 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="DNS Records Checker"
-      description="Query common DNS record types through Cloudflare DNS over HTTPS, then interpret the resolver response instead of treating every empty answer as the same failure."
+      description="Query common DNS record types through Cloudflare DNS-over-HTTPS and distinguish empty answers from resolver failures."
     >
       <div className="grid gap-4 md:grid-cols-[1fr_240px]">
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="dns-name"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
             DNS name
           </label>
           <input
+            id="dns-name"
             type="text"
             value={domain}
             onChange={(event: {
@@ -558,6 +631,8 @@ export default function ToolClient() {
               setQueriedName("");
               setError("");
               setCopied(false);
+              requestVersion.current += 1;
+              setLoading(false);
             }}
             placeholder="example.com or _dmarc.example.com"
             spellCheck={false}
@@ -582,6 +657,8 @@ export default function ToolClient() {
               setQueriedName("");
               setError("");
               setCopied(false);
+              requestVersion.current += 1;
+              setLoading(false);
             }}
             options={[
               {
@@ -640,12 +717,15 @@ export default function ToolClient() {
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
 
-      <div className="mt-8">
+      <div className="mt-8" aria-live="polite">
         <h3 className="text-lg font-semibold text-gray-900">
           Resolver Results
         </h3>
@@ -691,7 +771,7 @@ export default function ToolClient() {
                   </p>
 
                   {result.comment ? (
-                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-900">
+                    <div className="mt-3 self-start rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-900">
                       Resolver comment:{" "}
                       {result.comment}
                     </div>
@@ -757,18 +837,17 @@ export default function ToolClient() {
         )}
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+      <div className="mt-8 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4">
         <h3 className="text-sm font-semibold text-yellow-900">
-          This lookup leaves your browser
+          What leaves your browser
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-yellow-900/90">
-          DNS cannot be inspected locally from an arbitrary browser page. When
-          you run this tool, the DNS name and requested record type are sent to
-          Cloudflare&apos;s public DNS-over-HTTPS resolver. The answer can reflect
-          recursive-resolver caching and may differ from another resolver or
-          from a direct query to the authoritative nameserver. Site-wide
-          analytics or advertising scripts, if enabled, are separate from the
-          DNS lookup.
+          Browser JavaScript cannot inspect DNS locally. Each lookup sends the
+          normalized DNS name and requested record type to Cloudflare&apos;s public
+          DNS-over-HTTPS resolver. The response can reflect recursive-resolver
+          caching and may differ from another resolver or a direct query to an
+          authoritative nameserver. Site-wide analytics or advertising scripts,
+          if enabled, are separate from the DNS request.
         </p>
       </div>
 
@@ -795,14 +874,14 @@ export default function ToolClient() {
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
             <h3 className="font-semibold text-gray-900">
-              Authority records make negative answers more useful
+              Authority records make negative answers more informative
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
               Negative DNS responses can include SOA information in the
               authority section. That data helps resolvers cache the negative
               result and can show which zone is authoritative for the answer.
-              This checker displays authority records instead of throwing them
-              away whenever the requested answer type is absent.
+              Authority records remain visible instead of being discarded when
+              the requested answer type is absent.
             </p>
           </div>
         </div>
@@ -834,12 +913,12 @@ export default function ToolClient() {
             />
             <Info
               title="CAA"
-              text="CAA can restrict which certificate authorities are authorized to issue certificates for a DNS name, subject to the CAA lookup rules used by certificate authorities."
+              text="CAA can restrict certificate issuance, but an exact CAA query here does not reproduce a certificate authority's parent-label lookup procedure."
             />
           </div>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             TTL Is a Cache Lifetime, Not a Propagation Countdown
           </h2>
@@ -864,7 +943,7 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             If <code>www.example.com</code> is a CNAME, asking a recursive
             resolver for its A record can produce both the CNAME and address
-            records for the final target. That is useful resolver behavior, but
+            records for the final target. That is normal resolver behavior, but
             it means the answer section is not always made exclusively of the
             record type typed into the selector.
           </p>
@@ -898,14 +977,15 @@ export default function ToolClient() {
             A Public Recursive Resolver Is Not the Same View as the Authoritative Server
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool asks Cloudflare&apos;s recursive resolver. That is useful for
-            answering “what would a normal recursive client currently see?”
-            It is not the same as asking the authoritative nameserver directly.
+            Queries go to Cloudflare&apos;s recursive resolver, which answers the
+            real question “what would a recursive client currently see?”
+            That view is not the same as asking an authoritative nameserver
+            directly.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             If you just changed an MX record and the authoritative server shows
-            the new value while this checker shows the old one, caching may be
-            the explanation. If the authoritative server itself has the wrong
+            the new value while the recursive result here shows the old one,
+            caching may be the explanation. If the authoritative server itself has the wrong
             value, waiting for caches will not fix the configuration.
           </p>
         </div>
@@ -920,17 +1000,28 @@ export default function ToolClient() {
           >
             DNS-over-HTTPS JSON documentation
           </a>{" "}
-          is directly relevant because this browser tool uses that JSON
-          interface. Cloudflare also notes that the JSON response format does
-          not have a formal IETF RFC and recommends DNS wire format for
-          protocol-critical applications.
+          is directly relevant because the lookup above uses that JSON
+          interface. Cloudflare notes that this JSON schema has no formal IETF
+          RFC and may change. DNS over HTTPS itself is standardized by{" "}
+          <a
+            href="https://www.rfc-editor.org/rfc/rfc8484.html"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[var(--green)] underline underline-offset-4"
+          >
+            RFC 8484
+          </a>
+          ; protocol-critical clients should prefer the standardized DNS message
+          wire format over the convenience JSON representation.
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/dns-records-checker" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/dns-records-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>

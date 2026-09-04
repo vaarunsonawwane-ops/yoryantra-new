@@ -323,7 +323,7 @@ function checkCanonical(
       value: "Not present",
       status: "Info",
       note:
-        "No HTML rel=canonical annotation was found. Canonicalization is useful when duplicate or very similar URLs need a representative URL; its absence is not automatically an error on every page.",
+        "No HTML rel=canonical annotation was found. Canonicalization matters when duplicate or very similar URLs need a representative URL; its absence is not automatically an error on every page.",
     };
   }
 
@@ -464,7 +464,13 @@ function checkRobots(
         "nosnippet",
         "noimageindex",
         "notranslate",
+        "max-snippet:0",
+        "max-video-preview:0",
+        "max-image-preview:none",
       ].includes(token)
+    ) ||
+    combined.includes(
+      "unavailable_after:"
     );
   const contradiction =
     (tokens.indexOf("index") !==
@@ -483,8 +489,8 @@ function checkRobots(
       status: "Warning",
       note:
         contradiction
-          ? "Multiple declarations include contradictory indexing or link-following directives. Review the combined crawler behavior rather than assuming one tag wins cleanly."
-          : "Multiple declarations were found for this crawler scope. Search engines can combine applicable robots directives, so review the effective result.",
+          ? "Multiple declarations include conflicting indexing or link-following rules. Google documents that the more restrictive applicable rule takes precedence."
+          : "Multiple declarations were found for this crawler scope. Google can combine applicable rules, so review the effective result.",
     };
   }
 
@@ -497,7 +503,7 @@ function checkRobots(
         ? "Warning"
         : "Present",
     note: contradiction
-      ? "The directive contains contradictory index/noindex or follow/nofollow tokens."
+      ? "The declaration contains conflicting index/noindex or follow/nofollow rules; Google applies the more restrictive supported rule."
       : restrictive
       ? "A restrictive robots directive is present. Confirm that the intended search/snippet behavior matches this page."
       : "Robots metadata is present. Explicit index/follow normally restates default behavior.",
@@ -506,7 +512,8 @@ function checkRobots(
 
 function checkSocialField(
   label: string,
-  values: string[]
+  values: string[],
+  allowMultiple = false
 ): MetaCheck {
   if (!values.length) {
     return {
@@ -514,16 +521,29 @@ function checkSocialField(
       value: "Not present",
       status: "Info",
       note:
-        "This social metadata field was not found. Whether it is needed depends on the preview platforms you support.",
+        "No value was found for this social metadata field. Whether it is needed depends on the preview platforms you support.",
     };
   }
+
+  const emptyValues = values.filter(
+    (value) => !value
+  ).length;
 
   if (values.length > 1) {
     return {
       label,
-      value: values.join(" | "),
-      status: "Warning",
-      note: `Found ${values.length} declarations for this social metadata field.`,
+      value: values
+        .map((value) => value || "(empty)")
+        .join(" | "),
+      status:
+        emptyValues || !allowMultiple
+          ? "Warning"
+          : "Present",
+      note: allowMultiple
+        ? emptyValues
+          ? "Multiple values are allowed here, but at least one declaration is empty."
+          : `Found ${values.length} ordered values. Open Graph permits repeated image properties; consumers normally prefer the first value they support.`
+        : `Found ${values.length} declarations for a field that normally has one intended value. Review whether the duplicates are accidental.`,
     };
   }
 
@@ -569,9 +589,18 @@ function findDuplicateMetaKeys(
         .trim()
         .toLowerCase();
 
+    const isOpenGraphArray =
+      property === "og:image" ||
+      property.startsWith("og:image:") ||
+      property === "og:video" ||
+      property.startsWith("og:video:") ||
+      property === "og:audio" ||
+      property.startsWith("og:audio:") ||
+      property === "og:locale:alternate";
+
     const key = name
       ? `name:${name}`
-      : property
+      : property && !isOpenGraphArray
       ? `property:${property}`
       : "";
 
@@ -657,47 +686,134 @@ function elementsOutsideHead(
   return unique(labels);
 }
 
-function charsetSourceCheck(
-  source: string
+function readTagAttribute(
+  tag: string,
+  name: string
 ) {
-  const match = source.match(
-    /<meta\b[^>]*\bcharset\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+)[^>]*>/i
-  );
+  const attributePattern =
+    /\s([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let match:
+    | RegExpExecArray
+    | null;
 
-  if (!match) {
-    return {
-      found: false,
-      within1024: false,
-      value: "",
-    };
+  while (
+    (match =
+      attributePattern.exec(
+        tag
+      )) !== null
+  ) {
+    if (
+      match[1].toLowerCase() ===
+      name.toLowerCase()
+    ) {
+      return (
+        match[2] ||
+        match[3] ||
+        match[4] ||
+        ""
+      ).trim();
+    }
   }
 
-  const index =
-    typeof match.index === "number"
-      ? match.index
-      : 0;
-  const end =
-    index + match[0].length;
-  const bytes = new TextEncoder().encode(
-    source.slice(0, end)
-  ).length;
-  const valueMatch =
-    match[0].match(
-      /\bcharset\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i
-    );
-  const value = valueMatch
-    ? (
-        valueMatch[1] ||
-        valueMatch[2] ||
-        valueMatch[3] ||
-        ""
-      ).trim()
-    : "";
+  return "";
+}
+
+function encodingSourceCheck(
+  source: string
+) {
+  const metaPattern = /<meta\b[^>]*>/gi;
+  const declarations: Array<{
+    kind: "charset" | "http-equiv";
+    value: string;
+    endByte: number;
+  }> = [];
+  let match: RegExpExecArray | null;
+
+  while (
+    (match = metaPattern.exec(source)) !==
+    null
+  ) {
+    const tag = match[0];
+    const charset =
+      readTagAttribute(
+        tag,
+        "charset"
+      );
+
+    if (charset) {
+      declarations.push({
+        kind: "charset",
+        value: charset,
+        endByte:
+          new TextEncoder().encode(
+            source.slice(
+              0,
+              match.index +
+                tag.length
+            )
+          ).length,
+      });
+      continue;
+    }
+
+    const httpEquiv =
+      readTagAttribute(
+        tag,
+        "http-equiv"
+      ).toLowerCase();
+
+    if (
+      httpEquiv !== "content-type"
+    ) {
+      continue;
+    }
+
+    const content =
+      readTagAttribute(
+        tag,
+        "content"
+      );
+    const charsetMatch =
+      content.match(
+        /(?:^|;)\s*charset\s*=\s*([^\s;]+)/i
+      );
+
+    if (!charsetMatch) {
+      continue;
+    }
+
+    declarations.push({
+      kind: "http-equiv",
+      value:
+        charsetMatch[1].replace(
+          /^["']|["']$/g,
+          ""
+        ),
+      endByte:
+        new TextEncoder().encode(
+          source.slice(
+            0,
+            match.index + tag.length
+          )
+        ).length,
+    });
+  }
+
+  const first =
+    declarations[0];
 
   return {
-    found: true,
-    within1024: bytes <= 1024,
-    value,
+    found: Boolean(first),
+    count: declarations.length,
+    within1024: first
+      ? first.endByte <= 1024
+      : false,
+    value: first
+      ? first.value
+      : "",
+    kind: first
+      ? first.kind
+      : null,
   };
 }
 
@@ -710,7 +826,7 @@ function analyzeMetaTags(
     "undefined"
   ) {
     throw new Error(
-      "This tool must run in a browser."
+      "Metadata analysis requires a browser DOM."
     );
   }
 
@@ -822,6 +938,19 @@ function analyzeMetaTags(
     );
   }
 
+  if (
+    googlebot.length &&
+    getMetaValues(
+      document,
+      "name",
+      "robots"
+    ).length
+  ) {
+    sourceWarnings.push(
+      "Both robots and googlebot declarations are present. For Googlebot, applicable restrictions are combined; conflicting supported rules resolve to the more restrictive behavior."
+    );
+  }
+
   const keywords =
     getMetaValues(
       document,
@@ -833,23 +962,27 @@ function analyzeMetaTags(
     checks.push({
       label: "Meta keywords",
       value: keywords.join(" | "),
-      status: "Warning",
+      status: "Info",
       note:
         "Google Search does not use the meta keywords tag for indexing or ranking. Keep it only if another system genuinely requires it.",
     });
   }
 
   const charsetInfo =
-    charsetSourceCheck(source);
+    encodingSourceCheck(source);
 
   checks.push({
     label: "Character encoding",
     value: charsetInfo.found
-      ? charsetInfo.value ||
-        "(empty charset)"
-      : "No <meta charset> found",
+      ? `${charsetInfo.value || "(empty)"} via ${
+          charsetInfo.kind === "charset"
+            ? "meta charset"
+            : "meta http-equiv"
+        }`
+      : "No meta-based encoding declaration found",
     status:
       charsetInfo.found &&
+      charsetInfo.count === 1 &&
       charsetInfo.value.toLowerCase() ===
         "utf-8" &&
       charsetInfo.within1024
@@ -858,13 +991,15 @@ function analyzeMetaTags(
         ? "Warning"
         : "Info",
     note: !charsetInfo.found
-      ? "No short-form meta charset declaration was found. The HTTP Content-Type header can also supply the document encoding, which pasted HTML alone cannot inspect."
+      ? "No meta-based encoding declaration was found. The HTTP Content-Type header or a byte-order mark can also establish encoding, and pasted text cannot reconstruct those transport/file bytes."
+      : charsetInfo.count > 1
+      ? `Found ${charsetInfo.count} meta-based encoding declarations. Current HTML authoring rules allow only one; review the source before relying on parser recovery.`
       : charsetInfo.value.toLowerCase() !==
         "utf-8"
-      ? "HTML's current authoring rules require a meta charset declaration to identify UTF-8."
+      ? "Current HTML authoring rules require a meta-based character encoding declaration to identify UTF-8."
       : charsetInfo.within1024
-      ? "The UTF-8 meta charset declaration is serialized within the first 1024 bytes of the pasted source."
-      : "The meta charset declaration begins too late in the source to satisfy the HTML authoring requirement that the complete declaration be within the first 1024 bytes.",
+      ? "The UTF-8 encoding declaration is serialized within the first 1024 UTF-8 bytes of the pasted source."
+      : "The complete encoding declaration appears after the first 1024 UTF-8 bytes of the pasted source, outside the HTML authoring requirement.",
   });
 
   const viewport =
@@ -902,20 +1037,7 @@ function analyzeMetaTags(
       : "Info",
     note: lang
       ? "The document language annotation is present. It helps browsers and accessibility tools; Google determines page language primarily from visible content."
-      : "No HTML lang attribute was found. That does not by itself determine Google indexing language, but it is useful for browsers and accessibility.",
-  });
-
-  const h1Count =
-    document.querySelectorAll(
-      "h1"
-    ).length;
-
-  checks.push({
-    label: "H1 headings",
-    value: String(h1Count),
-    status: "Info",
-    note:
-      "Heading count is context only. This checker does not enforce a fictional rule that every page must contain exactly one H1.",
+      : "No HTML lang attribute was found. That does not by itself determine Google indexing language, but it helps browsers and accessibility tools.",
   });
 
   const ogFields = [
@@ -937,10 +1059,67 @@ function analyzeMetaTags(
           document,
           "property",
           field
-        )
+        ),
+        field === "og:image" ||
+          field === "og:image:alt"
       )
     );
   });
+
+  const openGraphValues = {
+    title: firstMetaValue(
+      document,
+      "property",
+      "og:title"
+    ),
+    type: firstMetaValue(
+      document,
+      "property",
+      "og:type"
+    ),
+    image: firstMetaValue(
+      document,
+      "property",
+      "og:image"
+    ),
+    url: firstMetaValue(
+      document,
+      "property",
+      "og:url"
+    ),
+  };
+  const anyOpenGraph =
+    ogFields.some(
+      (field) =>
+        getMetaValues(
+          document,
+          "property",
+          field
+        ).length > 0
+    );
+  const openGraphMissing =
+    Object.entries(
+      openGraphValues
+    )
+      .filter(([, value]) => !value)
+      .map(([key]) => `og:${key}`);
+
+  if (anyOpenGraph) {
+    checks.push({
+      label: "Open Graph core set",
+      value: openGraphMissing.length
+        ? `Missing ${openGraphMissing.join(
+            ", "
+          )}`
+        : "og:title, og:type, og:image, and og:url present",
+      status: openGraphMissing.length
+        ? "Warning"
+        : "Present",
+      note: openGraphMissing.length
+        ? "Open Graph defines title, type, image, and URL as the core required properties. A partial set can produce platform-specific fallbacks."
+        : "The four core Open Graph properties are present. A correct declaration still does not prove that a social crawler can fetch the image or render the expected preview.",
+    });
+  }
 
   const twitterFields = [
     "twitter:card",
@@ -1107,7 +1286,7 @@ function analyzeMetaTags(
           : "s"
       } parsed outside <head>: ${outside.join(
         ", "
-      )}. Placement can affect whether metadata is processed as intended.`
+      )}. Review the source placement. Google currently documents that robots meta rules can still be respected in the body, while other metadata and HTML conformance rules have different placement requirements.`
     );
   }
 
@@ -1268,6 +1447,7 @@ export default function ToolClient() {
         formatReport(analysis)
       );
       setCopied(true);
+      setError("");
       window.setTimeout(
         () => setCopied(false),
         1400
@@ -1291,13 +1471,16 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Meta Tags Checker"
-      description="Inspect pasted HTML as a metadata implementation, not an SEO score: title, description, canonical, robots, charset, viewport, language, Open Graph, X cards, duplicates, URL context, and head placement."
+      description="Inspect pasted HTML metadata for title, description, canonical, robots, Open Graph, X cards, duplicates, and placement."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label
+          htmlFor="meta-page-url"
+          className="block text-sm font-semibold text-gray-900"
+        >
           Page URL{" "}
           <span className="font-normal text-gray-500">
-            (optional, but useful)
+            (optional for URL checks)
           </span>
         </label>
         <p className="mt-1 text-sm leading-relaxed text-gray-500">
@@ -1306,6 +1489,7 @@ export default function ToolClient() {
           Nothing is fetched.
         </p>
         <input
+          id="meta-page-url"
           type="url"
           value={pageUrl}
           onChange={(event: {
@@ -1325,10 +1509,14 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-6">
-        <label className="mb-2 block text-sm font-semibold text-gray-900">
+        <label
+          htmlFor="meta-html-source"
+          className="mb-2 block text-sm font-semibold text-gray-900"
+        >
           HTML source
         </label>
         <textarea
+          id="meta-html-source"
           value={input}
           onChange={(event: {
             target: { value: string };
@@ -1345,10 +1533,9 @@ export default function ToolClient() {
           className="w-full min-h-[380px] rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          Paste the HTML source you want to inspect. The browser parses this
-          text locally; this checker does not request the live page, HTTP
-          headers, robots.txt, sitemap, JavaScript-rendered network responses,
-          or the social image.
+          Paste the HTML source you want to inspect. Parsing stays in the
+          browser. No live page, HTTP headers, robots.txt, sitemap,
+          JavaScript-rendered network responses, or social image are fetched.
         </p>
       </div>
 
@@ -1379,13 +1566,16 @@ export default function ToolClient() {
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
 
       {analysis ? (
-        <div className="mt-8">
+        <div className="mt-8" aria-live="polite">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
@@ -1460,7 +1650,7 @@ export default function ToolClient() {
 
               {analysis.sourceWarnings
                 .length ? (
-                <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+                <div className="self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
                   <strong>
                     URL / source review:
                   </strong>
@@ -1530,7 +1720,7 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            A Meta Tags Checker Is Most Useful When It Explains Conflicting Signals
+            Conflicting Signals Matter More Than a Checklist Score
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             A page can have a perfectly reasonable title and description while
@@ -1541,7 +1731,7 @@ export default function ToolClient() {
             the page is interpreted.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool reports individual fields, then adds relationship and
+            Individual fields are reported first, followed by relationship and
             placement checks where they change the meaning. It does not turn the
             result into a percentage score because metadata quality is not a
             point system.
@@ -1562,14 +1752,14 @@ Resolved canonical:
 https://example.com/docs/page`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
             Without the page URL, a relative value can only be described as
-            relative. With the page URL, the checker can resolve it, determine
-            whether it is self-referencing, and notice problems such as an HTTPS
-            page canonically pointing to HTTP.
+            relative. With the page URL, it can be resolved, compared with the
+            inspected URL, and checked for problems such as an HTTPS page
+            canonically pointing to HTTP.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             Absolute canonical URLs remain easier to audit and less vulnerable
             to base-URL mistakes, which is why Google recommends them as a
-            practical implementation choice.
+            safer implementation choice.
           </p>
         </div>
 
@@ -1591,7 +1781,7 @@ https://example.com/docs/page`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Campaign Parameters Usually Describe the Visit, Not the Canonical Document
           </h2>
@@ -1604,7 +1794,7 @@ https://example.com/docs/page`}</pre>
             representative.
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            The checker warns rather than deleting parameters automatically.
+            A warning appears rather than deleting parameters automatically.
             Some applications genuinely use query parameters to identify
             distinct content, so canonicalization needs site context.
           </p>
@@ -1621,7 +1811,7 @@ https://example.com/docs/page`}</pre>
             characters appear in every result.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Character counts are still useful editorial context: a title can be
+            Character counts still provide editorial context: a title can be
             obviously bloated or a description can be empty. The important
             distinction is not to convert those counts into invented pass/fail
             SEO rules.
@@ -1633,17 +1823,17 @@ https://example.com/docs/page`}</pre>
             Character Encoding Is One Metadata Field Where Physical Source Position Matters
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Current HTML authoring rules require a meta-based character
-            encoding declaration to identify UTF-8, and the complete declaration
-            must be serialized within the first 1024 bytes of the document.
-            That is why this checker inspects the source position rather than
-            only asking DOMParser whether a charset element exists.
+            Current HTML authoring rules allow a meta-based encoding declaration
+            through <code>charset</code> or the legacy <code>http-equiv</code>
+            encoding form, require that declaration to identify UTF-8, and require
+            the complete declaration within the first 1024 bytes. Source position
+            therefore matters in addition to what DOMParser recovers.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The HTTP <code>Content-Type</code> header can also determine the
-            encoding. Because this page analyzes pasted HTML and makes no HTTP
-            request, it cannot tell you whether the real server sends a
-            conflicting or authoritative transport-level declaration.
+            The HTTP <code>Content-Type</code> header or a byte-order mark can
+            also affect encoding detection. Pasted text has already been decoded
+            by the browser, so the byte-position check uses its UTF-8
+            re-serialization and cannot reconstruct the original response bytes.
           </p>
         </div>
 
@@ -1658,9 +1848,9 @@ https://example.com/docs/page`}</pre>
             refreshed in that platform&apos;s preview cache.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This checker deliberately stops at markup inspection. Use the real
-            platform&apos;s preview/debugging workflow when you need to verify a
-            fetched card rather than the HTML declaration.
+            Markup inspection stops at the declaration. Verify a fetched card
+            with the platform&apos;s own preview or debugging workflow when image
+            reachability, cache state, or rendered card behavior matters.
           </p>
         </div>
 
@@ -1669,11 +1859,12 @@ https://example.com/docs/page`}</pre>
             Metadata Outside &lt;head&gt; Is Worth Investigating Even If DOMParser Can Still See It
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Browser HTML parsing can recover from malformed markup, which means
-            a DOM query may still find metadata even when the source is placed
-            somewhere unexpected. Search and social metadata is intended to be
-            document metadata, so framework or CMS output that pushes it into
-            the body deserves a source-level fix.
+            Browser HTML parsing can recover from malformed markup, so DOM queries
+            may still find metadata placed somewhere unexpected. Google currently
+            documents that robots meta rules can be respected in the body, but
+            that exception does not make arbitrary metadata placement a sound
+            authoring pattern. Canonical links, social metadata, charset
+            declarations, and other head content have their own requirements.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             Inspect the deployed HTML when duplicate layouts, nested head
@@ -1688,8 +1879,8 @@ https://example.com/docs/page`}</pre>
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             Google Search does not use the meta keywords tag for web ranking.
-            Adding a “keywords” field to every metadata checklist makes an SEO
-            tool look comprehensive while teaching an obsolete workflow.
+            Adding a “keywords” field to every metadata checklist can look
+            comprehensive while teaching an obsolete workflow.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             If a pasted page already contains the tag, Yoryantra reports it so
@@ -1717,7 +1908,7 @@ https://example.com/docs/page`}</pre>
           >
             snippet guidance
           </a>
-          , and{" "}
+          ,{" "}
           <a
             href="https://developers.google.com/search/docs/crawling-indexing/canonicalization"
             target="_blank"
@@ -1725,17 +1916,46 @@ https://example.com/docs/page`}</pre>
             className="font-medium text-[var(--green)] underline underline-offset-4"
           >
             canonicalization documentation
+          </a>
+          , and{" "}
+          <a
+            href="https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[var(--green)] underline underline-offset-4"
+          >
+            robots metadata specification
           </a>{" "}
-          are useful here because they directly constrain what this checker
-          should and should not call an error. The HTML encoding-position rule
-          comes from the current WHATWG HTML Standard.
+          constrain the search-specific checks. Character-encoding placement
+          comes from the current{" "}
+          <a
+            href="https://html.spec.whatwg.org/multipage/semantics.html"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[var(--green)] underline underline-offset-4"
+          >
+            WHATWG HTML Standard
+          </a>
+          , while the required Open Graph core properties and repeated-image
+          semantics come from the{" "}
+          <a
+            href="https://ogp.me/"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[var(--green)] underline underline-offset-4"
+          >
+            Open Graph protocol
+          </a>
+          .
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/meta-tags-checker" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/meta-tags-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>

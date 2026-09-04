@@ -84,6 +84,39 @@ function normalizeHttpUrl(value: string) {
   }
 }
 
+function withoutFragment(value: string) {
+  try {
+    const parsed = new URL(value);
+    parsed.hash = "";
+    return parsed.href;
+  } catch {
+    return value;
+  }
+}
+
+function resolveRedirectLocation(
+  location: string,
+  currentUrl: string
+) {
+  const resolved = new URL(
+    location,
+    currentUrl
+  );
+
+  if (
+    location.indexOf("#") === -1
+  ) {
+    const current =
+      new URL(currentUrl);
+
+    if (current.hash) {
+      resolved.hash = current.hash;
+    }
+  }
+
+  return resolved;
+}
+
 function shellQuote(value: string) {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
@@ -356,17 +389,18 @@ function analyzeRedirectTrace(
         }
 
         try {
-          const resolved = new URL(
-            location,
-            currentUrl
-          );
+          const resolved =
+            resolveRedirectLocation(
+              location,
+              currentUrl
+            );
 
           if (
             resolved.protocol !== "http:" &&
             resolved.protocol !== "https:"
           ) {
             diagnostics.push(
-              `The Location value resolves to ${resolved.protocol}, outside this HTTP/HTTPS redirect-chain checker.`
+              `The Location value resolves to ${resolved.protocol}; only HTTP and HTTPS redirect targets are analyzed.`
             );
           } else if (
             resolved.username ||
@@ -392,7 +426,10 @@ function analyzeRedirectTrace(
         );
 
       hops.push({
-        requestUrl: currentUrl,
+        requestUrl:
+          withoutFragment(
+            currentUrl
+          ),
         requestMethod: currentMethod,
         status: block.status,
         reason: block.reason,
@@ -728,6 +765,7 @@ export default function ToolClient() {
         )
       );
       setCopied(true);
+      setError("");
       window.setTimeout(
         () => setCopied(false),
         1400
@@ -747,6 +785,7 @@ export default function ToolClient() {
       await navigator.clipboard.writeText(
         curlCommand
       );
+      setError("");
     } catch {
       setError(
         "The curl command could not be copied."
@@ -757,14 +796,18 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Redirect Chain Checker"
-      description="Turn a captured HTTP response-header trace into a hop-by-hop redirect path, including relative Location resolution, request-method behavior, loops, origin changes, protocol downgrades, and incomplete-chain warnings."
+      description="Reconstruct redirect hops from captured headers, resolving locations and surfacing loops, method changes, and origin shifts."
     >
       <div className="grid gap-5 md:grid-cols-[1fr_220px]">
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="redirect-start-url"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
             Starting URL
           </label>
           <input
+            id="redirect-start-url"
             type="url"
             value={startUrl}
             onChange={(event: {
@@ -826,10 +869,14 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-6">
-        <label className="mb-2 block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="redirect-response-trace"
+          className="mb-2 block text-sm font-medium text-gray-700"
+        >
           Consecutive HTTP response headers
         </label>
         <textarea
+          id="redirect-response-trace"
           value={trace}
           onChange={(event: {
             target: { value: string };
@@ -844,9 +891,9 @@ export default function ToolClient() {
           className="w-full min-h-[320px] rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          Paste the actual response-header blocks in order. This tool does not
-          fetch the destination from your browser, so CORS cannot hide a hop
-          from the analyzer after you have captured the headers.
+          Paste the actual response-header blocks in order. No destination is
+          fetched from this page, so browser CORS restrictions cannot hide a hop
+          after the response headers have already been captured.
         </p>
       </div>
 
@@ -864,14 +911,14 @@ export default function ToolClient() {
             <button
               type="button"
               onClick={copyCurl}
-              className="yoryantra-btn-outline whitespace-nowrap"
+              className="yoryantra-btn-outline text-sm"
             >
               Copy curl
             </button>
           </div>
         </div>
       ) : normalizedStart ? (
-        <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+        <div className="mt-5 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
           No replay command is generated for {initialMethod}. Replaying an
           unsafe method can create or modify server state. Capture the trace
           from the real client/request you are debugging, then paste only its
@@ -904,13 +951,16 @@ export default function ToolClient() {
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
 
       {analysis ? (
-        <div className="mt-8">
+        <div className="mt-8" aria-live="polite">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <ResultCard
               label="Redirect hops"
@@ -1074,11 +1124,11 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        The analyzer works on the URL and response headers you paste; it does
-        not request the target website. This avoids pretending that browser
-        Fetch/CORS rules can expose every cross-origin redirect response.
-        Site-wide analytics or advertising scripts, if enabled, are separate
-        from this analysis.
+        The starting URL and response headers are analyzed in your browser; no
+        target website is requested from this page. That boundary matters because
+        browser Fetch and CORS rules cannot reliably expose every cross-origin
+        redirect response. Site-wide analytics or advertising scripts, if
+        enabled, are separate from the analysis.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1094,8 +1144,8 @@ export default function ToolClient() {
             but every intermediate response is still part of the request path.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This checker reconstructs that path from the actual response
-            headers. Relative <code>Location: /docs</code> values are resolved
+            The path is reconstructed from the captured response headers.
+            Relative <code>Location: /docs</code> values are resolved
             against the URL that produced them, so you can see the effective
             target rather than guessing what the header means.
           </p>
@@ -1132,9 +1182,11 @@ export default function ToolClient() {
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             HTTP 301 and 302 have historical user-agent behavior that can change
-            POST to GET. That is why the tool asks for the initial method: the
-            same status chain can have different consequences for an API call
-            than for a normal page visit.
+            POST to GET. The initial method therefore matters: the same status chain
+            can have different consequences for an API call
+            than for a normal page visit. The analysis follows RFC 9110&apos;s
+            explicit 307/308 preservation rules and its permitted historical
+            POST-to-GET behavior for 301/302.
           </p>
         </div>
 
@@ -1167,8 +1219,10 @@ export default function ToolClient() {
             a loop.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Loop detection here therefore ignores fragments while preserving
-            meaningful differences such as path and query parameters.
+            RFC 9110 also says a redirect target inherits the previous fragment
+            when <code>Location</code> does not provide one. Resolved targets here
+            follow that rule, while loop detection strips fragments because they
+            are not part of the server request target.
           </p>
         </div>
 
@@ -1178,21 +1232,20 @@ export default function ToolClient() {
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             Browser Fetch can automatically follow redirects, and cross-origin
-            response access is constrained by CORS and redirect behavior. If a
-            tool simply calls <code>fetch()</code> and reports the final URL,
-            intermediate headers may be unavailable even though the redirect
-            happened.
+            response access is constrained by CORS and redirect behavior. A simple <code>fetch()</code> request can report the final URL while
+            leaving intermediate response headers unavailable, even though the
+            redirects happened.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             A command-line HTTP client can expose each response block without
             requiring the destination site to grant this page cross-origin
-            access. That is why this checker accepts a captured trace instead of
-            claiming a browser-only request can always reveal the complete
-            chain.
+            access. A captured trace therefore gives a more honest basis for
+            reconstruction than pretending browser-only Fetch can always reveal
+            every intermediate response.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Do Not Replay Unsafe Methods Just to Inspect Redirects
           </h2>
@@ -1216,9 +1269,9 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             A redirect response can point at a target that itself redirects,
             fails TLS, returns 404, requires authentication, or never responds.
-            If the pasted trace ends on a redirect block, this tool reports the
-            last target as an unresolved endpoint rather than pretending the
-            final response was successful.
+            If the pasted trace ends on a redirect block, the last target remains
+            unresolved rather than being presented as a successful final
+            response.
           </p>
         </div>
 
@@ -1241,7 +1294,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/redirect-chain-checker" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/redirect-chain-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>
