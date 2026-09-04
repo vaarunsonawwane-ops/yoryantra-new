@@ -911,7 +911,7 @@ export default function ToolClient() {
             <button
               type="button"
               onClick={copyCurl}
-              className="yoryantra-btn-outline text-sm"
+              className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
             >
               Copy curl
             </button>
@@ -1190,17 +1190,17 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
             HTTPS → HTTP Is More Than an Extra Hop
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             A secure URL that redirects to plain HTTP downgrades the next
             request&apos;s transport security. Modern browsers, HSTS policy,
             mixed-content rules, and product-specific behavior can alter what
             happens next, but the redirect itself deserves investigation.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             The reverse path—HTTP to HTTPS—is common during migration, but
             internal links and canonical URLs should normally point directly at
             the HTTPS destination once it is established.

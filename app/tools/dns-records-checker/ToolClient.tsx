@@ -872,7 +872,7 @@ export default function ToolClient() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <div className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-5">
             <h3 className="font-semibold text-gray-900">
               Authority records make negative answers more informative
             </h3>
