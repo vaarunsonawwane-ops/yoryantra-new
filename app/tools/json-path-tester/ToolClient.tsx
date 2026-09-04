@@ -46,6 +46,9 @@ const SAMPLE_JSON = `{
   }
 }`;
 
+const MAX_JSON_CHARACTERS = 2_000_000;
+const MAX_PATH_CHARACTERS = 20_000;
+
 const PRESETS = [
   {
     label: "Cheap book titles",
@@ -70,6 +73,38 @@ const PRESETS = [
       "$.store.book[0,2].title",
   },
 ];
+
+
+function hasUnpairedSurrogate(value: string) {
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = value.charCodeAt(index);
+
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return true;
+      index += 1;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function compareUnicodeScalars(left: string, right: string) {
+  const leftPoints = Array.from(left, (char) => char.codePointAt(0) as number);
+  const rightPoints = Array.from(right, (char) => char.codePointAt(0) as number);
+  const length = Math.min(leftPoints.length, rightPoints.length);
+
+  for (let index = 0; index < length; index += 1) {
+    if (leftPoints[index] !== rightPoints[index]) {
+      return leftPoints[index] < rightPoints[index] ? -1 : 1;
+    }
+  }
+
+  if (leftPoints.length === rightPoints.length) return 0;
+  return leftPoints.length < rightPoints.length ? -1 : 1;
+}
 
 function isRecord(
   value: unknown
@@ -1335,18 +1370,16 @@ function compareValues(
       "string" &&
     typeof right === "string"
   ) {
-    if (operator === "<") {
-      return left < right;
+    if (hasUnpairedSurrogate(left) || hasUnpairedSurrogate(right)) {
+      return false;
     }
-    if (operator === "<=") {
-      return left <= right;
-    }
-    if (operator === ">") {
-      return left > right;
-    }
-    if (operator === ">=") {
-      return left >= right;
-    }
+
+    const order = compareUnicodeScalars(left, right);
+
+    if (operator === "<") return order < 0;
+    if (operator === "<=") return order <= 0;
+    if (operator === ">") return order > 0;
+    if (operator === ">=") return order >= 0;
   }
 
   return false;
@@ -1815,6 +1848,12 @@ function buildReport(
   jsonSource: string,
   expression: string
 ): EvaluationReport {
+  if (hasUnpairedSurrogate(expression)) {
+    throw new Error(
+      "JSONPath queries must be Unicode scalar-value sequences; an unpaired UTF-16 surrogate was found."
+    );
+  }
+
   let data: unknown;
 
   try {
@@ -2003,6 +2042,22 @@ export default function ToolClient() {
       return;
     }
 
+    if (jsonInput.length > MAX_JSON_CHARACTERS) {
+      setError(
+        `JSON input is larger than ${MAX_JSON_CHARACTERS.toLocaleString()} characters. Use a local or streaming JSONPath implementation for larger data.`
+      );
+      setReport(null);
+      return;
+    }
+
+    if (pathInput.length > MAX_PATH_CHARACTERS) {
+      setError(
+        `JSONPath input is larger than ${MAX_PATH_CHARACTERS.toLocaleString()} characters.`
+      );
+      setReport(null);
+      return;
+    }
+
     try {
       setReport(
         buildReport(
@@ -2062,14 +2117,15 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSONPath Tester"
-      description="Test a practical RFC 9535 JSONPath subset against JSON and inspect the resulting ordered nodelist using normalized result paths, instead of reducing every query to a single JavaScript value."
+      description="Test an RFC 9535 JSONPath subset against JSON and inspect the ordered matched nodes and normalized paths."
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
-          <label className="block text-sm font-semibold text-gray-900">
+          <label htmlFor="jsonpath-json-input" className="block text-sm font-semibold text-gray-900">
             JSON query argument
           </label>
           <textarea
+            id="jsonpath-json-input"
             value={jsonInput}
             onChange={(event: {
               target: { value: string };
@@ -2087,10 +2143,11 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-900">
+          <label htmlFor="jsonpath-query-input" className="block text-sm font-semibold text-gray-900">
             JSONPath query
           </label>
           <input
+            id="jsonpath-query-input"
             value={pathInput}
             onChange={(event: {
               target: { value: string };
@@ -2142,7 +2199,7 @@ export default function ToolClient() {
             </div>
           </div>
 
-          <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+          <div className="mt-5 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
             Complete RFC filter logic such as <code>&amp;&amp;</code>,{" "}
             <code>||</code>, negation, nested logical expressions, and function
             extensions such as <code>length()</code> are deliberately rejected
@@ -2155,28 +2212,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={testPath}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Test JSONPath
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -2206,7 +2263,7 @@ export default function ToolClient() {
           </div>
 
           {report.warnings.length ? (
-            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+            <div className="mt-5 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
               <strong>
                 Query review:
               </strong>
@@ -2238,7 +2295,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -2309,8 +2366,11 @@ export default function ToolClient() {
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
         JSON parsing and JSONPath evaluation run on the supplied text in your
-        browser. The data is not sent to a query API. Site-wide analytics or
-        advertising scripts, if enabled, are separate from this operation.
+        browser. The data is not sent to a query API. JSON input above
+        2,000,000 characters and path input above 20,000 characters are stopped
+        before evaluation to avoid an unnecessarily heavy browser operation.
+        Site-wide analytics or advertising scripts, if enabled, are separate
+        from this operation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -2326,7 +2386,7 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             That distinction matters when two different fields both contain{" "}
             <code>19.95</code>. Returning the scalar alone loses which one was
-            selected. This tester therefore displays normalized paths such as{" "}
+            selected. The result view therefore displays normalized paths such as{" "}
             <code>$['store']['book'][0]['price']</code> beside the value.
           </p>
         </div>
@@ -2347,7 +2407,7 @@ $['store']['book'][0]['title']`}</pre>
             such as <code>$[2]</code> when the matched array has three items.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Normalized paths are useful for test fixtures and debugging because
+            Normalized paths work well in test fixtures and debugging because
             each one identifies one specific node in that particular JSON value.
           </p>
         </div>
@@ -2368,7 +2428,7 @@ $['store']['book'][0]['title']`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Selector Unions Can Select the Same Node More Than Once
           </h2>
@@ -2429,7 +2489,7 @@ $['store']['book'][0]['title']`}</pre>
             host-language callbacks.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This browser tester deliberately implements a smaller filter layer:
+            The browser implementation deliberately keeps a smaller filter layer:
             an existence query such as <code>?@.isbn</code> or one primitive
             comparison such as <code>?@.price &lt; 10</code>. It rejects logical
             operators and function extensions rather than silently giving them
@@ -2448,7 +2508,7 @@ $['store']['book'][0]['title']`}</pre>
             values inherits that numeric representation.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The tester scans the source for suspicious numeric tokens and warns
+            The source is scanned for suspicious numeric tokens, with a warning
             before you trust a comparison involving very large identifiers or
             high-precision decimal data. If exact decimal/integer semantics
             matter, use a JSONPath implementation backed by the numeric model
@@ -2467,15 +2527,16 @@ $['store']['book'][0]['title']`}</pre>
           </a>{" "}
           is directly relevant because JSONPath became an IETF Standards Track
           specification in 2024. It defines selectors, slices, filters,
-          nodelists, descendant segments, and Normalized Paths. The tool states
-          its filter subset explicitly instead of claiming full RFC coverage.
+          nodelists, descendant segments, and Normalized Paths. The implemented filter subset is stated explicitly instead of claiming full RFC coverage.
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/json-path-tester" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-path-tester" />
+          </div>
         </div>
       </section>
     </ToolShell>

@@ -42,6 +42,9 @@ type StructuredReport = {
   htmlInput: boolean;
 };
 
+const MAX_INPUT_CHARACTERS = 2_000_000;
+const MAX_PAGE_URL_CHARACTERS = 4_096;
+
 const SAMPLE_JSON_LD = `{
   "@context": "https://schema.org",
   "@type": "Article",
@@ -747,8 +750,13 @@ function validLooseIsoDate(
       value
     )
   ) {
-    return !Number.isNaN(
-      Date.parse(value)
+    const calendarDate = value.slice(0, 10);
+    const date = new Date(`${calendarDate}T00:00:00Z`);
+
+    return (
+      !Number.isNaN(date.getTime()) &&
+      date.toISOString().slice(0, 10) === calendarDate &&
+      !Number.isNaN(Date.parse(value))
     );
   }
 
@@ -858,7 +866,7 @@ function inspectKnownPropertyShape(
               ? `${path}[${index}]`
               : path,
             message:
-              `${key} "${item}" is not a simple ISO date/date-time recognized by this checker. Schema.org and Google feature-specific rules can be more specific than this generic check.`,
+              `${key} "${item}" is not a simple ISO date/date-time recognized by this structural review. Schema.org and Google feature-specific rules can be more specific than this generic check.`,
           });
         }
       }
@@ -938,7 +946,7 @@ function inspectValue(
             key
           ),
         message:
-          `"${key}" looks like a JSON-LD keyword but is not one of the standard JSON-LD 1.1 keywords recognized by this checker.`,
+          `"${key}" looks like a JSON-LD keyword but is not one of the standard JSON-LD 1.1 keywords recognized by this structural review.`,
       });
     });
 
@@ -994,7 +1002,7 @@ function inspectValue(
         level: "Note",
         path: `${path}['@context']`,
         message:
-          "The top-level context is not a simple Schema.org context recognized by this checker. That can be valid JSON-LD, but Schema.org/Google-specific expectations should not be assumed.",
+          "The top-level context is not a simple Schema.org context recognized by this structural review. That can be valid JSON-LD, but Schema.org/Google-specific expectations should not be assumed.",
       });
     }
   } else if (
@@ -1481,7 +1489,7 @@ function formatStructuredReport(
 
   lines.push(
     "",
-    "Boundary: this tool checks JSON/JSON-LD structure and selected implementation patterns. It does not fetch Schema.org contexts, certify vocabulary correctness, or determine Google rich-result eligibility."
+    "Boundary: the browser review checks JSON/JSON-LD structure and selected implementation patterns. It does not fetch Schema.org contexts, certify vocabulary correctness, or determine Google rich-result eligibility."
   );
 
   return lines.join("\n");
@@ -1513,6 +1521,22 @@ export default function ToolClient() {
     if (!input.trim()) {
       setError(
         "Paste JSON-LD or HTML containing JSON-LD."
+      );
+      setReport(null);
+      return;
+    }
+
+    if (input.length > MAX_INPUT_CHARACTERS) {
+      setError(
+        `Structured-data input is larger than ${MAX_INPUT_CHARACTERS.toLocaleString()} characters. Inspect very large pages with deployment tooling instead.`
+      );
+      setReport(null);
+      return;
+    }
+
+    if (pageUrl.length > MAX_PAGE_URL_CHARACTERS) {
+      setError(
+        `Page URL is larger than ${MAX_PAGE_URL_CHARACTERS.toLocaleString()} characters.`
       );
       setReport(null);
       return;
@@ -1626,10 +1650,10 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Structured Data Validator"
-      description="Inspect raw JSON-LD or JSON-LD embedded in HTML as graph-shaped metadata: JSON syntax, contexts, types, IDs, references, graphs, duplicate keys and identifiers, plus selected implementation warnings—without claiming Schema.org or Google rich-result certification."
+      description="Inspect JSON-LD graphs for syntax, contexts, types, IDs, references, duplicates, and implementation warnings."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="structured-page-url" className="block text-sm font-semibold text-gray-900">
           Page URL{" "}
           <span className="font-normal text-gray-500">
             (optional)
@@ -1640,6 +1664,7 @@ export default function ToolClient() {
           properties. The page itself is not fetched.
         </p>
         <input
+          id="structured-page-url"
           value={pageUrl}
           onChange={(event: {
             target: { value: string };
@@ -1656,10 +1681,11 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-6">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="structured-source-input" className="block text-sm font-semibold text-gray-900">
           JSON-LD or HTML source
         </label>
         <textarea
+          id="structured-source-input"
           value={input}
           onChange={(event: {
             target: { value: string };
@@ -1684,35 +1710,35 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={validate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Inspect Structured Data
         </button>
         <button
           type="button"
           onClick={loadJsonExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Article Example
         </button>
         <button
           type="button"
           onClick={loadGraphExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load @graph Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -1753,7 +1779,7 @@ export default function ToolClient() {
           </div>
 
           {report.issues.length ? (
-            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+            <div className="mt-5 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
               <strong>
                 Structural / implementation review:
               </strong>
@@ -1798,7 +1824,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1914,10 +1940,12 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Parsing and inspection happen on the pasted markup in your browser. This
-        tool does not fetch remote JSON-LD contexts, Schema.org definitions, the
-        page URL, or Google&apos;s Rich Results Test. Site-wide analytics or
-        advertising scripts, if enabled, are separate from this operation.
+        Parsing and inspection happen on the pasted markup in your browser. The
+        review does not fetch remote JSON-LD contexts, Schema.org definitions, the
+        page URL, or Google&apos;s Rich Results Test. Inputs above 2,000,000
+        characters are stopped before parsing so a pasted production page cannot
+        monopolize the browser tab. Site-wide analytics or advertising scripts,
+        if enabled, are separate from this operation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1934,7 +1962,7 @@ export default function ToolClient() {
             properties and quality rules.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Passing one layer does not prove the next. This tool focuses on the
+            Passing one layer does not prove the next. The browser review focuses on the
             first two layers and selected implementation signals. It refuses to
             turn a structural JSON-LD check into a fake “rich result valid”
             badge.
@@ -1982,7 +2010,7 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Duplicate JSON Keys Can Disappear Before a JSON-LD Library Ever Sees Them
           </h2>
@@ -1994,7 +2022,7 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-yellow-900/90">
             JavaScript&apos;s JSON parser produces one object property for that
             repeated name, effectively hiding the earlier source value. Other
-            software can handle duplicate names differently. This tool scans
+            software can handle duplicate names differently. The source is scanned
             the source before parsing and reports repeated member names so the
             markup can be fixed instead of relying on overwrite behavior.
           </p>
@@ -2002,11 +2030,11 @@ export default function ToolClient() {
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            @graph Is Useful for Connected Page Entities, but It Is Not a Requirement for “Good JSON-LD”
+            @graph Helps Connect Page Entities, but It Is Not a Requirement for “Good JSON-LD”
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             A page can use one simple top-level Article object and be perfectly
-            reasonable. <code>@graph</code> becomes useful when a page describes
+            reasonable. <code>@graph</code> becomes helpful when a page describes
             several named nodes—a WebSite, Organization, WebPage, Person,
             Article, BreadcrumbList or other related objects—and you want their{" "}
             <code>@id</code> references to make those relationships explicit.
@@ -2030,7 +2058,7 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             The real problem is accidental duplication: two layout systems
             describing the same article with conflicting headlines, IDs or
-            dates. This tool reports the number of blocks and repeated IDs so
+            dates. The report shows the number of blocks and repeated IDs so
             you can review the graph instead of enforcing “exactly one script”
             as an invented rule.
           </p>
@@ -2073,7 +2101,7 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Test the Rendered Production Page, Not Only the JSON-LD Snippet in Your Editor
           </h2>
@@ -2117,7 +2145,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/structured-data-validator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/structured-data-validator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -2153,7 +2183,7 @@ function ReferenceCard({
   text: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
       <a
         href={href}
         target="_blank"

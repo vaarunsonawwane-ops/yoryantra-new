@@ -45,6 +45,8 @@ type NginxReport = {
   detectedMode: "full" | "snippet";
 };
 
+const MAX_INPUT_CHARACTERS = 2_000_000;
+
 const SAMPLE_CONFIG = `worker_processes auto;
 
 events {
@@ -1522,7 +1524,7 @@ function formatReport(
 
   lines.push(
     "",
-    "Authoritative next step: run nginx -t against the real deployed configuration; nginx -T is useful when you need to inspect the effective include-expanded configuration."
+    "Authoritative next step: run nginx -t against the real deployed configuration; nginx -T shows the effective include-expanded configuration when includes need tracing."
   );
 
   return lines.join("\n");
@@ -1552,6 +1554,14 @@ export default function ToolClient() {
     if (!input.trim()) {
       setError(
         "Paste an Nginx configuration or included snippet to inspect."
+      );
+      setReport(null);
+      return;
+    }
+
+    if (input.length > MAX_INPUT_CHARACTERS) {
+      setError(
+        `Configuration input is larger than ${MAX_INPUT_CHARACTERS.toLocaleString()} characters. Run nginx -t/-T locally for very large configurations.`
       );
       setReport(null);
       return;
@@ -1617,14 +1627,15 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Nginx Config Validator"
-      description="Statically inspect Nginx configuration text with context-aware structural checks and practical proxy, TLS, header, include, and deployment diagnostics—while keeping nginx -t as the authoritative parser."
+      description="Statically review Nginx configuration structure, proxy settings, TLS, headers, includes, and deployment warnings."
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <div>
-          <label className="block text-sm font-semibold text-gray-900">
+          <label htmlFor="nginx-config-input" className="block text-sm font-semibold text-gray-900">
             Nginx configuration
           </label>
           <textarea
+            id="nginx-config-input"
             value={input}
             onChange={(event: {
               target: { value: string };
@@ -1679,8 +1690,8 @@ export default function ToolClient() {
             the top level of the real nginx.conf is not the same context.
           </div>
 
-          <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
-            This tool never opens include files, certificate paths, log paths,
+          <div className="mt-5 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+            The browser inspection never opens include files, certificate paths, log paths,
             upstream sockets, DNS names, or dynamic modules. A clean browser
             report is not a deployment approval.
           </div>
@@ -1691,28 +1702,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={validate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Inspect Nginx Config
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -1795,7 +1806,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1845,7 +1856,7 @@ export default function ToolClient() {
               Parsed directive map
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              This view is useful for spotting where a directive was parsed,
+              This view shows where each directive was parsed,
               especially in deeply nested server/location snippets.
             </p>
             <div className="mt-4 space-y-3">
@@ -1890,7 +1901,7 @@ export default function ToolClient() {
             />
             <CommandCard
               command="nginx -T"
-              text="Performs the configuration test and also dumps the effective configuration, which is especially useful for following include files."
+              text="Performs the configuration test and also dumps the effective configuration, which helps when tracing include files."
             />
           </div>
         </div>
@@ -1903,8 +1914,11 @@ export default function ToolClient() {
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
         Static inspection runs on the pasted configuration in your browser. The
-        config is not uploaded to a validation service. Site-wide analytics or
-        advertising scripts, if enabled, are separate from this operation.
+        config is not uploaded to a validation service. Inputs above 2,000,000
+        characters are stopped before scanning; very large or include-heavy
+        configurations belong in nginx -t/-T on the target environment.
+        Site-wide analytics or advertising scripts, if enabled, are separate
+        from this operation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1928,7 +1942,7 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             nginx -t Does More Than Count Braces
           </h2>
@@ -2026,7 +2040,7 @@ location /api/ {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             add_header Has Both Status-Code and Inheritance Behavior
           </h2>
@@ -2116,7 +2130,9 @@ location /api/ {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/nginx-config-validator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/nginx-config-validator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -2150,7 +2166,7 @@ function CommandCard({
   text: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
       <code className="font-semibold text-gray-900">
         {command}
       </code>

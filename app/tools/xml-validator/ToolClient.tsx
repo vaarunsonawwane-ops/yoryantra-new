@@ -48,6 +48,8 @@ type XmlReport = {
   sourceBytes: number;
 };
 
+const MAX_INPUT_CHARACTERS = 2_000_000;
+
 const SAMPLE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <catalog xmlns="https://example.com/catalog"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -472,15 +474,19 @@ function inspectXml(
   ) {
     if (
       declaration.version &&
-      declaration.version !==
-        "1.0" &&
-      declaration.version !==
-        "1.1"
+      declaration.version !== "1.0" &&
+      declaration.version !== "1.1"
     ) {
       issues.push({
         level: "Warning",
         message:
-          `XML declaration version "${declaration.version}" is unusual. This browser parser's behavior should not be treated as certification for that XML version.`,
+          `XML declaration version "${declaration.version}" is unusual. Browser parsing here should not be treated as certification for that XML version.`,
+      });
+    } else if (declaration.version === "1.1") {
+      issues.push({
+        level: "Note",
+        message:
+          "The document declares XML 1.1. The pre-parse source-character check on this page follows the XML 1.0 Fifth Edition character production, so use an XML 1.1-aware validator when 1.1-specific conformance matters.",
       });
     }
 
@@ -510,7 +516,7 @@ function inspectXml(
       issues.push({
         level: "Note",
         message:
-          `The declaration says encoding="${declaration.encoding}". This tool receives a JavaScript Unicode string rather than the original bytes, so it cannot verify whether the byte encoding really matches that declaration.`,
+          `The declaration says encoding="${declaration.encoding}". The browser receives a JavaScript Unicode string rather than the original bytes, so byte encoding cannot be verified against that declaration.`,
       });
     } else if (
       declaration.encoding
@@ -742,7 +748,7 @@ function inspectXml(
             doctype.systemId
               ? ` (${doctype.systemId})`
               : ""
-          }. This tool does not fetch external DTD resources or use them as validation authority.`,
+          }. External DTD resources are not fetched or used as validation authority.`,
       });
     }
 
@@ -768,7 +774,7 @@ function inspectXml(
           1
             ? ""
             : "s"
-        }. schemaLocation/noNamespaceSchemaLocation are hints; this tool does not fetch XSD files or validate element/content models against them.`,
+        }. schemaLocation/noNamespaceSchemaLocation are hints; XSD files are not fetched and element/content models are not validated against them.`,
     });
   }
 
@@ -1007,6 +1013,14 @@ export default function ToolClient() {
       return;
     }
 
+    if (input.length > MAX_INPUT_CHARACTERS) {
+      setError(
+        `XML input is larger than ${MAX_INPUT_CHARACTERS.toLocaleString()} characters. Use a local streaming or schema-aware parser for larger documents.`
+      );
+      setReport(null);
+      return;
+    }
+
     try {
       setReport(
         inspectXml(input)
@@ -1070,13 +1084,14 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="XML Validator"
-      description="Check browser XML well-formedness and inspect the document's root, namespaces, declaration, DOCTYPE, attributes, CDATA, processing instructions, schema hints, and source-character boundaries without confusing parsing with DTD/XSD validation."
+      description="Check XML well-formedness and inspect roots, namespaces, declarations, DOCTYPE, attributes, CDATA, and schema hints."
     >
       <div>
-        <label className="block text-sm font-semibold text-gray-900">
+        <label htmlFor="xml-validator-input" className="block text-sm font-semibold text-gray-900">
           XML document
         </label>
         <textarea
+          id="xml-validator-input"
           value={input}
           onChange={(event: {
             target: { value: string };
@@ -1102,35 +1117,35 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={validate}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Check XML
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Valid Example
         </button>
         <button
           type="button"
           onClick={loadBrokenExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Broken Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -1138,6 +1153,8 @@ export default function ToolClient() {
       {report ? (
         <div className="mt-8">
           <div
+            role={report.wellFormed ? "status" : "alert"}
+            aria-live="polite"
             className={`rounded-2xl border p-5 ${
               report.wellFormed
                 ? "border-green-200 bg-green-50"
@@ -1184,7 +1201,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1364,7 +1381,7 @@ export default function ToolClient() {
           ) : null}
 
           {report.issues.length ? (
-            <div className="mt-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+            <div className="mt-6 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
               <strong>
                 XML review notes:
               </strong>
@@ -1393,10 +1410,12 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Parsing happens on the supplied XML string in your browser. This tool
-        does not upload the XML, fetch external DTD/XSD resources, or reproduce
-        a server-side XML parser&apos;s entity configuration. Site-wide analytics
-        or advertising scripts, if enabled, are separate from this operation.
+        Parsing happens on the supplied XML string in your browser. The XML is not
+        uploaded; external DTD/XSD resources are not fetched, and the page does not reproduce
+        a server-side XML parser&apos;s entity configuration. Inputs above 2,000,000
+        characters are stopped before parsing to bound browser work. Site-wide
+        analytics or advertising scripts, if enabled, are separate from this
+        operation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1434,9 +1453,8 @@ Wrapped as one document:
 </items>`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
             Editors and APIs sometimes talk about “XML fragments” that contain
-            several sibling nodes. That can be useful application data, but an
-            XML document itself has one root/document element. This validator
-            checks document form.
+            several sibling nodes. That can be valid application data, but an
+            XML document itself has one root/document element. The check here uses document form.
           </p>
         </div>
 
@@ -1458,7 +1476,7 @@ Wrapped as one document:
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             A Default Namespace Does Not Automatically Apply to Unprefixed Attributes
           </h2>
@@ -1510,17 +1528,17 @@ Wrapped as one document:
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <h2 className="text-xl font-semibold text-red-900">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
             DOCTYPE and Entity Handling Are a Security Boundary in Server-Side Parsers
           </h2>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             DTDs can declare entities and external identifiers. Historically,
             unsafe server-side XML parser configurations have allowed external
             entity expansion to read local resources, perform network requests,
             or consume excessive resources.
           </p>
-          <p className="mt-4 leading-relaxed text-red-900/90">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             This browser&apos;s DOMParser behavior is not evidence that a Java,
             PHP, Python, .NET, C/C++, or backend library is configured safely.
             When your application does not require DTDs/external entities,
@@ -1541,7 +1559,7 @@ Wrapped as one document:
             hint exists.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool does not download the XSD, resolve imports/includes, or
+            The browser review does not download the XSD, resolve imports/includes, or
             validate types and content models. Use an XSD validator that
             understands the exact schema set when application validity matters.
           </p>
@@ -1595,7 +1613,7 @@ Wrapped as one document:
             for a missing required child or wrong namespace version.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Use this validator to answer “can an XML parser build the document?”
+            Use the well-formedness result to answer “can an XML parser build the document?”
             Then move to the application-specific validator for “is this the
             right XML document?”
           </p>
@@ -1618,7 +1636,9 @@ Wrapped as one document:
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/xml-validator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/xml-validator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -1654,7 +1674,7 @@ function ReferenceCard({
   text: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
       <a
         href={href}
         target="_blank"
