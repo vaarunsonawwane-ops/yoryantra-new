@@ -355,12 +355,49 @@ export default function ToolClient() {
         );
       }
 
+      if (!normalizedImage && imageAlt.trim()) {
+        warnings.push(
+          "Image alt text was supplied without a social image URL, so it is not included in the generated markup."
+        );
+      }
+
       if (
         robotsMode === "noindex-follow" ||
         robotsMode === "noindex-nofollow"
       ) {
         warnings.push(
           "This markup includes noindex. Confirm that removing the page from search results is intentional before publishing."
+        );
+      }
+
+      if (
+        normalizedUrl &&
+        (robotsMode === "noindex-follow" ||
+          robotsMode === "noindex-nofollow")
+      ) {
+        notes.push(
+          "A canonical and noindex can coexist, but noindex is not a substitute for canonicalization. If duplicate consolidation is the goal, review the indexing decision before publishing both signals."
+        );
+      }
+
+      if (
+        robotsMode === "index-nofollow" ||
+        robotsMode === "noindex-nofollow"
+      ) {
+        warnings.push(
+          "This markup includes nofollow. Confirm that asking supporting crawlers not to follow links on the page is intentional."
+        );
+      }
+
+      if (robotsMode === "index-follow") {
+        notes.push(
+          "index, follow restates the normal crawler defaults for an accessible page; omitting the tag is usually simpler when no restriction is needed."
+        );
+      }
+
+      if (ogType === "article") {
+        notes.push(
+          "og:type is set to article. Article-specific properties such as publication time or author are not added automatically."
         );
       }
 
@@ -462,7 +499,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Meta Tag Generator"
-      description="Generate escaped search, canonical, robots, Open Graph, and X card markup while keeping URL problems and the limits of search/social previews visible."
+      description="Build escaped search and social metadata while keeping canonical, robots, and preview limits visible."
     >
       <div className="grid gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
@@ -513,7 +550,7 @@ export default function ToolClient() {
         />
 
         <Field
-          label="Site name (optional)"
+          label="Open Graph site name (optional)"
           value={siteName}
           setValue={setSiteName}
           clearResult={clearResult}
@@ -677,10 +714,10 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Generation happens from the values in your browser. This tool does not
-        fetch the page, social image, search result, or social preview. Site-wide
-        analytics or advertising scripts, if enabled, are separate from this
-        markup-generation operation.
+        Markup is assembled from the entered values in browser memory. No
+        request is made to the page URL, image URL, search engine, or social
+        preview service. Site-wide analytics or advertising scripts, if enabled,
+        are separate from the metadata values themselves.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -711,7 +748,7 @@ export default function ToolClient() {
             Google can create title links from several sources and can generate
             snippets primarily from page content. It may use the meta
             description when that description better represents the page for a
-            particular query. This is why the generator shows character counts
+            particular query. Character counts are shown as editing context
             without turning them into a green/red SEO score.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
@@ -749,13 +786,15 @@ export default function ToolClient() {
             canonical link can indicate which URL you prefer search engines to
             treat as representative. It does not send visitors anywhere and it
             does not guarantee that a search engine will select that exact URL.
+            For Google, a self-referential canonical on the preferred page is a
+            recommended way to keep that signal clear.
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
             Tracking parameters such as <code>utm_source</code>,{" "}
             <code>gclid</code>, or <code>fbclid</code> usually describe an
-            acquisition variant rather than a different document, so the
-            generator warns when they appear in the canonical/page URL. Google
-            provides deeper canonicalization guidance{" "}
+            acquisition variant rather than a different document, so those
+            parameters are flagged when they appear in the canonical/page URL.
+            Google provides deeper canonicalization guidance{" "}
             <a
               href="https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls"
               target="_blank"
@@ -779,9 +818,18 @@ export default function ToolClient() {
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             The robots selector defaults to omission because ordinary indexable
-            pages do not need an explicit <code>index, follow</code> tag.
-            Choose noindex only when keeping that page out of search results is
-            intentional.
+            pages do not need an explicit <code>index, follow</code> tag. Choose
+            <code>noindex</code> or <code>nofollow</code> only when that restriction
+            is intentional. Google documents the supported rules and their
+            crawler behavior in its{" "}
+            <a
+              href="https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              robots meta tag reference
+            </a>.
           </p>
         </div>
 
@@ -792,9 +840,9 @@ export default function ToolClient() {
           <p className="mt-4 leading-relaxed text-gray-600">
             Open Graph metadata describes the object being shared. For a normal
             web page, the core properties include a title, type, URL, and image.
-            This tool can write those tags, but it cannot verify that the image
-            server returns the expected file, that a social crawler can reach
-            it, or that the platform accepts its size and aspect ratio.
+            Correct tags alone cannot verify that the image server returns the
+            expected file, that a social crawler can reach it, or that a platform
+            accepts its size and aspect ratio.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             Social platforms also cache previews, so correcting metadata may
@@ -818,15 +866,51 @@ export default function ToolClient() {
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             A title such as <code>Tools &amp; APIs &quot;Guide&quot;</code>
-            contains characters that have meaning in HTML. The generator
-            escapes text and attribute values before placing them into markup
-            so an ampersand, quote, or angle bracket does not accidentally
-            break the generated tag.
+            contains characters that have meaning in HTML. Text and attribute
+            values are escaped before being placed into markup so an ampersand,
+            quote, or angle bracket does not accidentally break the generated tag.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             The fields are treated as plain metadata values, not as arbitrary
             HTML snippets. Pasting markup into a title does not make that markup
             executable in the generated result.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Open Graph Completeness and Search Metadata Are Different Questions
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The Open Graph protocol defines <code>og:title</code>,
+            <code>og:type</code>, <code>og:image</code>, and <code>og:url</code> as
+            its four basic required properties. Leaving the page URL or social
+            image blank therefore produces a deliberately incomplete Open Graph
+            set and a warning instead of inventing a value.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            That does not make the HTML title, meta description, canonical, or
+            robots tag invalid. Search metadata and social graph metadata serve
+            different consumers, so review each layer according to where the page
+            will actually be published and shared.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Generated Markup Cannot Inspect the Page That Eventually Uses It
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            URL validation here checks syntax, protocol, credentials, fragments,
+            and common tracking parameters. It does not make a network request,
+            confirm an HTTP status, follow redirects, detect an existing canonical,
+            or test whether a social image is publicly crawlable.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            After deployment, inspect the final document head and fetch behavior.
+            A syntactically correct tag can still point at a redirect, a blocked
+            image, an unintended cross-domain canonical, or a URL that returns an
+            error.
           </p>
         </div>
 
@@ -838,8 +922,8 @@ export default function ToolClient() {
             The old <code>&lt;meta name="keywords"&gt;</code> pattern still
             appears in many generic “SEO meta generator” templates, but Google
             does not use that tag for web ranking. Adding a keyword textarea
-            here would make the tool look more complete while providing no
-            useful Google search metadata.
+            would add interface weight without providing useful Google search
+            metadata.
           </p>
         </div>
 

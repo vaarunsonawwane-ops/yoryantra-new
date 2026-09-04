@@ -335,7 +335,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Base64 Encoder Decoder"
-      description="Encode Unicode text as standard Base64 or decode standard Base64 into UTF-8 text or hexadecimal bytes, with strict canonical validation and a deliberately limited relaxed mode."
+      description="Encode UTF-8 text to standard Base64, or inspect decoded bytes as text or hex."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block text-sm font-semibold text-gray-900">
@@ -502,9 +502,9 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Encoding and decoding happen on the supplied text in your browser. The
-        tool does not send the payload to a Base64 API. Site-wide analytics or
-        advertising scripts, if enabled, are separate from this conversion.
+        Encoding and decoding run in browser memory; no Base64 API request is
+        made with the supplied value. Site-wide analytics or advertising scripts,
+        if enabled, are separate from the conversion itself.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -539,7 +539,7 @@ export default function ToolClient() {
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             Decoding reverses the byte step. If those bytes are valid UTF-8,
-            this tool can display text. If they are an image fragment,
+            the UTF-8 view can display text. If they are an image fragment,
             compressed data, encrypted bytes, or another character encoding,
             the hex view is more honest than replacement characters pretending
             to be readable text.
@@ -577,7 +577,7 @@ export default function ToolClient() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-5">
+          <div className="self-start rounded-xl border border-yellow-200 bg-yellow-50 p-5">
             <h3 className="font-semibold text-yellow-900">
               Encoded secrets are still secrets
             </h3>
@@ -646,6 +646,24 @@ export default function ToolClient() {
             URL to an ordinary Base64 decoder is a format mismatch. Remove the
             prefix—or use a tool designed to parse data URLs—before decoding the
             payload.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Text Input Is Not a Substitute for Reading an Arbitrary Binary File
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Encoding starts from UTF-8 text entered in the textarea. It does not
+            read a local image, archive, PDF, executable, or other file as raw
+            bytes. Pasting binary-looking text is still encoding the characters
+            that were pasted, not reconstructing the original file bytes.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Large values also create several in-memory copies while converting
+            between strings, byte arrays, Base64, and the displayed result. For
+            very large payloads, a streaming library or command-line encoder is a
+            better fit than a browser textarea.
           </p>
         </div>
 

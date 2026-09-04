@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Meta Tag Generator | Yoryantra",
     description:
-      "Create safe-to-copy search and social metadata without obsolete meta-keywords output or fake fixed-length SEO scoring.",
+      "Generate escaped search and social metadata without obsolete meta-keywords output or fixed-length SEO scoring.",
     url: "https://yoryantra.com/tools/meta-tag-generator",
     siteName: "Yoryantra",
     type: "website",

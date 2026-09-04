@@ -324,7 +324,7 @@ function impossibleDateWarning(
         days.length === 1 ? "" : "s"
       } cannot occur in the selected month${
         months.length === 1 ? "" : "s"
-      }. The expression is syntactically valid but would never match those dates.`;
+      }. The day-of-month side is syntactically valid but can never match those month/date combinations.`;
 }
 
 function describeField(
@@ -375,22 +375,24 @@ function validateExpression(
 
   const warnings: string[] = [];
 
-  if (
-    dayOfMonth.indexOf("*") === -1 &&
-    dayOfWeek.indexOf("*") === -1
-  ) {
-    warnings.push(
-      "Both day-of-month and day-of-week are restricted. In Vixie/Cronie-style crontab semantics, the job runs when either day field matches, not only when both match."
+  if (errors.length === 0) {
+    if (
+      dayOfMonth.indexOf("*") === -1 &&
+      dayOfWeek.indexOf("*") === -1
+    ) {
+      warnings.push(
+        "Both day-of-month and day-of-week are restricted. In Vixie/Cronie-style crontab semantics, the job runs when either day field matches, not only when both match."
+      );
+    }
+
+    const impossible = impossibleDateWarning(
+      dayOfMonth,
+      month
     );
-  }
 
-  const impossible = impossibleDateWarning(
-    dayOfMonth,
-    month
-  );
-
-  if (impossible) {
-    warnings.push(impossible);
+    if (impossible) {
+      warnings.push(impossible);
+    }
   }
 
   return {
@@ -412,6 +414,7 @@ export default function ToolClient() {
     useState("");
   const [importError, setImportError] =
     useState("");
+  const [copyError, setCopyError] = useState("");
   const [copied, setCopied] = useState(false);
 
   const expression = `${minute} ${hour} ${dayOfMonth} ${month} ${dayOfWeek}`;
@@ -435,6 +438,8 @@ export default function ToolClient() {
   );
 
   const applyExpression = (value: string) => {
+    setCopyError("");
+    setCopied(false);
     const parts = value.trim().split(/\s+/);
 
     if (parts.length !== 5) {
@@ -461,9 +466,13 @@ export default function ToolClient() {
       await navigator.clipboard.writeText(
         expression
       );
+      setCopyError("");
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
+      setCopyError(
+        "The expression could not be copied. Select it and copy it manually."
+      );
       setCopied(false);
     }
   };
@@ -476,6 +485,7 @@ export default function ToolClient() {
     setDayOfWeek("*");
     setImportText("");
     setImportError("");
+    setCopyError("");
     setCopied(false);
   };
 
@@ -520,7 +530,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Cron Expression Generator"
-      description="Build traditional five-field Unix-style cron schedules with field validation, importable expressions, day-rule warnings, and clear boundaries around scheduler-specific behavior."
+      description="Build and validate five-field cron schedules without mixing in Quartz or vendor-specific syntax."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block text-sm font-semibold text-gray-900">
@@ -537,6 +547,7 @@ export default function ToolClient() {
             onChange={(event: { target: { value: string } }) => {
               setImportText(event.target.value);
               setImportError("");
+              setCopyError("");
             }}
             placeholder="0 9 * * MON-FRI"
             spellCheck={false}
@@ -576,6 +587,7 @@ export default function ToolClient() {
                 value={field.value}
                 onChange={(event: { target: { value: string } }) => {
                   field.setValue(event.target.value);
+                  setCopyError("");
                   setCopied(false);
                 }}
                 placeholder={field.placeholder}
@@ -644,6 +656,10 @@ export default function ToolClient() {
           Reset
         </button>
       </div>
+
+      {copyError ? (
+        <p className="mt-3 text-sm text-red-700">{copyError}</p>
+      ) : null}
 
       <div className="mt-8">
         <h3 className="text-lg font-semibold text-gray-900">
@@ -718,6 +734,12 @@ export default function ToolClient() {
         </div>
       ) : null}
 
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Schedule editing and validation run in browser memory; no cron expression
+        is sent to a scheduler or server. Site-wide analytics or advertising
+        scripts, if enabled, are separate from the schedule data itself.
+      </div>
+
       <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
@@ -727,8 +749,8 @@ export default function ToolClient() {
             The five fields select minute, hour, day of month, month, and day of
             week. The scheduler wakes up, evaluates those fields against the
             current time, and runs the associated command when the schedule
-            matches. This page generates the schedule portion only; it does not
-            create a shell command, install a crontab, or contact a server.
+            matches. Only the five schedule fields are handled here; no shell
+            command is created, no crontab is installed, and no server is contacted.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             That separation is useful when a schedule looks right in isolation
@@ -807,7 +829,7 @@ export default function ToolClient() {
           </div>
           <p className="mt-4 leading-relaxed text-gray-600">
             Cron implementations extend those rules in different directions.
-            This generator stays with the common five-field subset of
+            The accepted syntax stays with the common five-field subset of
             asterisks, lists, ranges, steps, and three-letter names rather than
             treating every Cronie, Quartz, or vendor extension as portable.
           </p>
@@ -825,9 +847,8 @@ export default function ToolClient() {
             of the month is a Monday.”
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            The tool flags that combination because it is a valid expression
-            that often expresses a different schedule from what the author had
-            in mind.
+            That combination is flagged because it is valid syntax but often
+            describes a different schedule from what the author had in mind.
           </p>
         </div>
 
@@ -839,12 +860,32 @@ export default function ToolClient() {
             Cron field validation normally checks ranges independently. That
             means day 31 and February are individually valid field values even
             though February never has a 31st day. When both the month and
-            day-of-month are simple explicit lists, this generator adds a
-            cross-field warning for combinations that can never occur.
+            day-of-month are simple explicit lists, a cross-field check warns
+            about combinations that can never occur.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             It deliberately treats February 29 as possible because a five-field
             cron schedule has no year field and leap years do occur.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Five Time Fields Are Only Part of a Real Crontab Entry
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A user crontab normally puts the command after the five schedule
+            fields. System crontabs such as <code>/etc/crontab</code> and files in
+            <code>/etc/cron.d</code> commonly add a username before the command.
+            Environment assignments such as <code>PATH</code>, <code>SHELL</code>,
+            and <code>CRON_TZ</code> can also change how a job behaves.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Nicknames such as <code>@daily</code> and <code>@reboot</code>, command
+            text, usernames, and environment lines are intentionally outside the
+            five-field editor. A valid schedule can still fail at runtime because
+            the command, permissions, environment, working directory, or target
+            scheduler is wrong.
           </p>
         </div>
 
@@ -894,12 +935,11 @@ export default function ToolClient() {
           >
             crontab(5) manual
           </a>{" "}
-          is useful for this generator because it documents the five field
-          ranges, names, lists, ranges, steps, timezone behavior, and the
-          day-of-month/day-of-week matching rule behind this tool. The current
-          Cronie manual also documents extensions such as randomized <code>~</code>
-          ranges that this portability-focused generator deliberately does not
-          accept.
+          documents the five field ranges, names, lists, ranges, steps,
+          timezone behavior, and the day-of-month/day-of-week matching rule used
+          here. The current Cronie manual also documents extensions such as
+          randomized <code>~</code> ranges that are deliberately outside this
+          narrower five-field syntax.
         </div>
 
         <div className="mt-12">
