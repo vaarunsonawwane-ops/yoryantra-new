@@ -34,6 +34,10 @@ const SAMPLE_JSON = `{
   ]
 }`;
 
+function isJsonWhitespace(char: string) {
+  return char === " " || char === "\t" || char === "\n" || char === "\r";
+}
+
 function minifyJsonTokens(source: string) {
   let output = "";
   let inString = false;
@@ -63,7 +67,7 @@ function minifyJsonTokens(source: string) {
     if (char === '"') {
       inString = true;
       output += char;
-    } else if (!/\s/.test(char)) {
+    } else if (!isJsonWhitespace(char)) {
       output += char;
     }
   }
@@ -150,7 +154,7 @@ function inspectJsonSource(
   while (index < source.length) {
     const char = source[index];
 
-    if (/\s/.test(char)) {
+    if (isJsonWhitespace(char)) {
       index += 1;
       continue;
     }
@@ -189,7 +193,7 @@ function inspectJsonSource(
 
       while (
         cursor < source.length &&
-        /\s/.test(source[cursor])
+        isJsonWhitespace(source[cursor])
       ) {
         cursor += 1;
       }
@@ -467,18 +471,26 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Minifier"
-      description="Remove only insignificant JSON whitespace outside strings, preserving source number spellings, duplicate member text, escape sequences, and key order instead of rebuilding the parsed value."
+      description="Remove insignificant JSON whitespace without changing strings, number spellings, duplicate members, or key order."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label
+          htmlFor="json-minifier-input"
+          className="block text-sm font-semibold text-gray-900"
+        >
           JSON input
         </label>
-        <p className="mt-1 text-sm leading-relaxed text-gray-500">
+        <p
+          id="json-minifier-input-help"
+          className="mt-1 text-sm leading-relaxed text-gray-500"
+        >
           The input must be valid JSON. Spaces and line breaks inside string
           values are data and will not be removed.
         </p>
 
         <textarea
+          id="json-minifier-input"
+          aria-describedby="json-minifier-input-help"
           value={input}
           onChange={(event: {
             target: { value: string };
@@ -520,7 +532,10 @@ export default function ToolClient() {
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
@@ -553,7 +568,7 @@ export default function ToolClient() {
                   Minified JSON
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  This is whitespace minification, not gzip, Brotli, or binary compression.
+                  Whitespace only — not gzip, Brotli, or binary compression.
                 </p>
               </div>
 
@@ -579,7 +594,7 @@ export default function ToolClient() {
             diagnostics.nonFiniteNumbers.length ||
             diagnostics.highPrecisionNumbers
               .length) ? (
-            <div className="mt-5 space-y-3">
+            <div role="status" className="mt-5 space-y-3">
               {diagnostics.duplicateKeys
                 .length ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
@@ -678,34 +693,45 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Minification runs on the pasted JSON in your browser. The tool does
-        not send the payload to a minification API. Site-wide analytics or
-        advertising scripts, if enabled, are separate from this operation.
+        The minification pass stays in this browser page; no request is made
+        with the JSON you paste. Copying moves the result to your system
+        clipboard, while browser extensions and site-wide analytics or
+        advertising scripts are outside that processing boundary. Validation
+        and scanning are synchronous, so very large documents can temporarily
+        pause the tab.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            The Safest JSON Minifier Removes Less Than You Might Expect
+            JSON minification only needs to remove insignificant whitespace
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON permits insignificant whitespace around structural
-            characters and values. A minifier can remove those spaces,
-            tabs, carriage returns, and line feeds without needing to
-            rename keys, reorder members, shorten strings, or transform
-            numbers.
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc8259"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 8259
+            </a>{" "}
+            permits only space, horizontal tab, line feed, and carriage return
+            as JSON whitespace around structural tokens. Once syntax is valid,
+            removing those four characters outside strings is enough to compact
+            the text; keys, strings, numbers, and member order do not need to
+            change.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Yoryantra validates the JSON first, then removes whitespace
-            only while the scanner is outside a quoted string. That
-            narrow job is intentional: minification should make the
-            text smaller, not invent a different serialization policy.
+            The input is validated first. A small scanner then removes only
+            those four whitespace characters while it is outside a quoted
+            string. That narrow pass avoids imposing a second serialization
+            policy on already-valid JSON.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            This Space Disappears; This Space Does Not
+            Whitespace outside strings can go; whitespace inside strings cannot
           </h2>
           <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`Before
 {
@@ -725,7 +751,7 @@ After
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Why This Tool Does Not Use JSON.parse → JSON.stringify for the Output
+            Why parse-and-stringify is unnecessary for minification
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             Parse-and-stringify creates compact JSON, but it does so by
@@ -774,14 +800,14 @@ After
           <p className="mt-4 leading-relaxed text-gray-600">
             One-line JSON is efficient for machines but unpleasant in a
             log file, code review, incident ticket, or browser console.
-            Keep readable source in repositories and operational
-            tooling unless compact text has a real benefit. Formatting
-            and minification are easy to reverse for valid JSON, so the
-            best representation can depend on where the payload lives.
+            Keep readable source in repositories and operational tooling unless
+            compact text has a real benefit. Readable indentation can be
+            restored later, so keep the representation that fits the place where
+            the payload lives.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Whitespace Changes Bytes Even When It Does Not Change the JSON Values
           </h2>
@@ -822,7 +848,9 @@ After
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/json-minifier" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-minifier" />
+          </div>
         </div>
       </section>
     </ToolShell>

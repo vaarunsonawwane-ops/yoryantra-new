@@ -32,13 +32,17 @@ const SAMPLE_JSON = `{
   "roles": ["editor", "reviewer"]
 }`;
 
+function isJsonWhitespace(char: string) {
+  return char === " " || char === "\t" || char === "\n" || char === "\r";
+}
+
 function stripTrailingWhitespace(value: string) {
   return value.replace(/\s+$/, "");
 }
 
 function nextSignificant(source: string, start: number) {
   for (let index = start; index < source.length; index += 1) {
-    if (!/\s/.test(source[index])) {
+    if (!isJsonWhitespace(source[index])) {
       return source[index];
     }
   }
@@ -48,7 +52,7 @@ function nextSignificant(source: string, start: number) {
 
 function previousSignificant(value: string) {
   for (let index = value.length - 1; index >= 0; index -= 1) {
-    if (!/\s/.test(value[index])) {
+    if (!isJsonWhitespace(value[index])) {
       return value[index];
     }
   }
@@ -85,7 +89,7 @@ function prettyPrintJson(source: string, indent: string) {
       continue;
     }
 
-    if (/\s/.test(char)) {
+    if (isJsonWhitespace(char)) {
       continue;
     }
 
@@ -205,7 +209,7 @@ function inspectJsonSource(source: string): JsonDiagnostics {
   while (index < source.length) {
     const char = source[index];
 
-    if (/\s/.test(char)) {
+    if (isJsonWhitespace(char)) {
       index += 1;
       continue;
     }
@@ -238,7 +242,7 @@ function inspectJsonSource(source: string): JsonDiagnostics {
 
       while (
         cursor < source.length &&
-        /\s/.test(source[cursor])
+        isJsonWhitespace(source[cursor])
       ) {
         cursor += 1;
       }
@@ -475,19 +479,27 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Formatter"
-      description="Pretty-print valid JSON without rebuilding it from JavaScript values, so source number spellings, duplicate member text, escape sequences, and key order remain visible for review."
+      description="Pretty-print valid JSON while preserving source tokens that JavaScript re-serialization can silently change."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label
+          htmlFor="json-formatter-input"
+          className="block text-sm font-semibold text-gray-900"
+        >
           JSON input
         </label>
-        <p className="mt-1 text-sm leading-relaxed text-gray-500">
+        <p
+          id="json-formatter-input-help"
+          className="mt-1 text-sm leading-relaxed text-gray-500"
+        >
           The input is validated first. Formatting then works on the original
           JSON token text rather than serializing the parsed JavaScript value
           back to JSON.
         </p>
 
         <textarea
+          id="json-formatter-input"
+          aria-describedby="json-formatter-input-help"
           value={input}
           onChange={(event: {
             target: { value: string };
@@ -551,7 +563,10 @@ export default function ToolClient() {
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
@@ -589,7 +604,7 @@ export default function ToolClient() {
             diagnostics.nonFiniteNumbers.length ||
             diagnostics.highPrecisionNumbers
               .length) ? (
-            <div className="mt-5 space-y-3">
+            <div role="status" className="mt-5 space-y-3">
               {diagnostics.duplicateKeys.length ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
                   <strong>
@@ -605,9 +620,9 @@ export default function ToolClient() {
                   {diagnostics.duplicateKeys.length > 8
                     ? " …"
                     : ""}
-                  . The formatter preserves the duplicate source
-                  text instead of rebuilding an object that would
-                  hide earlier values.
+                  . The duplicate source text stays visible instead
+                  of rebuilding an object that would hide earlier
+                  values.
                 </div>
               ) : null}
 
@@ -657,8 +672,8 @@ export default function ToolClient() {
                     ? " …"
                     : ""}
                   . These valid JSON number tokens exceed
-                  JavaScript&apos;s finite Number range. The formatter
-                  preserves the text, but JSON.parse resolves those
+                  JavaScript&apos;s finite Number range. The numeric source
+                  text stays intact here, but JSON.parse resolves those
                   values to Infinity or -Infinity.
                 </div>
               ) : null}
@@ -668,19 +683,20 @@ export default function ToolClient() {
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Formatting runs on the pasted JSON in your browser. The
-        tool does not send the payload to a formatting API.
-        Site-wide analytics or advertising scripts, if enabled,
-        are separate from this operation.
+        Formatting itself runs in the browser and makes no request containing
+        the pasted JSON. Site-wide analytics or advertising scripts, browser
+        extensions, and anything copied to the system clipboard sit outside
+        that local processing boundary. Very large payloads are processed on
+        the page and can briefly make the tab less responsive.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Formatting Should Make JSON Easier to Read Without Quietly Rewriting It
+            Pretty printing should not change the JSON you are inspecting
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The obvious implementation of a formatter is{" "}
+            A common pretty-printing shortcut is{" "}
             <code>JSON.stringify(JSON.parse(input), null, 2)</code>.
             That works for ordinary data, but it also means the
             browser has already turned every number into a JavaScript
@@ -688,12 +704,11 @@ export default function ToolClient() {
             before the text is recreated.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This formatter uses <code>JSON.parse()</code> to reject
-            invalid JSON, then inserts presentation whitespace around
-            the original valid tokens. That small architectural choice
-            keeps exact number spellings, duplicate member text,
-            escape spelling, and source key order visible while you
-            inspect the payload.
+            The input first passes <code>JSON.parse()</code> for syntax
+            validation. Pretty printing is then applied to the original token
+            text. That keeps exact number spellings, duplicate member text,
+            escape spelling, and source key order visible instead of rebuilding
+            the value from a JavaScript object.
           </p>
         </div>
 
@@ -736,16 +751,16 @@ becomes
             the response body.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Formatting the token text means the output can still show
-            exactly what the server sent. The warning tells you that
+            Formatting the token text means the output can still show the exact
+            numeric token the server sent. The warning tells you that
             application code using ordinary Number values may not see
             the same exact value.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
-            Duplicate Object Names Are Valid-Looking Text With Unreliable Interoperability
+            Duplicate object names do not behave consistently across parsers
           </h2>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
             A JSON object such as{" "}
@@ -757,9 +772,8 @@ becomes
             reject them.
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            The formatter keeps both tokens visible and reports the
-            duplicate. That makes it useful for diagnosing a payload;
-            it does not make the duplicate safe to send to every
+            Keeping both tokens visible makes the problem easier to diagnose.
+            The warning does not make the duplicate safe to send to every
             consumer.
           </p>
         </div>
@@ -769,7 +783,7 @@ becomes
             Key Order Can Be Preserved for Humans Without Becoming Application Logic
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Developers often arrange object members in a useful visual
+            Developers often arrange object members in an intentional visual
             order—identity fields first, then configuration, then
             nested data. Preserving that source order makes code
             review and debugging easier. It should not be used to make
@@ -793,10 +807,10 @@ becomes
         </div>
 
         <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
-          RFC 8259 is useful for this formatter because it defines the
-          JSON grammar, explains object-name uniqueness and
-          interoperability, and discusses the limits of numeric
-          interoperability.{" "}
+          RFC 8259 defines the JSON grammar, permits only space, tab, line feed,
+          and carriage return as insignificant whitespace, explains why duplicate
+          object names hurt interoperability, and discusses numeric interoperability
+          limits.{" "}
           <a
             href="https://www.rfc-editor.org/rfc/rfc8259"
             target="_blank"
@@ -811,7 +825,9 @@ becomes
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/json-formatter" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-formatter" />
+          </div>
         </div>
       </section>
     </ToolShell>

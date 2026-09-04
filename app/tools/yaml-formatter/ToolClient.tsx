@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import {
+  isAlias,
+  isCollection,
+  isPair,
+  isScalar,
   parseAllDocuments,
+  visit,
 } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
@@ -52,92 +57,52 @@ function countDirectives(value: string) {
   return value
     .replace(/\r\n?/g, "\n")
     .split("\n")
-    .filter((line) =>
-      /^%(?:YAML|TAG)\b/.test(
-        line.trim()
-      )
-    ).length;
+    .filter((line) => /^%(?:YAML|TAG)\b/.test(line)).length;
 }
 
-function countReferenceTokens(
-  source: string,
-  token: "&" | "*"
+function hasTemplateMarkers(value: string) {
+  return value.indexOf("{{") !== -1 || value.indexOf("{%") !== -1;
+}
+
+function inspectYamlStructure(
+  documents: ReturnType<typeof parseAllDocuments>
 ) {
-  let count = 0;
-  let single = false;
-  let double = false;
-  let comment = false;
-  let escaped = false;
+  let anchors = 0;
+  let aliases = 0;
+  let mergeKeys = 0;
+  let inspectionFailed = false;
 
-  for (
-    let index = 0;
-    index < source.length;
-    index += 1
-  ) {
-    const char = source[index];
+  documents.forEach((document) => {
+    try {
+      visit(document, (_key, node) => {
+        if (isAlias(node)) {
+          aliases += 1;
+          return;
+        }
 
-    if (char === "\n") {
-      comment = false;
+        if (
+          (isCollection(node) || isScalar(node)) &&
+          typeof node.anchor === "string" &&
+          node.anchor
+        ) {
+          anchors += 1;
+        }
+
+        if (
+          isPair(node) &&
+          isScalar(node.key) &&
+          node.key.value === "<<" &&
+          node.key.type === "PLAIN"
+        ) {
+          mergeKeys += 1;
+        }
+      });
+    } catch {
+      inspectionFailed = true;
     }
+  });
 
-    if (comment) {
-      continue;
-    }
-
-    if (double) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === '"') {
-        double = false;
-      }
-
-      continue;
-    }
-
-    if (single) {
-      if (
-        char === "'" &&
-        source[index + 1] === "'"
-      ) {
-        index += 1;
-      } else if (char === "'") {
-        single = false;
-      }
-
-      continue;
-    }
-
-    if (char === "#") {
-      comment = true;
-      continue;
-    }
-
-    if (char === '"') {
-      double = true;
-      continue;
-    }
-
-    if (char === "'") {
-      single = true;
-      continue;
-    }
-
-    if (
-      char === token &&
-      /[\s\[\]{},?:-]/.test(
-        source[index - 1] || "\n"
-      ) &&
-      /[A-Za-z0-9_-]/.test(
-        source[index + 1] || ""
-      )
-    ) {
-      count += 1;
-    }
-  }
-
-  return count;
+  return { anchors, aliases, mergeKeys, inspectionFailed };
 }
 
 function formatDiagnostic(
@@ -244,27 +209,27 @@ function formatYaml(
     "\n"
   )}\n`;
 
-  if (
-    input.indexOf("{{") !== -1 ||
-    input.indexOf("{%") !== -1
-  ) {
+  if (hasTemplateMarkers(input)) {
     warnings.push(
       "Template markers were detected. Formatting template source can be misleading when the final rendered YAML has different structure."
     );
   }
 
-  if (
-    /^\s*<<\s*:/m.test(input)
-  ) {
+  const structure = inspectYamlStructure(documents);
+
+  if (structure.mergeKeys) {
     warnings.push(
-      "A << merge-key-looking entry is present. Formatting preserves the document representation, but merge semantics still depend on the parser/application schema that consumes the file."
+      "A plain << mapping key is present. Merge-key behavior is a YAML 1.1-era feature and is not part of YAML 1.2; confirm how the destination parser treats it before relying on inheritance."
     );
   }
 
-  const anchors =
-    countReferenceTokens(input, "&");
-  const aliases =
-    countReferenceTokens(input, "*");
+  if (structure.inspectionFailed) {
+    warnings.push(
+      "Some parsed nodes could not be traversed for the anchor, alias, and merge-key counters. The formatted output still comes from the parsed document model; review the diff if those features matter."
+    );
+  }
+
+  const { anchors, aliases } = structure;
 
   if (anchors || aliases) {
     warnings.push(
@@ -278,7 +243,7 @@ function formatYaml(
 
   if (countDirectives(input)) {
     warnings.push(
-      "YAML directives are present. The formatter works through parsed documents, so verify version/tag directives in the formatted output before replacing the source."
+      "YAML directives are present. Formatting works through parsed documents, so verify version/tag directives in the formatted output before replacing the source."
     );
   }
 
@@ -336,10 +301,14 @@ export default function ToolClient() {
       setCopied(false);
     } catch (caught) {
       setResult(null);
+      const templateNote = hasTemplateMarkers(input)
+        ? "\n\nTemplate-like markers are present. If this is Helm, Jinja, or another generator, format the rendered YAML unless that template system has its own YAML-aware formatter."
+        : "";
+
       setError(
         caught instanceof Error
-          ? `YAML formatting stopped.\n${caught.message}`
-          : "YAML formatting stopped because the input could not be parsed."
+          ? `YAML formatting stopped.\n${caught.message}${templateNote}`
+          : `YAML formatting stopped because the input could not be parsed.${templateNote}`
       );
       setCopied(false);
     }
@@ -382,18 +351,26 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="YAML Formatter"
-      description="Reformat YAML through its parsed document model so comments, anchors, aliases, directives, tags, and multi-document structure are retained where possible instead of being discarded by an object round trip."
+      description="Reformat YAML while retaining comments, anchors, aliases, directives, tags, and document boundaries where possible."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label
+          htmlFor="yaml-formatter-input"
+          className="block text-sm font-semibold text-gray-900"
+        >
           YAML input
         </label>
-        <p className="mt-1 text-sm leading-relaxed text-gray-500">
+        <p
+          id="yaml-formatter-input-help"
+          className="mt-1 text-sm leading-relaxed text-gray-500"
+        >
           Multi-document streams are supported. Duplicate mapping keys are
           treated as errors rather than silently normalized.
         </p>
 
         <textarea
+          id="yaml-formatter-input"
+          aria-describedby="yaml-formatter-input-help"
           value={input}
           onChange={(event: {
             target: { value: string };
@@ -484,7 +461,10 @@ profile:
       </div>
 
       {error ? (
-        <div className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
@@ -540,7 +520,10 @@ profile:
           </div>
 
           {result.warnings.length ? (
-            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+            <div
+              role="status"
+              className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900"
+            >
               <strong>
                 Review after formatting:
               </strong>
@@ -566,16 +549,19 @@ profile:
       ) : null}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        YAML parsing and formatting happen on the pasted text in your browser.
-        The tool does not upload the configuration or fetch a
-        product-specific schema. Site-wide analytics or advertising scripts,
-        if enabled, are separate from this operation.
+        The YAML text is parsed and serialized in the browser; the formatting
+        code does not upload the configuration, execute template expressions,
+        or fetch a product-specific schema. Configuration files often contain
+        credentials, so browser extensions, the system clipboard, and site-wide
+        analytics or advertising scripts remain separate privacy boundaries.
+        Large or deeply nested streams are processed on the page and can briefly
+        make the tab less responsive.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            A YAML Formatter Is Performing a Controlled Rewrite, Not Just Adding Spaces
+            YAML formatting is a rewrite, not just indentation
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             JSON can be prettified by changing insignificant whitespace around
@@ -585,11 +571,10 @@ profile:
             source text.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This formatter therefore parses YAML into the library&apos;s document
-            model and serializes those documents again with your indentation
-            and line-width preferences. It is intentionally different from
-            loading YAML into plain JavaScript values and generating an entirely
-            new YAML file from those values.
+            The input is parsed into the library&apos;s document model and serialized
+            again with the chosen indentation and line width. That keeps
+            YAML-specific structure available to the serializer instead of first
+            collapsing the document into plain JavaScript values.
           </p>
         </div>
 
@@ -614,7 +599,18 @@ worker:
           <p className="mt-4 leading-relaxed text-gray-600">
             “Preserved where possible” is still the important qualifier.
             Serialization can normalize whitespace and scalar presentation, so
-            formatting should not be treated as byte-for-byte preservation.
+            formatting should not be treated as byte-for-byte preservation. The{" "}
+            <a
+              href="https://eemeli.org/yaml/#comments-and-blank-lines"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              yaml library documentation
+            </a>{" "}
+            also notes that comment attachment is not perfectly stable, especially
+            around trailing comments. Review the diff when comments carry
+            operational meaning.
           </p>
         </div>
 
@@ -623,22 +619,30 @@ worker:
             Line Width Is a Presentation Preference, Not a Maximum-Line Guarantee
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The preferred width helps the serializer decide when certain
-            scalars or collections can be rendered more readably. YAML cannot
-            safely wrap every long value at an arbitrary column: URLs, quoted
-            strings, block scalars, flow collections, and syntax-sensitive
-            content can require different treatment.
+            The underlying{" "}
+            <a
+              href="https://eemeli.org/yaml/#options"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              yaml package
+            </a>{" "}
+            treats <code>lineWidth</code> as a soft maximum; setting it to 0
+            disables folding. YAML cannot safely wrap every long value at an
+            arbitrary column, so a long scalar may still exceed 80 or 120
+            characters.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             Choose 80 or 120 when your repository has a readability convention.
-            Choose no wrapping preference when preserving long scalar
-            presentation is more useful than aiming for a particular width.
+            Choose no wrapping preference when keeping long scalar presentation
+            matters more than targeting a particular width.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
-            Formatting a Configuration File Can Create a Large Diff Without Changing Its Intended Data
+            A formatting pass can create a large diff
           </h2>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
             Quote choices, block styles, blank lines, sequence indentation, and
@@ -655,18 +659,18 @@ worker:
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Mapping Order Is Useful to Maintainers Even When the Data Model Does Not Depend on It
+            Keep mapping order for maintainers, not application meaning
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             Teams often keep metadata, image, ports, environment, resources, or
-            other related configuration close together. A formatter should not
-            alphabetize keys unless that is an explicit policy because the
-            human grouping can carry maintenance value.
+            other related configuration close together. Alphabetizing keys should
+            be a separate choice because the human grouping can carry maintenance
+            value.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool does not include a “sort keys” switch. YAML formatting and
-            configuration reorganization are separate operations and are easier
-            to review when kept separate.
+            Key sorting is intentionally left out. Reformatting and reorganizing
+            a configuration are separate edits and are easier to review when
+            kept separate.
           </p>
         </div>
 
@@ -691,9 +695,29 @@ worker:
             >
               YAML 1.2.2 specification
             </a>{" "}
-            is useful when a formatter and a target application disagree about
-            a YAML-language feature; the application&apos;s own schema and parser
-            rules remain relevant as well.
+            defines directives, tags, anchors, aliases, and the separation between
+            presentation details and the representation model. When the target
+            application disagrees, its own parser and schema rules still decide
+            what it accepts.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            A YAML version change can change plain-scalar meaning
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Without an explicit <code>%YAML</code> directive, the parser defaults
+            to YAML 1.2 and its core schema. YAML 1.1 resolves some familiar plain
+            scalars differently: values such as <code>yes</code>, <code>no</code>,
+            <code>on</code>, and <code>off</code> can become booleans instead of
+            strings. A formatting pass cannot prove that a different runtime will
+            resolve every scalar the same way.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            If the destination has a fixed parser or schema, validate the
+            formatted file with that same stack before replacing production
+            configuration.
           </p>
         </div>
 
@@ -722,13 +746,12 @@ worker:
           <p className="mt-4 leading-relaxed text-gray-600">
             Helm, Jinja-style templates, CI expressions, and other generators
             may insert syntax that is not ordinary YAML until after rendering.
-            Running a generic YAML formatter directly over the template source
-            can fail or can rearrange text in a way the template engine did not
-            expect.
+            Running generic YAML formatting directly over the template source can
+            fail or can rearrange text in a way the template engine did not expect.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
             When the file is generated, format the rendered YAML unless the
-            template system explicitly supports a YAML-aware formatter for its
+            template system explicitly supports YAML-aware formatting for its
             source language.
           </p>
         </div>
@@ -737,7 +760,9 @@ worker:
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/yaml-formatter" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/yaml-formatter" />
+          </div>
         </div>
       </section>
     </ToolShell>

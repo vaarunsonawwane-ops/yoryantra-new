@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Formatter | Pretty Print Without Data Loss | Yoryantra",
+  title: "JSON Formatter | Preserve Source Tokens | Yoryantra",
   description:
-    "Pretty-print valid JSON while preserving source number spellings, duplicate member text, escape sequences, and key order, with precision diagnostics.",
+    "Pretty-print valid JSON while keeping number spellings, duplicate member text, escapes, and key order visible, with precision and interoperability warnings.",
   alternates: {
     canonical: "https://yoryantra.com/tools/json-formatter",
   },
   openGraph: {
-    title: "JSON Formatter | Pretty Print Without Data Loss | Yoryantra",
+    title: "JSON Formatter | Preserve Source Tokens | Yoryantra",
     description:
-      "Format JSON for reading without rebuilding it from JavaScript values and silently rewriting important source tokens.",
+      "Pretty-print JSON without a parse-and-stringify round trip that can rewrite numbers or hide duplicate object members.",
     url: "https://yoryantra.com/tools/json-formatter",
     siteName: "Yoryantra",
     type: "website",

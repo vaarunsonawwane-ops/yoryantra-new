@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "YAML Formatter | Comments, Anchors & Documents | Yoryantra",
   description:
-    "Format YAML through its document model with indentation and line-width controls while retaining comments, anchors, aliases, directives, and document boundaries.",
+    "Reformat YAML with indentation and line-width controls while retaining comments, anchors, aliases, directives, tags, and document boundaries where possible.",
   alternates: {
     canonical: "https://yoryantra.com/tools/yaml-formatter",
   },
