@@ -21,6 +21,7 @@ type SurrogatePolicy =
   | "inspect";
 
 type CodePointEntry = {
+  codePoint: number;
   label: string;
   display: string;
   utf16: string;
@@ -39,6 +40,7 @@ type UnicodeStats = {
   sequenceItems: number;
   utf8Bytes: number;
   loneSurrogates: number;
+  bidiControls: number;
   nfcChanged: boolean;
   nfdChanged: boolean;
 };
@@ -107,10 +109,53 @@ function combineSurrogates(
   );
 }
 
+const BIDI_CONTROL_LABELS: Record<number, string> = {
+  0x061c: "ARABIC LETTER MARK (bidi control)",
+  0x200e: "LEFT-TO-RIGHT MARK (bidi control)",
+  0x200f: "RIGHT-TO-LEFT MARK (bidi control)",
+  0x202a: "LEFT-TO-RIGHT EMBEDDING (bidi control)",
+  0x202b: "RIGHT-TO-LEFT EMBEDDING (bidi control)",
+  0x202c: "POP DIRECTIONAL FORMATTING (bidi control)",
+  0x202d: "LEFT-TO-RIGHT OVERRIDE (bidi control)",
+  0x202e: "RIGHT-TO-LEFT OVERRIDE (bidi control)",
+  0x2066: "LEFT-TO-RIGHT ISOLATE (bidi control)",
+  0x2067: "RIGHT-TO-LEFT ISOLATE (bidi control)",
+  0x2068: "FIRST STRONG ISOLATE (bidi control)",
+  0x2069: "POP DIRECTIONAL ISOLATE (bidi control)",
+};
+
+const OTHER_INVISIBLE_LABELS: Record<number, string> = {
+  0x200b: "ZERO WIDTH SPACE",
+  0x200c: "ZERO WIDTH NON-JOINER",
+  0x200d: "ZERO WIDTH JOINER",
+  0x2060: "WORD JOINER",
+  0xfeff: "ZERO WIDTH NO-BREAK SPACE / BOM",
+};
+
+function isBidiControl(codePoint: number) {
+  return Object.prototype.hasOwnProperty.call(
+    BIDI_CONTROL_LABELS,
+    codePoint
+  );
+}
+
 function displayCodePoint(
   codePoint: number,
   char: string
 ) {
+  if (isBidiControl(codePoint)) {
+    return BIDI_CONTROL_LABELS[codePoint];
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      OTHER_INVISIBLE_LABELS,
+      codePoint
+    )
+  ) {
+    return OTHER_INVISIBLE_LABELS[codePoint];
+  }
+
   if (codePoint === 0x20) {
     return "space";
   }
@@ -174,6 +219,7 @@ function codePointEntries(
           );
 
         entries.push({
+          codePoint,
           label: `U+${hex(
             codePoint,
             codePoint <= 0xffff
@@ -227,6 +273,7 @@ function codePointEntries(
           .join(" ");
 
     entries.push({
+      codePoint: first,
       label: `U+${hex(
         first,
         4
@@ -263,6 +310,13 @@ function getUnicodeStats(
       (entry) =>
         entry.surrogate
     ).length;
+  const bidiControls =
+    entries.filter(
+      (entry) =>
+        isBidiControl(
+          entry.codePoint
+        )
+    ).length;
 
   return {
     utf16Units: value.length,
@@ -275,6 +329,7 @@ function getUnicodeStats(
           ).length
         : -1,
     loneSurrogates,
+    bidiControls,
     nfcChanged:
       value.normalize("NFC") !==
       value,
@@ -831,6 +886,7 @@ function formatStats(
         : "not well-formed without surrogate replacement"
     }`,
     `Isolated surrogate units: ${stats.loneSurrogates}`,
+    `Bidirectional format controls: ${stats.bidiControls}`,
     `NFC changes text: ${
       stats.nfcChanged
         ? "yes"
@@ -1104,13 +1160,17 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Unicode Encoder Decoder"
-      description="Move between readable text, UTF-16 \\uXXXX code-unit escapes, JavaScript code-point escapes, and U+ notation while keeping surrogate pairs, Unicode scalar values, UTF-16 units, UTF-8 bytes, and normalization differences visible."
+      description="Convert between text, Unicode escapes, and U+ notation while keeping surrogate pairs and normalization differences visible."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label
+          htmlFor="unicode-input"
+          className="block text-sm font-semibold text-gray-900"
+        >
           Text or Unicode notation
         </label>
         <textarea
+          id="unicode-input"
           value={input}
           onChange={(event: {
             target: { value: string };
@@ -1166,6 +1226,19 @@ export default function ToolClient() {
             />
           </div>
         ) : null}
+
+        {stats.bidiControls ? (
+          <div
+            role="status"
+            className="mt-4 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900"
+          >
+            <strong>Bidirectional formatting controls detected.</strong>{" "}
+            The stored character order and the rendered order can differ. The
+            inspection table labels these controls instead of rendering them in
+            its Display column, while encoded/decoded output preserves the
+            supplied sequence.
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-6">
@@ -1184,6 +1257,7 @@ export default function ToolClient() {
                   );
                   clearResult();
                 }}
+                aria-pressed={encodeStyle === style.value}
                 className={`rounded-xl border p-4 text-left transition ${
                   encodeStyle ===
                   style.value
@@ -1218,7 +1292,7 @@ export default function ToolClient() {
                 );
                 clearResult();
               }}
-              className="mt-1 h-4 w-4 accent-[#d9a928]"
+              className="mt-1 h-4 w-4 shrink-0 accent-[#d9a928]"
             />
             <span>
               <strong>
@@ -1293,42 +1367,45 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={decode}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Decode Unicode
         </button>
         <button
           type="button"
           onClick={encode}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Encode Unicode
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Text Example
         </button>
         <button
           type="button"
           onClick={loadEscapeExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Escape Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
@@ -1349,7 +1426,7 @@ export default function ToolClient() {
             <button
               type="button"
               onClick={copyOutput}
-              className="yoryantra-btn-outline whitespace-nowrap"
+              className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
             >
               {copied
                 ? "Copied"
@@ -1364,7 +1441,10 @@ export default function ToolClient() {
         </pre>
 
         {notes.length ? (
-          <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+          <div
+            role="status"
+            className="mt-5 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900"
+          >
             <ul className="list-disc space-y-2 pl-5">
               {notes.map(
                 (note, index) => (
@@ -1451,9 +1531,9 @@ export default function ToolClient() {
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
         Encoding, decoding, normalization checks, and byte inspection happen on
-        the supplied string in your browser. The tool does not send the text to
-        a Unicode lookup API. Site-wide analytics or advertising scripts, if
-        enabled, are separate from this operation.
+        the supplied string in your browser. No Unicode lookup API receives the
+        text. Site-wide analytics or advertising scripts, if enabled, are
+        separate from this operation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
@@ -1500,7 +1580,7 @@ JavaScript code-point escape
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Surrogate Code Points Exist, but They Are Not Standalone Unicode Characters
           </h2>
@@ -1565,10 +1645,29 @@ JavaScript code-point escape
             for equivalent sequences.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This tool reports whether normalization would change the supplied
-            sequence but does not normalize automatically. Silent normalization
-            would make an encoder stop being a faithful representation of the
-            exact string you pasted.
+            The normalization check reports whether NFC or NFD would change the
+            supplied sequence, but it does not normalize automatically. Silent
+            normalization would make an encoder stop being a faithful
+            representation of the exact string you pasted.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Bidirectional Controls Can Change Display Order Without Changing Stored Order
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Characters such as U+202E RIGHT-TO-LEFT OVERRIDE and the isolate
+            controls U+2066 through U+2069 affect how surrounding text is
+            displayed. They do not rearrange the underlying code-point sequence,
+            so copied text can look different from the order a parser reads.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The inspection table names common bidirectional controls instead of
+            placing the invisible control itself in the Display column. That
+            makes source review safer while leaving the actual input and output
+            untouched. The Unicode Bidirectional Algorithm defines how these
+            controls participate in rendering.
           </p>
         </div>
 
@@ -1592,7 +1691,7 @@ JavaScript code-point escape
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Standards Are Useful Here Because the Terms Are Easy to Mix Up
+            Unicode, JSON, and JavaScript Define Different Parts of the Problem
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             Unicode&apos;s core specification defines code points, surrogate
@@ -1604,6 +1703,15 @@ JavaScript code-point escape
               className="font-medium text-[var(--green)] underline underline-offset-4"
             >
               Unicode 17 Core Specification, Chapter 3
+            </a>
+            . Bidirectional formatting is specified separately in{" "}
+            <a
+              href="https://www.unicode.org/reports/tr9/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              Unicode Standard Annex #9
             </a>
             . For syntax boundaries,{" "}
             <a
@@ -1632,7 +1740,9 @@ JavaScript code-point escape
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/unicode-encoder-decoder" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/unicode-encoder-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>

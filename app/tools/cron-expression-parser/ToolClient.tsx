@@ -153,6 +153,25 @@ function hasOwn(
   );
 }
 
+function hasUnsupportedDialectToken(
+  value: string,
+  definition: FieldDefinition
+) {
+  let remaining = value.toUpperCase();
+
+  if (definition.aliases) {
+    Object.keys(definition.aliases)
+      .sort((a, b) => b.length - a.length)
+      .forEach((alias) => {
+        remaining = remaining.split(alias).join(
+          String(definition.aliases?.[alias] ?? "")
+        );
+      });
+  }
+
+  return /[?LW#]/.test(remaining);
+}
+
 function resolveCronValue(
   token: string,
   definition: FieldDefinition
@@ -317,7 +336,7 @@ function parseSegment(
       base.indexOf("-") === -1
     ) {
       throw new Error(
-        `${definition.label} segment "${segment}" uses /step on a single value. This parser's portable five-field subset applies steps to * or an explicit range.`
+        `${definition.label} segment "${segment}" uses /step on a single value. The portable five-field subset covered here applies steps to * or an explicit range.`
       );
     }
   }
@@ -440,9 +459,14 @@ function parseField(
     );
   }
 
-  if (/[?LW#]/.test(value)) {
+  if (
+    hasUnsupportedDialectToken(
+      value,
+      definition
+    )
+  ) {
     throw new Error(
-      `${definition.label} contains ?, L, W, or #. Those tokens belong to Quartz/vendor cron dialects and are outside this traditional five-field subset.`
+      `${definition.label} contains ?, L, W, or # outside a recognized three-letter month or weekday name. Those tokens belong to Quartz/vendor cron dialects and are outside this traditional five-field subset.`
     );
   }
 
@@ -676,7 +700,7 @@ function parseCronExpression(
     expression.charAt(0) === "@"
   ) {
     throw new Error(
-      "Nicknames such as @daily and @reboot are not five-field expressions. This parser keeps those implementation conveniences separate from the field grammar."
+      "Nicknames such as @daily and @reboot are not five-field expressions. They sit outside the five-field grammar covered here."
     );
   }
 
@@ -731,7 +755,13 @@ function parseCronExpression(
     );
 
   if (impossible) {
-    warnings.push(impossible);
+    warnings.push(
+      `${impossible}${
+        dayOfWeek.source !== "*"
+          ? " The day-of-week branch can still match because common Vixie/Cronie-style cron uses OR-style matching when both day fields are restricted."
+          : ""
+      }`
+    );
   }
 
   if (
@@ -768,7 +798,7 @@ function parseCronExpression(
   );
 
   notes.push(
-    "This parser explains a portable traditional subset. Quartz, AWS EventBridge, GitHub Actions, Kubernetes CronJobs, and other schedulers can impose different field counts or extra rules."
+    "Interpretation uses a portable traditional subset. Quartz, AWS EventBridge, GitHub Actions, Kubernetes CronJobs, and other schedulers can impose different field counts or extra rules."
   );
 
   return {
@@ -952,16 +982,20 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Cron Expression Parser"
-      description="Read an existing traditional five-field cron expression as matching rules, not just five mysterious tokens, and surface the day-field, date, step, timezone, and dialect assumptions that matter."
+      description="Interpret traditional five-field cron expressions while surfacing day-field interaction, steps, dates, timezone, and dialect assumptions."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label
+          htmlFor="cron-expression-input"
+          className="block text-sm font-semibold text-gray-900"
+        >
           Five-field cron expression
         </label>
         <p className="mt-1 text-sm leading-relaxed text-gray-500">
           minute · hour · day of month · month · day of week
         </p>
         <input
+          id="cron-expression-input"
           value={expression}
           onChange={(event: {
             target: { value: string };
@@ -983,14 +1017,14 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={parseCron}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Parse Cron
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
@@ -1010,7 +1044,7 @@ export default function ToolClient() {
                   preset.value
                 )
               }
-              className="yoryantra-btn-outline"
+              className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
             >
               {preset.label}
             </button>
@@ -1019,7 +1053,10 @@ export default function ToolClient() {
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
@@ -1039,7 +1076,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1091,7 +1128,10 @@ export default function ToolClient() {
           </div>
 
           {parsed.warnings.length ? (
-            <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+            <div
+              role="status"
+              className="mt-5 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900"
+            >
               <strong>
                 Schedule review:
               </strong>
@@ -1168,14 +1208,14 @@ export default function ToolClient() {
             minute range, so it matches 0, 5, 10 and so on.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This parser intentionally rejects ambiguous single-value step forms
-            such as <code>5/10</code> in its portable subset. If a particular
+            Single-value step forms such as <code>5/10</code> are rejected in
+            this portability-focused subset. If a particular
             scheduler documents an extension you rely on, validate it against
             that scheduler rather than assuming all cron implementations agree.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             Day of Month and Day of Week Are the Part Most People Misread
           </h2>
@@ -1252,9 +1292,28 @@ export default function ToolClient() {
             schedulers can have their own field counts and weekday rules.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The parser keeps a conservative traditional subset so a successful
-            result means something narrower and more useful than “some
-            cron-like product might accept this string.”
+            A conservative traditional subset keeps a successful parse narrowly
+            defined instead of implying that every cron-like scheduler accepts
+            the same string.
+          </p>
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Five Schedule Fields Are Not a Complete Crontab Entry
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A user crontab line normally places the command after these five
+            schedule fields. System crontabs such as <code>/etc/crontab</code>
+            and files under <code>/etc/cron.d</code> also include a username
+            before the command. Environment assignments such as
+            <code>CRON_TZ</code>, <code>SHELL</code>, and <code>PATH</code> live
+            outside the five-field expression as well.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Paste only the schedule portion here. A valid five-field parse does
+            not validate the command, permissions, environment, working
+            directory, or whether the target daemon has the same extensions.
           </p>
         </div>
 
@@ -1275,7 +1334,7 @@ export default function ToolClient() {
             documents the five field ranges, names, lists, ranges, steps,
             Sunday numbering, day-field behavior, timezone handling, and
             Cronie-specific extensions. It is included here because those rules
-            directly define what this parser is interpreting.
+            directly define the field rules described above.
           </p>
         </div>
 
@@ -1283,7 +1342,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/cron-expression-parser" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/cron-expression-parser" />
+          </div>
         </div>
       </section>
     </ToolShell>

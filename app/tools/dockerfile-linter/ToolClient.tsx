@@ -262,6 +262,127 @@ function removeContinuation(
   );
 }
 
+function continuationReviewIssues(
+  source: string,
+  escapeCharacter: "\\" | "`"
+) {
+  const lines = source
+    .replace(/\r\n?/g, "\n")
+    .split("\n");
+  const issues: LintIssue[] = [];
+  let continuationOpen = false;
+  let logicalBuffer = "";
+  let heredocEnd = "";
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+
+    if (heredocEnd) {
+      if (trimmed === heredocEnd) {
+        heredocEnd = "";
+      }
+      return;
+    }
+
+    if (continuationOpen) {
+      if (!trimmed) {
+        issues.push(
+          issue(
+            index + 1,
+            "Warning",
+            "empty-continuation",
+            "An empty line appears inside a continued Dockerfile instruction. Docker has deprecated empty continuation lines and its built-in NoEmptyContinuation check warns about them."
+          )
+        );
+        return;
+      }
+
+      if (trimmed.charAt(0) === "#") {
+        return;
+      }
+
+      const continued = lineHasContinuation(
+        line,
+        escapeCharacter
+      );
+      const piece = continued
+        ? removeContinuation(
+            line,
+            escapeCharacter
+          )
+        : line;
+
+      logicalBuffer += ` ${piece.trim()}`;
+      continuationOpen = continued;
+
+      if (!continued) {
+        const possibleDelimiter =
+          heredocDelimiter(
+            logicalBuffer
+          );
+
+        if (
+          possibleDelimiter &&
+          /^RUN\b/i.test(
+            logicalBuffer
+          )
+        ) {
+          heredocEnd =
+            possibleDelimiter;
+        }
+
+        logicalBuffer = "";
+      }
+
+      return;
+    }
+
+    if (
+      !trimmed ||
+      trimmed.charAt(0) === "#"
+    ) {
+      return;
+    }
+
+    const continued = lineHasContinuation(
+      line,
+      escapeCharacter
+    );
+    const piece = continued
+      ? removeContinuation(
+          line,
+          escapeCharacter
+        )
+      : line;
+
+    logicalBuffer =
+      piece.trim();
+    continuationOpen =
+      continued;
+
+    if (!continued) {
+      const possibleDelimiter =
+        heredocDelimiter(
+          logicalBuffer
+        );
+
+      if (
+        possibleDelimiter &&
+        /^RUN\b/i.test(
+          logicalBuffer
+        )
+      ) {
+        heredocEnd =
+          possibleDelimiter;
+      }
+
+      logicalBuffer = "";
+    }
+  });
+
+  return issues;
+}
+
 function heredocDelimiter(
   value: string
 ) {
@@ -304,7 +425,7 @@ function parseInstructions(
 
     const match =
       raw.match(
-        /^([A-Za-z]+)\s+([\s\S]*)$/
+        /^([A-Za-z]+)(?:\s+([\s\S]*))?$/
       );
 
     if (!match) {
@@ -315,7 +436,7 @@ function parseInstructions(
       keyword:
         match[1].toUpperCase(),
       value:
-        match[2].trim(),
+        (match[2] || "").trim(),
       raw,
       startLine,
       endLine,
@@ -348,10 +469,20 @@ function parseInstructions(
     }
 
     if (
-      !buffer &&
-      (!trimmed ||
-        trimmed.charAt(0) === "#")
+      trimmed.charAt(0) === "#"
     ) {
+      // Docker removes full-line comments before executing an instruction. A
+      // comment inside a continued instruction therefore does not end it.
+      continue;
+    }
+
+    if (!trimmed) {
+      if (buffer) {
+        // Current Dockerfile syntax still accepts an empty continuation line
+        // but deprecates it; continuationReviewIssues reports that separately.
+        continue;
+      }
+
       continue;
     }
 
@@ -580,8 +711,10 @@ function isAbsoluteWorkdir(
     value.trim();
 
   if (
-    trimmed.indexOf("$") !== -1
+    trimmed.charAt(0) === "$"
   ) {
+    // A leading variable may resolve to an absolute or relative path. The
+    // pasted Dockerfile alone cannot know its value, so avoid a false claim.
     return true;
   }
 
@@ -613,7 +746,7 @@ function looksLikeSimpleLocalAdd(
   }
 
   if (
-    /\.tar(?:\.(?:gz|bz2|xz|zst))?(?:\s|$)/i.test(
+    /\.tar(?:\.(?:gz|bz2|xz|zst))?(?:["'\],\s]|$)/i.test(
       value
     )
   ) {
@@ -630,6 +763,14 @@ function copiesWholeContext(
     value
       .replace(/\s+/g, " ")
       .trim();
+
+  if (
+    /(?:^|\s)--from(?:=|\s)/i.test(
+      compact
+    )
+  ) {
+    return false;
+  }
 
   if (
     compact.charAt(0) === "["
@@ -727,6 +868,10 @@ function validateJsonCommandForm(
   const value =
     instruction.value.trim();
 
+  if (!value) {
+    return;
+  }
+
   if (
     value.charAt(0) !== "["
   ) {
@@ -735,7 +880,7 @@ function validateJsonCommandForm(
         instruction.startLine,
         "Info",
         "shell-form-command",
-        `${instruction.keyword} uses shell form. Exec/JSON form can make signal handling and argument boundaries more predictable for application processes, while shell form is still useful when shell processing is intentional.`
+        `${instruction.keyword} uses shell form. Exec/JSON form can make signal handling and argument boundaries more predictable for application processes, while shell form remains appropriate when shell processing is intentional.`
       )
     );
     return;
@@ -817,6 +962,18 @@ function lintExpose(
           "Warning",
           "expose-format",
           `EXPOSE value "${token}" does not contain a valid numeric port from 1 to 65535.`
+        )
+      );
+      return;
+    }
+
+    if (parts.length > 2) {
+      issues.push(
+        issue(
+          instruction.startLine,
+          "Warning",
+          "expose-format",
+          `EXPOSE value "${token}" contains more than one protocol separator. Use a container port optionally followed by /tcp or /udp.`
         )
       );
       return;
@@ -1032,8 +1189,13 @@ function checkDockerfile(
       source,
       parserInfo.escapeCharacter
     );
-  const issues: LintIssue[] =
-    parserInfo.issues.slice();
+  const issues: LintIssue[] = [
+    ...parserInfo.issues,
+    ...continuationReviewIssues(
+      source,
+      parserInfo.escapeCharacter
+    ),
+  ];
 
   if (!instructions.length) {
     issues.push(
@@ -1056,6 +1218,17 @@ function checkDockerfile(
 
   instructions.forEach(
     (instruction) => {
+      if (!instruction.value) {
+        issues.push(
+          issue(
+            instruction.startLine,
+            "Warning",
+            "missing-arguments",
+            `${instruction.keyword} has no arguments. Dockerfile instructions require the value or parameters defined for that instruction.`
+          )
+        );
+      }
+
       if (
         KNOWN_INSTRUCTIONS.indexOf(
           instruction.keyword
@@ -1066,7 +1239,7 @@ function checkDockerfile(
             instruction.startLine,
             "Warning",
             "unknown-instruction",
-            `"${instruction.keyword}" is not one of the standard Dockerfile instructions recognized by this linter. A custom Dockerfile frontend can change the grammar, so verify it against the declared # syntax frontend before deleting it.`
+            `"${instruction.keyword}" is not among the standard Dockerfile instructions listed in Docker's reference. A custom Dockerfile frontend can change the grammar, so verify it against the declared # syntax frontend before deleting it.`
           )
         );
       }
@@ -1140,11 +1313,18 @@ function checkDockerfile(
         )
       );
     } else {
+      const referencesEarlierStage =
+        Object.prototype.hasOwnProperty.call(
+          aliases,
+          image.toLowerCase()
+        );
+
       if (
-        imageUsesLatest(image) ||
-        imageUsesImplicitLatest(
-          image
-        )
+        !referencesEarlierStage &&
+        (imageUsesLatest(image) ||
+          imageUsesImplicitLatest(
+            image
+          ))
       ) {
         issues.push(
           issue(
@@ -1261,19 +1441,6 @@ function checkDockerfile(
           "Suggestion",
           "workdir",
           "No WORKDIR was found in the final stage. An explicit working directory often makes relative COPY, RUN, CMD, and ENTRYPOINT paths easier to reason about."
-        )
-      );
-    } else if (
-      !isAbsoluteWorkdir(
-        workdir.value
-      )
-    ) {
-      issues.push(
-        issue(
-          workdir.startLine,
-          "Suggestion",
-          "relative-workdir",
-          `Final-stage WORKDIR "${workdir.value}" is relative. A relative workdir can depend on the base image's current directory; an absolute path is more predictable.`
         )
       );
     }
@@ -1667,18 +1834,22 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Dockerfile Linter"
-      description="Review Dockerfile source for suspicious build patterns, stage-level overrides, parser-directive behavior, package/cache problems, secret handling, and runtime defaults—without pretending a browser text scan replaces Docker or BuildKit."
+      description="Review Dockerfiles for suspicious build patterns, stage overrides, cache issues, secrets, and runtime defaults."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
+        <label
+          htmlFor="dockerfile-input"
+          className="block text-sm font-semibold text-gray-900"
+        >
           Dockerfile
         </label>
         <p className="mt-1 text-sm leading-relaxed text-gray-500">
-          The linter understands common instructions, multi-stage boundaries,
-          backslash or backtick continuation from an active{" "}
-          <code># escape=</code> directive, and simple RUN heredocs.
+          Review covers common instructions, multi-stage boundaries, backslash
+          or backtick continuation from an active <code># escape=</code>
+          directive, and simple RUN heredocs.
         </p>
         <textarea
+          id="dockerfile-input"
           value={input}
           onChange={(event: {
             target: { value: string };
@@ -1700,28 +1871,31 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={lint}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           Lint Dockerfile
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+        >
           {error}
         </div>
       ) : null}
@@ -1743,6 +1917,7 @@ export default function ToolClient() {
             />
             <CountCard
               label="Warnings"
+              tone="warning"
               value={
                 issues.filter(
                   (entry) =>
@@ -1805,7 +1980,7 @@ export default function ToolClient() {
               <button
                 type="button"
                 onClick={copyReport}
-                className="yoryantra-btn-outline whitespace-nowrap"
+                className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
               >
                 {copied
                   ? "Copied"
@@ -1819,10 +1994,20 @@ export default function ToolClient() {
                   (entry, index) => (
                     <div
                       key={`${entry.rule}-${entry.line}-${index}`}
-                      className="rounded-xl border border-gray-200 bg-gray-50 p-5"
+                      className={
+                        entry.level === "Warning"
+                          ? "rounded-xl border border-yellow-200 bg-yellow-50 p-5"
+                          : "rounded-xl border border-gray-200 bg-gray-50 p-5"
+                      }
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+                        <span
+                          className={
+                            entry.level === "Warning"
+                              ? "rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-900"
+                              : "rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700"
+                          }
+                        >
                           {entry.level}
                         </span>
                         <span className="text-xs font-medium text-gray-500">
@@ -1868,7 +2053,7 @@ export default function ToolClient() {
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <h2 className="text-2xl font-semibold text-gray-900">
-              A Dockerfile Linter Should Tell You When It Is Guessing
+              Static Dockerfile Review Has to Admit What It Cannot See
             </h2>
             <p className="mt-4 leading-relaxed text-gray-600">
               Dockerfile behavior depends on the Dockerfile frontend, parser
@@ -1878,23 +2063,24 @@ export default function ToolClient() {
               suspicious patterns, but it cannot reproduce that entire build.
             </p>
             <p className="mt-4 leading-relaxed text-gray-600">
-              That is why this tool separates warnings from suggestions and
-              informational findings. A missing non-root USER may be worth
-              review; it is not automatically a broken image. An invalid
+              Warnings, suggestions, and informational findings are kept
+              separate because they carry different levels of confidence. A
+              missing non-root USER may be worth review; it is not automatically
+              a broken image. An invalid
               duplicate stage name or malformed command form is a different
               class of problem.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <div className="self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
             <h3 className="font-semibold text-yellow-900">
               Run Docker&apos;s own checks too
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-yellow-900/90">
-              Modern Dockerfile syntax includes built-in build checks, and
-              Docker can evaluate them during a real build/check workflow.
-              Those checks understand Docker&apos;s parser and current frontend
-              better than a standalone regex linter can.
+              Modern Dockerfile syntax includes built-in build checks. When the
+              installed Docker/Buildx version supports them,
+              <code>docker build --check .</code> evaluates the actual parser and
+              selected frontend rather than relying on a standalone text scan.
             </p>
           </div>
         </div>
@@ -1911,10 +2097,10 @@ export default function ToolClient() {
             directive area at the top of the file.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The previous Yoryantra linter always treated a trailing backslash as
-            continuation. This version first reads the active escape directive,
-            so a Windows Dockerfile using backtick continuation is not flattened
-            with the wrong rule.
+            An active escape directive changes how continued lines are joined.
+            Reading it before instruction continuation matters especially for
+            Windows Dockerfiles that use backticks around paths containing
+            backslashes.
           </p>
         </div>
 
@@ -1930,8 +2116,9 @@ export default function ToolClient() {
             earlier one. The same review applies to ENTRYPOINT and HEALTHCHECK.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This linter groups instructions by stage before reporting those
-            overrides, rather than counting the entire file as one flat list.
+            Stage-aware review keeps those overrides scoped to the stage where
+            they actually occur instead of counting the entire file as one flat
+            list.
           </p>
         </div>
 
@@ -1968,12 +2155,13 @@ export default function ToolClient() {
             context.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The linter therefore says “review .dockerignore” instead of claiming
-            every whole-context copy is wrong.
+            A whole-context finding therefore points back to
+            <code>.dockerignore</code> and cache structure instead of declaring
+            every <code>COPY . .</code> pattern wrong.
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
             apt-get update in Its Own Layer Is a Cache Bug Waiting to Happen
           </h2>
@@ -2001,7 +2189,7 @@ export default function ToolClient() {
             processes cleaner signal handling and argument boundaries.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Shell form is not forbidden—it is useful when shell expansion,
+            Shell form is not forbidden—it is appropriate when shell expansion,
             pipelines, redirection, or compound shell logic is intentional. The
             linter reports shell-form CMD/ENTRYPOINT as informational rather
             than pretending every shell is a vulnerability.
@@ -2021,15 +2209,15 @@ export default function ToolClient() {
             fixes.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The linter recommends deliberate pinning without declaring one
-            universal policy. Security maintenance and byte-for-byte
-            reproducibility can pull the policy in different directions.
+            Deliberate pinning does not require one universal policy.
+            Security maintenance and byte-for-byte reproducibility can pull the
+            policy in different directions.
           </p>
         </div>
 
         <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            Docker&apos;s Own Documentation Is Part of the Tool, Not Decoration
+            Docker&apos;s Reference Defines the Rules Behind These Findings
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             The{" "}
@@ -2052,8 +2240,17 @@ export default function ToolClient() {
             >
               build best practices
             </a>{" "}
-            provides the cache, package, context and image-maintenance guidance
-            behind several of the linter&apos;s suggestions.
+            provides cache, package, context, and image-maintenance guidance.
+            The{" "}
+            <a
+              href="https://docs.docker.com/reference/build-checks/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              build checks reference
+            </a>{" "}
+            documents Docker&apos;s own static checks and their exact scope.
           </p>
         </div>
 
@@ -2061,7 +2258,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-          <YoryantraRelatedTools currentHref="/tools/dockerfile-linter" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/dockerfile-linter" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -2071,16 +2270,38 @@ export default function ToolClient() {
 function CountCard({
   label,
   value,
+  tone = "neutral",
 }: {
   label: string;
   value: number;
+  tone?: "neutral" | "warning";
 }) {
+  const warning = tone === "warning";
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+    <div
+      className={
+        warning
+          ? "rounded-xl border border-yellow-200 bg-yellow-50 p-4"
+          : "rounded-xl border border-gray-200 bg-gray-50 p-4"
+      }
+    >
+      <div
+        className={
+          warning
+            ? "text-xs font-semibold uppercase tracking-wide text-yellow-800"
+            : "text-xs font-semibold uppercase tracking-wide text-gray-500"
+        }
+      >
         {label}
       </div>
-      <div className="mt-2 text-xl font-semibold text-gray-900">
+      <div
+        className={
+          warning
+            ? "mt-2 text-xl font-semibold text-yellow-900"
+            : "mt-2 text-xl font-semibold text-gray-900"
+        }
+      >
         {value.toLocaleString()}
       </div>
     </div>
