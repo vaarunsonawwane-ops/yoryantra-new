@@ -1,21 +1,21 @@
 export const tools = [
   {
     title: "JSON Formatter",
-    description: "Format, validate, and beautify JSON data instantly.",
+    description: "Pretty-print valid JSON while preserving source tokens that JavaScript re-serialization can silently change.",
     href: "/tools/json-formatter",
 	category: "JSON & Data Tools",
   },
 
   {
     title: "Base64 Encoder Decoder",
-    description: "Encode and decode Base64 text quickly and securely.",
+    description: "Encode UTF-8 text to standard Base64, or inspect decoded bytes as text or hex.",
     href: "/tools/base64-encoder-decoder",
 	category: "Encoding Tools",
   },
 
   {
   title: "JWT Decoder",
-  description: "Decode JWT header and payload data locally, inspect claims, and review token structure without verifying the signature.",
+  description: "Decode JWT tokens and inspect payload data easily.",
   href: "/tools/jwt-decoder",
   category: "Security Tools",
   },
@@ -78,15 +78,14 @@ export const tools = [
   
   {
   title: "Hash Generator",
-  description:
-    "Generate SHA-1, SHA-256, SHA-384, and SHA-512 hashes from text with clear hashing and security notes.",
+  description: "Generate MD5, SHA-1, SHA-256, and SHA-512 hashes instantly.",
   href: "/tools/hash-generator",
   category: "Security Tools",
   },
   
   {
   title: "Password Generator",
-  description: "Generate browser-based random passwords with selectable length, letters, numbers, symbols, and safer randomness.",
+  description: "Generate strong random passwords instantly.",
   href: "/tools/password-generator",
   category: "Security Tools",
   },
@@ -107,7 +106,7 @@ export const tools = [
   
   {
   title: "JSON Minifier",
-  description: "Minify and compress JSON data instantly.",
+  description: "Remove insignificant JSON whitespace without changing strings, number spellings, duplicate members, or key order.",
   href: "/tools/json-minifier",
   category: "JSON & Data Tools",
   },
@@ -121,8 +120,7 @@ export const tools = [
   
   {
   title: "CSV to JSON Converter",
-  description:
-    "Convert CSV rows into JSON arrays with quoted fields, escaped quotes, multiline values, empty cells, and header handling.",
+  description: "Convert CSV data into JSON format instantly.",
   href: "/tools/csv-to-json",
   category: "JSON & Data Tools",
   },
@@ -136,14 +134,14 @@ export const tools = [
 
   {
   title: "YAML Formatter",
-  description: "Format and beautify YAML instantly.",
+  description: "Reformat YAML while retaining comments, anchors, aliases, directives, tags, and document boundaries where possible.",
   href: "/tools/yaml-formatter",
-  category: "JSON & Data Tools",
+  category: "DevOps Tools",
   },
   
   {
   title: "Meta Tag Generator",
-  description: "Generate SEO meta tags for websites instantly.",
+  description: "Build escaped search and social metadata while keeping canonical, robots, and preview limits visible.",
   href: "/tools/meta-tag-generator",
   category: "SEO Tools",
   },
@@ -171,8 +169,7 @@ export const tools = [
   
   {
   title: "HMAC Generator",
-  description:
-    "Generate HMAC SHA-256, SHA-384, or SHA-512 values from text and a shared secret in your browser.",
+  description: "Generate HMAC signatures using SHA algorithms instantly.",
   href: "/tools/hmac-generator",
   category: "Security Tools",
   },
@@ -180,7 +177,7 @@ export const tools = [
 {
   title: "bcrypt Generator",
   description:
-    "Generate salted bcrypt hashes with selectable cost factors for development and testing.",
+    "Generate salted bcrypt password hashes online with selectable cost factors for development and testing.",
   href: "/tools/bcrypt-generator",
   category: "Security Tools",
 },
@@ -188,36 +185,35 @@ export const tools = [
   
   {
   title: "API Key Generator",
-  description:
-    "Generate browser-based random API keys, secret strings, and Base64URL-safe tokens with entropy guidance.",
+  description: "Generate random API keys and secret tokens instantly.",
   href: "/tools/api-key-generator",
   category: "Security Tools",
   },
   
   {
   title: "Cron Expression Generator",
-  description: "Generate cron expressions for scheduled tasks.",
+  description: "Build and validate five-field cron schedules without mixing in Quartz or vendor-specific syntax.",
   href: "/tools/cron-expression-generator",
   category: "DevOps Tools",
   },
 
   {
   title: "JWT Expiration Checker",
-  description: "Check JWT exp, nbf, and iat timestamps, convert token times, and review expiration or not-before issues.",
+  description: "Check JWT token expiration, issued time, and validity instantly.",
   href: "/tools/jwt-expiration-checker",
   category: "Security Tools",
   },
 
   {
   title: "Random Token Generator",
-  description: "Generate browser-based random tokens for API keys, webhook secrets, session IDs, and testing with Base64URL, alphanumeric, hex, or numeric output.",
+  description: "Generate random tokens, secret strings, and secure identifiers instantly.",
   href: "/tools/random-token-generator",
   category: "Security Tools",
   },
 
   {
   title: "SHA256 Generator",
-  description: "Generate SHA-256 hashes from text and review one-way hashing, exact input matching, and safe usage limits.",
+  description: "Generate SHA256 hashes from text instantly.",
   href: "/tools/sha256-generator",
   category: "Security Tools",
   },
@@ -238,22 +234,21 @@ export const tools = [
 
   {
   title: "RSA Key Generator",
-  description: "Generate RSA signing key pairs in your browser and export public and private keys as SPKI and PKCS8 PEM.",
+  description: "Generate RSA public and private key pairs instantly.",
   href: "/tools/rsa-key-generator",
   category: "Security Tools",
   },
 
   {
   title: "Base64URL Encoder Decoder",
-  description:
-    "Encode and decode URL-safe Base64 strings, JWT segments, and padded or unpadded Base64URL values.",
+  description: "Encode and decode Base64URL strings instantly.",
   href: "/tools/base64url-encoder-decoder",
   category: "Security Tools",
   },
 
   {
   title: "PEM Formatter",
-  description: "Format PEM certificates, public keys, private keys, CSRs, and multiple PEM blocks with label checks and line wrapping.",
+  description: "Format PEM public keys, private keys, and certificates instantly.",
   href: "/tools/pem-formatter",
   category: "Security Tools",
   },
@@ -323,30 +318,28 @@ export const tools = [
 
   {
   title: "CSP Generator",
-  description:
-    "Build Content-Security-Policy headers with common directives, source cleanup, and warnings for risky values.",
+  description: "Generate Content Security Policy headers instantly.",
   href: "/tools/csp-generator",
   category: "Security Tools"
   },
 
   {
   title: "JWT Signature Verifier",
-  description: "Verify HS256 JWT signatures with a shared secret and check whether the token header and payload match the signature.",
+  description: "Verify JWT signatures using a secret key instantly.",
   href: "/tools/jwt-signature-verifier",
   category: "Security Tools"
   },
 
   {
   title: "CORS Header Checker",
-  description:
-    "Check CORS response headers for origins, credentials, methods, request headers, preflight behavior, and common browser issues.",
+  description: "Analyze and validate CORS headers instantly.",
   href: "/tools/cors-header-checker",
   category: "Security Tools"
   },
 
   {
   title: "JSON Schema Validator",
-  description: "Validate JSON data against JSON Schema rules for types, required fields, properties, arrays, enums, ranges, and patterns.",
+  description: "Validate JSON data against a JSON schema instantly.",
   href: "/tools/json-schema-validator",
   category: "JSON & Data Tools"
   },
@@ -432,7 +425,7 @@ export const tools = [
   {
   title: "HTTP Headers Checker",
   description:
-    "Check HTTP response headers, status codes, redirects, cache directives, content type, and security-related headers.",
+    "Check HTTP response headers, status codes, redirects, cache headers, and security headers.",
   href: "/tools/http-headers-checker",
   category: "SEO Tools",
   },
@@ -440,7 +433,7 @@ export const tools = [
   {
   title: "Security Headers Scanner",
   description:
-    "Review browser-visible CSP, HSTS, framing, MIME, referrer, permissions, and cross-origin response headers with scanner-limit notes.",
+    "Scan website security headers including CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP, COEP, and related headers.",
   href: "/tools/security-headers-scanner",
   category: "Security Tools",
   },
@@ -645,7 +638,7 @@ export const tools = [
 {
   title: "CSP Analyzer",
   description:
-    "Analyze Content Security Policy directives, source values, unsafe keywords, duplicates, and common policy gaps.",
+    "Analyze Content Security Policy headers, inspect CSP directives, and find common unsafe values or missing protections.",
   href: "/tools/csp-analyzer",
   category: "Security Tools",
 },
@@ -672,7 +665,7 @@ export const tools = [
 {
   title: "Security Header Generator",
   description:
-    "Generate HTTP security header snippets and review recommended values for CSP, HSTS, X-Frame-Options, Referrer-Policy, and more.",
+    "Generate HTTP security headers, review recommended values, and prepare website security header snippets.",
   href: "/tools/security-header-generator",
   category: "Security Tools",
 },
@@ -680,7 +673,7 @@ export const tools = [
 {
   title: "PEM Certificate Viewer",
   description:
-    "Inspect PEM certificate blocks, fingerprints, decoded size, certificate boundaries, and readable byte previews in your browser.",
+    "Inspect PEM certificate blocks, decode readable certificate content, and review certificate details in your browser.",
   href: "/tools/pem-certificate-viewer",
   category: "Security Tools",
 },
@@ -739,7 +732,7 @@ export const tools = [
 {
   title: "DNS Propagation Checker",
   description:
-    "Compare A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA answers across public DNS-over-HTTPS resolvers.",
+    "Check DNS propagation for A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA records across public resolvers.",
   href: "/tools/dns-propagation-checker",
   category: "DevOps Tools",
 },
@@ -748,7 +741,7 @@ export const tools = [
 {
   title: "CIDR Calculator",
   description:
-    "Calculate subnet masks, usable IP ranges, wildcard masks, broadcast addresses, and /31 or /32 behavior.",
+    "Calculate subnet masks, usable IP ranges, wildcard masks, and broadcast addresses instantly.",
   href: "/tools/cidr-calculator",
   category: "DevOps Tools",
 },
@@ -819,7 +812,7 @@ export const tools = [
 {
   title: "CSP Policy Builder",
   description:
-    "Build Content Security Policy headers, configure directives, add trusted sources, and generate report-only or enforced CSP output.",
+    "Build Content Security Policy headers, configure CSP directives, and generate deployment-ready CSP output.",
   href: "/tools/csp-policy-builder",
   category: "Security Tools",
 },
@@ -861,7 +854,7 @@ export const tools = [
 {
   title: "Fetch to cURL Converter",
   description:
-    "Convert JavaScript fetch() calls into reviewable cURL commands with method, URL, headers, body handling, and masked sensitive values.",
+    "Convert JavaScript fetch requests into cURL commands with method, headers, and body.",
   href: "/tools/fetch-to-curl-converter",
   category: "Developer Tools",
 },
@@ -1001,7 +994,7 @@ export const tools = [
 {
   title: "JSON Schema to TypeScript Converter",
   description:
-    "Convert JSON Schema into TypeScript interfaces or type aliases with warnings for refs, composition, tuples, and validation limits.",
+    "Convert JSON Schema into TypeScript interfaces and type aliases with nested objects, enums, arrays, and required fields.",
   href: "/tools/json-schema-to-typescript-converter",
   category: "JSON & Data Tools",
 },
@@ -1027,7 +1020,7 @@ export const tools = [
 {
   title: "Cookie Security Checker",
   description:
-    "Check Set-Cookie headers for Secure, HttpOnly, SameSite, expiry, domain, path, prefix, and Partitioned issues.",
+    "Check Set-Cookie headers for Secure, HttpOnly, SameSite, expiry, domain, path, and prefix issues.",
   href: "/tools/cookie-security-checker",
   category: "Security Tools",
 },
@@ -1035,7 +1028,7 @@ export const tools = [
 {
   title: "HSTS Header Generator",
   description:
-    "Generate Strict-Transport-Security headers with max-age, includeSubDomains, preload, rollout warnings, and server config output.",
+    "Generate Strict-Transport-Security headers with max-age, includeSubDomains, preload, and server config output.",
   href: "/tools/hsts-header-generator",
   category: "Security Tools",
 },
@@ -1052,7 +1045,7 @@ export const tools = [
 {
   title: "JWT Claims Inspector",
   description:
-    "Inspect JWT claims like exp, nbf, iat, issuer, audience, subject, scopes, roles, and token lifetime without verifying signatures.",
+    "Inspect JWT claims and check expiration, issuer, audience, subject, scopes, roles, and common token issues.",
   href: "/tools/jwt-claims-inspector",
   category: "Security Tools",
 },
@@ -1206,7 +1199,7 @@ export const tools = [
 {
   title: "CSP Report Analyzer",
   description:
-    "Analyze CSP violation reports, parse JSON or NDJSON, group blocked resources, and review report-only or enforced CSP signals.",
+    "Analyze CSP violation reports, parse JSON or NDJSON, group blocked resources, inspect directives, and detect risky policy patterns.",
   href: "/tools/csp-report-analyzer",
   category: "Security Tools",
 },
@@ -1232,7 +1225,7 @@ export const tools = [
 {
   title: "SEO Slug Analyzer",
   description:
-    "Analyze URL slugs for readability, keyword use, casing, separators, length, repeated characters, and clean URL suggestions.",
+    "Analyze URL slugs for length, target keyword, hyphens, underscores, uppercase letters, stop words, special characters, and clean URL readability.",
   href: "/tools/seo-slug-analyzer",
   category: "SEO Tools",
 },
@@ -1273,7 +1266,7 @@ export const tools = [
 {
   title: "JWT Secret Strength Checker",
   description:
-    "Check JWT and HMAC signing secrets for entropy, length, weak words, repeated patterns, UUID-like values, and risky formats.",
+    "Check JWT and HMAC signing secrets for length, entropy estimate, weak/default words, repeated patterns, and risky secret formats.",
   href: "/tools/jwt-secret-strength-checker",
   category: "Security Tools",
 },
@@ -1281,7 +1274,7 @@ export const tools = [
 {
   title: "Security.txt Generator",
   description:
-    "Generate security.txt content with Contact, Expires, Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring fields.",
+    "Generate /.well-known/security.txt content with Contact, Expires, Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring fields.",
   href: "/tools/security-txt-generator",
   category: "Security Tools",
 },
@@ -1289,7 +1282,7 @@ export const tools = [
 {
   title: "TLS Certificate Expiry Reminder Generator",
   description:
-    "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans from a known expiry date.",
+    "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans for domains and teams.",
   href: "/tools/tls-certificate-expiry-reminder-generator",
   category: "Security Tools",
 },
@@ -1515,8 +1508,7 @@ export const tools = [
 
 {
   title: "Bearer Token Header Generator",
-  description:
-    "Generate Bearer token Authorization headers, cURL snippets, fetch examples, and safe API request snippets.",
+  description: "Generate Bearer token Authorization headers and safe API request snippets.",
   href: "/tools/bearer-token-header-generator",
   category: "Security Tools",
 },
