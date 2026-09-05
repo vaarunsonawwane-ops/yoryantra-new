@@ -39,7 +39,7 @@ type SnippetNote = {
   message: string;
 };
 
-const sampleTitle = "JSON Formatter Online | Format and Validate JSON | Yoryantra";
+const sampleTitle = "JSON Formatter | Format and Validate JSON | Yoryantra";
 const sampleDescription =
   "Format, validate, beautify, and inspect JSON directly in your browser with a clean, practical JSON formatter built for developers.";
 const sampleUrl = "https://yoryantra.com/tools/json-formatter";
@@ -111,12 +111,15 @@ export default function ToolClient() {
       return;
     }
 
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-
-    window.setTimeout(() => {
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
       setCopied(false);
-    }, 1400);
+      setError("The browser could not copy the report. Select the output and copy it manually.");
+    }
   };
 
   const loadExample = () => {
@@ -167,7 +170,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="SERP Snippet Preview Tool"
-      description="Preview how page titles, meta descriptions, URLs, site names, and search snippets may appear in Google-style results. Check title length, description length, truncation, and SEO snippet issues."
+      description="Preview Google-style search snippets and check page title, meta description, URL, truncation, and SEO snippet issues."
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -177,11 +180,12 @@ export default function ToolClient() {
 
           <div className="mt-4 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="serp-title" className="block text-sm font-medium text-gray-700">
                 Page Title
               </label>
 
               <input
+                id="serp-title"
                 value={pageTitle}
                 onChange={(event) => {
                   setPageTitle(event.target.value);
@@ -200,11 +204,12 @@ export default function ToolClient() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="serp-description" className="block text-sm font-medium text-gray-700">
                 Meta Description
               </label>
 
               <textarea
+                id="serp-description"
                 value={metaDescription}
                 onChange={(event) => {
                   setMetaDescription(event.target.value);
@@ -223,11 +228,12 @@ export default function ToolClient() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="serp-url" className="block text-sm font-medium text-gray-700">
                 Page URL
               </label>
 
               <input
+                id="serp-url"
                 value={pageUrl}
                 onChange={(event) => {
                   setPageUrl(event.target.value);
@@ -242,11 +248,12 @@ export default function ToolClient() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="serp-site-name" className="block text-sm font-medium text-gray-700">
                 Site Name
               </label>
 
               <input
+                id="serp-site-name"
                 value={siteName}
                 onChange={(event) => {
                   setSiteName(event.target.value);
@@ -262,11 +269,12 @@ export default function ToolClient() {
 
             {showKeywordHints && (
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="serp-keyword" className="block text-sm font-medium text-gray-700">
                   Target Keyword
                 </label>
 
                 <input
+                  id="serp-keyword"
                   value={targetKeyword}
                   onChange={(event) => {
                     setTargetKeyword(event.target.value);
@@ -283,11 +291,12 @@ export default function ToolClient() {
 
             {showDate && (
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="serp-date" className="block text-sm font-medium text-gray-700">
                   Snippet Date
                 </label>
 
                 <input
+                  id="serp-date"
                   value={snippetDate}
                   onChange={(event) => {
                     setSnippetDate(event.target.value);
@@ -353,10 +362,10 @@ export default function ToolClient() {
             {resultStyle === "rich" && (
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
                 <span className="rounded-full bg-gray-100 px-2 py-1">
-                  Rating preview
+                  Illustrative enhancement
                 </span>
                 <span className="rounded-full bg-gray-100 px-2 py-1">
-                  Extra links may appear
+                  Eligibility not checked
                 </span>
               </div>
             )}
@@ -364,7 +373,11 @@ export default function ToolClient() {
 
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
             <p className="text-sm font-semibold text-gray-900">
-              Quick length guide
+              Editorial length guide
+            </p>
+
+            <p className="mt-2 text-xs leading-relaxed text-gray-500">
+              These ranges are drafting prompts only; Google truncates to the available display width and publishes no fixed character limit.
             </p>
 
             <div className="mt-3 space-y-2 text-sm text-gray-600">
@@ -421,7 +434,7 @@ export default function ToolClient() {
             options={[
               { label: "Standard result", value: "standard" },
               { label: "Breadcrumb result", value: "breadcrumb" },
-              { label: "Rich-style preview", value: "rich" },
+              { label: "Illustrative enhanced result", value: "rich" },
             ]}
           />
 
@@ -501,74 +514,70 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={previewSnippet} className="yoryantra-btn">
+        <button onClick={previewSnippet} className="yoryantra-btn shrink-0 whitespace-nowrap">
           Analyze Snippet
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn shrink-0 whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline shrink-0 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline shrink-0 whitespace-nowrap">
           Reset
         </button>
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       )}
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Score" value={`${result.score}/100`} />
+          <SummaryCard label="Review score" value={`${result.score}/100`} />
           <SummaryCard label="Title" value={`${result.titleLength} chars`} />
           <SummaryCard label="Description" value={`${result.descriptionLength} chars`} />
           <SummaryCard label="Issues" value={result.issues.length.toLocaleString()} />
         </div>
       )}
 
-      {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Snippet findings
-          </h3>
+      {result && (
+        <p className="mt-3 text-xs leading-relaxed text-gray-500">
+          Review score is a local editorial heuristic. It is not a Google quality score, ranking signal, or prediction of the final search result.
+        </p>
+      )}
 
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {issue.title}
-                </p>
+      {result && result.issues.some((issue) => issue.severity === "high") && (
+        <SnippetFindingGroup title="Missing metadata" issues={result.issues.filter((issue) => issue.severity === "high")} tone="error" />
+      )}
 
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {issue.message}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+      {result && result.issues.some((issue) => issue.severity === "warning") && (
+        <SnippetFindingGroup title="Snippet cautions" issues={result.issues.filter((issue) => issue.severity === "warning")} tone="warning" />
+      )}
+
+      {result && result.issues.some((issue) => issue.severity === "info") && (
+        <SnippetFindingGroup title="Editorial review notes" issues={result.issues.filter((issue) => issue.severity === "info")} tone="info" />
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">
             SERP preview notes
           </h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">
+                <p className="text-sm font-semibold text-gray-900">
                   {note.title}
                 </p>
 
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">
+                <p className="mt-1 text-sm leading-relaxed text-gray-700">
                   {note.message}
                 </p>
               </div>
@@ -584,195 +593,121 @@ export default function ToolClient() {
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline shrink-0 whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
           {output || "SERP snippet analysis output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        SERP preview generation happens directly in your browser. Your title,
-        description, and URL are not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Preview generation runs in this page. The code does not send the title, description, URL, or keyword to a snippet-analysis API.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Previewing Search Result Snippets Before Publishing
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">A search preview is a drafting aid, not a Google emulator</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A page title and meta description are often the first things users
-            see in search results. If the title is unclear, too long, too short,
-            or the description does not explain the page well, fewer people may
-            click even when the page ranks.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This SERP Snippet Preview Tool shows a Google-style search result
-            preview and checks common SEO snippet issues such as title length,
-            description length, missing keyword hints, weak URL display, and
-            possible truncation.
+            Google creates title links and snippets automatically from several page and link signals. The title element and meta description are important inputs, but the final result can use different text for a particular query. The preview therefore helps judge clarity and likely truncation without pretending to reproduce Google's rendering exactly.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Checking a SERP Snippet
-          </h2>
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="text-xl font-semibold text-amber-950">Character counts are editorial guides</h2>
+            <p className="mt-3 text-sm leading-relaxed text-amber-900">
+              Google documents no fixed character limit for title elements or meta descriptions. Search results are truncated as needed, typically to fit device width. The ranges shown above are review prompts, not ranking rules or guaranteed pixel limits.
+            </p>
+          </div>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">Meta descriptions can be replaced</h2>
+            <p className="mt-3 text-sm leading-relaxed text-gray-700">
+              Google primarily builds snippets from page content and may use the meta description when it better summarizes the page for the search. One page can therefore show different descriptions for different queries.
+            </p>
+          </div>
+        </div>
 
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Review the message before the measurement</h2>
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter the page title, meta description, URL, and site name.</li>
-            <li>Choose desktop or mobile preview.</li>
-            <li>Add a target keyword if you want keyword placement hints.</li>
-            <li>Analyze the snippet and review length or clarity warnings.</li>
-            <li>Copy the summary, report, JSON, or HTML tags.</li>
+            <li>Enter the title, description, preferred page URL, and site name.</li>
+            <li>Read the preview as a searcher's first impression: what page is this, and why would it answer the query?</li>
+            <li>Use the character ranges only to spot unusually sparse or verbose copy.</li>
+            <li>Check that important terms appear naturally; do not force exact-match repetition into both fields.</li>
+            <li>Compare the metadata with the visible heading and page content so Google's alternative title or snippet sources tell the same story.</li>
           </ol>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common SERP Preview Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Previewing a title and description before publishing a page.</li>
-            <li>Checking whether a title may be too long for search results.</li>
-            <li>Improving meta descriptions for better click clarity.</li>
-            <li>Comparing desktop and mobile snippet display.</li>
-            <li>Reviewing SEO metadata during content updates.</li>
-            <li>Generating clean title and description HTML tags.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">Why the displayed title can differ from the title element</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Google can form a title link from the title element, the main visual title, headings, og:title, prominent text, anchor text, links pointing to the page, and WebSite structured data. Rewriting is therefore not necessarily a truncation problem. Conflicting or boilerplate signals can be the more important issue.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Google's <a href="https://developers.google.com/search/docs/appearance/title-link" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">title-link guidance</a> and <a href="https://developers.google.com/search/docs/appearance/snippet" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">snippet guidance</a> are the authoritative references for these behaviors.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Search Snippet
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Title: JSON Formatter Online | Format and Validate JSON | Yoryantra
-Description: Format, validate, beautify, and inspect JSON directly in your browser.
-URL: https://yoryantra.com/tools/json-formatter`}
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900">What this preview deliberately does not claim</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="self-start rounded-xl border border-gray-200 bg-white p-5"><h3 className="font-semibold text-gray-900">Approximation shown here</h3><p className="mt-2 text-sm leading-relaxed text-gray-600">Relative title and description length, visible wording, URL shape, optional keyword presence, and a compact desktop/mobile-style layout.</p></div>
+            <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5"><h3 className="font-semibold text-amber-950">Controlled by search systems</h3><p className="mt-2 text-sm leading-relaxed text-amber-900">Exact truncation width, rewritten title text, query-specific snippets, dates, sitelinks, rich-result eligibility, favicon/site-name presentation, and other result features.</p></div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Google May Rewrite Snippets
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A preview is not a guarantee. Search engines may rewrite titles,
-            choose different description text, add dates, show breadcrumbs, or
-            display different snippets based on the search query.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use this tool to write better metadata and catch obvious issues. The
-            final search result can still vary depending on Google, device,
-            location, query, and page content.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Questions that matter when a snippet looks wrong</h2>
           <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a SERP snippet preview?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It is a preview of how a page title, URL, and meta description
-                may appear in search engine results.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a good title length?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                There is no fixed rule, but many SEO workflows keep titles around
-                35 to 60 characters so they stay clear and less likely to be cut.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a good meta description length?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Many descriptions are written around 90 to 160 characters, but
-                clarity matters more than hitting an exact number.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does Google always use my meta description?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Google can choose a different snippet from the page if it
-                thinks another section better matches the query.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I preview a snippet?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The preview is generated directly in your browser.
-              </p>
-            </div>
+            <div><h3 className="font-semibold text-gray-900">Is a 61-character title automatically too long?</h3><p className="mt-2 text-gray-600 leading-relaxed">No. Google does not publish a fixed title-character limit. Concision and relevance matter more than crossing a single character threshold.</p></div>
+            <div><h3 className="font-semibold text-gray-900">Will Google always show the meta description?</h3><p className="mt-2 text-gray-600 leading-relaxed">No. Google often creates query-specific snippets from page content and may use the meta description when it is a better summary.</p></div>
+            <div><h3 className="font-semibold text-gray-900">Should the target keyword appear in both fields?</h3><p className="mt-2 text-gray-600 leading-relaxed">Only when it reads naturally and accurately describes the page. The keyword check is an editorial hint, not a requirement or scoring factor.</p></div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/meta-tag-generator" className="yoryantra-btn-outline">
-              Meta Tag Generator
-            </Link>
-
-            <Link href="/tools/meta-tags-checker" className="yoryantra-btn-outline">
-              Meta Tags Checker
-            </Link>
-
-            <Link href="/tools/open-graph-preview-checker" className="yoryantra-btn-outline">
-              Open Graph Preview Checker
-            </Link>
-
-            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline">
-              Canonical URL Checker
-            </Link>
-
-            <Link href="/tools/structured-data-validator" className="yoryantra-btn-outline">
-              Structured Data Validator
-            </Link>
+            <Link href="/tools/meta-tag-generator" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Meta Tag Generator</Link>
+            <Link href="/tools/meta-tags-checker" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Meta Tags Checker</Link>
+            <Link href="/tools/open-graph-preview-checker" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Open Graph Preview Checker</Link>
+            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Canonical URL Checker</Link>
+            <Link href="/tools/structured-data-validator" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Structured Data Validator</Link>
           </div>
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function SnippetFindingGroup({
+  title,
+  issues,
+  tone,
+}: {
+  title: string;
+  issues: SnippetIssue[];
+  tone: "error" | "warning" | "info";
+}) {
+  const classes = tone === "error"
+    ? "border-red-200 bg-red-50 text-red-800"
+    : tone === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
+      : "border-gray-200 bg-gray-50 text-gray-700";
+  const shownIssues = issues.slice(0, 20);
+  const hiddenCount = Math.max(0, issues.length - shownIssues.length);
+  return (
+    <div role={tone === "error" ? "alert" : undefined} className={`mt-6 rounded-xl border p-4 ${classes}`}>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <div className="mt-3 space-y-3">
+        {shownIssues.map((issue, index) => <div key={`${issue.title}-${index}`}><p className="text-sm font-semibold">{issue.title}</p><p className="mt-1 text-sm leading-relaxed">{issue.message}</p></div>)}
+      </div>
+      {hiddenCount > 0 && <p className="mt-3 text-xs leading-relaxed opacity-80">{hiddenCount.toLocaleString()} more finding{hiddenCount === 1 ? "" : "s"} are included in the copied report.</p>}
+    </div>
   );
 }
 
@@ -875,15 +810,29 @@ function buildSnippetPreview({
 }
 
 function normalizeUrl(value: string) {
-  if (!value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
     return "";
   }
 
-  if (/^https?:\/\//i.test(value)) {
-    return value;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
+    return trimmed;
   }
 
-  return `https://${value}`;
+  return `https://${trimmed}`;
+}
+
+function isValidHttpUrl(value: string) {
+  if (!value) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(value);
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
 }
 
 function getTitleStatus(length: number): LengthStatus {
@@ -946,7 +895,7 @@ function getSnippetIssues({
     issues.push({
       severity: "high",
       title: "Missing page title",
-      message: "A search result needs a clear page title.",
+      message: "The page title is empty. Add a concise title that identifies the page before judging a search preview.",
     });
   }
 
@@ -954,7 +903,7 @@ function getSnippetIssues({
     issues.push({
       severity: "info",
       title: "Title may be short",
-      message: "A short title can work, but it may miss useful context.",
+      message: "The title is below the selected editorial review range. Short titles can still be correct when they describe the page clearly.",
     });
   }
 
@@ -962,7 +911,7 @@ function getSnippetIssues({
     issues.push({
       severity: "warning",
       title: "Title may be truncated",
-      message: "Long titles may be cut or rewritten in search results.",
+      message: "The title is above the selected editorial review range. Google has no fixed character limit and truncates title links as needed for the display width.",
     });
   }
 
@@ -978,7 +927,7 @@ function getSnippetIssues({
     issues.push({
       severity: "info",
       title: "Description may be short",
-      message: "A short description may not explain enough value to search users.",
+      message: "The description is below the selected editorial review range. A short description can still be complete and accurate.",
     });
   }
 
@@ -986,7 +935,7 @@ function getSnippetIssues({
     issues.push({
       severity: "warning",
       title: "Description may be truncated",
-      message: "Long descriptions may be shortened in search results.",
+      message: "The description is above the selected editorial review range. Google has no fixed meta-description character limit and truncates snippets as needed.",
     });
   }
 
@@ -1012,15 +961,21 @@ function getSnippetIssues({
     issues.push({
       severity: "info",
       title: "Brand or site name not in title",
-      message: "Including the site or brand name can make the result easier to recognize.",
+      message: "The site name is not present in the title. Branding can help recognition when it reads naturally, but it is not required on every title element.",
     });
   }
 
-  if (url && !/^https:\/\//i.test(url)) {
+  if (url && !isValidHttpUrl(url)) {
     issues.push({
-      severity: "warning",
-      title: "URL is not HTTPS",
-      message: "Search snippets usually look more trustworthy with HTTPS URLs.",
+      severity: "high",
+      title: "Invalid page URL",
+      message: "Enter a valid http:// or https:// URL if you want the preview to evaluate the displayed host and path.",
+    });
+  } else if (url && /^http:\/\//i.test(url)) {
+    issues.push({
+      severity: "info",
+      title: "HTTP URL entered",
+      message: "Verify that HTTP is intentional and consistent with the page you want indexed; the preview does not test redirects or canonicalization.",
     });
   }
 
@@ -1035,9 +990,9 @@ function calculateScore(issues: SnippetIssue[]) {
       score -= 30;
     } else if (issue.severity === "warning") {
       score -= 15;
-    } else {
-      score -= 5;
     }
+    // Informational editorial notes do not reduce the heuristic score.
+
   });
 
   return Math.max(0, score);
@@ -1071,7 +1026,7 @@ function formatSnippetOutput(
     return [
       "SERP Snippet Report",
       "-------------------",
-      `Score: ${result.score}/100`,
+      `Review score (heuristic): ${result.score}/100`,
       `Title length: ${result.titleLength}`,
       `Description length: ${result.descriptionLength}`,
       `URL: ${result.url}`,
@@ -1093,7 +1048,7 @@ function formatSnippetOutput(
   return [
     "SERP Snippet Summary",
     "--------------------",
-    `Score: ${result.score}/100`,
+    `Review score (heuristic): ${result.score}/100`,
     `Title: ${result.titleLength} characters (${result.titleStatus})`,
     `Description: ${result.descriptionLength} characters (${result.descriptionStatus})`,
     `Display URL: ${result.displayUrl}`,
@@ -1106,7 +1061,7 @@ function truncateText(value: string, maxLength: number) {
     return value;
   }
 
-  return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+  return `${value.slice(0, Math.max(0, maxLength - 1)).replace(/\s+$/, "")}…`;
 }
 
 function getHostName(url: string) {
@@ -1155,7 +1110,7 @@ function getLengthClass(value: number, min: number, max: number) {
   }
 
   if (value > max) {
-    return "font-semibold text-red-700";
+    return "font-semibold text-amber-700";
   }
 
   return "font-semibold text-green-700";

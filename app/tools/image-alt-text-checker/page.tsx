@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Image Alt Text Checker | Check Missing Alt Attributes Online | Yoryantra",
+  title: "Image Alt Text Checker | Review Alt Attributes | Yoryantra",
   description:
-    "Check image alt text from HTML. Find missing alt attributes, empty alt text, long alt text, duplicate alt text, file-name-like alt text, lazy loading, dimensions, and image SEO issues.",
+    "Review image alt attributes in pasted HTML, including missing and empty alternatives, repeated wording, filename-like text, dimensions, and loading hints.",
   keywords: [
     "Image Alt Text Checker",
     "alt text checker",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/image-alt-text-checker",
   },
   openGraph: {
-    title: "Image Alt Text Checker | Check Missing Alt Attributes Online | Yoryantra",
+    title: "Image Alt Text Checker | Review Alt Attributes | Yoryantra",
     description:
-      "Check image alt text from HTML. Find missing alt attributes, empty alt text, long alt text, duplicate alt text, file-name-like alt text, lazy loading, dimensions, and image SEO issues.",
+      "Review image alt attributes in pasted HTML, including missing and empty alternatives, repeated wording, filename-like text, dimensions, and loading hints.",
     url: "https://yoryantra.com/tools/image-alt-text-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Image Alt Text Checker | Check Missing Alt Attributes Online | Yoryantra",
+    title: "Image Alt Text Checker | Review Alt Attributes | Yoryantra",
     description:
-      "Check image alt text from HTML. Find missing alt attributes, empty alt text, long alt text, duplicate alt text, file-name-like alt text, lazy loading, dimensions, and image SEO issues.",
+      "Review image alt attributes in pasted HTML, including missing and empty alternatives, repeated wording, filename-like text, dimensions, and loading hints.",
   },
 };
 

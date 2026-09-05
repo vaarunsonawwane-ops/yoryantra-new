@@ -22,6 +22,7 @@ type HreflangEntry = {
   rel: string;
   source: string;
   language: string;
+  script: string;
   region: string;
   isXDefault: boolean;
   isAbsoluteUrl: boolean;
@@ -49,31 +50,71 @@ type HreflangNote = {
 };
 
 const sampleHtml = `<link rel="alternate" hreflang="en" href="https://example.com/" />
-<link rel="alternate" hreflang="en-us" href="https://example.com/us/" />
-<link rel="alternate" hreflang="en-gb" href="https://example.com/uk/" />
-<link rel="alternate" hreflang="hi-in" href="https://example.com/in/" />
+<link rel="alternate" hreflang="en-US" href="https://example.com/us/" />
+<link rel="alternate" hreflang="en-GB" href="https://example.com/uk/" />
+<link rel="alternate" hreflang="hi-IN" href="https://example.com/in/" />
 <link rel="alternate" hreflang="x-default" href="https://example.com/" />`;
 
 const languageCodes = new Set([
-  "af", "am", "ar", "az", "be", "bg", "bn", "bs", "ca", "cs", "cy", "da",
-  "de", "el", "en", "es", "et", "eu", "fa", "fi", "fil", "fr", "ga", "gl",
-  "gu", "he", "hi", "hr", "hu", "hy", "id", "is", "it", "ja", "ka", "kk",
-  "km", "kn", "ko", "lo", "lt", "lv", "mk", "ml", "mn", "mr", "ms", "my",
-  "ne", "nl", "no", "pa", "pl", "pt", "ro", "ru", "si", "sk", "sl", "sq",
-  "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "uz", "vi", "zh",
+  "aa", "ab", "ae", "af", "ak", "am", "an", "ar", "as", "av", "ay", "az",
+  "ba", "be", "bg", "bi", "bm", "bn", "bo", "br", "bs", "ca", "ce", "ch",
+  "co", "cr", "cs", "cu", "cv", "cy", "da", "de", "dv", "dz", "ee", "el",
+  "en", "eo", "es", "et", "eu", "fa", "ff", "fi", "fj", "fo", "fr", "fy",
+  "ga", "gd", "gl", "gn", "gu", "gv", "ha", "he", "hi", "ho", "hr", "ht",
+  "hu", "hy", "hz", "ia", "id", "ie", "ig", "ii", "ik", "io", "is", "it",
+  "iu", "ja", "jv", "ka", "kg", "ki", "kj", "kk", "kl", "km", "kn", "ko",
+  "kr", "ks", "ku", "kv", "kw", "ky", "la", "lb", "lg", "li", "ln", "lo",
+  "lt", "lu", "lv", "mg", "mh", "mi", "mk", "ml", "mn", "mr", "ms", "mt",
+  "my", "na", "nb", "nd", "ne", "ng", "nl", "nn", "no", "nr", "nv", "ny",
+  "oc", "oj", "om", "or", "os", "pa", "pi", "pl", "ps", "pt", "qu", "rm",
+  "rn", "ro", "ru", "rw", "sa", "sc", "sd", "se", "sg", "sh", "si", "sk",
+  "sl", "sm", "sn", "so", "sq", "sr", "ss", "st", "su", "sv", "sw", "ta",
+  "te", "tg", "th", "ti", "tk", "tl", "tn", "to", "tr", "ts", "tt", "tw",
+  "ty", "ug", "uk", "ur", "uz", "ve", "vi", "vo", "wa", "wo", "xh", "yi",
+  "yo", "za", "zh", "zu",
 ]);
 
 const regionCodes = new Set([
-  "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AR", "AT", "AU", "AZ",
-  "BA", "BB", "BD", "BE", "BG", "BH", "BN", "BO", "BR", "BS", "BT", "BW",
-  "BY", "BZ", "CA", "CH", "CL", "CN", "CO", "CR", "CY", "CZ", "DE", "DK",
-  "DO", "DZ", "EC", "EE", "EG", "ES", "FI", "FR", "GB", "GE", "GH", "GR",
-  "GT", "HK", "HN", "HR", "HU", "ID", "IE", "IL", "IN", "IQ", "IR", "IS",
-  "IT", "JM", "JO", "JP", "KE", "KH", "KR", "KW", "KZ", "LA", "LB", "LK",
-  "LT", "LU", "LV", "MA", "MD", "ME", "MK", "MM", "MN", "MO", "MT", "MX",
-  "MY", "NG", "NL", "NO", "NP", "NZ", "OM", "PA", "PE", "PH", "PK", "PL",
-  "PT", "QA", "RO", "RS", "RU", "SA", "SE", "SG", "SI", "SK", "TH", "TR",
-  "TW", "UA", "UG", "UK", "US", "UY", "VN", "ZA",
+  "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT",
+  "AU", "AW", "AX", "AZ", "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI",
+  "BJ", "BL", "BM", "BN", "BO", "BQ", "BR", "BS", "BT", "BV", "BW", "BY",
+  "BZ", "CA", "CC", "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN",
+  "CO", "CR", "CU", "CV", "CW", "CX", "CY", "CZ", "DE", "DJ", "DK", "DM",
+  "DO", "DZ", "EC", "EE", "EG", "EH", "ER", "ES", "ET", "FI", "FJ", "FK",
+  "FM", "FO", "FR", "GA", "GB", "GD", "GE", "GF", "GG", "GH", "GI", "GL",
+  "GM", "GN", "GP", "GQ", "GR", "GS", "GT", "GU", "GW", "GY", "HK", "HM",
+  "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR",
+  "IS", "IT", "JE", "JM", "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN",
+  "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS",
+  "LT", "LU", "LV", "LY", "MA", "MC", "MD", "ME", "MF", "MG", "MH", "MK",
+  "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS", "MT", "MU", "MV", "MW",
+  "MX", "MY", "MZ", "NA", "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP",
+  "NR", "NU", "NZ", "OM", "PA", "PE", "PF", "PG", "PH", "PK", "PL", "PM",
+  "PN", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS", "RU", "RW",
+  "SA", "SB", "SC", "SD", "SE", "SG", "SH", "SI", "SJ", "SK", "SL", "SM",
+  "SN", "SO", "SR", "SS", "ST", "SV", "SX", "SY", "SZ", "TC", "TD", "TF",
+  "TG", "TH", "TJ", "TK", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW",
+  "TZ", "UA", "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI",
+  "VN", "VU", "WF", "WS", "YE", "YT", "ZA", "ZM", "ZW",
+]);
+
+const scriptCodes = new Set([
+  "Adlm", "Afak", "Aghb", "Ahom", "Arab", "Aran", "Armi", "Armn", "Avst", "Bali", "Bamu", "Bass",
+  "Batk", "Beng", "Bhks", "Blis", "Bopo", "Brah", "Brai", "Bugi", "Buhd", "Cakm", "Cans", "Cari",
+  "Cham", "Cher", "Cirt", "Copt", "Cprt", "Cyrl", "Cyrs", "Deva", "Dsrt", "Dupl", "Egyd", "Egyh",
+  "Egyp", "Elba", "Ethi", "Geok", "Geor", "Glag", "Goth", "Gran", "Grek", "Gujr", "Guru", "Hanb",
+  "Hang", "Hani", "Hano", "Hans", "Hant", "Hatr", "Hebr", "Hira", "Hluw", "Hmng", "Hrkt", "Hung",
+  "Inds", "Ital", "Jamo", "Java", "Jpan", "Jurc", "Kali", "Kana", "Khar", "Khmr", "Khoj", "Kitl",
+  "Kits", "Knda", "Kore", "Kpel", "Kthi", "Lana", "Laoo", "Latf", "Latg", "Latn", "Leke", "Lepc",
+  "Limb", "Lina", "Linb", "Lisu", "Loma", "Lyci", "Lydi", "Mahj", "Mand", "Mani", "Marc", "Maya",
+  "Mend", "Merc", "Mero", "Mlym", "Modi", "Mong", "Moon", "Mroo", "Mtei", "Mult", "Mymr", "Narb",
+  "Nbat", "Newa", "Nkgb", "Nkoo", "Nshu", "Ogam", "Olck", "Orkh", "Orya", "Osge", "Osma", "Palm",
+  "Pauc", "Perm", "Phag", "Phli", "Phlp", "Phlv", "Phnx", "Piqd", "Plrd", "Prti", "Qaaa", "Qabx",
+  "Rjng", "Roro", "Runr", "Samr", "Sara", "Sarb", "Saur", "Sgnw", "Shaw", "Shrd", "Sidd", "Sind",
+  "Sinh", "Sora", "Sund", "Sylo", "Syrc", "Syre", "Syrj", "Syrn", "Tagb", "Takr", "Tale", "Talu",
+  "Taml", "Tang", "Tavt", "Telu", "Teng", "Tfng", "Tglg", "Thaa", "Thai", "Tibt", "Tirh", "Ugar",
+  "Vaii", "Visp", "Wara", "Wole", "Xpeo", "Xsux", "Yiii", "Zinh", "Zmth", "Zsye", "Zsym", "Zxxx",
+  "Zyyy", "Zzzz",
 ]);
 
 export default function ToolClient() {
@@ -137,12 +178,15 @@ export default function ToolClient() {
       return;
     }
 
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-
-    window.setTimeout(() => {
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
       setCopied(false);
-    }, 1400);
+      setError("The browser could not copy the report. Select the output and copy it manually.");
+    }
   };
 
   const loadExample = () => {
@@ -182,14 +226,15 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Hreflang Validator"
-      description="Validate hreflang tags for international SEO. Check language codes, region codes, x-default, duplicate hreflang values, absolute URLs, self-reference, and common hreflang mistakes."
+      description="Validate hreflang tags for language codes, region codes, x-default, duplicate targets, absolute URLs, and self-reference."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
+        <label htmlFor="hreflang-input" className="block mb-2 text-sm font-medium text-gray-700">
           Hreflang Tags or Sitemap XML
         </label>
 
         <textarea
+          id="hreflang-input"
           value={input}
           onChange={(event) => {
             setInput(event.target.value);
@@ -204,7 +249,7 @@ export default function ToolClient() {
 
         <p className="mt-2 text-sm text-gray-500">
           Paste HTML link tags, sitemap XML with alternate links, or simple lines
-          like en-us https://example.com/us/.
+          like en-US https://example.com/us/.
         </p>
       </div>
 
@@ -268,11 +313,12 @@ export default function ToolClient() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label htmlFor="hreflang-current-url" className="block text-sm font-medium text-gray-700">
               Current Page URL
             </label>
 
             <input
+              id="hreflang-current-url"
               value={currentUrl}
               onChange={(event) => {
                 setCurrentUrl(event.target.value);
@@ -379,36 +425,42 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={validateHreflang} className="yoryantra-btn">
+        <button onClick={validateHreflang} className="yoryantra-btn shrink-0 whitespace-nowrap">
           Validate Hreflang
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn shrink-0 whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline shrink-0 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline shrink-0 whitespace-nowrap">
           Reset
         </button>
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       )}
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Score" value={`${result.score}/100`} />
+          <SummaryCard label="Review score" value={`${result.score}/100`} />
           <SummaryCard label="Tags" value={result.totalTags.toLocaleString()} />
           <SummaryCard label="x-default" value={result.xDefaultCount.toLocaleString()} />
           <SummaryCard label="Issues" value={result.issues.length.toLocaleString()} />
         </div>
+      )}
+
+      {result && (
+        <p className="mt-3 text-xs leading-relaxed text-gray-500">
+          Review score is a local heuristic for prioritizing findings, not a Google Search Console metric or ranking signal.
+        </p>
       )}
 
       {result && result.entries.length > 0 && (
@@ -427,6 +479,7 @@ export default function ToolClient() {
                 <tr>
                   <th className="px-4 py-3 font-semibold">Hreflang</th>
                   <th className="px-4 py-3 font-semibold">Language</th>
+                  <th className="px-4 py-3 font-semibold">Script</th>
                   <th className="px-4 py-3 font-semibold">Region</th>
                   <th className="px-4 py-3 font-semibold">URL</th>
                   <th className="px-4 py-3 font-semibold">Issues</th>
@@ -461,42 +514,44 @@ export default function ToolClient() {
         </div>
       )}
 
-      {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Hreflang findings
-          </h3>
+      {result && result.issues.some((issue) => issue.severity === "high") && (
+        <FindingGroup
+          title="Implementation errors"
+          issues={result.issues.filter((issue) => issue.severity === "high")}
+          tone="error"
+        />
+      )}
 
-          <div className="mt-3 space-y-3">
-            {result.issues.slice(0, 14).map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {issue.title}
-                </p>
+      {result && result.issues.some((issue) => issue.severity === "warning") && (
+        <FindingGroup
+          title="Hreflang cautions"
+          issues={result.issues.filter((issue) => issue.severity === "warning")}
+          tone="warning"
+        />
+      )}
 
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {issue.message}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+      {result && result.issues.some((issue) => issue.severity === "info") && (
+        <FindingGroup
+          title="Review notes"
+          issues={result.issues.filter((issue) => issue.severity === "info")}
+          tone="info"
+        />
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">
             Hreflang notes
           </h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">
+                <p className="text-sm font-semibold text-gray-900">
                   {note.title}
                 </p>
 
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">
+                <p className="mt-1 text-sm leading-relaxed text-gray-700">
                   {note.message}
                 </p>
               </div>
@@ -512,197 +567,142 @@ export default function ToolClient() {
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline shrink-0 whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
           {output || "Hreflang validation output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Hreflang validation happens directly in your browser. Your tags and URLs
-        are not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Parsing and validation run in this page. The code does not send pasted hreflang markup or URLs to a validation API.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking Hreflang Tags for International SEO
+            Hreflang is a cluster, not a tag-by-tag setting
           </h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Hreflang tags help search engines understand alternate language or
-            regional versions of a page. They are useful for international sites,
-            country-specific pages, multilingual content, and pages that serve
-            similar content to different audiences.
+            International pages work as a connected alternate set. Every localized version should list itself and the other versions, and the alternate URLs must be fully qualified. A clean-looking tag on one page can still fail when another page in the cluster does not return the relationship.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Hreflang Validator checks pasted alternate tags and sitemap
-            entries for common issues such as missing x-default, duplicate
-            hreflang values, invalid language or region shape, relative URLs, and
-            missing self-reference.
+            The pasted set is checked for locale syntax, duplicate locale targets, absolute URLs, x-default, and self-reference when you provide the current page URL. Reciprocal links on remote pages are deliberately outside the browser-only check because confirming them requires fetching those pages.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Validating Hreflang Markup
-          </h2>
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="text-xl font-semibold text-amber-950">Locale codes need the right shape</h2>
+            <p className="mt-3 text-sm leading-relaxed text-amber-900">
+              Google supports ISO 639-1 language codes, optional ISO 3166-1 Alpha-2 regions, and ISO 15924 scripts such as zh-Hant. A script can also be followed by a region, for example zh-Hans-US. Reserved region labels such as UK are not treated as GB.
+            </p>
+          </div>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">x-default is a fallback, not a mandatory locale</h2>
+            <p className="mt-3 text-sm leading-relaxed text-gray-700">
+              x-default is recommended when a fallback or language-selector URL makes sense. Its absence is therefore a review note by default rather than a hard failure.
+            </p>
+          </div>
+        </div>
 
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Before publishing a locale cluster</h2>
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste hreflang link tags, sitemap XML, or simple hreflang lines.</li>
-            <li>Choose the input format and checking style.</li>
-            <li>Add the current page URL if you want self-reference checking.</li>
-            <li>Run the validator and review duplicate, missing, or invalid entries.</li>
-            <li>Fix the markup before publishing or submitting sitemap changes.</li>
+            <li>Paste the HTML alternate links, sitemap XML, or locale-and-URL lines.</li>
+            <li>Enter the current page URL when you want a local self-reference check.</li>
+            <li>Resolve invalid locale codes, missing alternate relationships, relative URLs, and duplicate locale assignments.</li>
+            <li>Visit or crawl the alternate pages separately to confirm return links.</li>
+            <li>Keep the same cluster consistent across every localized version.</li>
           </ol>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Hreflang Validator Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking language and region codes before publishing hreflang tags.</li>
-            <li>Finding duplicate hreflang values across alternate URLs.</li>
-            <li>Checking whether x-default is present for language selector pages.</li>
-            <li>Finding relative URLs that should be absolute URLs.</li>
-            <li>Reviewing self-referencing hreflang on localized pages.</li>
-            <li>Validating copied alternate links from a template or CMS.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Hreflang Tags
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`<link rel="alternate" hreflang="en" href="https://example.com/" />
-<link rel="alternate" hreflang="en-us" href="https://example.com/us/" />
-<link rel="alternate" hreflang="x-default" href="https://example.com/" />`}
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900">What the pasted markup can and cannot prove</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="self-start rounded-xl border border-gray-200 bg-white p-5">
+              <h3 className="font-semibold text-gray-900">Visible here</h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">Locale syntax, x-default, duplicate locale assignments, duplicate destinations, fully qualified URLs, and self-reference against the URL you enter.</p>
+            </div>
+            <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-amber-950">Needs a crawler or live-page check</h3>
+              <p className="mt-2 text-sm leading-relaxed text-amber-900">Return links, HTTP status, canonical behavior, indexability, redirects, and whether the alternate page actually contains the intended localized content.</p>
+            </div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Hreflang Needs a Complete Cluster
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Google's current hreflang rules</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Hreflang works best when alternate pages reference each other
-            consistently. A single tag on one page is usually not enough if the
-            alternate version does not point back.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This browser tool can check the tags you paste, but it does not crawl
-            every alternate URL to verify live reciprocal tags. For large sites,
-            combine this with crawling, sitemap validation, and Search Console
-            review.
+            Google documents HTML, HTTP headers, and XML sitemaps as equivalent ways to declare localized versions. It also requires each language version to list itself and the other versions. The source of truth for these Google-specific checks is the
+            {" "}<a href="https://developers.google.com/search/docs/specialty/international/localized-versions" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">localized versions documentation</a>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Hreflang decisions that often cause mistakes</h2>
           <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a Hreflang Validator do?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks hreflang tags for common international SEO issues such
-                as invalid codes, duplicate values, missing URLs, and missing
-                x-default.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is x-default?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                x-default points to a fallback page, often a language selector or
-                default global version.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should hreflang URLs be absolute?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Absolute URLs are the safest and clearest choice for
-                hreflang annotations.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this check reciprocal hreflang automatically?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks the tags you paste, but it does not crawl alternate
-                pages automatically to confirm live reciprocal tags.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I validate hreflang tags?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Hreflang validation happens directly in your browser.
-              </p>
-            </div>
+            <div><h3 className="font-semibold text-gray-900">Should every locale include itself?</h3><p className="mt-2 text-gray-600 leading-relaxed">Yes for Google's implementation guidance. Each version should list itself along with the other alternate versions.</p></div>
+            <div><h3 className="font-semibold text-gray-900">Can alternate pages live on different domains?</h3><p className="mt-2 text-gray-600 leading-relaxed">Yes. The relationship is not restricted to one host, but each alternate URL still needs to be fully qualified.</p></div>
+            <div><h3 className="font-semibold text-gray-900">Does a valid pasted set confirm reciprocal links?</h3><p className="mt-2 text-gray-600 leading-relaxed">No. The remote pages are not fetched, so return links must be checked separately.</p></div>
+            <div><h3 className="font-semibold text-gray-900">Is x-default always required?</h3><p className="mt-2 text-gray-600 leading-relaxed">No. It is a recommended fallback for unmatched languages, especially on selector or global fallback pages.</p></div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/hreflang-tag-generator" className="yoryantra-btn-outline">
-              Hreflang Tag Generator
-            </Link>
-
-            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline">
-              Canonical URL Checker
-            </Link>
-
-            <Link href="/tools/sitemap-validator" className="yoryantra-btn-outline">
-              Sitemap Validator
-            </Link>
-
-            <Link href="/tools/sitemap-url-extractor" className="yoryantra-btn-outline">
-              Sitemap URL Extractor
-            </Link>
-
-            <Link href="/tools/meta-robots-tag-generator" className="yoryantra-btn-outline">
-              Meta Robots Tag Generator
-            </Link>
+            <Link href="/tools/hreflang-tag-generator" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Hreflang Tag Generator</Link>
+            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Canonical URL Checker</Link>
+            <Link href="/tools/sitemap-validator" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Sitemap Validator</Link>
+            <Link href="/tools/sitemap-url-extractor" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Sitemap URL Extractor</Link>
+            <Link href="/tools/meta-robots-tag-generator" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Meta Robots Tag Generator</Link>
           </div>
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function FindingGroup({
+  title,
+  issues,
+  tone,
+}: {
+  title: string;
+  issues: HreflangIssue[];
+  tone: "error" | "warning" | "info";
+}) {
+  const classes = tone === "error"
+    ? "border-red-200 bg-red-50 text-red-800"
+    : tone === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
+      : "border-gray-200 bg-gray-50 text-gray-700";
+
+  const shownIssues = issues.slice(0, 20);
+  const hiddenCount = Math.max(0, issues.length - shownIssues.length);
+
+  return (
+    <div role={tone === "error" ? "alert" : undefined} className={`mt-6 rounded-xl border p-4 ${classes}`}>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <div className="mt-3 space-y-3">
+        {shownIssues.map((issue, index) => (
+          <div key={`${issue.title}-${index}`}>
+            <p className="text-sm font-semibold">{issue.title}</p>
+            <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
+          </div>
+        ))}
+      </div>
+      {hiddenCount > 0 && (
+        <p className="mt-3 text-xs leading-relaxed opacity-80">
+          {hiddenCount.toLocaleString()} more finding{hiddenCount === 1 ? "" : "s"} are included in the copied report.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -746,17 +746,23 @@ function analyzeHreflang(
     issues: getEntryIssues(entry, options),
   }));
   const globalIssues = getGlobalIssues(entries, options);
-  const issues = [
-    ...globalIssues,
-    ...entries.flatMap((entry) =>
-      entry.issues.map((issue) => ({
+  const entryIssues: HreflangIssue[] = [];
+  entries.forEach((entry) => {
+    entry.issues.forEach((issue) => {
+      entryIssues.push({
         ...issue,
         title: `Entry ${entry.order}: ${issue.title}`,
-      }))
-    ),
-  ];
+      });
+    });
+  });
+  const issues = [...globalIssues, ...entryIssues];
   const invalidCodeCount = entries.filter((entry) =>
-    entry.issues.some((issue) => issue.title.includes("Invalid") || issue.title.includes("Unknown"))
+    entry.issues.some((issue) =>
+      issue.title.includes("Invalid") ||
+      issue.title.includes("Unknown") ||
+      issue.title.includes("Unsupported") ||
+      issue.title.includes("Unrecognized")
+    )
   ).length;
   const duplicateHreflangCount = entries.filter((entry) => entry.duplicateHreflang).length;
   const duplicateHrefCount = entries.filter((entry) => entry.duplicateHref).length;
@@ -796,7 +802,7 @@ function extractEntries(input: string, inputMode: InputMode): HreflangEntry[] {
 function extractHtmlEntries(input: string): HreflangEntry[] {
   const parser = new DOMParser();
   const doc = parser.parseFromString(input, "text/html");
-  const linkNodes = Array.from(doc.querySelectorAll("link[hreflang], a[hreflang]"));
+  const linkNodes = Array.from(doc.querySelectorAll("link[hreflang]"));
 
   return linkNodes.map((node, index) => {
     const hreflang = (node.getAttribute("hreflang") || "").trim();
@@ -878,9 +884,10 @@ function buildEntry({
     rel,
     source,
     language: parsed.language,
+    script: parsed.script,
     region: parsed.region,
     isXDefault: clean.toLowerCase() === "x-default",
-    isAbsoluteUrl: /^https?:\/\//i.test(href.trim()),
+    isAbsoluteUrl: isAbsoluteHttpUrl(href.trim()),
     duplicateHreflang: false,
     duplicateHref: false,
     issues: [],
@@ -889,17 +896,17 @@ function buildEntry({
 
 function parseHreflang(value: string) {
   if (!value || value.toLowerCase() === "x-default") {
-    return {
-      language: "",
-      region: "",
-    };
+    return { language: "", script: "", region: "" };
   }
 
   const parts = value.split("-");
+  const hasScript = parts.length >= 2 && /^[A-Za-z]{4}$/.test(parts[1] || "");
+  const regionIndex = hasScript ? 2 : 1;
 
   return {
     language: parts[0] || "",
-    region: parts[1] || "",
+    script: hasScript ? (parts[1] || "") : "",
+    region: parts[regionIndex] || "",
   };
 }
 
@@ -915,7 +922,7 @@ function markDuplicates(entries: HreflangEntry[]) {
       hreflangCounts.set(hreflangKey, (hreflangCounts.get(hreflangKey) || 0) + 1);
     }
 
-    if (hrefKey) {
+    if (hrefKey && !entry.isXDefault) {
       hrefCounts.set(hrefKey, (hrefCounts.get(hrefKey) || 0) + 1);
     }
   });
@@ -923,7 +930,9 @@ function markDuplicates(entries: HreflangEntry[]) {
   return entries.map((entry) => ({
     ...entry,
     duplicateHreflang: entry.hreflang ? (hreflangCounts.get(entry.hreflang.toLowerCase()) || 0) > 1 : false,
-    duplicateHref: entry.href ? (hrefCounts.get(normalizeUrl(entry.href)) || 0) > 1 : false,
+    duplicateHref: entry.href && !entry.isXDefault
+      ? (hrefCounts.get(normalizeUrl(entry.href)) || 0) > 1
+      : false,
   }));
 }
 
@@ -956,17 +965,17 @@ function getEntryIssues(
 
   if (entry.rel && !entry.rel.toLowerCase().split(/\s+/).includes("alternate")) {
     issues.push({
-      severity: "warning",
+      severity: "high",
       title: "rel does not include alternate",
-      message: "HTML hreflang links should use rel=\"alternate\".",
+      message: "A hreflang link declaration needs rel=\"alternate\" to describe the alternate relationship.",
     });
   }
 
   if (options.requireAbsoluteUrls && entry.href && !entry.isAbsoluteUrl) {
     issues.push({
-      severity: "warning",
-      title: "URL is not absolute",
-      message: "Hreflang URLs should usually be absolute URLs.",
+      severity: "high",
+      title: "URL is not fully qualified",
+      message: "Google requires a fully qualified alternate URL including http:// or https://.",
     });
   }
 
@@ -1000,48 +1009,80 @@ function getEntryIssues(
 function validateLanguageRegion(value: string, warnLowercaseRegion: boolean): HreflangIssue | null {
   const parts = value.split("-");
 
-  if (parts.length > 2 || parts.length === 0 || !parts[0]) {
+  if (parts.length < 1 || parts.length > 3 || !parts[0]) {
     return {
       severity: "high",
       title: "Invalid hreflang shape",
-      message: "Use a language code such as en, or language-region such as en-US.",
+      message: "Use language, language-region, language-script, or language-script-region, such as en, en-US, zh-Hant, or zh-Hans-US.",
     };
   }
 
   const language = parts[0].toLowerCase();
-
-  if (!/^[a-z]{2,3}$/.test(language) || !languageCodes.has(language)) {
+  if (!/^[a-z]{2}$/.test(language) || !languageCodes.has(language)) {
     return {
-      severity: "warning",
-      title: "Unknown language code",
-      message: "The language code does not look like a common ISO language code.",
+      severity: "high",
+      title: "Unsupported language code",
+      message: "Google's hreflang guidance uses ISO 639-1 two-letter language codes.",
     };
   }
 
-  if (parts[1]) {
-    const region = parts[1];
+  let script = "";
+  let region = "";
+  if (parts[1] && /^[A-Za-z]{4}$/.test(parts[1])) {
+    script = parts[1];
+    region = parts[2] || "";
+  } else {
+    region = parts[1] || "";
+    if (parts[2]) {
+      return {
+        severity: "high",
+        title: "Invalid script or region order",
+        message: "When three parts are used, the four-letter script comes before the two-letter region.",
+      };
+    }
+  }
 
-    if (!/^[A-Za-z]{2}$/.test(region)) {
+  if (script) {
+    const canonicalScript = script.slice(0, 1).toUpperCase() + script.slice(1).toLowerCase();
+    if (!scriptCodes.has(canonicalScript)) {
       return {
         severity: "warning",
+        title: "Unrecognized script code",
+        message: "The four-letter script is not in the ISO 15924 registry bundled with this page.",
+      };
+    }
+
+    if (/^Q[a-z]{3}$/.test(canonicalScript) || ["Zxxx", "Zyyy", "Zzzz"].includes(canonicalScript)) {
+      return {
+        severity: "warning",
+        title: "Reserved or special-purpose script code",
+        message: "The script code is reserved, private-use, unknown, or undetermined rather than a normal writing-system target. Review whether it belongs in hreflang.",
+      };
+    }
+  }
+
+  if (region) {
+    if (!/^[A-Za-z]{2}$/.test(region)) {
+      return {
+        severity: "high",
         title: "Invalid region code",
-        message: "The region part should usually be a two-letter country or region code.",
+        message: "The optional region must be an ISO 3166-1 Alpha-2 code such as US, GB, or IN.",
+      };
+    }
+
+    if (!regionCodes.has(region.toUpperCase())) {
+      return {
+        severity: "high",
+        title: "Unsupported region code",
+        message: "The region is not an officially assigned ISO 3166-1 Alpha-2 code. Use GB rather than the reserved label UK.",
       };
     }
 
     if (warnLowercaseRegion && region !== region.toUpperCase()) {
       return {
         severity: "info",
-        title: "Region code is lowercase",
-        message: "Region codes are commonly written uppercase, such as en-US or hi-IN.",
-      };
-    }
-
-    if (!regionCodes.has(region.toUpperCase())) {
-      return {
-        severity: "info",
-        title: "Uncommon region code",
-        message: "The region code is not in the common region list used by this checker.",
+        title: "Region code casing",
+        message: "Region codes are conventionally written uppercase, such as en-US or hi-IN; matching is not treated as case-sensitive here.",
       };
     }
   }
@@ -1071,7 +1112,9 @@ function getGlobalIssues(
   const cleanCurrentUrl = normalizeUrl(options.currentUrl);
 
   if (options.requireSelfReference && cleanCurrentUrl) {
-    const hasSelfReference = entries.some((entry) => normalizeUrl(entry.href) === cleanCurrentUrl);
+    const hasSelfReference = entries.some(
+      (entry) => !entry.isXDefault && normalizeUrl(entry.href) === cleanCurrentUrl
+    );
 
     if (!hasSelfReference) {
       issues.push({
@@ -1101,9 +1144,9 @@ function calculateScore(issues: HreflangIssue[]) {
       score -= 25;
     } else if (issue.severity === "warning") {
       score -= 12;
-    } else {
-      score -= 4;
     }
+    // Informational notes do not reduce the heuristic score.
+
   });
 
   return Math.max(0, score);
@@ -1119,11 +1162,12 @@ function formatOutput(
 
   if (outputMode === "csv") {
     const rows = [
-      ["order", "hreflang", "language", "region", "href", "absolute_url", "duplicate_hreflang", "issues"],
+      ["order", "hreflang", "language", "script", "region", "href", "absolute_url", "duplicate_hreflang", "issues"],
       ...result.entries.map((entry) => [
         String(entry.order),
         entry.hreflang,
         entry.language,
+        entry.script,
         entry.region,
         entry.href,
         String(entry.isAbsoluteUrl),
@@ -1140,7 +1184,7 @@ function formatOutput(
       "| Hreflang | URL | Issues |",
       "| --- | --- | --- |",
       ...result.entries.map((entry) =>
-        `| ${escapeMarkdown(entry.hreflang || "(missing)")} | ${escapeMarkdown(entry.href || "(missing)")} | ${entry.issues.length} |`
+        `| ${escapeMarkdown(entry.hreflang || "(missing)")} | ${escapeMarkdown(entry.script || "—")} | ${escapeMarkdown(entry.href || "(missing)")} | ${entry.issues.length} |`
       ),
     ].join("\n");
   }
@@ -1176,7 +1220,7 @@ function formatOutput(
   return [
     "Hreflang Validation Summary",
     "---------------------------",
-    `Score: ${result.score}/100`,
+    `Review score (heuristic): ${result.score}/100`,
     `Total tags: ${result.totalTags}`,
     `x-default entries: ${result.xDefaultCount}`,
     `Duplicate hreflang values: ${result.duplicateHreflangCount}`,
@@ -1188,8 +1232,31 @@ function formatOutput(
   ].join("\n");
 }
 
+function isAbsoluteHttpUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function normalizeUrl(value: string) {
-  return value.trim().replace(/\/$/, "");
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    parsed.hash = "";
+    const normalized = parsed.toString();
+    return normalized.endsWith("/") && parsed.pathname === "/" && !parsed.search
+      ? normalized.slice(0, -1)
+      : normalized.replace(/\/$/, "");
+  } catch {
+    return trimmed.replace(/\/$/, "");
+  }
 }
 
 function csvEscape(value: string) {
@@ -1211,7 +1278,7 @@ function getHreflangNotes(result: ValidationResult): HreflangNote[] {
     notes.push({
       title: "No x-default found",
       message:
-        "x-default is not required for every site, but it is useful when you have a default or language selector page.",
+        "x-default is not required for every site, but it can serve as the fallback for unmatched languages or a language selector page.",
     });
   }
 
@@ -1227,14 +1294,14 @@ function getHreflangNotes(result: ValidationResult): HreflangNote[] {
     notes.push({
       title: "Clean hreflang set",
       message:
-        "Only minor or no common hreflang issues were found in the pasted markup.",
+        "Only minor or no common hreflang issues were found by the local heuristic. Live reciprocal links and indexability still need separate checks.",
     });
   }
 
   notes.push({
     title: "Reciprocal tags need crawling",
     message:
-      "This tool checks the tags you paste. It does not crawl alternate URLs to confirm live reciprocal hreflang tags.",
+      "The pasted markup is checked locally; alternate URLs are not crawled to confirm live reciprocal hreflang tags.",
   });
 
   return notes;

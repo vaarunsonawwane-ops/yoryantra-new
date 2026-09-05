@@ -126,12 +126,15 @@ export default function ToolClient() {
       return;
     }
 
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-
-    window.setTimeout(() => {
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
       setCopied(false);
-    }, 1400);
+      setError("The browser could not copy the report. Select the output and copy it manually.");
+    }
   };
 
   const loadExample = () => {
@@ -169,14 +172,15 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Image Alt Text Checker"
-      description="Check image alt text from HTML. Find missing alt attributes, empty alt text, long alt text, duplicate alt text, file-name-like alt text, lazy loading, dimensions, and image SEO issues."
+      description="Check image alt text, missing alt attributes, duplicate alt text, long alt text, dimensions, and image SEO issues."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
+        <label htmlFor="alt-html-input" className="block mb-2 text-sm font-medium text-gray-700">
           HTML or Image List
         </label>
 
         <textarea
+          id="alt-html-input"
           value={input}
           onChange={(event) => {
             setInput(event.target.value);
@@ -190,8 +194,7 @@ export default function ToolClient() {
         />
 
         <p className="mt-2 text-sm text-gray-500">
-          Paste HTML with image tags, copied template markup, or one image URL
-          per line when using image list mode.
+          Paste HTML with image tags for alt analysis. URL inventory mode only lists image sources; a URL by itself does not contain HTML alt text.
         </p>
       </div>
 
@@ -213,7 +216,7 @@ export default function ToolClient() {
             }}
             options={[
               { label: "HTML image tags", value: "html" },
-              { label: "Image URL list", value: "imageList" },
+              { label: "Image URL inventory", value: "imageList" },
             ]}
           />
 
@@ -348,36 +351,42 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={checkImages} className="yoryantra-btn">
+        <button onClick={checkImages} className="yoryantra-btn shrink-0 whitespace-nowrap">
           Check Alt Text
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn shrink-0 whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline shrink-0 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline shrink-0 whitespace-nowrap">
           Reset
         </button>
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       )}
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Score" value={`${result.score}/100`} />
+          <SummaryCard label="Review score" value={`${result.score}/100`} />
           <SummaryCard label="Images" value={result.totalImages.toLocaleString()} />
           <SummaryCard label="Missing Alt" value={result.missingAltCount.toLocaleString()} />
           <SummaryCard label="Issues" value={result.issues.length.toLocaleString()} />
         </div>
+      )}
+
+      {result && (
+        <p className="mt-3 text-xs leading-relaxed text-gray-500">
+          Review score is a local heuristic for triage. It is not a WCAG conformance score or a Google ranking metric.
+        </p>
       )}
 
       {result && result.images.length > 0 && (
@@ -443,42 +452,32 @@ export default function ToolClient() {
         </div>
       )}
 
-      {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Image findings
-          </h3>
+      {result && result.issues.some((issue) => issue.severity === "high") && (
+        <AltFindingGroup title="Missing alternatives" issues={result.issues.filter((issue) => issue.severity === "high")} tone="error" />
+      )}
 
-          <div className="mt-3 space-y-3">
-            {result.issues.slice(0, 12).map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {issue.title}
-                </p>
+      {result && result.issues.some((issue) => issue.severity === "warning") && (
+        <AltFindingGroup title="Alt text cautions" issues={result.issues.filter((issue) => issue.severity === "warning")} tone="warning" />
+      )}
 
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {issue.message}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+      {result && result.issues.some((issue) => issue.severity === "info") && (
+        <AltFindingGroup title="Markup review notes" issues={result.issues.filter((issue) => issue.severity === "info")} tone="info" />
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">
             Alt text notes
           </h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">
+                <p className="text-sm font-semibold text-gray-900">
                   {note.title}
                 </p>
 
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">
+                <p className="mt-1 text-sm leading-relaxed text-gray-700">
                   {note.message}
                 </p>
               </div>
@@ -494,200 +493,124 @@ export default function ToolClient() {
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline shrink-0 whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
           {output || "Image alt text output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Image alt text analysis happens directly in your browser. Your HTML is
-        not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        HTML parsing runs in this page. The code does not send pasted markup to an image or accessibility analysis API.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Checking Image Alt Text for SEO and Accessibility
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Alt text depends on what the image means here</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Image alt text helps screen readers describe meaningful images and
-            gives search engines more context about image content. Missing or
-            unclear alt text can make a page harder to understand, especially
-            when images support the main content.
+            Alternative text is a replacement for an image's meaning or function in its current context. A product photo, chart, icon button, decorative divider, and repeated logo do not need the same kind of wording. Filling every alt attribute with descriptive keywords can make accessibility worse rather than better.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Image Alt Text Checker scans pasted HTML and reports missing
-            alt attributes, empty alt text, duplicate alt text, long alt text,
-            file-name-like alt text, missing image dimensions, and lazy loading
-            notes.
+            HTML mode identifies missing attributes, empty alternatives, repeated wording, filename-like text, and supporting markup such as dimensions and loading. It cannot decide from markup alone whether an image is truly decorative or whether the wording conveys the right meaning.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Reviewing Image Alt Attributes
-          </h2>
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="text-xl font-semibold text-amber-950">Empty alt can be the correct answer</h2>
+            <p className="mt-3 text-sm leading-relaxed text-amber-900">
+              Purely decorative or redundant images are commonly marked alt="" so assistive technology can ignore them. The surrounding context decides whether that empty value is appropriate.
+            </p>
+          </div>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">Length is not a compliance limit</h2>
+            <p className="mt-3 text-sm leading-relaxed text-gray-700">
+              The selected length threshold is only an editorial prompt to review unusually long text. Neither HTML nor WCAG defines one universal maximum number of characters for alt text.
+            </p>
+          </div>
+        </div>
 
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">A better review sequence for image alternatives</h2>
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste HTML from a page, template, CMS editor, or copied source.</li>
-            <li>Choose HTML input or image URL list input.</li>
-            <li>Set checking style and optional warnings.</li>
-            <li>Run the checker and review each image result.</li>
-            <li>Fix missing, unclear, duplicated, or file-name-like alt text.</li>
+            <li>Paste the rendered or template HTML that contains the image elements.</li>
+            <li>Start with missing alt attributes, then decide whether each image is informative, functional, decorative, redundant, or complex.</li>
+            <li>For informative images, write the replacement meaning needed in that page context.</li>
+            <li>For linked or button images, describe the action or destination rather than the pixels.</li>
+            <li>For charts and diagrams, make the important data available in surrounding text or a longer description as well.</li>
           </ol>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Image Alt Text Checker Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Finding images with missing alt attributes before publishing.</li>
-            <li>Checking whether meaningful images have descriptive alt text.</li>
-            <li>Finding alt text that only repeats the image file name.</li>
-            <li>Reviewing product, blog, documentation, and landing page images.</li>
-            <li>Checking image dimensions and loading attributes in templates.</li>
-            <li>Preparing cleaner HTML for SEO and accessibility reviews.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">SEO checks and accessibility checks overlap, but they are not identical</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Google recommends descriptive alt text as part of image SEO because it helps understand an image in context. Accessibility guidance is broader: the alternative must serve the equivalent purpose for people who cannot use the image visually. Keyword repetition is not a substitute for either goal.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Google's <a href="https://developers.google.com/search/docs/appearance/google-images" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">Image SEO guidance</a>, the <a href="https://www.w3.org/WAI/tutorials/images/decision-tree/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">W3C WAI alt decision tree</a>, and the <a href="https://html.spec.whatwg.org/multipage/images.html#alt" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">HTML alt requirements</a> cover different parts of that decision.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Image Markup
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`<img
-  src="/images/json-formatter-preview.png"
-  alt="JSON formatter interface showing formatted JSON output"
-  width="1200"
-  height="630"
-  loading="lazy"
-/>`}
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900">What markup inspection cannot know</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="self-start rounded-xl border border-gray-200 bg-white p-5"><h3 className="font-semibold text-gray-900">Visible from HTML</h3><p className="mt-2 text-sm leading-relaxed text-gray-600">Whether alt exists, whether it is empty, repeated wording, filename-like wording, dimensions, loading, title text, and source attributes.</p></div>
+            <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5"><h3 className="font-semibold text-amber-950">Needs human context</h3><p className="mt-2 text-sm leading-relaxed text-amber-900">Whether an image is decorative, whether a chart needs a longer text equivalent, whether nearby text already conveys the same information, and whether the alternative describes function rather than appearance.</p></div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Empty Alt Text Can Be Correct
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Not every image needs descriptive alt text. Decorative icons, dividers,
-            and purely visual flourishes can use empty alt text so screen readers
-            do not announce unnecessary content.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The goal is not to fill every alt attribute with keywords. The goal is
-            to describe meaningful images naturally and leave decorative images
-            quiet when appropriate.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Alt text decisions worth checking twice</h2>
           <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does an Image Alt Text Checker do?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It scans image tags and reports missing alt attributes, empty alt
-                text, duplicate alt text, long alt text, and other image markup
-                issues.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should every image have alt text?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Every image should have an alt attribute, but decorative images
-                can use an empty alt value.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is alt text important for SEO?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Helpful alt text can improve image understanding and accessibility.
-                It should describe the image naturally, not stuff keywords.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this check image URLs only?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Use image URL list mode to review image sources, though HTML
-                mode gives better alt attribute details.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my HTML uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The checker runs directly in your browser.
-              </p>
-            </div>
+            <div><h3 className="font-semibold text-gray-900">Should every img have non-empty alt text?</h3><p className="mt-2 text-gray-600 leading-relaxed">No. Decorative images commonly use an empty alt value. Missing the alt attribute entirely is a different case and normally deserves review.</p></div>
+            <div><h3 className="font-semibold text-gray-900">Can a filename be a good alternative?</h3><p className="mt-2 text-gray-600 leading-relaxed">Usually not. A filename rarely conveys the image's purpose or meaning for someone who cannot see it.</p></div>
+            <div><h3 className="font-semibold text-gray-900">Can URL inventory mode judge alt text?</h3><p className="mt-2 text-gray-600 leading-relaxed">No. The alt attribute belongs to the HTML that embeds the image, not to the image URL itself. URL mode is therefore only a source inventory.</p></div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/heading-structure-checker" className="yoryantra-btn-outline">
-              Heading Structure Checker
-            </Link>
-
-            <Link href="/tools/meta-tags-checker" className="yoryantra-btn-outline">
-              Meta Tags Checker
-            </Link>
-
-            <Link href="/tools/serp-snippet-preview-tool" className="yoryantra-btn-outline">
-              SERP Snippet Preview Tool
-            </Link>
-
-            <Link href="/tools/open-graph-preview-checker" className="yoryantra-btn-outline">
-              Open Graph Preview Checker
-            </Link>
-
-            <Link href="/tools/structured-data-validator" className="yoryantra-btn-outline">
-              Structured Data Validator
-            </Link>
+            <Link href="/tools/heading-structure-checker" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Heading Structure Checker</Link>
+            <Link href="/tools/meta-tags-checker" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Meta Tags Checker</Link>
+            <Link href="/tools/serp-snippet-preview-tool" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">SERP Snippet Preview Tool</Link>
+            <Link href="/tools/open-graph-preview-checker" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Open Graph Preview Checker</Link>
+            <Link href="/tools/structured-data-validator" className="yoryantra-btn-outline shrink-0 whitespace-nowrap">Structured Data Validator</Link>
           </div>
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function AltFindingGroup({
+  title,
+  issues,
+  tone,
+}: {
+  title: string;
+  issues: ImageIssue[];
+  tone: "error" | "warning" | "info";
+}) {
+  const classes = tone === "error"
+    ? "border-red-200 bg-red-50 text-red-800"
+    : tone === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
+      : "border-gray-200 bg-gray-50 text-gray-700";
+  const shownIssues = issues.slice(0, 20);
+  const hiddenCount = Math.max(0, issues.length - shownIssues.length);
+  return (
+    <div role={tone === "error" ? "alert" : undefined} className={`mt-6 rounded-xl border p-4 ${classes}`}>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <div className="mt-3 space-y-3">
+        {shownIssues.map((issue, index) => <div key={`${issue.title}-${index}`}><p className="text-sm font-semibold">{issue.title}</p><p className="mt-1 text-sm leading-relaxed">{issue.message}</p></div>)}
+      </div>
+      {hiddenCount > 0 && <p className="mt-3 text-xs leading-relaxed opacity-80">{hiddenCount.toLocaleString()} more finding{hiddenCount === 1 ? "" : "s"} are included in the copied report.</p>}
+    </div>
   );
 }
 
@@ -730,19 +653,33 @@ function analyzeImageAltText(
   const withFlags = markDuplicateAlts(images);
   const checkedImages = withFlags.map((image) => ({
     ...image,
-    issues: getImageIssues(image, options),
+    issues: options.inputMode === "html"
+      ? getImageIssues(image, options)
+      : getImageInventoryIssues(image),
   }));
-  const issues = checkedImages.flatMap((image) =>
-    image.issues.map((issue) => ({
-      ...issue,
-      title: `Image ${image.order}: ${issue.title}`,
-    }))
-  );
-  const missingAltCount = checkedImages.filter((image) => !image.hasAltAttribute).length;
-  const emptyAltCount = checkedImages.filter((image) => image.hasAltAttribute && !image.alt).length;
-  const duplicateAltCount = checkedImages.filter((image) => image.duplicateAlt).length;
+  const issues: ImageIssue[] = [];
+  checkedImages.forEach((image) => {
+    image.issues.forEach((issue) => {
+      issues.push({
+        ...issue,
+        title: `Image ${image.order}: ${issue.title}`,
+      });
+    });
+  });
+
+  if (options.inputMode === "imageList") {
+    issues.push({
+      severity: "info",
+      title: "URL inventory cannot expose alt attributes",
+      message: "An image URL does not contain the alt attribute from the HTML that embeds it. Paste HTML for alt-text review.",
+    });
+  }
+  const isHtmlMode = options.inputMode === "html";
+  const missingAltCount = isHtmlMode ? checkedImages.filter((image) => !image.hasAltAttribute).length : 0;
+  const emptyAltCount = isHtmlMode ? checkedImages.filter((image) => image.hasAltAttribute && !image.alt).length : 0;
+  const duplicateAltCount = isHtmlMode ? checkedImages.filter((image) => image.duplicateAlt).length : 0;
   const longAltLimit = getLongAltLimit(options.checkStyle);
-  const longAltCount = checkedImages.filter((image) => image.altLength > longAltLimit).length;
+  const longAltCount = isHtmlMode ? checkedImages.filter((image) => image.altLength > longAltLimit).length : 0;
   const score = calculateScore(issues);
   const base = {
     images: checkedImages,
@@ -839,6 +776,14 @@ function markDuplicateAlts(images: ImageItem[]) {
   }));
 }
 
+function getImageInventoryIssues(image: ImageItem): ImageIssue[] {
+  if (!image.src) {
+    return [{ severity: "warning", title: "Missing image source", message: "The inventory line is empty or could not be interpreted as an image source." }];
+  }
+
+  return [];
+}
+
 function getImageIssues(
   image: ImageItem,
   options: {
@@ -865,7 +810,7 @@ function getImageIssues(
     issues.push({
       severity: "high",
       title: "Missing alt attribute",
-      message: "Every image should have an alt attribute, even if the value is empty for a decorative image.",
+      message: "An authored img element normally needs an alt attribute. Decorative images generally use alt=\"\"; omission is reserved for narrow cases and should be reviewed.",
     });
   }
 
@@ -881,7 +826,7 @@ function getImageIssues(
     issues.push({
       severity: "info",
       title: "Long alt text",
-      message: `The alt text is longer than ${longAltLimit} characters. Keep it clear and useful.`,
+      message: `The alt text is longer than the ${longAltLimit}-character editorial review threshold selected here. HTML and WCAG do not define a universal maximum.`,
     });
   }
 
@@ -921,7 +866,7 @@ function getImageIssues(
     issues.push({
       severity: "info",
       title: "Title repeats alt text",
-      message: "The title attribute repeats the alt text. It may not add useful value.",
+      message: "The title attribute repeats the alt text and may add no additional information.",
     });
   }
 
@@ -954,9 +899,9 @@ function calculateScore(issues: ImageIssue[]) {
       score -= 25;
     } else if (issue.severity === "warning") {
       score -= 12;
-    } else {
-      score -= 4;
     }
+    // Informational notes do not reduce the heuristic score.
+
   });
 
   return Math.max(0, score);
@@ -1032,7 +977,7 @@ function formatOutput(
   return [
     "Image Alt Text Summary",
     "----------------------",
-    `Score: ${result.score}/100`,
+    `Review score (heuristic): ${result.score}/100`,
     `Total images: ${result.totalImages}`,
     `Missing alt attributes: ${result.missingAltCount}`,
     `Empty alt values: ${result.emptyAltCount}`,
@@ -1088,7 +1033,7 @@ function getAltNotes(result: AltResult): AltNote[] {
     notes.push({
       title: "Empty alt text found",
       message:
-        "Empty alt text is fine for decorative images, but meaningful images should have useful descriptions.",
+        "Empty alt text is appropriate for decorative or redundant images; informative and functional images need an alternative that conveys their purpose or meaning.",
     });
   }
 
