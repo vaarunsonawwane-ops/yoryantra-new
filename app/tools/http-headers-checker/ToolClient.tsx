@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import ToolShell from "@/app/components/ToolShell";
 
@@ -15,8 +15,15 @@ export default function ToolClient() {
   const [finalUrl, setFinalUrl] = useState("");
   const [headers, setHeaders] = useState<HeaderRow[]>([]);
   const [error, setError] = useState("");
+  const [warning, setWarning] = useState("");
   const [loading, setLoading] = useState(false);
+  const [redirected, setRedirected] = useState(false);
+  const [copied, setCopied] = useState(false);
   const activeRequest = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => activeRequest.current?.abort();
+  }, []);
 
   const normalizeUrl = (value: string) => {
     const trimmed = value.trim();
@@ -41,6 +48,11 @@ export default function ToolClient() {
       throw new Error("Only HTTP and HTTPS URLs are supported.");
     }
 
+    if (parsed.username || parsed.password) {
+      throw new Error("URLs containing embedded usernames or passwords are not supported.");
+    }
+
+    parsed.hash = "";
     return parsed.toString();
   };
 
@@ -52,9 +64,12 @@ export default function ToolClient() {
 
     setLoading(true);
     setError("");
+    setWarning("");
+    setCopied(false);
     setStatusCode("");
     setFinalUrl("");
     setHeaders([]);
+    setRedirected(false);
 
     const timeoutId = window.setTimeout(
       () => controller.abort(),
@@ -80,13 +95,18 @@ export default function ToolClient() {
       );
       setFinalUrl(response.url || targetUrl);
       setHeaders(headerRows);
+      setRedirected(response.redirected);
 
       if (!headerRows.length) {
-        setError(
-          "The request completed, but the browser did not expose any response headers. Cross-origin response rules may be limiting access."
+        setWarning(
+          "The request completed, but no response headers were exposed to page JavaScript. Cross-origin response rules may be limiting what the browser reveals."
         );
       }
     } catch (err) {
+      if (activeRequest.current !== controller) {
+        return;
+      }
+
       setError(
         err instanceof DOMException && err.name === "AbortError"
           ? "The request timed out after 12 seconds."
@@ -113,20 +133,60 @@ export default function ToolClient() {
     setFinalUrl("");
     setHeaders([]);
     setError("");
+    setWarning("");
     setLoading(false);
+    setRedirected(false);
+    setCopied(false);
   };
 
-  const copyHeaders = () => {
+  const loadExample = () => {
+    activeRequest.current?.abort();
+    activeRequest.current = null;
+    setUrl("https://example.com/");
+    setStatusCode("");
+    setFinalUrl("");
+    setHeaders([]);
+    setError("");
+    setWarning("");
+    setLoading(false);
+    setRedirected(false);
+    setCopied(false);
+  };
+
+  const handleUrlChange = (value: string) => {
+    activeRequest.current?.abort();
+    activeRequest.current = null;
+    setUrl(value);
+    setStatusCode("");
+    setFinalUrl("");
+    setHeaders([]);
+    setError("");
+    setWarning("");
+    setLoading(false);
+    setRedirected(false);
+    setCopied(false);
+  };
+
+  const copyHeaders = async () => {
     const output = [
       statusCode ? `Status: ${statusCode}` : "",
       finalUrl ? `Final URL: ${finalUrl}` : "",
+      `Redirect followed: ${redirected ? "yes" : "no"}`,
       "",
       ...headers.map((header) => `${header.name}: ${header.value}`),
     ]
       .filter(Boolean)
       .join("\n");
 
-    navigator.clipboard.writeText(output);
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("Clipboard access was blocked. Select the results and copy them manually.");
+      setCopied(false);
+    }
   };
 
   const hasResults = statusCode || headers.length > 0;
@@ -134,18 +194,19 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HTTP Headers Checker"
-      description="Inspect browser-visible HTTP response headers, the final status, final URL, cache directives, content type, and security-related headers."
+      description="Inspect browser-visible response headers, final status and URL, caching, content type, and security-related fields."
     >
       {/* INPUT */}
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
+        <label htmlFor="headers-url" className="block mb-2 text-sm font-medium text-gray-700">
           Website URL
         </label>
 
         <input
+          id="headers-url"
           type="url"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={(e) => handleUrlChange(e.target.value)}
           placeholder="https://example.com"
           className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
         />
@@ -156,7 +217,7 @@ export default function ToolClient() {
         <button
           onClick={checkHeaders}
           disabled={loading}
-          className="yoryantra-btn"
+          className="yoryantra-btn shrink-0 whitespace-nowrap"
         >
           {loading ? "Checking..." : "Check Headers"}
         </button>
@@ -164,14 +225,21 @@ export default function ToolClient() {
         <button
           onClick={copyHeaders}
           disabled={!hasResults}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
-          Copy Results
+          {copied ? "Copied" : "Copy Results"}
+        </button>
+
+        <button
+          onClick={loadExample}
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
+        >
+          Load Example
         </button>
 
         <button
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline shrink-0 whitespace-nowrap"
         >
           Reset
         </button>
@@ -179,8 +247,14 @@ export default function ToolClient() {
 
       {/* ERROR */}
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
+        </div>
+      )}
+
+      {warning && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+          {warning}
         </div>
       )}
 
@@ -195,8 +269,8 @@ export default function ToolClient() {
   {hasResults ? (
     <div className="yoryantra-output">
       <div className="space-y-5">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="grid items-start gap-4 md:grid-cols-3">
+          <div className="self-start rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
               Status Code
             </p>
@@ -206,13 +280,23 @@ export default function ToolClient() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="self-start rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
               Final URL
             </p>
 
             <p className="mt-2 break-words text-sm text-gray-700">
               {finalUrl || "Not available"}
+            </p>
+          </div>
+
+          <div className="self-start rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Redirect Followed
+            </p>
+
+            <p className="mt-2 text-lg font-semibold text-gray-900">
+              {redirected ? "Yes" : "No"}
             </p>
           </div>
         </div>
@@ -252,159 +336,119 @@ export default function ToolClient() {
       </div>
     </div>
   ) : (
-    <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
+    <pre className="yoryantra-output overflow-auto text-sm min-h-[180px] whitespace-pre-wrap break-words">
       HTTP response headers will appear here after checking a URL.
     </pre>
   )}
 </div>
 
       {/* IMPORTANT NOTE */}
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
-          Browser Request Note
+      <div className="mt-8 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-amber-900">
+          The target site receives a real browser request
         </h3>
 
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          This checker sends a browser request to the URL you enter. The target
-          site receives that request, and CORS rules decide which headers the
-          browser exposes. A failed or incomplete result does not prove the site
-          is offline or missing those headers. Redirect chains and non-exposed
-          response details require a server-side checker.
+        <p className="mt-2 text-sm leading-relaxed text-amber-800">
+          Checking a URL sends a GET request from your browser to that site. CORS
+          decides whether page JavaScript may read the response, and a failed
+          cross-origin check does not prove that the site is down or missing a
+          header. Avoid testing confidential internal URLs from a shared screen
+          or environment.
         </p>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Inspecting Browser-Visible HTTP Response Headers
+            A browser can see only part of an HTTP response
           </h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Response headers can describe content type, caching, browser
-            security policies, server behaviour, and the final response status.
-            They are useful while debugging websites, APIs, CDN behaviour, and
-            technical SEO issues.
+            Fetch exposes the final response only when the browser permits the
+            page to read it. On cross-origin requests, CORS-safelisted response
+            fields are available by default and other fields generally need
+            <code className="mx-1">Access-Control-Expose-Headers</code>. Some
+            response fields are never exposed to frontend JavaScript.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool shows only the headers that the browser is allowed to
-            expose for the final response. It does not display the complete
-            redirect chain, hidden cross-origin headers, request headers, or
-            server-side network details.
+            <code className="mx-1">Set-Cookie</code> is a forbidden response
+            header name in the Fetch model, so its absence here says nothing
+            about whether the server sent cookies. Repeated field lines may also
+            be combined by the browser&apos;s Headers interface.
+          </p>
+        </div>
+
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Read status and final URL together
+            </h2>
+            <p className="mt-3 text-gray-600 leading-relaxed">
+              Fetch follows redirects in this check. A changed final URL confirms
+              that at least one redirect was followed, but the intermediate hops,
+              status codes, and Location fields are not preserved in the result.
+              Use a redirect-chain trace when those hops matter.
+            </p>
+          </div>
+
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Headers make more sense in groups
+            </h2>
+            <p className="mt-3 text-gray-600 leading-relaxed">
+              Read Cache-Control with Age, Expires, ETag, Last-Modified, and Vary;
+              read Content-Type with Content-Encoding; and review CSP, HSTS,
+              framing, referrer, and permissions policies as separate security
+              controls rather than a single pass/fail score.
+            </p>
+          </div>
+        </div>
+
+        <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-amber-900">
+            Missing from the table does not always mean missing on the wire
+          </h2>
+          <p className="mt-3 text-amber-800 leading-relaxed">
+            CORS can hide non-safelisted fields from JavaScript even when the
+            server returned them. Mixed-content rules, private-network policies,
+            extensions, authentication, and redirects can also change what a
+            browser request can reach. Confirm uncertain cases with DevTools,
+            curl, or a server-side HTTP client you control.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the HTTP Headers Checker
+            What the check can and cannot establish
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter the website URL you want to inspect.</li>
-            <li>Click <strong>Check Headers</strong>.</li>
-            <li>Review the status code, final URL, and returned headers.</li>
-            <li>Copy the results if you need to save or share them.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Headers Commonly Checked
-          </h2>
-
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Status codes such as 200, 301, 302, 404, and 500.</li>
-            <li>Cache headers like Cache-Control, Expires, and ETag.</li>
-            <li>Content-Type and charset values.</li>
-            <li>The final URL after browser-followed redirects.</li>
-            <li>Security headers such as CSP, HSTS, X-Frame-Options, and Referrer-Policy.</li>
-            <li>Server and platform-related response details.</li>
+            <li>Shows the browser-exposed fields from the final GET response.</li>
+            <li>Shows the final status and URL after browser-followed redirects.</li>
+            <li>Does not prove a hidden security header is absent.</li>
+            <li>Does not show request headers, TLS certificate details, DNS, or the complete redirect chain.</li>
+            <li>Does not validate whether a present security policy is appropriate for the application.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Why HTTP Headers Matter
+            Protocol and browser references
           </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>SEO debugging:</strong>{" "}
-                Final status, final URL, content type, and caching can help explain crawl or delivery problems. Canonical tags are HTML signals and are not confirmed by this tool.
-              </li>
-
-              <li>
-                <strong>Security review:</strong>{" "}
-                Headers such as Content-Security-Policy and Strict-Transport-Security help reduce common browser-side risks.
-              </li>
-
-              <li>
-                <strong>Performance checks:</strong>{" "}
-                Cache headers affect how browsers and CDNs store assets and page responses.
-              </li>
-
-              <li>
-                <strong>API debugging:</strong>{" "}
-                Response headers can explain content types, allowed methods, caching rules, and server behavior.
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What are HTTP headers?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                HTTP headers are key-value pairs sent with requests and
-                responses. They describe server behavior, content type, caching,
-                security policies, redirects, and other response details.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why does some URL checking fail?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                This tool runs in the browser, so some websites may block
-                cross-origin requests. A failed browser check does not always
-                mean the site is offline.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this check security headers?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It can display security-related headers only when the browser
-                exposes them. Their presence does not prove that the complete
-                application security configuration is correct.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this useful for technical SEO?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. HTTP status codes, redirects, caching, and response headers
-                are important parts of technical SEO debugging.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            RFC 9110 defines HTTP field and status semantics. MDN documents the
+            browser-side CORS exposure rules and the special treatment of
+            Set-Cookie in Fetch. Those browser boundaries are why a frontend
+            header check cannot replace a server-side trace.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a href="https://www.rfc-editor.org/rfc/rfc9110.html" target="_blank" rel="noreferrer" className="yoryantra-btn-outline whitespace-nowrap">
+              RFC 9110 HTTP Semantics
+            </a>
+            <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Access-Control-Expose-Headers" target="_blank" rel="noreferrer" className="yoryantra-btn-outline whitespace-nowrap">
+              MDN header exposure
+            </a>
+            <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie" target="_blank" rel="noreferrer" className="yoryantra-btn-outline whitespace-nowrap">
+              MDN Set-Cookie
+            </a>
           </div>
         </div>
 
@@ -412,8 +456,9 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/http-headers-checker" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/http-headers-checker" />
+          </div>
         </div>
       </section>
     </ToolShell>

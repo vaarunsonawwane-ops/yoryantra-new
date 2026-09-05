@@ -24,6 +24,7 @@ type RobotsResult = {
 };
 
 type RobotsNote = {
+  tone: "warning" | "info";
   title: string;
   message: string;
 };
@@ -48,10 +49,10 @@ const useCasePresets: Record<PageUseCase, {
   },
   private: {
     indexMode: "noindex",
-    followMode: "nofollow",
-    noarchive: true,
-    nosnippet: true,
-    noimageindex: true,
+    followMode: "follow",
+    noarchive: false,
+    nosnippet: false,
+    noimageindex: false,
     notranslate: false,
     unavailableAfter: false,
   },
@@ -67,7 +68,7 @@ const useCasePresets: Record<PageUseCase, {
   thin: {
     indexMode: "noindex",
     followMode: "follow",
-    noarchive: true,
+    noarchive: false,
     nosnippet: false,
     noimageindex: false,
     notranslate: false,
@@ -76,7 +77,7 @@ const useCasePresets: Record<PageUseCase, {
   staging: {
     indexMode: "noindex",
     followMode: "nofollow",
-    noarchive: true,
+    noarchive: false,
     nosnippet: true,
     noimageindex: true,
     notranslate: false,
@@ -85,7 +86,7 @@ const useCasePresets: Record<PageUseCase, {
   pdf: {
     indexMode: "noindex",
     followMode: "follow",
-    noarchive: true,
+    noarchive: false,
     nosnippet: false,
     noimageindex: false,
     notranslate: false,
@@ -101,8 +102,8 @@ export default function ToolClient() {
   const [snippetMode, setSnippetMode] = useState<SnippetMode>("default");
   const [imagePreviewMode, setImagePreviewMode] = useState<ImagePreviewMode>("default");
   const [videoPreviewMode, setVideoPreviewMode] = useState<VideoPreviewMode>("default");
-  const [maxSnippet, setMaxSnippet] = useState("160");
-  const [maxVideoPreview, setMaxVideoPreview] = useState("30");
+  const [maxSnippet, setMaxSnippet] = useState("");
+  const [maxVideoPreview, setMaxVideoPreview] = useState("");
   const [unavailableAfterDate, setUnavailableAfterDate] = useState("");
   const [noarchive, setNoarchive] = useState(false);
   const [noimageindex, setNoimageindex] = useState(false);
@@ -132,11 +133,18 @@ export default function ToolClient() {
     setOutput("");
     setError("");
     setCopied(false);
+
+    if (useCase === "pdf") {
+      setOutputMode("header");
+      setIncludeGooglebot(false);
+      setIncludeBingbot(false);
+    }
   };
 
   const generateRobotsTag = () => {
     try {
       const nextResult = buildRobotsDirectives({
+        pageUseCase,
         indexMode,
         followMode,
         outputMode,
@@ -175,12 +183,15 @@ export default function ToolClient() {
       return;
     }
 
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-
-    window.setTimeout(() => {
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("Clipboard access was blocked. Select the output and copy it manually.");
       setCopied(false);
-    }, 1400);
+    }
   };
 
   const loadExample = () => {
@@ -189,8 +200,8 @@ export default function ToolClient() {
     setSnippetMode("default");
     setImagePreviewMode("default");
     setVideoPreviewMode("default");
-    setMaxSnippet("160");
-    setMaxVideoPreview("30");
+    setMaxSnippet("");
+    setMaxVideoPreview("");
     setUnavailableAfterDate("");
     setIncludeGooglebot(false);
     setIncludeBingbot(false);
@@ -204,8 +215,8 @@ export default function ToolClient() {
     setSnippetMode("default");
     setImagePreviewMode("default");
     setVideoPreviewMode("default");
-    setMaxSnippet("160");
-    setMaxVideoPreview("30");
+    setMaxSnippet("");
+    setMaxVideoPreview("");
     setUnavailableAfterDate("");
     setNoarchive(false);
     setNoimageindex(false);
@@ -222,7 +233,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Meta Robots Tag Generator"
-      description="Generate meta robots tags and X-Robots-Tag header values for indexing, following links, snippets, images, archives, translations, and search preview controls."
+      description="Build robots meta and X-Robots-Tag directives for indexing, link following, snippets, previews, and expiry."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
@@ -235,12 +246,12 @@ export default function ToolClient() {
             value={pageUseCase}
             onChange={(value) => applyUseCase(value as PageUseCase)}
             options={[
-              { label: "Normal public page", value: "normal" },
-              { label: "Private or internal page", value: "private" },
-              { label: "Duplicate page", value: "duplicate" },
-              { label: "Thin or temporary page", value: "thin" },
-              { label: "Staging page", value: "staging" },
-              { label: "PDF or file response", value: "pdf" },
+              { label: "Public page (default)", value: "normal" },
+              { label: "Search exclusion (not access control)", value: "private" },
+              { label: "Duplicate URL (review canonical)", value: "duplicate" },
+              { label: "Temporary page", value: "thin" },
+              { label: "Staging page (also protect access)", value: "staging" },
+              { label: "PDF or non-HTML file", value: "pdf" },
             ]}
           />
 
@@ -248,7 +259,14 @@ export default function ToolClient() {
             label="Output"
             value={outputMode}
             onChange={(value) => {
-              setOutputMode(value as OutputMode);
+              const nextMode = value as OutputMode;
+              setOutputMode(nextMode);
+
+              if (nextMode === "header" || nextMode === "nextjs") {
+                setIncludeGooglebot(false);
+                setIncludeBingbot(false);
+              }
+
               setResult(null);
               setOutput("");
               setError("");
@@ -334,11 +352,13 @@ export default function ToolClient() {
 
           {snippetMode === "maxSnippet" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Max Snippet Characters
+              <label htmlFor="max-snippet" className="block text-sm font-medium text-gray-700">
+                Max Snippet Characters (-1 = no limit)
               </label>
 
               <input
+                id="max-snippet"
+                inputMode="numeric"
                 value={maxSnippet}
                 onChange={(event) => {
                   setMaxSnippet(event.target.value);
@@ -347,7 +367,7 @@ export default function ToolClient() {
                   setError("");
                   setCopied(false);
                 }}
-                placeholder="160"
+                placeholder="120 or -1"
                 className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
               />
             </div>
@@ -372,11 +392,13 @@ export default function ToolClient() {
 
           {videoPreviewMode === "seconds" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Max Video Preview Seconds
+              <label htmlFor="max-video-preview" className="block text-sm font-medium text-gray-700">
+                Max Video Preview Seconds (-1 = no limit)
               </label>
 
               <input
+                id="max-video-preview"
+                inputMode="numeric"
                 value={maxVideoPreview}
                 onChange={(event) => {
                   setMaxVideoPreview(event.target.value);
@@ -385,7 +407,7 @@ export default function ToolClient() {
                   setError("");
                   setCopied(false);
                 }}
-                placeholder="30"
+                placeholder="30 or -1"
                 className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
               />
             </div>
@@ -393,11 +415,12 @@ export default function ToolClient() {
 
           {unavailableAfter && (
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="unavailable-after" className="block text-sm font-medium text-gray-700">
                 Unavailable After Date
               </label>
 
               <input
+                id="unavailable-after"
                 value={unavailableAfterDate}
                 onChange={(event) => {
                   setUnavailableAfterDate(event.target.value);
@@ -426,7 +449,7 @@ export default function ToolClient() {
               className="h-4 w-4 accent-[var(--light-gold)]"
             />
 
-            noarchive
+            noarchive (Bing-supported; ignored by Google Search)
           </label>
 
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
@@ -480,67 +503,72 @@ export default function ToolClient() {
             unavailable_after
           </label>
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
-            <input
-              type="checkbox"
-              checked={includeGooglebot}
-              onChange={(event) => {
-                setIncludeGooglebot(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
-            />
+          {(outputMode === "meta" || outputMode === "both" || outputMode === "json") && (
+            <>
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={includeGooglebot}
+                  onChange={(event) => {
+                    setIncludeGooglebot(event.target.checked);
+                    setResult(null);
+                    setOutput("");
+                    setError("");
+                    setCopied(false);
+                  }}
+                  className="h-4 w-4 accent-[var(--light-gold)]"
+                />
 
-            Also generate googlebot-specific tag
-          </label>
+                Also generate googlebot-specific meta tag
+              </label>
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
-            <input
-              type="checkbox"
-              checked={includeBingbot}
-              onChange={(event) => {
-                setIncludeBingbot(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
-            />
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={includeBingbot}
+                  onChange={(event) => {
+                    setIncludeBingbot(event.target.checked);
+                    setResult(null);
+                    setOutput("");
+                    setError("");
+                    setCopied(false);
+                  }}
+                  className="h-4 w-4 accent-[var(--light-gold)]"
+                />
 
-            Also generate bingbot-specific tag
-          </label>
+                Also generate bingbot-specific meta tag
+              </label>
+            </>
+          )}
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Use noindex carefully. If a public page should appear in search, avoid
-          adding noindex accidentally.
+          A crawler must be able to fetch the URL to discover noindex. For
+          confidential or staging content, authentication or network access
+          control is still required; robots directives are not a security layer.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generateRobotsTag} className="yoryantra-btn">
+        <button onClick={generateRobotsTag} className="yoryantra-btn shrink-0 whitespace-nowrap">
           Generate Robots Tag
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn shrink-0 whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline shrink-0 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline shrink-0 whitespace-nowrap">
           Reset
         </button>
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       )}
@@ -572,24 +600,28 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Robots tag notes
-          </h3>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {notes.map((note) => {
+            const isWarning = note.tone === "warning";
 
-          <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-amber-900">
+            return (
+              <div
+                key={note.title}
+                className={
+                  isWarning
+                    ? "self-start rounded-xl border border-amber-200 bg-amber-50 p-4"
+                    : "self-start rounded-xl border border-gray-200 bg-gray-50 p-4"
+                }
+              >
+                <p className={isWarning ? "text-sm font-semibold text-amber-900" : "text-sm font-semibold text-gray-900"}>
                   {note.title}
                 </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                <p className={isWarning ? "mt-1 text-sm leading-relaxed text-amber-800" : "mt-1 text-sm leading-relaxed text-gray-600"}>
                   {note.message}
                 </p>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 
@@ -600,163 +632,143 @@ export default function ToolClient() {
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm shrink-0 whitespace-nowrap">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[300px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
           {output || "Generated meta robots output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Robots tag generation happens directly in your browser. Your settings
-        are not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Directive generation runs in the browser. The selected settings are not
+        sent to Yoryantra for processing.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Creating Meta Robots Tags for Search Indexing
+            Decide whether you are controlling indexing, previews, or both
           </h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A meta robots tag tells search engines how a page should be crawled,
-            indexed, and shown in search results. It can allow indexing, block
-            indexing, control link following, disable snippets, prevent image
-            indexing, or remove cached copies.
+            <code className="mx-1">noindex</code> controls whether a URL may
+            appear in supported search indexes. Preview directives such as
+            <code className="mx-1">nosnippet</code>,
+            <code className="mx-1">max-snippet</code>, and
+            <code className="mx-1">max-image-preview</code> control how much
+            content a crawler may show when the URL is otherwise eligible.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Meta Robots Tag Generator creates clean robots meta tags and
-            X-Robots-Tag header values for common SEO situations, including
-            duplicate pages, private pages, staging pages, temporary content, and
-            file responses.
+            Explicit <code className="mx-1">index, follow</code> values are
+            normally unnecessary because they are defaults for Google and Bing.
+            They remain available here when an explicit configuration is easier
+            to audit alongside other directives.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Generating a Robots Meta Tag
+        <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-amber-900">
+            noindex does not make confidential content private
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose the page use case or set indexing rules manually.</li>
-            <li>Select index/noindex and follow/nofollow behavior.</li>
-            <li>Add snippet, image, archive, translation, or expiry directives if needed.</li>
-            <li>Choose meta tag, X-Robots-Tag header, or framework output.</li>
-            <li>Copy the result into your page, server, CDN, or app code.</li>
-          </ol>
+          <p className="mt-3 text-amber-800 leading-relaxed">
+            Search directives are not authentication. A crawler must also be able
+            to fetch a URL to discover noindex, so blocking that same URL in
+            robots.txt can prevent the directive from being seen. Protect private
+            dashboards, staging sites, and sensitive files with access control.
+          </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Meta Robots Use Cases
-          </h2>
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">
+              HTML pages can use a robots meta element
+            </h2>
+            <p className="mt-3 text-gray-600 leading-relaxed">
+              Place the robots meta element in a valid HTML head. A crawler-specific
+              name such as googlebot or bingbot is only needed when that crawler
+              should receive rules different from the generic robots policy.
+            </p>
+          </div>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Allowing normal public pages to be indexed and followed.</li>
-            <li>Blocking duplicate, thin, internal, or temporary pages from search.</li>
-            <li>Adding noindex to staging pages before launch.</li>
-            <li>Generating X-Robots-Tag values for PDFs and file responses.</li>
-            <li>Controlling snippets, image previews, and cached copies.</li>
-            <li>Creating Next.js metadata robots settings.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Meta Robots Tag
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`<meta name="robots" content="noindex, follow, noarchive">`}
-            </pre>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Non-HTML resources need X-Robots-Tag
+            </h2>
+            <p className="mt-3 text-gray-600 leading-relaxed">
+              PDFs, images, and other non-HTML responses cannot carry an HTML meta
+              element. Send the equivalent rule as an HTTP X-Robots-Tag header and
+              verify the deployed response rather than only the application code.
+            </p>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Meta Robots vs robots.txt
+            Preview limits have special values
           </h2>
+          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
+            <li><code>max-snippet:0</code> suppresses a text snippet; <code>-1</code> means no limit.</li>
+            <li><code>max-video-preview:0</code> prevents a video preview; <code>-1</code> allows any available length.</li>
+            <li><code>max-image-preview</code> accepts <code>none</code>, <code>standard</code>, or <code>large</code>.</li>
+            <li><code>unavailable_after</code> needs a valid date/time; ISO 8601 is a clear choice for deployment.</li>
+          </ul>
+        </div>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            robots.txt controls crawling at the site or path level. A meta
-            robots tag controls indexing and search display behavior for a
-            specific HTML page. X-Robots-Tag does a similar job through HTTP
-            headers and is useful for PDFs, images, and other non-HTML files.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Be careful not to block crawling with robots.txt if search engines
-            need to see a noindex tag on the page. For many SEO workflows,
-            noindex should be visible to crawlers.
+        <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-amber-900">
+            noarchive now means different things across search engines
+          </h2>
+          <p className="mt-3 text-amber-800 leading-relaxed">
+            Google Search documents noarchive as an ignored historical rule after
+            removing its cached-link feature. Bing still documents noarchive and
+            nocache behavior. Keep it only when the crawler you care about still
+            supports it, and verify current documentation before relying on it.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Duplicate URLs usually need a canonical decision first
           </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A duplicate URL is not automatically a noindex candidate. If the goal
+            is to consolidate equivalent pages while keeping links and discovery
+            intact, review canonicalization and redirects before removing the URL
+            from search entirely.
+          </p>
+        </div>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a meta robots tag do?
-              </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Framework output preserves the full directive string
+          </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Next.js accepts the Metadata robots field as a string, so the generated
+            snippet keeps the selected generic directives together instead of
+            silently dropping preview or expiry settings. Identical crawler-specific
+            tags are redundant when the generic robots value already applies. Search
+            engines do not all support every directive, so check the crawler-specific
+            documentation when a rule is business-critical.
+          </p>
+        </div>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It tells search engines whether a page should be indexed, whether
-                links should be followed, and how the page may appear in search.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is the difference between noindex and nofollow?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                noindex asks search engines not to show the page in search
-                results. nofollow asks them not to follow links on the page.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                When should I use X-Robots-Tag?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Use X-Robots-Tag when you need robots directives in HTTP headers,
-                especially for PDFs, images, downloads, and non-HTML files.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should every page have index, follow?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Not always. Normal public pages can usually use index, follow or
-                no robots tag at all. Duplicate, private, thin, and staging pages
-                may need noindex.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I generate the tag?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The robots tag is generated directly in your browser.
-              </p>
-            </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Authoritative references
+          </h2>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a href="https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag" target="_blank" rel="noreferrer" className="yoryantra-btn-outline whitespace-nowrap">
+              Google robots directives
+            </a>
+            <a href="https://www.bing.com/webmasters/help/robots-meta-tags-and-attributes-that-bing-supports-5198d240" target="_blank" rel="noreferrer" className="yoryantra-btn-outline whitespace-nowrap">
+              Bing robots directives
+            </a>
+            <a href="https://nextjs.org/docs/app/api-reference/functions/generate-metadata" target="_blank" rel="noreferrer" className="yoryantra-btn-outline whitespace-nowrap">
+              Next.js Metadata
+            </a>
           </div>
         </div>
 
@@ -764,27 +776,12 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
           </h2>
-
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/robots-txt-generator" className="yoryantra-btn-outline">
-              Robots.txt Generator
-            </Link>
-
-            <Link href="/tools/robots-txt-validator" className="yoryantra-btn-outline">
-              Robots.txt Validator
-            </Link>
-
-            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline">
-              Canonical URL Checker
-            </Link>
-
-            <Link href="/tools/sitemap-generator" className="yoryantra-btn-outline">
-              Sitemap Generator
-            </Link>
-
-            <Link href="/tools/meta-tag-analyzer" className="yoryantra-btn-outline">
-              Meta Tag Analyzer
-            </Link>
+            <Link href="/tools/robots-txt-generator" className="yoryantra-btn-outline whitespace-nowrap">Robots.txt Generator</Link>
+            <Link href="/tools/robots-txt-validator" className="yoryantra-btn-outline whitespace-nowrap">Robots.txt Validator</Link>
+            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline whitespace-nowrap">Canonical URL Checker</Link>
+            <Link href="/tools/sitemap-generator" className="yoryantra-btn-outline whitespace-nowrap">Sitemap Generator</Link>
+            <Link href="/tools/meta-tags-checker" className="yoryantra-btn-outline whitespace-nowrap">Meta Tags Checker</Link>
           </div>
         </div>
       </section>
@@ -807,6 +804,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 }
 
 function buildRobotsDirectives({
+  pageUseCase,
   indexMode,
   followMode,
   outputMode,
@@ -823,6 +821,7 @@ function buildRobotsDirectives({
   includeGooglebot,
   includeBingbot,
 }: {
+  pageUseCase: PageUseCase;
   indexMode: IndexMode;
   followMode: FollowMode;
   outputMode: OutputMode;
@@ -848,13 +847,19 @@ function buildRobotsDirectives({
   }
 
   if (snippetMode === "maxSnippet") {
-    const value = Number(maxSnippet);
+    const rawValue = maxSnippet.trim();
 
-    if (!Number.isFinite(value) || value < 0) {
-      throw new Error("Max snippet length must be a positive number.");
+    if (!rawValue) {
+      throw new Error("Enter a max snippet value: -1 for no limit, or a whole number from 0 upward.");
     }
 
-    directives.push(`max-snippet:${Math.floor(value)}`);
+    const value = Number(rawValue);
+
+    if (!Number.isFinite(value) || !Number.isInteger(value) || value < -1) {
+      throw new Error("Max snippet must be -1 or a whole number of characters from 0 upward.");
+    }
+
+    directives.push(`max-snippet:${value}`);
   }
 
   if (imagePreviewMode !== "default") {
@@ -866,13 +871,19 @@ function buildRobotsDirectives({
   }
 
   if (videoPreviewMode === "seconds") {
-    const value = Number(maxVideoPreview);
+    const rawValue = maxVideoPreview.trim();
 
-    if (!Number.isFinite(value) || value < 0) {
-      throw new Error("Max video preview must be a positive number of seconds.");
+    if (!rawValue) {
+      throw new Error("Enter a max video preview value: -1 for no limit, or a whole number of seconds from 0 upward.");
     }
 
-    directives.push(`max-video-preview:${Math.floor(value)}`);
+    const value = Number(rawValue);
+
+    if (!Number.isFinite(value) || !Number.isInteger(value) || value < -1) {
+      throw new Error("Max video preview must be -1 or a whole number of seconds from 0 upward.");
+    }
+
+    directives.push(`max-video-preview:${value}`);
   }
 
   if (noarchive) {
@@ -894,11 +905,27 @@ function buildRobotsDirectives({
       throw new Error("Enter a date for unavailable_after.");
     }
 
+    if (Number.isNaN(Date.parse(cleanDate))) {
+      throw new Error("Enter a recognizable unavailable_after date, preferably in ISO 8601 format.");
+    }
+
     directives.push(`unavailable_after: ${cleanDate}`);
   }
 
   if (indexMode === "noindex") {
     warnings.push("noindex will ask search engines not to show this page in search results.");
+  }
+
+  if (indexMode === "noindex") {
+    warnings.push("The URL must remain crawlable for search engines to discover the noindex directive.");
+  }
+
+  if (pageUseCase === "private" || pageUseCase === "staging") {
+    warnings.push("Robots directives are not access control. Protect confidential or staging content with authentication or network restrictions.");
+  }
+
+  if (pageUseCase === "duplicate") {
+    notes.push("For duplicate URLs, review canonicalization or redirects before choosing noindex solely to consolidate signals.");
   }
 
   if (followMode === "nofollow") {
@@ -911,6 +938,10 @@ function buildRobotsDirectives({
 
   if (snippetMode === "nosnippet") {
     warnings.push("nosnippet can reduce how attractive the page looks in search results.");
+  }
+
+  if (noarchive) {
+    warnings.push("Google Search ignores noarchive today, while Bing still documents support. Check the target crawler before relying on it.");
   }
 
   if (noimageindex) {
@@ -992,13 +1023,21 @@ function formatRobotsOutput({
   }
 
   if (outputMode === "nextjs") {
+    const crawlerComment = includeGooglebot || includeBingbot
+      ? [
+          "",
+          "// The generic robots value already applies to Googlebot and Bingbot.",
+          "// Choose Meta tag output only when you specifically need duplicate crawler-named tags.",
+        ]
+      : [];
+
     return [
-      "export const metadata = {",
-      "  robots: {",
-      `    index: ${directives.includes("index") && !directives.includes("noindex")},`,
-      `    follow: ${directives.includes("follow") && !directives.includes("nofollow")},`,
-      "  },",
+      'import type { Metadata } from "next";',
+      "",
+      "export const metadata: Metadata = {",
+      `  robots: ${JSON.stringify(content)},`,
       "};",
+      ...crawlerComment,
     ].join("\n");
   }
 
@@ -1010,6 +1049,7 @@ function getRobotsNotes(result: RobotsResult): RobotsNote[] {
 
   if (result.warnings.length > 0) {
     notes.push({
+      tone: "warning",
       title: "Review before publishing",
       message: result.warnings.join(" "),
     });
@@ -1017,16 +1057,18 @@ function getRobotsNotes(result: RobotsResult): RobotsNote[] {
 
   if (result.notes.length > 0) {
     notes.push({
-      title: "Simple public page",
+      tone: "info",
+      title: "Implementation context",
       message: result.notes.join(" "),
     });
   }
 
   if (result.directives.some((directive) => directive.startsWith("unavailable_after"))) {
     notes.push({
+      tone: "info",
       title: "Date-sensitive directive",
       message:
-        "The unavailable_after directive depends on a valid date format and search engine support.",
+        "Search engines support several date formats for unavailable_after. ISO 8601 is usually the clearest format to generate and review consistently.",
     });
   }
 

@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Meta Robots Tag Generator | Create Robots Meta Tags Online | Yoryantra",
+  title: "Meta Robots Tag Generator | Robots Meta & X-Robots-Tag | Yoryantra",
   description:
-    "Generate meta robots tags and X-Robots-Tag header values for indexing, following links, snippets, images, archives, translations, and search preview controls.",
+    "Build robots meta and X-Robots-Tag directives for indexing, link following, snippets, previews, and expiry.",
   keywords: [
     "Meta Robots Tag Generator",
     "robots meta tag generator",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/meta-robots-tag-generator",
   },
   openGraph: {
-    title: "Meta Robots Tag Generator | Create Robots Meta Tags Online | Yoryantra",
+    title: "Meta Robots Tag Generator | Robots Meta & X-Robots-Tag | Yoryantra",
     description:
-      "Generate meta robots tags and X-Robots-Tag header values for indexing, following links, snippets, images, archives, translations, and search preview controls.",
+      "Build robots meta and X-Robots-Tag directives for indexing, link following, snippets, previews, and expiry.",
     url: "https://yoryantra.com/tools/meta-robots-tag-generator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Meta Robots Tag Generator | Create Robots Meta Tags Online | Yoryantra",
+    title: "Meta Robots Tag Generator | Robots Meta & X-Robots-Tag | Yoryantra",
     description:
-      "Generate meta robots tags and X-Robots-Tag header values for indexing, following links, snippets, images, archives, translations, and search preview controls.",
+      "Build robots meta and X-Robots-Tag directives for indexing, link following, snippets, previews, and expiry.",
   },
 };
 

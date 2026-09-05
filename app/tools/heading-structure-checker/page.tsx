@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Heading Structure Checker | Check H1 H2 H3 SEO Outline Online | Yoryantra",
+  title: "Heading Structure Checker | Review H1-H6 Hierarchy | Yoryantra",
   description:
-    "Check HTML heading structure for SEO and readability. Analyze H1, H2, H3, skipped heading levels, duplicate headings, empty headings, and page outline issues directly in your browser.",
+    "Review HTML heading hierarchy, H1 usage, skipped levels, duplicates, empty headings, and outline structure.",
   keywords: [
     "Heading Structure Checker",
     "H1 H2 H3 checker",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/heading-structure-checker",
   },
   openGraph: {
-    title: "Heading Structure Checker | Check H1 H2 H3 SEO Outline Online | Yoryantra",
+    title: "Heading Structure Checker | Review H1-H6 Hierarchy | Yoryantra",
     description:
-      "Check HTML heading structure for SEO and readability. Analyze H1, H2, H3, skipped heading levels, duplicate headings, empty headings, and page outline issues directly in your browser.",
+      "Review HTML heading hierarchy, H1 usage, skipped levels, duplicates, empty headings, and outline structure.",
     url: "https://yoryantra.com/tools/heading-structure-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Heading Structure Checker | Check H1 H2 H3 SEO Outline Online | Yoryantra",
+    title: "Heading Structure Checker | Review H1-H6 Hierarchy | Yoryantra",
     description:
-      "Check HTML heading structure for SEO and readability. Analyze H1, H2, H3, skipped heading levels, duplicate headings, empty headings, and page outline issues directly in your browser.",
+      "Review HTML heading hierarchy, H1 usage, skipped levels, duplicates, empty headings, and outline structure.",
   },
 };
 

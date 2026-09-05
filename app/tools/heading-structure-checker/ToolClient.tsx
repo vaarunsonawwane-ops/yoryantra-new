@@ -22,7 +22,7 @@ type HeadingItem = {
 };
 
 type HeadingIssue = {
-  severity: "info" | "warning" | "high";
+  severity: "info" | "warning";
   title: string;
   message: string;
 };
@@ -46,19 +46,16 @@ type HeadingNote = {
 };
 
 const sampleHtml = `<main>
-  <h1>JSON Formatter Online</h1>
-  <p>Format and validate JSON in your browser.</p>
+  <h1>Debugging JSON API Responses</h1>
+  <p>A short guide for inspecting structured data from an API.</p>
 
-  <h2>Formatting JSON for Cleaner Debugging</h2>
-  <h3>Common JSON formatting use cases</h3>
-  <h3>Working with copied API responses</h3>
+  <h2>Read the response before formatting it</h2>
+  <h3>Check the content type</h3>
+  <h3>Look for truncated payloads</h3>
 
-  <h2>How to Use This JSON Formatter</h2>
-  <h3>Paste your JSON</h3>
-  <h3>Format or validate the input</h3>
-
-  <h2>Frequently Asked Questions</h2>
-  <h3>Is my JSON uploaded anywhere?</h3>
+  <h2>Format the JSON for inspection</h2>
+  <h3>Preserve number and string values</h3>
+  <h3>Compare the formatted output with the source</h3>
 </main>`;
 
 export default function ToolClient() {
@@ -120,12 +117,18 @@ export default function ToolClient() {
       return;
     }
 
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
 
-    window.setTimeout(() => {
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 1400);
+    } catch {
+      setError("Clipboard access was blocked. Select the output and copy it manually.");
       setCopied(false);
-    }, 1400);
+    }
   };
 
   const loadExample = () => {
@@ -163,14 +166,15 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Heading Structure Checker"
-      description="Check HTML heading structure for SEO and readability. Analyze H1, H2, H3, skipped heading levels, duplicate headings, empty headings, and page outline issues directly in your browser."
+      description="Review HTML heading hierarchy, H1 usage, skipped levels, duplicates, empty headings, and outline structure."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
+        <label htmlFor="heading-input" className="block mb-2 text-sm font-medium text-gray-700">
           Page HTML or Heading Content
         </label>
 
         <textarea
+          id="heading-input"
           value={input}
           onChange={(event) => {
             setInput(event.target.value);
@@ -261,7 +265,7 @@ export default function ToolClient() {
               className="h-4 w-4 accent-[var(--light-gold)]"
             />
 
-            Ignore headings with hidden styles or hidden attributes
+            Ignore headings with explicit hidden attributes or inline hidden styles
           </label>
 
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
@@ -278,7 +282,7 @@ export default function ToolClient() {
               className="h-4 w-4 accent-[var(--light-gold)]"
             />
 
-            Warn about missing or multiple H1 headings
+            Review missing or multiple H1 headings
           </label>
 
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
@@ -334,39 +338,39 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Checks H1 count, empty headings, duplicate text, skipped levels,
-          heading length, and outline depth. A useful heading structure should
-          make sense to real users first.
+          Checks H1 count, empty headings, duplicate text, skipped levels, and
+          an optional heading-length heuristic. The score is a local review aid,
+          not a Google ranking score or WCAG conformance result.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={checkHeadings} className="yoryantra-btn">
+        <button onClick={checkHeadings} className="yoryantra-btn shrink-0 whitespace-nowrap">
           Check Headings
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn shrink-0 whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline shrink-0 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline shrink-0 whitespace-nowrap">
           Reset
         </button>
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       )}
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Score" value={`${result.score}/100`} />
+          <SummaryCard label="Heuristic score" value={`${result.score}/100`} />
           <SummaryCard label="Headings" value={result.totalHeadings.toLocaleString()} />
           <SummaryCard label="H1 Count" value={result.h1Count.toLocaleString()} />
           <SummaryCard label="Issues" value={result.issues.length.toLocaleString()} />
@@ -406,7 +410,7 @@ export default function ToolClient() {
                   )}
 
                   {heading.skippedFromPrevious && (
-                    <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-red-700">
+                    <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
                       skipped level
                     </span>
                   )}
@@ -423,46 +427,60 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Heading findings
-          </h3>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {result.issues.map((issue, index) => {
+            const isWarning = issue.severity === "warning";
 
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">
+            return (
+              <div
+                key={`${issue.title}-${index}`}
+                className={
+                  isWarning
+                    ? "self-start rounded-xl border border-amber-200 bg-amber-50 p-4"
+                    : "self-start rounded-xl border border-gray-200 bg-gray-50 p-4"
+                }
+              >
+                <p
+                  className={
+                    isWarning
+                      ? "text-sm font-semibold text-amber-900"
+                      : "text-sm font-semibold text-gray-900"
+                  }
+                >
                   {issue.title}
                 </p>
 
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                <p
+                  className={
+                    isWarning
+                      ? "mt-1 text-sm leading-relaxed text-amber-800"
+                      : "mt-1 text-sm leading-relaxed text-gray-600"
+                  }
+                >
                   {issue.message}
                 </p>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">
-            Heading notes
-          </h3>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {notes.map((note) => (
+            <div
+              key={note.title}
+              className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4"
+            >
+              <p className="text-sm font-semibold text-gray-900">
+                {note.title}
+              </p>
 
-          <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">
-                  {note.title}
-                </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">
-                  {note.message}
-                </p>
-              </div>
-            ))}
-          </div>
+              <p className="mt-1 text-sm leading-relaxed text-gray-600">
+                {note.message}
+              </p>
+            </div>
+          ))}
         </div>
       )}
 
@@ -473,168 +491,148 @@ export default function ToolClient() {
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm shrink-0 whitespace-nowrap">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
           {output || "Heading structure output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Heading analysis happens directly in your browser. Your HTML or outline
-        is not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Heading analysis runs in the browser. Pasted HTML, Markdown, and outlines
+        are not sent to Yoryantra for processing.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking Page Headings for SEO and Readability
+            Read the outline as structure, not as an SEO score
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Headings help people understand the structure of a page. They also
-            help search engines and assistive technology understand how the page
-            is organized. A clear H1, useful H2 sections, and sensible nested
-            H3 headings make content easier to scan.
+            Heading levels describe how sections relate to one another. They help
+            people scan a page and give screen-reader users a fast way to move
+            between sections. A sensible hierarchy matters more than forcing a
+            particular number of headings.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Heading Structure Checker reads pasted HTML, Markdown, or plain
-            outlines and reports common issues such as missing H1, multiple H1
-            headings, skipped heading levels, duplicate headings, empty headings,
-            and overly long headings.
+            Google explicitly says there is no magical ideal number or strict
+            ordering of headings for Search. The hierarchy checks here are mainly
+            an editorial and accessibility review, not a ranking test.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Reviewing a Page Heading Outline
-          </h2>
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">
+              What a skipped level really means
+            </h2>
+            <p className="mt-3 text-gray-600 leading-relaxed">
+              Moving from H2 directly into H4 can make the hierarchy harder to
+              follow because an H3-level section appears to be missing. Moving
+              back from a deeper subsection to a higher level is normal when a
+              subsection ends.
+            </p>
+          </div>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste HTML from a page, template, CMS editor, or rendered source.</li>
-            <li>Choose HTML, Markdown, or plain outline input.</li>
-            <li>Select balanced, strict, or relaxed checking.</li>
-            <li>Run the checker and review the heading outline.</li>
-            <li>Fix missing H1, skipped levels, duplicate headings, or unclear structure.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Heading Structure Checker Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking whether a page has one clear H1 heading.</li>
-            <li>Reviewing H2 and H3 structure before publishing content.</li>
-            <li>Finding skipped heading levels like H2 directly to H4.</li>
-            <li>Finding duplicate or empty headings in templates.</li>
-            <li>Checking generated pages, blog posts, landing pages, and tool pages.</li>
-            <li>Preparing cleaner outlines for SEO, accessibility, and readability.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Clean Heading Structure
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`H1: JSON Formatter Online
-  H2: Formatting JSON for Cleaner Debugging
-    H3: Common JSON formatting use cases
-  H2: How to Use This JSON Formatter
-    H3: Paste your JSON
-    H3: Format or validate the input`}
-            </pre>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">
+              H1 count needs context
+            </h2>
+            <p className="mt-3 text-gray-600 leading-relaxed">
+              A single descriptive H1 is a clear convention for most pages, but
+              multiple H1 elements are not automatically an SEO failure. Review
+              whether the main topic and section boundaries remain obvious to
+              people and assistive technology.
+            </p>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Headings Should Not Be Written Only for Search Engines
+            Three input modes, three different assumptions
           </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A heading structure is useful when it helps real people understand
-            the page. Avoid stuffing keywords into every heading. Instead, use
-            headings to describe sections naturally and make the content easier
-            to scan.
-          </p>
+          <div className="mt-4 space-y-4 text-gray-600 leading-relaxed">
+            <p>
+              <strong className="text-gray-900">HTML:</strong> reads actual
+              H1-H6 elements. The hidden-heading option recognizes the
+              <code className="mx-1">hidden</code> attribute,
+              <code className="mx-1">aria-hidden=&quot;true&quot;</code>, and common
+              inline display/visibility styles. It cannot evaluate external
+              stylesheets or every runtime visibility rule from pasted source.
+            </p>
+            <p>
+              <strong className="text-gray-900">Markdown:</strong> reads ATX
+              headings using one to six hash characters and ignores headings
+              inside fenced code blocks.
+            </p>
+            <p>
+              <strong className="text-gray-900">Plain outline:</strong> accepts
+              explicit labels such as H2: or infers levels from two-space
+              indentation. That inference is a convenience, not a document
+              standard.
+            </p>
+          </div>
+        </div>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Search engines can use headings as one signal, but headings are not a
-            magic ranking switch. Clean structure, helpful content, internal
-            links, fast pages, and a good user experience all matter together.
+        <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-xl font-semibold text-amber-900">
+            Treat length and duplicate warnings as editorial prompts
+          </h2>
+          <p className="mt-3 text-amber-800 leading-relaxed">
+            WCAG and Google do not publish a maximum heading character count.
+            The strict, balanced, and relaxed length thresholds are local
+            heuristics for spotting headings worth rereading. Repeated wording
+            can also be legitimate when the surrounding sections make the
+            meaning clear.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Compare the outline with the rendered page
           </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Pasted source cannot reveal every heading created by client-side
+            rendering, component state, CMS transformations, or CSS. When a page
+            changes after JavaScript runs, compare the result with the rendered
+            DOM and test keyboard or screen-reader heading navigation as well.
+          </p>
+        </div>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a Heading Structure Checker do?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It reads page headings and shows the outline, H1 count, skipped
-                levels, duplicate headings, empty headings, and other structure
-                issues.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should a page have only one H1?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                One clear H1 is still a practical standard for most pages because
-                it makes the main topic obvious to people and tools.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are skipped heading levels bad?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                They can make a page outline harder to follow. A jump from H2 to
-                H4 may be confusing unless there is a clear reason.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this check Markdown headings?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Choose Markdown input and paste headings written with #,
-                ##, ###, and other Markdown heading levels.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my HTML uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Heading analysis happens directly in your browser.
-              </p>
-            </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Standards and search guidance
+          </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            W3C WAI explains how heading ranks communicate page organization and
+            recommends avoiding skipped ranks when opening subsections. Google&apos;s
+            SEO Starter Guide recommends headings that help users navigate while
+            also noting that Search does not require a perfect semantic order.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href="https://www.w3.org/WAI/tutorials/page-structure/headings/"
+              target="_blank"
+              rel="noreferrer"
+              className="yoryantra-btn-outline whitespace-nowrap"
+            >
+              W3C WAI headings guidance
+            </a>
+            <a
+              href="https://developers.google.com/search/docs/fundamentals/seo-starter-guide"
+              target="_blank"
+              rel="noreferrer"
+              className="yoryantra-btn-outline whitespace-nowrap"
+            >
+              Google SEO Starter Guide
+            </a>
           </div>
         </div>
 
@@ -644,23 +642,19 @@ export default function ToolClient() {
           </h2>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/meta-tags-checker" className="yoryantra-btn-outline">
+            <Link href="/tools/meta-tags-checker" className="yoryantra-btn-outline whitespace-nowrap">
               Meta Tags Checker
             </Link>
-
-            <Link href="/tools/serp-snippet-preview-tool" className="yoryantra-btn-outline">
+            <Link href="/tools/serp-snippet-preview-tool" className="yoryantra-btn-outline whitespace-nowrap">
               SERP Snippet Preview Tool
             </Link>
-
-            <Link href="/tools/structured-data-validator" className="yoryantra-btn-outline">
+            <Link href="/tools/structured-data-validator" className="yoryantra-btn-outline whitespace-nowrap">
               Structured Data Validator
             </Link>
-
-            <Link href="/tools/meta-robots-tag-generator" className="yoryantra-btn-outline">
+            <Link href="/tools/meta-robots-tag-generator" className="yoryantra-btn-outline whitespace-nowrap">
               Meta Robots Tag Generator
             </Link>
-
-            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline">
+            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline whitespace-nowrap">
               Canonical URL Checker
             </Link>
           </div>
@@ -755,15 +749,16 @@ function extractHtmlHeadings(input: string, ignoreHiddenHeadings: boolean): Head
   const parser = new DOMParser();
   const documentValue = parser.parseFromString(input, "text/html");
   const headingNodes = Array.from(documentValue.querySelectorAll("h1,h2,h3,h4,h5,h6"));
-  const sourceLines = input.split(/\r?\n/);
+  const sourceHeadingLines = findHtmlHeadingSourceLines(input);
 
   return headingNodes
-    .filter((node) => !ignoreHiddenHeadings || !isHiddenHeading(node as HTMLElement))
-    .map((node, index) => {
+    .map((node, sourceIndex) => ({ node, sourceIndex }))
+    .filter(({ node }) => !ignoreHiddenHeadings || !isHiddenHeading(node as HTMLElement))
+    .map(({ node, sourceIndex }, index) => {
       const level = Number(node.tagName.slice(1));
       const text = normalizeText(node.textContent || "");
       const id = (node as HTMLElement).id || "";
-      const line = findLineNumber(sourceLines, node.outerHTML, text);
+      const line = sourceHeadingLines[sourceIndex] || 0;
 
       return {
         level,
@@ -793,33 +788,62 @@ function isHiddenHeading(node: HTMLElement) {
 }
 
 function extractMarkdownHeadings(input: string): HeadingItem[] {
-  return input
-    .split(/\r?\n/)
-    .map((line, index) => ({
-      line,
-      index,
-    }))
-    .filter(({ line }) => /^#{1,6}\s+/.test(line.trim()))
-    .map(({ line, index }, orderIndex) => {
-      const trimmed = line.trim();
-      const match = trimmed.match(/^(#{1,6})\s+(.+)$/);
-      const level = match ? match[1].length : 1;
-      const text = normalizeText(match ? match[2].replace(/\s+#+$/, "") : trimmed);
+  const headings: HeadingItem[] = [];
+  const lines = input.split(/\r?\n/);
+  let fence: { marker: "`" | "~"; length: number } | null = null;
 
-      return {
-        level,
-        text,
-        id: "",
-        order: orderIndex + 1,
-        line: index + 1,
-        length: text.length,
-        duplicate: false,
-        empty: text.length === 0,
-        skippedFromPrevious: false,
-      };
+  lines.forEach((line, index) => {
+    if (fence) {
+      const closingFence = line.match(/^ {0,3}(`{3,}|~{3,})[ \t]*$/);
+
+      if (closingFence) {
+        const marker = closingFence[1][0] as "`" | "~";
+        const length = closingFence[1].length;
+
+        if (fence.marker === marker && length >= fence.length) {
+          fence = null;
+        }
+      }
+
+      return;
+    }
+
+    const openingFence = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+
+    if (openingFence) {
+      const marker = openingFence[1][0] as "`" | "~";
+      const info = openingFence[2];
+
+      if (!(marker === "`" && info.includes("`"))) {
+        fence = { marker, length: openingFence[1].length };
+        return;
+      }
+    }
+
+    const match = line.match(/^ {0,3}(#{1,6})(?:[ \t]+|$)(.*)$/);
+
+    if (!match) {
+      return;
+    }
+
+    const level = match[1].length;
+    const text = match[2].replace(/[ \t]+#+[ \t]*$/, "").trim();
+
+    headings.push({
+      level,
+      text,
+      id: "",
+      order: headings.length + 1,
+      line: index + 1,
+      length: text.length,
+      duplicate: false,
+      empty: text.length === 0,
+      skippedFromPrevious: false,
     });
-}
+  });
 
+  return headings;
+}
 function extractPlainHeadings(input: string): HeadingItem[] {
   return input
     .split(/\r?\n/)
@@ -889,21 +913,20 @@ function getHeadingIssues(
   const duplicateHeadings = headings.filter((heading) => heading.duplicate);
   const longLimit = options.strictnessMode === "strict" ? 70 : options.strictnessMode === "relaxed" ? 110 : 90;
   const longHeadings = headings.filter((heading) => heading.length > longLimit);
-  const maxDepth = Math.max(...headings.map((heading) => heading.level));
 
   if (options.warnMultipleH1 && h1Count === 0) {
     issues.push({
-      severity: "high",
-      title: "Missing H1 heading",
-      message: "The page should usually have one clear H1 that describes the main topic.",
+      severity: "warning",
+      title: "No H1 found",
+      message: "Most pages benefit from a clear top-level heading, but this is a structure review rather than a Google ranking requirement.",
     });
   }
 
   if (options.warnMultipleH1 && h1Count > 1) {
     issues.push({
-      severity: options.strictnessMode === "relaxed" ? "info" : "warning",
+      severity: "info",
       title: "Multiple H1 headings",
-      message: `${h1Count} H1 headings were found. One clear H1 is usually easier to understand.`,
+      message: `${h1Count} H1 headings were found. Review whether the page still has one obvious main topic and understandable section boundaries.`,
     });
   }
 
@@ -911,7 +934,7 @@ function getHeadingIssues(
     issues.push({
       severity: "warning",
       title: "Empty headings found",
-      message: `${emptyHeadings.length} heading${emptyHeadings.length === 1 ? "" : "s"} have no visible text.`,
+      message: `${emptyHeadings.length} heading${emptyHeadings.length === 1 ? "" : "s"} have no readable text. Empty structural headings can be confusing for assistive technology.`,
     });
   }
 
@@ -919,31 +942,23 @@ function getHeadingIssues(
     issues.push({
       severity: "warning",
       title: "Skipped heading levels",
-      message: `${skippedLevels.length} heading${skippedLevels.length === 1 ? "" : "s"} jump over a level, such as H2 directly to H4.`,
+      message: `${skippedLevels.length} heading${skippedLevels.length === 1 ? "" : "s"} jump into a deeper level, such as H2 directly to H4. Review whether a subsection level is missing.`,
     });
   }
 
   if (options.warnDuplicateHeadings && duplicateHeadings.length > 0) {
     issues.push({
       severity: "info",
-      title: "Duplicate heading text",
-      message: `${duplicateHeadings.length} heading${duplicateHeadings.length === 1 ? "" : "s"} repeat the same text.`,
+      title: "Repeated heading text",
+      message: `${duplicateHeadings.length} heading${duplicateHeadings.length === 1 ? "" : "s"} repeat the same text. Repetition can be legitimate, so check the surrounding sections before changing it.`,
     });
   }
 
   if (options.warnLongHeadings && longHeadings.length > 0) {
     issues.push({
       severity: "info",
-      title: "Long headings found",
-      message: `${longHeadings.length} heading${longHeadings.length === 1 ? "" : "s"} are longer than ${longLimit} characters.`,
-    });
-  }
-
-  if (maxDepth >= 5 && options.strictnessMode !== "relaxed") {
-    issues.push({
-      severity: "info",
-      title: "Deep heading structure",
-      message: "The outline reaches H5 or H6. Check whether the page structure is becoming too nested.",
+      title: "Long headings worth rereading",
+      message: `${longHeadings.length} heading${longHeadings.length === 1 ? "" : "s"} exceed the local ${longLimit}-character review threshold. That threshold is an editorial heuristic, not a Google or WCAG limit.`,
     });
   }
 
@@ -954,13 +969,7 @@ function calculateScore(issues: HeadingIssue[]) {
   let score = 100;
 
   issues.forEach((issue) => {
-    if (issue.severity === "high") {
-      score -= 30;
-    } else if (issue.severity === "warning") {
-      score -= 15;
-    } else {
-      score -= 5;
-    }
+    score -= issue.severity === "warning" ? 15 : 5;
   });
 
   return Math.max(0, score);
@@ -1022,7 +1031,7 @@ function formatOutput(
   return [
     "Heading Structure Summary",
     "-------------------------",
-    `Score: ${result.score}/100`,
+    `Heuristic score: ${result.score}/100`,
     `Total headings: ${result.totalHeadings}`,
     `H1 count: ${result.h1Count}`,
     `Max depth: H${result.maxDepth}`,
@@ -1039,19 +1048,22 @@ function normalizeText(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function findLineNumber(lines: string[], outerHTML: string, text: string) {
-  const cleanOuter = outerHTML.trim().slice(0, 80);
-  const cleanText = text.trim();
+function findHtmlHeadingSourceLines(input: string) {
+  const lines: number[] = [];
+  const openingTag = /<h[1-6]\b/gi;
+  let match: RegExpExecArray | null;
+  let cursor = 0;
+  let line = 1;
 
-  const outerIndex = lines.findIndex((line) => line.includes(cleanOuter));
-  if (outerIndex !== -1) {
-    return outerIndex + 1;
+  while ((match = openingTag.exec(input)) !== null) {
+    const between = input.slice(cursor, match.index);
+    line += (between.match(/\r\n|\r|\n/g) || []).length;
+    lines.push(line);
+    cursor = match.index;
   }
 
-  const textIndex = lines.findIndex((line) => cleanText && line.includes(cleanText));
-  return textIndex === -1 ? 0 : textIndex + 1;
+  return lines;
 }
-
 function csvEscape(value: string) {
   if (/[",\n]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
@@ -1065,29 +1077,35 @@ function escapeMarkdown(value: string) {
 }
 
 function getHeadingNotes(result: HeadingResult): HeadingNote[] {
-  const notes: HeadingNote[] = [];
+  const notes: HeadingNote[] = [
+    {
+      title: "About the heuristic score",
+      message:
+        "The score only summarizes the selected local checks. It is not a Google ranking score and does not establish WCAG conformance.",
+    },
+  ];
 
   if (result.h1Count === 1 && result.issues.length === 0) {
     notes.push({
-      title: "Clean heading outline",
+      title: "No selected review flags",
       message:
-        "The page has one H1 and no common heading structure issues were found.",
+        "The pasted outline has one H1 and none of the selected checks produced a flag. Compare it with the rendered page before treating the review as complete.",
     });
   }
 
   if (result.skippedLevelCount > 0) {
     notes.push({
-      title: "Review hierarchy",
+      title: "Follow the subsection relationship",
       message:
-        "Skipped levels can make the outline harder to scan. Check whether each lower heading belongs under the section above it.",
+        "A skipped level is worth reviewing when the page moves into a deeper subsection. Moving back to a higher level after a subsection ends is normal.",
     });
   }
 
   if (result.duplicateCount > 0) {
     notes.push({
-      title: "Duplicate headings",
+      title: "Repeated wording needs context",
       message:
-        "Repeated heading text can be fine in some layouts, but it may also make the page harder to scan.",
+        "Identical heading text can be intentional in repeated components, but distinct wording often makes a long page easier to scan.",
     });
   }
 

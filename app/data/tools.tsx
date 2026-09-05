@@ -425,7 +425,7 @@ export const tools = [
   {
   title: "HTTP Headers Checker",
   description:
-    "Check HTTP response headers, status codes, redirects, cache headers, and security headers.",
+    "Inspect browser-visible response headers, final status and URL, caching, content type, and security-related fields.",
   href: "/tools/http-headers-checker",
   category: "SEO Tools",
   },
@@ -1062,7 +1062,7 @@ export const tools = [
 {
   title: "Meta Robots Tag Generator",
   description:
-    "Generate meta robots tags and X-Robots-Tag headers for index, noindex, follow, nofollow, snippets, images, and archives.",
+    "Build robots meta and X-Robots-Tag directives for indexing, link following, snippets, previews, and expiry.",
   href: "/tools/meta-robots-tag-generator",
   category: "SEO Tools",
 },
@@ -1081,7 +1081,7 @@ export const tools = [
 {
   title: "SERP Snippet Preview Tool",
   description:
-    "Preview Google-style search snippets and check page title, meta description, URL, truncation, and SEO snippet issues.",
+    "Preview likely Google search appearance while reviewing title, description, URL, truncation, and rewrite-related caveats.",
   href: "/tools/serp-snippet-preview-tool",
   category: "SEO Tools",
 },
@@ -1090,7 +1090,7 @@ export const tools = [
 {
   title: "Heading Structure Checker",
   description:
-    "Check H1, H2, H3, skipped heading levels, duplicate headings, empty headings, and page outline issues.",
+    "Review HTML heading hierarchy, H1 usage, skipped levels, duplicates, empty headings, and outline structure.",
   href: "/tools/heading-structure-checker",
   category: "SEO Tools",
 },
@@ -1098,7 +1098,7 @@ export const tools = [
 {
   title: "Image Alt Text Checker",
   description:
-    "Check image alt text, missing alt attributes, duplicate alt text, long alt text, dimensions, and image SEO issues.",
+    "Review image alt text, missing attributes, duplicates, dimensions, and length patterns for accessibility and SEO context.",
   href: "/tools/image-alt-text-checker",
   category: "SEO Tools",
 },
@@ -1106,7 +1106,7 @@ export const tools = [
 {
   title: "Hreflang Validator",
   description:
-    "Validate hreflang tags for language codes, region codes, x-default, duplicate targets, absolute URLs, and self-reference.",
+    "Validate hreflang sets for language, script, and region codes, x-default, absolute URLs, duplicates, and self-reference.",
   href: "/tools/hreflang-validator",
   category: "SEO Tools",
 },

@@ -1,10 +1,10 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "HTTP Response Headers Checker | Yoryantra",
+  title: "HTTP Headers Checker | Inspect Browser-Visible Responses | Yoryantra",
 
   description:
-    "Inspect browser-visible HTTP response headers, final status, final URL, cache directives, content type, and security-related headers.",
+    "Inspect browser-visible response headers, final status and URL, caching, content type, and security-related fields.",
 
   keywords: [
     "http headers checker",
@@ -23,10 +23,10 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "HTTP Response Headers Checker | Yoryantra",
+    title: "HTTP Headers Checker | Inspect Browser-Visible Responses | Yoryantra",
 
     description:
-      "Inspect browser-visible response headers, final status, final URL, cache directives, and security-related headers.",
+      "Inspect browser-visible response headers, final status and URL, caching, content type, and security-related fields.",
 
     url: "https://yoryantra.com/tools/http-headers-checker",
 
@@ -38,10 +38,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "HTTP Response Headers Checker | Yoryantra",
+    title: "HTTP Headers Checker | Inspect Browser-Visible Responses | Yoryantra",
 
     description:
-      "Check browser-visible HTTP response headers, final status, cache directives, and security-related headers.",
+      "Inspect browser-visible response headers, final status and URL, caching, content type, and security-related fields.",
   },
 };
 
