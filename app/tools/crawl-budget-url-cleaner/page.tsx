@@ -2,40 +2,37 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Crawl Budget URL Cleaner | Clean SEO URL Lists Online | Yoryantra",
+  title: "Crawl Budget URL Cleaner | URL List Cleanup | Yoryantra",
   description:
-    "Clean URL lists for technical SEO. Remove tracking parameters, fragments, duplicate variants, trailing slash differences, empty parameters, and crawl-waste URL patterns.",
+    "Normalize crawl and log URL lists by removing selected tracking noise, fragments, duplicate variants, and flagged paths without fetching live URLs.",
   keywords: [
-    "Crawl Budget URL Cleaner",
-    "SEO URL cleaner",
-    "crawl budget tool",
-    "URL deduplication tool",
-    "clean URL list",
-    "remove tracking parameters",
-    "technical SEO tools",
-    "SEO tools",
-    "URL normalization tool",
-    "crawl waste checker",
+    "crawl budget URL cleaner",
+    "crawl export cleanup",
+    "SEO URL normalization",
+    "tracking parameter cleanup",
+    "duplicate URL audit",
+    "crawl log URL cleanup",
+    "technical SEO URL list",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/crawl-budget-url-cleaner",
   },
   openGraph: {
-    title: "Crawl Budget URL Cleaner | Clean SEO URL Lists Online | Yoryantra",
+    title: "Crawl Budget URL Cleaner | URL List Cleanup | Yoryantra",
     description:
-      "Clean URL lists for technical SEO. Remove tracking parameters, fragments, duplicate variants, trailing slash differences, empty parameters, and crawl-waste URL patterns.",
+      "Normalize crawl and log URL lists by removing selected tracking noise, fragments, duplicate variants, and flagged paths without fetching live URLs.",
     url: "https://yoryantra.com/tools/crawl-budget-url-cleaner",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Crawl Budget URL Cleaner | Clean SEO URL Lists Online | Yoryantra",
+    title: "Crawl Budget URL Cleaner | URL List Cleanup | Yoryantra",
     description:
-      "Clean URL lists for technical SEO. Remove tracking parameters, fragments, duplicate variants, trailing slash differences, empty parameters, and crawl-waste URL patterns.",
+      "Normalize crawl and log URL lists by removing selected tracking noise, fragments, duplicate variants, and flagged paths without fetching live URLs.",
   },
 };
 
-export default function CrawlBudgetUrlCleanerPage() {
+export default function Page() {
   return <ToolClient />;
 }

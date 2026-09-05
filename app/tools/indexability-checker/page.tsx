@@ -2,40 +2,37 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Indexability Checker | Check Noindex, Canonical and Robots Meta Tags | Yoryantra",
+  title: "Indexability Checker | HTML & Header Signals | Yoryantra",
   description:
-    "Check whether a page looks indexable from pasted HTML and headers. Detect noindex, nofollow, robots meta tags, X-Robots-Tag, canonical conflicts, meta refresh, and indexing blockers.",
+    "Inspect pasted HTML and response headers for noindex, X-Robots-Tag, HTTP status, canonical, nofollow, and meta refresh without fetching the page.",
   keywords: [
-    "Indexability Checker",
-    "SEO indexability checker",
+    "indexability checker",
     "noindex checker",
-    "robots meta tag checker",
     "X-Robots-Tag checker",
-    "canonical indexability checker",
-    "Google indexing checker",
-    "technical SEO tools",
-    "SEO tools",
-    "page indexability analyzer",
+    "robots meta checker",
+    "canonical signal checker",
+    "HTTP status SEO",
+    "technical SEO indexing",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/indexability-checker",
   },
   openGraph: {
-    title: "Indexability Checker | Check Noindex, Canonical and Robots Meta Tags | Yoryantra",
+    title: "Indexability Checker | HTML & Header Signals | Yoryantra",
     description:
-      "Check whether a page looks indexable from pasted HTML and headers. Detect noindex, nofollow, robots meta tags, X-Robots-Tag, canonical conflicts, meta refresh, and indexing blockers.",
+      "Inspect pasted HTML and response headers for noindex, X-Robots-Tag, HTTP status, canonical, nofollow, and meta refresh without fetching the page.",
     url: "https://yoryantra.com/tools/indexability-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Indexability Checker | Check Noindex, Canonical and Robots Meta Tags | Yoryantra",
+    title: "Indexability Checker | HTML & Header Signals | Yoryantra",
     description:
-      "Check whether a page looks indexable from pasted HTML and headers. Detect noindex, nofollow, robots meta tags, X-Robots-Tag, canonical conflicts, meta refresh, and indexing blockers.",
+      "Inspect pasted HTML and response headers for noindex, X-Robots-Tag, HTTP status, canonical, nofollow, and meta refresh without fetching the page.",
   },
 };
 
-export default function IndexabilityCheckerPage() {
+export default function Page() {
   return <ToolClient />;
 }

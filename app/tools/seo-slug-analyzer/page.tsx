@@ -2,40 +2,37 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "SEO Slug Analyzer for URL Readability Checks | Yoryantra",
+  title: "SEO Slug Analyzer | Review URL Path Structure | Yoryantra",
   description:
-    "Review URL slugs for readability, casing, separators, length, repeated characters, optional keyword presence, and cleaner slug suggestions.",
+    "Review URL slugs for readability, hyphens, casing, percent encoding, length heuristics, and topic wording without treating scores as ranking signals.",
   keywords: [
-    "SEO Slug Analyzer",
+    "SEO slug analyzer",
     "URL slug checker",
-    "SEO friendly URL checker",
-    "slug length checker",
-    "URL slug analyzer",
-    "clean URL checker",
-    "SEO URL checker",
-    "technical SEO tools",
-    "SEO tools",
-    "slug optimization tool",
+    "URL structure SEO",
+    "hyphen underscore URL",
+    "URL readability",
+    "percent encoded slug",
+    "technical SEO URL path",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/seo-slug-analyzer",
   },
   openGraph: {
-    title: "SEO Slug Analyzer for URL Readability Checks | Yoryantra",
+    title: "SEO Slug Analyzer | Review URL Path Structure | Yoryantra",
     description:
-      "Review URL slugs for readability, casing, separators, length, repeated characters, optional keyword presence, and cleaner slug suggestions.",
+      "Review URL slugs for readability, hyphens, casing, percent encoding, length heuristics, and topic wording without treating scores as ranking signals.",
     url: "https://yoryantra.com/tools/seo-slug-analyzer",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "SEO Slug Analyzer for URL Readability Checks | Yoryantra",
+    title: "SEO Slug Analyzer | Review URL Path Structure | Yoryantra",
     description:
-      "Review URL slugs for readability, casing, separators, length, repeated characters, optional keyword presence, and cleaner slug suggestions.",
+      "Review URL slugs for readability, hyphens, casing, percent encoding, length heuristics, and topic wording without treating scores as ranking signals.",
   },
 };
 
-export default function SeoSlugAnalyzerPage() {
+export default function Page() {
   return <ToolClient />;
 }

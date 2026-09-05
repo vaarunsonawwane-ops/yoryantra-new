@@ -1225,7 +1225,7 @@ export const tools = [
 {
   title: "SEO Slug Analyzer",
   description:
-    "Review URL slugs for readable words, hyphens, casing, length patterns, and optional topic presence.",
+    "Assess whether a path slug is readable and stable without treating length or topic wording as ranking formulas.",
   href: "/tools/seo-slug-analyzer",
   category: "SEO Tools",
 },
@@ -1249,7 +1249,7 @@ export const tools = [
 {
   title: "Indexability Checker",
   description:
-    "Inspect pasted HTML and headers for noindex, robots directives, canonicals, meta refresh, and conflicting indexing signals.",
+    "Separate hard indexing blocks from softer canonical and crawling signals in pasted HTML and response headers.",
   href: "/tools/indexability-checker",
   category: "SEO Tools",
 },
@@ -1257,7 +1257,7 @@ export const tools = [
 {
   title: "Crawl Budget URL Cleaner",
   description:
-    "Normalize pasted URL inventories, remove selected parameters and fragments, deduplicate variants, and flag potential crawl-noise patterns.",
+    "Normalize crawl-export URLs conservatively while keeping meaningful parameters, path variants, and flagged exclusions visible for verification.",
   href: "/tools/crawl-budget-url-cleaner",
   category: "SEO Tools",
 },

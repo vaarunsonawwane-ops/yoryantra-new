@@ -23,18 +23,21 @@ type ExtractedSignal = {
 };
 
 type Result = {
-  indexable: boolean;
-  score: number;
-  status: "indexable" | "blocked" | "needs-review";
+  status: "no-obvious-blocker" | "blocked" | "needs-review";
   issues: Issue[];
   signals: ExtractedSignal[];
   output: string;
   robotsDirectives: string[];
   xRobotsDirectives: string[];
+  canonicalUrls: string[];
   canonicalUrl: string;
   metaRefresh: string;
   title: string;
   description: string;
+  statusCode: number | null;
+  contentType: string;
+  blockingCount: number;
+  warningCount: number;
 };
 
 const sampleInput = `HTTP/2 200
@@ -115,9 +118,14 @@ export default function ToolClient() {
 
   const copyOutput = async () => {
     if (!output) return;
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("Copy failed. Select the output and copy it manually.");
+    }
   };
 
   const loadExample = () => {
@@ -151,7 +159,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Indexability Checker"
-      description="Check whether a page looks indexable from pasted HTML and headers. Detect noindex, nofollow, robots meta tags, X-Robots-Tag, canonical conflicts, meta refresh, and indexing blockers."
+      description="Read pasted HTML and response headers for signals that can block or redirect indexing."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -169,7 +177,7 @@ export default function ToolClient() {
         />
 
         <p className="mt-2 text-sm text-gray-500">
-          Paste page source, HTTP response headers, or both. The checker runs locally in your browser.
+          Paste source HTML, response headers, or both. No network request is made to the page URL.
         </p>
       </div>
 
@@ -212,16 +220,16 @@ export default function ToolClient() {
           />
 
           <YoryantraSelect
-            label="Checking Style"
+            label="Review Depth"
             value={checkingStyle}
             onChange={(value) => {
               setCheckingStyle(value as CheckingStyle);
               clearResult();
             }}
             options={[
-              { label: "Balanced", value: "balanced" },
-              { label: "Strict", value: "strict" },
-              { label: "Relaxed", value: "relaxed" },
+              { label: "Balanced signals", value: "balanced" },
+              { label: "Expanded signals", value: "strict" },
+              { label: "Blocking signals only", value: "relaxed" },
             ]}
           />
 
@@ -242,33 +250,33 @@ export default function ToolClient() {
           />
 
           <div className="md:col-span-2 space-y-3">
-            <CheckboxRow checked={warnMissingCanonical} label="Warn when canonical tag is missing" onChange={(checked) => { setWarnMissingCanonical(checked); clearResult(); }} />
-            <CheckboxRow checked={warnCanonicalMismatch} label="Warn when canonical differs from page URL" onChange={(checked) => { setWarnCanonicalMismatch(checked); clearResult(); }} />
-            <CheckboxRow checked={warnMetaRefresh} label="Warn about meta refresh redirects" onChange={(checked) => { setWarnMetaRefresh(checked); clearResult(); }} />
-            <CheckboxRow checked={warnNofollow} label="Warn about nofollow directives" onChange={(checked) => { setWarnNofollow(checked); clearResult(); }} />
-            <CheckboxRow checked={warnThinSignals} label="Warn about missing title or description" onChange={(checked) => { setWarnThinSignals(checked); clearResult(); }} />
+            <CheckboxRow checked={warnMissingCanonical} label="Note when canonical link is missing" onChange={(checked) => { setWarnMissingCanonical(checked); clearResult(); }} />
+            <CheckboxRow checked={warnCanonicalMismatch} label="Flag canonical that points away from the page URL" onChange={(checked) => { setWarnCanonicalMismatch(checked); clearResult(); }} />
+            <CheckboxRow checked={warnMetaRefresh} label="Flag meta refresh redirects" onChange={(checked) => { setWarnMetaRefresh(checked); clearResult(); }} />
+            <CheckboxRow checked={warnNofollow} label="Flag nofollow directives" onChange={(checked) => { setWarnNofollow(checked); clearResult(); }} />
+            <CheckboxRow checked={warnThinSignals} label="Note missing title or description (not indexing blockers)" onChange={(checked) => { setWarnThinSignals(checked); clearResult(); }} />
           </div>
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          This tool checks pasted source and headers. It does not crawl live URLs or verify robots.txt access.
+          Review depth only changes optional observations; <code>noindex</code> and non-indexable HTTP responses remain blocking signals at every depth.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={checkIndexability} className="yoryantra-btn">
+        <button onClick={checkIndexability} className="yoryantra-btn whitespace-nowrap">
           Check Indexability
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -282,9 +290,9 @@ export default function ToolClient() {
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Status" value={result.status} />
-          <SummaryCard label="Score" value={`${result.score}/100`} />
-          <SummaryCard label="Robots Rules" value={String(result.robotsDirectives.length + result.xRobotsDirectives.length)} />
-          <SummaryCard label="Findings" value={String(result.issues.length)} />
+          <SummaryCard label="HTTP" value={result.statusCode ? String(result.statusCode) : "not supplied"} />
+          <SummaryCard label="Blocking signals" value={result.blockingCount.toLocaleString()} />
+          <SummaryCard label="Cautions" value={result.warningCount.toLocaleString()} />
         </div>
       )}
 
@@ -325,151 +333,119 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Indexability findings</h3>
-
-          <div className="mt-3 space-y-3">
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900">Signals that deserve attention</h3>
+          <div className="mt-4 grid items-start gap-3 md:grid-cols-2">
             {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
+              <IssueCard key={`${issue.title}-${index}`} issue={issue} />
             ))}
           </div>
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Indexing guidance</h3>
-
-          <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {notes.map((note) => (
+            <div key={note.title} className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
+            </div>
+          ))}
         </div>
       )}
 
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
-          {output || "Indexability check output will appear here."}
+        <pre className="yoryantra-output min-h-[320px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Indexability output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This checker uses pasted HTML and headers only. A real search engine may also consider robots.txt, redirects, duplicate content, quality signals, internal links, and canonical selection.
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+        “No obvious blocker” only describes the pasted signals. Robots.txt access, redirects before this response, rendered JavaScript, canonical selection, soft 404 detection, and search-engine quality decisions still sit outside this check.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Checking Whether a Page Looks Indexable</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A page can be crawlable but still not indexable if it contains noindex directives, conflicting canonical tags, X-Robots-Tag headers, soft redirect signals, or other indexing blockers.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Indexability Checker helps you inspect pasted page source and response headers before publishing, debugging Search Console coverage issues, or reviewing technical SEO changes.
+          <h2 className="text-2xl font-semibold text-gray-900">Indexable is a conclusion, not a single tag</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A robots meta tag is only one part of the picture. Search engines also see the HTTP response, response headers, redirects, canonical hints, crawl permissions, rendered content, and the page itself. That is why the result above deliberately says <strong>no obvious blocker</strong> rather than promising that a URL will be indexed.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Indexability Checker</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste HTML source, HTTP response headers, or both.</li>
-            <li>Optionally enter the page URL to compare it with the canonical tag.</li>
-            <li>Choose the checking style and output format.</li>
-            <li>Review noindex, nofollow, canonical, meta refresh, title, description, and X-Robots-Tag signals.</li>
-            <li>Copy the summary, report, JSON, Markdown, or CSV output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common Indexability Blockers</h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>noindex</strong> in a robots meta tag or X-Robots-Tag header.</li>
-            <li>Canonical tags pointing to a different URL unexpectedly.</li>
-            <li>Meta refresh redirects that behave like soft redirects.</li>
-            <li>Missing or weak title and description signals.</li>
-            <li>Nofollow directives that change how links are handled.</li>
-            <li>Conflicting robots directives between HTML and HTTP headers.</li>
+          <h2 className="text-xl font-semibold text-gray-900">Signals that can stop the current response from being indexed</h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li><code>noindex</code> in a robots meta tag or applicable <code>X-Robots-Tag</code> response header.</li>
+            <li>A redirect response, where the current URL is forwarding elsewhere instead of serving indexable content.</li>
+            <li>Persistent <code>4xx</code>, <code>5xx</code>, or <code>429</code> responses, which prevent normal indexing of the returned content.</li>
+            <li>Conflicting robots directives where a restrictive rule such as <code>noindex</code> is also present.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Indexable Signals</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`<meta name="robots" content="index, follow" />
-<link rel="canonical" href="https://example.com/page" />`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Indexability Is Not the Same as Ranking</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            An indexable page is only eligible to appear in search results. Ranking still depends on content quality, search intent, internal links, external signals, page experience, and search engine evaluation.
+          <h2 className="text-xl font-semibold text-gray-900">Signals that matter without being hard blockers</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A canonical URL pointing elsewhere is important because it asks search engines to consolidate duplicate signals around another URL, but Google describes canonicalization as a hint rather than a rule. Likewise, <code>nofollow</code> controls link following rather than page indexing, and a missing meta description does not make a page non-indexable.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use this tool to remove technical blockers first, then review content quality and internal linking separately.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Missing titles and descriptions are still worth noticing during a page review, so the expanded mode can surface them without treating them as indexing blocks.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Robots.txt can hide the very noindex rule you wanted Google to read</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Robots meta rules and <code>X-Robots-Tag</code> rules are discovered when a crawler fetches the URL. If robots.txt prevents that crawl, the crawler may never see the page-level <code>noindex</code>. A pasted-source check cannot resolve that conflict because robots.txt is a separate resource.
+          </p>
+        </div>
 
-          <div className="mt-5 space-y-6">
-            <Faq title="What does an Indexability Checker do?">
-              It checks pasted HTML and headers for signals that may allow, block, or complicate search engine indexing.
-            </Faq>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">HTTP status belongs in the same review</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            When response headers are included, the parser reads a conventional HTTP status line and <code>Content-Type</code>. A successful <code>2xx</code> response can move content into later indexing systems, but success alone never guarantees indexing. Redirects and error responses change the interpretation before page-level SEO tags are considered.
+          </p>
+        </div>
 
-            <Faq title="Does this crawl a live URL?">
-              No. It analyzes the HTML and headers you paste into the tool.
-            </Faq>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Pasted source may differ from the rendered page</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JavaScript can alter canonicals, robots tags, content, and navigation after the original HTML arrives. The parser reads exactly what you paste. For a JavaScript-heavy page, compare server HTML with the rendered DOM and Search Console&apos;s URL Inspection output before diagnosing an indexing problem.
+          </p>
+        </div>
 
-            <Faq title="What is the difference between crawlable and indexable?">
-              Crawlable means a search engine can access the page. Indexable means the page is allowed and suitable to be stored in the search index.
-            </Faq>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">What happens to the HTML and headers you paste</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Parsing happens in the browser and does not intentionally transmit the pasted HTML, headers, or optional page URL to Yoryantra for analysis. The page URL field is used only as a comparison value; entering it does not fetch the page.
+          </p>
+        </div>
 
-            <Faq title="Can a page with a canonical tag still be indexed?">
-              Yes, but if the canonical points elsewhere, search engines may choose the canonical target instead of the current URL.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I check indexability?">
-              No. The check runs directly in your browser.
-            </Faq>
-          </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Primary documentation for the rules above</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Google documents these behaviors in its{' '}
+            <a href="https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">robots meta and X-Robots-Tag specification</a>,{' '}
+            <a href="https://developers.google.com/crawling/docs/troubleshooting/http-status-codes" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">HTTP status guidance</a>, and{' '}
+            <a href="https://developers.google.com/search/docs/crawling-indexing/canonicalization" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">canonicalization documentation</a>.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/robots-txt-tester" className="yoryantra-btn-outline">Robots.txt Tester</Link>
-            <Link href="/tools/meta-robots-tag-generator" className="yoryantra-btn-outline">Meta Robots Tag Generator</Link>
-            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline">Canonical URL Checker</Link>
-            <Link href="/tools/redirect-chain-checker" className="yoryantra-btn-outline">Redirect Chain Checker</Link>
-            <Link href="/tools/meta-tags-checker" className="yoryantra-btn-outline">Meta Tags Checker</Link>
+            <Link href="/tools/robots-txt-tester" className="yoryantra-btn-outline whitespace-nowrap">Robots.txt Tester</Link>
+            <Link href="/tools/meta-robots-tag-generator" className="yoryantra-btn-outline whitespace-nowrap">Meta Robots Tag Generator</Link>
+            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline whitespace-nowrap">Canonical URL Checker</Link>
+            <Link href="/tools/redirect-chain-checker" className="yoryantra-btn-outline whitespace-nowrap">Redirect Chain Checker</Link>
+            <Link href="/tools/http-headers-checker" className="yoryantra-btn-outline whitespace-nowrap">HTTP Headers Checker</Link>
           </div>
         </div>
       </section>
@@ -479,32 +455,33 @@ export default function ToolClient() {
 
 function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 accent-[var(--light-gold)]"
-      />
-      {label}
+    <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900">
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]" />
+      <span>{label}</span>
     </label>
   );
 }
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
     </div>
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
+function IssueCard({ issue }: { issue: Issue }) {
+  const styles = issue.severity === "high"
+    ? "border-red-200 bg-red-50 text-red-900"
+    : issue.severity === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
+      : "border-gray-200 bg-gray-50 text-gray-900";
+
   return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
+    <div className={`self-start rounded-xl border p-4 ${styles}`}>
+      <p className="text-sm font-semibold">{issue.title}</p>
+      <p className="mt-1 text-sm leading-relaxed opacity-90">{issue.message}</p>
     </div>
   );
 }
@@ -521,245 +498,261 @@ function analyzeIndexability(options: {
   warnNofollow: boolean;
   warnThinSignals: boolean;
 }): Result {
-  const html = options.inputMode === "headers" ? "" : options.input;
-  const headers = options.inputMode === "html" ? "" : options.input;
+  if (options.pageUrl.trim()) {
+    const parsedPageUrl = parseHttpUrl(options.pageUrl.trim());
+    if (!parsedPageUrl) throw new Error("Page URL must be an absolute HTTP or HTTPS URL.");
+  }
+
+  const separated = separateSource(options.input, options.inputMode);
+  const html = separated.html;
+  const headers = separated.headers;
   const robotsDirectives = extractRobotsDirectives(html);
   const xRobotsDirectives = extractXRobotsDirectives(headers);
-  const canonicalUrl = extractCanonical(html);
+  const canonicalUrls = extractCanonicals(html);
+  const canonicalUrl = canonicalUrls[0] || "";
   const metaRefresh = extractMetaRefresh(html);
   const title = extractTitle(html);
   const description = extractDescription(html);
+  const statusCode = extractStatusCode(headers);
+  const contentType = extractHeaderValue(headers, "content-type");
   const signals: ExtractedSignal[] = [];
   const issues: Issue[] = [];
 
-  addSignal(signals, "Robots meta", robotsDirectives.join(", ") || "not found", "html", robotsDirectives.length ? "info" : "good");
-  addSignal(signals, "X-Robots-Tag", xRobotsDirectives.join(", ") || "not found", "headers", xRobotsDirectives.length ? "info" : "good");
-  addSignal(signals, "Canonical", canonicalUrl || "not found", "html", canonicalUrl ? "good" : "info");
+  addSignal(signals, "HTTP status", statusCode ? String(statusCode) : "not supplied", "headers", statusSeverity(statusCode));
+  addSignal(signals, "Content-Type", contentType || "not supplied", "headers", "info");
+  addSignal(signals, "Robots meta", robotsDirectives.join(", ") || "not found", "html", directiveSeverity(robotsDirectives));
+  addSignal(signals, "X-Robots-Tag", xRobotsDirectives.join(", ") || "not found", "headers", directiveSeverity(xRobotsDirectives));
+  addSignal(signals, "Canonical", canonicalUrls.length ? canonicalUrls.join(" | ") : "not found", "html", canonicalUrls.length > 1 ? "warning" : canonicalUrl ? "good" : "info");
   addSignal(signals, "Meta refresh", metaRefresh || "not found", "html", metaRefresh ? "warning" : "good");
-  addSignal(signals, "Title", title || "not found", "html", title ? "good" : "warning");
+  addSignal(signals, "Title", title || "not found", "html", title ? "good" : "info");
   addSignal(signals, "Description", description || "not found", "html", description ? "good" : "info");
 
-  const allDirectives = [...robotsDirectives, ...xRobotsDirectives].map((item) => item.toLowerCase());
+  const allDirectives = [...robotsDirectives, ...xRobotsDirectives].map(normalizeDirectiveToken);
+  const hasNoindex = allDirectives.includes("noindex") || allDirectives.includes("none");
+  const hasIndex = allDirectives.includes("index") || allDirectives.includes("all");
+  const hasNofollow = allDirectives.includes("nofollow") || allDirectives.includes("none");
 
-  if (allDirectives.includes("noindex") || allDirectives.some((item) => item.startsWith("none"))) {
-    issues.push({
-      severity: "high",
-      title: "Noindex directive found",
-      message: "The page contains noindex or none, which can prevent indexing.",
-    });
+  if (statusCode !== null) {
+    if (statusCode >= 300 && statusCode < 400) {
+      issues.push({ severity: "high", title: "Redirect response supplied", message: `HTTP ${statusCode} redirects the current URL instead of serving a normal indexable document at this response.` });
+    } else if (statusCode === 429 || statusCode >= 500) {
+      issues.push({ severity: "high", title: "Server or rate-limit response", message: `HTTP ${statusCode} prevents normal processing of the returned page and can reduce crawling while the error persists.` });
+    } else if (statusCode >= 400) {
+      issues.push({ severity: "high", title: "Client-error response", message: `HTTP ${statusCode} is not a normal success response for content intended to remain indexed.` });
+    }
   }
 
-  if (options.warnNofollow && (allDirectives.includes("nofollow") || allDirectives.some((item) => item.startsWith("none")))) {
-    issues.push({
-      severity: "warning",
-      title: "Nofollow directive found",
-      message: "The page contains nofollow or none. This can affect how links on the page are followed.",
-    });
+  if (hasNoindex) {
+    issues.push({ severity: "high", title: "Noindex directive is present", message: "A noindex rule (or none, which includes noindex) tells supporting search crawlers not to keep this page in search results once they can crawl the rule." });
   }
 
-  if (options.warnMissingCanonical && !canonicalUrl && options.inputMode !== "headers") {
-    issues.push({
-      severity: options.checkingStyle === "strict" ? "warning" : "info",
-      title: "Canonical tag missing",
-      message: "No canonical tag was found in the pasted HTML.",
-    });
+  if (hasNoindex && hasIndex) {
+    issues.push({ severity: "warning", title: "Conflicting index directives", message: "Both permissive and restrictive indexing tokens are present. Google applies the more restrictive rule, so noindex wins." });
   }
 
-  if (options.warnCanonicalMismatch && options.pageUrl && canonicalUrl && normalizeUrl(options.pageUrl) !== normalizeUrl(canonicalUrl)) {
-    issues.push({
-      severity: "info",
-      title: "Canonical differs from page URL",
-      message: "The canonical points to a different URL. This can be intentional, but it should match your preferred indexable URL.",
-    });
+  if (options.warnNofollow && hasNofollow) {
+    issues.push({ severity: "warning", title: "Nofollow directive is present", message: "Nofollow affects how links on the page are followed; it does not by itself make the page non-indexable." });
+  }
+
+  if (canonicalUrls.length > 1) {
+    issues.push({ severity: "warning", title: "Multiple canonical links found", message: "More than one canonical target makes the preferred URL signal ambiguous and should be resolved in the source." });
+  }
+
+  if (options.warnMissingCanonical && !canonicalUrl && options.inputMode !== "headers" && options.checkingStyle !== "relaxed") {
+    issues.push({ severity: "info", title: "No canonical link in the pasted HTML", message: "A canonical link is not required for indexability, but it can help communicate a preferred URL when duplicate variants exist." });
+  }
+
+  if (canonicalUrl && !isAbsoluteHttpUrl(canonicalUrl)) {
+    issues.push({ severity: "info", title: "Canonical is not an absolute HTTP(S) URL", message: "Relative canonicals can be resolved by browsers, but Google recommends absolute canonical URLs to reduce ambiguity." });
+  }
+
+  if (options.warnCanonicalMismatch && options.pageUrl && canonicalUrl && !sameUrlForComparison(options.pageUrl, canonicalUrl)) {
+    issues.push({ severity: "warning", title: "Canonical points away from the page URL", message: "That can be intentional for duplicate content, but it asks search engines to prefer another URL rather than this one." });
   }
 
   if (options.warnMetaRefresh && metaRefresh) {
-    issues.push({
-      severity: "warning",
-      title: "Meta refresh found",
-      message: "Meta refresh can behave like a soft redirect and may complicate indexing signals.",
-    });
+    issues.push({ severity: "warning", title: "Meta refresh is present", message: "A meta refresh can move users and crawlers to another URL. Check the delay and destination, and prefer an HTTP redirect when a real redirect is intended." });
   }
 
-  if (options.warnThinSignals && !title && options.inputMode !== "headers") {
-    issues.push({
-      severity: "warning",
-      title: "Title missing",
-      message: "No title tag was found. A missing title weakens page quality and search snippet signals.",
-    });
-  }
-
-  if (options.warnThinSignals && !description && options.inputMode !== "headers") {
-    issues.push({
-      severity: "info",
-      title: "Meta description missing",
-      message: "No meta description was found. This does not block indexing, but it can affect snippet quality.",
-    });
+  if (options.warnThinSignals && options.inputMode !== "headers" && options.checkingStyle === "strict") {
+    if (!title) issues.push({ severity: "info", title: "Title is missing", message: "A missing title is a page-quality and search-presentation issue, not an indexing prohibition." });
+    if (!description) issues.push({ severity: "info", title: "Meta description is missing", message: "A missing meta description does not prevent indexing; search engines may generate snippet text from the page." });
   }
 
   if (issues.length === 0) {
-    issues.push({
-      severity: "info",
-      title: "No obvious indexing blocker found",
-      message: "The pasted source does not contain common noindex, canonical, or meta refresh blockers.",
-    });
+    issues.push({ severity: "info", title: "No blocking signal found in the pasted data", message: "The supplied HTML and headers do not show a common page-level indexing prohibition or non-success response." });
   }
 
-  const score = calculateScore(issues);
-  const status: Result["status"] = issues.some((issue) => issue.severity === "high")
-    ? "blocked"
-    : issues.some((issue) => issue.severity === "warning")
-      ? "needs-review"
-      : "indexable";
-  const indexable = status !== "blocked";
-  const base = {
-    indexable,
-    score,
-    status,
-    issues,
-    signals,
-    robotsDirectives,
-    xRobotsDirectives,
-    canonicalUrl,
-    metaRefresh,
-    title,
-    description,
-  };
+  const blockingCount = issues.filter((issue) => issue.severity === "high").length;
+  const warningCount = issues.filter((issue) => issue.severity === "warning").length;
+  const status: Result["status"] = blockingCount > 0 ? "blocked" : warningCount > 0 ? "needs-review" : "no-obvious-blocker";
+  const base = { status, issues, signals, robotsDirectives, xRobotsDirectives, canonicalUrls, canonicalUrl, metaRefresh, title, description, statusCode, contentType, blockingCount, warningCount };
   const output = formatOutput(base, options.outputMode);
+  return { ...base, output };
+}
 
-  return {
-    ...base,
-    output,
-  };
+function separateSource(input: string, mode: InputMode) {
+  if (mode === "html") return { html: input, headers: "" };
+  if (mode === "headers") return { html: "", headers: input };
+
+  const firstTag = input.search(/<(?!!--)/);
+  if (firstTag === -1) return { html: "", headers: input };
+  return { headers: input.slice(0, firstTag), html: input.slice(firstTag) };
 }
 
 function addSignal(signals: ExtractedSignal[], name: string, value: string, source: ExtractedSignal["source"], severity: ExtractedSignal["severity"]) {
   signals.push({ name, value, source, severity });
 }
 
+function parseDocument(html: string) {
+  if (!html.trim() || typeof DOMParser === "undefined") return null;
+  return new DOMParser().parseFromString(html, "text/html");
+}
+
 function extractRobotsDirectives(html: string) {
+  const doc = parseDocument(html);
+  if (!doc) return [];
+  const accepted = new Set(["robots", "googlebot", "googlebot-news", "bingbot"]);
   const directives: string[] = [];
-  const matches = html.matchAll(/<meta\b[^>]*(?:name|property)=["'](?:robots|googlebot|bingbot)["'][^>]*>/gi);
-
-  Array.from(matches).forEach((match) => {
-    const content = readAttribute(match[0], "content");
-    directives.push(...splitDirectives(content));
+  Array.from(doc.querySelectorAll("meta[name]")).forEach((meta) => {
+    const name = (meta.getAttribute("name") || "").trim().toLowerCase();
+    if (!accepted.has(name)) return;
+    directives.push(...splitDirectives(meta.getAttribute("content") || ""));
   });
-
   return unique(directives);
 }
 
 function extractXRobotsDirectives(headers: string) {
   const directives: string[] = [];
-  const lines = headers.split(/\r?\n/);
-
-  lines.forEach((line) => {
+  headers.split(/\r?\n/).forEach((line) => {
     const match = line.match(/^\s*x-robots-tag\s*:\s*(.+)$/i);
-    if (match) {
-      directives.push(...splitDirectives(match[1]));
-    }
+    if (!match) return;
+    directives.push(...splitDirectives(match[1]).map(stripKnownUserAgentPrefix));
   });
-
-  return unique(directives);
+  return unique(directives.filter(Boolean));
 }
 
 function splitDirectives(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
-function extractCanonical(html: string) {
-  const match = html.match(/<link\b[^>]*rel=["'][^"']*\bcanonical\b[^"']*["'][^>]*>/i);
-  return match ? readAttribute(match[0], "href") : "";
+function stripKnownUserAgentPrefix(value: string) {
+  return value.replace(/^\s*(?:googlebot|googlebot-news|bingbot)\s*:\s*/i, "").trim();
+}
+
+function normalizeDirectiveToken(value: string) {
+  return stripKnownUserAgentPrefix(value).toLowerCase().split(":")[0].trim();
+}
+
+function directiveSeverity(values: string[]): ExtractedSignal["severity"] {
+  const tokens = values.map(normalizeDirectiveToken);
+  if (tokens.includes("noindex") || tokens.includes("none")) return "high";
+  if (tokens.includes("nofollow")) return "warning";
+  return values.length ? "info" : "good";
+}
+
+function extractCanonicals(html: string) {
+  const doc = parseDocument(html);
+  if (!doc) return [];
+  const values = Array.from(doc.querySelectorAll("link[rel][href]"))
+    .filter((link) => (link.getAttribute("rel") || "").toLowerCase().split(/\s+/).includes("canonical"))
+    .map((link) => (link.getAttribute("href") || "").trim())
+    .filter(Boolean);
+  return unique(values);
 }
 
 function extractMetaRefresh(html: string) {
-  const match = html.match(/<meta\b[^>]*http-equiv=["']refresh["'][^>]*>/i);
-  return match ? readAttribute(match[0], "content") : "";
+  const doc = parseDocument(html);
+  if (!doc) return "";
+  const meta = Array.from(doc.querySelectorAll("meta[http-equiv]"))
+    .find((node) => (node.getAttribute("http-equiv") || "").trim().toLowerCase() === "refresh");
+  return meta ? (meta.getAttribute("content") || "").trim() : "";
 }
 
 function extractTitle(html: string) {
-  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  return match ? decodeBasicEntities(match[1].trim()) : "";
+  const doc = parseDocument(html);
+  return doc?.title.trim() || "";
 }
 
 function extractDescription(html: string) {
-  const match = html.match(/<meta\b[^>]*name=["']description["'][^>]*>/i);
-  return match ? readAttribute(match[0], "content") : "";
+  const doc = parseDocument(html);
+  if (!doc) return "";
+  const meta = Array.from(doc.querySelectorAll("meta[name]"))
+    .find((node) => (node.getAttribute("name") || "").trim().toLowerCase() === "description");
+  return meta ? (meta.getAttribute("content") || "").trim() : "";
 }
 
-function readAttribute(tag: string, attribute: string) {
-  const match = tag.match(new RegExp(`${attribute}\\s*=\\s*["']([^"']*)["']`, "i"));
-  return match ? decodeBasicEntities(match[1].trim()) : "";
+function extractStatusCode(headers: string) {
+  const firstLine = headers.split(/\r?\n/).map((line) => line.trim()).find(Boolean) || "";
+  const httpMatch = firstLine.match(/^HTTP\/\S+\s+(\d{3})\b/i);
+  if (httpMatch) return Number(httpMatch[1]);
+  const pseudo = headers.match(/^\s*:status\s*:\s*(\d{3})\b/im);
+  if (pseudo) return Number(pseudo[1]);
+  const statusHeader = headers.match(/^\s*status\s*:\s*(\d{3})\b/im);
+  return statusHeader ? Number(statusHeader[1]) : null;
 }
 
-function decodeBasicEntities(value: string) {
-  return value
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
+function extractHeaderValue(headers: string, name: string) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = headers.match(new RegExp(`^\\s*${escaped}\\s*:\\s*(.+)$`, "im"));
+  return match ? match[1].trim() : "";
 }
 
-function normalizeUrl(value: string) {
+function statusSeverity(statusCode: number | null): ExtractedSignal["severity"] {
+  if (statusCode === null) return "info";
+  if (statusCode >= 300) return statusCode < 400 ? "warning" : "high";
+  return "good";
+}
+
+function parseHttpUrl(value: string) {
   try {
     const url = new URL(value);
-    url.hash = "";
-    url.hostname = url.hostname.replace(/^www\./i, "");
-    let text = url.toString();
-    text = text.replace(/\/$/, "");
-    return text;
+    return url.protocol === "http:" || url.protocol === "https:" ? url : null;
   } catch {
-    return value.trim().replace(/\/$/, "");
+    return null;
   }
 }
 
-function calculateScore(issues: Issue[]) {
-  let score = 100;
+function isAbsoluteHttpUrl(value: string) {
+  return Boolean(parseHttpUrl(value));
+}
 
-  issues.forEach((issue) => {
-    if (issue.severity === "high") score -= 45;
-    else if (issue.severity === "warning") score -= 15;
-    else if (issue.title !== "No obvious indexing blocker found") score -= 5;
-  });
+function sameUrlForComparison(pageUrl: string, canonicalUrl: string) {
+  try {
+    const page = new URL(pageUrl);
+    const canonical = new URL(canonicalUrl, page);
+    page.hash = "";
+    canonical.hash = "";
+    return normalizeComparableUrl(page) === normalizeComparableUrl(canonical);
+  } catch {
+    return pageUrl.trim() === canonicalUrl.trim();
+  }
+}
 
-  return Math.max(0, score);
+function normalizeComparableUrl(url: URL) {
+  const copy = new URL(url.toString());
+  copy.hash = "";
+  if (copy.pathname !== "/") copy.pathname = copy.pathname.replace(/\/+$/, "");
+  return copy.toString();
 }
 
 function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
-  if (mode === "json") {
-    return JSON.stringify(result, null, 2);
-  }
-
+  if (mode === "json") return JSON.stringify(result, null, 2);
   if (mode === "csv") {
-    const rows = [
-      ["signal", "value", "source", "severity"],
-      ...result.signals.map((signal) => [signal.name, signal.value, signal.source, signal.severity]),
-    ];
-
+    const rows = [["signal", "value", "source", "severity"], ...result.signals.map((signal) => [signal.name, signal.value, signal.source, signal.severity])];
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
-
   if (mode === "markdown") {
-    return [
-      "| Signal | Value | Source | Severity |",
-      "| --- | --- | --- | --- |",
-      ...result.signals.map((signal) =>
-        `| ${escapeMarkdown(signal.name)} | ${escapeMarkdown(signal.value)} | ${signal.source} | ${signal.severity} |`
-      ),
-    ].join("\n");
+    return ["| Signal | Value | Source | Severity |", "| --- | --- | --- | --- |", ...result.signals.map((signal) => `| ${escapeMarkdown(signal.name)} | ${escapeMarkdown(signal.value)} | ${signal.source} | ${signal.severity} |`)].join("\n");
   }
-
   if (mode === "report") {
     return [
-      "Indexability Report",
-      "-------------------",
+      "Indexability Signal Report",
+      "--------------------------",
       `Status: ${result.status}`,
-      `Indexable: ${result.indexable ? "yes" : "no"}`,
-      `Score: ${result.score}/100`,
+      `HTTP status: ${result.statusCode ?? "not supplied"}`,
+      `Blocking signals: ${result.blockingCount}`,
+      `Cautions: ${result.warningCount}`,
       "",
       "Signals:",
       ...result.signals.map((signal) => `- ${signal.name}: ${signal.value} (${signal.source})`),
@@ -768,19 +761,18 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
       ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
     ].join("\n");
   }
-
   return [
-    "Indexability Summary",
-    "--------------------",
+    "Indexability Signal Summary",
+    "---------------------------",
     `Status: ${result.status}`,
-    `Indexable: ${result.indexable ? "yes" : "no"}`,
-    `Score: ${result.score}/100`,
+    `HTTP status: ${result.statusCode ?? "not supplied"}`,
+    `Content-Type: ${result.contentType || "not supplied"}`,
+    `Blocking signals: ${result.blockingCount}`,
+    `Cautions: ${result.warningCount}`,
     `Robots meta: ${result.robotsDirectives.join(", ") || "not found"}`,
     `X-Robots-Tag: ${result.xRobotsDirectives.join(", ") || "not found"}`,
-    `Canonical: ${result.canonicalUrl || "not found"}`,
+    `Canonical: ${result.canonicalUrls.join(" | ") || "not found"}`,
     `Meta refresh: ${result.metaRefresh || "not found"}`,
-    `Title: ${result.title || "not found"}`,
-    `Description: ${result.description || "not found"}`,
     "",
     "Findings:",
     ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
@@ -788,10 +780,7 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
 }
 
 function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-
+  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
   return value;
 }
 
@@ -805,27 +794,8 @@ function unique(values: string[]) {
 
 function getNotes(result: Result) {
   const notes: { title: string; message: string }[] = [];
-
-  if (result.status === "blocked") {
-    notes.push({
-      title: "Fix blocking directives first",
-      message: "Remove noindex or conflicting X-Robots-Tag rules before expecting the page to appear in search results.",
-    });
-  }
-
-  if (result.canonicalUrl) {
-    notes.push({
-      title: "Confirm canonical alignment",
-      message: "Make sure canonical tags, sitemap URLs, redirects, and internal links point to the same preferred version.",
-    });
-  }
-
-  if (result.status === "indexable") {
-    notes.push({
-      title: "No obvious blocker found",
-      message: "The pasted source looks technically indexable, but search engines still evaluate quality, duplication, links, and crawl access.",
-    });
-  }
-
+  if (result.blockingCount > 0) notes.push({ title: "Start with the blocking response or directive", message: "A canonical or snippet improvement cannot compensate for a noindex rule, redirect response, or persistent HTTP error." });
+  if (result.canonicalUrl) notes.push({ title: "Compare canonical with the rest of the site signals", message: "Sitemaps, internal links, redirects, and canonical annotations are strongest when they consistently identify the same preferred URL." });
+  if (result.status === "no-obvious-blocker") notes.push({ title: "Move from source inspection to live verification", message: "Check robots.txt, rendered HTML, redirects, and Search Console before concluding that an indexing problem is solved." });
   return notes;
 }

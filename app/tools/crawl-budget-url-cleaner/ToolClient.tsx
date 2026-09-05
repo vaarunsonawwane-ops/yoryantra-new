@@ -7,7 +7,7 @@ import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "cleanList" | "removedList" | "report" | "json" | "csv" | "markdown";
 type SortMode = "original" | "alphabetical" | "hostPath" | "length";
-type CaseMode = "keep" | "lowercaseHost" | "lowercasePath";
+type CaseMode = "lowercaseHost" | "lowercasePath";
 
 type UrlRow = {
   original: string;
@@ -59,8 +59,8 @@ const defaultTrackingParams = [
   "mc_cid",
   "mc_eid",
   "igshid",
-  "ref",
-  "ref_src",
+  "dclid",
+  "_gl",
 ];
 
 const defaultWastePatterns = [
@@ -82,8 +82,8 @@ export default function ToolClient() {
   const [caseMode, setCaseMode] = useState<CaseMode>("lowercaseHost");
   const [removeTrackingParams, setRemoveTrackingParams] = useState(true);
   const [removeFragments, setRemoveFragments] = useState(true);
-  const [removeEmptyParams, setRemoveEmptyParams] = useState(true);
-  const [normalizeTrailingSlash, setNormalizeTrailingSlash] = useState(true);
+  const [removeEmptyParams, setRemoveEmptyParams] = useState(false);
+  const [normalizeTrailingSlash, setNormalizeTrailingSlash] = useState(false);
   const [deduplicateUrls, setDeduplicateUrls] = useState(true);
   const [flagCrawlWaste, setFlagCrawlWaste] = useState(true);
   const [removeCrawlWaste, setRemoveCrawlWaste] = useState(false);
@@ -139,9 +139,14 @@ export default function ToolClient() {
 
   const copyOutput = async () => {
     if (!output) return;
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("Copy failed. Select the output and copy it manually.");
+    }
   };
 
   const loadExample = () => {
@@ -153,8 +158,8 @@ export default function ToolClient() {
     setCaseMode("lowercaseHost");
     setRemoveTrackingParams(true);
     setRemoveFragments(true);
-    setRemoveEmptyParams(true);
-    setNormalizeTrailingSlash(true);
+    setRemoveEmptyParams(false);
+    setNormalizeTrailingSlash(false);
     setDeduplicateUrls(true);
     setFlagCrawlWaste(true);
     setRemoveCrawlWaste(false);
@@ -170,8 +175,8 @@ export default function ToolClient() {
     setCaseMode("lowercaseHost");
     setRemoveTrackingParams(true);
     setRemoveFragments(true);
-    setRemoveEmptyParams(true);
-    setNormalizeTrailingSlash(true);
+    setRemoveEmptyParams(false);
+    setNormalizeTrailingSlash(false);
     setDeduplicateUrls(true);
     setFlagCrawlWaste(true);
     setRemoveCrawlWaste(false);
@@ -181,7 +186,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Crawl Budget URL Cleaner"
-      description="Clean URL lists for technical SEO. Remove tracking parameters, fragments, duplicate variants, trailing slash differences, empty parameters, and crawl-waste URL patterns."
+      description="Normalize crawl-export URLs without confusing tracking noise with real page variants."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -226,7 +231,7 @@ export default function ToolClient() {
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
           <label className="block mb-2 text-sm font-medium text-gray-700">
-            Extra Crawl-Waste Patterns
+            Extra Review Patterns
           </label>
 
           <textarea
@@ -240,7 +245,7 @@ export default function ToolClient() {
           />
 
           <p className="mt-2 text-sm text-gray-500">
-            Optional. Enter URL fragments or path patterns to flag.
+            Optional. Enter path prefixes, query fragments, or other substrings that deserve manual review.
           </p>
         </div>
       </div>
@@ -282,16 +287,15 @@ export default function ToolClient() {
           />
 
           <YoryantraSelect
-            label="Case"
+            label="Path Case"
             value={caseMode}
             onChange={(value) => {
               setCaseMode(value as CaseMode);
               clearResult();
             }}
             options={[
-              { label: "Lowercase host only", value: "lowercaseHost" },
-              { label: "Lowercase host and path", value: "lowercasePath" },
-              { label: "Keep original case", value: "keep" },
+              { label: "Preserve path case", value: "lowercaseHost" },
+              { label: "Lowercase path (only when safe)", value: "lowercasePath" },
             ]}
           />
 
@@ -299,32 +303,32 @@ export default function ToolClient() {
             <CheckboxRow checked={removeTrackingParams} label="Remove common tracking parameters" onChange={(checked) => { setRemoveTrackingParams(checked); clearResult(); }} />
             <CheckboxRow checked={removeFragments} label="Remove URL fragments after #" onChange={(checked) => { setRemoveFragments(checked); clearResult(); }} />
             <CheckboxRow checked={removeEmptyParams} label="Remove empty query parameters" onChange={(checked) => { setRemoveEmptyParams(checked); clearResult(); }} />
-            <CheckboxRow checked={normalizeTrailingSlash} label="Normalize trailing slash variants" onChange={(checked) => { setNormalizeTrailingSlash(checked); clearResult(); }} />
+            <CheckboxRow checked={normalizeTrailingSlash} label="Remove trailing slash from non-root paths" onChange={(checked) => { setNormalizeTrailingSlash(checked); clearResult(); }} />
             <CheckboxRow checked={deduplicateUrls} label="Remove duplicate cleaned URLs" onChange={(checked) => { setDeduplicateUrls(checked); clearResult(); }} />
-            <CheckboxRow checked={flagCrawlWaste} label="Flag common crawl-waste patterns" onChange={(checked) => { setFlagCrawlWaste(checked); clearResult(); }} />
-            <CheckboxRow checked={removeCrawlWaste} label="Remove flagged crawl-waste URLs from clean output" onChange={(checked) => { setRemoveCrawlWaste(checked); clearResult(); }} />
+            <CheckboxRow checked={flagCrawlWaste} label="Flag common low-priority or duplicate-prone patterns" onChange={(checked) => { setFlagCrawlWaste(checked); clearResult(); }} />
+            <CheckboxRow checked={removeCrawlWaste} label="Exclude flagged review patterns from clean output" onChange={(checked) => { setRemoveCrawlWaste(checked); clearResult(); }} />
           </div>
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Use this for URL list cleanup before crawl audits, sitemap reviews, log file checks, and Search Console analysis.
+          Hostnames are normalized by the browser URL parser. Path case and trailing slashes can be meaningful on some servers, so those changes stay conservative by default.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={cleanUrls} className="yoryantra-btn">
+        <button onClick={cleanUrls} className="yoryantra-btn whitespace-nowrap">
           Clean URL List
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -391,154 +395,135 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Cleanup findings</h3>
-
-          <div className="mt-3 space-y-3">
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900">What changed in this list</h3>
+          <div className="mt-4 grid items-start gap-3 md:grid-cols-2">
             {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
+              <IssueCard key={`${issue.title}-${index}`} issue={issue} />
             ))}
           </div>
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Crawl cleanup guidance</h3>
-
-          <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {notes.map((note) => (
+            <div key={note.title} className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
+            </div>
+          ))}
         </div>
       )}
 
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output min-h-[320px] overflow-auto whitespace-pre-wrap break-words text-sm">
           {output || "Cleaned URL output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This tool cleans pasted URL lists only. Always review removed URLs before changing robots rules, canonicals, redirects, or sitemap entries.
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+        Treat excluded URLs as an audit queue, not a deletion list. A parameter, path case, or trailing slash can change the resource your server returns.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Cleaning URL Lists for Crawl Budget Reviews</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Large sites often collect messy URL variants from crawls, logs, sitemaps, analytics, and Search Console exports. Tracking parameters, fragments, duplicate slashes, session IDs, filters, and repeated variants can make SEO audits harder to read.
+          <h2 className="text-2xl font-semibold text-gray-900">A cleaner export is not automatically a crawl-budget fix</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Crawl exports and log samples often contain campaign parameters, fragment variants, repeated URLs, and paths that deserve a closer look. Removing that noise can make an audit much easier to reason about, but the cleanup itself does not change how a crawler behaves on the live site.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Crawl Budget URL Cleaner normalizes URL lists so you can focus on useful indexable URLs and spot patterns that may waste crawl attention.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Google describes crawl-budget work as an advanced concern mainly for very large, rapidly changing sites or sites with a large number of discovered-but-not-indexed URLs. Smaller sites usually gain more from keeping sitemaps, internal links, redirects, canonicals, and server responses consistent.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Crawl Budget URL Cleaner</h2>
+          <h2 className="text-xl font-semibold text-gray-900">What the switches actually change</h2>
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Cleanup</th>
+                  <th className="px-4 py-3 font-semibold">Why it is usually reviewed</th>
+                  <th className="px-4 py-3 font-semibold">Where to be careful</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-gray-600">
+                <tr><td className="px-4 py-3 font-medium text-gray-800">Tracking parameters</td><td className="px-4 py-3">Campaign identifiers can create many list variants of the same landing page.</td><td className="px-4 py-3">Only known names are removed automatically; custom parameters may affect content.</td></tr>
+                <tr><td className="px-4 py-3 font-medium text-gray-800">Fragments</td><td className="px-4 py-3">The fragment is not sent in an HTTP request for the resource.</td><td className="px-4 py-3">Client-side applications can still attach meaning to fragments.</td></tr>
+                <tr><td className="px-4 py-3 font-medium text-gray-800">Trailing slash</td><td className="px-4 py-3">Slash variants often appear as duplicate-looking URLs.</td><td className="px-4 py-3">Servers can treat <code>/page</code> and <code>/page/</code> differently, so removal is off by default.</td></tr>
+                <tr><td className="px-4 py-3 font-medium text-gray-800">Path case</td><td className="px-4 py-3">Mixed-case paths can create inconsistent URL sets.</td><td className="px-4 py-3">Paths are case-sensitive in URL handling and may resolve to different resources.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste one URL per line from a crawl, sitemap, log, or Search Console export.</li>
-            <li>Add custom parameters or URL patterns if your site uses them.</li>
-            <li>Choose how URLs should be normalized, deduplicated, and sorted.</li>
-            <li>Review changed, duplicate, removed, and invalid URLs.</li>
-            <li>Copy the cleaned list, removed list, report, JSON, CSV, or Markdown output.</li>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Where normalization can destroy meaning</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Query parameters are not inherently disposable. Filters, pagination, locale switches, product variants, signed URLs, and application state may all live in the query string. The built-in removal list is deliberately limited to familiar campaign identifiers, and custom names should be added only when you know they do not select different content.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The same caution applies to lowercasing paths and removing trailing slashes. Google notes that URLs are case-sensitive, and the browser URL parser may also normalize serialization details while parsing an absolute URL. Compare suspicious groups against the live server before changing routing rules.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">A safer sequence after a crawl export</h2>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Normalize the export conservatively and keep the original URL beside every cleaned value.</li>
+            <li>Group duplicates and review-pattern matches instead of deleting them immediately.</li>
+            <li>Check live status codes, redirects, canonical targets, robots rules, and internal links for representative URLs.</li>
+            <li>Fix the source of unnecessary variants—templates, faceted navigation, campaign links, or routing—rather than only cleaning reports.</li>
+            <li>Re-crawl or inspect server logs to confirm the live URL space actually became simpler.</li>
           </ol>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common Crawl-Waste URL Patterns</h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>URLs with campaign parameters such as utm_source or fbclid.</li>
-            <li>Session IDs and empty query parameters.</li>
-            <li>Fragment-only variants that point to the same page content.</li>
-            <li>Search, cart, login, account, and checkout pages in crawl exports.</li>
-            <li>Trailing slash and case variants that create duplicate-looking URLs.</li>
-            <li>Sorting, filtering, and faceted navigation parameters.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Cleanup</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Before:
-https://example.com/page?utm_source=email#section
-
-After:
-https://example.com/page`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Clean Lists Are for Review, Not Blind Deletion</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A cleaned URL list is useful for analysis, but it should not be treated as an automatic delete list. Some URLs that look noisy may still be important for users, paid campaigns, tracking, or internal workflows.
+          <h2 className="text-xl font-semibold text-gray-900">Fragments, parameters, and duplicate-looking URLs are different cases</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A fragment such as <code>#pricing</code> is a client-side identifier and is not part of the HTTP request target sent for the page. A query parameter such as <code>?color=blue</code>, however, is sent to the server and may select different content. Two strings that look similar in a spreadsheet therefore should not be assumed to be equivalent resources.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use the output to identify patterns, then decide whether to fix links, update canonicals, adjust sitemap entries, change robots rules, or leave URLs alone.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Faceted navigation deserves special attention because combinations of filters and sort parameters can generate very large URL spaces. Cleaning an export can expose that pattern, while the real fix belongs in crawlable linking, URL design, canonicalization, robots controls, or server behavior as appropriate for the site.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">What the cleaner never checks on the live site</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The cleanup logic runs in the browser and does not intentionally send the pasted URL list to Yoryantra for processing. It does not request the URLs, read robots.txt, inspect page content, or verify whether two normalized URLs really return the same resource.
+          </p>
+        </div>
 
-          <div className="mt-5 space-y-6">
-            <Faq title="What does a Crawl Budget URL Cleaner do?">
-              It normalizes and deduplicates URL lists so technical SEO audits are easier to review.
-            </Faq>
-
-            <Faq title="Does this tool crawl my website?">
-              No. It only cleans the URLs you paste into the tool.
-            </Faq>
-
-            <Faq title="Should I remove every URL flagged as crawl waste?">
-              No. Review the context first. Some flagged URLs may still be important for users or business workflows.
-            </Faq>
-
-            <Faq title="Can this clean sitemap exports?">
-              Yes. Paste sitemap URLs or extracted sitemap output, then remove duplicates, fragments, tracking parameters, and noisy variants.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I clean URLs?">
-              No. The cleanup runs directly in your browser.
-            </Faq>
-          </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">References behind the cautions above</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Google&apos;s current guidance is useful here: read its{' '}
+            <a href="https://developers.google.com/crawling/docs/crawl-budget" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">crawl budget documentation</a>,{' '}
+            <a href="https://developers.google.com/search/docs/crawling-indexing/url-structure" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">URL structure recommendations</a>, and{' '}
+            <a href="https://developers.google.com/crawling/docs/faceted-navigation" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">faceted navigation guidance</a>. They explain why URL cleanup is most useful when it leads back to a specific crawl or routing problem on the live site.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/tools/sitemap-url-extractor" className="yoryantra-btn-outline">Sitemap URL Extractor</Link>
-            <Link href="/tools/url-query-params-parser" className="yoryantra-btn-outline">URL Query Params Parser</Link>
-            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline">Canonical URL Checker</Link>
-            <Link href="/tools/indexability-checker" className="yoryantra-btn-outline">Indexability Checker</Link>
-            <Link href="/tools/robots-txt-tester" className="yoryantra-btn-outline">Robots.txt Tester</Link>
+            <Link href="/tools/sitemap-url-extractor" className="yoryantra-btn-outline whitespace-nowrap">Sitemap URL Extractor</Link>
+            <Link href="/tools/url-query-params-parser" className="yoryantra-btn-outline whitespace-nowrap">URL Query Params Parser</Link>
+            <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline whitespace-nowrap">Canonical URL Checker</Link>
+            <Link href="/tools/indexability-checker" className="yoryantra-btn-outline whitespace-nowrap">Indexability Checker</Link>
+            <Link href="/tools/robots-txt-tester" className="yoryantra-btn-outline whitespace-nowrap">Robots.txt Tester</Link>
           </div>
         </div>
       </section>
@@ -548,32 +533,38 @@ https://example.com/page`}
 
 function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
+    <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 accent-[var(--light-gold)]"
+        className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
       />
-      {label}
+      <span>{label}</span>
     </label>
   );
 }
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
     </div>
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
+function IssueCard({ issue }: { issue: Issue }) {
+  const styles = issue.severity === "high"
+    ? "border-red-200 bg-red-50 text-red-900"
+    : issue.severity === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
+      : "border-gray-200 bg-gray-50 text-gray-900";
+
   return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
+    <div className={`self-start rounded-xl border p-4 ${styles}`}>
+      <p className="text-sm font-semibold">{issue.title}</p>
+      <p className="mt-1 text-sm leading-relaxed opacity-90">{issue.message}</p>
     </div>
   );
 }
@@ -597,14 +588,14 @@ function analyzeUrls(options: {
     ...(options.removeTrackingParams ? defaultTrackingParams : []),
     ...lines(options.customRemoveParams),
   ].map((item) => item.toLowerCase()));
-  const wastePatterns = [
+  const reviewPatterns = [
     ...(options.flagCrawlWaste ? defaultWastePatterns : []),
     ...lines(options.customWastePatterns),
   ];
   const seen = new Set<string>();
   const rows = lines(options.input).map((line) => cleanOneUrl(line, {
     removeParams,
-    wastePatterns,
+    reviewPatterns,
     seen,
     caseMode: options.caseMode,
     removeFragments: options.removeFragments,
@@ -631,17 +622,14 @@ function analyzeUrls(options: {
   };
   const output = formatOutput(base, options.outputMode);
 
-  return {
-    ...base,
-    output,
-  };
+  return { ...base, output };
 }
 
 function cleanOneUrl(
   original: string,
   options: {
     removeParams: Set<string>;
-    wastePatterns: string[];
+    reviewPatterns: string[];
     seen: Set<string>;
     caseMode: CaseMode;
     removeFragments: boolean;
@@ -656,19 +644,13 @@ function cleanOneUrl(
   try {
     const url = new URL(original);
 
-    if (options.caseMode === "lowercaseHost" || options.caseMode === "lowercasePath") {
-      const lowerHost = url.hostname.toLowerCase();
-      if (url.hostname !== lowerHost) {
-        reasons.push("lowercased host");
-      }
-      url.hostname = lowerHost;
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return { original, cleaned: "", status: "invalid", reasons: ["only HTTP(S) URLs are supported"] };
     }
 
     if (options.caseMode === "lowercasePath") {
       const lowerPath = url.pathname.toLowerCase();
-      if (url.pathname !== lowerPath) {
-        reasons.push("lowercased path");
-      }
+      if (url.pathname !== lowerPath) reasons.push("lowercased path");
       url.pathname = lowerPath;
     }
 
@@ -677,86 +659,77 @@ function cleanOneUrl(
       reasons.push("removed fragment");
     }
 
-    Array.from(url.searchParams.keys()).forEach((key) => {
-      const value = url.searchParams.get(key);
-
+    const nextParams = new URLSearchParams();
+    url.searchParams.forEach((value, key) => {
       if (options.removeParams.has(key.toLowerCase())) {
-        url.searchParams.delete(key);
         reasons.push(`removed parameter: ${key}`);
-      } else if (options.removeEmptyParams && (value === "" || value === null)) {
-        url.searchParams.delete(key);
-        reasons.push(`removed empty parameter: ${key}`);
+        return;
       }
+
+      if (options.removeEmptyParams && value === "") {
+        reasons.push(`removed empty parameter: ${key}`);
+        return;
+      }
+
+      nextParams.append(key, value);
     });
+    const nextQuery = nextParams.toString();
+    url.search = nextQuery ? `?${nextQuery}` : "";
 
-    let cleaned = url.toString();
-
-    if (options.normalizeTrailingSlash && cleaned.endsWith("/") && url.pathname !== "/") {
-      cleaned = cleaned.slice(0, -1);
-      reasons.push("normalized trailing slash");
+    if (options.normalizeTrailingSlash && url.pathname !== "/" && /\/$/.test(url.pathname)) {
+      url.pathname = url.pathname.replace(/\/+$/, "") || "/";
+      reasons.push("removed trailing slash");
     }
 
-    const waste = options.wastePatterns.find((pattern) => pattern && cleaned.toLowerCase().includes(pattern.toLowerCase()));
+    const matchedPattern = options.reviewPatterns.find((pattern) => matchesReviewPattern(url, pattern));
+    if (matchedPattern) {
+      reasons.push(`review pattern: ${matchedPattern}`);
+    }
 
-    if (waste) {
-      reasons.push(`crawl-waste pattern: ${waste}`);
+    const cleaned = url.toString();
 
-      if (options.removeCrawlWaste) {
-        return {
-          original,
-          cleaned,
-          status: "removed",
-          reasons,
-        };
-      }
+    if (matchedPattern && options.removeCrawlWaste) {
+      return { original, cleaned, status: "removed", reasons };
     }
 
     if (options.deduplicateUrls && options.seen.has(cleaned)) {
-      return {
-        original,
-        cleaned,
-        status: "duplicate",
-        reasons: [...reasons, "duplicate cleaned URL"],
-      };
+      return { original, cleaned, status: "duplicate", reasons: [...reasons, "duplicate cleaned URL"] };
     }
 
     options.seen.add(cleaned);
 
-    return {
-      original,
-      cleaned,
-      status: reasons.length ? "changed" : "kept",
-      reasons,
-    };
+    if (cleaned !== original && reasons.length === 0) {
+      reasons.push("normalized by the URL parser");
+    }
+
+    return { original, cleaned, status: reasons.length ? "changed" : "kept", reasons };
   } catch {
-    return {
-      original,
-      cleaned: "",
-      status: "invalid",
-      reasons: ["invalid URL"],
-    };
+    return { original, cleaned: "", status: "invalid", reasons: ["invalid absolute URL"] };
   }
+}
+
+function matchesReviewPattern(url: URL, pattern: string) {
+  const normalized = pattern.trim().toLowerCase();
+  if (!normalized) return false;
+
+  if (normalized.startsWith("?")) {
+    return url.search.toLowerCase().includes(normalized);
+  }
+
+  if (normalized.startsWith("/")) {
+    const path = url.pathname.toLowerCase();
+    const base = normalized.replace(/\/+$/, "") || "/";
+    return path === base || path.startsWith(`${base}/`);
+  }
+
+  return url.toString().toLowerCase().includes(normalized);
 }
 
 function sortRows(rows: UrlRow[], sortMode: SortMode) {
   const copy = [...rows];
-
-  if (sortMode === "alphabetical") {
-    return copy.sort((a, b) => a.cleaned.localeCompare(b.cleaned));
-  }
-
-  if (sortMode === "length") {
-    return copy.sort((a, b) => a.cleaned.length - b.cleaned.length);
-  }
-
-  if (sortMode === "hostPath") {
-    return copy.sort((a, b) => {
-      const aKey = hostPathKey(a.cleaned);
-      const bKey = hostPathKey(b.cleaned);
-      return aKey.localeCompare(bKey);
-    });
-  }
-
+  if (sortMode === "alphabetical") return copy.sort((a, b) => a.cleaned.localeCompare(b.cleaned));
+  if (sortMode === "length") return copy.sort((a, b) => a.cleaned.length - b.cleaned.length);
+  if (sortMode === "hostPath") return copy.sort((a, b) => hostPathKey(a.cleaned).localeCompare(hostPathKey(b.cleaned)));
   return copy;
 }
 
@@ -774,62 +747,34 @@ function buildIssues(rows: UrlRow[]) {
   const duplicates = rows.filter((row) => row.status === "duplicate").length;
   const invalid = rows.filter((row) => row.status === "invalid").length;
   const changed = rows.filter((row) => row.status === "changed").length;
-  const waste = rows.filter((row) => row.reasons.some((reason) => reason.startsWith("crawl-waste pattern"))).length;
-
-  if (duplicates > 0) {
-    issues.push({
-      severity: "warning",
-      title: "Duplicate URL variants found",
-      message: `${duplicates} URL${duplicates === 1 ? "" : "s"} collapsed into existing cleaned URLs.`,
-    });
-  }
+  const excluded = rows.filter((row) => row.status === "removed").length;
+  const reviewMatches = rows.filter((row) => row.reasons.some((reason) => reason.startsWith("review pattern:"))).length;
 
   if (invalid > 0) {
-    issues.push({
-      severity: "warning",
-      title: "Invalid URLs found",
-      message: `${invalid} line${invalid === 1 ? "" : "s"} could not be parsed as valid absolute URLs.`,
-    });
+    issues.push({ severity: "high", title: "Unusable input lines", message: `${invalid} line${invalid === 1 ? "" : "s"} could not be treated as absolute HTTP(S) URLs.` });
   }
-
+  if (duplicates > 0) {
+    issues.push({ severity: "warning", title: "Duplicate normalized URLs", message: `${duplicates} URL${duplicates === 1 ? "" : "s"} collapsed onto a cleaned value already seen earlier in the list.` });
+  }
+  if (excluded > 0) {
+    issues.push({ severity: "warning", title: "Review-pattern URLs excluded", message: `${excluded} URL${excluded === 1 ? "" : "s"} matched a review pattern and were left out because exclusion is enabled.` });
+  } else if (reviewMatches > 0) {
+    issues.push({ severity: "info", title: "Paths worth a closer look", message: `${reviewMatches} URL${reviewMatches === 1 ? "" : "s"} matched a built-in or custom review pattern but remain in the clean output.` });
+  }
   if (changed > 0) {
-    issues.push({
-      severity: "info",
-      title: "URLs normalized",
-      message: `${changed} URL${changed === 1 ? "" : "s"} changed after cleanup rules were applied.`,
-    });
+    issues.push({ severity: "info", title: "Normalization changed URL strings", message: `${changed} URL${changed === 1 ? "" : "s"} changed after selected cleanup rules or browser URL serialization.` });
   }
-
-  if (waste > 0) {
-    issues.push({
-      severity: "info",
-      title: "Crawl-waste patterns flagged",
-      message: `${waste} URL${waste === 1 ? "" : "s"} matched common or custom crawl-waste patterns.`,
-    });
-  }
-
   if (issues.length === 0) {
-    issues.push({
-      severity: "info",
-      title: "URL list already looks clean",
-      message: "No common duplicates, invalid URLs, tracking parameters, or crawl-waste patterns were found.",
-    });
+    issues.push({ severity: "info", title: "No selected cleanup rule changed the list", message: "The parsed HTTP(S) URLs remained distinct under the current settings." });
   }
-
   return issues;
 }
 
 function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
-  if (mode === "json") {
-    return JSON.stringify(result, null, 2);
-  }
+  if (mode === "json") return JSON.stringify(result, null, 2);
 
   if (mode === "csv") {
-    const rows = [
-      ["original", "cleaned", "status", "reasons"],
-      ...result.rows.map((row) => [row.original, row.cleaned, row.status, row.reasons.join("; ")]),
-    ];
-
+    const rows = [["original", "cleaned", "status", "reasons"], ...result.rows.map((row) => [row.original, row.cleaned, row.status, row.reasons.join("; ")])];
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
 
@@ -837,26 +782,22 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
     return [
       "| Original | Cleaned | Status | Reasons |",
       "| --- | --- | --- | --- |",
-      ...result.rows.map((row) =>
-        `| ${escapeMarkdown(row.original)} | ${escapeMarkdown(row.cleaned || "-")} | ${row.status} | ${escapeMarkdown(row.reasons.join(", ") || "-")} |`
-      ),
+      ...result.rows.map((row) => `| ${escapeMarkdown(row.original)} | ${escapeMarkdown(row.cleaned || "-")} | ${row.status} | ${escapeMarkdown(row.reasons.join(", ") || "-")} |`),
     ].join("\n");
   }
 
-  if (mode === "removedList") {
-    return result.removed.map((row) => row.original).join("\n");
-  }
+  if (mode === "removedList") return result.removed.map((row) => row.original).join("\n");
 
   if (mode === "report") {
     return [
-      "Crawl Budget URL Cleanup Report",
-      "-------------------------------",
+      "Crawl URL Cleanup Report",
+      "------------------------",
       `Input URLs: ${result.totalInput}`,
-      `Kept URLs: ${result.keptCount}`,
+      `Clean output URLs: ${result.keptCount}`,
       `Changed URLs: ${result.changedCount}`,
       `Duplicate URLs: ${result.duplicateCount}`,
-      `Removed URLs: ${result.removedCount}`,
-      `Invalid URLs: ${result.invalidCount}`,
+      `Review-pattern exclusions: ${result.removedCount}`,
+      `Invalid lines: ${result.invalidCount}`,
       "",
       "Findings:",
       ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
@@ -874,10 +815,7 @@ function lines(value: string) {
 }
 
 function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-
+  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
   return value;
 }
 
@@ -889,25 +827,13 @@ function getNotes(result: Result) {
   const notes: { title: string; message: string }[] = [];
 
   if (result.duplicateCount > 0) {
-    notes.push({
-      title: "Review duplicate patterns",
-      message: "Duplicates often point to tracking parameters, trailing slash variants, fragments, or inconsistent internal links.",
-    });
+    notes.push({ title: "Trace the source of duplicate variants", message: "Look at internal links, faceted navigation, campaign links, redirects, and canonical signals for a representative sample." });
   }
-
   if (result.removedCount > 0) {
-    notes.push({
-      title: "Check removed URLs before acting",
-      message: "Do not block or redirect removed URLs blindly. Review whether they matter for users, analytics, or business flows.",
-    });
+    notes.push({ title: "Verify exclusions against the live site", message: "A review-pattern match is only a string match. Confirm status, content, links, and business purpose before blocking, redirecting, or removing anything." });
   }
-
   if (result.keptCount > 0) {
-    notes.push({
-      title: "Use clean lists for audits",
-      message: "Cleaned URL lists are useful for sitemap review, crawl exports, internal link cleanup, and log analysis.",
-    });
+    notes.push({ title: "Keep original and normalized values together", message: "The side-by-side table is safer than a clean list alone because it preserves exactly what was changed and why." });
   }
-
   return notes;
 }
