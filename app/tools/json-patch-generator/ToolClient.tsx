@@ -6,7 +6,6 @@ import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "patch" | "summary" | "report" | "json" | "markdown";
-type CompareMode = "strict" | "loose";
 type ArrayMode = "index" | "replaceWholeArray";
 type PatchOperation = {
   op: "add" | "remove" | "replace";
@@ -16,7 +15,7 @@ type PatchOperation = {
 };
 
 type PatchIssue = {
-  severity: "info" | "warning" | "high";
+  severity: "info" | "warning";
   title: string;
   message: string;
 };
@@ -34,6 +33,7 @@ type PatchResult = {
 };
 
 type PatchNote = {
+  severity: "warning" | "info";
   title: string;
   message: string;
 };
@@ -72,12 +72,9 @@ export default function ToolClient() {
   const [originalJson, setOriginalJson] = useState("");
   const [modifiedJson, setModifiedJson] = useState("");
   const [outputMode, setOutputMode] = useState<OutputMode>("patch");
-  const [compareMode, setCompareMode] = useState<CompareMode>("strict");
   const [arrayMode, setArrayMode] = useState<ArrayMode>("index");
   const [includeOldValues, setIncludeOldValues] = useState(false);
-  const [sortOperations, setSortOperations] = useState(false);
   const [prettyOutput, setPrettyOutput] = useState(true);
-  const [ignoreObjectKeyOrder, setIgnoreObjectKeyOrder] = useState(true);
   const [result, setResult] = useState<PatchResult | null>(null);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
@@ -97,12 +94,9 @@ export default function ToolClient() {
     try {
       const nextResult = buildPatchResult(originalJson, modifiedJson, {
         outputMode,
-        compareMode,
         arrayMode,
         includeOldValues,
-        sortOperations,
         prettyOutput,
-        ignoreObjectKeyOrder,
       });
 
       setResult(nextResult);
@@ -138,12 +132,9 @@ export default function ToolClient() {
     setOriginalJson(sampleOriginal);
     setModifiedJson(sampleModified);
     setOutputMode("patch");
-    setCompareMode("strict");
     setArrayMode("index");
     setIncludeOldValues(false);
-    setSortOperations(false);
     setPrettyOutput(true);
-    setIgnoreObjectKeyOrder(true);
     setResult(null);
     setOutput("");
     setError("");
@@ -154,12 +145,9 @@ export default function ToolClient() {
     setOriginalJson("");
     setModifiedJson("");
     setOutputMode("patch");
-    setCompareMode("strict");
     setArrayMode("index");
     setIncludeOldValues(false);
-    setSortOperations(false);
     setPrettyOutput(true);
-    setIgnoreObjectKeyOrder(true);
     setResult(null);
     setOutput("");
     setError("");
@@ -169,7 +157,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Patch Generator"
-      description="Generate JSON Patch operations by comparing original and modified JSON. Create add, remove, and replace operations with JSON Pointer paths, summaries, reports, and clean patch output."
+      description="Derive RFC 6902 add, remove, and replace operations from two JSON documents."
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -221,7 +209,7 @@ export default function ToolClient() {
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
-          Options
+          Patch choices
         </h3>
 
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
@@ -244,21 +232,6 @@ export default function ToolClient() {
             ]}
           />
 
-          <YoryantraSelect
-            label="Compare Mode"
-            value={compareMode}
-            onChange={(value) => {
-              setCompareMode(value as CompareMode);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
-            }}
-            options={[
-              { label: "Strict values", value: "strict" },
-              { label: "Loose primitive comparison", value: "loose" },
-            ]}
-          />
 
           <YoryantraSelect
             label="Array Handling"
@@ -294,22 +267,6 @@ export default function ToolClient() {
               Include old values in report/full JSON output
             </label>
 
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-              <input
-                type="checkbox"
-                checked={sortOperations}
-                onChange={(event) => {
-                  setSortOperations(event.target.checked);
-                  setResult(null);
-                  setOutput("");
-                  setError("");
-                  setCopied(false);
-                }}
-                className="h-4 w-4 accent-[var(--light-gold)]"
-              />
-
-              Sort operations by path
-            </label>
 
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
               <input
@@ -328,45 +285,30 @@ export default function ToolClient() {
               Pretty-print JSON output
             </label>
 
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-              <input
-                type="checkbox"
-                checked={ignoreObjectKeyOrder}
-                onChange={(event) => {
-                  setIgnoreObjectKeyOrder(event.target.checked);
-                  setResult(null);
-                  setOutput("");
-                  setError("");
-                  setCopied(false);
-                }}
-                className="h-4 w-4 accent-[var(--light-gold)]"
-              />
-
-              Ignore object key order when comparing nested objects
-            </label>
           </div>
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Generates practical JSON Patch-style operations using JSON Pointer paths.
-          The output is useful for APIs, config changes, test fixtures, and data reviews.
+          Object member order is ignored because it is not significant in JSON.
+          Array changes are kept in generation order because RFC 6902 applies patch
+          operations sequentially.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generatePatch} className="yoryantra-btn">
+        <button onClick={generatePatch} className="yoryantra-btn min-h-10 whitespace-nowrap">
           Generate JSON Patch
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-10 whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-10 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-10 whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -442,46 +384,74 @@ export default function ToolClient() {
         </div>
       )}
 
-      {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      {result && result.issues.some((issue) => issue.severity === "warning") && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
-            Patch notes
+            Patch cautions
           </h3>
 
           <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {issue.title}
-                </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {issue.message}
-                </p>
-              </div>
-            ))}
+            {result.issues
+              .filter((issue) => issue.severity === "warning")
+              .map((issue, index) => (
+                <div key={`${issue.title}-${index}`}>
+                  <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                    {issue.message}
+                  </p>
+                </div>
+              ))}
           </div>
         </div>
       )}
 
-      {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">
-            JSON Patch guidance
-          </h3>
+      {result && result.issues.some((issue) => issue.severity === "info") && (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="space-y-3">
+            {result.issues
+              .filter((issue) => issue.severity === "info")
+              .map((issue, index) => (
+                <div key={`${issue.title}-${index}`}>
+                  <p className="text-sm font-semibold text-gray-900">{issue.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-600">
+                    {issue.message}
+                  </p>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
-          <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">
-                  {note.title}
-                </p>
+      {notes.some((note) => note.severity === "warning") && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="space-y-3">
+            {notes
+              .filter((note) => note.severity === "warning")
+              .map((note) => (
+                <div key={note.title}>
+                  <p className="text-sm font-semibold text-amber-900">{note.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                    {note.message}
+                  </p>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">
-                  {note.message}
-                </p>
-              </div>
-            ))}
+      {notes.some((note) => note.severity === "info") && (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="space-y-3">
+            {notes
+              .filter((note) => note.severity === "info")
+              .map((note) => (
+                <div key={note.title}>
+                  <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-600">
+                    {note.message}
+                  </p>
+                </div>
+              ))}
           </div>
         </div>
       )}
@@ -489,11 +459,11 @@ export default function ToolClient() {
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Output
+            Generated output
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-10 whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -504,162 +474,147 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        JSON Patch generation happens directly in your browser. Your JSON data is
-        not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Comparison and patch generation run in your browser. The JSON pasted into
+        these fields is not sent to a Yoryantra server by this page.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Generating JSON Patch Operations from Two JSON Files
+            A JSON Patch is an ordered program, not a sorted diff
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Patch is a practical way to describe changes to JSON data as a
-            list of operations. Instead of sending a full updated document, you
-            can describe what changed with paths such as /settings/theme or
-            /items/2.
+            RFC 6902 defines a patch as an array of operations that are applied
+            one after another. The document produced by one operation becomes the
+            input to the next, so reordering operations can change the result or
+            make a previously valid array index fail.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON Patch Generator compares an original JSON value with a
-            modified JSON value and creates add, remove, and replace operations
-            using JSON Pointer-style paths. It is useful for API updates,
-            configuration changes, testing, and data review workflows.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Using the JSON Patch Generator
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste the original JSON in the left input box.</li>
-            <li>Paste the modified JSON in the right input box.</li>
-            <li>Choose patch output, report output, JSON output, or Markdown output.</li>
-            <li>Select how arrays should be compared.</li>
-            <li>Generate the patch and copy the operations.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common JSON Patch Generator Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Creating patch operations for API update requests.</li>
-            <li>Reviewing changes between two JSON configuration files.</li>
-            <li>Generating test fixture updates from before and after data.</li>
-            <li>Documenting exact JSON changes for pull requests.</li>
-            <li>Finding changed object fields without manually scanning large JSON.</li>
-            <li>Creating compact change payloads for JSON-based systems.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example JSON Patch Output
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`[
-  {
-    "op": "replace",
-    "path": "/settings/ads",
-    "value": true
-  },
-  {
-    "op": "add",
-    "path": "/settings/layout",
-    "value": "clean"
-  }
-]`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            JSON Pointer Paths in Patch Operations
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Patch operations use paths that point to a specific location in
-            the JSON value. Object keys are separated with slashes, and array
-            indexes are represented as numbers. For example, /tools/0 points to
-            the first item in the tools array.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Special characters in object keys need escaping inside JSON Pointer
-            paths. This tool escapes ~ as ~0 and / as ~1 so paths remain safe and
-            predictable.
+            Generation therefore keeps its original operation order. The emitted
+            patch uses the standards-defined
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">add</code>,
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">remove</code>,
+            and
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">replace</code>
+            operations; it does not try to infer
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">move</code>,
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">copy</code>,
+            or
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">test</code>.{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc6902"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              RFC 6902
+            </a>
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Every generated patch is applied once before it is shown
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a JSON Patch Generator do?
-              </h3>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The comparison is not accepted merely because it produced plausible
+            paths. After generation, the page applies the add/remove/replace
+            sequence to a clone of the original JSON and checks that the result is
+            exactly the modified JSON value. A verification failure is treated as
+            an error rather than returning a patch that only looks right.
+          </p>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It compares original JSON and modified JSON, then generates patch
-                operations that describe the changes.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Object member order is ignored during equality checks because JSON
+            objects are unordered collections of members. Array order is not
+            ignored: changing an array's sequence is a real value change.
+          </p>
+        </div>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this the same as JSON Diff Checker?
-              </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Array diffs are correct without pretending to be minimal
+          </h2>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. A diff checker shows differences. A patch generator creates
-                operations that can be used to apply changes.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            “Compare by index” replaces differing positions, removes surplus
+            elements from the end toward the front, and then appends new
+            positions. That sequence is verified, but an insertion near the
+            beginning can still produce several replacements. Choose whole-array
+            replacement when a compact, predictable patch is more important than
+            field-level detail.
+          </p>
+        </div>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this support arrays?
-              </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Paths follow JSON Pointer escaping exactly
+          </h2>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. It can compare arrays by index or replace a whole changed
-                array depending on the selected option.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            JSON Patch paths are JSON Pointers. A member named
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">a/b</code>
+            is written as
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">/a~1b</code>,
+            while
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">a~b</code>
+            becomes
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">/a~0b</code>.
+            The empty string is the pointer to the document root.{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc6901"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              RFC 6901
+            </a>
+          </p>
+        </div>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What operations does it generate?
-              </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            JavaScript parsing can otherwise hide changes
+          </h2>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It generates add, remove, and replace operations.
-              </p>
-            </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Duplicate object member names can collapse to one value during
+            parsing, and very large or high-precision JSON numbers can be rounded
+            by JavaScript number semantics. Both inputs are checked before
+            parsing, so those cases stop with an error instead of producing a
+            misleading patch.
+          </p>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my JSON uploaded anywhere?
-              </h3>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            If an identifier must preserve every digit, represent it as a JSON
+            string. RFC 8259 explicitly notes interoperability concerns around
+            duplicate names and numeric range or precision.{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc8259"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              RFC 8259
+            </a>
+          </p>
+        </div>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The patch is generated directly in your browser.
-              </p>
-            </div>
-          </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Old values belong in a report, not in the patch wire format
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The optional old-value detail is retained for the report and full
+            analysis output. JSON Patch output itself contains only members
+            needed by the selected RFC 6902 operations, so a debugging annotation
+            does not quietly become part of an API payload.
+          </p>
         </div>
 
         <div>
@@ -667,7 +622,9 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/json-patch-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-patch-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -688,37 +645,54 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+const MAX_JSON_PATCH_INPUT_CHARS = 1_500_000;
+const MAX_JSON_PATCH_OPERATIONS = 5_000;
+const MAX_JSON_DEPTH = 200;
+
 function buildPatchResult(
   originalText: string,
   modifiedText: string,
   options: {
     outputMode: OutputMode;
-    compareMode: CompareMode;
     arrayMode: ArrayMode;
     includeOldValues: boolean;
-    sortOperations: boolean;
     prettyOutput: boolean;
-    ignoreObjectKeyOrder: boolean;
   }
 ): PatchResult {
-  const original = parseJsonInput(originalText, "original");
-  const modified = parseJsonInput(modifiedText, "modified");
-  let operations = generatePatchOperations(original, modified, "", options);
-
-  if (options.sortOperations) {
-    operations = [...operations].sort((a, b) => a.path.localeCompare(b.path));
+  if (
+    originalText.length > MAX_JSON_PATCH_INPUT_CHARS ||
+    modifiedText.length > MAX_JSON_PATCH_INPUT_CHARS
+  ) {
+    throw new Error(
+      `Each JSON input is limited to ${MAX_JSON_PATCH_INPUT_CHARS.toLocaleString()} characters for browser-side comparison.`
+    );
   }
 
-  if (!options.includeOldValues) {
-    operations = operations.map((operation) => {
-      const { oldValue, ...cleanOperation } = operation;
-      return cleanOperation;
-    });
+  const original = parseJsonInput(originalText, "original");
+  const modified = parseJsonInput(modifiedText, "modified");
+  const operations = generatePatchOperations(original, modified, "", options);
+
+  if (operations.length > MAX_JSON_PATCH_OPERATIONS) {
+    throw new Error(
+      `The comparison produced more than ${MAX_JSON_PATCH_OPERATIONS.toLocaleString()} operations. Replace a larger subtree or the whole document instead of generating an oversized browser patch.`
+    );
+  }
+
+  const verified = verifyGeneratedPatch(original, modified, operations);
+
+  if (!verified) {
+    throw new Error(
+      "The generated operation sequence did not reproduce the modified JSON during verification."
+    );
   }
 
   const issues = getPatchIssues(operations, options);
+  const displayOperations = options.includeOldValues
+    ? operations
+    : operations.map(stripOldValue);
+
   const base = {
-    operations,
+    operations: displayOperations,
     issues,
     addCount: operations.filter((operation) => operation.op === "add").length,
     removeCount: operations.filter((operation) => operation.op === "remove").length,
@@ -727,17 +701,18 @@ function buildPatchResult(
     originalSize: originalText.length,
     modifiedSize: modifiedText.length,
   };
-  const output = formatOutput(base, options);
 
   return {
     ...base,
-    output,
+    output: formatOutput(base, options),
   };
 }
 
 function parseJsonInput(text: string, label: string) {
+  assertLosslessJsonText(text, label);
+
   try {
-    return JSON.parse(text);
+    return JSON.parse(text) as unknown;
   } catch (err) {
     if (err instanceof Error) {
       throw new Error(`Invalid ${label} JSON: ${err.message}`);
@@ -752,18 +727,16 @@ function generatePatchOperations(
   modified: unknown,
   path: string,
   options: {
-    compareMode: CompareMode;
     arrayMode: ArrayMode;
-    ignoreObjectKeyOrder: boolean;
   }
 ): PatchOperation[] {
-  if (valuesEqual(original, modified, options)) {
+  if (jsonDeepEqual(original, modified)) {
     return [];
   }
 
   if (Array.isArray(original) && Array.isArray(modified)) {
     if (options.arrayMode === "replaceWholeArray") {
-      return [{ op: "replace", path: path || "", value: modified, oldValue: original }];
+      return [{ op: "replace", path, value: modified, oldValue: original }];
     }
 
     return diffArrays(original, modified, path, options);
@@ -778,15 +751,7 @@ function generatePatchOperations(
     );
   }
 
-  if (typeof original === "undefined") {
-    return [{ op: "add", path: path || "", value: modified }];
-  }
-
-  if (typeof modified === "undefined") {
-    return [{ op: "remove", path: path || "", oldValue: original }];
-  }
-
-  return [{ op: "replace", path: path || "", value: modified, oldValue: original }];
+  return [{ op: "replace", path, value: modified, oldValue: original }];
 }
 
 function diffObjects(
@@ -794,28 +759,32 @@ function diffObjects(
   modified: Record<string, unknown>,
   path: string,
   options: {
-    compareMode: CompareMode;
     arrayMode: ArrayMode;
-    ignoreObjectKeyOrder: boolean;
   }
 ): PatchOperation[] {
   const operations: PatchOperation[] = [];
   const originalKeys = Object.keys(original);
   const modifiedKeys = Object.keys(modified);
-  const allKeys = new Set([...originalKeys, ...modifiedKeys]);
 
-  allKeys.forEach((key) => {
-    const childPath = joinPointer(path, key);
-    const hasOriginal = Object.prototype.hasOwnProperty.call(original, key);
-    const hasModified = Object.prototype.hasOwnProperty.call(modified, key);
-
-    if (!hasOriginal && hasModified) {
-      operations.push({ op: "add", path: childPath, value: modified[key] });
-      return;
+  originalKeys.forEach((key) => {
+    if (!Object.prototype.hasOwnProperty.call(modified, key)) {
+      operations.push({
+        op: "remove",
+        path: joinPointer(path, key),
+        oldValue: original[key],
+      });
     }
+  });
 
-    if (hasOriginal && !hasModified) {
-      operations.push({ op: "remove", path: childPath, oldValue: original[key] });
+  modifiedKeys.forEach((key) => {
+    const childPath = joinPointer(path, key);
+
+    if (!Object.prototype.hasOwnProperty.call(original, key)) {
+      operations.push({
+        op: "add",
+        path: childPath,
+        value: modified[key],
+      });
       return;
     }
 
@@ -832,17 +801,20 @@ function diffArrays(
   modified: unknown[],
   path: string,
   options: {
-    compareMode: CompareMode;
     arrayMode: ArrayMode;
-    ignoreObjectKeyOrder: boolean;
   }
 ): PatchOperation[] {
   const operations: PatchOperation[] = [];
-  const minLength = Math.min(original.length, modified.length);
+  const sharedLength = Math.min(original.length, modified.length);
 
-  for (let index = 0; index < minLength; index += 1) {
+  for (let index = 0; index < sharedLength; index += 1) {
     operations.push(
-      ...generatePatchOperations(original[index], modified[index], joinPointer(path, String(index)), options)
+      ...generatePatchOperations(
+        original[index],
+        modified[index],
+        joinPointer(path, String(index)),
+        options
+      )
     );
   }
 
@@ -865,31 +837,215 @@ function diffArrays(
   return operations;
 }
 
-function valuesEqual(
-  a: unknown,
-  b: unknown,
-  options: {
-    compareMode: CompareMode;
-    ignoreObjectKeyOrder: boolean;
+function stripOldValue(operation: PatchOperation): PatchOperation {
+  const { oldValue: _oldValue, ...clean } = operation;
+  return clean;
+}
+
+function toWirePatchOperation(operation: PatchOperation) {
+  if (operation.op === "remove") {
+    return {
+      op: operation.op,
+      path: operation.path,
+    };
   }
+
+  return {
+    op: operation.op,
+    path: operation.path,
+    value: operation.value,
+  };
+}
+
+function verifyGeneratedPatch(
+  original: unknown,
+  modified: unknown,
+  operations: PatchOperation[]
 ) {
+  const applied = applyGeneratedPatch(cloneJsonValue(original), operations);
+  return jsonDeepEqual(applied, modified);
+}
+
+function applyGeneratedPatch(document: unknown, operations: PatchOperation[]) {
+  let current = document;
+
+  operations.forEach((operation) => {
+    if (operation.path === "") {
+      if (operation.op === "remove") {
+        throw new Error("Generated root removal is not supported.");
+      }
+
+      current = cloneJsonValue(operation.value);
+      return;
+    }
+
+    const tokens = decodePointer(operation.path);
+    const finalToken = tokens[tokens.length - 1];
+    const parent = getPointerParent(current, tokens.slice(0, -1), operation.path);
+
+    if (Array.isArray(parent)) {
+      const index = parseArrayIndex(finalToken, operation.op === "add" ? parent.length : parent.length - 1);
+
+      if (operation.op === "add") {
+        if (index > parent.length) {
+          throw new Error(`Generated array add index is out of range at ${operation.path}.`);
+        }
+        parent.splice(index, 0, cloneJsonValue(operation.value));
+        return;
+      }
+
+      if (index >= parent.length) {
+        throw new Error(`Generated array index is out of range at ${operation.path}.`);
+      }
+
+      if (operation.op === "remove") {
+        parent.splice(index, 1);
+        return;
+      }
+
+      parent[index] = cloneJsonValue(operation.value);
+      return;
+    }
+
+    if (!isPlainObject(parent)) {
+      throw new Error(`Generated path has a non-container parent at ${operation.path}.`);
+    }
+
+    const objectParent = parent as Record<string, unknown>;
+    const exists = Object.prototype.hasOwnProperty.call(objectParent, finalToken);
+
+    if (operation.op === "remove") {
+      if (!exists) {
+        throw new Error(`Generated remove path does not exist at ${operation.path}.`);
+      }
+      delete objectParent[finalToken];
+      return;
+    }
+
+    if (operation.op === "replace" && !exists) {
+      throw new Error(`Generated replace path does not exist at ${operation.path}.`);
+    }
+
+    defineJsonMember(objectParent, finalToken, cloneJsonValue(operation.value));
+  });
+
+  return current;
+}
+
+function getPointerParent(current: unknown, tokens: string[], path: string) {
+  let value = current;
+
+  tokens.forEach((token) => {
+    if (Array.isArray(value)) {
+      const index = parseArrayIndex(token, value.length - 1);
+      if (index >= value.length) {
+        throw new Error(`Generated path does not exist at ${path}.`);
+      }
+      value = value[index];
+      return;
+    }
+
+    if (!isPlainObject(value)) {
+      throw new Error(`Generated path has a non-container segment at ${path}.`);
+    }
+
+    const objectValue = value as Record<string, unknown>;
+    if (!Object.prototype.hasOwnProperty.call(objectValue, token)) {
+      throw new Error(`Generated path does not exist at ${path}.`);
+    }
+    value = objectValue[token];
+  });
+
+  return value;
+}
+
+function parseArrayIndex(token: string, maxAllowed: number) {
+  if (!/^(?:0|[1-9]\d*)$/.test(token)) {
+    throw new Error(`Generated array token ${JSON.stringify(token)} is not a valid index.`);
+  }
+
+  const index = Number(token);
+
+  if (!Number.isSafeInteger(index) || index < 0 || index > maxAllowed + 1) {
+    throw new Error(`Generated array index ${token} is outside the supported range.`);
+  }
+
+  return index;
+}
+
+function decodePointer(path: string) {
+  if (path === "") {
+    return [];
+  }
+
+  if (!path.startsWith("/")) {
+    throw new Error(`Generated JSON Pointer ${JSON.stringify(path)} is invalid.`);
+  }
+
+  return path
+    .slice(1)
+    .split("/")
+    .map((token) => token.replace(/~1/g, "/").replace(/~0/g, "~"));
+}
+
+function defineJsonMember(target: Record<string, unknown>, key: string, value: unknown) {
+  Object.defineProperty(target, key, {
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
+}
+
+function cloneJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(cloneJsonValue);
+  }
+
+  if (isPlainObject(value)) {
+    const clone: Record<string, unknown> = {};
+    Object.keys(value as Record<string, unknown>).forEach((key) => {
+      defineJsonMember(
+        clone,
+        key,
+        cloneJsonValue((value as Record<string, unknown>)[key])
+      );
+    });
+    return clone;
+  }
+
+  return value;
+}
+
+function jsonDeepEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) {
     return true;
   }
 
-  if (options.compareMode === "loose" && isPrimitive(a) && isPrimitive(b)) {
-    return String(a) === String(b);
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return (
+      a.length === b.length &&
+      a.every((item, index) => jsonDeepEqual(item, b[index]))
+    );
   }
 
-  if (options.ignoreObjectKeyOrder && isPlainObject(a) && isPlainObject(b)) {
-    return stableStringify(a) === stableStringify(b);
+  if (isPlainObject(a) && isPlainObject(b)) {
+    const left = a as Record<string, unknown>;
+    const right = b as Record<string, unknown>;
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+
+    return (
+      leftKeys.length === rightKeys.length &&
+      leftKeys.every(
+        (key) =>
+          Object.prototype.hasOwnProperty.call(right, key) &&
+          jsonDeepEqual(left[key], right[key])
+      )
+    );
   }
 
   return false;
-}
-
-function isPrimitive(value: unknown) {
-  return value === null || ["string", "number", "boolean"].includes(typeof value);
 }
 
 function isPlainObject(value: unknown) {
@@ -899,22 +1055,6 @@ function isPlainObject(value: unknown) {
 function joinPointer(parent: string, key: string) {
   const escaped = key.replace(/~/g, "~0").replace(/\//g, "~1");
   return parent ? `${parent}/${escaped}` : `/${escaped}`;
-}
-
-function stableStringify(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(stableStringify).join(",")}]`;
-  }
-
-  if (isPlainObject(value)) {
-    const objectValue = value as Record<string, unknown>;
-    return `{${Object.keys(objectValue)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${stableStringify(objectValue[key])}`)
-      .join(",")}}`;
-  }
-
-  return JSON.stringify(value);
 }
 
 function getPatchIssues(
@@ -928,24 +1068,30 @@ function getPatchIssues(
   if (operations.length === 0) {
     issues.push({
       severity: "info",
-      title: "No changes found",
-      message: "The original and modified JSON values are equivalent with the selected comparison options.",
+      title: "No value change",
+      message:
+        "The two JSON documents represent the same JSON value. Object member ordering alone does not create a patch.",
     });
   }
 
   if (operations.length > 100) {
     issues.push({
       severity: "warning",
-      title: "Large patch",
-      message: "More than 100 operations were generated. Review whether a full replacement or smaller update scope is better.",
+      title: "Large operation sequence",
+      message:
+        "More than 100 operations were generated. A coarser subtree replacement may be easier to review and safer to transport.",
     });
   }
 
-  if (options.arrayMode === "index" && operations.some((operation) => /\/\d+(?:\/|$)/.test(operation.path))) {
+  if (
+    options.arrayMode === "index" &&
+    operations.some((operation) => /\/(?:0|[1-9]\d*)(?:\/|$)/.test(operation.path))
+  ) {
     issues.push({
       severity: "info",
-      title: "Array index operations",
-      message: "Array patches are index-based. If array order changes, the generated operations may be noisy.",
+      title: "Array positions are index-based",
+      message:
+        "Insertions or reordering can become several replace/add/remove operations even though the verified final value is correct.",
     });
   }
 
@@ -961,7 +1107,10 @@ function formatOutput(
   }
 ) {
   if (options.outputMode === "patch") {
-    return stringifyJson(result.operations, options.prettyOutput);
+    return stringifyJson(
+      result.operations.map(toWirePatchOperation),
+      options.prettyOutput
+    );
   }
 
   if (options.outputMode === "json") {
@@ -972,8 +1121,11 @@ function formatOutput(
     return [
       "| Operation | Path | Value |",
       "| --- | --- | --- |",
-      ...result.operations.map((operation) =>
-        `| ${operation.op} | ${escapeMarkdown(operation.path || "/")} | ${escapeMarkdown(operation.op === "remove" ? "(removed)" : stringifyShort(operation.value))} |`
+      ...result.operations.map(
+        (operation) =>
+          `| ${operation.op} | ${escapeMarkdown(operation.path || "(root)")} | ${escapeMarkdown(
+            operation.op === "remove" ? "(removed)" : stringifyShort(operation.value)
+          )} |`
       ),
     ].join("\n");
   }
@@ -982,7 +1134,9 @@ function formatOutput(
     const operationLines = result.operations.length
       ? result.operations.map((operation, index) => {
           const lines = [
-            `${index + 1}. ${operation.op.toUpperCase()} ${operation.path || "/"}`,
+            `${index + 1}. ${operation.op.toUpperCase()} ${
+              operation.path || "(root)"
+            }`,
           ];
 
           if (operation.op !== "remove") {
@@ -1006,6 +1160,7 @@ function formatOutput(
       `Replace: ${result.replaceCount}`,
       `Original input size: ${result.originalSize}`,
       `Modified input size: ${result.modifiedSize}`,
+      "Verification: generated sequence reproduced the modified JSON",
       "",
       "Operations:",
       ...operationLines,
@@ -1021,6 +1176,7 @@ function formatOutput(
     `Replace operations: ${result.replaceCount}`,
     `Original input size: ${result.originalSize}`,
     `Modified input size: ${result.modifiedSize}`,
+    "Verification: passed",
   ].join("\n");
 }
 
@@ -1045,29 +1201,176 @@ function escapeMarkdown(value: string) {
 function getPatchNotes(result: PatchResult): PatchNote[] {
   const notes: PatchNote[] = [];
 
-  if (result.totalOperations === 0) {
-    notes.push({
-      title: "No patch needed",
-      message:
-        "The selected comparison options did not find any changes between the two JSON values.",
-    });
-  }
-
-  if (result.replaceCount > result.addCount + result.removeCount && result.replaceCount > 10) {
-    notes.push({
-      title: "Many replacements",
-      message:
-        "A large number of replace operations may mean many values changed or arrays were reordered.",
-    });
-  }
-
   if (result.totalOperations > 0) {
     notes.push({
-      title: "Review before applying",
+      severity: "warning",
+      title: "Applying a patch changes data",
       message:
-        "Generated patches should be reviewed before applying them to production data or API requests.",
+        "Verification proves the generated sequence reaches the supplied modified JSON in this page. It cannot prove that an API endpoint, concurrent document version, authorization rule, or server-side validation will accept the same patch.",
     });
   }
 
+  notes.push({
+    severity: "info",
+    title: "Only add, remove, and replace are generated",
+    message:
+      "Move, copy, and test are valid RFC 6902 operations, but inferring them requires intent that cannot be recovered reliably from two snapshots alone.",
+  });
+
   return notes;
+}
+
+function assertLosslessJsonText(text: string, label: string) {
+  try {
+    JSON.parse(text);
+  } catch (err) {
+    throw new Error(
+      err instanceof Error
+        ? `Invalid ${label} JSON: ${err.message}`
+        : `Invalid ${label} JSON.`
+    );
+  }
+
+  const stack: Array<{ type: "object" | "array"; keys?: Set<string> }> = [];
+  let index = 0;
+
+  while (index < text.length) {
+    const char = text[index];
+
+    if (/\s/.test(char)) {
+      index += 1;
+      continue;
+    }
+
+    if (char === "{") {
+      stack.push({ type: "object", keys: new Set<string>() });
+      if (stack.length > MAX_JSON_DEPTH) {
+        throw new Error(
+          `${capitalize(label)} JSON is nested more than ${MAX_JSON_DEPTH} levels, beyond this browser comparison limit.`
+        );
+      }
+      index += 1;
+      continue;
+    }
+
+    if (char === "[") {
+      stack.push({ type: "array" });
+      if (stack.length > MAX_JSON_DEPTH) {
+        throw new Error(
+          `${capitalize(label)} JSON is nested more than ${MAX_JSON_DEPTH} levels, beyond this browser comparison limit.`
+        );
+      }
+      index += 1;
+      continue;
+    }
+
+    if (char === "}" || char === "]") {
+      stack.pop();
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      const tokenEnd = findJsonStringEnd(text, index);
+      const token = text.slice(index, tokenEnd + 1);
+      let next = tokenEnd + 1;
+
+      while (next < text.length && /\s/.test(text[next])) {
+        next += 1;
+      }
+
+      const frame = stack[stack.length - 1];
+
+      if (frame?.type === "object" && text[next] === ":") {
+        const key = JSON.parse(token) as string;
+
+        if (frame.keys?.has(key)) {
+          throw new Error(
+            `Duplicate member ${JSON.stringify(key)} in ${label} JSON would be collapsed during parsing.`
+          );
+        }
+
+        frame.keys?.add(key);
+      }
+
+      index = tokenEnd + 1;
+      continue;
+    }
+
+    if (char === "-" || /\d/.test(char)) {
+      const numberMatch = text
+        .slice(index)
+        .match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+
+      if (numberMatch) {
+        const token = numberMatch[0];
+        const numericValue = Number(token);
+
+        if (!isSafeNumberToken(token, numericValue)) {
+          throw new Error(
+            `JSON number ${token} in the ${label} document cannot be preserved safely with JavaScript number semantics. Represent precision-sensitive values as strings.`
+          );
+        }
+
+        index += token.length;
+        continue;
+      }
+    }
+
+    index += 1;
+  }
+}
+
+function findJsonStringEnd(text: string, start: number) {
+  let escaped = false;
+
+  for (let index = start + 1; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      return index;
+    }
+  }
+
+  return text.length - 1;
+}
+
+function isSafeNumberToken(token: string, numericValue: number) {
+  if (!Number.isFinite(numericValue) || Object.is(numericValue, -0)) {
+    return false;
+  }
+
+  if (/^-?(?:0|[1-9]\d*)$/.test(token)) {
+    return Number.isSafeInteger(numericValue);
+  }
+
+  const significantDigits = token
+    .replace(/^[+-]/, "")
+    .split(/[eE]/)[0]
+    .replace(".", "")
+    .replace(/^0+/, "").length;
+
+  if (significantDigits > 15) {
+    return false;
+  }
+
+  if (numericValue === 0 && /[1-9]/.test(token)) {
+    return false;
+  }
+
+  return true;
+}
+
+function capitalize(value: string) {
+  return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value;
 }

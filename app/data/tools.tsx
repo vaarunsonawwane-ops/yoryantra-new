@@ -1002,7 +1002,7 @@ export const tools = [
 {
   title: "CSV to Markdown Table Converter",
   description:
-    "Convert CSV, TSV, and delimited data into clean Markdown tables with headers, alignment, and escaped cells.",
+    "Turn CSV, TSV, or delimited rows into Markdown tables with strict quoted-field parsing.",
   href: "/tools/csv-to-markdown-table-converter",
   category: "JSON & Data Tools",
 },
@@ -1012,7 +1012,7 @@ export const tools = [
 {
   title: "NDJSON Formatter Validator",
   description:
-    "Validate, format, compact, inspect, and convert NDJSON or JSONL newline-delimited records.",
+    "Validate line-delimited JSON records, pinpoint failures, and preserve one-record-per-line output.",
   href: "/tools/ndjson-formatter-validator",
   category: "JSON & Data Tools",
 },
@@ -1172,7 +1172,7 @@ export const tools = [
 {
   title: "JSON Patch Generator",
   description:
-    "Compare original and modified JSON to generate add, remove, and replace JSON Patch operations with JSON Pointer paths.",
+    "Derive verified RFC 6902 add, remove, and replace operations with escaped JSON Pointer paths.",
   href: "/tools/json-patch-generator",
   category: "JSON & Data Tools",
 },

@@ -6,9 +6,9 @@ import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type DelimiterMode = "comma" | "semicolon" | "tab" | "pipe" | "auto";
-type OutputMode = "markdown" | "github" | "compact" | "json";
+type OutputMode = "markdown" | "compact" | "json";
 type AlignmentMode = "left" | "center" | "right" | "none";
-type HeaderMode = "firstRow" | "generate" | "none";
+type HeaderMode = "firstRow" | "generate";
 
 type ParsedCsvResult = {
   rows: string[][];
@@ -28,6 +28,7 @@ type ConvertResult = {
 };
 
 type TableNote = {
+  severity: "warning" | "info";
   title: string;
   message: string;
 };
@@ -43,7 +44,7 @@ export default function ToolClient() {
   const [outputMode, setOutputMode] = useState<OutputMode>("markdown");
   const [headerMode, setHeaderMode] = useState<HeaderMode>("firstRow");
   const [alignmentMode, setAlignmentMode] = useState<AlignmentMode>("left");
-  const [trimCells, setTrimCells] = useState(true);
+  const [trimCells, setTrimCells] = useState(false);
   const [escapePipes, setEscapePipes] = useState(true);
   const [normalizeRows, setNormalizeRows] = useState(true);
   const [includeEmptyRows, setIncludeEmptyRows] = useState(false);
@@ -110,7 +111,7 @@ export default function ToolClient() {
     setOutputMode("markdown");
     setHeaderMode("firstRow");
     setAlignmentMode("left");
-    setTrimCells(true);
+    setTrimCells(false);
     setEscapePipes(true);
     setNormalizeRows(true);
     setIncludeEmptyRows(false);
@@ -126,7 +127,7 @@ export default function ToolClient() {
     setOutputMode("markdown");
     setHeaderMode("firstRow");
     setAlignmentMode("left");
-    setTrimCells(true);
+    setTrimCells(false);
     setEscapePipes(true);
     setNormalizeRows(true);
     setIncludeEmptyRows(false);
@@ -139,7 +140,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="CSV to Markdown Table Converter"
-      description="Convert CSV data into clean Markdown tables. Handle headers, delimiters, quoted values, alignment, escaped pipes, trimmed cells, and table previews directly in your browser."
+      description="Parse delimited rows into Markdown tables while preserving quoted fields and flagging dialect ambiguity."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -167,7 +168,7 @@ export default function ToolClient() {
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
-          Options
+          Table choices
         </h3>
 
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
@@ -202,7 +203,6 @@ export default function ToolClient() {
             }}
             options={[
               { label: "Markdown table", value: "markdown" },
-              { label: "GitHub Markdown", value: "github" },
               { label: "Compact Markdown", value: "compact" },
               { label: "JSON", value: "json" },
             ]}
@@ -221,7 +221,6 @@ export default function ToolClient() {
             options={[
               { label: "First row is header", value: "firstRow" },
               { label: "Generate headers", value: "generate" },
-              { label: "No header row", value: "none" },
             ]}
           />
 
@@ -257,7 +256,7 @@ export default function ToolClient() {
               className="h-4 w-4 accent-[var(--light-gold)]"
             />
 
-            Trim cell values
+            Trim leading and trailing whitespace in cells (changes values)
           </label>
 
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
@@ -308,30 +307,30 @@ export default function ToolClient() {
               className="h-4 w-4 accent-[var(--light-gold)]"
             />
 
-            Keep empty rows
+            Keep blank physical lines as empty rows
           </label>
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Markdown tables need a header row and separator row. If your CSV has no
-          header, generated column names can be used.
+          Auto detection is a best-effort guess across the first records. Pick the
+          delimiter manually when a file uses an unusual dialect or a single column.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={convertCsv} className="yoryantra-btn">
+        <button onClick={convertCsv} className="yoryantra-btn min-h-10 whitespace-nowrap">
           Convert to Markdown
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-10 whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-10 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-10 whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -401,24 +400,40 @@ export default function ToolClient() {
         </div>
       )}
 
-      {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      {notes.some((note) => note.severity === "warning") && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
-            Table notes
+            Check before copying
           </h3>
 
           <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {note.title}
-                </p>
+            {notes
+              .filter((note) => note.severity === "warning")
+              .map((note) => (
+                <div key={note.title}>
+                  <p className="text-sm font-semibold text-amber-900">{note.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                    {note.message}
+                  </p>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {note.message}
-                </p>
-              </div>
-            ))}
+      {notes.some((note) => note.severity === "info") && (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="space-y-3">
+            {notes
+              .filter((note) => note.severity === "info")
+              .map((note) => (
+                <div key={note.title}>
+                  <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-600">
+                    {note.message}
+                  </p>
+                </div>
+              ))}
           </div>
         </div>
       )}
@@ -426,11 +441,11 @@ export default function ToolClient() {
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Markdown Output
+            Converted Output
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-10 whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -441,153 +456,149 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        CSV to Markdown conversion happens directly in your browser. Your pasted
-        data is not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Parsing and conversion run in your browser. Pasted rows are not sent to a
+        Yoryantra server by this page.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Converting CSV Data Into Markdown Tables
+            CSV looks simple until the rows stop being simple
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            CSV is easy to export from spreadsheets, dashboards, and data tools,
-            but it is not always easy to paste into documentation. Markdown
-            tables are easier to read in GitHub, README files, notes, issues,
-            docs, and static site content.
+            A comma is only a separator when it is outside a quoted field. Quotes
+            inside a quoted field are doubled, and a quoted field may contain a
+            line break. Those details are why splitting a CSV row on every comma
+            breaks as soon as an address, sentence, or exported note contains one.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This CSV to Markdown Table Converter turns pasted CSV into a clean
-            Markdown table. It can detect delimiters, handle quoted values, use
-            the first row as headers, generate headers, align columns, and escape
-            pipe characters inside cells.
+            RFC 4180 documents the widely used comma-separated conventions and the
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">text/csv</code>
+            media type, but it is informational rather than a universal CSV
+            standard. Semicolon, tab, and pipe inputs are treated here as related
+            delimited-text dialects.{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc4180"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              RFC 4180
+            </a>
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Creating a Markdown Table From CSV
+            Auto-detect is a clue, not a guarantee
           </h2>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste CSV, TSV, semicolon-separated, or pipe-separated data.</li>
-            <li>Choose delimiter detection or select the delimiter manually.</li>
-            <li>Choose header, alignment, and cleanup options.</li>
-            <li>Convert the data and review the table preview.</li>
-            <li>Copy the Markdown output into your docs, README, or notes.</li>
-          </ol>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Delimiter detection compares comma, semicolon, tab, and pipe counts
+            across several complete records while ignoring separators inside
+            quoted fields. A file with one column, mixed delimiters, or only one
+            short record can still be ambiguous, so the result calls that out
+            instead of pretending the guess is certain.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            If an export came from software that already tells you its delimiter,
+            selecting it manually is safer than relying on detection.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common CSV to Markdown Table Use Cases
+            Whitespace and uneven rows are data decisions
           </h2>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Turning spreadsheet exports into Markdown documentation.</li>
-            <li>Creating README tables from CSV data.</li>
-            <li>Formatting tool lists, changelogs, comparison tables, and reports.</li>
-            <li>Cleaning copied CSV before pasting into GitHub issues.</li>
-            <li>Converting TSV data from spreadsheets into Markdown tables.</li>
-            <li>Escaping pipe characters that would otherwise break Markdown tables.</li>
-          </ul>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Leading and trailing spaces are preserved by default because RFC-style
+            CSV treats spaces as part of an unquoted field. Turning on trimming is
+            convenient for messy exports, but it deliberately changes cell values.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Row normalization pads short rows so every Markdown row has the same
+            number of cells. It never discards a longer row: the widest parsed row
+            determines the table width. A line containing separators such as
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">,,</code>
+            is kept as a real record even when all of its cells are empty; the
+            “blank physical lines” option applies only to genuinely blank lines.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example Markdown Table
+            Markdown tables have a different set of constraints
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`| Tool | Category | Status |
-| --- | --- | --- |
-| JSON Formatter | JSON & Data Tools | Live |
-| CSV to Markdown Table Converter | JSON & Data Tools | Draft |`}
-            </pre>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Pipe tables are an extension used by GitHub Flavored Markdown rather
+            than part of core CommonMark. GFM expects a header row plus a delimiter
+            row, uses colons for alignment, and treats an unescaped pipe as a cell
+            boundary.{" "}
+            <a
+              href="https://github.github.com/gfm/#tables-extension-"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              GFM table syntax
+            </a>
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Embedded CSV line breaks are written as
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">&lt;br&gt;</code>
+            so one CSV record stays on one Markdown table row. That relies on the
+            destination renderer accepting inline HTML. Cell text is otherwise
+            preserved; HTML from the source is not sanitized, so review untrusted
+            content before publishing it in a renderer that permits raw HTML.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            A quoted field that should survive intact
+          </h2>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm font-semibold text-gray-900">CSV</p>
+              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words text-sm text-gray-700">
+{`Name,Note
+Sneha,"Pune, Maharashtra"
+Varoun,"Said ""ship it"" today"`}
+              </pre>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm font-semibold text-gray-900">Markdown</p>
+              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words text-sm text-gray-700">
+{`| Name | Note |
+| :--- | :--- |
+| Sneha | Pune, Maharashtra |
+| Varoun | Said "ship it" today |`}
+              </pre>
+            </div>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Markdown Tables Need Clean Rows
+            When a table is the wrong shape
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Markdown tables work best when every row has the same number of
-            columns. If a CSV row has fewer or more cells than the header row,
-            the table can look broken after pasting.
+            Very wide or very long datasets are technically convertible but often
+            make poor documentation tables. The page flags those shapes so you can
+            decide whether a short summary, downloadable data file, or smaller
+            selection communicates the information better.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use the normalize rows option when the input has uneven rows. It pads
-            missing cells and keeps the table structure easier to read.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a CSV to Markdown converter do?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It reads CSV rows and turns them into a Markdown table that can
-                be pasted into README files, docs, notes, or GitHub issues.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this support quoted CSV values?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Quoted values, commas inside quotes, and escaped quotes are
-                handled by the parser.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this convert TSV to Markdown?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Choose tab as the delimiter, or use auto detect for pasted
-                tab-separated data.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why do pipe characters need escaping?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Markdown tables use pipe characters to separate columns. If a
-                cell contains a pipe, escaping it helps keep the table intact.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my CSV uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Conversion happens directly in your browser.
-              </p>
-            </div>
-          </div>
         </div>
 
         <div>
@@ -595,7 +606,9 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/csv-to-markdown-table-converter" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/csv-to-markdown-table-converter" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -616,6 +629,10 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+const MAX_CSV_INPUT_CHARS = 1_500_000;
+const MAX_CSV_ROWS = 20_000;
+const MAX_CSV_COLUMNS = 250;
+
 function convertCsvToMarkdown(
   input: string,
   options: {
@@ -629,6 +646,12 @@ function convertCsvToMarkdown(
     includeEmptyRows: boolean;
   }
 ): ConvertResult {
+  if (input.length > MAX_CSV_INPUT_CHARS) {
+    throw new Error(
+      `Input is larger than ${MAX_CSV_INPUT_CHARS.toLocaleString()} characters. Split very large exports before converting them in the browser.`
+    );
+  }
+
   const parsed = parseCsv(input, {
     delimiterMode: options.delimiterMode,
     trimCells: options.trimCells,
@@ -636,10 +659,17 @@ function convertCsvToMarkdown(
   });
 
   if (parsed.rows.length === 0) {
-    throw new Error("No CSV rows were found.");
+    throw new Error("No delimited records were found.");
   }
 
   const maxColumns = Math.max(...parsed.rows.map((row) => row.length));
+
+  if (maxColumns > MAX_CSV_COLUMNS) {
+    throw new Error(
+      `The widest row has ${maxColumns.toLocaleString()} columns. The browser preview is limited to ${MAX_CSV_COLUMNS.toLocaleString()} columns.`
+    );
+  }
+
   let rows = parsed.rows;
 
   if (options.normalizeRows) {
@@ -654,9 +684,6 @@ function convertCsvToMarkdown(
       header || `Column ${index + 1}`
     );
     bodyRows = rows.slice(1);
-  } else if (options.headerMode === "generate") {
-    headers = Array.from({ length: maxColumns }, (_item, index) => `Column ${index + 1}`);
-    bodyRows = rows;
   } else {
     headers = Array.from({ length: maxColumns }, (_item, index) => `Column ${index + 1}`);
     bodyRows = rows;
@@ -669,11 +696,11 @@ function convertCsvToMarkdown(
   const warnings = [...parsed.warnings];
 
   if (rows.some((row) => row.length !== maxColumns)) {
-    warnings.push("Some rows have a different number of columns.");
-  }
-
-  if (headers.length === 0) {
-    throw new Error("No table columns were found.");
+    warnings.push(
+      options.normalizeRows
+        ? "Uneven rows were padded to the widest parsed row."
+        : "Some rows have fewer cells than the widest row; the Markdown output preserves those shorter rows."
+    );
   }
 
   const markdown = formatMarkdownTable({
@@ -706,55 +733,167 @@ function parseCsv(
     includeEmptyRows: boolean;
   }
 ): ParsedCsvResult {
-  const delimiter = getDelimiter(input, options.delimiterMode);
-  const warnings: string[] = [];
+  const detection = resolveDelimiter(input, options.delimiterMode);
+  const delimiter = detection.delimiter;
+  const warnings = detection.warning ? [detection.warning] : [];
   const rows: string[][] = [];
+
   let currentRow: string[] = [];
   let currentCell = "";
   let inQuotes = false;
+  let afterClosingQuote = false;
+  let rowHasSyntax = false;
+  let line = 1;
+  let column = 1;
+  let endedWithRecordBreak = false;
+
+  const pushCell = () => {
+    currentRow.push(cleanCell(currentCell, options.trimCells));
+    currentCell = "";
+
+    if (currentRow.length > MAX_CSV_COLUMNS) {
+      throw new Error(
+        `Line ${line} exceeds the ${MAX_CSV_COLUMNS.toLocaleString()}-column browser limit.`
+      );
+    }
+  };
+
+  const pushCurrentRow = () => {
+    if (rowHasSyntax || options.includeEmptyRows) {
+      rows.push(currentRow);
+
+      if (rows.length > MAX_CSV_ROWS) {
+        throw new Error(
+          `Input exceeds the ${MAX_CSV_ROWS.toLocaleString()}-record browser limit. Split the data before converting it.`
+        );
+      }
+    }
+
+    currentRow = [];
+    rowHasSyntax = false;
+  };
 
   for (let index = 0; index < input.length; index += 1) {
     const char = input[index];
     const nextChar = input[index + 1];
 
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        currentCell += '"';
-        index += 1;
-      } else {
-        inQuotes = !inQuotes;
+    if (inQuotes) {
+      endedWithRecordBreak = false;
+
+      if (char === '"') {
+        if (nextChar === '"') {
+          currentCell += '"';
+          index += 1;
+          column += 2;
+          continue;
+        }
+
+        inQuotes = false;
+        afterClosingQuote = true;
+        column += 1;
+        continue;
       }
 
+      if (char === "\r" && nextChar === "\n") {
+        currentCell += "\n";
+        index += 1;
+        line += 1;
+        column = 1;
+        continue;
+      }
+
+      if (char === "\n" || char === "\r") {
+        currentCell += "\n";
+        line += 1;
+        column = 1;
+        continue;
+      }
+
+      currentCell += char;
+      column += 1;
       continue;
     }
 
-    if (char === delimiter && !inQuotes) {
-      currentRow.push(cleanCell(currentCell, options.trimCells));
-      currentCell = "";
+    if (afterClosingQuote) {
+      if (char === delimiter) {
+        pushCell();
+        rowHasSyntax = true;
+        afterClosingQuote = false;
+        endedWithRecordBreak = false;
+        column += 1;
+        continue;
+      }
+
+      if (char === "\n" || char === "\r") {
+        pushCell();
+        pushCurrentRow();
+        afterClosingQuote = false;
+        endedWithRecordBreak = true;
+
+        if (char === "\r" && nextChar === "\n") {
+          index += 1;
+        }
+
+        line += 1;
+        column = 1;
+        continue;
+      }
+
+      throw new Error(
+        `Unexpected ${JSON.stringify(char)} after a closing quote at line ${line}, column ${column}. A quoted field must be followed by a delimiter or line break.`
+      );
+    }
+
+    if (char === '"') {
+      if (currentCell.length !== 0) {
+        throw new Error(
+          `Unexpected quote inside an unquoted field at line ${line}, column ${column}. Quote the whole field and double embedded quotes.`
+        );
+      }
+
+      inQuotes = true;
+      rowHasSyntax = true;
+      endedWithRecordBreak = false;
+      column += 1;
       continue;
     }
 
-    if ((char === "\n" || char === "\r") && !inQuotes) {
+    if (char === delimiter) {
+      pushCell();
+      rowHasSyntax = true;
+      endedWithRecordBreak = false;
+      column += 1;
+      continue;
+    }
+
+    if (char === "\n" || char === "\r") {
+      pushCell();
+      pushCurrentRow();
+      endedWithRecordBreak = true;
+
       if (char === "\r" && nextChar === "\n") {
         index += 1;
       }
 
-      currentRow.push(cleanCell(currentCell, options.trimCells));
-      pushRow(rows, currentRow, options.includeEmptyRows);
-      currentRow = [];
-      currentCell = "";
+      line += 1;
+      column = 1;
       continue;
     }
 
     currentCell += char;
+    rowHasSyntax = true;
+    endedWithRecordBreak = false;
+    column += 1;
   }
 
   if (inQuotes) {
-    warnings.push("The CSV input has an unmatched quote. The result may need review.");
+    throw new Error(`Quoted field beginning before line ${line} is not closed.`);
   }
 
-  currentRow.push(cleanCell(currentCell, options.trimCells));
-  pushRow(rows, currentRow, options.includeEmptyRows);
+  if (afterClosingQuote || rowHasSyntax || currentCell.length > 0 || !endedWithRecordBreak) {
+    pushCell();
+    pushCurrentRow();
+  }
 
   return {
     rows,
@@ -763,71 +902,164 @@ function parseCsv(
   };
 }
 
-function pushRow(rows: string[][], row: string[], includeEmptyRows: boolean) {
-  const isEmpty = row.every((cell) => cell === "");
-
-  if (!isEmpty || includeEmptyRows) {
-    rows.push(row);
-  }
-}
-
 function cleanCell(value: string, trimCells: boolean) {
   return trimCells ? value.trim() : value;
 }
 
-function getDelimiter(input: string, mode: DelimiterMode) {
+function resolveDelimiter(
+  input: string,
+  mode: DelimiterMode
+): { delimiter: string; warning?: string } {
   if (mode === "comma") {
-    return ",";
+    return { delimiter: "," };
   }
 
   if (mode === "semicolon") {
-    return ";";
+    return { delimiter: ";" };
   }
 
   if (mode === "tab") {
-    return "\t";
+    return { delimiter: "\t" };
   }
 
   if (mode === "pipe") {
-    return "|";
+    return { delimiter: "|" };
   }
 
-  const firstLines = input.split(/\r?\n/).slice(0, 5).join("\n");
-  const candidates = [",", ";", "\t", "|"];
-  const counts = candidates.map((candidate) => ({
-    delimiter: candidate,
-    count: countDelimiterOutsideQuotes(firstLines, candidate),
-  }));
-
-  counts.sort((a, b) => b.count - a.count);
-
-  return counts[0].count > 0 ? counts[0].delimiter : ",";
+  return detectDelimiter(input);
 }
 
-function countDelimiterOutsideQuotes(value: string, delimiter: string) {
-  let count = 0;
-  let inQuotes = false;
+function detectDelimiter(input: string): { delimiter: string; warning?: string } {
+  const candidates = [",", ";", "\t", "|"];
+  const scored = candidates.map((delimiter) => {
+    const counts = getRecordDelimiterCounts(input, delimiter, 20);
+    const nonZero = counts.filter((count) => count > 0);
 
-  for (let index = 0; index < value.length; index += 1) {
-    const char = value[index];
-    const nextChar = value[index + 1];
+    if (nonZero.length === 0) {
+      return { delimiter, score: 0, modeCount: 0, supportingRows: 0 };
+    }
+
+    const frequencies: Record<string, number> = {};
+    nonZero.forEach((count) => {
+      frequencies[String(count)] = (frequencies[String(count)] || 0) + 1;
+    });
+
+    const modes = Object.keys(frequencies)
+      .map((key) => ({ count: Number(key), frequency: frequencies[key] }))
+      .sort((a, b) => b.frequency - a.frequency || b.count - a.count);
+    const best = modes[0];
+
+    return {
+      delimiter,
+      modeCount: best.count,
+      supportingRows: best.frequency,
+      score: best.frequency * 10_000 + best.count * 100 + nonZero.length,
+    };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  const best = scored[0];
+
+  if (best.score === 0) {
+    return {
+      delimiter: ",",
+      warning:
+        "No repeated delimiter was detected. The input is being treated as a single-column comma CSV; choose a delimiter manually if that is not intended.",
+    };
+  }
+
+  const tied = scored.filter((candidate) => candidate.score === best.score);
+
+  if (tied.length > 1) {
+    return {
+      delimiter: best.delimiter,
+      warning: `Delimiter detection is ambiguous. ${describeDelimiter(
+        best.delimiter
+      )} was selected; choose the delimiter manually if the preview is wrong.`,
+    };
+  }
+
+  if (best.supportingRows < 2) {
+    return {
+      delimiter: best.delimiter,
+      warning: `Delimiter detection is based on only one structured record. ${describeDelimiter(
+        best.delimiter
+      )} was selected, so check the preview before copying.`,
+    };
+  }
+
+  return { delimiter: best.delimiter };
+}
+
+function getRecordDelimiterCounts(input: string, delimiter: string, maxRecords: number) {
+  const counts: number[] = [];
+  let inQuotes = false;
+  let count = 0;
+  let hasVisibleContent = false;
+
+  for (let index = 0; index < input.length && counts.length < maxRecords; index += 1) {
+    const char = input[index];
+    const nextChar = input[index + 1];
 
     if (char === '"') {
+      hasVisibleContent = true;
+
       if (inQuotes && nextChar === '"') {
         index += 1;
-      } else {
-        inQuotes = !inQuotes;
+        continue;
+      }
+
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (!inQuotes && char === delimiter) {
+      count += 1;
+      hasVisibleContent = true;
+      continue;
+    }
+
+    if (!inQuotes && (char === "\n" || char === "\r")) {
+      if (hasVisibleContent || count > 0) {
+        counts.push(count);
+      }
+
+      count = 0;
+      hasVisibleContent = false;
+
+      if (char === "\r" && nextChar === "\n") {
+        index += 1;
       }
 
       continue;
     }
 
-    if (char === delimiter && !inQuotes) {
-      count += 1;
+    if (!/\s/.test(char)) {
+      hasVisibleContent = true;
     }
   }
 
-  return count;
+  if ((hasVisibleContent || count > 0) && counts.length < maxRecords) {
+    counts.push(count);
+  }
+
+  return counts;
+}
+
+function describeDelimiter(delimiter: string) {
+  if (delimiter === "\t") {
+    return "Tab";
+  }
+
+  if (delimiter === ",") {
+    return "Comma";
+  }
+
+  if (delimiter === ";") {
+    return "Semicolon";
+  }
+
+  return "Pipe";
 }
 
 function normalizeRow(row: string[], length: number) {
@@ -837,7 +1069,7 @@ function normalizeRow(row: string[], length: number) {
     next.push("");
   }
 
-  return next.slice(0, length);
+  return next;
 }
 
 function formatMarkdownTable({
@@ -885,7 +1117,7 @@ function formatMarkdownTable({
 }
 
 function formatMarkdownCell(value: string, escapePipes: boolean) {
-  const clean = value.replace(/\r?\n/g, "<br>");
+  const clean = value.replace(/\r\n|\r|\n/g, "<br>");
 
   return escapePipes ? clean.replace(/\|/g, "\\|") : clean;
 }
@@ -909,34 +1141,38 @@ function getAlignmentMarker(alignmentMode: AlignmentMode) {
 function getTableNotes(result: ConvertResult): TableNote[] {
   const notes: TableNote[] = [];
 
-  if (result.warnings.length > 0) {
+  result.warnings.forEach((warning, index) => {
     notes.push({
-      title: "Review warnings",
-      message: result.warnings.join(" "),
+      severity: "warning",
+      title: index === 0 ? "Parsing decision" : `Parsing decision ${index + 1}`,
+      message: warning,
     });
-  }
+  });
 
   if (result.rowCount > 100) {
     notes.push({
-      title: "Large table",
+      severity: "warning",
+      title: "Long documentation table",
       message:
-        "This table has more than 100 rows. Markdown tables can become hard to read when they are very long.",
+        "More than 100 parsed rows will usually be awkward to scan in Markdown. Consider publishing a smaller selection and linking the full data separately.",
     });
   }
 
   if (result.columnCount > 8) {
     notes.push({
-      title: "Wide table",
+      severity: "warning",
+      title: "Wide documentation table",
       message:
-        "This table has many columns. It may be difficult to read on smaller screens or in narrow documentation layouts.",
+        "More than eight columns can overflow narrow documentation layouts even when the Markdown syntax is valid.",
     });
   }
 
   if (result.markdown.includes("<br>")) {
     notes.push({
-      title: "Line breaks converted",
+      severity: "info",
+      title: "Embedded line breaks became <br>",
       message:
-        "One or more cell line breaks were converted to <br> so the Markdown table stays in one row per record.",
+        "A Markdown table row cannot contain the CSV record's physical line break directly, so embedded cell line breaks are represented with inline HTML.",
     });
   }
 
