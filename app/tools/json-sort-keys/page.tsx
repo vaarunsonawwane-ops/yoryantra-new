@@ -2,36 +2,35 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Sort Keys Tool | Sort JSON Object Keys Online | Yoryantra",
+  title: "JSON Sort Keys Tool | Deterministic Key Order | Yoryantra",
   description:
-    "Sort JSON object keys alphabetically, reorder nested JSON keys, and format structured JSON directly in your browser.",
+    "Sort JSON object keys recursively with locale-independent ordering while preserving array sequence and rejecting precision-losing numeric input.",
   keywords: [
     "JSON sort keys",
-    "sort JSON keys",
-    "JSON key sorter",
+    "sort JSON object keys",
+    "recursive JSON key sort",
+    "deterministic JSON ordering",
+    "JSON key order",
     "sort JSON alphabetically",
-    "JSON object key sorter",
-    "nested JSON sort keys",
-    "JSON formatter",
+    "JSON diff cleanup",
     "JSON data tools",
-    "developer tools",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/json-sort-keys",
   },
   openGraph: {
-    title: "JSON Sort Keys Tool | Sort JSON Object Keys Online | Yoryantra",
+    title: "JSON Sort Keys Tool | Yoryantra",
     description:
-      "Sort JSON object keys alphabetically, reorder nested JSON keys, and format structured JSON directly in your browser.",
+      "Sort object keys recursively with deterministic UTF-16 ordering while keeping every array element in place.",
     url: "https://yoryantra.com/tools/json-sort-keys",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "JSON Sort Keys Tool | Sort JSON Object Keys Online | Yoryantra",
+    title: "JSON Sort Keys Tool | Yoryantra",
     description:
-      "Sort JSON object keys alphabetically, reorder nested JSON keys, and format structured JSON directly in your browser.",
+      "Sort object keys recursively with deterministic UTF-16 ordering while keeping every array element in place.",
   },
 };
 

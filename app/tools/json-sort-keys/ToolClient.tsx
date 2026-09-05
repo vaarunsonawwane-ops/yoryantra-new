@@ -8,26 +8,25 @@ import YoryantraSelect from "@/app/components/YoryantraSelect";
 type SortDirection = "asc" | "desc";
 type OutputSpacing = "two" | "four" | "compact";
 
+const MAX_DEPTH = 120;
+const MAX_VALUES = 25000;
+
 const sampleJson = `{
   "zebra": "last",
   "user": {
-    "name": "Yoryantra User",
+    "name": "Sneha",
     "active": true,
     "id": 101,
     "profile": {
       "role": "developer",
-      "country": "India",
-      "skills": ["JSON", "APIs", "Debugging"]
+      "country": "India"
     }
   },
   "alpha": "first",
-  "settings": {
-    "theme": "light",
-    "notifications": {
-      "sms": false,
-      "email": true
-    }
-  }
+  "steps": [
+    { "name": "validate", "order": 1 },
+    { "name": "publish", "order": 2 }
+  ]
 }`;
 
 export default function ToolClient() {
@@ -36,85 +35,43 @@ export default function ToolClient() {
   const [error, setError] = useState("");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [outputSpacing, setOutputSpacing] = useState<OutputSpacing>("two");
-  const [sortNestedKeys, setSortNestedKeys] = useState(true);
-  const [preserveArrayOrder, setPreserveArrayOrder] = useState(true);
   const [copied, setCopied] = useState(false);
 
   const sortJsonKeys = () => {
     if (!input.trim()) {
-      setError("Please enter JSON input.");
+      setError("Enter JSON before sorting its object keys.");
       setOutput("");
       setCopied(false);
       return;
     }
 
     try {
-      const parsed = JSON.parse(input);
-      const sorted = sortValue(parsed, {
-        direction: sortDirection,
-        sortNestedKeys,
-        preserveArrayOrder,
-      });
+      preflightJson(input);
+      const parsed: unknown = JSON.parse(input);
+      const spacing = getSpacingValue(outputSpacing);
+      const serialized = serializeSortedJson(parsed, sortDirection, spacing);
 
-      setOutput(JSON.stringify(sorted, null, getSpacingValue(outputSpacing)));
+      setOutput(serialized);
       setError("");
       setCopied(false);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to parse and sort this JSON."
-      );
+      setError(err instanceof Error ? err.message : "Unable to sort this JSON safely.");
       setOutput("");
       setCopied(false);
-    }
-  };
-
-  const formatInput = () => {
-    if (!input.trim()) {
-      setError("Please enter JSON input.");
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(input);
-      setInput(JSON.stringify(parsed, null, 2));
-      setError("");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Unable to format this JSON."
-      );
-    }
-  };
-
-  const minifyInput = () => {
-    if (!input.trim()) {
-      setError("Please enter JSON input.");
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(input);
-      setInput(JSON.stringify(parsed));
-      setError("");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Unable to minify this JSON."
-      );
     }
   };
 
   const copyOutput = async () => {
-    if (!output) {
-      return;
-    }
-
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-
-    window.setTimeout(() => {
+    if (!output) return;
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("Copy failed. Select the sorted JSON and copy it manually.");
       setCopied(false);
-    }, 1400);
+    }
   };
 
   const loadExample = () => {
@@ -123,8 +80,6 @@ export default function ToolClient() {
     setError("");
     setSortDirection("asc");
     setOutputSpacing("two");
-    setSortNestedKeys(true);
-    setPreserveArrayOrder(true);
     setCopied(false);
   };
 
@@ -134,21 +89,16 @@ export default function ToolClient() {
     setError("");
     setSortDirection("asc");
     setOutputSpacing("two");
-    setSortNestedKeys(true);
-    setPreserveArrayOrder(true);
     setCopied(false);
   };
 
   return (
     <ToolShell
       title="JSON Sort Keys Tool"
-      description="Sort JSON object keys alphabetically, reorder nested JSON keys, and format structured JSON directly in your browser."
+      description="Sort every JSON object key deterministically while preserving array order and value meaning."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          JSON Input
-        </label>
-
+        <label className="mb-2 block text-sm font-medium text-gray-700">JSON Input</label>
         <textarea
           value={input}
           onChange={(event) => {
@@ -157,34 +107,20 @@ export default function ToolClient() {
             setError("");
             setCopied(false);
           }}
+          spellCheck={false}
           placeholder={sampleJson}
-          className="w-full min-h-[340px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          className="w-full min-h-[350px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Paste a JSON object, array, API response, configuration file, or log
-          payload to sort object keys without changing the actual values.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          Object keys are sorted recursively. Array elements stay in their original sequence, including arrays of objects.
         </p>
-
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button onClick={formatInput} className="yoryantra-btn-outline">
-            Format Input
-          </button>
-
-          <button onClick={minifyInput} className="yoryantra-btn-outline">
-            Minify Input
-          </button>
-        </div>
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Sorting Options
-        </h3>
-
+        <h3 className="text-lg font-semibold text-gray-900">Output order and spacing</h3>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <YoryantraSelect
-            label="Sort Direction"
+            label="Key Order"
             value={sortDirection}
             onChange={(value) => {
               setSortDirection(value as SortDirection);
@@ -193,14 +129,8 @@ export default function ToolClient() {
               setCopied(false);
             }}
             options={[
-              {
-                label: "A to Z",
-                value: "asc",
-              },
-              {
-                label: "Z to A",
-                value: "desc",
-              },
+              { label: "Ascending (UTF-16)", value: "asc" },
+              { label: "Descending (UTF-16)", value: "desc" },
             ]}
           />
 
@@ -214,84 +144,22 @@ export default function ToolClient() {
               setCopied(false);
             }}
             options={[
-              {
-                label: "2 spaces",
-                value: "two",
-              },
-              {
-                label: "4 spaces",
-                value: "four",
-              },
-              {
-                label: "Compact",
-                value: "compact",
-              },
+              { label: "2 spaces", value: "two" },
+              { label: "4 spaces", value: "four" },
+              { label: "Compact", value: "compact" },
             ]}
           />
-        </div>
-
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-            <input
-              type="checkbox"
-              checked={sortNestedKeys}
-              onChange={(event) => {
-                setSortNestedKeys(event.target.checked);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-            />
-
-            <span>
-              <span className="block text-sm font-medium text-gray-900">
-                Sort nested keys
-              </span>
-
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Reorder keys inside nested objects, not just the first level.
-              </span>
-            </span>
-          </label>
-
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
-            <input
-              type="checkbox"
-              checked={preserveArrayOrder}
-              onChange={(event) => {
-                setPreserveArrayOrder(event.target.checked);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
-            />
-
-            <span>
-              <span className="block text-sm font-medium text-gray-900">
-                Preserve array order
-              </span>
-
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Keep array item order unchanged while sorting objects inside
-                arrays when nested sorting is enabled.
-              </span>
-            </span>
-          </label>
         </div>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={sortJsonKeys} className="yoryantra-btn">
+        <button type="button" onClick={sortJsonKeys} className="yoryantra-btn min-h-10 whitespace-nowrap">
           Sort JSON Keys
         </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline min-h-10 whitespace-nowrap">
           Load Example
         </button>
-
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button type="button" onClick={resetAll} className="yoryantra-btn-outline min-h-10 whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -302,263 +170,347 @@ export default function ToolClient() {
         </div>
       )}
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Sorted JSON Output
-          </h3>
-
+      <div className="mt-8 min-w-0">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">Sorted JSON</h3>
           {output && (
-            <button
-              onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
-            >
+            <button type="button" onClick={copyOutput} className="yoryantra-btn-outline min-h-10 whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[300px] whitespace-pre-wrap break-words">
-          {output || "Sorted JSON output will appear here."}
+        <pre className="yoryantra-output min-h-[310px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Recursively sorted JSON will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        JSON sorting happens directly in your browser. Your JSON input is not
-        uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Parsing and sorting run in your browser. The page does not send the JSON you paste to a processing API.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+        <strong>Not canonical JSON:</strong> deterministic key order is only one part of canonicalization. RFC 8785 also defines primitive serialization and other constraints, so do not use this output as a signing or hashing canonical form.
+      </div>
+
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Sorting JSON Keys for Cleaner Data Review
+            Sorting object members is presentation; array order is data
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON objects often arrive in inconsistent key order, especially when
-            they come from APIs, generated configuration files, exported data,
-            test fixtures, or logs. Sorting JSON keys makes payloads easier to
-            compare, review, document, and commit into version control.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JSON objects are defined as unordered collections of name/value pairs, while arrays are ordered sequences. That difference is why every object can be sorted recursively without moving a single array element. A deployment step list, priority list, breadcrumb sequence, or test case array keeps its original order.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This JSON Sort Keys Tool reorders object keys alphabetically while
-            preserving the structure of your data. You can sort only the top
-            level or include nested objects, making it useful for debugging API
-            responses, cleaning configuration files, comparing JSON changes, and
-            preparing stable test data.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The distinction comes directly from <a href="https://www.rfc-editor.org/rfc/rfc8259" target="_blank" rel="noreferrer" className="font-medium text-gray-800 underline underline-offset-2">RFC 8259</a>. Member order can still matter to humans and diff tools, but software should not depend on JSON object ordering for data meaning.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Sorting JSON Object Keys Without Changing Values
+            The comparison is locale-independent and deterministic
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste valid JSON into the input box.</li>
-            <li>Select ascending or descending key order.</li>
-            <li>Choose whether nested object keys should also be sorted.</li>
-            <li>Select the spacing style for the formatted JSON output.</li>
-            <li>
-              Click <strong>Sort JSON Keys</strong> and copy the formatted output.
-            </li>
-          </ol>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Human-language collation can vary by locale, browser, and accent rules. Keys here are compared by raw JavaScript UTF-16 string values instead. That gives the same ordering rule for the same input rather than asking the runtime whether, for example, an accented letter should sort beside its unaccented form.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Ascending order follows the same UTF-16 value-comparison idea used by the property-sorting step in <a href="https://www.rfc-editor.org/rfc/rfc8785" target="_blank" rel="noreferrer" className="font-medium text-gray-800 underline underline-offset-2">RFC 8785 JSON Canonicalization Scheme</a>. Descending order is provided for inspection, but it is not JCS canonicalization.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common JSON Sort Keys Use Cases
+            Two inputs are rejected before they can be silently changed
           </h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="self-start rounded-xl border border-gray-200 bg-white p-4">
+              <h3 className="font-semibold text-gray-900">Duplicate object names</h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                JSON member names should be unique for interoperable data. Browser parsers commonly keep one value when names repeat, so duplicate names are detected before parsing and sorting instead of quietly discarding an earlier member.
+              </p>
+            </div>
+            <div className="self-start rounded-xl border border-gray-200 bg-white p-4">
+              <h3 className="font-semibold text-gray-900">Numbers that would lose their decimal value</h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                JavaScript parses JSON numbers as binary64 numbers. If converting a numeric token to JavaScript and back would change its exact decimal value, sorting stops and asks you to represent that value as a string or use a lossless parser.
+              </p>
+            </div>
+          </div>
+        </div>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Cleaning API responses before comparing them.</li>
-            <li>Preparing stable JSON fixtures for tests.</li>
-            <li>Making configuration files easier to review.</li>
-            <li>Reducing noisy diffs in version control.</li>
-            <li>Organizing nested JSON data for documentation.</li>
-            <li>Sorting JSON payloads before pasting them into bug reports.</li>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Clean diffs are a good reason to sort; signatures are not
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Recursive key ordering can make generated fixtures, configuration snapshots, debugging captures, and review diffs easier to scan. It is also useful when two systems emit the same object members in different presentation orders.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Cryptographic canonicalization is a different job. JCS fixes much more than property order, including how numbers and strings are serialized. A visually stable sort should not be substituted for a protocol&apos;s required canonical form.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Limits and serialization details
+          </h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Input must be valid JSON; comments, trailing commas, NaN, and Infinity are not valid JSON syntax.</li>
+            <li>String escape spelling may normalize in output because the parsed string value is serialized again.</li>
+            <li>Negative zero is rejected because JSON serialization through JavaScript would turn it into <code>0</code>.</li>
+            <li>Processing stops beyond {MAX_VALUES.toLocaleString()} values or {MAX_DEPTH} nested levels to protect page responsiveness.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Before and After
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Before:
-{
-  "zebra": true,
-  "alpha": true
-}
-
-After:
-{
-  "alpha": true,
-  "zebra": true
-}`}
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/json-sort-keys" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            When Nested Sorting Helps
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Many JSON files contain nested objects such as user profiles,
-            settings, permissions, API metadata, feature flags, and response
-            details. Sorting only the top level may still leave deeper sections
-            difficult to compare. Nested sorting keeps the entire structure more
-            predictable.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Preserving array order is useful when array position has meaning,
-            such as ordered steps, menu items, route lists, priority rules, or
-            test fixture sequences. The tool keeps arrays stable while still
-            sorting object keys inside them when nested sorting is enabled.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does sorting JSON keys mean?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Sorting JSON keys means reordering object property names
-                alphabetically while keeping values and structure intact.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this change JSON values?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool only changes object key order and formatting. It
-                does not intentionally change strings, numbers, booleans, arrays,
-                or nested values.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this sort nested JSON keys?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Enable nested key sorting to reorder keys inside nested
-                objects throughout the JSON structure.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What happens to arrays?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Array item order is preserved by default. If an array contains
-                objects, keys inside those objects can still be sorted when
-                nested sorting is enabled.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my JSON uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Sorting happens directly in your browser, and your JSON is
-                not uploaded to a server.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/json-sort-keys" />
         </div>
       </section>
     </ToolShell>
   );
 }
 
-function sortValue(
-  value: unknown,
-  options: {
-    direction: SortDirection;
-    sortNestedKeys: boolean;
-    preserveArrayOrder: boolean;
-  },
-  isRoot = true
-): unknown {
-  if (Array.isArray(value)) {
-    if (!options.preserveArrayOrder) {
-      return [...value]
-        .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
-        .map((item) =>
-          options.sortNestedKeys ? sortValue(item, options, false) : item
-        );
+function serializeSortedJson(value: unknown, direction: SortDirection, spacing: number) {
+  const state = { values: 0 };
+
+  const serialize = (current: unknown, depth: number): string => {
+    state.values += 1;
+    if (state.values > MAX_VALUES) {
+      throw new Error(`This JSON exceeds the ${MAX_VALUES.toLocaleString()}-value sorting limit.`);
+    }
+    if (depth > MAX_DEPTH) {
+      throw new Error(`This JSON exceeds the ${MAX_DEPTH}-level nesting limit.`);
     }
 
-    return value.map((item) =>
-      options.sortNestedKeys ? sortValue(item, options, false) : item
-    );
-  }
-
-  if (isPlainObject(value)) {
-    if (!isRoot && !options.sortNestedKeys) {
-      return value;
+    if (Array.isArray(current)) {
+      const parts = current.map((item) => serialize(item, depth + 1));
+      return joinSerialized(parts, "[", "]", depth, spacing);
     }
 
-    const entries = Object.entries(value as Record<string, unknown>).sort(
-      ([a], [b]) =>
-        options.direction === "asc"
-          ? a.localeCompare(b)
-          : b.localeCompare(a)
-    );
+    if (isPlainObject(current)) {
+      const keys = Object.keys(current).sort((a, b) => compareKeys(a, b, direction));
+      const parts = keys.map((key) => {
+        const keyText = JSON.stringify(key);
+        const valueText = serialize(current[key], depth + 1);
+        return spacing === 0 ? `${keyText}:${valueText}` : `${keyText}: ${valueText}`;
+      });
+      return joinSerialized(parts, "{", "}", depth, spacing);
+    }
 
-    const sorted: Record<string, unknown> = {};
+    const primitive = JSON.stringify(current);
+    if (primitive === undefined) {
+      throw new Error("A value could not be serialized as JSON.");
+    }
+    return primitive;
+  };
 
-    entries.forEach(([key, item]) => {
-      sorted[key] = options.sortNestedKeys
-        ? sortValue(item, options, false)
-        : item;
-    });
+  return serialize(value, 0);
+}
 
-    return sorted;
+function joinSerialized(parts: string[], open: string, close: string, depth: number, spacing: number) {
+  if (parts.length === 0) return `${open}${close}`;
+  if (spacing === 0) return `${open}${parts.join(",")}${close}`;
+
+  const childIndent = " ".repeat((depth + 1) * spacing);
+  const closingIndent = " ".repeat(depth * spacing);
+  return `${open}\n${parts.map((part) => `${childIndent}${part}`).join(",\n")}\n${closingIndent}${close}`;
+}
+
+function compareKeys(a: string, b: string, direction: SortDirection) {
+  if (a === b) return 0;
+  const ascending = a < b ? -1 : 1;
+  return direction === "asc" ? ascending : -ascending;
+}
+
+function preflightJson(text: string) {
+  let index = 0;
+  let values = 0;
+
+  const skipWhitespace = () => {
+    while (index < text.length && /\s/.test(text[index])) index += 1;
+  };
+
+  const parseString = (): string => {
+    const start = index;
+    if (text[index] !== '"') throw new Error("Expected a JSON string.");
+    index += 1;
+    let escaped = false;
+
+    while (index < text.length) {
+      const char = text[index];
+      if (escaped) {
+        escaped = false;
+        index += 1;
+        continue;
+      }
+      if (char === "\\") {
+        escaped = true;
+        index += 1;
+        continue;
+      }
+      if (char === '"') {
+        index += 1;
+        return JSON.parse(text.slice(start, index)) as string;
+      }
+      index += 1;
+    }
+
+    throw new Error("Unterminated JSON string.");
+  };
+
+  const parseNumber = () => {
+    const match = text.slice(index).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+    if (!match) throw new Error("Invalid JSON number.");
+    const token = match[0];
+    const numeric = Number(token);
+
+    if (!Number.isFinite(numeric)) {
+      throw new Error(`Number ${token} is outside JavaScript's finite numeric range.`);
+    }
+    if (numeric === 0 && token.startsWith("-")) {
+      throw new Error("Negative zero would be normalized to 0 during serialization, so sorting was stopped.");
+    }
+
+    const roundTrip = numeric.toString();
+    if (normalizeDecimal(token) !== normalizeDecimal(roundTrip)) {
+      throw new Error(`Number ${token} cannot round-trip through JavaScript without changing its decimal value.`);
+    }
+
+    index += token.length;
+  };
+
+  const parseValue = (depth: number): void => {
+    values += 1;
+    if (values > MAX_VALUES) {
+      throw new Error(`This JSON exceeds the ${MAX_VALUES.toLocaleString()}-value sorting limit.`);
+    }
+    if (depth > MAX_DEPTH) {
+      throw new Error(`This JSON exceeds the ${MAX_DEPTH}-level nesting limit.`);
+    }
+    skipWhitespace();
+    const char = text[index];
+
+    if (char === "{") {
+      parseObject(depth + 1);
+      return;
+    }
+    if (char === "[") {
+      parseArray(depth + 1);
+      return;
+    }
+    if (char === '"') {
+      parseString();
+      return;
+    }
+    if (text.startsWith("true", index)) {
+      index += 4;
+      return;
+    }
+    if (text.startsWith("false", index)) {
+      index += 5;
+      return;
+    }
+    if (text.startsWith("null", index)) {
+      index += 4;
+      return;
+    }
+    parseNumber();
+  };
+
+  const parseObject = (depth: number) => {
+    index += 1;
+    skipWhitespace();
+    const keys = new Set<string>();
+    if (text[index] === "}") {
+      index += 1;
+      return;
+    }
+
+    while (index < text.length) {
+      skipWhitespace();
+      const key = parseString();
+      if (keys.has(key)) {
+        throw new Error(`Duplicate object member name ${JSON.stringify(key)} was found. Sorting would discard one of its values.`);
+      }
+      keys.add(key);
+      skipWhitespace();
+      if (text[index] !== ":") throw new Error("Expected : after an object member name.");
+      index += 1;
+      parseValue(depth);
+      skipWhitespace();
+      if (text[index] === "}") {
+        index += 1;
+        return;
+      }
+      if (text[index] !== ",") throw new Error("Expected , or } inside a JSON object.");
+      index += 1;
+    }
+
+    throw new Error("Unclosed JSON object.");
+  };
+
+  const parseArray = (depth: number) => {
+    index += 1;
+    skipWhitespace();
+    if (text[index] === "]") {
+      index += 1;
+      return;
+    }
+
+    while (index < text.length) {
+      parseValue(depth);
+      skipWhitespace();
+      if (text[index] === "]") {
+        index += 1;
+        return;
+      }
+      if (text[index] !== ",") throw new Error("Expected , or ] inside a JSON array.");
+      index += 1;
+    }
+
+    throw new Error("Unclosed JSON array.");
+  };
+
+  parseValue(0);
+  skipWhitespace();
+  if (index !== text.length) {
+    throw new Error("Unexpected content appears after the JSON value.");
+  }
+}
+
+function normalizeDecimal(token: string) {
+  let value = token.toLowerCase();
+  let sign = "";
+  if (value.startsWith("-")) {
+    sign = "-";
+    value = value.slice(1);
+  } else if (value.startsWith("+")) {
+    value = value.slice(1);
   }
 
-  return value;
+  const exponentParts = value.split("e");
+  const mantissa = exponentParts[0];
+  const exponent = exponentParts.length > 1 ? Number(exponentParts[1]) : 0;
+  const dotIndex = mantissa.indexOf(".");
+  const fractionalDigits = dotIndex === -1 ? 0 : mantissa.length - dotIndex - 1;
+  let digits = mantissa.replace(".", "").replace(/^0+/, "");
+
+  if (!digits) return "0e0";
+
+  let power = exponent - fractionalDigits;
+  while (digits.endsWith("0")) {
+    digits = digits.slice(0, -1);
+    power += 1;
+  }
+
+  return `${sign}${digits}e${power}`;
 }
 
 function getSpacingValue(outputSpacing: OutputSpacing) {
-  if (outputSpacing === "four") {
-    return 4;
-  }
-
-  if (outputSpacing === "compact") {
-    return 0;
-  }
-
+  if (outputSpacing === "four") return 4;
+  if (outputSpacing === "compact") return 0;
   return 2;
 }
 

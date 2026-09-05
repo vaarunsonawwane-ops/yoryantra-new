@@ -749,7 +749,7 @@ export const tools = [
 {
   title: "JSON Flatten / Unflatten Tool",
   description:
-    "Flatten nested JSON into dot notation paths or rebuild flattened key paths into nested JSON.",
+    "Flatten nested JSON into reversible escaped paths or rebuild objects, arrays, and empty containers.",
   href: "/tools/json-flatten-unflatten-tool",
   category: "JSON & Data Tools",
 },
@@ -758,7 +758,7 @@ export const tools = [
 {
   title: "JSON Key Extractor",
   description:
-    "Extract keys, dot notation paths, value types, and nested field structure from JSON.",
+    "List JSON member names, nested paths, value types, and array-aware field structure.",
   href: "/tools/json-key-extractor",
   category: "JSON & Data Tools",
 },
@@ -767,7 +767,7 @@ export const tools = [
 {
   title: "JSON Sort Keys Tool",
   description:
-    "Sort JSON object keys alphabetically, reorder nested JSON keys, and format structured JSON.",
+    "Order JSON object keys deterministically while preserving array sequence and numeric value safety.",
   href: "/tools/json-sort-keys",
   category: "JSON & Data Tools",
 },
