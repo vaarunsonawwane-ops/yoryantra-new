@@ -21,15 +21,25 @@ type ParsedEnvLine = {
   key: string;
   value: string;
   lineNumber: number;
+  wasQuoted: boolean;
 };
 
-const sampleEnv = `DATABASE_HOST=localhost
+type ParsedAssignmentValue = {
+  value: string;
+  endIndex: number;
+  wasQuoted: boolean;
+};
+
+const MAX_INPUT_CHARS = 1_000_000;
+const MAX_ENV_ENTRIES = 5_000;
+
+const sampleEnv = `# Values in quotes stay strings in Auto mode
+DATABASE_HOST=localhost
 DATABASE_PORT=5432
 DATABASE_SSL=true
-API_KEY=secret-key
+API_KEY="secret-key"
 API_BASE_URL=https://api.example.com
-USER_NAME="Yoryantra User"
-USER_ACTIVE=true
+USER_NAME="Sneha"
 FEATURES=["JSON","APIs","Debugging"]`;
 
 export default function ToolClient() {
@@ -38,15 +48,32 @@ export default function ToolClient() {
   const [error, setError] = useState("");
   const [parsedLines, setParsedLines] = useState<ParsedEnvLine[]>([]);
   const [valueMode, setValueMode] = useState<ValueMode>("auto");
-  const [keyMode, setKeyMode] = useState<KeyMode>("nested");
+  const [keyMode, setKeyMode] = useState<KeyMode>("flat");
   const [outputSpacing, setOutputSpacing] = useState<OutputSpacing>("two");
   const [ignoreComments, setIgnoreComments] = useState(true);
   const [stripExportKeyword, setStripExportKeyword] = useState(true);
   const [copied, setCopied] = useState(false);
 
+  const clearResult = () => {
+    setOutput("");
+    setError("");
+    setParsedLines([]);
+    setCopied(false);
+  };
+
   const convertEnvToJson = () => {
     if (!input.trim()) {
-      setError("Please enter ENV input.");
+      setError("Paste at least one environment-variable assignment.");
+      setOutput("");
+      setParsedLines([]);
+      setCopied(false);
+      return;
+    }
+
+    if (input.length > MAX_INPUT_CHARS) {
+      setError(
+        `Input is too large for an interactive browser conversion. Keep it under ${MAX_INPUT_CHARS.toLocaleString()} characters.`
+      );
       setOutput("");
       setParsedLines([]);
       setCopied(false);
@@ -60,7 +87,7 @@ export default function ToolClient() {
       });
 
       if (lines.length === 0) {
-        setError("No ENV variables were found in this input.");
+        setError("No environment-variable assignments were found.");
         setOutput("");
         setParsedLines([]);
         setCopied(false);
@@ -80,7 +107,7 @@ export default function ToolClient() {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to parse and convert this ENV input."
+          : "The ENV text could not be converted safely."
       );
       setOutput("");
       setParsedLines([]);
@@ -93,12 +120,20 @@ export default function ToolClient() {
       return;
     }
 
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
 
-    window.setTimeout(() => {
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 1400);
+    } catch {
       setCopied(false);
-    }, 1400);
+      setError(
+        "The browser blocked clipboard access. Select the JSON output and copy it manually."
+      );
+    }
   };
 
   const loadExample = () => {
@@ -107,7 +142,7 @@ export default function ToolClient() {
     setError("");
     setParsedLines([]);
     setValueMode("auto");
-    setKeyMode("nested");
+    setKeyMode("flat");
     setOutputSpacing("two");
     setIgnoreComments(true);
     setStripExportKeyword(true);
@@ -120,7 +155,7 @@ export default function ToolClient() {
     setError("");
     setParsedLines([]);
     setValueMode("auto");
-    setKeyMode("nested");
+    setKeyMode("flat");
     setOutputSpacing("two");
     setIgnoreComments(true);
     setStripExportKeyword(true);
@@ -130,157 +165,116 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="ENV to JSON Converter"
-      description="Convert .env variables into JSON, parse dotenv key-value pairs, nest environment keys, and format clean JSON directly in your browser."
+      description="Parse dotenv-style assignments into flat or grouped JSON while keeping type inference explicit."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          ENV Input
+        <label className="mb-2 block text-sm font-medium text-gray-700">
+          ENV input
         </label>
 
         <textarea
           value={input}
           onChange={(event) => {
             setInput(event.target.value);
-            setOutput("");
-            setError("");
-            setParsedLines([]);
-            setCopied(false);
+            clearResult();
           }}
           placeholder={sampleEnv}
-          className="w-full min-h-[340px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          spellCheck={false}
+          className="min-h-[340px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
 
-        <p className="mt-2 text-sm text-gray-500">
-          Paste .env variables, dotenv content, deployment settings, or
-          shell-style key-value pairs to convert them into structured JSON.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          Paste dotenv-style assignments. Quoted values may span lines; an
+          unquoted # starts a comment when comment handling is enabled.
         </p>
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
-          JSON Conversion Options
+          How ENV values should become JSON
         </h3>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid items-start gap-4 md:grid-cols-3">
           <YoryantraSelect
-            label="Value Parsing"
+            label="Value handling"
             value={valueMode}
             onChange={(value) => {
               setValueMode(value as ValueMode);
-              setOutput("");
-              setError("");
-              setParsedLines([]);
-              setCopied(false);
+              clearResult();
             }}
             options={[
-              {
-                label: "Auto",
-                value: "auto",
-              },
-              {
-                label: "String Only",
-                value: "string",
-              },
+              { label: "Conservative auto inference", value: "auto" },
+              { label: "Keep every value as text", value: "string" },
             ]}
           />
 
           <YoryantraSelect
-            label="Key Output"
+            label="Key shape"
             value={keyMode}
             onChange={(value) => {
               setKeyMode(value as KeyMode);
-              setOutput("");
-              setError("");
-              setParsedLines([]);
-              setCopied(false);
+              clearResult();
             }}
             options={[
-              {
-                label: "Nested JSON",
-                value: "nested",
-              },
-              {
-                label: "Flat Keys",
-                value: "flat",
-              },
+              { label: "Keep original keys", value: "flat" },
+              { label: "Split underscores into objects", value: "nested" },
             ]}
           />
 
           <YoryantraSelect
-            label="Output Spacing"
+            label="JSON spacing"
             value={outputSpacing}
             onChange={(value) => {
               setOutputSpacing(value as OutputSpacing);
-              setOutput("");
-              setError("");
-              setParsedLines([]);
-              setCopied(false);
+              clearResult();
             }}
             options={[
-              {
-                label: "2 spaces",
-                value: "two",
-              },
-              {
-                label: "4 spaces",
-                value: "four",
-              },
-              {
-                label: "Compact",
-                value: "compact",
-              },
+              { label: "2 spaces", value: "two" },
+              { label: "4 spaces", value: "four" },
+              { label: "Compact", value: "compact" },
             ]}
           />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
+          <label className="self-start flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={ignoreComments}
               onChange={(event) => {
                 setIgnoreComments(event.target.checked);
-                setOutput("");
-                setError("");
-                setParsedLines([]);
-                setCopied(false);
+                clearResult();
               }}
-              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
 
             <span>
               <span className="block text-sm font-medium text-gray-900">
-                Ignore comments
+                Treat # as comment syntax
               </span>
-
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Skip lines that start with # and keep only ENV variables in the
-                JSON output.
+                Skip full-line comments and remove unquoted inline comments.
               </span>
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="self-start flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={stripExportKeyword}
               onChange={(event) => {
                 setStripExportKeyword(event.target.checked);
-                setOutput("");
-                setError("");
-                setParsedLines([]);
-                setCopied(false);
+                clearResult();
               }}
-              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
 
             <span>
               <span className="block text-sm font-medium text-gray-900">
-                Strip export keyword
+                Accept an export prefix
               </span>
-
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Treat export API_KEY=value as API_KEY=value before converting.
+                Read export API_KEY=value as the API_KEY assignment.
               </span>
             </span>
           </label>
@@ -288,15 +282,24 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={convertEnvToJson} className="yoryantra-btn">
+        <button
+          onClick={convertEnvToJson}
+          className="yoryantra-btn min-h-10 whitespace-nowrap"
+        >
           Convert ENV to JSON
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button
+          onClick={loadExample}
+          className="yoryantra-btn-outline min-h-10 whitespace-nowrap"
+        >
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button
+          onClick={resetAll}
+          className="yoryantra-btn-outline min-h-10 whitespace-nowrap"
+        >
           Reset
         </button>
       </div>
@@ -310,11 +313,12 @@ export default function ToolClient() {
       {parsedLines.length > 0 && (
         <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-5">
           <h3 className="text-lg font-semibold text-gray-900">
-            Parsed ENV Preview
+            Parsed assignments
           </h3>
 
-          <p className="mt-2 text-sm text-gray-500">
-            Review parsed keys and values before using the generated JSON.
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+            Likely secret values are masked in this preview. The generated JSON
+            still contains the original value.
           </p>
 
           <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-white">
@@ -322,8 +326,8 @@ export default function ToolClient() {
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Line</th>
-                  <th className="px-4 py-3 font-semibold">ENV Key</th>
-                  <th className="px-4 py-3 font-semibold">Value</th>
+                  <th className="px-4 py-3 font-semibold">ENV key</th>
+                  <th className="px-4 py-3 font-semibold">Parsed value</th>
                 </tr>
               </thead>
 
@@ -338,7 +342,7 @@ export default function ToolClient() {
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-600">
                       <span className="block max-w-[360px] truncate">
-                        {line.value}
+                        {getPreviewValue(line)}
                       </span>
                     </td>
                   </tr>
@@ -350,215 +354,178 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            JSON Output
-          </h3>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">JSON output</h3>
 
           {output && (
             <button
               onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
+              className="yoryantra-btn-outline min-h-10 whitespace-nowrap text-sm"
             >
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[300px] whitespace-pre-wrap break-words">
-          {output || "Converted JSON output will appear here."}
+        <pre className="yoryantra-output min-h-[300px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Converted JSON will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        ENV to JSON conversion happens directly in your browser. Your ENV input
-        is not uploaded to a server.
+      <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
+        <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+          Parsing and conversion run in this browser component. Pasted secrets
+          remain visible in the page, generated output, browser memory, and any
+          clipboard copy you make.
+        </div>
+
+        <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+          Auto inference and underscore nesting are transformations, not dotenv
+          semantics. Keep values as text and keys flat when exact preservation
+          matters.
+        </div>
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Converting ENV Variables Into Structured JSON
+            A .env file carries text, not JSON types
           </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Environment files are useful for local configuration, deployment
-            settings, service credentials, API keys, feature flags, and runtime
-            values. But when you need to review, document, transform, or move
-            those settings into a structured config file, JSON is often easier to
-            read and work with.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Environment variables arrive at an application as strings. A line
+            such as PORT=5432 does not itself say that 5432 is a JSON number,
+            and FEATURE_ENABLED=false does not make false a boolean. Auto
+            inference here is therefore deliberately optional. Quoted values
+            always stay strings, while unquoted booleans, null, safe numbers,
+            and valid JSON arrays or objects can be inferred when that mode is
+            selected.
           </p>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This ENV to JSON Converter parses dotenv-style key-value pairs and
-            turns them into clean JSON. You can keep keys flat or nest underscore
-            separated names, making it useful for debugging app configuration,
-            preparing documentation, converting deployment settings, and
-            reviewing environment files in a more structured format.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Dotenv files do not have one cross-platform formal standard. Node.js
+            publishes its own .env rules for variable names, comments, quoted
+            values, multiline quoted text, and optional export prefixes. Those
+            rules are a useful reference, but another runtime or dotenv library
+            can differ. See the{" "}
+            <a
+              href="https://nodejs.org/api/environment_variables.html#env-files"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              Node.js .env documentation
+            </a>
+            .
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Creating JSON From .env Files Without Manual Editing
+            What the parser accepts
           </h2>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste valid .env content into the input box.</li>
-            <li>Select whether values should be parsed automatically or kept as strings.</li>
-            <li>Choose whether underscore-separated ENV keys should become nested JSON.</li>
-            <li>Select the spacing style for the generated JSON output.</li>
-            <li>
-              Click <strong>Convert ENV to JSON</strong> and copy the formatted output.
-            </li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common ENV to JSON Converter Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Turning .env files into structured JSON configuration.</li>
-            <li>Reviewing deployment environment variables in a readable format.</li>
-            <li>Converting dotenv values before sharing app setup documentation.</li>
-            <li>Preparing JSON config from Node.js, Next.js, Docker, or CI/CD variables.</li>
-            <li>Checking API keys, service URLs, feature flags, and runtime settings together.</li>
-            <li>Cleaning shell-style export lines before moving values into JSON.</li>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Names made from letters, digits, and underscores, without a leading digit.</li>
+            <li>Values containing additional equals signs after the first separator.</li>
+            <li>Single- or double-quoted values, including quoted text that spans lines.</li>
+            <li>Full-line and inline # comments when comment handling is enabled.</li>
+            <li>An optional export prefix when that option is enabled.</li>
           </ul>
+
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Shell expansion is intentionally outside scope. References such as
+            $HOME, command substitutions, and shell expressions are copied as
+            text rather than executed.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example Before and After
+            Underscore nesting is a naming convention, not a standard
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Before:
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-API_KEY=secret-key
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Flat mode preserves DATABASE_HOST as the JSON member
+            DATABASE_HOST. Nested mode treats every underscore as a boundary,
+            lowercases the pieces, and produces database.host. That can be handy
+            for a naming scheme built around prefixes, but it is lossy for names
+            where underscores are part of the intended field name.
+          </p>
 
-After:
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Collisions are rejected rather than overwritten. For example,
+            APP=value and APP_NAME=Sneha cannot both become one nested structure
+            because APP would need to be both a value and an object. Duplicate
+            ENV names are rejected for the same reason: silently keeping the last
+            value would hide configuration mistakes.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            A small example where quoting matters
+          </h2>
+
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 font-mono text-sm text-gray-700">
+            <pre className="whitespace-pre-wrap break-words">{`PORT=5432
+PIN="0017"
+ENABLED=true
+NAME="Sneha # local"
+
+Auto inference produces:
 {
-  "database": {
-    "host": "localhost",
-    "port": 5432
-  },
-  "api": {
-    "key": "secret-key"
-  }
-}`}
-            </pre>
+  "PORT": 5432,
+  "PIN": "0017",
+  "ENABLED": true,
+  "NAME": "Sneha # local"
+}`}</pre>
           </div>
-        </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Nesting ENV Keys Into JSON Objects
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Many environment variables use prefixes to show grouping, such as
-            DATABASE_HOST, DATABASE_PORT, API_BASE_URL, or USER_ACTIVE. Nested
-            mode converts those underscore-separated names into JSON objects so
-            related values sit together.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Flat mode keeps the original ENV keys exactly as top-level JSON
-            properties. This is useful when you want a direct key-value export
-            without changing names or grouping values.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            PIN remains text because it was quoted. That avoids turning an
+            identifier with leading zeroes into a number. Integers outside
+            JavaScript&apos;s safe range are also left as strings instead of being
+            rounded silently.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Secrets do not become harmless after conversion
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does ENV to JSON conversion mean?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                ENV to JSON conversion means parsing dotenv key-value lines like
-                API_KEY=value and turning them into a JSON object that is easier
-                to inspect, copy, document, or transform.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this create nested JSON from ENV keys?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Enable nested key conversion to turn names like
-                DATABASE_HOST and API_BASE_URL into database.host and
-                api.base.url in the JSON output.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this parse numbers and booleans?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Auto parsing converts values such as true, false, null,
-                numbers, arrays, and JSON objects when they are written in a
-                recognizable format. You can also keep all values as strings.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this handle quoted ENV values?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Quoted values are unwrapped, common escaped characters are
-                handled, and values with equals signs are preserved after the
-                first key-value separator.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What happens to comments?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Comment lines that start with # can be ignored. Disable the
-                option if you want the tool to warn about lines that are not
-                valid key-value pairs.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my ENV file uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Conversion happens directly in your browser, and your ENV
-                input is not uploaded to a server.
-              </p>
-            </div>
-          </div>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            JSON output can expose the same passwords, tokens, private keys, and
+            connection strings that were present in the source file. The preview
+            masks likely secret names only to reduce accidental on-screen
+            exposure; it does not redact the generated JSON. Avoid pasting
+            production credentials into tickets, chat messages, screenshots, or
+            source control after conversion.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
+            Boundaries that are better left explicit
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/env-to-json-converter" />
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This parser does not expand variables, execute shell syntax, fetch
+            files, or decide application-specific types. It also stops at 5,000
+            assignments and one million input characters so an accidental huge
+            paste does not lock up the page. If a deployment platform uses its
+            own dotenv extensions, compare the generated JSON with that
+            platform&apos;s parser before replacing a production configuration
+            path.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/env-to-json-converter" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -574,48 +541,140 @@ function parseEnvInput(
 ): ParsedEnvLine[] {
   const lines = input.split(/\r?\n/);
   const parsed: ParsedEnvLine[] = [];
+  const seenKeys = new Set<string>();
 
-  lines.forEach((rawLine, index) => {
-    const line = rawLine.trim();
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index];
+    const leadingTrimmed = rawLine.replace(/^\s+/, "");
 
-    if (!line) {
-      return;
+    if (!leadingTrimmed.trim()) {
+      continue;
     }
 
-    if (options.ignoreComments && line.startsWith("#")) {
-      return;
+    if (options.ignoreComments && leadingTrimmed.startsWith("#")) {
+      continue;
     }
 
     const normalizedLine =
-      options.stripExportKeyword && line.startsWith("export ")
-        ? line.slice("export ".length).trim()
-        : line;
+      options.stripExportKeyword && /^export\s+/.test(leadingTrimmed)
+        ? leadingTrimmed.replace(/^export\s+/, "")
+        : leadingTrimmed;
 
-    const equalsIndex = findFirstUnquotedEquals(normalizedLine);
+    const equalsIndex = normalizedLine.indexOf("=");
 
     if (equalsIndex === -1) {
       throw new Error(`Line ${index + 1} is missing an equals sign.`);
     }
 
     const key = normalizedLine.slice(0, equalsIndex).trim();
-    const rawValue = normalizedLine.slice(equalsIndex + 1).trim();
-
-    if (!key) {
-      throw new Error(`Line ${index + 1} has an empty key.`);
-    }
+    const rawValue = normalizedLine.slice(equalsIndex + 1);
 
     if (!isValidEnvKey(key)) {
-      throw new Error(`Line ${index + 1} has an invalid ENV key: ${key}`);
+      throw new Error(
+        `Line ${index + 1} has an invalid environment-variable name: ${key || "(empty)"}.`
+      );
     }
+
+    if (seenKeys.has(key)) {
+      throw new Error(
+        `Line ${index + 1} repeats ${key}. Duplicate assignments are not overwritten silently.`
+      );
+    }
+
+    const parsedValue = parseAssignmentValue(
+      rawValue,
+      lines,
+      index,
+      options.ignoreComments
+    );
 
     parsed.push({
       key,
-      value: unwrapEnvValue(rawValue),
+      value: parsedValue.value,
       lineNumber: index + 1,
+      wasQuoted: parsedValue.wasQuoted,
     });
-  });
+    seenKeys.add(key);
+    index = parsedValue.endIndex;
+
+    if (parsed.length > MAX_ENV_ENTRIES) {
+      throw new Error(
+        `More than ${MAX_ENV_ENTRIES.toLocaleString()} assignments were found. Split the file into smaller parts before converting.`
+      );
+    }
+  }
 
   return parsed;
+}
+
+function parseAssignmentValue(
+  rawValue: string,
+  lines: string[],
+  startIndex: number,
+  ignoreComments: boolean
+): ParsedAssignmentValue {
+  const initial = rawValue.replace(/^\s+/, "");
+  const quote = initial[0] === '"' || initial[0] === "'" ? initial[0] : "";
+
+  if (!quote) {
+    const commentIndex = ignoreComments ? initial.indexOf("#") : -1;
+    const value = commentIndex >= 0 ? initial.slice(0, commentIndex) : initial;
+
+    return {
+      value: value.replace(/\s+$/, ""),
+      endIndex: startIndex,
+      wasQuoted: false,
+    };
+  }
+
+  let collected = initial.slice(1);
+
+  for (let index = startIndex; index < lines.length; index += 1) {
+    const segment = index === startIndex ? collected : lines[index];
+    const closingIndex = findClosingQuote(segment, quote, ignoreComments);
+
+    if (closingIndex >= 0) {
+      const beforeQuote = segment.slice(0, closingIndex);
+      const value =
+        index === startIndex
+          ? beforeQuote
+          : `${collected}\n${beforeQuote}`;
+
+      return {
+        value,
+        endIndex: index,
+        wasQuoted: true,
+      };
+    }
+
+    if (index === startIndex) {
+      collected = segment;
+    } else {
+      collected += `\n${segment}`;
+    }
+  }
+
+  throw new Error(`Line ${startIndex + 1} starts a quoted value that never closes.`);
+}
+
+function findClosingQuote(
+  segment: string,
+  quote: string,
+  ignoreComments: boolean
+) {
+  for (let index = segment.length - 1; index >= 0; index -= 1) {
+    if (segment[index] !== quote) {
+      continue;
+    }
+
+    const trailing = segment.slice(index + 1).trim();
+
+    if (!trailing || (ignoreComments && trailing.startsWith("#"))) {
+      return index;
+    }
+  }
+
+  return -1;
 }
 
 function createJsonObject(
@@ -625,14 +684,14 @@ function createJsonObject(
     keyMode: KeyMode;
   }
 ): Record<string, JsonValue> {
-  const output: Record<string, JsonValue> = {};
+  const output = createRecord();
 
-  lines.forEach(({ key, value }) => {
+  lines.forEach(({ key, value, wasQuoted }) => {
     const parsedValue =
-      options.valueMode === "auto" ? parseEnvValue(value) : value;
+      options.valueMode === "auto" ? parseEnvValue(value, wasQuoted) : value;
 
     if (options.keyMode === "flat") {
-      output[key] = parsedValue;
+      defineOwnValue(output, key, parsedValue);
       return;
     }
 
@@ -643,11 +702,10 @@ function createJsonObject(
       .filter(Boolean);
 
     if (path.length === 0) {
-      output[key] = parsedValue;
-      return;
+      throw new Error(`${key} cannot be represented by underscore nesting.`);
     }
 
-    setNestedValue(output, path, parsedValue);
+    setNestedValue(output, path, parsedValue, key);
   });
 
   return output;
@@ -656,29 +714,43 @@ function createJsonObject(
 function setNestedValue(
   target: Record<string, JsonValue>,
   path: string[],
-  value: JsonValue
+  value: JsonValue,
+  sourceKey: string
 ) {
-  let current: Record<string, JsonValue> = target;
+  let current = target;
 
   path.forEach((part, index) => {
     const isLast = index === path.length - 1;
+    const hasPart = Object.prototype.hasOwnProperty.call(current, part);
 
     if (isLast) {
-      current[part] = value;
+      if (hasPart) {
+        throw new Error(
+          `${sourceKey} collides with another key after underscore nesting. Use flat keys or rename the conflicting variables.`
+        );
+      }
+
+      defineOwnValue(current, part, value);
       return;
     }
 
-    const existing = current[part];
-
-    if (!isPlainObject(existing)) {
-      current[part] = {};
+    if (!hasPart) {
+      defineOwnValue(current, part, createRecord());
+    } else if (!isPlainObject(current[part])) {
+      throw new Error(
+        `${sourceKey} needs ${path.slice(0, index + 1).join(".")} to be an object, but another variable already placed a value there.`
+      );
     }
 
     current = current[part] as Record<string, JsonValue>;
   });
 }
 
-function parseEnvValue(value: string): JsonValue {
+function parseEnvValue(value: string, wasQuoted: boolean): JsonValue {
+  if (wasQuoted) {
+    return value;
+  }
+
   const trimmed = value.trim();
 
   if (trimmed === "") {
@@ -697,8 +769,14 @@ function parseEnvValue(value: string): JsonValue {
     return null;
   }
 
-  if (isNumericString(trimmed)) {
-    return Number(trimmed);
+  if (isJsonNumberToken(trimmed)) {
+    const numericValue = Number(trimmed);
+
+    if (isSafeNumberToken(trimmed, numericValue)) {
+      return numericValue;
+    }
+
+    return value;
   }
 
   if (
@@ -706,45 +784,97 @@ function parseEnvValue(value: string): JsonValue {
     (trimmed.startsWith("{") && trimmed.endsWith("}"))
   ) {
     try {
+      assertLosslessJsonText(trimmed);
       return JSON.parse(trimmed) as JsonValue;
     } catch {
-      return trimmed;
+      return value;
     }
-  }
-
-  return trimmed;
-}
-
-function unwrapEnvValue(value: string) {
-  if (value.length < 2) {
-    return value;
-  }
-
-  const first = value[0];
-  const last = value[value.length - 1];
-
-  if (
-    (first === '"' && last === '"') ||
-    (first === "'" && last === "'")
-  ) {
-    return value
-      .slice(1, -1)
-      .replace(/\\n/g, "\n")
-      .replace(/\\r/g, "\r")
-      .replace(/\\"/g, '"')
-      .replace(/\\'/g, "'")
-      .replace(/\\\\/g, "\\");
   }
 
   return value;
 }
 
-function findFirstUnquotedEquals(value: string) {
-  let quote: '"' | "'" | null = null;
+function assertLosslessJsonText(text: string) {
+  JSON.parse(text);
+  const stack: Array<{ type: "object" | "array"; keys?: Set<string> }> = [];
+  let index = 0;
+
+  while (index < text.length) {
+    const char = text[index];
+
+    if (/\s/.test(char)) {
+      index += 1;
+      continue;
+    }
+
+    if (char === "{") {
+      stack.push({ type: "object", keys: new Set<string>() });
+      index += 1;
+      continue;
+    }
+
+    if (char === "[") {
+      stack.push({ type: "array" });
+      index += 1;
+      continue;
+    }
+
+    if (char === "}" || char === "]") {
+      stack.pop();
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      const tokenEnd = findJsonStringEnd(text, index);
+      const token = text.slice(index, tokenEnd + 1);
+      let next = tokenEnd + 1;
+
+      while (next < text.length && /\s/.test(text[next])) {
+        next += 1;
+      }
+
+      const frame = stack[stack.length - 1];
+
+      if (frame?.type === "object" && text[next] === ":") {
+        const key = JSON.parse(token) as string;
+
+        if (frame.keys?.has(key)) {
+          throw new Error("Duplicate JSON member name.");
+        }
+
+        frame.keys?.add(key);
+      }
+
+      index = tokenEnd + 1;
+      continue;
+    }
+
+    if (char === "-" || /\d/.test(char)) {
+      const numberMatch = text.slice(index).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+
+      if (numberMatch) {
+        const token = numberMatch[0];
+        const numericValue = Number(token);
+
+        if (!isSafeNumberToken(token, numericValue)) {
+          throw new Error("JSON number would lose precision.");
+        }
+
+        index += token.length;
+        continue;
+      }
+    }
+
+    index += 1;
+  }
+}
+
+function findJsonStringEnd(text: string, start: number) {
   let escaped = false;
 
-  for (let index = 0; index < value.length; index += 1) {
-    const char = value[index];
+  for (let index = start + 1; index < text.length; index += 1) {
+    const char = text[index];
 
     if (escaped) {
       escaped = false;
@@ -756,22 +886,59 @@ function findFirstUnquotedEquals(value: string) {
       continue;
     }
 
-    if ((char === '"' || char === "'") && quote === null) {
-      quote = char;
-      continue;
-    }
-
-    if (char === quote) {
-      quote = null;
-      continue;
-    }
-
-    if (char === "=" && quote === null) {
+    if (char === '"') {
       return index;
     }
   }
 
-  return -1;
+  return text.length - 1;
+}
+
+function isJsonNumberToken(value: string) {
+  return /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(value);
+}
+
+function isSafeNumberToken(token: string, numericValue: number) {
+  if (!Number.isFinite(numericValue) || Object.is(numericValue, -0)) {
+    return false;
+  }
+
+  if (/^-?(?:0|[1-9]\d*)$/.test(token)) {
+    return Number.isSafeInteger(numericValue);
+  }
+
+  const significantDigits = token
+    .replace(/^[+-]/, "")
+    .split(/[eE]/)[0]
+    .replace(".", "")
+    .replace(/^0+/, "").length;
+
+  if (significantDigits > 15) {
+    return false;
+  }
+
+  if (numericValue === 0 && /[1-9]/.test(token)) {
+    return false;
+  }
+
+  return true;
+}
+
+function createRecord(): Record<string, JsonValue> {
+  return Object.create(null) as Record<string, JsonValue>;
+}
+
+function defineOwnValue(
+  target: Record<string, JsonValue>,
+  key: string,
+  value: JsonValue
+) {
+  Object.defineProperty(target, key, {
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
 }
 
 function getSpacingValue(outputSpacing: OutputSpacing) {
@@ -790,14 +957,14 @@ function isValidEnvKey(key: string) {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(key);
 }
 
-function isNumericString(value: string) {
-  if (value.trim() === "") {
-    return false;
-  }
-
-  return /^-?\d+(\.\d+)?$/.test(value);
-}
-
 function isPlainObject(value: unknown): value is Record<string, JsonValue> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function getPreviewValue(line: ParsedEnvLine) {
+  if (/(?:SECRET|TOKEN|PASSWORD|PASS|PRIVATE|CREDENTIAL|API_KEY|ACCESS_KEY)/i.test(line.key)) {
+    return "••••••••";
+  }
+
+  return line.value;
 }

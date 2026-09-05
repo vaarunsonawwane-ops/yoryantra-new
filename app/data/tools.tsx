@@ -776,7 +776,7 @@ export const tools = [
 {
   title: "JSON to ENV Converter",
   description:
-    "Convert JSON into .env variables, flatten nested JSON keys, and generate dotenv-ready environment variables.",
+    "Flatten JSON configuration into environment assignments with explicit array, null, and quoting choices.",
   href: "/tools/json-to-env-converter",
   category: "JSON & Data Tools",
 },
@@ -785,7 +785,7 @@ export const tools = [
 {
   title: "ENV to JSON Converter",
   description:
-    "Convert .env variables into JSON, parse dotenv key-value pairs, and format structured JSON.",
+    "Parse dotenv-style assignments into flat or grouped JSON while keeping type inference explicit.",
   href: "/tools/env-to-json-converter",
   category: "JSON & Data Tools",
 },
@@ -986,7 +986,7 @@ export const tools = [
 {
   title: "JSON Schema Generator",
   description:
-    "Generate JSON Schema from sample JSON with detected types, arrays, nested objects, examples, and required fields.",
+    "Infer a draft-aware JSON Schema from sample data while keeping validation assumptions visible.",
   href: "/tools/json-schema-generator",
   category: "JSON & Data Tools",
 },

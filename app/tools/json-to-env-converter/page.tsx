@@ -2,37 +2,35 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON to ENV Converter | Convert JSON to .env Variables Online | Yoryantra",
+  title: "JSON to ENV Converter | JSON Config to .env | Yoryantra",
   description:
-    "Convert JSON into .env variables, flatten nested JSON keys, and generate dotenv-ready environment variables directly in your browser.",
+    "Flatten JSON configuration into .env assignments with key normalization, array and null policies, quoting safeguards, and collision detection.",
   keywords: [
     "JSON to ENV converter",
-    "JSON to .env converter",
+    "JSON to .env",
     "JSON to dotenv",
-    "convert JSON to env variables",
-    "dotenv generator",
-    "nested JSON to env",
-    "JSON config converter",
     "environment variable generator",
-    "JSON data tools",
-    "developer tools",
+    "flatten JSON config",
+    "JSON config to environment variables",
+    "dotenv generator",
+    "nested JSON to ENV",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/json-to-env-converter",
   },
   openGraph: {
-    title: "JSON to ENV Converter | Convert JSON to .env Variables Online | Yoryantra",
+    title: "JSON to ENV Converter | JSON Config to .env | Yoryantra",
     description:
-      "Convert JSON into .env variables, flatten nested JSON keys, and generate dotenv-ready environment variables directly in your browser.",
+      "Flatten JSON configuration into .env assignments with explicit array, null, quoting, and key-normalization choices.",
     url: "https://yoryantra.com/tools/json-to-env-converter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "JSON to ENV Converter | Convert JSON to .env Variables Online | Yoryantra",
+    title: "JSON to ENV Converter | JSON Config to .env | Yoryantra",
     description:
-      "Convert JSON into .env variables, flatten nested JSON keys, and generate dotenv-ready environment variables directly in your browser.",
+      "Flatten JSON configuration into .env assignments with explicit array, null, quoting, and key-normalization choices.",
   },
 };
 
