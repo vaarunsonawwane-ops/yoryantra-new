@@ -1,49 +1,34 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "JSON Schema Validator for Common Validation Rules | Yoryantra",
-
+  title: "JSON Schema Validator – Draft 2020-12 Subset | Yoryantra",
   description:
-    "Validate JSON data against common JSON Schema rules including types, required fields, properties, arrays, enums, ranges, and patterns.",
-
+    "Check JSON instances against supported Draft 2020-12 rules with schema preflight checks, local references, and path-level validation failures.",
   keywords: [
     "json schema validator",
-    "validate json schema",
-    "json schema checker",
-    "json validator schema",
-    "json structure validator",
-    "api json validator",
-    "developer json tools",
+    "draft 2020-12 validator",
+    "validate json against schema",
+    "json schema validation",
+    "json schema required properties",
+    "json schema array validation",
+    "json schema ref validator",
   ],
-
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/json-schema-validator",
+    canonical: "https://yoryantra.com/tools/json-schema-validator",
   },
-
   openGraph: {
-    title:
-      "JSON Schema Validator for Common Validation Rules | Yoryantra",
-
+    title: "JSON Schema Validator – Draft 2020-12 Subset | Yoryantra",
     description:
-      "Validate JSON against common schema rules directly in your browser.",
-
-    url:
-      "https://yoryantra.com/tools/json-schema-validator",
-
+      "Check JSON instances against a documented Draft 2020-12 subset with path-level failures and schema preflight checks.",
+    url: "https://yoryantra.com/tools/json-schema-validator",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "JSON Schema Validator for Common Validation Rules | Yoryantra",
-
+    title: "JSON Schema Validator – Draft 2020-12 Subset | Yoryantra",
     description:
-      "Check JSON against common schema rules in your browser.",
+      "Validate JSON against supported Draft 2020-12 assertions without hiding unsupported schema features.",
   },
 };
 
