@@ -2,20 +2,18 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON to Markdown Table Converter | Convert JSON Arrays to Markdown",
+  title: "JSON to Markdown Table Converter | GFM Table Output",
   description:
-    "Convert JSON arrays and objects into clean Markdown tables for GitHub, docs, issues, and reports. Flatten nested values and preview table-ready output locally.",
+    "Turn JSON records into GitHub Flavored Markdown tables with collision-safe nested paths, column selection, explicit missing values, and escaped cells.",
   keywords: [
-    "json to markdown table converter",
+    "json to markdown table",
     "json to markdown converter",
     "json array to markdown table",
-    "convert json to markdown",
-    "json table generator",
-    "markdown table from json",
     "github markdown table json",
+    "gfm table json",
+    "flatten json table",
+    "markdown table generator json",
     "json documentation table",
-    "json data tools",
-    "browser json converter",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/json-to-markdown-table-converter",
@@ -23,7 +21,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "JSON to Markdown Table Converter | Yoryantra",
     description:
-      "Turn JSON arrays and objects into clean Markdown tables for documentation, GitHub issues, READMEs, and reports.",
+      "Turn JSON records into GFM tables while keeping nested paths, missing fields, and pipe characters explicit.",
     url: "https://yoryantra.com/tools/json-to-markdown-table-converter",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +30,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "JSON to Markdown Table Converter | Yoryantra",
     description:
-      "Convert JSON data into Markdown tables with flattening, column cleanup, and table preview options.",
+      "Convert JSON records to GFM tables with controlled flattening, columns, missing values, and escaping.",
   },
 };
 

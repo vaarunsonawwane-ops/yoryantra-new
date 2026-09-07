@@ -2,40 +2,35 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Lines to JSON Converter Online | Convert JSONL and NDJSON",
+  title: "JSON Lines to JSON Converter | JSONL and NDJSON Records",
   description:
-    "Convert JSON Lines to JSON arrays, convert NDJSON to JSON, inspect line-by-line records, and turn JSON arrays back into newline-delimited JSON in your browser.",
+    "Convert JSONL or NDJSON records to a JSON array, inspect malformed lines, or emit one compact JSON value per line from JSON data.",
   keywords: [
     "json lines to json converter",
-    "jsonl to json converter",
+    "jsonl to json",
+    "ndjson to json",
     "jsonl to json array",
-    "ndjson to json converter",
-    "ndjson to json array",
-    "json lines converter",
-    "json to json lines",
-    "json array to json lines",
-    "newline delimited json converter",
-    "convert jsonl to json",
-    "convert ndjson to json",
-    "json to json",
-    "json data tools",
+    "json array to jsonl",
+    "newline delimited json",
+    "json lines validator",
+    "jsonl line errors",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/json-lines-to-json-converter",
   },
   openGraph: {
-    title: "JSON Lines to JSON Converter Online | Yoryantra",
+    title: "JSON Lines to JSON Converter | Yoryantra",
     description:
-      "Convert JSONL and NDJSON into JSON arrays, inspect broken records, and export JSON arrays as newline-delimited JSON locally in your browser.",
+      "Move between JSON arrays and one-record-per-line JSON while keeping malformed source lines visible.",
     url: "https://yoryantra.com/tools/json-lines-to-json-converter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "JSON Lines to JSON Converter Online | Yoryantra",
+    title: "JSON Lines to JSON Converter | Yoryantra",
     description:
-      "Convert JSON Lines and NDJSON into JSON arrays, inspect records, or turn JSON arrays into JSONL.",
+      "Convert JSONL and NDJSON records, inspect line failures, or emit compact newline-delimited JSON.",
   },
 };
 

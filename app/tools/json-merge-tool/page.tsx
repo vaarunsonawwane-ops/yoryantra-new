@@ -2,37 +2,35 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Merge Tool | Merge Two JSON Objects Online | Yoryantra",
+  title: "JSON Merge Tool | Deep, Shallow and Array Merge Rules",
   description:
-    "Merge two JSON objects directly in your browser. Supports shallow merge, deep merge, array handling, conflict detection, overwrite rules, clean output, reports, and JSON merge summaries.",
+    "Merge two JSON values with explicit deep or shallow behavior, array policies, collision handling, null rules, and path-by-path conflict reporting.",
   keywords: [
-    "JSON Merge Tool",
-    "merge JSON online",
-    "JSON object merger",
-    "deep merge JSON",
-    "JSON merge conflict checker",
-    "combine JSON objects",
-    "JSON data tools",
-    "developer tools",
-    "online JSON merger",
-    "merge two JSON files",
+    "json merge tool",
+    "merge json objects",
+    "deep merge json",
+    "shallow merge json",
+    "json array merge",
+    "json merge conflicts",
+    "combine json",
+    "json merge report",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/json-merge-tool",
   },
   openGraph: {
-    title: "JSON Merge Tool | Merge Two JSON Objects Online | Yoryantra",
+    title: "JSON Merge Tool | Yoryantra",
     description:
-      "Merge two JSON objects directly in your browser. Supports shallow merge, deep merge, array handling, conflict detection, overwrite rules, clean output, reports, and JSON merge summaries.",
+      "Combine JSON with explicit rules for nested objects, arrays, conflicting values, and right-side nulls.",
     url: "https://yoryantra.com/tools/json-merge-tool",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "JSON Merge Tool | Merge Two JSON Objects Online | Yoryantra",
+    card: "summary",
+    title: "JSON Merge Tool | Yoryantra",
     description:
-      "Merge two JSON objects directly in your browser. Supports shallow merge, deep merge, array handling, conflict detection, overwrite rules, clean output, reports, and JSON merge summaries.",
+      "Merge JSON with deliberate deep, shallow, array, collision, and null-value policies.",
   },
 };
 

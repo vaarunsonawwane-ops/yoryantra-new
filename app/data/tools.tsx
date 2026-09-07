@@ -1181,7 +1181,7 @@ export const tools = [
 {
   title: "JSON Merge Tool",
   description:
-    "Merge two JSON objects with deep merge, shallow merge, array handling, conflict detection, and clean merged output.",
+    "Combine JSON with explicit deep, shallow, array, collision, and null-value rules.",
   href: "/tools/json-merge-tool",
   category: "JSON & Data Tools",
 },
@@ -1437,7 +1437,7 @@ export const tools = [
 
 {
   title: "JSON Lines to JSON Converter",
-  description: "Convert JSONL and NDJSON records into JSON arrays or newline-delimited JSON.",
+  description: "Move between JSONL records and JSON arrays while surfacing malformed lines and lossy parse risks.",
   href: "/tools/json-lines-to-json-converter",
   category: "JSON & Data Tools",
 },
@@ -1445,7 +1445,7 @@ export const tools = [
 
 {
   title: "JSON to Markdown Table Converter",
-  description: "Convert JSON arrays and objects into clean Markdown tables for docs and GitHub.",
+  description: "Map JSON records into GFM tables with collision-safe paths, columns, and missing-value handling.",
   href: "/tools/json-to-markdown-table-converter",
   category: "JSON & Data Tools",
 },
