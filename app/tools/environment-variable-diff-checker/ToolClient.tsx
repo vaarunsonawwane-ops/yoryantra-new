@@ -731,38 +731,43 @@ function DiffColumn({
 
       <p className="mt-2 text-sm text-gray-500">{description}</p>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4">
         {items.length === 0 ? (
           <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
             No items found.
           </p>
         ) : (
-          items.map((item) => (
-            <div
-              key={`${item.type}-${item.key}`}
-              className="rounded-xl border border-gray-200 bg-gray-50 p-4"
-            >
-              <p className="font-mono text-sm font-semibold text-gray-900">
-                {item.key}
-              </p>
-
-              {valueKey === "both" ? (
-                <>
-                  <p className="mt-2 break-words font-mono text-xs text-gray-600">
-                    A: {formatEnvValue(item.key, item.leftValue, hideSecretValues)}
+          <div
+            className={`rounded-xl border border-gray-200 bg-gray-50 px-4 ${
+              items.length > 12 ? "max-h-[36rem] overflow-y-auto" : ""
+            }`}
+          >
+            <div className="divide-y divide-gray-200">
+              {items.map((item) => (
+                <div key={`${item.type}-${item.key}`} className="py-3">
+                  <p className="break-words font-mono text-sm font-semibold text-gray-900">
+                    {item.key}
                   </p>
 
-                  <p className="mt-1 break-words font-mono text-xs text-gray-600">
-                    B: {formatEnvValue(item.key, item.rightValue, hideSecretValues)}
-                  </p>
-                </>
-              ) : (
-                <p className="mt-2 break-words font-mono text-xs text-gray-600">
-                  {formatEnvValue(item.key, item[valueKey], hideSecretValues)}
-                </p>
-              )}
+                  {valueKey === "both" ? (
+                    <>
+                      <p className="mt-1.5 break-words font-mono text-xs leading-5 text-gray-600">
+                        A: {formatEnvValue(item.key, item.leftValue, hideSecretValues)}
+                      </p>
+
+                      <p className="mt-0.5 break-words font-mono text-xs leading-5 text-gray-600">
+                        B: {formatEnvValue(item.key, item.rightValue, hideSecretValues)}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-1.5 break-words font-mono text-xs leading-5 text-gray-600">
+                      {formatEnvValue(item.key, item[valueKey], hideSecretValues)}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
-          ))
+          </div>
         )}
       </div>
     </div>

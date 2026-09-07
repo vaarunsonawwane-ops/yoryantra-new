@@ -253,8 +253,8 @@ export default function ToolClient() {
             ]}
           />
 
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <label className="block text-sm font-medium text-gray-900">
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-700">
               Max Steps
             </label>
 
@@ -268,7 +268,7 @@ export default function ToolClient() {
                 setCopied(false);
               }}
               placeholder="5"
-              className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              className="w-full rounded-xl border border-gray-300 bg-white p-4 text-sm font-mono text-[var(--dark)] outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
             />
           </div>
 
