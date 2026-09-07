@@ -1,38 +1,32 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "JSON to CSV Converter Online Free | Yoryantra",
-
+  title: "JSON to CSV Converter – Safe Object Record Export | Yoryantra",
   description:
-    "Convert JSON data into CSV format instantly with this free online JSON to CSV Converter. Useful for spreadsheets, APIs, exports, and data workflows.",
-
+    "Convert JSON object records to CSV with escaped headers, CRLF rows, nested JSON cells, duplicate-name checks, number-safety checks, and optional spreadsheet-formula protection.",
   keywords: [
     "json to csv",
-    "json to csv converter",
-    "convert json to csv",
-    "json csv converter",
-    "json to spreadsheet",
-    "developer utilities",
+    "json array to csv",
+    "json object csv export",
+    "csv escaping",
+    "spreadsheet formula csv",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/json-to-csv",
   },
-
   openGraph: {
-    title: "JSON to CSV Converter Online Free | Yoryantra",
+    title: "JSON to CSV Converter – Safe Object Record Export | Yoryantra",
     description:
-      "Convert JSON data into CSV format instantly with this free online JSON to CSV Converter.",
+      "Serialize JSON object records as CSV while making nested values, missing fields, nulls, escaping, and spreadsheet risks explicit.",
     url: "https://yoryantra.com/tools/json-to-csv",
     siteName: "Yoryantra",
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-    title: "JSON to CSV Converter Online Free | Yoryantra",
+    title: "JSON to CSV Converter – Safe Object Record Export | Yoryantra",
     description:
-      "Convert JSON arrays into CSV instantly with this clean online converter.",
+      "Turn JSON object records into escaped CSV without hiding nested values or parse-time data loss.",
   },
 };
 

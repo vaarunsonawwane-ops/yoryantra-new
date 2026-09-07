@@ -29,7 +29,7 @@ export const tools = [
 
   {
     title: "SQL Formatter",
-    description: "Beautify and format SQL queries instantly.",
+    description: "Reflow SQL clauses, lists, and keyword case while preserving quoted text, comments, and statement boundaries.",
     href: "/tools/sql-formatter",
 	category: "JSON & Data Tools",
   },
@@ -113,14 +113,14 @@ export const tools = [
   
   {
   title: "JSON to CSV Converter",
-  description: "Convert JSON data into CSV format instantly.",
+  description: "Serialize JSON object records as CSV with escaped headers, nested values, and spreadsheet-formula safeguards.",
   href: "/tools/json-to-csv",
   category: "JSON & Data Tools",
   },
   
   {
   title: "CSV to JSON Converter",
-  description: "Convert CSV data into JSON format instantly.",
+  description: "Parse header-based CSV into JSON records with strict quoting, exact columns, and string-preserving values.",
   href: "/tools/csv-to-json",
   category: "JSON & Data Tools",
   },

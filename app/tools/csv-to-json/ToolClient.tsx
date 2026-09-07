@@ -1,463 +1,446 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
+const MAX_INPUT_CHARS = 2_000_000;
+const MAX_ROWS = 50_000;
+const MAX_COLUMNS = 2_000;
+
+const exampleCsv = `name,role,note
+Sneha,Developer,"Handles APIs, CSV exports"
+Varoun,Designer,"Line one
+Line two"`;
+
+type ParseSummary = {
+  rows: number;
+  columns: number;
+  multilineFields: number;
+  removedBom: boolean;
+};
+
 export default function ToolClient() {
- const [input, setInput] = useState("");
- const [output, setOutput] = useState("");
- const [error, setError] = useState("");
- const [copied, setCopied] = useState(false);
+  const [input, setInput] = useState("");
+  const [output, setOutput] = useState("");
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [summary, setSummary] = useState<ParseSummary | null>(null);
 
- const convertCSVToJSON = () => {
- try {
- if (!input.trim()) {
- throw new Error("Please enter CSV data.");
- }
+  const headerWhitespaceNote = useMemo(() => {
+    if (!summary || !input) return false;
+    try {
+      const parsed = parseCSV(input);
+      return parsed.rows[0]?.some((value) => value !== value.trim()) ?? false;
+    } catch {
+      return false;
+    }
+  }, [input, summary]);
 
- const rows = parseCSV(input);
+  const convertCSVToJSON = () => {
+    try {
+      if (!input.trim()) throw new Error("Enter CSV data before converting.");
+      if (input.length > MAX_INPUT_CHARS) {
+        throw new Error(
+          `Input exceeds the ${MAX_INPUT_CHARS.toLocaleString()}-character browser limit. Split the CSV into smaller parts.`
+        );
+      }
 
- if (rows.length < 2) {
- throw new Error(
- "CSV must contain a header row and at least one data row."
- );
- }
+      const parsed = parseCSV(input);
+      const rows = parsed.rows;
 
- const headers = rows[0].map((header) => header.trim());
+      if (rows.length < 2) {
+        throw new Error("The CSV needs a header row and at least one data record.");
+      }
 
- if (headers.some((header) => !header)) {
- throw new Error("Every header cell must contain a property name.");
- }
+      const headers = rows[0].slice();
+      if (parsed.removedBom && headers.length > 0) headers[0] = headers[0].replace(/^\uFEFF/, "");
 
- const duplicateHeader = headers.find(
- (header, index) => headers.indexOf(header) !== index
- );
+      headers.forEach((header, index) => {
+        if (!header.trim()) {
+          throw new Error(`Header column ${index + 1} is empty. Give every column a property name.`);
+        }
+      });
 
- if (duplicateHeader) {
- throw new Error(
- `Duplicate header "${duplicateHeader}" would overwrite JSON values. Rename one of the columns.`
- );
- }
+      const seen = new Set<string>();
+      headers.forEach((header) => {
+        if (seen.has(header)) {
+          throw new Error(
+            `Duplicate header ${JSON.stringify(header)} would collapse two CSV columns into one JSON property.`
+          );
+        }
+        seen.add(header);
+      });
 
- const result = rows.slice(1).map((row, rowIndex) => {
- if (row.length > headers.length) {
- throw new Error(
- `Data row ${rowIndex + 2} has more fields than the header row.`
- );
- }
+      const columnCount = headers.length;
+      const result = rows.slice(1).map((row, rowIndex) => {
+        if (row.length !== columnCount) {
+          throw new Error(
+            `Record ${rowIndex + 2} has ${row.length.toLocaleString()} field${row.length === 1 ? "" : "s"}; the header has ${columnCount.toLocaleString()}. Fix the row rather than silently filling or dropping columns.`
+          );
+        }
 
- return headers.reduce<Record<string, string>>(
- (record, header, index) => {
- record[header] = row[index] ?? "";
- return record;
- },
- {}
- );
- });
+        const record = Object.create(null) as Record<string, string>;
+        headers.forEach((header, index) => {
+          Object.defineProperty(record, header, {
+            value: row[index],
+            enumerable: true,
+            writable: true,
+            configurable: true,
+          });
+        });
+        return record;
+      });
 
- setOutput(JSON.stringify(result, null, 2));
- setError("");
- setCopied(false);
- } catch (err) {
- setError(
- err instanceof Error
- ? err.message
- : "Unable to convert this CSV input."
- );
- setOutput("");
- setCopied(false);
- }
- };
+      setOutput(JSON.stringify(result, null, 2));
+      setSummary({
+        rows: result.length,
+        columns: columnCount,
+        multilineFields: parsed.multilineFields,
+        removedBom: parsed.removedBom,
+      });
+      setError("");
+      setCopied(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to parse this CSV safely.");
+      setOutput("");
+      setSummary(null);
+      setCopied(false);
+    }
+  };
 
- const copyOutput = async () => {
- if (!output) {
- return;
- }
+  const copyOutput = async () => {
+    if (!output) return;
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("Copy failed. Select the JSON output and copy it manually.");
+    }
+  };
 
- try {
- await navigator.clipboard.writeText(output);
- setCopied(true);
- window.setTimeout(() => setCopied(false), 1400);
- } catch {
- setError("Copy failed. Select the JSON output and copy it manually.");
- }
- };
+  const loadExample = () => {
+    setInput(exampleCsv);
+    setOutput("");
+    setError("");
+    setSummary(null);
+    setCopied(false);
+  };
 
- const resetAll = () => {
- setInput("");
- setOutput("");
- setError("");
- setCopied(false);
- };
+  const resetAll = () => {
+    setInput("");
+    setOutput("");
+    setError("");
+    setSummary(null);
+    setCopied(false);
+  };
 
- return (
- <ToolShell
- title="CSV to JSON Converter"
- description="Convert CSV rows into a JSON array with support for quoted commas, escaped quotes, multiline fields, and empty values."
- >
- {/* INPUT */}
- <div>
- <label className="block mb-2 text-sm font-medium text-gray-700">
- CSV Input
- </label>
+  return (
+    <ToolShell
+      title="CSV to JSON Converter"
+      description="Parse header-based CSV into JSON records while preserving every field as text."
+    >
+      <div>
+        <label className="mb-2 block text-sm font-medium text-gray-700">CSV input</label>
+        <textarea
+          className="h-64 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          placeholder={exampleCsv}
+          value={input}
+          onChange={(event: { target: { value: string } }) => {
+            setInput(event.target.value);
+            setOutput("");
+            setError("");
+            setSummary(null);
+            setCopied(false);
+          }}
+        />
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          The first record becomes the property-name row. Commas, line breaks, and doubled quotes inside quoted fields are preserved.
+        </p>
+      </div>
 
- <textarea
- className="w-full h-64 rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
- placeholder={`name,role
-Asha,Developer
-Ravi,Designer`}
- value={input}
- onChange={(e) =>
- setInput(e.target.value)
- }
- />
- </div>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button onClick={convertCSVToJSON} className="yoryantra-btn min-h-[44px] whitespace-nowrap">
+          Convert to JSON
+        </button>
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
+          Load Example
+        </button>
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
+          Reset
+        </button>
+      </div>
 
- {/* ACTIONS */}
- <div className="mt-5 flex flex-wrap gap-3">
- <button
- onClick={convertCSVToJSON}
- className="yoryantra-btn"
- >
- Convert to JSON
- </button>
+      {error && (
+        <div className="mt-6 overflow-auto rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
+      )}
 
- <button
- onClick={resetAll}
- className="yoryantra-btn-outline"
- >
- Reset
- </button>
- </div>
+      {summary && (
+        <div className="mt-6 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Metric label="Data records" value={summary.rows.toLocaleString()} />
+          <Metric label="Columns" value={summary.columns.toLocaleString()} />
+          <Metric label="Multiline fields" value={summary.multilineFields.toLocaleString()} />
+          <Metric label="Leading BOM" value={summary.removedBom ? "Removed" : "None"} />
+        </div>
+      )}
 
- {/* ERROR */}
- {error && (
- <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
- {error}
- </div>
- )}
+      {(headerWhitespaceNote || summary?.removedBom) && (
+        <div className="mt-6 grid items-start gap-4 md:grid-cols-2">
+          {headerWhitespaceNote && (
+            <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+              <strong className="text-amber-900">Header whitespace is being preserved.</strong>{" "}
+              Spaces are data in CSV. A heading such as <code className="rounded bg-amber-100 px-1"> name </code> becomes that exact JSON property name.
+            </div>
+          )}
+          {summary?.removedBom && (
+            <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+              <strong className="text-amber-900">UTF-8 BOM removed from the first header.</strong>{" "}
+              The byte-order marker is treated as an encoding marker rather than part of the property name.
+            </div>
+          )}
+        </div>
+      )}
 
- {/* OUTPUT */}
- <div className="mt-8">
- <div className="flex items-center justify-between mb-3">
- <h3 className="text-lg font-semibold text-gray-900">
- JSON Output
- </h3>
+      <div className="mt-8">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">JSON output</h3>
+          {output && (
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap text-sm">
+              {copied ? "Copied" : "Copy"}
+            </button>
+          )}
+        </div>
+        <pre className="yoryantra-output min-h-[240px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "Converted JSON records will appear here."}
+        </pre>
+      </div>
 
- {output && (
- <button
- onClick={copyOutput}
- className="yoryantra-btn-outline text-sm"
- >
- {copied ? "Copied" : "Copy"}
- </button>
- )}
- </div>
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Parsing and conversion run in this browser session. The page does not send the pasted CSV to Yoryantra. Clipboard permissions still belong to your browser and operating system.
+      </div>
 
- <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
- {output ||
- "Converted JSON output will appear here..."}
- </pre>
- </div>
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">Where a CSV row becomes a JSON object</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A header-based CSV has two jobs hidden in one text file: the first record names the fields and every later record supplies values in the same positions. Conversion is straightforward only when those positions stay aligned. This page therefore rejects short or wide records instead of quietly inventing missing cells or discarding extras.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Every CSV field remains a JSON string. Values such as <code className="rounded bg-gray-100 px-1">0012</code>, <code className="rounded bg-gray-100 px-1">true</code>, and <code className="rounded bg-gray-100 px-1">2026-09-07</code> are not guessed into numbers, booleans, or dates. That keeps identifiers and formatting intact; type conversion can happen later with domain knowledge.
+          </p>
+        </div>
 
- {/* PRIVACY NOTE */}
- <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
- <h3 className="text-sm font-semibold text-yellow-900">
- Privacy Note
- </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Quoted fields are records, not simple string splits</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A comma inside a quoted field is content, not a separator. The same is true for line breaks. A literal quote inside a quoted field is represented by two consecutive quotes. The parser also rejects characters after a closing quote until the next comma or record break, which catches inputs such as <code className="rounded bg-gray-100 px-1">&quot;value&quot;x</code> instead of accepting an ambiguous record.
+          </p>
+        </div>
 
- <p className="mt-2 text-sm leading-relaxed text-yellow-800">
- Conversion happens locally inside your browser. Your CSV content is
- not sent to Yoryantra. Avoid pasting sensitive data on devices or
- browser profiles you do not trust.
- </p>
- </div>
+        <div className="grid items-start gap-5 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="text-lg font-semibold text-amber-900">CSV is less universal than the extension suggests</h2>
+            <p className="mt-3 text-sm leading-relaxed text-amber-800">
+              RFC 4180 documents a widely used comma-separated form with CRLF records and quoted-field rules, but it is informational and explicitly notes variation between implementations. This page expects commas and accepts CRLF, LF, or CR record endings. Semicolon and tab exports belong in a delimiter-aware parser rather than being guessed here.
+            </p>
+          </div>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-lg font-semibold text-gray-900">Unusual property names stay data</h2>
+            <p className="mt-3 text-sm leading-relaxed text-gray-600">
+              Headers are preserved exactly, including names such as <code className="rounded bg-white px-1">__proto__</code>. Records are built without inheriting from <code className="rounded bg-white px-1">Object.prototype</code>, so those names cannot alter the intermediate object&apos;s prototype.
+            </p>
+          </div>
+        </div>
 
- {/* SEO CONTENT */}
- <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
- <div>
- <h2 className="text-2xl font-semibold text-gray-900">
- Turning CSV Rows Into JSON Data
- </h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">A small example with the parts that usually break</h2>
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <pre className="whitespace-pre-wrap break-words">{`name,note\nSneha,"comma, stays here"\nVaroun,"quote: ""hello"""`}</pre>
+            <p className="mt-4 leading-relaxed">
+              The two data records become JSON objects; the comma and quote stay inside their original field values. A row with a different field count stops conversion so column alignment is visible rather than guessed.
+            </p>
+          </div>
+        </div>
 
- <p className="mt-4 text-gray-600 leading-relaxed">
- CSV to JSON conversion helps transform spreadsheet-style rows into
- structured JSON objects that can be used in APIs, frontend
- applications, databases, analytics systems, automation workflows,
- and modern web applications.
- </p>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Before the JSON goes into an API or database</h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Decide which fields are genuinely numeric or boolean after conversion, not from their appearance alone.</li>
+            <li>Check header whitespace and capitalization when downstream property names are case-sensitive.</li>
+            <li>Keep multiline text as strings unless the destination has a different newline convention.</li>
+            <li>For very large exports, stream or batch the conversion instead of loading the whole file into a browser tab.</li>
+          </ul>
+        </div>
 
- <p className="mt-4 text-gray-600 leading-relaxed">
- CSV files are commonly used for exports, reports, and spreadsheets,
- while JSON is widely used in APIs and application development. This
- CSV to JSON Converter helps quickly transform tabular data into a
- machine-readable JSON structure directly inside your browser.
- </p>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">The CSV reference behind the parser</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The quoted-field and record-shape rules are based on the common format documented in{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc4180.html" target="_blank" rel="noreferrer" className="font-semibold text-[var(--green)] hover:underline">RFC 4180</a>.
+            The RFC is useful as a baseline, not a claim that every spreadsheet export follows one master CSV grammar.
+          </p>
+        </div>
 
- <p className="mt-4 text-gray-600 leading-relaxed">
- The tool is useful for API preparation, spreadsheet conversion,
- database migration, structured data transformation, analytics
- workflows, and importing CSV records into applications.
- </p>
- </div>
-
- <div>
- <h2 className="text-xl font-semibold text-gray-900">
- How to Use the CSV to JSON Converter
- </h2>
-
- <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
- <li>
- Paste CSV data into the input editor.
- </li>
-
- <li>
- Ensure the first row contains column headers.
- </li>
-
- <li>
- Click <strong>Convert to JSON</strong>.
- </li>
-
- <li>
- Review and copy the generated JSON output.
- </li>
- </ol>
- </div>
-
- <div>
- <h2 className="text-xl font-semibold text-gray-900">
- Common Use Cases
- </h2>
-
- <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
- <li>
- Converting spreadsheet exports into JSON objects.
- </li>
-
- <li>
- Preparing CSV data for APIs and applications.
- </li>
-
- <li>
- Transforming reports into structured JSON arrays.
- </li>
-
- <li>
- Migrating CSV records into databases.
- </li>
-
- <li>
- Importing spreadsheet data into frontend applications.
- </li>
-
- <li>
- Cleaning tabular data for automation workflows.
- </li>
-
- <li>
- Converting exported reports into machine-readable formats.
- </li>
- </ul>
- </div>
-
- <div>
- <h2 className="text-xl font-semibold text-gray-900">
- Example CSV to JSON Conversion
- </h2>
-
- <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
- <p className="font-medium text-gray-900">
- CSV input:
- </p>
-
- <pre className="mt-2 whitespace-pre-wrap break-words">
-{`name,role
-Asha,Developer
-Ravi,Designer`}
- </pre>
-
- <p className="mt-4 font-medium text-gray-900">
- JSON output:
- </p>
-
- <pre className="mt-2 whitespace-pre-wrap break-words">
-{`[
- {
- "name": "Asha",
- "role": "Developer"
- },
- {
- "name": "Ravi",
- "role": "Designer"
- }
-]`}
- </pre>
- </div>
- </div>
-
- <div>
- <h2 className="text-xl font-semibold text-gray-900">
- Why JSON Conversion Matters
- </h2>
-
- <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
- <ul className="space-y-3">
- <li>
- <strong>API compatibility:</strong> JSON is widely used in APIs
- and modern applications.
- </li>
-
- <li>
- <strong>Structured records:</strong> JSON objects make data
- easier to process programmatically.
- </li>
-
- <li>
- <strong>Spreadsheet transformation:</strong> CSV exports can be
- converted into machine-readable formats quickly.
- </li>
-
- <li>
- <strong>Automation workflows:</strong> Structured JSON simplifies
- integrations and data processing.
- </li>
- </ul>
- </div>
- </div>
-
- <div>
- <h2 className="text-xl font-semibold text-gray-900">
- Frequently Asked Questions
- </h2>
-
- <div className="mt-5 space-y-6">
- <div>
- <h3 className="font-semibold text-gray-900">
- What is a CSV to JSON Converter?
- </h3>
-
- <p className="mt-2 text-gray-600 leading-relaxed">
- A CSV to JSON Converter transforms comma-separated spreadsheet
- rows into structured JSON objects and arrays.
- </p>
- </div>
-
- <div>
- <h3 className="font-semibold text-gray-900">
- Does the first CSV row need headers?
- </h3>
-
- <p className="mt-2 text-gray-600 leading-relaxed">
- Yes. The first row is used as JSON object property names.
- </p>
- </div>
-
- <div>
- <h3 className="font-semibold text-gray-900">
- Can this tool handle multiple rows?
- </h3>
-
- <p className="mt-2 text-gray-600 leading-relaxed">
- Yes. Each CSV row becomes a separate JSON object inside the
- output array.
- </p>
- </div>
-
- <div>
- <h3 className="font-semibold text-gray-900">
- Is this converter useful for APIs?
- </h3>
-
- <p className="mt-2 text-gray-600 leading-relaxed">
- Yes. Developers commonly convert CSV exports into JSON before
- importing data into APIs and applications.
- </p>
- </div>
-
- <div>
- <h3 className="font-semibold text-gray-900">
- Is CSV conversion processed on the server?
- </h3>
-
- <p className="mt-2 text-gray-600 leading-relaxed">
- No. CSV to JSON conversion happens locally inside your browser.
- </p>
- </div>
- </div>
- </div>
-
- <div>
- <h2 className="text-xl font-semibold text-gray-900">
- Related Tools
- </h2>
-
- <YoryantraRelatedTools currentHref="/tools/csv-to-json" />
- </div>
- </section>
- </ToolShell>
- );
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/csv-to-json" />
+          </div>
+        </div>
+      </section>
+    </ToolShell>
+  );
 }
 
-function parseCSV(source: string): string[][] {
- const rows: string[][] = [];
- let row: string[] = [];
- let field = "";
- let inQuotes = false;
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
+    </div>
+  );
+}
 
- for (let index = 0; index < source.length; index += 1) {
- const character = source[index];
+function parseCSV(source: string): {
+  rows: string[][];
+  multilineFields: number;
+  removedBom: boolean;
+} {
+  const removedBom = source.charCodeAt(0) === 0xfeff;
+  const input = removedBom ? source.slice(1) : source;
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  let afterClosingQuote = false;
+  let line = 1;
+  let column = 1;
+  let multilineFields = 0;
+  let currentFieldIsMultiline = false;
+  let endedWithRecordBreak = false;
 
- if (inQuotes) {
- if (character === '"') {
- if (source[index + 1] === '"') {
- field += '"';
- index += 1;
- } else {
- inQuotes = false;
- }
- } else {
- field += character;
- }
+  const pushField = () => {
+    row.push(field);
+    if (row.length > MAX_COLUMNS) {
+      throw new Error(`CSV exceeds the ${MAX_COLUMNS.toLocaleString()}-column browser limit.`);
+    }
+    if (currentFieldIsMultiline) multilineFields += 1;
+    field = "";
+    currentFieldIsMultiline = false;
+  };
 
- continue;
- }
+  const pushRow = () => {
+    rows.push(row);
+    if (rows.length > MAX_ROWS + 1) {
+      throw new Error(`CSV exceeds the ${MAX_ROWS.toLocaleString()}-data-record browser limit.`);
+    }
+    row = [];
+  };
 
- if (character === '"') {
- if (field.length > 0) {
- throw new Error(
- "A quoted field must begin at the start of a CSV field."
- );
- }
+  for (let index = 0; index < input.length; index += 1) {
+    const char = input[index];
+    const next = input[index + 1];
 
- inQuotes = true;
- } else if (character === ",") {
- row.push(field);
- field = "";
- } else if (character === "\n") {
- row.push(field.replace(/\r$/, ""));
- rows.push(row);
- row = [];
- field = "";
- } else {
- field += character;
- }
- }
+    if (inQuotes) {
+      endedWithRecordBreak = false;
+      if (char === '"') {
+        if (next === '"') {
+          field += '"';
+          index += 1;
+          column += 2;
+          continue;
+        }
+        inQuotes = false;
+        afterClosingQuote = true;
+        column += 1;
+        continue;
+      }
+      if (char === "\r" && next === "\n") {
+        field += "\r\n";
+        currentFieldIsMultiline = true;
+        index += 1;
+        line += 1;
+        column = 1;
+        continue;
+      }
+      if (char === "\r" || char === "\n") {
+        field += char;
+        currentFieldIsMultiline = true;
+        line += 1;
+        column = 1;
+        continue;
+      }
+      field += char;
+      column += 1;
+      continue;
+    }
 
- if (inQuotes) {
- throw new Error("The CSV contains an unclosed quoted field.");
- }
+    if (afterClosingQuote) {
+      if (char === ",") {
+        pushField();
+        afterClosingQuote = false;
+        endedWithRecordBreak = false;
+        column += 1;
+        continue;
+      }
+      if (char === "\r" || char === "\n") {
+        pushField();
+        pushRow();
+        afterClosingQuote = false;
+        endedWithRecordBreak = true;
+        if (char === "\r" && next === "\n") index += 1;
+        line += 1;
+        column = 1;
+        continue;
+      }
+      throw new Error(
+        `Unexpected ${JSON.stringify(char)} after a closing quote at line ${line}, column ${column}. A quoted field must be followed by a comma or record break.`
+      );
+    }
 
- row.push(field.replace(/\r$/, ""));
+    if (char === '"') {
+      if (field.length !== 0) {
+        throw new Error(
+          `Unexpected quote inside an unquoted field at line ${line}, column ${column}. Quote the whole field and double embedded quotes.`
+        );
+      }
+      inQuotes = true;
+      endedWithRecordBreak = false;
+      column += 1;
+      continue;
+    }
 
- if (row.some((value) => value !== "") || rows.length === 0) {
- rows.push(row);
- }
+    if (char === ",") {
+      pushField();
+      endedWithRecordBreak = false;
+      column += 1;
+      continue;
+    }
 
- return rows.filter(
- (currentRow) =>
- currentRow.length > 1 ||
- currentRow.some((value) => value.trim() !== "")
- );
+    if (char === "\r" || char === "\n") {
+      pushField();
+      pushRow();
+      endedWithRecordBreak = true;
+      if (char === "\r" && next === "\n") index += 1;
+      line += 1;
+      column = 1;
+      continue;
+    }
+
+    field += char;
+    endedWithRecordBreak = false;
+    column += 1;
+  }
+
+  if (inQuotes) throw new Error(`Quoted field ending near line ${line} is not closed.`);
+
+  if (afterClosingQuote || field.length > 0 || row.length > 0 || !endedWithRecordBreak) {
+    pushField();
+    pushRow();
+  }
+
+  return { rows, multilineFields, removedBom };
 }
