@@ -19,7 +19,8 @@ type MatrixRule = {
   enabled: boolean;
 };
 
-type MatrixCombination = Record<string, string>;
+type MatrixScalar = string | number | boolean | null;
+type MatrixCombination = Record<string, MatrixScalar>;
 
 type MatrixResult = {
   axes: MatrixAxis[];
@@ -32,9 +33,11 @@ type MatrixResult = {
   yaml: string;
   jobYaml: string;
   json: string;
+  notes: MatrixNote[];
 };
 
 type MatrixNote = {
+  severity: "info" | "warning" | "high";
   title: string;
   message: string;
 };
@@ -87,7 +90,7 @@ export default function ToolClient() {
   const [failFast, setFailFast] = useState(true);
   const [maxParallel, setMaxParallel] = useState("");
   const [sortAxes, setSortAxes] = useState(false);
-  const [quoteValues, setQuoteValues] = useState(false);
+  const [quoteValues, setQuoteValues] = useState(true);
   const [copied, setCopied] = useState(false);
 
   const result = useMemo(
@@ -128,7 +131,20 @@ export default function ToolClient() {
     return result.yaml;
   }, [outputMode, result]);
 
-  const notes = useMemo(() => getMatrixNotes(result), [result]);
+  const notes = result.notes;
+  const previewColumns = useMemo(() => {
+    const columns: string[] = [];
+    const seen = new Set<string>();
+    result.finalCombinations.slice(0, 50).forEach((combination) => {
+      Object.keys(combination).forEach((key) => {
+        if (!seen.has(key)) {
+          seen.add(key);
+          columns.push(key);
+        }
+      });
+    });
+    return columns;
+  }, [result.finalCombinations]);
 
   const addAxis = () => {
     setAxes((current) => [
@@ -261,7 +277,7 @@ export default function ToolClient() {
     setFailFast(true);
     setMaxParallel("");
     setSortAxes(false);
-    setQuoteValues(false);
+    setQuoteValues(true);
     setCopied(false);
   };
 
@@ -282,14 +298,14 @@ export default function ToolClient() {
     setFailFast(true);
     setMaxParallel("");
     setSortAxes(false);
-    setQuoteValues(false);
+    setQuoteValues(true);
     setCopied(false);
   };
 
   return (
     <ToolShell
       title="GitHub Actions Matrix Builder"
-      description="Build GitHub Actions strategy matrix YAML for OS runners, language versions, include rules, exclude rules, fail-fast, and max-parallel settings directly in your browser."
+      description="Preview GitHub strategy combinations with accurate include/exclude expansion, scalar typing, concurrency, and job limits."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -299,11 +315,11 @@ export default function ToolClient() {
             </h3>
 
             <p className="mt-1 text-sm text-gray-500">
-              Add each matrix axis as a name and comma-separated values.
+              Add each matrix axis as a name and comma-separated values. Quoted commas are supported.
             </p>
           </div>
 
-          <button onClick={addAxis} className="yoryantra-btn-outline">
+          <button onClick={addAxis} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
             Add Axis
           </button>
         </div>
@@ -347,7 +363,7 @@ export default function ToolClient() {
 
               <button
                 onClick={() => removeAxis(axis.id)}
-                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
               >
                 Remove
               </button>
@@ -450,7 +466,7 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-4">
-          <div className="min-h-[116px] rounded-xl border border-gray-200 bg-white p-4">
+          <div className="self-start rounded-xl border border-gray-200 bg-white p-4">
             <label className="block text-sm font-medium text-gray-900">
               Max Parallel
             </label>
@@ -466,7 +482,7 @@ export default function ToolClient() {
             />
           </div>
 
-          <label className="flex min-h-[116px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex self-start cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={failFast}
@@ -488,7 +504,7 @@ export default function ToolClient() {
             </span>
           </label>
 
-          <label className="flex min-h-[116px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex self-start cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={sortAxes}
@@ -505,12 +521,12 @@ export default function ToolClient() {
               </span>
 
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Sort matrix axes alphabetically.
+                Alphabetize axes. GitHub uses axis order when creating matrix jobs.
               </span>
             </span>
           </label>
 
-          <label className="flex min-h-[116px] cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex self-start cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={quoteValues}
@@ -523,11 +539,11 @@ export default function ToolClient() {
 
             <span>
               <span className="block text-sm font-medium text-gray-900">
-                Quote values
+                Keep values as strings
               </span>
 
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Wrap matrix values in YAML quotes.
+                Recommended for versions such as 3.10. Turn off only when you want YAML booleans, numbers, or null.
               </span>
             </span>
           </label>
@@ -535,15 +551,15 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-[44px] whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -559,7 +575,7 @@ export default function ToolClient() {
         />
         <SummaryCard
           label="Final Jobs"
-          value={result.totalAfterExclude.toLocaleString()}
+          value={result.totalAfterExclude < 0 ? "Not expanded" : result.totalAfterExclude.toLocaleString()}
         />
         <SummaryCard
           label="Include Rules"
@@ -574,16 +590,15 @@ export default function ToolClient() {
           </h3>
 
           <p className="mt-2 text-sm text-gray-500">
-            The combinations this matrix will create after exclude rules are
-            applied.
+            The combinations after exclude rules and GitHub-style include expansion.
           </p>
 
-          <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
+          <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
                   <th className="px-4 py-3 font-semibold">#</th>
-                  {Object.keys(result.finalCombinations[0] || {}).map((key) => (
+                  {previewColumns.map((key) => (
                     <th key={key} className="px-4 py-3 font-semibold">
                       {key}
                     </th>
@@ -598,12 +613,12 @@ export default function ToolClient() {
                       {index + 1}
                     </td>
 
-                    {Object.keys(result.finalCombinations[0] || {}).map((key) => (
+                    {previewColumns.map((key) => (
                       <td
                         key={`combo-${index}-${key}`}
                         className="px-4 py-3 font-mono text-xs text-gray-700"
                       >
-                        {combination[key] || ""}
+                        {formatPreviewValue(combination[key])}
                       </td>
                     ))}
                   </tr>
@@ -622,24 +637,16 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Matrix notes
-          </h3>
-
-          <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {note.title}
-                </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {note.message}
-                </p>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {notes.map((note, index) => {
+            const classes = noteClassNames(note.severity);
+            return (
+              <div key={`${note.title}-${index}`} className={`${classes.card} self-start rounded-xl border p-4`}>
+                <p className={`text-sm font-semibold ${classes.title}`}>{note.title}</p>
+                <p className={`mt-1 text-sm leading-relaxed ${classes.body}`}>{note.message}</p>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 
@@ -652,7 +659,7 @@ export default function ToolClient() {
           {output && (
             <button
               onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
+              className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap text-sm"
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -664,168 +671,58 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Matrix building happens directly in your browser. The values you enter
-        are not uploaded to a server.
+      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Matrix generation happens in your browser. Axis values and rules are not sent to GitHub or a Yoryantra server by this page.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Building GitHub Actions Matrix YAML
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">The Cartesian product is only the starting matrix</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            GitHub Actions matrix jobs are useful when you need to test the same
-            workflow across multiple operating systems, language versions, or
-            package managers. But writing the matrix by hand can become messy
-            once include and exclude rules are added.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This GitHub Actions Matrix Builder helps you create a strategy matrix
-            from simple rows. Add axes, values, include rules, exclude rules,
-            fail-fast, and max-parallel settings, then copy clean YAML for your
-            workflow file.
+            Base axes create a Cartesian product: three operating systems and two language versions start with six combinations. GitHub then applies <code className="font-mono">exclude</code> and processes each <code className="font-mono">include</code> object. The preview follows those rules rather than simply appending every include row.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Creating a Matrix for CI Jobs
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Add matrix axes such as os, node-version, or python-version.</li>
-            <li>Enter comma-separated values for each axis.</li>
-            <li>Add include or exclude rules when certain combinations need changes.</li>
-            <li>Choose matrix-only YAML or a full job snippet.</li>
-            <li>Copy the output into your GitHub Actions workflow file.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">Include can enrich existing combinations or create a new one</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            An include object is merged into compatible base combinations when it does not overwrite their original axis values. If it cannot be merged into any compatible combination, GitHub creates a new matrix combination. Added fields from an earlier include may be replaced by a later include; original axis values are not overwritten.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common GitHub Actions Matrix Builder Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Testing a Node project across multiple Node versions.</li>
-            <li>Running a workflow across Ubuntu, Windows, and macOS.</li>
-            <li>Building Python CI jobs across several Python versions.</li>
-            <li>Excluding unsupported operating system and version pairs.</li>
-            <li>Adding experimental jobs with include rules.</li>
-            <li>Limiting matrix concurrency with max-parallel.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">Matrix value type can change workflow behavior</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Values are kept as strings by default because version-like text such as <code className="font-mono">3.10</code> should not accidentally become the number <code className="font-mono">3.1</code>. Turn string preservation off only when you deliberately want YAML booleans, numbers, or <code className="font-mono">null</code>. Quoted list entries can contain commas.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Matrix Output
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">The 256-job limit is a hard workflow boundary</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            GitHub limits a matrix to 256 generated jobs per workflow run. The page warns when the final expanded matrix exceeds that limit and also stops materializing extremely large browser previews before they consume unreasonable memory. <code className="font-mono">max-parallel</code> controls concurrency; it does not reduce the number of jobs generated.
+          </p>
+        </div>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`strategy:
-  fail-fast: true
-  matrix:
-    os:
-      - ubuntu-latest
-      - windows-latest
-    node-version:
-      - 20
-      - 22`}
-            </pre>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Job snippets deliberately avoid inventing CI steps</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The full-job output contains <code className="font-mono">runs-on</code>, the matrix strategy, and a placeholder for your own steps. It does not automatically add checkout or setup actions, because those are workflow decisions with their own permissions, versioning, and supply-chain implications.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">GitHub is the authority for expansion semantics</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            GitHub documents matrix expansion, partial-match excludes, include processing, <code className="font-mono">fail-fast</code>, <code className="font-mono">max-parallel</code>, and the 256-job cap in the <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idstrategy" target="_blank" rel="noreferrer">workflow syntax reference</a>.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/github-actions-matrix-builder" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Keep Matrix Size Practical
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Every axis multiplies the number of jobs. Three operating systems
-            and four language versions already create twelve jobs. Add another
-            axis and the count can grow quickly.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use exclude rules, max-parallel, or smaller version lists when a
-            matrix becomes too expensive or too slow for normal pull request
-            checks.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a GitHub Actions matrix?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                A matrix lets one job run multiple times with different values,
-                such as operating systems, Node versions, or Python versions.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does include do in a matrix?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Include adds extra combinations or extra fields to a specific
-                combination in the matrix.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does exclude do in a matrix?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Exclude removes specific combinations, such as one unsupported OS
-                and language version pair.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this validate the full workflow?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool builds the matrix YAML. Use the GitHub Actions YAML
-                Validator to review the full workflow structure.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are my matrix values uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Matrix generation happens directly in your browser, and your
-                values are not uploaded to a server.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/github-actions-matrix-builder" />
         </div>
       </section>
     </ToolShell>
@@ -904,7 +801,7 @@ function RuleSection({
 
               <button
                 onClick={() => onRemove(rule.id)}
-                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
               >
                 Remove
               </button>
@@ -951,134 +848,170 @@ function buildMatrixResult({
   sortAxes: boolean;
   quoteValues: boolean;
 }): MatrixResult {
+  const notes: MatrixNote[] = [];
   const enabledAxes = axes
     .filter((axis) => axis.enabled)
     .filter((axis) => axis.name.trim() && axis.values.trim())
-    .map((axis) => ({
-      ...axis,
-      name: axis.name.trim(),
-      values: axis.values,
-    }));
+    .map((axis) => ({ ...axis, name: axis.name.trim(), values: axis.values.trim() }));
 
-  const finalAxes = sortAxes
-    ? [...enabledAxes].sort((a, b) => a.name.localeCompare(b.name))
-    : enabledAxes;
+  const duplicateNames = findDuplicates(enabledAxes.map((axis) => axis.name));
+  if (duplicateNames.length > 0) notes.push({ severity: "high", title: "Duplicate matrix axis names", message: `Each axis key must be unique. Duplicates: ${duplicateNames.join(", ")}.` });
+  const reserved = enabledAxes.filter((axis) => ["include", "exclude"].includes(axis.name)).map((axis) => axis.name);
+  if (reserved.length > 0) notes.push({ severity: "high", title: "Reserved matrix keys used as axes", message: `${reserved.join(", ")} are reserved for matrix expansion rules.` });
 
-  const combinations = buildCombinations(finalAxes);
-  const parsedIncludeRules = includeRules
-    .filter((rule) => rule.enabled && rule.values.trim())
-    .map((rule) => parseRule(rule.values));
-  const parsedExcludeRules = excludeRules
-    .filter((rule) => rule.enabled && rule.values.trim())
-    .map((rule) => parseRule(rule.values));
+  const finalAxes = sortAxes ? [...enabledAxes].sort((a, b) => compareText(a.name, b.name)) : enabledAxes;
+  const axisValues = finalAxes.map((axis) => ({ ...axis, parsedValues: splitValues(axis.values).map((token) => parseMatrixScalar(token, quoteValues)) }));
+  const baseCount = axisValues.length === 0 ? 0 : axisValues.reduce((total, axis) => total * Math.max(1, axis.parsedValues.length), 1);
+  const MATERIALIZE_LIMIT = 10000;
+  let combinations: MatrixCombination[] = [];
+  if (baseCount <= MATERIALIZE_LIMIT) combinations = buildCombinations(axisValues);
+  else notes.push({ severity: "high", title: "Matrix preview is too large to materialize safely", message: `The base axes create ${baseCount.toLocaleString()} combinations before exclude/include processing. Reduce the axes before previewing combinations in the browser.` });
 
-  const afterExclude = combinations.filter(
-    (combination) =>
-      !parsedExcludeRules.some((rule) => doesRuleMatch(combination, rule))
-  );
-  const finalCombinations = [...afterExclude, ...parsedIncludeRules];
+  const parsedIncludeRules = includeRules.filter((rule) => rule.enabled && rule.values.trim()).map((rule) => parseRule(rule.values, quoteValues));
+  const parsedExcludeRules = excludeRules.filter((rule) => rule.enabled && rule.values.trim()).map((rule) => parseRule(rule.values, quoteValues));
 
-  const yaml = buildMatrixYaml({
-    axes: finalAxes,
-    includeRules: parsedIncludeRules,
-    excludeRules: parsedExcludeRules,
-    failFast,
-    maxParallel,
-    quoteValues,
-  });
+  const afterExclude = combinations.filter((combination) => !parsedExcludeRules.some((rule) => doesRuleMatch(combination, rule)));
+  const finalCombinations = combinations.length > 0 || finalAxes.length === 0 ? applyIncludeRules(afterExclude, parsedIncludeRules, finalAxes.map((axis) => axis.name)) : [];
+  const previewWasMaterialized = baseCount <= MATERIALIZE_LIMIT;
+  const finalCount = finalAxes.length === 0
+    ? parsedIncludeRules.length
+    : previewWasMaterialized
+      ? finalCombinations.length
+      : parsedIncludeRules.length === 0 && parsedExcludeRules.length === 0
+        ? baseCount
+        : -1;
 
-  const jobYaml = buildJobYaml({
-    jobName: jobName.trim() || "test",
-    runnerExpression: runnerExpression.trim() || "${{ matrix.os }}",
-    matrixYaml: yaml,
-  });
+  if (finalAxes.length === 0 && parsedIncludeRules.length === 0) notes.push({ severity: "warning", title: "No matrix combinations yet", message: "Add at least one axis or an include-only combination." });
+  if (finalCount > 256) notes.push({ severity: "high", title: "GitHub matrix job limit exceeded", message: `The expanded matrix has ${finalCount.toLocaleString()} jobs. GitHub limits a matrix to 256 jobs per workflow run.` });
+  if (finalCount > 20 && finalCount <= 256) notes.push({ severity: "warning", title: "Large matrix", message: `${finalCount.toLocaleString()} jobs may increase queue time and CI usage. max-parallel changes concurrency, not total job count.` });
+  if (finalCount < 0) notes.push({ severity: "high", title: "Final job count was not expanded", message: "The base Cartesian product exceeds the browser preview safety limit and include/exclude rules are present. Reduce the matrix before relying on a final job count." });
 
+  const maxParallelValue = maxParallel.trim();
+  if (maxParallelValue && (!/^\d+$/.test(maxParallelValue) || Number(maxParallelValue) < 1)) notes.push({ severity: "high", title: "max-parallel must be a positive integer", message: `Received ${maxParallelValue}. The invalid value is omitted from generated YAML.` });
+  const validMaxParallel = /^\d+$/.test(maxParallelValue) && Number(maxParallelValue) >= 1 ? maxParallelValue : "";
+
+  const trimmedJobName = jobName.trim() || "test";
+  const jobNameValid = /^[A-Za-z_][A-Za-z0-9_-]*$/.test(trimmedJobName);
+  if (!jobNameValid) notes.push({ severity: "high", title: "Invalid GitHub job ID", message: "A job ID must start with a letter or underscore and contain only letters, numbers, hyphens, or underscores." });
+
+  if (sortAxes && finalAxes.length > 1) notes.push({ severity: "info", title: "Axis order was changed", message: "GitHub uses matrix variable order when creating jobs, so alphabetical sorting is not purely cosmetic." });
+  if (!quoteValues) notes.push({ severity: "warning", title: "YAML scalar typing is enabled", message: "Unquoted true, false, null, and JSON-style numbers become typed YAML scalars. Keep values as strings for version text unless numeric/boolean types are intentional." });
+  if (parsedExcludeRules.length > 0 && combinations.length > 0 && afterExclude.length === combinations.length) notes.push({ severity: "info", title: "Exclude rules matched no base combination", message: "Check key names, scalar types, and values. Exclude uses partial matching against generated base combinations." });
+
+  const yaml = buildMatrixYaml({ axes: axisValues, includeRules: parsedIncludeRules, excludeRules: parsedExcludeRules, failFast, maxParallel: validMaxParallel, quoteValues });
+  const jobYaml = buildJobYaml({ jobName: trimmedJobName, jobNameValid, runnerExpression: runnerExpression.trim() || "${{ matrix.os }}", matrixYaml: yaml });
   return {
     axes: finalAxes,
     includeRules: parsedIncludeRules,
     excludeRules: parsedExcludeRules,
     combinations,
-    finalCombinations,
-    totalBeforeExclude: combinations.length,
-    totalAfterExclude: finalCombinations.length,
+    finalCombinations: finalAxes.length === 0 ? parsedIncludeRules : finalCombinations,
+    totalBeforeExclude: combinations.length > 0 ? combinations.length : baseCount,
+    totalAfterExclude: finalCount,
     yaml,
     jobYaml,
-    json: JSON.stringify(
-      {
-        axes: finalAxes.map((axis) => ({
-          name: axis.name,
-          values: splitValues(axis.values),
-        })),
-        include: parsedIncludeRules,
-        exclude: parsedExcludeRules,
-        totalBeforeExclude: combinations.length,
-        totalAfterExclude: finalCombinations.length,
-        combinations: finalCombinations,
-      },
-      null,
-      2
-    ),
+    json: JSON.stringify({
+      axes: axisValues.map((axis) => ({ name: axis.name, values: axis.parsedValues })),
+      include: parsedIncludeRules,
+      exclude: parsedExcludeRules,
+      totalBeforeExclude: combinations.length > 0 ? combinations.length : baseCount,
+      totalAfterExclude: finalCount < 0 ? null : finalCount,
+      combinations: finalAxes.length === 0 ? parsedIncludeRules : finalCombinations,
+    }, null, 2),
+    notes,
   };
 }
 
-function buildCombinations(axes: MatrixAxis[]): MatrixCombination[] {
-  if (axes.length === 0) {
-    return [];
-  }
+type ParsedAxis = MatrixAxis & { parsedValues: MatrixScalar[] };
 
+type ExpansionEntry = { original: MatrixCombination; values: MatrixCombination; fromBase: boolean };
+
+function buildCombinations(axes: ParsedAxis[]): MatrixCombination[] {
+  if (axes.length === 0) return [];
   return axes.reduce<MatrixCombination[]>((current, axis) => {
-    const values = splitValues(axis.values);
-
-    if (current.length === 0) {
-      return values.map((value) => ({
-        [axis.name]: value,
-      }));
-    }
-
-    return current.flatMap((combination) =>
-      values.map((value) => ({
-        ...combination,
-        [axis.name]: value,
-      }))
-    );
+    if (current.length === 0) return axis.parsedValues.map((value) => ({ [axis.name]: value }));
+    const next: MatrixCombination[] = [];
+    current.forEach((combination) => {
+      axis.parsedValues.forEach((value) => {
+        next.push({ ...combination, [axis.name]: value });
+      });
+    });
+    return next;
   }, []);
 }
 
-function splitValues(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+function applyIncludeRules(base: MatrixCombination[], includeRules: MatrixCombination[], axisNames: string[]): MatrixCombination[] {
+  const axisSet = new Set(axisNames);
+  const entries: ExpansionEntry[] = base.map((combination) => ({ original: { ...combination }, values: { ...combination }, fromBase: true }));
+  for (const include of includeRules) {
+    let applied = false;
+    for (const entry of entries) {
+      if (!entry.fromBase) continue;
+      const compatible = Object.entries(include).every(([key, value]) => !axisSet.has(key) || !(key in entry.original) || scalarEqual(entry.original[key], value));
+      if (compatible) {
+        entry.values = { ...entry.values, ...include };
+        applied = true;
+      }
+    }
+    if (!applied) entries.push({ original: {}, values: { ...include }, fromBase: false });
+  }
+  return entries.map((entry) => entry.values);
 }
 
-function parseRule(value: string): MatrixCombination {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .reduce<MatrixCombination>((acc, pair) => {
-      const equalsIndex = pair.indexOf("=");
-
-      if (equalsIndex === -1) {
-        return acc;
-      }
-
-      const key = pair.slice(0, equalsIndex).trim();
-      const itemValue = pair.slice(equalsIndex + 1).trim();
-
-      if (key) {
-        acc[key] = itemValue;
-      }
-
-      return acc;
-    }, {});
+function splitValues(value: string): { text: string; quoted: boolean }[] {
+  const tokens: { text: string; quoted: boolean }[] = [];
+  let current = "";
+  let quote: "'" | '"' | null = null;
+  let tokenQuoted = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (quote) {
+      if (char === quote) quote = null;
+      else if (char === "\\" && index + 1 < value.length) { current += value[index + 1]; index += 1; }
+      else current += char;
+      continue;
+    }
+    if (char === "'" || char === '"') { quote = char; tokenQuoted = true; continue; }
+    if (char === ",") {
+      if (current.trim() || tokenQuoted) tokens.push({ text: current.trim(), quoted: tokenQuoted });
+      current = ""; tokenQuoted = false; continue;
+    }
+    current += char;
+  }
+  if (current.trim() || tokenQuoted) tokens.push({ text: current.trim(), quoted: tokenQuoted });
+  return tokens;
 }
 
-function doesRuleMatch(
-  combination: MatrixCombination,
-  rule: MatrixCombination
-) {
-  return Object.entries(rule).every(([key, value]) => combination[key] === value);
+function parseRule(value: string, keepStrings: boolean): MatrixCombination {
+  return splitValues(value).reduce<MatrixCombination>((acc, token) => {
+    const equalsIndex = token.text.indexOf("=");
+    if (equalsIndex === -1) return acc;
+    const key = token.text.slice(0, equalsIndex).trim();
+    const rawValue = token.text.slice(equalsIndex + 1).trim();
+    if (key) acc[key] = parseMatrixScalar({ text: rawValue, quoted: token.quoted }, keepStrings);
+    return acc;
+  }, {});
+}
+
+function parseMatrixScalar(token: { text: string; quoted: boolean }, keepStrings: boolean): MatrixScalar {
+  if (keepStrings || token.quoted) return token.text;
+  if (token.text === "true") return true;
+  if (token.text === "false") return false;
+  if (token.text === "null") return null;
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(token.text)) {
+    const numeric = Number(token.text);
+    if (Number.isFinite(numeric) && Number.isSafeInteger(numeric) === (Number.isInteger(numeric))) return numeric;
+    if (Number.isFinite(numeric) && !Number.isInteger(numeric)) return numeric;
+  }
+  return token.text;
+}
+
+function doesRuleMatch(combination: MatrixCombination, rule: MatrixCombination): boolean {
+  return Object.entries(rule).every(([key, value]) => key in combination && scalarEqual(combination[key], value));
+}
+
+function scalarEqual(left: MatrixScalar, right: MatrixScalar): boolean {
+  return Object.is(left, right);
 }
 
 function buildMatrixYaml({
@@ -1089,151 +1022,84 @@ function buildMatrixYaml({
   maxParallel,
   quoteValues,
 }: {
-  axes: MatrixAxis[];
+  axes: ParsedAxis[];
   includeRules: MatrixCombination[];
   excludeRules: MatrixCombination[];
   failFast: boolean;
   maxParallel: string;
   quoteValues: boolean;
-}) {
+}): string {
   const lines = ["strategy:", `  fail-fast: ${failFast ? "true" : "false"}`];
-
-  if (maxParallel.trim()) {
-    lines.push(`  max-parallel: ${maxParallel.trim()}`);
-  }
-
+  if (maxParallel) lines.push(`  max-parallel: ${maxParallel}`);
   lines.push("  matrix:");
-
-  if (axes.length === 0) {
-    lines.push("    # Add at least one matrix axis");
-  }
-
   axes.forEach((axis) => {
-    lines.push(`    ${axis.name}:`);
-    splitValues(axis.values).forEach((value) => {
-      lines.push(`      - ${formatYamlValue(value, quoteValues)}`);
-    });
+    lines.push(`    ${formatYamlKey(axis.name)}:`);
+    axis.parsedValues.forEach((value) => lines.push(`      - ${formatYamlValue(value, quoteValues)}`));
   });
-
-  if (includeRules.length > 0) {
-    lines.push("    include:");
-    includeRules.forEach((rule) => {
-      const entries = Object.entries(rule);
-      entries.forEach(([key, value], index) => {
-        if (index === 0) {
-          lines.push(`      - ${key}: ${formatYamlValue(value, quoteValues)}`);
-        } else {
-          lines.push(`        ${key}: ${formatYamlValue(value, quoteValues)}`);
-        }
-      });
-    });
-  }
-
-  if (excludeRules.length > 0) {
-    lines.push("    exclude:");
-    excludeRules.forEach((rule) => {
-      const entries = Object.entries(rule);
-      entries.forEach(([key, value], index) => {
-        if (index === 0) {
-          lines.push(`      - ${key}: ${formatYamlValue(value, quoteValues)}`);
-        } else {
-          lines.push(`        ${key}: ${formatYamlValue(value, quoteValues)}`);
-        }
-      });
-    });
-  }
-
+  if (includeRules.length > 0) appendRules(lines, "include", includeRules, quoteValues);
+  if (excludeRules.length > 0) appendRules(lines, "exclude", excludeRules, quoteValues);
+  if (axes.length === 0 && includeRules.length === 0) lines.push("    # Add an axis or include-only combination");
   return lines.join("\n");
 }
 
-function buildJobYaml({
-  jobName,
-  runnerExpression,
-  matrixYaml,
-}: {
-  jobName: string;
-  runnerExpression: string;
-  matrixYaml: string;
-}) {
-  const indentedMatrix = matrixYaml
-    .split("\n")
-    .map((line) => `    ${line}`)
-    .join("\n");
+function appendRules(lines: string[], key: "include" | "exclude", rules: MatrixCombination[], quoteValues: boolean): void {
+  lines.push(`    ${key}:`);
+  rules.forEach((rule) => {
+    const entries = Object.entries(rule);
+    if (entries.length === 0) { lines.push("      - {}"); return; }
+    entries.forEach(([name, value], index) => {
+      const prefix = index === 0 ? "      - " : "        ";
+      lines.push(`${prefix}${formatYamlKey(name)}: ${formatYamlValue(value, quoteValues)}`);
+    });
+  });
+}
 
+function buildJobYaml({ jobName, jobNameValid, runnerExpression, matrixYaml }: { jobName: string; jobNameValid: boolean; runnerExpression: string; matrixYaml: string }): string {
+  if (!jobNameValid) return ["# Fix the Job Name before using this snippet.", "# GitHub job IDs must start with a letter or _ and contain only letters, numbers, - or _.", "", matrixYaml].join("\n");
+  const indentedMatrix = matrixYaml.split("\n").map((line) => `    ${line}`).join("\n");
   return [
     "jobs:",
     `  ${jobName}:`,
     `    runs-on: ${runnerExpression}`,
     indentedMatrix,
     "    steps:",
-    "      - name: Checkout repository",
-    "        uses: actions/checkout@v4",
-    "",
-    "      - name: Run matrix job",
-    "        run: echo \"Running matrix job\"",
+    "      # Add the steps required by this job.",
   ].join("\n");
 }
 
-function formatYamlValue(value: string, quoteValues: boolean) {
-  const needsQuote =
-    quoteValues ||
-    value.includes(":") ||
-    value.includes("#") ||
-    value.includes("{") ||
-    value.includes("}") ||
-    value === "true" ||
-    value === "false" ||
-    value === "null";
-
-  if (!needsQuote) {
-    return value;
-  }
-
-  return `"${value.replace(/"/g, '\\"')}"`;
+function formatYamlKey(value: string): string {
+  return /^[A-Za-z_][A-Za-z0-9_-]*$/.test(value) ? value : JSON.stringify(value);
 }
 
-function getMatrixNotes(result: MatrixResult): MatrixNote[] {
-  const notes: MatrixNote[] = [];
-
-  if (result.axes.length === 0) {
-    notes.push({
-      title: "No matrix axes",
-      message:
-        "Add at least one axis such as os, node-version, or python-version.",
-    });
-  }
-
-  if (result.totalAfterExclude > 20) {
-    notes.push({
-      title: "Large matrix",
-      message:
-        "This matrix creates more than 20 jobs. That may slow down pull request checks or use more CI minutes.",
-    });
-  }
-
-  if (result.excludeRules.length > 0 && result.totalBeforeExclude === result.totalAfterExclude) {
-    notes.push({
-      title: "Exclude rules may not match",
-      message:
-        "Exclude rules were added, but the final job count did not change. Check whether the keys and values match the matrix axes.",
-    });
-  }
-
-  if (result.includeRules.length > 0) {
-    notes.push({
-      title: "Include rules added",
-      message:
-        "Include rules can add extra combinations or fields that are not part of the base matrix.",
-    });
-  }
-
-  if (result.axes.some((axis) => splitValues(axis.values).length === 1)) {
-    notes.push({
-      title: "Single-value axis",
-      message:
-        "One axis has only one value. That is valid, but it may not need to be part of the matrix.",
-    });
-  }
-
-  return notes;
+function formatYamlValue(value: MatrixScalar, keepStrings: boolean): string {
+  if (value === null) return "null";
+  if (typeof value === "boolean" || typeof value === "number") return String(value);
+  if (keepStrings) return JSON.stringify(value);
+  const needsQuote = value === "" || /^[-?:,\[\]{}#&*!|>'\"%@`]/.test(value) || /:\s|\s#/.test(value) || /^(?:true|false|null|~)$/i.test(value) || /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(value);
+  return needsQuote ? JSON.stringify(value) : value;
 }
+
+function formatPreviewValue(value: MatrixScalar | undefined): string {
+  if (value === undefined) return "";
+  if (value === null) return "null";
+  if (typeof value === "string") return value;
+  return String(value);
+}
+
+function findDuplicates(values: string[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  values.forEach((value) => { if (seen.has(value)) duplicates.add(value); else seen.add(value); });
+  return [...duplicates];
+}
+
+function compareText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function noteClassNames(severity: MatrixNote["severity"]): { card: string; title: string; body: string } {
+  if (severity === "high") return { card: "border-red-200 bg-red-50", title: "text-red-900", body: "text-red-800" };
+  if (severity === "warning") return { card: "border-amber-200 bg-amber-50", title: "text-amber-900", body: "text-amber-800" };
+  return { card: "border-gray-200 bg-gray-50", title: "text-gray-900", body: "text-gray-600" };
+}
+

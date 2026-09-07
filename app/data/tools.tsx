@@ -922,7 +922,7 @@ export const tools = [
 {
   title: "GitHub Actions Matrix Builder",
   description:
-    "Build GitHub Actions strategy matrix YAML with OS runners, versions, include rules, and exclude rules.",
+    "Generate strategy matrices with GitHub-accurate include/exclude expansion, scalar typing, concurrency controls, and job limits.",
   href: "/tools/github-actions-matrix-builder",
   category: "DevOps Tools",
 },
@@ -1340,7 +1340,7 @@ export const tools = [
 {
   title: "Dockerfile Instruction Explainer",
   description:
-    "Explain Dockerfile instructions, review common Dockerfile mistakes, and generate summaries, JSON, Markdown, CSV, or checklist output.",
+    "Interpret Dockerfile instructions across parser directives, build stages, runtime settings, and security-sensitive choices.",
   href: "/tools/dockerfile-instruction-explainer",
   category: "DevOps Tools",
 },
@@ -1348,7 +1348,7 @@ export const tools = [
 {
   title: "Docker Compose Service Dependency Visualizer",
   description:
-    "Visualize Docker Compose service dependencies from depends_on, links, ports, networks, and environment hints with Mermaid, JSON, Markdown, CSV, and checklist output.",
+    "Trace Compose startup dependencies, shared namespaces, legacy links, and inferred service connections from YAML.",
   href: "/tools/docker-compose-service-dependency-visualizer",
   category: "DevOps Tools",
 },

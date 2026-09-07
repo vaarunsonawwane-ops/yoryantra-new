@@ -2,37 +2,30 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Dockerfile Instruction Explainer | Explain Dockerfile Commands Online | Yoryantra",
+  title: "Dockerfile Instruction Explainer | Yoryantra",
   description:
-    "Explain Dockerfile instructions such as FROM, RUN, COPY, ADD, CMD, ENTRYPOINT, ENV, ARG, EXPOSE, WORKDIR, USER, HEALTHCHECK, and common Dockerfile mistakes.",
+    "Explain Dockerfile instructions, parser directives, build stages, runtime commands, base-image pinning, and stage-specific review concerns.",
   keywords: [
-    "Dockerfile Instruction Explainer",
-    "Dockerfile explainer",
-    "Dockerfile commands explained",
-    "Dockerfile analyzer",
-    "Dockerfile instruction checker",
-    "Dockerfile best practices",
-    "Dockerfile RUN COPY CMD ENTRYPOINT",
-    "Dockerfile security checker",
-    "DevOps tools",
-    "Docker tools",
+    "Dockerfile instruction explainer",
+    "Dockerfile parser directives",
+    "Dockerfile CMD ENTRYPOINT",
+    "Dockerfile USER",
+    "Dockerfile build stages",
   ],
-  alternates: {
-    canonical: "https://yoryantra.com/tools/dockerfile-instruction-explainer",
-  },
+  alternates: { canonical: "https://yoryantra.com/tools/dockerfile-instruction-explainer" },
   openGraph: {
-    title: "Dockerfile Instruction Explainer | Explain Dockerfile Commands Online | Yoryantra",
+    title: "Dockerfile Instruction Explainer | Yoryantra",
     description:
-      "Explain Dockerfile instructions such as FROM, RUN, COPY, ADD, CMD, ENTRYPOINT, ENV, ARG, EXPOSE, WORKDIR, USER, HEALTHCHECK, and common Dockerfile mistakes.",
+      "Read Dockerfile instructions with stage-aware explanations, parser-directive handling, runtime behavior, and review boundaries.",
     url: "https://yoryantra.com/tools/dockerfile-instruction-explainer",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dockerfile Instruction Explainer | Explain Dockerfile Commands Online | Yoryantra",
+    title: "Dockerfile Instruction Explainer | Yoryantra",
     description:
-      "Explain Dockerfile instructions such as FROM, RUN, COPY, ADD, CMD, ENTRYPOINT, ENV, ARG, EXPOSE, WORKDIR, USER, HEALTHCHECK, and common Dockerfile mistakes.",
+      "Read Dockerfile instructions with stage-aware explanations, parser-directive handling, runtime behavior, and review boundaries.",
   },
 };
 

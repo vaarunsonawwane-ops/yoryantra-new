@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { parseDocument } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -9,22 +10,32 @@ type OutputMode = "summary" | "mermaid" | "json" | "markdown" | "csv" | "checkli
 type ParseMode = "balanced" | "strict" | "loose";
 type GraphDirection = "TD" | "LR";
 
+type ComposeDependency = {
+  name: string;
+  condition: "service_started" | "service_healthy" | "service_completed_successfully" | string;
+  required: boolean;
+  restart: boolean;
+};
+
 type ComposeService = {
   name: string;
   image: string;
   build: string;
   dependsOn: string[];
+  dependencies: ComposeDependency[];
   links: string[];
+  namespaceRefs: string[];
   networks: string[];
   ports: string[];
   environment: string[];
-  lineNumber: number;
+  hasHealthcheck: boolean;
 };
 
 type DependencyEdge = {
   from: string;
   to: string;
-  type: "depends_on" | "links" | "env_hint";
+  type: "depends_on" | "links" | "namespace_ref" | "env_hint";
+  detail: string;
 };
 
 type Issue = {
@@ -53,8 +64,10 @@ const sampleCompose = `services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/app
       REDIS_URL: redis://redis:6379
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - backend
 
@@ -68,6 +81,8 @@ const sampleCompose = `services:
 
   db:
     image: postgres:16
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
     ports:
       - "5432:5432"
     networks:
@@ -181,7 +196,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Docker Compose Service Dependency Visualizer"
-      description="Visualize Docker Compose service dependencies from pasted compose YAML. Extract services, depends_on, links, ports, networks, and generate Mermaid graphs, summaries, JSON, Markdown, CSV, and checklists."
+      description="Map Compose service relationships while separating startup dependencies from network and environment hints."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -235,9 +250,9 @@ export default function ToolClient() {
                 clearResult();
               }}
               options={[
-                { label: "Balanced", value: "balanced" },
-                { label: "Strict indentation", value: "strict" },
-                { label: "Loose route-style parsing", value: "loose" },
+                { label: "Full file or services block", value: "balanced" },
+                { label: "Require top-level services", value: "strict" },
+                { label: "Treat root as services block", value: "loose" },
               ]}
             />
 
@@ -257,7 +272,7 @@ export default function ToolClient() {
             <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
               <p className="text-sm font-medium text-gray-700">Extracted from</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {["services", "depends_on", "links", "ports", "networks", "environment"].map((item) => (
+                {["services", "depends_on", "namespace refs", "links", "ports", "networks", "environment"].map((item) => (
                   <span key={item} className="rounded-full border border-gray-200 bg-white px-2.5 py-1 font-mono text-xs text-gray-500">
                     {item}
                   </span>
@@ -274,31 +289,31 @@ export default function ToolClient() {
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <CheckboxRow checked={includeLinks} label="Include legacy links as dependency edges" onChange={(checked) => { setIncludeLinks(checked); clearResult(); }} />
           <CheckboxRow checked={includeEnvHints} label="Infer dependency hints from environment URLs" onChange={(checked) => { setIncludeEnvHints(checked); clearResult(); }} />
-          <CheckboxRow checked={warnMissingDependsOn} label="Warn when environment hints are missing depends_on" onChange={(checked) => { setWarnMissingDependsOn(checked); clearResult(); }} />
+          <CheckboxRow checked={warnMissingDependsOn} label="Flag environment host hints without explicit depends_on" onChange={(checked) => { setWarnMissingDependsOn(checked); clearResult(); }} />
           <CheckboxRow checked={warnLinksUsage} label="Warn when links is used" onChange={(checked) => { setWarnLinksUsage(checked); clearResult(); }} />
           <CheckboxRow checked={warnPublicDatabasePorts} label="Warn about publicly mapped database/cache ports" onChange={(checked) => { setWarnPublicDatabasePorts(checked); clearResult(); }} />
           <CheckboxRow checked={warnDependencyCycles} label="Warn about dependency cycles" onChange={(checked) => { setWarnDependencyCycles(checked); clearResult(); }} />
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          This tool uses practical text parsing for common Compose files. It does not run Docker or validate against every Compose schema detail.
+          YAML is parsed structurally in the browser. Compose interpolation, profiles, extends, include files, and runtime resolution are not executed here.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={visualizeDependencies} className="yoryantra-btn">
+        <button onClick={visualizeDependencies} className="yoryantra-btn min-h-[44px] whitespace-nowrap">
           Visualize Dependencies
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-[44px] whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -351,17 +366,16 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Compose findings</h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {result.issues.map((issue, index) => {
+            const classes = issueClassNames(issue.severity);
+            return (
+              <div key={`${issue.title}-${index}`} className={`${classes.card} self-start rounded-xl border p-4`}>
+                <p className={`text-sm font-semibold ${classes.title}`}>{issue.title}</p>
+                <p className={`mt-1 text-sm leading-relaxed ${classes.body}`}>{issue.message}</p>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 
@@ -385,7 +399,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -396,101 +410,63 @@ export default function ToolClient() {
         </pre>
       </div>
 
+      <div className="mt-5 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Compose text is parsed in your browser. Nothing is sent to Docker, a registry, or a Yoryantra server by this page.
+      </div>
+
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Visualizing Docker Compose Service Dependencies</h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Read the graph as several different kinds of relationship</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Docker Compose files can grow quickly. Once services depend on databases, queues, workers, cache services, and internal networks, it becomes harder to understand startup order and service relationships by reading YAML alone.
+            A Compose file can describe startup ordering, shared namespaces, published ports, network membership, and application-level connection strings. Those signals are related, but they do not mean the same thing. The graph keeps formal <code className="font-mono">depends_on</code> edges separate from legacy links, service namespace references, and environment-derived hints.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Docker Compose Service Dependency Visualizer extracts services, depends_on entries, legacy links, ports, networks, and environment-based hints, then turns them into summaries, Mermaid graphs, JSON, Markdown, CSV, or review checklists.
+            That distinction matters when debugging startup problems. A database hostname inside <code className="font-mono">DATABASE_URL</code> suggests an application connection, but it does not create Compose startup ordering by itself.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Compose Dependency Visualizer</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a full docker-compose.yml file or just the services section.</li>
-            <li>Choose the output format and graph direction.</li>
-            <li>Enable dependency hints from links or environment URLs if useful.</li>
-            <li>Review extracted services, dependencies, ports, and warnings.</li>
-            <li>Copy the summary, Mermaid graph, JSON, Markdown, CSV, or checklist output.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">What Compose actually guarantees for depends_on</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Short-form <code className="font-mono">depends_on</code> establishes dependency order, but it does not wait for a service to become healthy. Long syntax can require <code className="font-mono">service_healthy</code> or <code className="font-mono">service_completed_successfully</code>. The parser preserves those conditions so a graph does not flatten every dependency into the same promise.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Application retries still matter. Even a well-ordered container startup is not a substitute for handling delayed network availability, database recovery, or an unhealthy dependency.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">What This Tool Looks For</h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>services</strong> that define containers in the Compose file.</li>
-            <li><strong>depends_on</strong> relationships between services.</li>
-            <li><strong>links</strong> as older-style dependency hints.</li>
-            <li><strong>ports</strong> that expose service ports to the host.</li>
-            <li><strong>networks</strong> used by each service.</li>
-            <li><strong>environment URLs</strong> that mention another service name.</li>
+          <h2 className="text-xl font-semibold text-gray-900">Signals that are informative rather than authoritative</h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-gray-600 leading-relaxed">
+            <li><strong>Environment hints:</strong> service names found inside values such as database or Redis URLs are inferred application relationships.</li>
+            <li><strong>links:</strong> these can express service reachability aliases, but modern Compose networking normally makes explicit links unnecessary.</li>
+            <li><strong>network_mode / ipc / pid service references:</strong> these share another service&apos;s namespace and are shown separately from startup dependencies.</li>
+            <li><strong>ports:</strong> entries under <code className="font-mono">ports</code> publish container ports to the host; they are not service-to-service dependency declarations.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Mermaid Graph</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`graph LR
-  app --> db
-  app --> redis
-  worker --> redis`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">depends_on Does Not Mean Ready</h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Where this browser analysis stops</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            In Compose, dependency order does not always mean the database, cache, or service is fully ready to accept traffic. Apps should still handle retries, connection delays, and readiness checks.
+            The YAML document is parsed, but Compose interpolation, profile activation, <code className="font-mono">extends</code>, external include files, image metadata, and live container state are not resolved. Treat the graph as a structural reading of the pasted document, then confirm runtime behavior with <code className="font-mono">docker compose config</code>, health status, and logs.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Use this visualizer to understand relationships, then confirm runtime behavior with logs, health checks, and real startup tests.
+            Docker&apos;s Compose service reference is the useful authority for <code className="font-mono">depends_on</code> conditions and service-level networking behavior: <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://docs.docker.com/reference/compose-file/services/" target="_blank" rel="noreferrer">Docker Compose services reference</a>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-
-          <div className="mt-5 space-y-6">
-            <Faq title="What does a Docker Compose dependency visualizer do?">
-              It extracts Compose services and dependencies so you can understand relationships between app, database, cache, worker, and other services.
-            </Faq>
-
-            <Faq title="Does this run Docker Compose?">
-              No. It only analyzes pasted YAML text in your browser.
-            </Faq>
-
-            <Faq title="Can it generate Mermaid diagrams?">
-              Yes. Choose Mermaid graph output and paste the result into a Markdown tool that supports Mermaid.
-            </Faq>
-
-            <Faq title="Does depends_on wait for the service to be ready?">
-              Not always. Startup order and readiness are different. Use health checks and app retries when needed.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I visualize dependencies?">
-              No. Parsing runs directly in your browser.
-            </Faq>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Mermaid output is intentionally presentation-only</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Mermaid output gives every service a generated node identifier and keeps the original service name as a quoted label. This avoids collisions when names contain punctuation and prevents a service name from being interpreted as Mermaid syntax.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/docker-compose-service-dependency-visualizer" />
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/docker-compose-service-dependency-visualizer" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -520,15 +496,6 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}
-
 function buildResult(options: {
   composeText: string;
   outputMode: OutputMode;
@@ -544,138 +511,184 @@ function buildResult(options: {
   const services = parseServices(options.composeText, options.parseMode);
   const edges = buildEdges(services, options.includeLinks, options.includeEnvHints);
   const issues = buildIssues(services, edges, options);
-  const networks = new Set(services.flatMap((service) => service.networks));
+  const networks = new Set(services.reduce<string[]>((all, service) => all.concat(service.networks), []));
   const base = {
     services,
     edges,
     issues,
     serviceCount: services.length,
-    dependencyCount: edges.length,
+    dependencyCount: edges.filter((edge) => edge.type === "depends_on").length,
     portCount: services.reduce((total, service) => total + service.ports.length, 0),
     networkCount: networks.size,
   };
-  const output = formatOutput(base, options.outputMode, options.graphDirection);
 
   return {
     ...base,
-    output,
+    output: formatOutput(base, options.outputMode, options.graphDirection),
   };
 }
 
-function parseServices(text: string, parseMode: ParseMode) {
-  const lines = text.split(/\r?\n/);
-  const services: ComposeService[] = [];
-  const serviceIndent = findServiceIndent(lines);
-  let current: ComposeService | null = null;
-  let activeKey = "";
-
-  lines.forEach((line, index) => {
-    const lineNumber = index + 1;
-    const raw = line.replace(/\t/g, "  ");
-    const trimmed = raw.trim();
-
-    if (!trimmed || trimmed.startsWith("#")) return;
-
-    const indent = raw.length - raw.trimStart().length;
-    const serviceMatch = raw.match(new RegExp(`^\\\\s{${serviceIndent}}([A-Za-z0-9._-]+):\\\\s*$`));
-
-    if (serviceMatch && !["services", "networks", "volumes", "configs", "secrets"].includes(serviceMatch[1])) {
-      current = {
-        name: serviceMatch[1],
-        image: "",
-        build: "",
-        dependsOn: [],
-        links: [],
-        networks: [],
-        ports: [],
-        environment: [],
-        lineNumber,
-      };
-      services.push(current);
-      activeKey = "";
-      return;
-    }
-
-    if (!current || indent <= serviceIndent) return;
-
-    const keyMatch = trimmed.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
-
-    if (keyMatch) {
-      const key = keyMatch[1];
-      const value = stripQuotes(keyMatch[2].trim());
-      activeKey = key;
-
-      if (key === "image") current.image = value;
-      else if (key === "build") current.build = value || ".";
-      else if (key === "depends_on" && value) current.dependsOn.push(...splitInlineList(value));
-      else if (key === "links" && value) current.links.push(...splitInlineList(value));
-      else if (key === "networks" && value) current.networks.push(...splitInlineList(value));
-      else if (key === "ports" && value) current.ports.push(...splitInlineList(value));
-      else if (key === "environment" && value) current.environment.push(value);
-
-      return;
-    }
-
-    const listMatch = trimmed.match(/^-\s*(.+)$/);
-
-    if (listMatch) {
-      const value = stripQuotes(listMatch[1].trim());
-
-      if (activeKey === "depends_on") current.dependsOn.push(cleanDependencyName(value));
-      else if (activeKey === "links") current.links.push(cleanDependencyName(value));
-      else if (activeKey === "networks") current.networks.push(cleanDependencyName(value));
-      else if (activeKey === "ports") current.ports.push(value);
-      else if (activeKey === "environment") current.environment.push(value);
-      return;
-    }
-
-    if (activeKey === "environment" && trimmed.includes(":")) {
-      current.environment.push(trimmed);
-    }
-  });
-
-  return parseMode === "strict" ? services.filter((service) => service.name) : services;
-}
-
-function findServiceIndent(lines: string[]) {
-  const servicesLine = lines.findIndex((line) => /^\s*services:\s*$/.test(line));
-
-  if (servicesLine === -1) return 2;
-
-  for (let index = servicesLine + 1; index < lines.length; index += 1) {
-    const match = lines[index].match(/^(\s+)[A-Za-z0-9._-]+:\s*$/);
-
-    if (match) return match[1].length;
+function parseServices(text: string, parseMode: ParseMode): ComposeService[] {
+  const document = parseDocument(text, { prettyErrors: true });
+  if (document.errors.length > 0) {
+    throw new Error(document.errors.map((item) => item.message).join("\n"));
   }
 
-  return 2;
+  let root: unknown;
+  try {
+    root = document.toJS({ maxAliasCount: 100 });
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : "Unable to expand this YAML document safely.");
+  }
+
+  if (!isRecord(root)) {
+    throw new Error("Compose input must be a YAML mapping.");
+  }
+
+  let serviceRoot: Record<string, unknown>;
+  if (parseMode === "loose") {
+    serviceRoot = isRecord(root.services) ? root.services : root;
+  } else if (isRecord(root.services)) {
+    serviceRoot = root.services;
+  } else if (parseMode === "strict") {
+    throw new Error("Strict mode requires a top-level services mapping.");
+  } else {
+    serviceRoot = root;
+  }
+
+  const services: ComposeService[] = [];
+  for (const [name, rawService] of Object.entries(serviceRoot)) {
+    if (["version", "name", "networks", "volumes", "configs", "secrets", "include"].includes(name)) {
+      continue;
+    }
+
+    if (!isRecord(rawService)) {
+      if (parseMode === "strict") {
+        throw new Error(`Service ${name} must be a mapping.`);
+      }
+      continue;
+    }
+
+    const dependencies = parseDependsOn(rawService.depends_on);
+    const networks = parseNames(rawService.networks);
+    const networkMode = scalarText(rawService.network_mode);
+    const namespaceRefs = [networkMode, scalarText(rawService.ipc), scalarText(rawService.pid)]
+      .map(extractServiceReference)
+      .filter((value): value is string => Boolean(value));
+
+    services.push({
+      name,
+      image: scalarText(rawService.image),
+      build: formatBuild(rawService.build),
+      dependsOn: dependencies.map((item) => item.name),
+      dependencies,
+      links: parseNames(rawService.links).map((item) => item.split(":")[0]),
+      namespaceRefs,
+      networks: networks.length > 0 || networkMode ? networks : ["default"],
+      ports: parsePorts(rawService.ports),
+      environment: parseEnvironment(rawService.environment),
+      hasHealthcheck: isRecord(rawService.healthcheck) && rawService.healthcheck.disable !== true,
+    });
+  }
+
+  if (services.length === 0) {
+    throw new Error("No Compose services were found in this YAML mapping.");
+  }
+
+  return services;
 }
 
-function buildEdges(services: ComposeService[], includeLinks: boolean, includeEnvHints: boolean) {
-  const serviceNames = new Set(services.map((service) => service.name));
+function parseDependsOn(value: unknown): ComposeDependency[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => scalarText(item))
+      .filter(Boolean)
+      .map((name) => ({ name, condition: "service_started", required: true, restart: false }));
+  }
+
+  if (!isRecord(value)) return [];
+  return Object.entries(value).map(([name, config]) => {
+    if (!isRecord(config)) {
+      return { name, condition: "service_started", required: true, restart: false };
+    }
+    return {
+      name,
+      condition: scalarText(config.condition) || "service_started",
+      required: config.required !== false,
+      restart: config.restart === true,
+    };
+  });
+}
+
+function parseNames(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(scalarText).filter(Boolean);
+  if (isRecord(value)) return Object.keys(value);
+  const single = scalarText(value);
+  return single ? [single] : [];
+}
+
+function parsePorts(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    if (!isRecord(entry)) return scalarText(entry);
+    const target = scalarText(entry.target);
+    const published = scalarText(entry.published);
+    const hostIp = scalarText(entry.host_ip);
+    const protocol = scalarText(entry.protocol) || "tcp";
+    const binding = [hostIp, published, target].filter(Boolean).join(":");
+    return binding ? `${binding}/${protocol}` : JSON.stringify(entry);
+  }).filter(Boolean);
+}
+
+function parseEnvironment(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(scalarText).filter(Boolean);
+  if (!isRecord(value)) return [];
+  return Object.entries(value).map(([key, item]) => `${key}=${scalarText(item)}`);
+}
+
+function formatBuild(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (!isRecord(value)) return "";
+  const context = scalarText(value.context) || ".";
+  const dockerfile = scalarText(value.dockerfile);
+  const target = scalarText(value.target);
+  return [context, dockerfile ? `dockerfile=${dockerfile}` : "", target ? `target=${target}` : ""].filter(Boolean).join("; ");
+}
+
+function buildEdges(services: ComposeService[], includeLinks: boolean, includeEnvHints: boolean): DependencyEdge[] {
+  const names = new Set(services.map((service) => service.name));
   const edges: DependencyEdge[] = [];
+  const add = (edge: DependencyEdge) => {
+    if (!names.has(edge.to) || edge.from === edge.to) return;
+    if (!edges.some((item) => item.from === edge.from && item.to === edge.to && item.type === edge.type)) edges.push(edge);
+  };
 
   services.forEach((service) => {
-    service.dependsOn.forEach((dependency) => {
-      if (dependency && serviceNames.has(dependency)) {
-        edges.push({ from: service.name, to: dependency, type: "depends_on" });
-      }
-    });
+    service.dependencies.forEach((dependency) => add({
+      from: service.name,
+      to: dependency.name,
+      type: "depends_on",
+      detail: dependency.condition,
+    }));
+
+    service.namespaceRefs.forEach((dependency) => add({
+      from: service.name,
+      to: dependency,
+      type: "namespace_ref",
+      detail: "service namespace",
+    }));
 
     if (includeLinks) {
-      service.links.forEach((dependency) => {
-        if (dependency && serviceNames.has(dependency)) {
-          edges.push({ from: service.name, to: dependency, type: "links" });
-        }
-      });
+      service.links.forEach((dependency) => add({ from: service.name, to: dependency, type: "links", detail: "link" }));
     }
 
     if (includeEnvHints) {
-      service.environment.forEach((envValue) => {
-        serviceNames.forEach((candidate) => {
-          if (candidate !== service.name && new RegExp(`(^|[^A-Za-z0-9_-])${escapeRegExp(candidate)}([^A-Za-z0-9_-]|$)`).test(envValue)) {
-            const exists = edges.some((edge) => edge.from === service.name && edge.to === candidate);
-            if (!exists) edges.push({ from: service.name, to: candidate, type: "env_hint" });
+      service.environment.forEach((environmentValue) => {
+        services.forEach((candidate) => {
+          if (candidate.name === service.name) return;
+          const pattern = new RegExp(`(^|[^A-Za-z0-9_-])${escapeRegExp(candidate.name)}([^A-Za-z0-9_-]|$)`);
+          if (pattern.test(environmentValue)) {
+            add({ from: service.name, to: candidate.name, type: "env_hint", detail: "environment hint" });
           }
         });
       });
@@ -690,229 +703,168 @@ function buildIssues(services: ComposeService[], edges: DependencyEdge[], option
   warnLinksUsage: boolean;
   warnPublicDatabasePorts: boolean;
   warnDependencyCycles: boolean;
-}) {
+}): Issue[] {
   const issues: Issue[] = [];
+  const serviceNames = new Set(services.map((service) => service.name));
+  const missingRequired = services.reduce<string[]>((all, service) => all.concat(service.dependencies.filter((dependency) => dependency.required && !serviceNames.has(dependency.name)).map((dependency) => `${service.name} → ${dependency.name}`)), []);
+  const missingOptional = services.reduce<string[]>((all, service) => all.concat(service.dependencies.filter((dependency) => !dependency.required && !serviceNames.has(dependency.name)).map((dependency) => `${service.name} → ${dependency.name}`)), []);
+  if (missingRequired.length > 0) {
+    issues.push({ severity: "high", title: "Required depends_on targets are missing", message: missingRequired.join(", ") });
+  }
+  if (missingOptional.length > 0) {
+    issues.push({ severity: "info", title: "Optional depends_on targets are absent", message: `${missingOptional.join(", ")}. These entries use required: false, so Compose treats absence differently from a required dependency.` });
+  }
 
-  if (services.length === 0) {
-    issues.push({
-      severity: "warning",
-      title: "No services found",
-      message: "No Docker Compose services were found. Paste a services block or full compose file.",
-    });
+  const unhealthy = services.reduce<string[]>((all, service) => all.concat(service.dependencies.filter((dependency) => dependency.condition === "service_healthy").filter((dependency) => {
+    const target = services.find((candidate) => candidate.name === dependency.name);
+    return Boolean(target && !target.hasHealthcheck);
+  }).map((dependency) => `${service.name} → ${dependency.name}`)), []);
+  if (unhealthy.length > 0) {
+    issues.push({ severity: "info", title: "service_healthy with no Compose-declared healthcheck", message: `No healthcheck is declared for these dependency services in the pasted Compose file: ${unhealthy.join(", ")}. The referenced image may still define one, which this page cannot inspect.` });
   }
 
   if (options.warnLinksUsage && services.some((service) => service.links.length > 0)) {
-    issues.push({
-      severity: "info",
-      title: "links found",
-      message: "links is older Compose style. Most projects can use service names on shared networks instead.",
-    });
+    issues.push({ severity: "info", title: "links entries found", message: "Links can add aliases, but services on a shared Compose network can normally reach each other by service name without links." });
   }
 
   if (options.warnMissingDependsOn) {
-    const hinted = edges.filter((edge) => edge.type === "env_hint");
-    if (hinted.length > 0) {
-      issues.push({
-        severity: "info",
-        title: "Environment dependency hints found",
-        message: "Some dependencies were inferred from environment values. Confirm whether depends_on or startup retry logic is needed.",
-      });
+    const hints = edges.filter((edge) => edge.type === "env_hint" && !edges.some((candidate) => candidate.from === edge.from && candidate.to === edge.to && candidate.type === "depends_on"));
+    if (hints.length > 0) {
+      issues.push({ severity: "info", title: "Connection hints without startup ordering", message: `${hints.map((edge) => `${edge.from} → ${edge.to}`).join(", ")}. This may be intentional: depends_on controls dependency order, not ordinary network reachability.` });
     }
   }
 
   if (options.warnPublicDatabasePorts) {
-    const risky = services.filter((service) =>
-      /(postgres|mysql|mariadb|mongo|redis|db|database|cache)/i.test(`${service.name} ${service.image}`) &&
-      service.ports.some((port) => port.includes(":"))
-    );
-
-    if (risky.length > 0) {
-      issues.push({
-        severity: "warning",
-        title: "Database or cache ports mapped to host",
-        message: `These services expose ports to the host: ${risky.map((service) => service.name).join(", ")}. Confirm this is intentional.`,
-      });
+    const published = services.filter((service) => /(postgres|mysql|mariadb|mongo|redis|db|database|cache)/i.test(`${service.name} ${service.image}`) && service.ports.length > 0);
+    if (published.length > 0) {
+      issues.push({ severity: "warning", title: "Database or cache ports are published to the host", message: `Review whether host publication is required for: ${published.map((service) => service.name).join(", ")}. Internal Compose traffic usually does not need a host port.` });
     }
   }
 
-  if (options.warnDependencyCycles && hasCycle(services.map((service) => service.name), edges)) {
-    issues.push({
-      severity: "warning",
-      title: "Possible dependency cycle",
-      message: "A service dependency cycle was detected. Cycles can make startup order harder to reason about.",
-    });
+  if (options.warnDependencyCycles && hasCycle(services.map((service) => service.name), edges.filter((edge) => edge.type === "depends_on"))) {
+    issues.push({ severity: "warning", title: "depends_on cycle found", message: "Formal dependency edges form a cycle. Review the startup design rather than treating the graph as a simple topological order." });
   }
 
   if (issues.length === 0) {
-    issues.push({
-      severity: "info",
-      title: "Compose dependencies parsed",
-      message: "No obvious dependency warning was found from the enabled checks.",
-    });
+    issues.push({ severity: "info", title: "No enabled finding triggered", message: "The pasted structure parsed cleanly under the checks you enabled. Runtime readiness and application behavior still need real Compose testing." });
   }
-
   return issues;
 }
 
-function hasCycle(nodes: string[], edges: DependencyEdge[]) {
+function hasCycle(nodes: string[], edges: DependencyEdge[]): boolean {
   const graph = new Map<string, string[]>();
-
   nodes.forEach((node) => graph.set(node, []));
-  edges.forEach((edge) => {
-    graph.get(edge.from)?.push(edge.to);
-  });
-
+  edges.forEach((edge) => graph.get(edge.from)?.push(edge.to));
   const visiting = new Set<string>();
   const visited = new Set<string>();
-
   const visit = (node: string): boolean => {
     if (visiting.has(node)) return true;
     if (visited.has(node)) return false;
-
     visiting.add(node);
-
-    for (const next of graph.get(node) || []) {
-      if (visit(next)) return true;
-    }
-
+    for (const next of graph.get(node) || []) if (visit(next)) return true;
     visiting.delete(node);
     visited.add(node);
     return false;
   };
-
-  return nodes.some((node) => visit(node));
+  return nodes.some(visit);
 }
 
-function formatOutput(result: Omit<Result, "output">, mode: OutputMode, direction: GraphDirection) {
-  if (mode === "json") {
-    return JSON.stringify(result, null, 2);
-  }
-
+function formatOutput(result: Omit<Result, "output">, mode: OutputMode, direction: GraphDirection): string {
+  if (mode === "json") return JSON.stringify(result, null, 2);
   if (mode === "mermaid") {
-    return [
-      `graph ${direction}`,
-      ...result.edges.map((edge) => `  ${safeMermaid(edge.from)} -->|${edge.type}| ${safeMermaid(edge.to)}`),
-      ...(result.edges.length === 0 ? result.services.map((service) => `  ${safeMermaid(service.name)}`) : []),
-    ].join("\n");
+    const ids = new Map(result.services.map((service, index) => [service.name, `s${index + 1}`]));
+    const nodes = result.services.map((service) => `  ${ids.get(service.name)}["${escapeMermaidLabel(service.name)}"]`);
+    const edges = result.edges.map((edge) => `  ${ids.get(edge.from)} -->|${escapeMermaidLabel(edge.type)}| ${ids.get(edge.to)}`);
+    return [`graph ${direction}`, ...nodes, ...edges].join("\n");
   }
-
   if (mode === "markdown") {
     return [
-      "| Service | Image / Build | Depends On | Ports | Networks |",
+      "| Service | Image / Build | depends_on | Ports | Networks |",
       "| --- | --- | --- | --- | --- |",
-      ...result.services.map((service) => `| ${service.name} | ${escapeMarkdown(service.image || service.build || "-")} | ${service.dependsOn.join(", ") || "-"} | ${escapeMarkdown(service.ports.join(", ") || "-")} | ${service.networks.join(", ") || "-"} |`),
+      ...result.services.map((service) => `| ${escapeMarkdown(service.name)} | ${escapeMarkdown(service.image || service.build || "-")} | ${escapeMarkdown(service.dependencies.map((item) => `${item.name} (${item.condition})`).join(", ") || "-")} | ${escapeMarkdown(service.ports.join(", ") || "-")} | ${escapeMarkdown(service.networks.join(", ") || "-")} |`),
       "",
       "## Findings",
-      ...result.issues.map((issue) => `- **${issue.title}:** ${issue.message}`),
+      ...result.issues.map((issue) => `- **${escapeMarkdown(issue.title)}:** ${escapeMarkdown(issue.message)}`),
     ].join("\n");
   }
-
   if (mode === "csv") {
-    const rows = [
-      ["service", "image_or_build", "depends_on", "links", "ports", "networks"],
-      ...result.services.map((service) => [
-        service.name,
-        service.image || service.build,
-        service.dependsOn.join("; "),
-        service.links.join("; "),
-        service.ports.join("; "),
-        service.networks.join("; "),
-      ]),
-    ];
-
+    const rows = [["service", "image_or_build", "depends_on", "links", "namespace_refs", "ports", "networks"], ...result.services.map((service) => [service.name, service.image || service.build, service.dependencies.map((item) => `${item.name}:${item.condition}`).join("; "), service.links.join("; "), service.namespaceRefs.join("; "), service.ports.join("; "), service.networks.join("; ")])];
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
-
   if (mode === "checklist") {
     return [
-      "Docker Compose Dependency Review Checklist",
-      "------------------------------------------",
-      "- [ ] Confirm every app service can retry database/cache connections.",
-      "- [ ] Confirm depends_on is used only for startup order, not readiness assumptions.",
-      "- [ ] Confirm host port mappings are needed and safe.",
-      "- [ ] Confirm database and cache services are not exposed publicly by accident.",
-      "- [ ] Confirm services share the networks they need.",
-      "- [ ] Confirm health checks exist where readiness matters.",
+      "Docker Compose dependency review",
+      "--------------------------------",
+      "- [ ] Confirm depends_on conditions match the readiness behavior you expect.",
+      "- [ ] Confirm applications retry dependency connections after startup.",
+      "- [ ] Confirm database/cache host port publication is intentional.",
+      "- [ ] Confirm services share the networks required for service-name DNS.",
+      "- [ ] Confirm namespace-sharing references are deliberate.",
+      "- [ ] Run docker compose config and a real startup test before deployment.",
       "",
       "Findings:",
       ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
     ].join("\n");
   }
-
   return [
-    "Docker Compose Service Dependency Summary",
-    "-----------------------------------------",
+    "Docker Compose dependency summary",
+    "---------------------------------",
     `Services: ${result.serviceCount}`,
-    `Dependencies: ${result.dependencyCount}`,
-    `Ports: ${result.portCount}`,
-    `Networks: ${result.networkCount}`,
+    `Formal depends_on edges: ${result.dependencyCount}`,
+    `Published port entries: ${result.portCount}`,
+    `Networks represented: ${result.networkCount}`,
     "",
-    "Services:",
-    ...result.services.map((service) => `- ${service.name}: depends on ${service.dependsOn.join(", ") || "none"}; ports ${service.ports.join(", ") || "none"}`),
-    "",
-    "Edges:",
-    ...(result.edges.length ? result.edges.map((edge) => `- ${edge.from} -> ${edge.to} (${edge.type})`) : ["- none"]),
+    "Relationships:",
+    ...(result.edges.length > 0 ? result.edges.map((edge) => `- ${edge.from} -> ${edge.to} (${edge.type}${edge.detail ? `; ${edge.detail}` : ""})`) : ["- none"]),
     "",
     "Findings:",
     ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
   ].join("\n");
 }
 
-function splitInlineList(value: string) {
-  const clean = value.replace(/^\[|\]$/g, "").trim();
-  if (!clean) return [];
-  return clean.split(",").map((item) => cleanDependencyName(item.trim())).filter(Boolean);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function cleanDependencyName(value: string) {
-  return stripQuotes(value.split(":")[0].trim());
+function scalarText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return "";
 }
 
-function stripQuotes(value: string) {
-  return value.replace(/^["']|["']$/g, "");
+function extractServiceReference(value: string): string | null {
+  const match = value.match(/^service:(.+)$/);
+  return match ? match[1] : null;
 }
 
-function safeMermaid(value: string) {
-  return value.replace(/[^A-Za-z0-9_]/g, "_");
+function csvEscape(value: string): string {
+  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
-function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-
-  return value;
+function escapeMarkdown(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, "\\n");
 }
 
-function escapeMarkdown(value: string) {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, "\\n");
+function escapeMermaidLabel(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r?\n/g, " ");
 }
 
-function escapeRegExp(value: string) {
+function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function getNotes(result: Result) {
+function issueClassNames(severity: Issue["severity"]): { card: string; title: string; body: string } {
+  if (severity === "high") return { card: "border-red-200 bg-red-50", title: "text-red-900", body: "text-red-800" };
+  if (severity === "warning") return { card: "border-amber-200 bg-amber-50", title: "text-amber-900", body: "text-amber-800" };
+  return { card: "border-gray-200 bg-gray-50", title: "text-gray-900", body: "text-gray-600" };
+}
+
+function getNotes(result: Result): { title: string; message: string }[] {
   const notes: { title: string; message: string }[] = [];
-
-  if (result.edges.length > 0) {
-    notes.push({
-      title: "Dependencies are not readiness checks",
-      message: "depends_on can help order startup, but apps still need retries or health checks when databases and caches take time to become ready.",
-    });
-  }
-
-  if (result.portCount > 0) {
-    notes.push({
-      title: "Review host port mappings",
-      message: "A port mapping like 5432:5432 exposes the service on the host. Keep only the mappings you actually need.",
-    });
-  }
-
-  notes.push({
-    title: "Networks shape service reachability",
-    message: "Services can usually reach each other by service name when they share a Compose network.",
-  });
-
+  const healthyDependencies = result.services.reduce<ComposeDependency[]>((all, service) => all.concat(service.dependencies), []).filter((dependency) => dependency.condition === "service_healthy").length;
+  if (healthyDependencies > 0) notes.push({ title: "Health-gated dependencies are visible", message: `${healthyDependencies} dependency edge(s) use service_healthy, which is stronger than short-form startup ordering.` });
+  if (result.services.some((service) => service.networks.includes("default"))) notes.push({ title: "Implicit default network represented", message: "A service without explicit networks is shown on Compose's implicit default network unless it uses another network mode." });
+  if (result.edges.some((edge) => edge.type === "env_hint")) notes.push({ title: "Environment edges are inferred", message: "Environment-based edges are text hints only. They do not prove reachability, startup order, or a successful connection." });
   return notes;
 }
+

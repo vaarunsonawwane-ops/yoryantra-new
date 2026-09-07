@@ -16,6 +16,8 @@ type DockerInstruction = {
   explanation: string;
   note: string;
   category: "base" | "files" | "build" | "runtime" | "metadata" | "security" | "other";
+  stageIndex: number;
+  known: boolean;
 };
 
 type Issue = {
@@ -116,6 +118,11 @@ const instructionExplanations: Record<string, { explanation: string; note: strin
   LABEL: {
     explanation: "Adds metadata to the image.",
     note: "Labels can document maintainers, source repositories, versions, and descriptions.",
+    category: "metadata",
+  },
+  MAINTAINER: {
+    explanation: "Sets legacy author metadata for the image.",
+    note: "MAINTAINER is deprecated; use an OCI-style LABEL such as org.opencontainers.image.authors instead.",
     category: "metadata",
   },
   VOLUME: {
@@ -234,7 +241,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Dockerfile Instruction Explainer"
-      description="Explain Dockerfile instructions such as FROM, RUN, COPY, ADD, CMD, ENTRYPOINT, ENV, ARG, EXPOSE, WORKDIR, USER, HEALTHCHECK, and common Dockerfile mistakes."
+      description="Read Dockerfile stages, parser directives, runtime commands, and stage-specific review concerns in context."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -312,7 +319,7 @@ export default function ToolClient() {
             />
 
             <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
-              <p className="text-sm font-medium text-gray-700">Common instructions</p>
+              <p className="text-sm font-medium text-gray-700">Instruction coverage</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {["FROM", "RUN", "COPY", "CMD", "ENTRYPOINT", "ENV", "USER", "EXPOSE"].map((item) => (
                   <span key={item} className="rounded-full border border-gray-200 bg-white px-2.5 py-1 font-mono text-xs text-gray-500">
@@ -329,33 +336,33 @@ export default function ToolClient() {
         <h3 className="text-lg font-semibold text-gray-900">Checks</h3>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <CheckboxRow checked={warnRootUser} label="Warn when no non-root USER is set" onChange={(checked) => { setWarnRootUser(checked); clearResult(); }} />
+          <CheckboxRow checked={warnRootUser} label="Review the final stage USER" onChange={(checked) => { setWarnRootUser(checked); clearResult(); }} />
           <CheckboxRow checked={warnSecrets} label="Warn about possible secrets in ENV or ARG" onChange={(checked) => { setWarnSecrets(checked); clearResult(); }} />
-          <CheckboxRow checked={warnLatestTag} label="Warn about latest or unpinned base image tags" onChange={(checked) => { setWarnLatestTag(checked); clearResult(); }} />
+          <CheckboxRow checked={warnLatestTag} label="Review base image pinning" onChange={(checked) => { setWarnLatestTag(checked); clearResult(); }} />
           <CheckboxRow checked={warnAddUsage} label="Warn when ADD may be better as COPY" onChange={(checked) => { setWarnAddUsage(checked); clearResult(); }} />
           <CheckboxRow checked={warnMissingHealthcheck} label="Warn when HEALTHCHECK is missing" onChange={(checked) => { setWarnMissingHealthcheck(checked); clearResult(); }} />
-          <CheckboxRow checked={warnManyRunLayers} label="Warn when many RUN layers are used" onChange={(checked) => { setWarnManyRunLayers(checked); clearResult(); }} />
+          <CheckboxRow checked={warnManyRunLayers} label="Note unusually many RUN instructions" onChange={(checked) => { setWarnManyRunLayers(checked); clearResult(); }} />
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          These checks are practical hints for Dockerfile reviews. They do not replace testing, scanning, or build logs.
+          The parser understands Dockerfile continuations, top-of-file parser directives, and a single heredoc delimiter per instruction. It does not run a build or inspect the referenced images and build context.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={explainDockerfile} className="yoryantra-btn">
+        <button onClick={explainDockerfile} className="yoryantra-btn min-h-[44px] whitespace-nowrap">
           Explain Dockerfile
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-[44px] whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -414,17 +421,16 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Dockerfile findings</h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {result.issues.map((issue, index) => {
+            const classes = issueClassNames(issue.severity);
+            return (
+              <div key={`${issue.title}-${index}`} className={`${classes.card} self-start rounded-xl border p-4`}>
+                <p className={`text-sm font-semibold ${classes.title}`}>{issue.title}</p>
+                <p className={`mt-1 text-sm leading-relaxed ${classes.body}`}>{issue.message}</p>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 
@@ -448,7 +454,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -459,107 +465,58 @@ export default function ToolClient() {
         </pre>
       </div>
 
+      <div className="mt-5 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Dockerfile text stays in your browser on this page. No image is pulled, no build context is uploaded, and no container is started.
+      </div>
+
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Understanding Dockerfile Instructions Before You Build</h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">A Dockerfile is ordered build state, not just a list of commands</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Dockerfiles are easy to copy but harder to review. A small instruction such as RUN, COPY, USER, or CMD can affect image size, cache behavior, security, and how the container starts.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Dockerfile Instruction Explainer breaks down each instruction, explains what it does, and highlights common issues such as missing non-root users, possible secrets, unpinned image tags, and unnecessary ADD usage.
+            <code className="font-mono">FROM</code> starts a stage, <code className="font-mono">RUN</code> changes image filesystem state during the build, and runtime instructions such as <code className="font-mono">USER</code>, <code className="font-mono">ENTRYPOINT</code>, and <code className="font-mono">CMD</code> affect what happens after the image starts. The explanation therefore tracks stage position instead of treating every occurrence as globally equivalent.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Dockerfile Instruction Explainer</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a Dockerfile into the input box.</li>
-            <li>Choose the output format and target app type.</li>
-            <li>Keep the checks that match your review style.</li>
-            <li>Review the instruction table and findings.</li>
-            <li>Copy the summary, explanation table, JSON, Markdown, CSV, or checklist output.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">Shell form and exec form behave differently</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            <code className="font-mono">RUN</code>, <code className="font-mono">CMD</code>, and <code className="font-mono">ENTRYPOINT</code> can use shell or JSON exec form. Exec form avoids an automatic command shell. Shell-form <code className="font-mono">ENTRYPOINT</code> also changes signal and argument behavior, which is why the page calls it out rather than describing both forms as interchangeable.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common Dockerfile Instructions Explained</h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>FROM</strong> chooses the base image and starts a build stage.</li>
-            <li><strong>RUN</strong> executes build-time commands.</li>
-            <li><strong>COPY</strong> copies project files into the image.</li>
-            <li><strong>CMD</strong> sets the default container command.</li>
-            <li><strong>ENTRYPOINT</strong> sets the main executable.</li>
-            <li><strong>ENV</strong> stores environment variables in the image.</li>
-            <li><strong>USER</strong> changes which user runs the process.</li>
-            <li><strong>HEALTHCHECK</strong> defines runtime health behavior.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">Parser directives, continuations, and heredocs need their own handling</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Top-of-file directives such as <code className="font-mono"># syntax=</code> and <code className="font-mono"># escape=</code> affect parsing without becoming image layers. The selected escape character changes line continuation behavior. Heredoc bodies are kept with their owning instruction so script lines are not misreported as Dockerfile instructions.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Dockerfile Snippet</h2>
+          <h2 className="text-xl font-semibold text-gray-900">A warning is not a build verdict</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A missing <code className="font-mono">USER</code> in the final stage is worth reviewing, but the base image may already define one. A missing <code className="font-mono">HEALTHCHECK</code> may be fine for a short-lived job. A tagged base image can still move even when it is not tagged <code className="font-mono">latest</code>. These are review boundaries, not automatic failures.
+          </p>
+        </div>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --omit=dev
-COPY . .
-USER node
-EXPOSE 3000
-CMD ["npm", "start"]`}
-            </pre>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Secrets need build-specific handling</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Explicit secret-looking assignments in <code className="font-mono">ENV</code> or defaulted <code className="font-mono">ARG</code> values are flagged because they can persist in image metadata, history, provenance, or later layers. BuildKit secret mounts are a better fit for credentials needed only during a build.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Confirm exact behavior against Docker&apos;s reference</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Docker documents the instruction grammar, parser directives, shell/exec forms, heredocs, and last-instruction-wins behavior in the <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://docs.docker.com/reference/dockerfile/" target="_blank" rel="noreferrer">Dockerfile reference</a>. This page deliberately stops short of emulating BuildKit, resolving base-image defaults, or examining <code className="font-mono">.dockerignore</code>.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/dockerfile-instruction-explainer" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Dockerfile Review Is About Intent</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Not every warning means the Dockerfile is wrong. For example, a missing health check may be fine for a one-off job, and multiple RUN instructions may be useful while debugging. The important part is knowing what each instruction does before shipping the image.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use this explainer as a practical review helper, then confirm behavior with Docker build output, container logs, security scans, and runtime tests.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-
-          <div className="mt-5 space-y-6">
-            <Faq title="What does a Dockerfile Instruction Explainer do?">
-              It reads a pasted Dockerfile and explains each instruction, along with practical notes and common warnings.
-            </Faq>
-
-            <Faq title="Does this build my Docker image?">
-              No. It only analyzes the Dockerfile text in your browser.
-            </Faq>
-
-            <Faq title="Can it detect secrets in Dockerfiles?">
-              It can flag common secret-looking ENV or ARG names, but it is not a full secret scanner.
-            </Faq>
-
-            <Faq title="Does it replace Docker linting tools?">
-              No. It is a readable explanation and review helper. Use dedicated linters and scanners for strict CI checks.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I explain a Dockerfile?">
-              No. The analysis runs directly in your browser.
-            </Faq>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/dockerfile-instruction-explainer" />
         </div>
       </section>
     </ToolShell>
@@ -589,15 +546,6 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}
-
 function buildResult(options: {
   dockerfile: string;
   outputMode: OutputMode;
@@ -611,93 +559,160 @@ function buildResult(options: {
   warnManyRunLayers: boolean;
 }): Result {
   const instructions = parseDockerfile(options.dockerfile, options.detailLevel);
-  const issues = buildIssues(instructions, options);
   const stageCount = instructions.filter((item) => item.instruction === "FROM").length;
   const runCount = instructions.filter((item) => item.instruction === "RUN").length;
-  const hasUser = instructions.some((item) => item.instruction === "USER");
-  const hasHealthcheck = instructions.some((item) => item.instruction === "HEALTHCHECK");
+  const finalStage = Math.max(0, ...instructions.map((item) => item.stageIndex));
+  const finalStageItems = instructions.filter((item) => item.stageIndex === finalStage);
+  const lastUser = [...finalStageItems].reverse().find((item) => item.instruction === "USER");
+  const lastHealthcheck = [...finalStageItems].reverse().find((item) => item.instruction === "HEALTHCHECK");
+  const hasUser = Boolean(lastUser && lastUser.value.trim());
+  const hasHealthcheck = Boolean(lastHealthcheck && !/^NONE\b/i.test(lastHealthcheck.value.trim()));
   const base = {
     instructions,
-    issues,
-    instructionCount: instructions.length,
+    issues: buildIssues(instructions, options),
+    instructionCount: instructions.filter((item) => item.instruction !== "DIRECTIVE").length,
     stageCount,
     runCount,
     hasUser,
     hasHealthcheck,
   };
-  const output = formatOutput(base, options.outputMode);
-
-  return {
-    ...base,
-    output,
-  };
+  return { ...base, output: formatOutput(base, options.outputMode) };
 }
 
-function parseDockerfile(value: string, detailLevel: DetailLevel) {
-  const logicalLines = combineDockerfileLines(value);
+type LogicalDockerfileEntry = { lineNumber: number; text: string; directive: boolean };
 
-  return logicalLines
-    .map((entry) => {
-      const match = entry.text.match(/^([A-Za-z]+)\s*(.*)$/);
-      if (!match) return null;
-
-      const instruction = match[1].toUpperCase();
-      const info = instructionExplanations[instruction] || {
-        explanation: "Dockerfile instruction or parser directive.",
-        note: "Check Docker documentation for exact behavior if this is a less common instruction.",
-        category: "other" as DockerInstruction["category"],
-      };
-
+function parseDockerfile(value: string, detailLevel: DetailLevel): DockerInstruction[] {
+  const logicalLines = scanDockerfile(value);
+  let stageIndex = 0;
+  return logicalLines.map((entry) => {
+    if (entry.directive) {
+      const directiveValue = entry.text.replace(/^#\s*/, "");
       return {
         lineNumber: entry.lineNumber,
-        instruction,
-        value: match[2].trim(),
-        explanation: detailLevel === "simple" ? simplify(info.explanation) : info.explanation,
-        note: detailLevel === "detailed" ? addDetailedNote(instruction, info.note) : info.note,
-        category: info.category,
+        instruction: "DIRECTIVE",
+        value: directiveValue,
+        explanation: "Changes how the Dockerfile frontend parses the file without creating an image layer.",
+        note: directiveNote(directiveValue),
+        category: "metadata" as DockerInstruction["category"],
+        stageIndex,
+        known: true,
       };
-    })
-    .filter((item): item is DockerInstruction => Boolean(item));
+    }
+
+    const match = entry.text.match(/^([A-Za-z]+)\s*([\s\S]*)$/);
+    const instruction = match ? match[1].toUpperCase() : "UNKNOWN";
+    const rawValue = match ? match[2].trim() : entry.text.trim();
+    if (instruction === "FROM") stageIndex += 1;
+    const info = instructionExplanations[instruction];
+    const known = Boolean(info);
+    const explanation = known ? info.explanation : "Docker does not recognize this as a supported Dockerfile instruction in the current reference.";
+    const note = known ? info.note : "Check for a typo or a frontend-specific syntax extension before building.";
+    return {
+      lineNumber: entry.lineNumber,
+      instruction,
+      value: rawValue,
+      explanation: detailLevel === "simple" ? simplify(explanation) : explanation,
+      note: detailLevel === "detailed" ? addDetailedNote(instruction, note) : note,
+      category: info?.category || "other",
+      stageIndex,
+      known,
+    };
+  });
 }
 
-function combineDockerfileLines(value: string) {
-  const lines = value.split(/\r?\n/);
-  const entries: { lineNumber: number; text: string }[] = [];
-  let buffer = "";
-  let startLine = 1;
+function scanDockerfile(value: string): LogicalDockerfileEntry[] {
+  const lines = value.replace(/\r\n/g, "\n").split("\n");
+  const entries: LogicalDockerfileEntry[] = [];
+  let escapeChar = "\\";
+  let directivesOpen = true;
+  let index = 0;
 
-  lines.forEach((rawLine, index) => {
-    const lineNumber = index + 1;
-    const trimmed = rawLine.trim();
-
-    if (!trimmed || trimmed.startsWith("#")) return;
-
-    if (!buffer) startLine = lineNumber;
-
-    if (trimmed.endsWith("\\")) {
-      buffer += `${trimmed.slice(0, -1)} `;
-    } else {
-      buffer += trimmed;
-      entries.push({ lineNumber: startLine, text: buffer.trim() });
-      buffer = "";
+  while (index < lines.length) {
+    const raw = lines[index];
+    const trimmed = raw.trim();
+    if (directivesOpen) {
+      const directive = raw.match(/^\s*#\s*(syntax|escape|check)\s*=\s*(.+?)\s*$/i);
+      if (directive) {
+        const key = directive[1].toLowerCase();
+        const directiveValue = directive[2];
+        entries.push({ lineNumber: index + 1, text: `# ${key}=${directiveValue}`, directive: true });
+        if (key === "escape" && (directiveValue === "\\" || directiveValue === "`")) escapeChar = directiveValue;
+        index += 1;
+        continue;
+      }
+      if (trimmed !== "") directivesOpen = false;
+      else if (entries.length > 0) directivesOpen = false;
     }
-  });
 
-  if (buffer.trim()) {
-    entries.push({ lineNumber: startLine, text: buffer.trim() });
+    if (!trimmed || trimmed.startsWith("#")) {
+      index += 1;
+      continue;
+    }
+
+    const startLine = index + 1;
+    let logical = raw.replace(/^\s+/, "");
+    while (endsWithContinuation(logical, escapeChar) && index + 1 < lines.length) {
+      logical = removeContinuation(logical, escapeChar) + " " + lines[index + 1].replace(/^\s+/, "");
+      index += 1;
+    }
+
+    const heredoc = findHeredoc(logical);
+    if (heredoc) {
+      const body: string[] = [];
+      let foundEnd = false;
+      for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
+        const candidate = heredoc.stripTabs ? lines[cursor].replace(/^\t+/, "") : lines[cursor];
+        if (candidate === heredoc.delimiter) {
+          logical += `\n${body.join("\n")}\n${lines[cursor]}`;
+          index = cursor;
+          foundEnd = true;
+          break;
+        }
+        body.push(lines[cursor]);
+      }
+      if (!foundEnd) logical += `\n${body.join("\n")}`;
+    }
+
+    entries.push({ lineNumber: startLine, text: logical.replace(/\s+$/, ""), directive: false });
+    index += 1;
   }
-
   return entries;
 }
 
-function simplify(value: string) {
-  return value.replace(/\s+and\s+.*$/, ".");
+function endsWithContinuation(value: string, escapeChar: string): boolean {
+  const trimmed = value.replace(/\s+$/, "");
+  let count = 0;
+  for (let index = trimmed.length - 1; index >= 0 && trimmed[index] === escapeChar; index -= 1) count += 1;
+  return count % 2 === 1;
 }
 
-function addDetailedNote(instruction: string, note: string) {
-  if (instruction === "RUN") return `${note} Combine related commands carefully to reduce layers, but keep readability.`;
-  if (instruction === "COPY") return `${note} Use a .dockerignore file to keep unnecessary files out of the build context.`;
-  if (instruction === "FROM") return `${note} Pin image versions intentionally for more predictable builds.`;
+function removeContinuation(value: string, escapeChar: string): string {
+  const trimmed = value.replace(/\s+$/, "");
+  return trimmed.slice(0, -escapeChar.length).replace(/\s+$/, "");
+}
+
+function findHeredoc(value: string): { delimiter: string; stripTabs: boolean } | null {
+  const match = value.match(/<<(-)?\s*['"]?([A-Za-z0-9_.-]+)['"]?/);
+  return match ? { delimiter: match[2], stripTabs: Boolean(match[1]) } : null;
+}
+
+function directiveNote(value: string): string {
+  if (/^escape=/i.test(value)) return "The escape directive changes the line-continuation character for instructions that follow.";
+  if (/^syntax=/i.test(value)) return "The syntax directive selects the Dockerfile frontend used by BuildKit.";
+  if (/^check=/i.test(value)) return "The check directive configures Dockerfile build checks supported by the selected frontend.";
+  return "Parser directives must appear before normal Dockerfile content to be recognized as directives.";
+}
+
+function simplify(value: string): string {
+  const first = value.split(/\.\s+/)[0];
+  return first.endsWith(".") ? first : `${first}.`;
+}
+
+function addDetailedNote(instruction: string, note: string): string {
+  if (instruction === "RUN") return `${note} Shell and exec forms also differ in variable expansion and shell invocation.`;
+  if (instruction === "COPY") return `${note} Build context and .dockerignore determine what source files are available.`;
+  if (instruction === "FROM") return `${note} A digest is immutable; a tag can move even when it is not latest.`;
+  if (instruction === "ENTRYPOINT") return `${note} Shell form changes signal forwarding and how runtime arguments are handled.`;
   return note;
 }
 
@@ -709,199 +724,149 @@ function buildIssues(instructions: DockerInstruction[], options: {
   warnAddUsage: boolean;
   warnMissingHealthcheck: boolean;
   warnManyRunLayers: boolean;
-}) {
+}): Issue[] {
   const issues: Issue[] = [];
-  const fromValues = instructions.filter((item) => item.instruction === "FROM").map((item) => item.value);
-  const hasUser = instructions.some((item) => item.instruction === "USER");
-  const hasHealthcheck = instructions.some((item) => item.instruction === "HEALTHCHECK");
-  const runCount = instructions.filter((item) => item.instruction === "RUN").length;
-  const addCount = instructions.filter((item) => item.instruction === "ADD").length;
+  const buildInstructions = instructions.filter((item) => item.instruction !== "DIRECTIVE");
+  const stages = instructions.filter((item) => item.instruction === "FROM");
+  const finalStageIndex = Math.max(0, ...instructions.map((item) => item.stageIndex));
+  const finalStage = instructions.filter((item) => item.stageIndex === finalStageIndex);
+  const finalUser = [...finalStage].reverse().find((item) => item.instruction === "USER");
+  const finalHealthcheck = [...finalStage].reverse().find((item) => item.instruction === "HEALTHCHECK");
 
-  if (instructions.length === 0) {
-    issues.push({
-      severity: "warning",
-      title: "No Dockerfile instructions found",
-      message: "The input did not contain recognizable Dockerfile instructions.",
-    });
+  if (buildInstructions.length === 0) issues.push({ severity: "high", title: "No build instructions found", message: "The input contains no Dockerfile instructions to build." });
+  if (stages.length === 0) issues.push({ severity: "high", title: "No FROM instruction found", message: "A build stage is required. ARG may appear before the first FROM, but the Dockerfile still needs a FROM instruction." });
+
+  const unknown = instructions.filter((item) => !item.known);
+  if (unknown.length > 0) issues.push({ severity: "high", title: "Unknown Dockerfile instruction", message: unknown.map((item) => `line ${item.lineNumber}: ${item.instruction}`).join(", ") });
+
+  if (options.warnRootUser) {
+    if (!finalUser) issues.push({ severity: "info", title: "No USER in the final stage", message: "The runtime user will be inherited from the base image unless another mechanism changes it. Confirm the final image does not unintentionally run as root." });
+    else if (/^(root|0)(?::|$)/i.test(finalUser.value.trim())) issues.push({ severity: "warning", title: "Final stage explicitly uses root", message: `Line ${finalUser.lineNumber} sets USER ${finalUser.value}. Confirm the runtime process actually needs root privileges.` });
   }
 
-  if (options.warnRootUser && !hasUser) {
-    issues.push({
-      severity: "warning",
-      title: "No USER instruction found",
-      message: "Without USER, the runtime process may run as root depending on the base image.",
-    });
+  if (options.warnMissingHealthcheck && ["general", "node", "python", "go", "static"].includes(options.buildTarget)) {
+    if (!finalHealthcheck || /^NONE\b/i.test(finalHealthcheck.value.trim())) issues.push({ severity: "info", title: "No active final-stage HEALTHCHECK", message: "Long-running services may benefit from an image health check, while batch jobs and orchestrator-managed probes may not need one." });
   }
 
-  if (options.warnMissingHealthcheck && !hasHealthcheck && ["node", "python", "go", "general"].includes(options.buildTarget)) {
-    issues.push({
-      severity: "info",
-      title: "No HEALTHCHECK instruction found",
-      message: "Services often benefit from a runtime health check, though one-off jobs may not need it.",
-    });
+  if (options.warnLatestTag) {
+    const refs = stages.map((item) => extractFromReference(item.value)).filter(Boolean);
+    const movable = refs.filter((ref) => !ref.includes("@sha256:") && ref !== "scratch" && !ref.includes("$"));
+    const latest = movable.filter((ref) => !hasImageTag(ref) || /:latest$/i.test(ref));
+    if (latest.length > 0) issues.push({ severity: "warning", title: "Base image uses latest or no explicit tag", message: `Review: ${latest.join(", ")}. Tags without a digest can move over time.` });
+    else if (movable.length > 0) issues.push({ severity: "info", title: "Tagged base images are still movable", message: `These references are versioned by tag but not pinned by digest: ${movable.join(", ")}. Decide whether reproducibility requires a digest.` });
   }
 
-  if (options.warnLatestTag && fromValues.some((value) => /:latest\b/.test(value) || !value.includes(":"))) {
-    issues.push({
-      severity: "info",
-      title: "Base image may be unpinned",
-      message: "Using latest or omitting a tag can make builds less predictable over time.",
-    });
-  }
+  if (options.warnAddUsage && instructions.some((item) => item.instruction === "ADD")) issues.push({ severity: "info", title: "ADD is present", message: "COPY is simpler for ordinary build-context files. Keep ADD when you intentionally need its remote-source or local archive behavior." });
 
-  if (options.warnAddUsage && addCount > 0) {
-    issues.push({
-      severity: "info",
-      title: "ADD instruction used",
-      message: "Prefer COPY unless you need ADD features such as archive extraction.",
-    });
-  }
-
-  if (options.warnManyRunLayers && runCount >= 6) {
-    issues.push({
-      severity: "info",
-      title: "Many RUN instructions",
-      message: "Many RUN instructions can increase layers. Combine related commands when it improves image size without hurting readability.",
-    });
+  if (options.warnManyRunLayers) {
+    const runCount = instructions.filter((item) => item.instruction === "RUN").length;
+    if (runCount >= 8) issues.push({ severity: "info", title: "Many RUN instructions", message: `${runCount} RUN instructions are present. Count alone is not a defect; review cache boundaries, cleanup, readability, and resulting image size together.` });
   }
 
   if (options.warnSecrets) {
-    const secretLike = instructions.filter((item) =>
-      ["ENV", "ARG"].includes(item.instruction) &&
-      /(SECRET|TOKEN|PASSWORD|API_KEY|PRIVATE_KEY|ACCESS_KEY)/i.test(item.value)
-    );
+    const secretAssignments = instructions.filter((item) => ["ENV", "ARG"].includes(item.instruction) && hasSecretAssignment(item.instruction, item.value));
+    if (secretAssignments.length > 0) issues.push({ severity: "high", title: "Secret-looking value is assigned in ENV or ARG", message: `Review ${secretAssignments.map((item) => `line ${item.lineNumber}`).join(", ")}. Build credentials should normally use BuildKit secret or SSH mounts instead of Dockerfile defaults.` });
+  }
 
-    if (secretLike.length > 0) {
-      issues.push({
-        severity: "high",
-        title: "Possible secret in ENV or ARG",
-        message: "Secret-looking names were found. Avoid baking real secrets into Docker images or image history.",
-      });
+  for (let stage = 1; stage <= Math.max(1, stages.length); stage += 1) {
+    for (const instruction of ["CMD", "ENTRYPOINT", "HEALTHCHECK"] as const) {
+      const matches = instructions.filter((item) => item.stageIndex === stage && item.instruction === instruction);
+      if (matches.length > 1) issues.push({ severity: "warning", title: `Multiple ${instruction} instructions in one stage`, message: `Stage ${stage} has ${matches.length} ${instruction} instructions; only the last one takes effect for that stage.` });
     }
   }
 
-  if (issues.length === 0) {
-    issues.push({
-      severity: "info",
-      title: "Dockerfile explained",
-      message: "No obvious Dockerfile review warning was found from the enabled checks.",
-    });
-  }
+  const shellEntrypoints = instructions.filter((item) => item.instruction === "ENTRYPOINT" && !item.value.trim().startsWith("["));
+  if (shellEntrypoints.length > 0) issues.push({ severity: "warning", title: "Shell-form ENTRYPOINT found", message: "Shell-form ENTRYPOINT runs through a command shell and changes signal forwarding and runtime argument behavior. Confirm that is intentional." });
 
+  if (issues.length === 0) issues.push({ severity: "info", title: "No enabled finding triggered", message: "The Dockerfile structure parsed cleanly under these checks. A successful image still needs docker build, runtime tests, and vulnerability review." });
   return issues;
 }
 
-function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
-  if (mode === "json") {
-    return JSON.stringify(result, null, 2);
-  }
+function extractFromReference(value: string): string {
+  const withoutPlatform = value.replace(/^--platform=\S+\s+/, "").trim();
+  return withoutPlatform.split(/\s+AS\s+/i)[0].trim();
+}
 
-  if (mode === "markdown") {
-    return [
-      "| Line | Instruction | Value | Meaning | Note |",
-      "| --- | --- | --- | --- | --- |",
-      ...result.instructions.map((item) => `| ${item.lineNumber} | ${item.instruction} | ${escapeMarkdown(item.value || "-")} | ${escapeMarkdown(item.explanation)} | ${escapeMarkdown(item.note)} |`),
-      "",
-      "## Findings",
-      ...result.issues.map((issue) => `- **${issue.title}:** ${issue.message}`),
-    ].join("\n");
-  }
+function hasImageTag(reference: string): boolean {
+  const tail = reference.split("/").pop() || reference;
+  return tail.includes(":");
+}
 
+function hasSecretAssignment(instruction: string, value: string): boolean {
+  if (instruction === "ARG") {
+    const match = value.match(/^([A-Za-z_][A-Za-z0-9_]*)=([\s\S]+)$/);
+    return Boolean(match && /(SECRET|TOKEN|PASSWORD|PASSWD|API_KEY|PRIVATE_KEY|ACCESS_KEY|CREDENTIAL)/i.test(match[1]) && match[2].trim());
+  }
+  const pairs = value.match(/(?:^|\s)([A-Za-z_][A-Za-z0-9_]*)=([^\s]+)/g) || [];
+  if (pairs.some((pair) => /(SECRET|TOKEN|PASSWORD|PASSWD|API_KEY|PRIVATE_KEY|ACCESS_KEY|CREDENTIAL)/i.test(pair.split("=")[0]) && pair.split("=").slice(1).join("=").trim())) return true;
+  const legacy = value.match(/^([A-Za-z_][A-Za-z0-9_]*)\s+(.+)$/);
+  return Boolean(legacy && /(SECRET|TOKEN|PASSWORD|PASSWD|API_KEY|PRIVATE_KEY|ACCESS_KEY|CREDENTIAL)/i.test(legacy[1]) && legacy[2].trim());
+}
+
+function formatOutput(result: Omit<Result, "output">, mode: OutputMode): string {
+  if (mode === "json") return JSON.stringify(result, null, 2);
+  if (mode === "markdown") return [
+    "| Line | Stage | Instruction | Value | Meaning | Note |",
+    "| --- | --- | --- | --- | --- | --- |",
+    ...result.instructions.map((item) => `| ${item.lineNumber} | ${item.stageIndex || "-"} | ${item.instruction} | ${escapeMarkdown(item.value || "-")} | ${escapeMarkdown(item.explanation)} | ${escapeMarkdown(item.note)} |`),
+    "",
+    "## Findings",
+    ...result.issues.map((issue) => `- **${escapeMarkdown(issue.title)}:** ${escapeMarkdown(issue.message)}`),
+  ].join("\n");
   if (mode === "csv") {
-    const rows = [
-      ["line", "instruction", "value", "explanation", "note"],
-      ...result.instructions.map((item) => [String(item.lineNumber), item.instruction, item.value, item.explanation, item.note]),
-    ];
-
+    const rows = [["line", "stage", "instruction", "value", "explanation", "note"], ...result.instructions.map((item) => [String(item.lineNumber), String(item.stageIndex || ""), item.instruction, item.value, item.explanation, item.note])];
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
-
-  if (mode === "checklist") {
-    return [
-      "Dockerfile Review Checklist",
-      "---------------------------",
-      "- [ ] Confirm the base image is intentionally chosen and versioned.",
-      "- [ ] Confirm dependencies are installed in the right stage.",
-      "- [ ] Confirm .dockerignore excludes unnecessary files.",
-      "- [ ] Confirm runtime image does not include avoidable build-only files.",
-      "- [ ] Confirm the container runs as a non-root user when possible.",
-      "- [ ] Confirm real secrets are not stored in ENV, ARG, or copied files.",
-      "- [ ] Confirm CMD or ENTRYPOINT matches how the app should start.",
-      "- [ ] Confirm exposed ports match the app configuration.",
-      "",
-      "Findings:",
-      ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
-    ].join("\n");
-  }
-
-  if (mode === "explanations") {
-    return result.instructions
-      .map((item) => [
-        `Line ${item.lineNumber}: ${item.instruction}`,
-        `Value: ${item.value || "-"}`,
-        `Meaning: ${item.explanation}`,
-        `Note: ${item.note}`,
-      ].join("\n"))
-      .join("\n\n");
-  }
-
+  if (mode === "checklist") return [
+    "Dockerfile review",
+    "-----------------",
+    "- [ ] Confirm parser directives are intentional and at the top of the file.",
+    "- [ ] Confirm every FROM reference and build stage is intentional.",
+    "- [ ] Confirm build credentials use secret mounts rather than Dockerfile defaults.",
+    "- [ ] Confirm final-stage USER, ENTRYPOINT, CMD, and HEALTHCHECK behavior.",
+    "- [ ] Confirm COPY/ADD sources match the build context and .dockerignore.",
+    "- [ ] Build the image and test shutdown, logs, ports, and startup behavior.",
+    "",
+    "Findings:",
+    ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
+  ].join("\n");
+  if (mode === "explanations") return result.instructions.map((item) => [`Line ${item.lineNumber}${item.stageIndex ? ` · stage ${item.stageIndex}` : ""}: ${item.instruction}`, `Value: ${item.value || "-"}`, `Meaning: ${item.explanation}`, `Note: ${item.note}`].join("\n")).join("\n\n");
   return [
-    "Dockerfile Instruction Summary",
+    "Dockerfile instruction summary",
     "------------------------------",
     `Instructions: ${result.instructionCount}`,
     `Build stages: ${result.stageCount}`,
     `RUN instructions: ${result.runCount}`,
-    `Non-root USER present: ${result.hasUser ? "yes" : "no"}`,
-    `HEALTHCHECK present: ${result.hasHealthcheck ? "yes" : "no"}`,
+    `Explicit USER in final stage: ${result.hasUser ? "yes" : "no"}`,
+    `Active HEALTHCHECK in final stage: ${result.hasHealthcheck ? "yes" : "no"}`,
     "",
     "Instructions:",
-    ...result.instructions.map((item) => `- Line ${item.lineNumber}: ${item.instruction} — ${item.explanation}`),
+    ...result.instructions.map((item) => `- Line ${item.lineNumber}${item.stageIndex ? ` / stage ${item.stageIndex}` : ""}: ${item.instruction} — ${item.explanation}`),
     "",
     "Findings:",
     ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
   ].join("\n");
 }
 
-function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-
-  return value;
+function csvEscape(value: string): string {
+  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
-function escapeMarkdown(value: string) {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, "\\n");
+function escapeMarkdown(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, "\\n");
 }
 
-function getNotes(result: Result, buildTarget: BuildTarget) {
+function issueClassNames(severity: Issue["severity"]): { card: string; title: string; body: string } {
+  if (severity === "high") return { card: "border-red-200 bg-red-50", title: "text-red-900", body: "text-red-800" };
+  if (severity === "warning") return { card: "border-amber-200 bg-amber-50", title: "text-amber-900", body: "text-amber-800" };
+  return { card: "border-gray-200 bg-gray-50", title: "text-gray-900", body: "text-gray-600" };
+}
+
+function getNotes(result: Result, buildTarget: BuildTarget): { title: string; message: string }[] {
   const notes: { title: string; message: string }[] = [];
-
-  if (result.stageCount > 1) {
-    notes.push({
-      title: "Multi-stage build detected",
-      message: "Multi-stage builds can keep runtime images smaller by copying only required output from earlier stages.",
-    });
-  }
-
-  if (!result.hasUser) {
-    notes.push({
-      title: "Consider a non-root runtime user",
-      message: "A USER instruction can reduce risk when the container process does not need root privileges.",
-    });
-  }
-
-  if (buildTarget === "node") {
-    notes.push({
-      title: "Node Dockerfiles benefit from cache-friendly COPY order",
-      message: "Copy package files before source files so dependency installation can reuse Docker cache more often.",
-    });
-  }
-
-  notes.push({
-    title: "Test the final image",
-    message: "A readable Dockerfile still needs build tests, runtime logs, vulnerability scans, and container startup checks.",
-  });
-
+  if (result.stageCount > 1) notes.push({ title: "Multi-stage boundaries matter", message: "Files, ARG values, users, and installed tools do not automatically carry from one stage into the next; only what you explicitly inherit or copy is available." });
+  if (buildTarget === "node") notes.push({ title: "Dependency-copy order can affect Node build caching", message: "Copying package metadata before the rest of the source often lets dependency installation reuse cache when application code changes." });
+  if (result.instructions.some((item) => item.instruction === "DIRECTIVE")) notes.push({ title: "Parser directives were included", message: "They influence parsing but do not create image layers or ordinary build steps." });
   return notes;
 }
+
