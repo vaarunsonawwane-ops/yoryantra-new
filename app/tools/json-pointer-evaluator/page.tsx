@@ -2,20 +2,17 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Pointer Evaluator | Test RFC 6901 JSON Pointers",
+  title: "JSON Pointer Evaluator | RFC 6901 Paths and URI Fragments",
   description:
-    "Evaluate JSON Pointer paths against pasted JSON, inspect matched values, decode escaped pointer segments, and create pointer reports locally in your browser.",
+    "Resolve RFC 6901 JSON Pointer paths, decode escaped tokens and URI-fragment forms, test array indexes, and generate exact pointers from JSON.",
   keywords: [
     "json pointer evaluator",
-    "json pointer tester",
-    "json pointer tool",
-    "rfc 6901 json pointer",
-    "test json pointer",
+    "rfc 6901",
     "json pointer path",
     "json pointer decoder",
-    "json patch pointer",
-    "openapi json pointer",
-    "json data tools",
+    "json pointer uri fragment",
+    "json pointer array index",
+    "generate json pointers",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/json-pointer-evaluator",
@@ -23,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "JSON Pointer Evaluator | Yoryantra",
     description:
-      "Test JSON Pointer paths like /user/name/0 against JSON, inspect matches, and decode pointer segments without uploading data.",
+      "Resolve RFC 6901 pointers precisely, including root pointers, escaped member names, arrays, and URI-fragment representation.",
     url: "https://yoryantra.com/tools/json-pointer-evaluator",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "JSON Pointer Evaluator | Yoryantra",
     description:
-      "Evaluate RFC 6901 JSON Pointers, inspect matched values, and create JSON Pointer reports locally.",
+      "Check exact RFC 6901 paths and decode pointer tokens without confusing JSON Pointer with JSONPath.",
   },
 };
 

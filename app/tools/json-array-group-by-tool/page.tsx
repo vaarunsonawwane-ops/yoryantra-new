@@ -2,20 +2,17 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Array Group By Tool | Group and Summarize JSON Records",
+  title: "JSON Array Group By Tool | Typed Counts and Numeric Summaries",
   description:
-    "Group JSON array records by a key, count records, summarize numeric fields, and export grouped JSON, Markdown, CSV, or checklist output locally in your browser.",
+    "Group JSON array records by escaped dot paths, keep value types distinct, and calculate counts, percentages, sums, averages, minimums, and maximums.",
   keywords: [
-    "json array group by tool",
-    "json group by key",
-    "group json array",
-    "json array summarizer",
-    "json group records",
+    "json array group by",
+    "group json by key",
+    "json group by nested field",
     "json count by field",
-    "json aggregate tool",
-    "json data grouping",
-    "json data tools",
-    "browser json tool",
+    "json numeric summary",
+    "json aggregation",
+    "json array grouping",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/json-array-group-by-tool",
@@ -23,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "JSON Array Group By Tool | Yoryantra",
     description:
-      "Group JSON array records by a selected key, count values, summarize numeric fields, and export readable reports.",
+      "Group JSON records by escaped nested paths while keeping value types and numeric observations explicit.",
     url: "https://yoryantra.com/tools/json-array-group-by-tool",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "JSON Array Group By Tool | Yoryantra",
     description:
-      "Group JSON arrays by key, count records, summarize numeric fields, and export grouped reports locally.",
+      "Count typed JSON groups and summarize finite numeric observations without flattening away path distinctions.",
   },
 };
 

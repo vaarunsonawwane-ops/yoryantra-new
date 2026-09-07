@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type ActionMode = "jsonToQuery" | "queryToJson" | "inspect";
 type OutputMode = "query" | "fullUrl" | "json" | "markdown" | "csv" | "checklist";
-type KeyStyle = "dot" | "bracket" | "repeat" | "indexed";
+type KeyStyle = "dot" | "bracket";
 type ArrayMode = "repeat" | "comma" | "brackets" | "indexed" | "json";
 type BooleanMode = "literal" | "numeric" | "presence";
 type NullMode = "empty" | "null" | "omit";
@@ -20,6 +20,7 @@ type ParamRow = {
   sourceType: string;
   depth: number;
   repeated: boolean;
+  sourcePath: string;
 };
 
 type Issue = {
@@ -60,13 +61,13 @@ export default function ToolClient() {
   const [arrayMode, setArrayMode] = useState<ArrayMode>("repeat");
   const [booleanMode, setBooleanMode] = useState<BooleanMode>("literal");
   const [nullMode, setNullMode] = useState<NullMode>("omit");
-  const [trimStringValues, setTrimStringValues] = useState(true);
+  const [trimStringValues, setTrimStringValues] = useState(false);
   const [sortParams, setSortParams] = useState(false);
   const [encodeSpacesAsPlus, setEncodeSpacesAsPlus] = useState(false);
   const [includeQuestionMark, setIncludeQuestionMark] = useState(false);
   const [includeEmptyStrings, setIncludeEmptyStrings] = useState(true);
   const [decodePlusAsSpace, setDecodePlusAsSpace] = useState(true);
-  const [coerceQueryValues, setCoerceQueryValues] = useState(true);
+  const [coerceQueryValues, setCoerceQueryValues] = useState(false);
   const [warnNestedObjects, setWarnNestedObjects] = useState(true);
   const [warnLongQuery, setWarnLongQuery] = useState(true);
   const [result, setResult] = useState<Result | null>(null);
@@ -141,13 +142,13 @@ export default function ToolClient() {
     setArrayMode("repeat");
     setBooleanMode("literal");
     setNullMode("omit");
-    setTrimStringValues(true);
+    setTrimStringValues(false);
     setSortParams(false);
     setEncodeSpacesAsPlus(false);
     setIncludeQuestionMark(false);
     setIncludeEmptyStrings(true);
     setDecodePlusAsSpace(true);
-    setCoerceQueryValues(true);
+    setCoerceQueryValues(false);
     setWarnNestedObjects(true);
     setWarnLongQuery(true);
     clearResult();
@@ -158,7 +159,7 @@ export default function ToolClient() {
     setActionMode("queryToJson");
     setOutputMode("json");
     setDecodePlusAsSpace(true);
-    setCoerceQueryValues(true);
+    setCoerceQueryValues(false);
     clearResult();
   };
 
@@ -171,13 +172,13 @@ export default function ToolClient() {
     setArrayMode("repeat");
     setBooleanMode("literal");
     setNullMode("omit");
-    setTrimStringValues(true);
+    setTrimStringValues(false);
     setSortParams(false);
     setEncodeSpacesAsPlus(false);
     setIncludeQuestionMark(false);
     setIncludeEmptyStrings(true);
     setDecodePlusAsSpace(true);
-    setCoerceQueryValues(true);
+    setCoerceQueryValues(false);
     setWarnNestedObjects(true);
     setWarnLongQuery(true);
     clearResult();
@@ -186,7 +187,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON to URL Query Converter"
-      description="Convert JSON objects into URL query strings, API query parameters, full URLs, and readable parameter reports. Decode query strings back into JSON locally in your browser."
+      description="Translate JSON and query parameters without hiding encoding, nesting, repetition, or type-conversion choices."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -208,7 +209,7 @@ export default function ToolClient() {
             className="w-full min-h-[420px] rounded-xl border border-gray-300 p-4 text-sm leading-6 font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
 
-          {outputMode === "fullUrl" || actionMode === "jsonToQuery" ? (
+          {outputMode === "fullUrl" && actionMode === "jsonToQuery" ? (
             <div className="mt-4">
               <label className="block text-sm font-semibold text-gray-900">Base URL</label>
               <input
@@ -235,6 +236,7 @@ export default function ToolClient() {
                 const next = value as ActionMode;
                 setActionMode(next);
                 if (next === "queryToJson") setOutputMode("json");
+                if (next === "inspect" && (outputMode === "query" || outputMode === "fullUrl")) setOutputMode("markdown");
                 if (next === "jsonToQuery" && outputMode === "json") setOutputMode("query");
                 clearResult();
               }}
@@ -252,9 +254,14 @@ export default function ToolClient() {
                 setOutputMode(value as OutputMode);
                 clearResult();
               }}
-              options={[
+              options={actionMode === "jsonToQuery" ? [
                 { label: "Query string", value: "query" },
                 { label: "Full URL", value: "fullUrl" },
+                { label: "JSON report", value: "json" },
+                { label: "Markdown table", value: "markdown" },
+                { label: "CSV", value: "csv" },
+                { label: "Review checklist", value: "checklist" },
+              ] : [
                 { label: "JSON output", value: "json" },
                 { label: "Markdown table", value: "markdown" },
                 { label: "CSV", value: "csv" },
@@ -272,8 +279,6 @@ export default function ToolClient() {
               options={[
                 { label: "Dot paths: filter.status", value: "dot" },
                 { label: "Brackets: filter[status]", value: "bracket" },
-                { label: "Repeat parent keys", value: "repeat" },
-                { label: "Indexed paths", value: "indexed" },
               ]}
             />
 
@@ -329,16 +334,16 @@ export default function ToolClient() {
         <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
           <Toggle checked={trimStringValues} onChange={setTrimStringValues} label="Trim string values" />
           <Toggle checked={sortParams} onChange={setSortParams} label="Sort query parameters alphabetically" />
-          <Toggle checked={encodeSpacesAsPlus} onChange={setEncodeSpacesAsPlus} label="Encode spaces as plus signs" />
+          <Toggle checked={encodeSpacesAsPlus} onChange={setEncodeSpacesAsPlus} label="Use form-style encoding (space → +)" />
           <Toggle checked={includeQuestionMark} onChange={setIncludeQuestionMark} label="Prefix query output with ?" />
           <Toggle checked={includeEmptyStrings} onChange={setIncludeEmptyStrings} label="Include empty string values" />
           <Toggle checked={decodePlusAsSpace} onChange={setDecodePlusAsSpace} label="Decode plus signs as spaces" />
-          <Toggle checked={coerceQueryValues} onChange={setCoerceQueryValues} label="Coerce decoded numbers and booleans" />
+          <Toggle checked={coerceQueryValues} onChange={setCoerceQueryValues} label="Coerce decoded booleans, nulls, and safe numbers" />
           <Toggle checked={warnNestedObjects} onChange={setWarnNestedObjects} label="Warn about nested object conversion" />
           <Toggle checked={warnLongQuery} onChange={setWarnLongQuery} label="Warn when query string is long" />
         </div>
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          These options help match query-string behavior used by APIs, browsers, backend frameworks, and request tools.
+          Query parameters are strings on the wire. Nesting, arrays, plus signs, and type coercion are application-level choices, so keep only the transformations your receiving system expects.
         </p>
       </div>
 
@@ -346,28 +351,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={processInput}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="min-h-[44px] whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Convert Query Data
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Load JSON Example
         </button>
         <button
           type="button"
           onClick={loadQueryExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Load Query Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
         >
           Reset
         </button>
@@ -387,7 +392,7 @@ export default function ToolClient() {
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
@@ -412,9 +417,9 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((note) => (
-              <div key={`${note.title}-${note.message}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{note.message}</p>
+              <div key={`${note.title}-${note.message}`} className={issueCardClass(note.severity)}>
+                <p className={issueTitleClass(note.severity)}>{note.title}</p>
+                <p className={issueTextClass(note.severity)}>{note.message}</p>
               </div>
             ))}
           </div>
@@ -455,77 +460,92 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Converting JSON Objects Into Query Parameters</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">A query string is a list of name-value pairs, not a typed JSON object</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Many APIs use query strings for filters, search terms, pagination, sorting, and small request options. When those values start as a JSON object, manually writing the query string can lead to missed encoding, inconsistent array styles, or confusing nested keys.
+            Converting JSON into a URL query means choosing how structure is flattened. A JSON boolean, number, array, nested object, <code className="rounded bg-gray-100 px-1 py-0.5">null</code>, and empty string do not carry their JSON types through a query string by themselves. On the wire, a parameter is a name and a string value; the receiving application decides what that string means.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This converter turns JSON objects into URL query strings, full URLs, Markdown reports, CSV summaries, or decoded JSON. It is useful for API examples, frontend routing, request debugging, and documentation.
+            That is why decoded values stay strings by default. Optional coercion is deliberately conservative and only converts <code className="rounded bg-gray-100 px-1 py-0.5">true</code>, <code className="rounded bg-gray-100 px-1 py-0.5">false</code>, <code className="rounded bg-gray-100 px-1 py-0.5">null</code>, and finite numbers that JavaScript can represent safely.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This JSON to URL Query Converter Helps</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Creating query strings from search, filter, sort, and pagination objects used by frontend apps or APIs.</p>
-            <p className="mt-2">Comparing dot paths, bracket paths, repeated keys, and indexed keys before documenting an endpoint.</p>
-            <p className="mt-2">Decoding copied query strings into JSON so they are easier to inspect and edit.</p>
-            <p className="mt-2">Checking encoded values before pasting URLs into examples, docs, tests, or issue reports.</p>
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-lg font-semibold text-gray-900">Nested-key syntax is an application convention</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              Dot form such as <code className="rounded bg-white px-1 py-0.5">filter.status</code> and bracket form such as <code className="rounded bg-white px-1 py-0.5">filter[status]</code> are common conventions, but the URL standard does not assign nested-object semantics to either one. Match the backend or framework that will parse the request.
+            </p>
+          </div>
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="text-lg font-semibold text-amber-900">Array syntax can change the meaning of the request</h2>
+            <p className="mt-3 text-sm leading-6 text-amber-800">
+              Repeated names, comma-joined values, empty brackets, indexed brackets, and JSON text are not interchangeable. A comma inside an array item makes comma mode ambiguous unless the receiver has its own escaping rule. Repeated keys are usually the least lossy representation when the API explicitly supports them.
+            </p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the JSON to URL Query Converter</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a JSON object or query string into the input box.</li>
-            <li>Choose whether to convert JSON to query, decode a query string, or inspect parameters.</li>
-            <li>Select how nested keys, arrays, booleans, and null values should be handled.</li>
-            <li>Choose query string, full URL, JSON, Markdown, CSV, or checklist output.</li>
-            <li>Review the parameter preview and copy the generated output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Query String Output</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`q=json%20tools&category=JSON%20%26%20Data&page=1&filters.status=live&tags=api&tags=debugging`}</pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Query String Styles Depend on the Backend</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Percent encoding and form encoding are related but not identical</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            There is no single universal format for nested query parameters. Some APIs expect dot paths, some expect brackets, and some expect repeated keys for arrays. Use the style your backend or API documentation expects, especially when converting nested filters and arrays.
+            Generic component encoding uses percent escapes such as <code className="rounded bg-gray-100 px-1 py-0.5">%20</code> for a space. The WHATWG <code className="rounded bg-gray-100 px-1 py-0.5">application/x-www-form-urlencoded</code> serializer used by <code className="rounded bg-gray-100 px-1 py-0.5">URLSearchParams</code> encodes spaces as <code className="rounded bg-gray-100 px-1 py-0.5">+</code> and uses a slightly different percent-encode set. The form-style option follows that behavior instead of only swapping one character after the fact.
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            Primary reference:{" "}
+            <a
+              href="https://url.spec.whatwg.org/#application/x-www-form-urlencoded"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              WHATWG URL Standard — application/x-www-form-urlencoded
+            </a>
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What does this JSON to query converter do?">
-              It converts JSON object keys into URL query parameters and can also decode a query string back into JSON-style output.
-            </Faq>
-            <Faq title="Can this handle nested JSON objects?">
-              Yes. Nested objects can be represented with dot paths, bracket paths, repeated parent keys, or indexed paths depending on the selected setting.
-            </Faq>
-            <Faq title="How are arrays converted into query parameters?">
-              Arrays can use repeated keys, comma-separated values, bracket keys, indexed bracket keys, or JSON text. The right choice depends on the API.
-            </Faq>
-            <Faq title="Is this different from a URL encoder?">
-              Yes. A URL encoder focuses on escaping text. This tool turns structured JSON keys and values into query parameters and can inspect them as rows.
-            </Faq>
-            <Faq title="Is anything uploaded while converting query data?">
-              No. The conversion runs entirely inside your browser.
-            </Faq>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Malformed percent escapes are errors, not text to guess around</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A copied query containing an incomplete escape such as <code className="rounded bg-gray-100 px-1 py-0.5">%E0</code> or a stray <code className="rounded bg-gray-100 px-1 py-0.5">%</code> is stopped during decoding. Silently returning the undecoded source would mix encoded and decoded data in the same result and make later comparisons unreliable.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A <code className="rounded bg-gray-100 px-1 py-0.5">+</code> is decoded as a space only when the form-style interpretation is enabled. Outside that convention, a literal plus can be meaningful data and should remain a plus.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Appending parameters to a full URL must preserve the fragment</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Existing query parameters are retained, new pairs are added before any <code className="rounded bg-gray-100 px-1 py-0.5">#fragment</code>, and the fragment stays at the end of the URL. This avoids the common mistake of appending <code className="rounded bg-gray-100 px-1 py-0.5">?x=1</code> after a fragment, where it would no longer be part of the URL query.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/json-to-url-query-converter" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Flattening can create collisions</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A literal JSON key named <code className="rounded bg-gray-100 px-1 py-0.5">filter.status</code> can collide with the dot-path representation of <code className="rounded bg-gray-100 px-1 py-0.5">{'{"filter":{"status":"live"}}'}</code>. Bracket syntax has similar edge cases when source keys contain brackets. Repeated generated names are surfaced so you can decide whether they are intentional array entries or a structural collision.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Empty objects have no natural query-pair representation and are omitted. Empty arrays are also omitted unless the selected array policy serializes the whole array as JSON text. Those omissions are reported when they occur.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">JSON input is checked before browser parsing can hide data loss</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Duplicate JSON object names are rejected instead of allowing <code className="rounded bg-gray-100 px-1 py-0.5">JSON.parse</code> to keep one value silently. Integers outside JavaScript's safe exact range are also stopped before they can be rounded and then emitted as a different query value.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Local processing does not remove every privacy consideration</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Conversion and decoding run in the current browser tab; the page code does not send the pasted query or JSON to a Yoryantra server. Query strings often contain identifiers, search terms, tokens, or internal filters, so remove secrets before sharing generated URLs in tickets, screenshots, analytics tools, chat logs, or documentation.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/json-to-url-query-converter" /></div>
         </div>
       </section>
     </ToolShell>
@@ -563,19 +583,40 @@ function buildResult(options: {
     return emptyResult(`__ERROR__:The input is not valid JSON: ${message}`, options.input.length);
   }
 
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return emptyResult("__ERROR__:Please paste a JSON object. Query parameters are generated from object keys.", options.input.length);
+  const dataRisk = findJsonDataRisk(options.input);
+  if (dataRisk) {
+    return emptyResult(`__ERROR__:${dataRisk}`, options.input.length);
   }
 
-  let params = flattenToParams(parsed as Record<string, unknown>, options);
-  if (!options.includeEmptyStrings) params = params.filter((param) => param.value !== "");
-  if (options.sortParams) params = [...params].sort((a, b) => a.key.localeCompare(b.key));
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return emptyResult("__ERROR__:Paste a JSON object. Query parameters need named top-level members.", options.input.length);
+  }
 
-  params = params.map((param) => ({
-    ...param,
-    encodedKey: encodePart(param.key, options.encodeSpacesAsPlus),
-    encodedValue: encodePart(param.value, options.encodeSpacesAsPlus),
-  }));
+  let params: ParamRow[];
+  try {
+    params = flattenToParams(parsed as Record<string, unknown>, options);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "The JSON structure could not be flattened safely.";
+    return emptyResult(`__ERROR__:${message}`, options.input.length);
+  }
+
+  if (!options.includeEmptyStrings) {
+    params = params.filter((param) => !(param.sourceType === "string" && param.value === ""));
+  }
+
+  if (options.sortParams) {
+    params = [...params].sort((a, b) => compareCodeUnits(a.key, b.key) || compareCodeUnits(a.sourcePath, b.sourcePath));
+  }
+
+  try {
+    params = params.map((param) => ({
+      ...param,
+      encodedKey: encodePart(param.key, options.encodeSpacesAsPlus),
+      encodedValue: encodePart(param.value, options.encodeSpacesAsPlus),
+    }));
+  } catch {
+    return emptyResult("__ERROR__:A query name or value contains an unpaired UTF-16 surrogate that cannot be percent-encoded safely. Replace or remove that character first.", options.input.length);
+  }
 
   const issues = buildIssues(parsed, params, options);
   const output = formatOutput(params, issues, options, "JSON object");
@@ -601,36 +642,62 @@ function parseQueryInput(options: {
 }) {
   const raw = extractQueryString(options.input);
   const params: ParamRow[] = [];
+  const parts = raw === "" ? [] : raw.split("&");
 
-  raw.split("&").filter(Boolean).forEach((part) => {
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
+    if (part === "") continue;
+
     const equalIndex = part.indexOf("=");
     const rawKey = equalIndex >= 0 ? part.slice(0, equalIndex) : part;
     const rawValue = equalIndex >= 0 ? part.slice(equalIndex + 1) : "";
-    const key = decodePart(rawKey, options.decodePlusAsSpace);
-    const value = decodePart(rawValue, options.decodePlusAsSpace);
+
+    const decodedKey = decodePart(rawKey, options.decodePlusAsSpace);
+    if (!decodedKey.valid) {
+      return emptyResult(`__ERROR__:Parameter ${index + 1} has malformed percent-encoding in its name.`, options.input.length);
+    }
+
+    const decodedValue = decodePart(rawValue, options.decodePlusAsSpace);
+    if (!decodedValue.valid) {
+      return emptyResult(`__ERROR__:Parameter ${index + 1} has malformed percent-encoding in its value.`, options.input.length);
+    }
+
+    const key = decodedKey.value;
+    const value = decodedValue.value;
     params.push({
       key,
       value,
       encodedKey: rawKey,
       encodedValue: rawValue,
       sourceType: inferValueType(value),
-      depth: key.split(/[.[\]]/).filter(Boolean).length - 1,
+      depth: estimateQueryDepth(key),
       repeated: false,
+      sourcePath: `query[${index}]`,
     });
-  });
+  }
 
   const counts = new Map<string, number>();
   params.forEach((param) => counts.set(param.key, (counts.get(param.key) ?? 0) + 1));
   const marked = params.map((param) => ({ ...param, repeated: (counts.get(param.key) ?? 0) > 1 }));
 
-  const issues = buildQueryIssues(marked, options);
+  const issues = buildQueryIssues(marked, { ...options, rawQuery: raw });
   const jsonObject = paramsToObject(marked, options.coerceQueryValues);
   let output = "";
 
   if (options.outputMode === "json") {
     output = JSON.stringify(jsonObject, null, 2);
   } else {
-    output = formatOutput(marked, issues, { ...options, outputMode: options.outputMode === "query" ? "markdown" : options.outputMode, baseUrl: "", includeQuestionMark: false }, "query string");
+    output = formatOutput(
+      marked,
+      issues,
+      {
+        ...options,
+        outputMode: options.outputMode === "query" || options.outputMode === "fullUrl" ? "markdown" : options.outputMode,
+        baseUrl: "",
+        includeQuestionMark: false,
+      },
+      "query string",
+    );
   }
 
   return {
@@ -656,6 +723,11 @@ function emptyResult(output: string, inputLength: number): Result {
   };
 }
 
+type QueryPathPart =
+  | { kind: "key"; value: string }
+  | { kind: "arrayIndex"; value: string }
+  | { kind: "arrayBracket"; value: "" };
+
 function flattenToParams(value: Record<string, unknown>, options: {
   keyStyle: KeyStyle;
   arrayMode: ArrayMode;
@@ -665,50 +737,72 @@ function flattenToParams(value: Record<string, unknown>, options: {
 }): ParamRow[] {
   const rows: ParamRow[] = [];
 
-  const walk = (current: unknown, path: string[], depth: number) => {
+  const walk = (current: unknown, path: QueryPathPart[], sourcePath: string, depth: number) => {
+    if (depth > 100) {
+      throw new Error("Nested JSON is deeper than 100 levels. Flatten it in application code where recursion and schema rules can be controlled.");
+    }
+
     if (current === null) {
       if (options.nullMode === "omit") return;
-      rows.push(makeRow(path, options.nullMode === "null" ? "null" : "", "null", depth, options));
+      rows.push(makeRow(path, options.nullMode === "null" ? "null" : "", "null", depth, sourcePath, options));
       return;
     }
 
     if (Array.isArray(current)) {
       if (options.arrayMode === "json") {
-        rows.push(makeRow(path, JSON.stringify(current), "array", depth, options));
+        rows.push(makeRow(path, JSON.stringify(current), "array", depth, sourcePath, options));
         return;
       }
 
       if (options.arrayMode === "comma") {
-        rows.push(makeRow(path, current.map((item) => formatValue(item, options)).join(","), "array", depth, options));
+        rows.push(makeRow(path, current.map((item) => formatValue(item, options)).join(","), "array", depth, sourcePath, options));
         return;
       }
 
       current.forEach((item, index) => {
-        let nextPath = path;
-        if (options.arrayMode === "brackets") nextPath = [...path, ""];
-        if (options.arrayMode === "indexed") nextPath = [...path, String(index)];
-        walk(item, nextPath, depth + 1);
+        if (options.arrayMode === "repeat") {
+          walk(item, path, `${sourcePath}/${index}`, depth + 1);
+        } else if (options.arrayMode === "brackets") {
+          walk(item, [...path, { kind: "arrayBracket", value: "" }], `${sourcePath}/${index}`, depth + 1);
+        } else {
+          walk(item, [...path, { kind: "arrayIndex", value: String(index) }], `${sourcePath}/${index}`, depth + 1);
+        }
       });
       return;
     }
 
     if (current && typeof current === "object") {
       Object.entries(current as Record<string, unknown>).forEach(([key, item]) => {
-        walk(item, [...path, key], depth + 1);
+        walk(
+          item,
+          [...path, { kind: "key", value: key }],
+          `${sourcePath}/${encodePointerSegment(key)}`,
+          depth + 1,
+        );
       });
       return;
     }
 
-    rows.push(makeRow(path, formatValue(current, options), typeof current, depth, options));
+    rows.push(makeRow(path, formatValue(current, options), typeof current, depth, sourcePath, options));
   };
 
-  Object.entries(value).forEach(([key, item]) => walk(item, [key], 0));
+  Object.entries(value).forEach(([key, item]) => {
+    walk(item, [{ kind: "key", value: key }], `/${encodePointerSegment(key)}`, 0);
+  });
+
   const counts = new Map<string, number>();
   rows.forEach((row) => counts.set(row.key, (counts.get(row.key) ?? 0) + 1));
   return rows.map((row) => ({ ...row, repeated: (counts.get(row.key) ?? 0) > 1 }));
 }
 
-function makeRow(path: string[], value: string, sourceType: string, depth: number, options: { keyStyle: KeyStyle }) {
+function makeRow(
+  path: QueryPathPart[],
+  value: string,
+  sourceType: string,
+  depth: number,
+  sourcePath: string,
+  options: { keyStyle: KeyStyle },
+): ParamRow {
   return {
     key: buildKey(path, options.keyStyle),
     value,
@@ -717,20 +811,33 @@ function makeRow(path: string[], value: string, sourceType: string, depth: numbe
     sourceType,
     depth,
     repeated: false,
+    sourcePath,
   };
 }
 
-function buildKey(path: string[], keyStyle: KeyStyle) {
-  if (keyStyle === "dot") return path.filter(Boolean).join(".");
-  if (keyStyle === "bracket") {
-    const [first, ...rest] = path;
-    return `${first}${rest.map((part) => `[${part}]`).join("")}`;
-  }
-  if (keyStyle === "indexed") {
-    const [first, ...rest] = path;
-    return `${first}${rest.map((part) => `[${part || ""}]`).join("")}`;
-  }
-  return path[path.length - 1] || path[0];
+function buildKey(path: QueryPathPart[], keyStyle: KeyStyle) {
+  let output = "";
+
+  path.forEach((part) => {
+    if (part.kind === "arrayBracket") {
+      output += "[]";
+      return;
+    }
+    if (part.kind === "arrayIndex") {
+      output += `[${part.value}]`;
+      return;
+    }
+
+    if (!output) {
+      output = part.value;
+    } else if (keyStyle === "dot") {
+      output += `.${part.value}`;
+    } else {
+      output += `[${part.value}]`;
+    }
+  });
+
+  return output;
 }
 
 function formatValue(value: unknown, options: {
@@ -738,12 +845,14 @@ function formatValue(value: unknown, options: {
   trimStringValues: boolean;
 }) {
   if (typeof value === "string") return options.trimStringValues ? value.trim() : value;
+
   if (typeof value === "boolean") {
     if (options.booleanMode === "numeric") return value ? "1" : "0";
     if (options.booleanMode === "presence") return value ? "" : "false";
     return value ? "true" : "false";
   }
-  if (typeof value === "number") return String(value);
+
+  if (typeof value === "number") return Object.is(value, -0) ? "-0" : String(value);
   return JSON.stringify(value);
 }
 
@@ -754,11 +863,10 @@ function formatOutput(params: ParamRow[], issues: Issue[], options: {
 }, detectedShape: string) {
   if (options.outputMode === "query" || options.outputMode === "fullUrl") {
     const query = params.map((param) => `${param.encodedKey}=${param.encodedValue}`).join("&");
-    const prefixed = options.includeQuestionMark ? `?${query}` : query;
     if (options.outputMode === "fullUrl") {
       return appendQueryToUrl(options.baseUrl || "https://example.com/search", query);
     }
-    return prefixed;
+    return options.includeQuestionMark ? `?${query}` : query;
   }
 
   if (options.outputMode === "json") {
@@ -779,17 +887,25 @@ function formatOutput(params: ParamRow[], issues: Issue[], options: {
   }
 
   if (options.outputMode === "csv") {
-    const rows = [["key", "value", "encoded_key", "encoded_value", "type", "repeated"]];
-    params.forEach((param) => rows.push([param.key, param.value, param.encodedKey, param.encodedValue, param.sourceType, param.repeated ? "true" : "false"]));
+    const rows = [["key", "value", "encoded_key", "encoded_value", "type", "repeated", "source_path"]];
+    params.forEach((param) => rows.push([
+      param.key,
+      param.value,
+      param.encodedKey,
+      param.encodedValue,
+      param.sourceType,
+      param.repeated ? "true" : "false",
+      param.sourcePath,
+    ]));
     return rows.map((row) => row.map(csvCell).join(",")).join("\n");
   }
 
   const lines = [
-    "# Query Parameter Checklist",
+    "# Query parameter check",
     "",
-    `- [${params.length ? "x" : " "}] Generated or inspected ${params.length} parameter${params.length === 1 ? "" : "s"}.`,
-    `- [${params.every((param) => param.key) ? "x" : " "}] Every parameter has a key.`,
-    `- [${params.length <= 50 ? "x" : " "}] Parameter count is manageable for manual review.`,
+    `- [${params.length ? "x" : " "}] Produced or inspected ${params.length} parameter${params.length === 1 ? "" : "s"}.`,
+    `- [${issues.every((issue) => issue.severity !== "high") ? "x" : " "}] No high-severity encoding or data-integrity errors remain.`,
+    `- [${params.length <= 100 ? "x" : " "}] Parameter count is still practical for manual inspection.`,
   ];
 
   if (issues.length) {
@@ -801,15 +917,21 @@ function formatOutput(params: ParamRow[], issues: Issue[], options: {
 }
 
 function paramsToObject(params: ParamRow[], coerce: boolean) {
-  const output: Record<string, unknown> = {};
+  const output = Object.create(null) as Record<string, unknown>;
 
   params.forEach((param) => {
     const value = coerce ? coerceValue(param.value) : param.value;
+
     if (Object.prototype.hasOwnProperty.call(output, param.key)) {
       const current = output[param.key];
       output[param.key] = Array.isArray(current) ? [...current, value] : [current, value];
     } else {
-      output[param.key] = value;
+      Object.defineProperty(output, param.key, {
+        value,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
     }
   });
 
@@ -820,60 +942,139 @@ function coerceValue(value: string): unknown {
   if (value === "true") return true;
   if (value === "false") return false;
   if (value === "null") return null;
-  if (/^-?\d+(\.\d+)?$/.test(value)) return Number(value);
+
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(value)) {
+    const numberValue = Number(value);
+    if (Number.isFinite(numberValue) && (!Number.isInteger(numberValue) || Number.isSafeInteger(numberValue)) && !Object.is(numberValue, -0)) {
+      return numberValue;
+    }
+  }
+
   return value;
 }
 
 function buildIssues(original: unknown, params: ParamRow[], options: {
+  keyStyle: KeyStyle;
+  arrayMode: ArrayMode;
+  booleanMode: BooleanMode;
+  trimStringValues: boolean;
   warnNestedObjects: boolean;
   warnLongQuery: boolean;
 }) {
   const issues: Issue[] = [];
 
-  if (options.warnNestedObjects && hasNestedObject(original)) {
+  if (options.warnNestedObjects && hasNestedStructure(original)) {
     issues.push({
       severity: "info",
-      title: "Nested object converted",
-      message: "Nested JSON keys were converted into query parameter names. Confirm the style expected by the API.",
+      title: "Structure was flattened into parameter names",
+      message: `Nested data uses ${options.keyStyle === "dot" ? "dot" : "bracket"} notation and the selected array policy. The receiving application must interpret that convention the same way.`,
     });
   }
 
   const queryLength = params.map((param) => `${param.encodedKey}=${param.encodedValue}`).join("&").length;
-  if (options.warnLongQuery && queryLength > 1800) {
+  if (options.warnLongQuery && queryLength > 2000) {
     issues.push({
       severity: "warning",
-      title: "Long query string",
-      message: "The generated query string is longer than 1,800 characters. Some systems may reject or truncate very long URLs.",
+      title: "Long generated query",
+      message: `The encoded query is ${queryLength.toLocaleString()} characters. 2,000 is only a review threshold here, not a protocol limit; browser, proxy, server, and framework limits vary.`,
     });
   }
 
   if (params.some((param) => param.repeated)) {
     issues.push({
       severity: "info",
-      title: "Repeated keys",
-      message: "Some keys appear more than once. Repeated parameters are common for arrays, but not every backend handles them the same way.",
+      title: "Repeated parameter names need receiver agreement",
+      message: "Repeated names can represent arrays, but they can also arise when flattened source paths collide. Confirm how the backend reads repeated parameters.",
+    });
+  }
+
+  if (options.arrayMode === "comma" && hasAmbiguousCommaArray(original)) {
+    issues.push({
+      severity: "warning",
+      title: "Comma joining can be ambiguous",
+      message: "At least one array item contains a comma or structured value. A comma-joined query cannot preserve those item boundaries without an application-specific escaping rule.",
+    });
+  }
+
+  const emptyContainers = countEmptyContainers(original);
+  if (emptyContainers > 0 && options.arrayMode !== "json") {
+    issues.push({
+      severity: "info",
+      title: "Empty containers have no emitted pair",
+      message: `${emptyContainers} empty object or array ${emptyContainers === 1 ? "value has" : "values have"} no natural name-value pair in the selected representation and may be omitted.`,
+    });
+  }
+
+  if (hasAmbiguousMemberNames(original, options.keyStyle)) {
+    issues.push({
+      severity: "warning",
+      title: "Source member names overlap the nesting syntax",
+      message: options.keyStyle === "dot"
+        ? 'At least one JSON member name contains a dot. A literal "a.b" key can collide with the flattened path for {"a":{"b":...}}.'
+        : "At least one JSON member name contains brackets. Bracket notation can become ambiguous when brackets are literal source characters.",
+    });
+  }
+
+  if (options.trimStringValues && hasTrimmedStringChange(original)) {
+    issues.push({
+      severity: "warning",
+      title: "String whitespace was changed",
+      message: "Trimming is enabled and at least one JSON string has leading or trailing whitespace. Query output therefore does not preserve that source value exactly.",
+    });
+  }
+
+  if (options.booleanMode === "presence") {
+    issues.push({
+      severity: "info",
+      title: "Presence-style booleans are application-specific",
+      message: 'true becomes an empty-valued present parameter while false is emitted as "false". Confirm that this matches the receiver before relying on it.',
     });
   }
 
   return issues;
 }
 
-function buildQueryIssues(params: ParamRow[], options: { warnLongQuery: boolean; input: string }) {
+function buildQueryIssues(params: ParamRow[], options: {
+  warnLongQuery: boolean;
+  input: string;
+  rawQuery: string;
+  coerceQueryValues: boolean;
+  decodePlusAsSpace: boolean;
+}) {
   const issues: Issue[] = [];
+
   if (params.some((param) => param.repeated)) {
     issues.push({
       severity: "info",
-      title: "Repeated query keys",
-      message: "Repeated query keys were detected and will be represented as arrays in decoded JSON output.",
+      title: "Repeated names become arrays in decoded JSON",
+      message: "That array representation is a local decoding choice; the query string itself carries repeated name-value pairs rather than a JSON array type.",
     });
   }
-  if (options.warnLongQuery && options.input.length > 1800) {
+
+  if (options.warnLongQuery && options.rawQuery.length > 2000) {
     issues.push({
       severity: "warning",
-      title: "Long query string",
-      message: "The query string is longer than 1,800 characters. Long URLs can be difficult to share and may hit system limits.",
+      title: "Long query",
+      message: `The query portion is ${options.rawQuery.length.toLocaleString()} characters. 2,000 is a review threshold, not a universal URL limit.`,
     });
   }
+
+  if (options.coerceQueryValues && params.some((param) => coerceValue(param.value) !== param.value)) {
+    issues.push({
+      severity: "warning",
+      title: "Decoded strings were coerced",
+      message: "Some query values were converted to booleans, null, or safe JavaScript numbers. Query strings do not carry those JSON types themselves.",
+    });
+  }
+
+  if (options.decodePlusAsSpace && options.rawQuery.includes("+")) {
+    issues.push({
+      severity: "info",
+      title: "Plus signs were interpreted as spaces",
+      message: "That behavior matches form-style query decoding. Disable it when literal plus signs are part of the data.",
+    });
+  }
+
   return issues;
 }
 
@@ -883,71 +1084,286 @@ function getNotes(result: Result): Issue[] {
   if (result.outputLength > 50000) {
     notes.push({
       severity: "info",
-      title: "Large output",
-      message: "The generated output is large. Review whether a query string is still the right format for this data.",
+      title: "Large generated report",
+      message: "The output is sizeable enough that a request body or structured file may be a better transport than a query string.",
     });
   }
 
   return notes;
 }
 
-function hasNestedObject(value: unknown): boolean {
+function hasNestedStructure(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
-  return Object.values(value as Record<string, unknown>).some((item) => item && typeof item === "object");
+  return Object.values(value as Record<string, unknown>).some((item) => item !== null && typeof item === "object");
+}
+
+function hasAmbiguousCommaArray(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    if (value.some((item) => (typeof item === "string" && item.includes(",")) || (item !== null && typeof item === "object"))) {
+      return true;
+    }
+    return value.some(hasAmbiguousCommaArray);
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).some(hasAmbiguousCommaArray);
+  }
+  return false;
+}
+
+function countEmptyContainers(value: unknown): number {
+  if (Array.isArray(value)) {
+    return (value.length === 0 ? 1 : 0) + value.reduce((count, item) => count + countEmptyContainers(item), 0);
+  }
+  if (value && typeof value === "object") {
+    const values = Object.values(value as Record<string, unknown>);
+    return (values.length === 0 ? 1 : 0) + values.reduce<number>((count, item) => count + countEmptyContainers(item), 0);
+  }
+  return 0;
+}
+
+function hasAmbiguousMemberNames(value: unknown, keyStyle: KeyStyle): boolean {
+  if (Array.isArray(value)) return value.some((item) => hasAmbiguousMemberNames(item, keyStyle));
+  if (!value || typeof value !== "object") return false;
+
+  return Object.entries(value as Record<string, unknown>).some(([key, item]) => {
+    const ambiguous = keyStyle === "dot" ? key.includes(".") : key.includes("[") || key.includes("]");
+    return ambiguous || hasAmbiguousMemberNames(item, keyStyle);
+  });
+}
+
+function hasTrimmedStringChange(value: unknown): boolean {
+  if (typeof value === "string") return value !== value.trim();
+  if (Array.isArray(value)) return value.some(hasTrimmedStringChange);
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).some(hasTrimmedStringChange);
+  }
+  return false;
 }
 
 function extractQueryString(input: string) {
   const trimmed = input.trim();
-  const questionIndex = trimmed.indexOf("?");
   const hashIndex = trimmed.indexOf("#");
   const withoutHash = hashIndex >= 0 ? trimmed.slice(0, hashIndex) : trimmed;
+  const questionIndex = withoutHash.indexOf("?");
   if (questionIndex >= 0) return withoutHash.slice(questionIndex + 1);
   return withoutHash.replace(/^\?/, "");
 }
 
-function encodePart(value: string, plusSpaces: boolean) {
-  const encoded = encodeURIComponent(value);
-  return plusSpaces ? encoded.replace(/%20/g, "+") : encoded;
+function encodePart(value: string, formStyle: boolean) {
+  let encoded = encodeURIComponent(value);
+  if (!formStyle) return encoded;
+
+  encoded = encoded.replace(/[!'()~]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+  return encoded.replace(/%20/g, "+");
 }
 
-function decodePart(value: string, plusSpaces: boolean) {
-  const prepared = plusSpaces ? value.replace(/\+/g, " ") : value;
+function decodePart(value: string, formStyle: boolean): { valid: boolean; value: string } {
+  const prepared = formStyle ? value.replace(/\+/g, " ") : value;
   try {
-    return decodeURIComponent(prepared);
+    return { valid: true, value: decodeURIComponent(prepared) };
   } catch {
-    return prepared;
+    return { valid: false, value: "" };
   }
 }
 
 function inferValueType(value: string) {
-  if (value === "true" || value === "false") return "boolean-like";
-  if (value === "null") return "null-like";
-  if (/^-?\d+(\.\d+)?$/.test(value)) return "number-like";
+  if (value === "true" || value === "false") return "boolean-like string";
+  if (value === "null") return "null-like string";
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(value)) return "number-like string";
   return "string";
 }
 
+function estimateQueryDepth(key: string) {
+  const dotSegments = key.split(".").filter((part) => part !== "").length;
+  const bracketSegments = (key.match(/\[[^\]]*\]/g) || []).length;
+  return Math.max(0, dotSegments + bracketSegments - 1);
+}
+
 function appendQueryToUrl(url: string, query: string) {
+  if (!query) return url;
   if (!url.trim()) return `?${query}`;
-  const separator = url.includes("?") ? (url.endsWith("?") || url.endsWith("&") ? "" : "&") : "?";
-  return `${url}${separator}${query}`;
+
+  const hashIndex = url.indexOf("#");
+  const beforeHash = hashIndex >= 0 ? url.slice(0, hashIndex) : url;
+  const fragment = hashIndex >= 0 ? url.slice(hashIndex) : "";
+  const separator = beforeHash.includes("?")
+    ? (beforeHash.endsWith("?") || beforeHash.endsWith("&") ? "" : "&")
+    : "?";
+
+  return `${beforeHash}${separator}${query}${fragment}`;
+}
+
+function encodePointerSegment(segment: string) {
+  return segment.replace(/~/g, "~0").replace(/\//g, "~1");
+}
+
+function compareCodeUnits(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function findJsonDataRisk(text: string): string | null {
+  let index = 0;
+
+  const skipWhitespace = () => {
+    while (index < text.length && /\s/.test(text[index])) index += 1;
+  };
+
+  const parseString = (): string => {
+    const start = index;
+    index += 1;
+    while (index < text.length) {
+      const char = text[index];
+      if (char === "\\") {
+        index += 2;
+        continue;
+      }
+      if (char === '"') {
+        index += 1;
+        return JSON.parse(text.slice(start, index)) as string;
+      }
+      index += 1;
+    }
+    throw new Error("syntax");
+  };
+
+  const parseNumber = () => {
+    const match = text.slice(index).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+    if (!match) throw new Error("syntax");
+    const token = match[0];
+    index += token.length;
+    const value = Number(token);
+
+    if (!Number.isFinite(value)) {
+      throw new Error("A JSON number is outside JavaScript's finite numeric range. Convert it to a string before generating query data.");
+    }
+    if (Number.isInteger(value) && !Number.isSafeInteger(value)) {
+      throw new Error(`JSON integer ${token} cannot be represented exactly by JavaScript. Convert it to a string before generating query data.`);
+    }
+    if (Object.is(value, -0)) {
+      throw new Error("JSON number -0 can lose its sign during conversion. Convert it to a string if that distinction matters.");
+    }
+  };
+
+  const parseValue = (depth: number): void => {
+    if (depth > 200) throw new Error("JSON nesting is deeper than 200 levels, which is unsafe for this browser-side conversion.");
+    skipWhitespace();
+    const char = text[index];
+
+    if (char === "{") {
+      index += 1;
+      skipWhitespace();
+      const names = new Set<string>();
+      if (text[index] === "}") {
+        index += 1;
+        return;
+      }
+      while (index < text.length) {
+        skipWhitespace();
+        if (text[index] !== '"') throw new Error("syntax");
+        const name = parseString();
+        if (names.has(name)) {
+          throw new Error(`Duplicate object member "${name}" would be collapsed by JSON.parse. Remove or rename the duplicate before converting.`);
+        }
+        names.add(name);
+        skipWhitespace();
+        if (text[index] !== ":") throw new Error("syntax");
+        index += 1;
+        parseValue(depth + 1);
+        skipWhitespace();
+        if (text[index] === "}") {
+          index += 1;
+          return;
+        }
+        if (text[index] !== ",") throw new Error("syntax");
+        index += 1;
+      }
+      throw new Error("syntax");
+    }
+
+    if (char === "[") {
+      index += 1;
+      skipWhitespace();
+      if (text[index] === "]") {
+        index += 1;
+        return;
+      }
+      while (index < text.length) {
+        parseValue(depth + 1);
+        skipWhitespace();
+        if (text[index] === "]") {
+          index += 1;
+          return;
+        }
+        if (text[index] !== ",") throw new Error("syntax");
+        index += 1;
+      }
+      throw new Error("syntax");
+    }
+
+    if (char === '"') {
+      parseString();
+      return;
+    }
+
+    if (char === "-" || (char >= "0" && char <= "9")) {
+      parseNumber();
+      return;
+    }
+
+    if (text.slice(index, index + 4) === "true" || text.slice(index, index + 4) === "null") {
+      index += 4;
+      return;
+    }
+    if (text.slice(index, index + 5) === "false") {
+      index += 5;
+      return;
+    }
+    throw new Error("syntax");
+  };
+
+  try {
+    parseValue(0);
+    return null;
+  } catch (error) {
+    if (error instanceof Error && error.message !== "syntax") return error.message;
+    return null;
+  }
 }
 
 function escapeMarkdown(value: string) {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 }
 
 function csvCell(value: string) {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
+function issueCardClass(severity: Issue["severity"]) {
+  if (severity === "high") return "self-start rounded-xl border border-red-200 bg-red-50 p-4";
+  if (severity === "warning") return "self-start rounded-xl border border-amber-200 bg-amber-50 p-4";
+  return "self-start rounded-xl border border-gray-200 bg-gray-50 p-4";
+}
+
+function issueTitleClass(severity: Issue["severity"]) {
+  if (severity === "high") return "text-sm font-semibold text-red-900";
+  if (severity === "warning") return "text-sm font-semibold text-amber-900";
+  return "text-sm font-semibold text-gray-900";
+}
+
+function issueTextClass(severity: Issue["severity"]) {
+  if (severity === "high") return "mt-1 text-sm leading-6 text-red-800";
+  if (severity === "warning") return "mt-1 text-sm leading-6 text-amber-800";
+  return "mt-1 text-sm leading-6 text-gray-600";
+}
+
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
   return (
-    <label className="flex items-center gap-3 text-sm text-gray-700">
+    <label className="flex items-start gap-3 text-sm text-gray-700">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
+        className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 accent-[#d9a928]"
       />
       <span>{label}</span>
     </label>
@@ -963,11 +1379,3 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}

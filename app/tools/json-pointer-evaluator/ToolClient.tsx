@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -104,8 +104,8 @@ export default function ToolClient() {
       return;
     }
 
-    if (!pointerInput.trim() && actionMode !== "generate") {
-      setError("Please enter one or more JSON Pointer paths.");
+    if (actionMode !== "generate" && pointerInputMode === "multiple" && pointerInput.length === 0) {
+      setError("Enter one or more JSON Pointer paths. For the empty root pointer, switch to Single pointer and leave the field empty.");
       setResult(null);
       setOutput("");
       return;
@@ -191,14 +191,14 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Pointer Evaluator"
-      description="Evaluate RFC 6901 JSON Pointer paths against pasted JSON, inspect matched values, decode pointer segments, and generate pointer reports locally in your browser."
+      description="Resolve RFC 6901 pointers, URI-fragment forms, escaped tokens, arrays, and root values precisely."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-900">JSON Document</label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Paste the JSON object or array you want to inspect. Use JSON Pointer paths like /user/name, /items/0/title, or /a~1b.
+              Paste the JSON value to address. Pointer tokens are exact: /a~1b addresses the key a/b, and an empty pointer addresses the root.
             </p>
           </div>
 
@@ -315,21 +315,21 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={processPointer}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="min-h-[44px] whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Evaluate Pointer
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
         >
           Reset
         </button>
@@ -349,7 +349,7 @@ export default function ToolClient() {
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
@@ -374,9 +374,9 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((note) => (
-              <div key={`${note.title}-${note.message}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{note.message}</p>
+              <div key={`${note.title}-${note.message}`} className={issueCardClass(note.severity)}>
+                <p className={issueTitleClass(note.severity)}>{note.title}</p>
+                <p className={issueTextClass(note.severity)}>{note.message}</p>
               </div>
             ))}
           </div>
@@ -419,81 +419,82 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Testing JSON Pointer Paths Without Guesswork</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">A pointer identifies one exact location, not a search pattern</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Pointer is a compact path format for selecting values inside a JSON document. It appears in JSON Patch, OpenAPI references, schema tooling, API errors, and config systems. A pointer such as <code className="rounded bg-gray-100 px-1 py-0.5">/user/name</code> walks through object keys, while <code className="rounded bg-gray-100 px-1 py-0.5">/items/0/title</code> selects an array item.
+            JSON Pointer is deliberately small. Each slash-prefixed token selects one object member or array element in sequence. <code className="rounded bg-gray-100 px-1 py-0.5">/user/name</code> addresses a nested member, while <code className="rounded bg-gray-100 px-1 py-0.5">/items/0</code> addresses the first array element. There are no wildcards, filters, recursive searches, or expressions.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This evaluator lets you paste JSON, test one or more pointers, decode escaped segments, inspect missing paths, and generate pointer lists from a document.
+            The empty string is also a valid pointer: it addresses the entire JSON document. In Single pointer mode, leave the pointer field empty to test that case. A single slash <code className="rounded bg-gray-100 px-1 py-0.5">/</code> means something different—it addresses an object member whose name is the empty string.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This JSON Pointer Evaluator Helps</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Checking JSON Patch paths before using add, remove, replace, move, copy, or test operations.</p>
-            <p className="mt-2">Debugging OpenAPI, schema, or API error references that point to nested JSON values.</p>
-            <p className="mt-2">Testing escaped pointer segments for keys that contain slashes or tildes.</p>
-            <p className="mt-2">Generating pointer paths from a pasted JSON document for documentation or troubleshooting.</p>
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-lg font-semibold text-gray-900">Escaping happens inside each reference token</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              A slash inside a member name becomes <code className="rounded bg-white px-1 py-0.5">~1</code>, and a tilde becomes <code className="rounded bg-white px-1 py-0.5">~0</code>. The key <code className="rounded bg-white px-1 py-0.5">a/b</code> is therefore addressed as <code className="rounded bg-white px-1 py-0.5">/a~1b</code>. Invalid <code className="rounded bg-white px-1 py-0.5">~</code> escapes are rejected rather than guessed.
+            </p>
+          </div>
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="text-lg font-semibold text-amber-900">The URI-fragment form is related, but not universally implied</h2>
+            <p className="mt-3 text-sm leading-6 text-amber-800">
+              RFC 6901 also defines forms such as <code className="rounded bg-amber-100 px-1 py-0.5">#/a~1b</code>. Percent-decoding is applied before pointer-token decoding. A media type still has to define JSON Pointer as its fragment syntax; ordinary <code className="rounded bg-amber-100 px-1 py-0.5">application/json</code> does not automatically make every URL fragment a JSON Pointer.
+            </p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the JSON Pointer Evaluator</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste the JSON document you want to inspect.</li>
-            <li>Enter one JSON Pointer path or multiple paths, one per line.</li>
-            <li>Choose whether to evaluate values, inspect pointer syntax, generate pointers, or decode pointer segments.</li>
-            <li>Review matched values, missing paths, decoded segments, and warnings.</li>
-            <li>Copy the value output, JSON report, Markdown table, CSV, or checklist.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example JSON Pointer Paths</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`/user/name
-/user/roles/0
-/tools/1/title
-/a~1b       selects key named a/b
-/tilde~0key selects key named tilde~key`}</pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">JSON Pointer Is Different From JSONPath</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Array tokens have stricter rules than object member names</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON Pointer uses a simple slash-separated path format defined by RFC 6901. JSONPath is a query-like syntax with filters, wildcards, and expressions. Use JSON Pointer when a tool expects exact paths such as <code className="rounded bg-gray-100 px-1 py-0.5">/user/name</code>, especially in JSON Patch, schema references, and API error locations.
+            Against an array, an index is <code className="rounded bg-gray-100 px-1 py-0.5">0</code> or a positive decimal integer without a leading zero. The token <code className="rounded bg-gray-100 px-1 py-0.5">-</code> is valid JSON Pointer syntax, but RFC 6901 defines it as the nonexistent position after the last array element, so plain evaluation cannot resolve it to a value. JSON Patch gives that token application-specific meaning for certain add operations; a pointer evaluator should not silently borrow that behavior.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Numeric-looking tokens are not intrinsically array indexes. If the current value is an object, <code className="rounded bg-gray-100 px-1 py-0.5">/0</code> simply addresses the object member named <code className="rounded bg-gray-100 px-1 py-0.5">0</code>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What is a JSON Pointer?">
-              A JSON Pointer is a slash-separated path that identifies a value inside a JSON document, such as /user/name or /items/0/title.
-            </Faq>
-            <Faq title="How do I reference a key that contains a slash?">
-              Use ~1 for a slash. For example, the key a/b is written as /a~1b in JSON Pointer syntax.
-            </Faq>
-            <Faq title="How do I reference a key that contains a tilde?">
-              Use ~0 for a tilde. For example, the key tilde~key is written as /tilde~0key.
-            </Faq>
-            <Faq title="Can this test JSON Patch paths?">
-              Yes. JSON Patch operations use JSON Pointer paths, so this tool can help check whether a patch path points to the expected value.
-            </Faq>
-            <Faq title="Is anything uploaded while evaluating JSON Pointers?">
-              No. The evaluation runs entirely inside your browser.
-            </Faq>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Duplicate JSON names make an exact pointer undefined</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            RFC 6901 states that evaluation fails when the referenced object member name is not unique. JavaScript's normal <code className="rounded bg-gray-100 px-1 py-0.5">JSON.parse</code> would otherwise keep only one duplicate and hide the ambiguity, so duplicate member names are stopped before evaluation. Integers outside JavaScript's safe exact range are also rejected before matched values can be silently rounded.
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            Primary reference:{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc6901.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              RFC 6901 — JavaScript Object Notation (JSON) Pointer
+            </a>
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Generated pointer lists include empty containers</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Leaf-only generation normally emits values that have no children. An empty object or empty array also has no child path, so its pointer is retained instead of disappearing from the generated list. Generation is capped to keep deeply nested or very wide pasted documents responsive; the result notes when the cap was reached.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/json-pointer-evaluator" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">JSON Pointer and JSONPath solve different jobs</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A JSON Pointer is an exact address. JSONPath is a query language family intended for selecting sets of values with richer expressions. If an API error, JSON Patch operation, OpenAPI reference, or schema-related format gives you a slash path, exact pointer semantics matter more than a flexible query syntax.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Evaluation stays in the browser, but pasted data still deserves care</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Parsing, pointer generation, and evaluation run in the current browser tab; the page code does not upload the pasted JSON to a Yoryantra server. Sensitive production payloads should still be minimized before pasting into any browser-based utility, especially on shared machines, screen recordings, or systems with browser extensions you do not control.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/json-pointer-evaluator" /></div>
         </div>
       </section>
     </ToolShell>
@@ -519,9 +520,9 @@ function buildResult(options: {
 }): Result {
   if (options.actionMode === "decode") {
     const pointers = getPointers(options.pointerInput, options.pointerInputMode);
-    const pointerResults = pointers.map((pointer) => inspectPointer(pointer, null));
-    const issues = buildPointerIssues(pointerResults, options);
-    const output = formatOutput(pointerResults, issues, options, null);
+    const pointerResults = pointers.map((pointer) => inspectPointer(pointer, undefined, false));
+    const issues = buildPointerIssues(pointerResults, options, false);
+    const output = formatOutput(pointerResults, issues, options, undefined, false);
     return {
       output,
       pointerResults,
@@ -542,30 +543,35 @@ function buildResult(options: {
     return emptyResult(`__ERROR__:The JSON input is not valid: ${message}`, options.jsonInput.length);
   }
 
+  const dataRisk = findJsonDataRisk(options.jsonInput);
+  if (dataRisk) {
+    return emptyResult(`__ERROR__:${dataRisk}`, options.jsonInput.length);
+  }
+
   if (options.actionMode === "generate") {
-    let pointers = generatePointers(parsed, "", options.generateLeafOnly);
+    const maxPointers = options.limitGeneratedPointers ? 300 : 5000;
+    const generated = generatePointers(parsed, "", options.generateLeafOnly, maxPointers);
+    let pointers = generated.pointers;
     if (options.sortGeneratedPointers) {
-      pointers = [...pointers].sort((a, b) => a.localeCompare(b));
-    }
-    if (options.limitGeneratedPointers) {
-      pointers = pointers.slice(0, 300);
+      pointers = [...pointers].sort(compareCodeUnits);
     }
 
     const pointerResults = pointers.map((pointer) => {
       const evaluation = evaluatePointer(parsed, pointer);
+      const decoded = decodePointer(pointer);
       return {
         pointer,
         exists: evaluation.exists,
         value: evaluation.value,
-        valueType: valueType(evaluation.value),
-        decodedSegments: decodePointer(pointer).segments,
-        message: evaluation.exists ? "Generated from JSON document" : "Generated pointer did not resolve",
-        depth: pointer ? pointer.split("/").length - 1 : 0,
+        valueType: evaluation.exists ? valueType(evaluation.value) : "missing",
+        decodedSegments: decoded.segments,
+        message: evaluation.exists ? "Generated from the pasted JSON value" : evaluation.message,
+        depth: decoded.segments.length,
       };
     });
 
-    const issues = buildPointerIssues(pointerResults, options);
-    const output = formatOutput(pointerResults, issues, options, parsed);
+    const issues = buildPointerIssues(pointerResults, options, generated.truncated);
+    const output = formatOutput(pointerResults, issues, options, parsed, true);
     return {
       output,
       pointerResults,
@@ -581,7 +587,7 @@ function buildResult(options: {
   const pointers = getPointers(options.pointerInput, options.pointerInputMode);
   const pointerResults = pointers.map((pointer) => {
     if (options.actionMode === "inspect") {
-      return inspectPointer(pointer, parsed);
+      return inspectPointer(pointer, parsed, true);
     }
 
     const decoded = decodePointer(pointer);
@@ -609,9 +615,12 @@ function buildResult(options: {
     };
   });
 
-  const filteredResults = options.includeMissingPointers ? pointerResults : pointerResults.filter((item) => item.exists);
-  const issues = buildPointerIssues(pointerResults, options);
-  const output = formatOutput(filteredResults, issues, options, parsed);
+  const filteredResults = options.includeMissingPointers
+    ? pointerResults
+    : pointerResults.filter((item) => item.exists);
+
+  const issues = buildPointerIssues(pointerResults, options, false);
+  const output = formatOutput(filteredResults, issues, options, parsed, true);
 
   return {
     output,
@@ -639,21 +648,39 @@ function emptyResult(output: string, inputLength: number): Result {
 }
 
 function getPointers(input: string, mode: PointerInputMode) {
-  if (mode === "single") return [input.trim()];
-  return input.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (mode === "single") return [input];
+
+  const lines = input.split(/\r?\n/);
+  if (lines.length > 1 && lines[lines.length - 1] === "") {
+    lines.pop();
+  }
+  return lines;
 }
 
-function inspectPointer(pointer: string, parsed: unknown): PointerResult {
+function inspectPointer(pointer: string, parsed: unknown, shouldEvaluate: boolean): PointerResult {
   const decoded = decodePointer(pointer);
-  const evaluation = parsed === null ? { exists: false, value: null, message: "No JSON document used for decode-only mode" } : evaluatePointer(parsed, pointer);
+  const evaluation = decoded.valid && shouldEvaluate
+    ? evaluatePointer(parsed, pointer)
+    : { exists: false, value: null, message: shouldEvaluate ? decoded.error : "Decode-only mode" };
+
+  let message = decoded.error;
+  if (decoded.valid) {
+    if (shouldEvaluate) {
+      message = evaluation.exists ? "Pointer matched a value" : evaluation.message;
+    } else if (decoded.segments.length === 0) {
+      message = decoded.fromFragment ? "URI fragment decodes to the empty root pointer" : "Empty pointer targets the whole document";
+    } else {
+      message = `Decoded ${decoded.segments.length} reference token${decoded.segments.length === 1 ? "" : "s"}${decoded.fromFragment ? " from URI-fragment form" : ""}`;
+    }
+  }
 
   return {
     pointer,
     exists: evaluation.exists,
     value: evaluation.value,
-    valueType: decoded.valid ? (evaluation.exists ? valueType(evaluation.value) : "not evaluated") : "invalid pointer",
+    valueType: decoded.valid ? (shouldEvaluate ? (evaluation.exists ? valueType(evaluation.value) : "missing") : "not evaluated") : "invalid pointer",
     decodedSegments: decoded.segments,
-    message: decoded.valid ? decoded.segments.length ? `Decoded ${decoded.segments.length} segment${decoded.segments.length === 1 ? "" : "s"}` : "Empty pointer targets the whole document" : decoded.error,
+    message,
     depth: decoded.segments.length,
   };
 }
@@ -664,18 +691,21 @@ function evaluatePointer(root: unknown, pointer: string): { exists: boolean; val
     return { exists: false, value: null, message: decoded.error };
   }
 
-  if (pointer === "") {
+  if (decoded.segments.length === 0) {
     return { exists: true, value: root, message: "Empty pointer targets the whole document" };
   }
 
   let current = root;
   for (const segment of decoded.segments) {
     if (Array.isArray(current)) {
+      if (segment === "-") {
+        return { exists: false, value: null, message: 'The "-" token names the nonexistent position after the last array element.' };
+      }
       if (!/^(0|[1-9]\d*)$/.test(segment)) {
-        return { exists: false, value: null, message: `Segment "${segment}" is not a valid array index.` };
+        return { exists: false, value: null, message: `Segment "${segment}" is not a valid array index for this array.` };
       }
       const index = Number(segment);
-      if (index < 0 || index >= current.length) {
+      if (index >= current.length) {
         return { exists: false, value: null, message: `Array index ${index} is out of range.` };
       }
       current = current[index];
@@ -685,121 +715,199 @@ function evaluatePointer(root: unknown, pointer: string): { exists: boolean; val
     if (current && typeof current === "object") {
       const obj = current as Record<string, unknown>;
       if (!Object.prototype.hasOwnProperty.call(obj, segment)) {
-        return { exists: false, value: null, message: `Object key "${segment}" was not found.` };
+        return { exists: false, value: null, message: `Object member "${segment}" was not found.` };
       }
       current = obj[segment];
       continue;
     }
 
-    return { exists: false, value: null, message: `Cannot continue through ${valueType(current)} value.` };
+    return { exists: false, value: null, message: `Cannot continue through a ${valueType(current)} value.` };
   }
 
   return { exists: true, value: current, message: "Pointer matched a value" };
 }
 
-function decodePointer(pointer: string): { valid: boolean; segments: string[]; error: string } {
-  if (pointer === "") {
-    return { valid: true, segments: [], error: "" };
+function decodePointer(pointer: string): {
+  valid: boolean;
+  segments: string[];
+  error: string;
+  normalized: string;
+  fromFragment: boolean;
+} {
+  let normalized = pointer;
+  let fromFragment = false;
+
+  if (pointer.startsWith("#")) {
+    fromFragment = true;
+    try {
+      normalized = decodeURIComponent(pointer.slice(1));
+    } catch {
+      return {
+        valid: false,
+        segments: [],
+        error: "The URI-fragment form contains malformed percent-encoding.",
+        normalized: pointer,
+        fromFragment,
+      };
+    }
   }
 
-  if (!pointer.startsWith("/")) {
-    return { valid: false, segments: [], error: "A JSON Pointer must be empty or start with /." };
+  if (normalized === "") {
+    return { valid: true, segments: [], error: "", normalized, fromFragment };
   }
 
-  const rawSegments = pointer.slice(1).split("/");
+  if (!normalized.startsWith("/")) {
+    return {
+      valid: false,
+      segments: [],
+      error: fromFragment
+        ? "After percent-decoding, a JSON Pointer fragment must be empty or start with /."
+        : "A JSON Pointer must be empty or start with /.",
+      normalized,
+      fromFragment,
+    };
+  }
+
+  const rawSegments = normalized.slice(1).split("/");
   const segments: string[] = [];
 
   for (const raw of rawSegments) {
     let decoded = "";
     for (let index = 0; index < raw.length; index += 1) {
       const char = raw[index];
-      if (char === "~") {
-        const next = raw[index + 1];
-        if (next === "0") {
-          decoded += "~";
-          index += 1;
-        } else if (next === "1") {
-          decoded += "/";
-          index += 1;
-        } else {
-          return { valid: false, segments, error: `Invalid escape "~${next ?? ""}". Use ~0 for tilde and ~1 for slash.` };
-        }
-      } else {
+      if (char !== "~") {
         decoded += char;
+        continue;
+      }
+
+      const next = raw[index + 1];
+      if (next === "0") {
+        decoded += "~";
+        index += 1;
+      } else if (next === "1") {
+        decoded += "/";
+        index += 1;
+      } else {
+        return {
+          valid: false,
+          segments,
+          error: `Invalid escape "~${next ?? ""}". JSON Pointer only defines ~0 for tilde and ~1 for slash.`,
+          normalized,
+          fromFragment,
+        };
       }
     }
     segments.push(decoded);
   }
 
-  return { valid: true, segments, error: "" };
+  return { valid: true, segments, error: "", normalized, fromFragment };
 }
 
-function generatePointers(value: unknown, currentPointer: string, leafOnly: boolean): string[] {
+function generatePointers(
+  value: unknown,
+  currentPointer: string,
+  leafOnly: boolean,
+  maxPointers: number,
+): { pointers: string[]; truncated: boolean } {
   const pointers: string[] = [];
+  let truncated = false;
 
-  if (!leafOnly || !isContainer(value)) {
-    pointers.push(currentPointer);
-  }
+  const visit = (current: unknown, pointer: string) => {
+    if (pointers.length >= maxPointers) {
+      truncated = true;
+      return;
+    }
 
+    const children = getPointerChildren(current);
+    if (!leafOnly || children.length === 0) {
+      pointers.push(pointer);
+      if (pointers.length >= maxPointers && children.length > 0) {
+        truncated = true;
+        return;
+      }
+    }
+
+    for (const child of children) {
+      if (pointers.length >= maxPointers) {
+        truncated = true;
+        return;
+      }
+      visit(child.value, `${pointer}/${encodePointerSegment(child.segment)}`);
+      if (truncated && pointers.length >= maxPointers) return;
+    }
+  };
+
+  visit(value, currentPointer);
+  return { pointers, truncated };
+}
+
+function getPointerChildren(value: unknown): Array<{ segment: string; value: unknown }> {
   if (Array.isArray(value)) {
-    value.forEach((item, index) => {
-      pointers.push(...generatePointers(item, `${currentPointer}/${index}`, leafOnly));
-    });
-  } else if (value && typeof value === "object") {
-    Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
-      pointers.push(...generatePointers(item, `${currentPointer}/${encodePointerSegment(key)}`, leafOnly));
-    });
+    return value.map((item, index) => ({ segment: String(index), value: item }));
   }
-
-  return pointers;
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>).map(([key, item]) => ({ segment: key, value: item }));
+  }
+  return [];
 }
 
 function encodePointerSegment(segment: string) {
   return segment.replace(/~/g, "~0").replace(/\//g, "~1");
 }
 
-function isContainer(value: unknown) {
-  return Boolean(value && typeof value === "object");
+function compareCodeUnits(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function buildPointerIssues(results: PointerResult[], options: {
   warnInvalidEscapes: boolean;
   warnArrayIndexes: boolean;
   warnEmptyPointer: boolean;
-}): Issue[] {
+}, generatedTruncated: boolean): Issue[] {
   const issues: Issue[] = [];
-  const missing = results.filter((result) => !result.exists && result.valueType !== "not evaluated");
   const invalid = results.filter((result) => result.valueType === "invalid pointer");
+  const missing = results.filter((result) => !result.exists && result.valueType === "missing");
 
   if (invalid.length && options.warnInvalidEscapes) {
     issues.push({
       severity: "high",
-      title: "Invalid pointer syntax",
-      message: `${invalid.length} pointer${invalid.length === 1 ? "" : "s"} have invalid JSON Pointer syntax or escape sequences.`,
+      title: "Pointer syntax cannot be evaluated",
+      message: `${invalid.length} pointer${invalid.length === 1 ? "" : "s"} contain invalid JSON Pointer syntax, tilde escaping, or URI-fragment encoding.`,
     });
   }
 
   if (missing.length) {
     issues.push({
       severity: "warning",
-      title: "Missing pointer targets",
-      message: `${missing.length} pointer${missing.length === 1 ? "" : "s"} did not match a value in the JSON document.`,
+      title: "Some pointers do not resolve",
+      message: `${missing.length} evaluated pointer${missing.length === 1 ? "" : "s"} did not identify a concrete value in the pasted JSON.`,
     });
   }
 
   if (options.warnArrayIndexes && results.some((result) => result.decodedSegments.some((segment) => /^(0|[1-9]\d*)$/.test(segment)))) {
     issues.push({
       severity: "info",
-      title: "Array index segments",
-      message: "Some pointer segments look like array indexes. Make sure they are used against arrays, not object keys with numeric names.",
+      title: "Numeric tokens depend on the current container",
+      message: "A numeric token is an array index only while traversing an array; against an object it remains an ordinary member name.",
     });
   }
 
-  if (options.warnEmptyPointer && results.some((result) => result.pointer === "")) {
+  if (options.warnEmptyPointer && results.some((result) => {
+    const decoded = decodePointer(result.pointer);
+    return decoded.valid && decoded.segments.length === 0;
+  })) {
     issues.push({
       severity: "info",
-      title: "Empty pointer",
-      message: "An empty JSON Pointer targets the entire JSON document.",
+      title: "Root value selected",
+      message: "The empty JSON Pointer, or # in URI-fragment form, identifies the entire JSON document.",
+    });
+  }
+
+  if (generatedTruncated) {
+    issues.push({
+      severity: "warning",
+      title: "Generated pointer list was capped",
+      message: "The document contains more addressable paths than the current generation limit. Narrow the JSON or disable the 300-pointer cap for a larger local pass.",
     });
   }
 
@@ -811,8 +919,16 @@ function formatOutput(results: PointerResult[], issues: Issue[], options: {
   missingMode: MissingMode;
   prettyPrintValues: boolean;
   includePointerSegments: boolean;
-}, parsed: unknown) {
+}, parsed: unknown, hasDocument: boolean) {
   if (options.outputMode === "value") {
+    if (!hasDocument) {
+      return results.map((item) => {
+        if (item.valueType === "invalid pointer") return `${item.pointer || "(root)"}: Invalid — ${item.message}`;
+        const tokens = item.decodedSegments.length ? item.decodedSegments.map((segment) => JSON.stringify(segment)).join(", ") : "(root)";
+        return `${item.pointer || "(root)"}: ${tokens}`;
+      }).join("\n");
+    }
+
     if (results.length === 1) {
       const item = results[0];
       if (!item.exists) return formatMissing(item, options.missingMode);
@@ -827,7 +943,7 @@ function formatOutput(results: PointerResult[], issues: Issue[], options: {
 
   if (options.outputMode === "json") {
     return JSON.stringify({
-      jsonShape: parsed === null ? "not included" : jsonShape(parsed),
+      jsonShape: hasDocument ? jsonShape(parsed) : "not included",
       results: results.map((item) => ({
         pointer: item.pointer,
         exists: item.exists,
@@ -848,7 +964,11 @@ function formatOutput(results: PointerResult[], issues: Issue[], options: {
     ];
 
     if (options.includePointerSegments) {
-      lines.push("", "Decoded segments:", ...results.map((item) => `- ${item.pointer || "(root)"}: ${item.decodedSegments.map((segment) => `\`${segment}\``).join(", ") || "(root)"}`));
+      lines.push(
+        "",
+        "Decoded tokens:",
+        ...results.map((item) => `- ${escapeMarkdown(item.pointer || "(root)")}: ${item.decodedSegments.length ? item.decodedSegments.map((segment) => escapeMarkdown(JSON.stringify(segment))).join(", ") : "(root)"}`),
+      );
     }
 
     return lines.join("\n");
@@ -863,18 +983,16 @@ function formatOutput(results: PointerResult[], issues: Issue[], options: {
   }
 
   const lines = [
-    "# JSON Pointer Checklist",
+    "# JSON Pointer check",
     "",
-    `- [${results.length ? "x" : " "}] Checked ${results.length} pointer${results.length === 1 ? "" : "s"}.`,
-    `- [${results.every((item) => item.exists || item.valueType === "not evaluated") ? "x" : " "}] All evaluated pointers matched values.`,
-    `- [${issues.every((issue) => issue.severity !== "high") ? "x" : " "}] No high-severity pointer syntax issues found.`,
+    `- [${results.length ? "x" : " "}] Processed ${results.length} pointer${results.length === 1 ? "" : "s"}.`,
+    `- [${results.every((item) => item.exists || item.valueType === "not evaluated") ? "x" : " "}] Every evaluated pointer resolved to a concrete value.`,
+    `- [${issues.every((issue) => issue.severity !== "high") ? "x" : " "}] Pointer syntax passed the high-severity checks.`,
   ];
 
   if (issues.length) {
     lines.push("", "Notes:");
-    issues.forEach((issue) => {
-      lines.push(`- ${issue.title}: ${issue.message}`);
-    });
+    issues.forEach((issue) => lines.push(`- ${issue.title}: ${issue.message}`));
   }
 
   return lines.join("\n");
@@ -906,41 +1024,187 @@ function jsonShape(value: unknown) {
 function getNotes(result: Result): Issue[] {
   const notes = [...result.issues];
 
-  if (result.pointerCount > 100) {
+  if (result.pointerCount > 1000) {
     notes.push({
       severity: "info",
-      title: "Many pointers",
-      message: "This output contains many pointer results. Use JSON or CSV output if you need to review them in another tool.",
+      title: "Large pointer result set",
+      message: "JSON or CSV output is easier to review than a long on-page table when the document exposes many paths.",
     });
   }
 
   if (result.outputLength > 50000) {
     notes.push({
       severity: "info",
-      title: "Large output",
-      message: "The generated output is large. Copying or pasting into some editors may take a moment.",
+      title: "Large generated report",
+      message: "The output is large enough that copying it into another editor may take noticeable browser memory.",
     });
   }
 
   return notes;
 }
 
+function findJsonDataRisk(text: string): string | null {
+  let index = 0;
+
+  const skipWhitespace = () => {
+    while (index < text.length && /\s/.test(text[index])) index += 1;
+  };
+
+  const parseString = (): string => {
+    const start = index;
+    index += 1;
+    while (index < text.length) {
+      const char = text[index];
+      if (char === "\\") {
+        index += 2;
+        continue;
+      }
+      if (char === '"') {
+        index += 1;
+        return JSON.parse(text.slice(start, index)) as string;
+      }
+      index += 1;
+    }
+    throw new Error("syntax");
+  };
+
+  const parseNumber = () => {
+    const match = text.slice(index).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+    if (!match) throw new Error("syntax");
+    const token = match[0];
+    index += token.length;
+    const value = Number(token);
+    if (!Number.isFinite(value)) {
+      throw new Error("A JSON number is outside JavaScript's finite numeric range, so its matched value would not survive browser parsing faithfully.");
+    }
+    if (Number.isInteger(value) && !Number.isSafeInteger(value)) {
+      throw new Error(`JSON integer ${token} cannot be represented exactly by JavaScript. Represent it as a string before evaluating exact values.`);
+    }
+    if (Object.is(value, -0)) {
+      throw new Error("JSON number -0 can be serialized back as 0. Represent it as a string if the sign distinction matters.");
+    }
+  };
+
+  const parseValue = (depth: number): void => {
+    if (depth > 200) throw new Error("JSON nesting is deeper than 200 levels, which is unsafe for this browser-side pointer walk.");
+    skipWhitespace();
+    const char = text[index];
+
+    if (char === "{") {
+      index += 1;
+      skipWhitespace();
+      const names = new Set<string>();
+      if (text[index] === "}") {
+        index += 1;
+        return;
+      }
+      while (index < text.length) {
+        skipWhitespace();
+        if (text[index] !== '"') throw new Error("syntax");
+        const name = parseString();
+        if (names.has(name)) {
+          throw new Error(`Duplicate object member "${name}" makes RFC 6901 evaluation undefined for that member. Remove or rename the duplicate first.`);
+        }
+        names.add(name);
+        skipWhitespace();
+        if (text[index] !== ":") throw new Error("syntax");
+        index += 1;
+        parseValue(depth + 1);
+        skipWhitespace();
+        if (text[index] === "}") {
+          index += 1;
+          return;
+        }
+        if (text[index] !== ",") throw new Error("syntax");
+        index += 1;
+      }
+      throw new Error("syntax");
+    }
+
+    if (char === "[") {
+      index += 1;
+      skipWhitespace();
+      if (text[index] === "]") {
+        index += 1;
+        return;
+      }
+      while (index < text.length) {
+        parseValue(depth + 1);
+        skipWhitespace();
+        if (text[index] === "]") {
+          index += 1;
+          return;
+        }
+        if (text[index] !== ",") throw new Error("syntax");
+        index += 1;
+      }
+      throw new Error("syntax");
+    }
+
+    if (char === '"') {
+      parseString();
+      return;
+    }
+
+    if (char === "-" || (char >= "0" && char <= "9")) {
+      parseNumber();
+      return;
+    }
+
+    if (text.slice(index, index + 4) === "true" || text.slice(index, index + 4) === "null") {
+      index += 4;
+      return;
+    }
+    if (text.slice(index, index + 5) === "false") {
+      index += 5;
+      return;
+    }
+    throw new Error("syntax");
+  };
+
+  try {
+    parseValue(0);
+    return null;
+  } catch (error) {
+    if (error instanceof Error && error.message !== "syntax") return error.message;
+    return null;
+  }
+}
+
 function escapeMarkdown(value: string) {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
+  return value.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
 }
 
 function csvCell(value: string) {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
+function issueCardClass(severity: Issue["severity"]) {
+  if (severity === "high") return "self-start rounded-xl border border-red-200 bg-red-50 p-4";
+  if (severity === "warning") return "self-start rounded-xl border border-amber-200 bg-amber-50 p-4";
+  return "self-start rounded-xl border border-gray-200 bg-gray-50 p-4";
+}
+
+function issueTitleClass(severity: Issue["severity"]) {
+  if (severity === "high") return "text-sm font-semibold text-red-900";
+  if (severity === "warning") return "text-sm font-semibold text-amber-900";
+  return "text-sm font-semibold text-gray-900";
+}
+
+function issueTextClass(severity: Issue["severity"]) {
+  if (severity === "high") return "mt-1 text-sm leading-6 text-red-800";
+  if (severity === "warning") return "mt-1 text-sm leading-6 text-amber-800";
+  return "mt-1 text-sm leading-6 text-gray-600";
+}
+
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
   return (
-    <label className="flex items-center gap-3 text-sm text-gray-700">
+    <label className="flex items-start gap-3 text-sm text-gray-700">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
+        className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 accent-[#d9a928]"
       />
       <span>{label}</span>
     </label>
@@ -956,11 +1220,3 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}

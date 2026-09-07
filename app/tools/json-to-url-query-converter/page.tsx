@@ -2,20 +2,17 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON to URL Query Converter | Convert JSON to Query Strings",
+  title: "JSON to URL Query Converter | Encoding, Arrays and Nested Keys",
   description:
-    "Convert JSON objects into URL query strings, inspect encoded parameters, choose array and nested key styles, and decode query strings back into JSON locally.",
+    "Translate JSON objects and query strings with explicit nested-key, array, form-encoding, null, boolean, repetition, and type-coercion choices.",
   keywords: [
-    "json to url query converter",
     "json to query string",
-    "json to url parameters",
-    "object to query string",
     "query string to json",
+    "json url parameters",
     "url query converter",
-    "json query params",
-    "api query parameter converter",
-    "browser json converter",
-    "json data tools",
+    "nested query parameters",
+    "urlsearchparams encoding",
+    "form urlencoded query",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/json-to-url-query-converter",
@@ -23,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "JSON to URL Query Converter | Yoryantra",
     description:
-      "Convert JSON objects into URL query strings or decode query strings back into JSON with local browser-side processing.",
+      "Translate JSON and query parameters while keeping encoding, nested-key conventions, repeated names, and type conversion visible.",
     url: "https://yoryantra.com/tools/json-to-url-query-converter",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "JSON to URL Query Converter | Yoryantra",
     description:
-      "Turn JSON objects into query parameters, URL encoded strings, and API-ready query output.",
+      "Build or decode query strings without hiding form encoding, array policies, or string-to-type coercion.",
   },
 };
 

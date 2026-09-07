@@ -1459,21 +1459,21 @@ export const tools = [
 
 {
   title: "JSON Pointer Evaluator",
-  description: "Evaluate RFC 6901 JSON Pointer paths against JSON and inspect matched values.",
+  description: "Resolve RFC 6901 pointers, URI fragments, escaped tokens, arrays, and root values precisely.",
   href: "/tools/json-pointer-evaluator",
   category: "JSON & Data Tools",
 },
 
 {
   title: "JSON to URL Query Converter",
-  description: "Convert JSON objects into URL query strings and decode query strings back into JSON.",
+  description: "Translate JSON and query parameters with explicit encoding, nesting, repetition, and type-conversion choices.",
   href: "/tools/json-to-url-query-converter",
   category: "JSON & Data Tools",
 },
 
 {
   title: "JSON Array Group By Tool",
-  description: "Group JSON array records by key, count values, and summarize numeric fields.",
+  description: "Group JSON records by escaped nested paths while keeping value types and numeric summaries distinct.",
   href: "/tools/json-array-group-by-tool",
   category: "JSON & Data Tools",
 },

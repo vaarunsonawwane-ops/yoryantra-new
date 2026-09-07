@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "groupedJson" | "countsJson" | "markdown" | "csv" | "checklist";
-type GroupMode = "exact" | "lowercase" | "trimmed" | "missing";
+type GroupMode = "exact" | "lowercase" | "trimmed";
 type SortMode = "countDesc" | "countAsc" | "keyAsc" | "keyDesc" | "sumDesc";
 type MissingMode = "missingLabel" | "emptyLabel" | "skip";
 type NumericMode = "sum" | "average" | "minmax" | "none";
@@ -14,10 +14,12 @@ type NumericMode = "sum" | "average" | "minmax" | "none";
 type GroupRow = {
   key: string;
   displayKey: string;
+  valueType: string;
   count: number;
   percentage: number;
+  numericCount: number;
   sum: number;
-  average: number;
+  average: number | null;
   min: number | null;
   max: number | null;
   records: unknown[];
@@ -76,12 +78,11 @@ export default function ToolClient() {
   const [sortMode, setSortMode] = useState<SortMode>("countDesc");
   const [missingMode, setMissingMode] = useState<MissingMode>("missingLabel");
   const [numericMode, setNumericMode] = useState<NumericMode>("none");
-  const [flattenNestedObjects, setFlattenNestedObjects] = useState(true);
   const [includeRecordsInJson, setIncludeRecordsInJson] = useState(true);
   const [includePercentages, setIncludePercentages] = useState(true);
   const [limitRecordsPerGroup, setLimitRecordsPerGroup] = useState(false);
   const [sortKeysCaseInsensitive, setSortKeysCaseInsensitive] = useState(true);
-  const [treatArraysAsJoinedText, setTreatArraysAsJoinedText] = useState(true);
+  const [treatArraysAsJoinedText, setTreatArraysAsJoinedText] = useState(false);
   const [warnMissingKeys, setWarnMissingKeys] = useState(true);
   const [warnHighCardinality, setWarnHighCardinality] = useState(true);
   const [warnNonNumericSummary, setWarnNonNumericSummary] = useState(true);
@@ -123,7 +124,6 @@ export default function ToolClient() {
       sortMode,
       missingMode,
       numericMode,
-      flattenNestedObjects,
       includeRecordsInJson,
       includePercentages,
       limitRecordsPerGroup,
@@ -164,12 +164,11 @@ export default function ToolClient() {
     setSortMode("countDesc");
     setMissingMode("missingLabel");
     setNumericMode("sum");
-    setFlattenNestedObjects(true);
     setIncludeRecordsInJson(true);
     setIncludePercentages(true);
     setLimitRecordsPerGroup(false);
     setSortKeysCaseInsensitive(true);
-    setTreatArraysAsJoinedText(true);
+    setTreatArraysAsJoinedText(false);
     setWarnMissingKeys(true);
     setWarnHighCardinality(true);
     setWarnNonNumericSummary(true);
@@ -185,12 +184,11 @@ export default function ToolClient() {
     setSortMode("countDesc");
     setMissingMode("missingLabel");
     setNumericMode("none");
-    setFlattenNestedObjects(true);
     setIncludeRecordsInJson(true);
     setIncludePercentages(true);
     setLimitRecordsPerGroup(false);
     setSortKeysCaseInsensitive(true);
-    setTreatArraysAsJoinedText(true);
+    setTreatArraysAsJoinedText(false);
     setWarnMissingKeys(true);
     setWarnHighCardinality(true);
     setWarnNonNumericSummary(true);
@@ -200,7 +198,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON Array Group By Tool"
-      description="Group JSON array records by a key or dot path, count records, summarize numeric fields, and export grouped JSON, Markdown, CSV, or checklist output locally."
+      description="Group JSON records by escaped dot paths while keeping types and numeric summaries distinct."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -238,7 +236,7 @@ export default function ToolClient() {
                 placeholder="category or user.role"
                 className="mt-2 min-h-[48px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
               />
-              <p className="mt-1 text-xs text-gray-500">Use a direct key or dot path such as category, status, user.role, or meta.source.</p>
+              <p className="mt-1 text-xs text-gray-500">Use dot paths such as user.role. Escape a literal dot as \. and a backslash as \\.</p>
             </div>
 
             <div>
@@ -282,7 +280,6 @@ export default function ToolClient() {
                 { label: "Exact values", value: "exact" },
                 { label: "Trim string values", value: "trimmed" },
                 { label: "Lowercase string values", value: "lowercase" },
-                { label: "Group missing values", value: "missing" },
               ]}
             />
 
@@ -337,12 +334,11 @@ export default function ToolClient() {
       <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
         <h3 className="text-lg font-semibold text-gray-900">Options</h3>
         <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
-          <Toggle checked={flattenNestedObjects} onChange={setFlattenNestedObjects} label="Flatten nested objects for dot-path grouping" />
           <Toggle checked={includeRecordsInJson} onChange={setIncludeRecordsInJson} label="Include records in grouped JSON output" />
           <Toggle checked={includePercentages} onChange={setIncludePercentages} label="Include group percentages" />
           <Toggle checked={limitRecordsPerGroup} onChange={setLimitRecordsPerGroup} label="Limit grouped records to first 25 per group" />
           <Toggle checked={sortKeysCaseInsensitive} onChange={setSortKeysCaseInsensitive} label="Sort group keys case-insensitively" />
-          <Toggle checked={treatArraysAsJoinedText} onChange={setTreatArraysAsJoinedText} label="Treat arrays as joined group text" />
+          <Toggle checked={treatArraysAsJoinedText} onChange={setTreatArraysAsJoinedText} label="Join array values into display text (lossy)" />
           <Toggle checked={warnMissingKeys} onChange={setWarnMissingKeys} label="Warn about missing group keys" />
           <Toggle checked={warnHighCardinality} onChange={setWarnHighCardinality} label="Warn when too many groups are created" />
           <Toggle checked={warnNonNumericSummary} onChange={setWarnNonNumericSummary} label="Warn when numeric summary skips values" />
@@ -356,21 +352,21 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={processJson}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="min-h-[44px] whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Group JSON Array
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
         >
           Reset
         </button>
@@ -390,7 +386,7 @@ export default function ToolClient() {
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
@@ -415,9 +411,9 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((note) => (
-              <div key={`${note.title}-${note.message}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{note.message}</p>
+              <div key={`${note.title}-${note.message}`} className={issueCardClass(note.severity)}>
+                <p className={issueTitleClass(note.severity)}>{note.title}</p>
+                <p className={issueTextClass(note.severity)}>{note.message}</p>
               </div>
             ))}
           </div>
@@ -445,8 +441,8 @@ export default function ToolClient() {
                     <td className="px-4 py-3 font-mono">{group.displayKey}</td>
                     <td className="px-4 py-3">{group.count}</td>
                     <td className="px-4 py-3">{group.percentage.toFixed(2)}%</td>
-                    <td className="px-4 py-3">{formatNumber(group.sum)}</td>
-                    <td className="px-4 py-3">{formatNumber(group.average)}</td>
+                    <td className="px-4 py-3">{group.numericCount ? formatNumber(group.sum) : "—"}</td>
+                    <td className="px-4 py-3">{group.average === null ? "—" : formatNumber(group.average)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -460,89 +456,95 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Grouping JSON Arrays Into Useful Summaries</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Group counts are only meaningful when the key is unambiguous</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JSON arrays often contain many records with repeated categories, statuses, owners, types, sources, or tags. Grouping those records makes it easier to see counts, spot missing fields, and summarize numeric values without writing a quick script.
+            Grouping sounds simple until the data contains nested fields, literal dots in member names, arrays, missing values, or a mix of strings and numbers that happen to look alike. The grouping key here is read as an escaped dot path: <code className="rounded bg-gray-100 px-1 py-0.5">user.role</code> walks into a nested object, while <code className="rounded bg-gray-100 px-1 py-0.5">user\.role</code> addresses a literal key named <code className="rounded bg-gray-100 px-1 py-0.5">user.role</code>.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool groups an array of JSON objects by a selected key or dot path. It can count records, calculate percentages, summarize a numeric field, and export the result as readable text, grouped JSON, Markdown, CSV, or a checklist.
+            Value types stay separate. The JSON number <code className="rounded bg-gray-100 px-1 py-0.5">1</code> and the JSON string <code className="rounded bg-gray-100 px-1 py-0.5">"1"</code> may look identical in a table, but they are not merged into one group. That matters when data came from different APIs, CSV imports, or loosely typed storage.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This JSON Group By Tool Helps</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Summarizing API response records by status, type, category, source, owner, region, or any repeated field.</p>
-            <p className="mt-2">Checking how many records belong to each group before converting data into a report or table.</p>
-            <p className="mt-2">Finding missing grouping keys in exported JSON data before importing it elsewhere.</p>
-            <p className="mt-2">Creating grouped JSON, Markdown summaries, or CSV reports from small datasets directly in the browser.</p>
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-lg font-semibold text-gray-900">Nested paths without flattening the record</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              Records are grouped from their original structure. No flattened copy is created first, so a nested path cannot silently overwrite a literal dotted member name. Array indexes can be addressed with paths such as <code className="rounded bg-white px-1 py-0.5">items.0.status</code>.
+            </p>
+          </div>
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="text-lg font-semibold text-amber-900">Joined arrays are deliberately marked as lossy</h2>
+            <p className="mt-3 text-sm leading-6 text-amber-800">
+              Keeping an array as JSON text preserves its boundaries. Joining array items into display text can make different arrays collapse to the same label, especially when values contain the separator. Leave the joined-array option off when exact grouping matters.
+            </p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the JSON Array Group By Tool</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a JSON array of records into the input box.</li>
-            <li>Enter the key or dot path you want to group by, such as category, status, or user.role.</li>
-            <li>Optionally enter a numeric field to summarize, such as views, count, amount, or duration.</li>
-            <li>Choose sorting, missing-key handling, and output format.</li>
-            <li>Review the group preview and copy the summary or exported data.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Grouped Summary</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`Group by: category
-Records: 4
-Groups: 2
-
-JSON & Data
-Count: 3
-Percentage: 75.00%
-Sum views: 215
-
-Encoding
-Count: 1
-Percentage: 25.00%
-Sum views: 76`}</pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Grouping Is Best for Small and Medium JSON Samples</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Numeric summaries count numeric observations, not group rows</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This browser tool is useful for quick checks, pasted API responses, examples, and small exports. Very large datasets are better handled in a database, spreadsheet, or local script because grouping thousands of complex records can become slow and difficult to review in a browser.
+            An average is calculated from the finite numeric values actually found in the selected numeric field. Missing, string, <code className="rounded bg-gray-100 px-1 py-0.5">null</code>, and non-finite values are not added to the denominator. A group with ten records but only six numeric observations therefore divides the sum by six, not ten.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Sum, minimum, maximum, and average are descriptive summaries only. They do not coerce numeric-looking strings such as <code className="rounded bg-gray-100 px-1 py-0.5">"42"</code>. If the source uses strings for numbers, normalize that data deliberately before treating it as numeric.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What does this JSON group by tool do?">
-              It groups records in a JSON array by a selected key or dot path, then counts records and optionally summarizes a numeric field.
-            </Faq>
-            <Faq title="Can I group by nested fields?">
-              Yes. Enable flattening and use dot paths like user.role, meta.source, or product.category.
-            </Faq>
-            <Faq title="Can this summarize numbers?">
-              Yes. Enter a numeric field and choose sum, average, or min/max summary. Non-numeric values are skipped and can be reported in the notes.
-            </Faq>
-            <Faq title="What happens when a record is missing the group key?">
-              You can label missing records as (missing), label them as (empty), or skip them depending on the setting.
-            </Faq>
-            <Faq title="Is anything uploaded while grouping JSON?">
-              No. The grouping runs entirely inside your browser.
-            </Faq>
+          <h2 className="text-xl font-semibold text-gray-900">Missing, empty, and null values need a policy</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A missing path, an explicit JSON <code className="rounded bg-gray-100 px-1 py-0.5">null</code>, and an empty string are all treated as unavailable for the group key, then handled by the selected missing-value policy. They can be collected under a visible label or skipped. Percentages are calculated from the records that remain after that choice.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Grouped JSON can retain source records for inspection. If the 25-record cap is enabled, counts still describe the full group while the embedded record sample is truncated; a note makes that distinction visible.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">JSON itself has a few interoperability boundaries</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Duplicate object member names are rejected before grouping because different JSON parsers can disagree about which duplicate wins. Integers that JavaScript cannot represent safely are also stopped before they can be rounded. RFC 8259 recommends unique object names and notes that interoperable number handling is constrained by implementation limits.
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            Primary reference:{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc8259.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              RFC 8259 — The JavaScript Object Notation (JSON) Data Interchange Format
+            </a>
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">A small example with a nested field</h2>
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <pre className="whitespace-pre-wrap break-words">{`[
+  {"user":{"role":"editor"},"views":12},
+  {"user":{"role":"editor"},"views":"9"},
+  {"user":{"role":"viewer"},"views":7}
+]
+
+Group path: user.role
+Numeric field: views
+
+editor  → count 2, numeric values used 1, sum 12
+viewer  → count 1, numeric values used 1, sum 7`}</pre>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Browser-side limits are part of the result</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Parsing, grouping, sorting, and export happen in the current browser tab; pasted JSON is not sent to a Yoryantra server by the page code. Large arrays still consume local memory because the full document and group map must exist at once. For very large datasets, a database aggregation, dataframe, or streaming script is a better fit than a browser textarea.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/json-array-group-by-tool" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/json-array-group-by-tool" /></div>
         </div>
       </section>
     </ToolShell>
@@ -558,7 +560,6 @@ function buildResult(options: {
   sortMode: SortMode;
   missingMode: MissingMode;
   numericMode: NumericMode;
-  flattenNestedObjects: boolean;
   includeRecordsInJson: boolean;
   includePercentages: boolean;
   limitRecordsPerGroup: boolean;
@@ -577,11 +578,32 @@ function buildResult(options: {
     return emptyResult(`__ERROR__:The input is not valid JSON: ${message}`, options.input.length);
   }
 
-  if (!Array.isArray(parsed)) {
-    return emptyResult("__ERROR__:Please paste a JSON array. This tool groups arrays of records.", options.input.length);
+  const dataRisk = findJsonDataRisk(options.input);
+  if (dataRisk) {
+    return emptyResult(`__ERROR__:${dataRisk}`, options.input.length);
   }
 
-  const records = parsed.map((record) => options.flattenNestedObjects ? flattenRecord(record) : record);
+  if (!Array.isArray(parsed)) {
+    return emptyResult("__ERROR__:Paste a JSON array. Grouping is defined across array records.", options.input.length);
+  }
+
+  const groupPath = parseDotPath(options.groupKey);
+  if (!groupPath.valid) {
+    return emptyResult(`__ERROR__:Group path: ${groupPath.error}`, options.input.length);
+  }
+
+  if (options.numericMode !== "none" && options.numericKey.trim()) {
+    const numericPath = parseDotPath(options.numericKey);
+    if (!numericPath.valid) {
+      return emptyResult(`__ERROR__:Numeric path: ${numericPath.error}`, options.input.length);
+    }
+  }
+
+  if (parsed.length > 25000) {
+    return emptyResult("__ERROR__:This pasted array contains more than 25,000 records. Use a streaming script, dataframe, or database aggregation for a dataset of that size.", options.input.length);
+  }
+
+  const records = parsed as unknown[];
   const groups = buildGroups(records, options);
   const sortedGroups = sortGroups(groups, options);
   const issues = buildIssues(records, sortedGroups, options);
@@ -632,32 +654,41 @@ function buildGroups(records: unknown[], options: {
       return;
     }
 
-    const displayKey = normalized ?? (options.missingMode === "emptyLabel" ? "(empty)" : "(missing)");
-    const key = String(displayKey);
-    const numericValue = readPath(record, options.numericKey);
+    const missingLabel = options.missingMode === "emptyLabel" ? "(empty)" : "(missing)";
+    const groupIdentity = normalized ?? {
+      key: "missing:",
+      displayKey: missingLabel,
+      valueType: "missing",
+    };
+
+    const numericValue = options.numericKey.trim() ? readPath(record, options.numericKey) : undefined;
     const numberValue = typeof numericValue === "number" && Number.isFinite(numericValue) ? numericValue : null;
 
-    if (!map.has(key)) {
-      map.set(key, {
-        key,
-        displayKey: key,
+    if (!map.has(groupIdentity.key)) {
+      map.set(groupIdentity.key, {
+        key: groupIdentity.key,
+        displayKey: groupIdentity.displayKey,
+        valueType: groupIdentity.valueType,
         count: 0,
         percentage: 0,
+        numericCount: 0,
         sum: 0,
-        average: 0,
+        average: null,
         min: null,
         max: null,
         records: [],
       });
     }
 
-    const group = map.get(key)!;
+    const group = map.get(groupIdentity.key)!;
     group.count += 1;
+
     if (!options.limitRecordsPerGroup || group.records.length < 25) {
       group.records.push(record);
     }
 
     if (numberValue !== null && options.numericMode !== "none") {
+      group.numericCount += 1;
       group.sum += numberValue;
       group.min = group.min === null ? numberValue : Math.min(group.min, numberValue);
       group.max = group.max === null ? numberValue : Math.max(group.max, numberValue);
@@ -669,7 +700,7 @@ function buildGroups(records: unknown[], options: {
   const groups = Array.from(map.values());
   groups.forEach((group) => {
     group.percentage = includedCount ? (group.count / includedCount) * 100 : 0;
-    group.average = group.count ? group.sum / group.count : 0;
+    group.average = group.numericCount ? group.sum / group.numericCount : null;
   });
 
   return groups;
@@ -678,22 +709,36 @@ function buildGroups(records: unknown[], options: {
 function normalizeGroupValue(value: unknown, options: {
   groupMode: GroupMode;
   treatArraysAsJoinedText: boolean;
-}) {
+}): { key: string; displayKey: string; valueType: string } | null {
   if (value === undefined || value === null || value === "") return null;
 
-  let text = "";
-  if (Array.isArray(value)) {
-    text = options.treatArraysAsJoinedText ? value.map(String).join(", ") : JSON.stringify(value);
-  } else if (typeof value === "object") {
-    text = JSON.stringify(value);
-  } else {
-    text = String(value);
+  if (typeof value === "string") {
+    let text = value;
+    if (options.groupMode === "trimmed") text = text.trim();
+    if (options.groupMode === "lowercase") text = text.trim().toLowerCase();
+    if (!text) return null;
+    return { key: `string:${text}`, displayKey: text, valueType: "string" };
   }
 
-  if (options.groupMode === "trimmed") text = text.trim();
-  if (options.groupMode === "lowercase") text = text.trim().toLowerCase();
+  if (typeof value === "number") {
+    const text = Object.is(value, -0) ? "-0" : String(value);
+    return { key: `number:${text}`, displayKey: text, valueType: "number" };
+  }
 
-  return text || null;
+  if (typeof value === "boolean") {
+    const text = value ? "true" : "false";
+    return { key: `boolean:${text}`, displayKey: text, valueType: "boolean" };
+  }
+
+  if (Array.isArray(value)) {
+    const text = options.treatArraysAsJoinedText
+      ? value.map((item) => typeof item === "string" ? item : JSON.stringify(item)).join(" | ")
+      : JSON.stringify(value);
+    return { key: `array:${text}`, displayKey: text, valueType: "array" };
+  }
+
+  const text = JSON.stringify(value);
+  return { key: `object:${text}`, displayKey: text, valueType: "object" };
 }
 
 function sortGroups(groups: GroupRow[], options: {
@@ -703,7 +748,9 @@ function sortGroups(groups: GroupRow[], options: {
   const keyCompare = (a: GroupRow, b: GroupRow) => {
     const left = options.sortKeysCaseInsensitive ? a.displayKey.toLowerCase() : a.displayKey;
     const right = options.sortKeysCaseInsensitive ? b.displayKey.toLowerCase() : b.displayKey;
-    return left.localeCompare(right);
+    if (left < right) return -1;
+    if (left > right) return 1;
+    return a.valueType < b.valueType ? -1 : a.valueType > b.valueType ? 1 : 0;
   };
 
   return [...groups].sort((a, b) => {
@@ -725,7 +772,8 @@ function formatOutput(groups: GroupRow[], issues: Issue[], recordCount: number, 
 }) {
   if (options.outputMode === "groupedJson") {
     return JSON.stringify(groups.map((group) => ({
-      key: group.displayKey,
+      group: group.displayKey,
+      valueType: group.valueType,
       count: group.count,
       percentage: options.includePercentages ? group.percentage : undefined,
       numeric: numericSummary(group, options.numericMode, options.numericKey),
@@ -734,27 +782,18 @@ function formatOutput(groups: GroupRow[], issues: Issue[], recordCount: number, 
   }
 
   if (options.outputMode === "countsJson") {
-    return JSON.stringify(groups.reduce<Record<string, unknown>>((acc, group) => {
-      acc[group.displayKey] = {
-        count: group.count,
-        percentage: options.includePercentages ? group.percentage : undefined,
-        numeric: numericSummary(group, options.numericMode, options.numericKey),
-      };
-      return acc;
-    }, {}), null, 2);
+    return JSON.stringify(groups.map((group) => ({
+      group: group.displayKey,
+      valueType: group.valueType,
+      count: group.count,
+      percentage: options.includePercentages ? group.percentage : undefined,
+      numeric: numericSummary(group, options.numericMode, options.numericKey),
+    })), null, 2);
   }
 
-  if (options.outputMode === "markdown") {
-    return buildMarkdown(groups, issues, options);
-  }
-
-  if (options.outputMode === "csv") {
-    return buildCsv(groups, options);
-  }
-
-  if (options.outputMode === "checklist") {
-    return buildChecklist(groups, issues, recordCount);
-  }
+  if (options.outputMode === "markdown") return buildMarkdown(groups, issues, options);
+  if (options.outputMode === "csv") return buildCsv(groups, options);
+  if (options.outputMode === "checklist") return buildChecklist(groups, issues, recordCount);
 
   return buildSummary(groups, issues, recordCount, options);
 }
@@ -767,19 +806,19 @@ function buildSummary(groups: GroupRow[], issues: Issue[], recordCount: number, 
 }) {
   const lines = [
     `Group by: ${options.groupKey}`,
-    `Records: ${recordCount}`,
+    `Records in input: ${recordCount}`,
     `Groups: ${groups.length}`,
     "",
   ];
 
   groups.forEach((group) => {
-    lines.push(group.displayKey);
+    lines.push(`${group.displayKey} (${group.valueType})`);
     lines.push(`Count: ${group.count}`);
     if (options.includePercentages) lines.push(`Percentage: ${group.percentage.toFixed(2)}%`);
     if (options.numericMode !== "none" && options.numericKey.trim()) {
       const summary = numericSummary(group, options.numericMode, options.numericKey);
       Object.entries(summary).forEach(([key, value]) => {
-        lines.push(`${key}: ${formatNumber(Number(value))}`);
+        lines.push(`${key}: ${value === null ? "not available" : formatNumber(value)}`);
       });
     }
     lines.push("");
@@ -798,9 +837,10 @@ function buildMarkdown(groups: GroupRow[], issues: Issue[], options: {
   numericKey: string;
   includePercentages: boolean;
 }) {
-  const headers = ["Group", "Count"];
+  const headers = ["Group", "Type", "Count"];
   if (options.includePercentages) headers.push("Percentage");
   if (options.numericMode !== "none" && options.numericKey.trim()) {
+    headers.push("Numeric values used");
     if (options.numericMode === "sum") headers.push(`Sum ${options.numericKey}`);
     if (options.numericMode === "average") headers.push(`Average ${options.numericKey}`);
     if (options.numericMode === "minmax") headers.push(`Min ${options.numericKey}`, `Max ${options.numericKey}`);
@@ -812,10 +852,11 @@ function buildMarkdown(groups: GroupRow[], issues: Issue[], options: {
   ];
 
   groups.forEach((group) => {
-    const row = [escapeMarkdown(group.displayKey), String(group.count)];
+    const row = [escapeMarkdown(group.displayKey), group.valueType, String(group.count)];
     if (options.includePercentages) row.push(`${group.percentage.toFixed(2)}%`);
-    if (options.numericMode === "sum") row.push(formatNumber(group.sum));
-    if (options.numericMode === "average") row.push(formatNumber(group.average));
+    if (options.numericMode !== "none" && options.numericKey.trim()) row.push(String(group.numericCount));
+    if (options.numericMode === "sum") row.push(group.numericCount ? formatNumber(group.sum) : "");
+    if (options.numericMode === "average") row.push(group.average === null ? "" : formatNumber(group.average));
     if (options.numericMode === "minmax") row.push(group.min === null ? "" : formatNumber(group.min), group.max === null ? "" : formatNumber(group.max));
     lines.push(`| ${row.join(" | ")} |`);
   });
@@ -833,16 +874,24 @@ function buildCsv(groups: GroupRow[], options: {
   numericKey: string;
   includePercentages: boolean;
 }) {
-  const headers = ["group", "count"];
+  const headers = ["group", "type", "count"];
   if (options.includePercentages) headers.push("percentage");
-  if (options.numericMode !== "none" && options.numericKey.trim()) headers.push("sum", "average", "min", "max");
+  if (options.numericMode !== "none" && options.numericKey.trim()) {
+    headers.push("numeric_values_used", "sum", "average", "min", "max");
+  }
 
   const rows = [headers];
   groups.forEach((group) => {
-    const row = [group.displayKey, String(group.count)];
+    const row = [group.displayKey, group.valueType, String(group.count)];
     if (options.includePercentages) row.push(group.percentage.toFixed(2));
     if (options.numericMode !== "none" && options.numericKey.trim()) {
-      row.push(formatNumber(group.sum), formatNumber(group.average), group.min === null ? "" : formatNumber(group.min), group.max === null ? "" : formatNumber(group.max));
+      row.push(
+        String(group.numericCount),
+        group.numericCount ? formatNumber(group.sum) : "",
+        group.average === null ? "" : formatNumber(group.average),
+        group.min === null ? "" : formatNumber(group.min),
+        group.max === null ? "" : formatNumber(group.max),
+      );
     }
     rows.push(row);
   });
@@ -852,11 +901,11 @@ function buildCsv(groups: GroupRow[], options: {
 
 function buildChecklist(groups: GroupRow[], issues: Issue[], recordCount: number) {
   const lines = [
-    "# JSON Group By Checklist",
+    "# JSON grouping check",
     "",
     `- [${recordCount ? "x" : " "}] Parsed ${recordCount} record${recordCount === 1 ? "" : "s"}.`,
-    `- [${groups.length ? "x" : " "}] Created ${groups.length} group${groups.length === 1 ? "" : "s"}.`,
-    `- [${groups.length <= 50 ? "x" : " "}] Group count is manageable for manual review.`,
+    `- [${groups.length ? "x" : " "}] Created ${groups.length} distinct typed group${groups.length === 1 ? "" : "s"}.`,
+    `- [${issues.every((issue) => issue.severity !== "high") ? "x" : " "}] No high-severity data-integrity problems remain.`,
   ];
 
   if (issues.length) {
@@ -867,11 +916,19 @@ function buildChecklist(groups: GroupRow[], issues: Issue[], recordCount: number
   return lines.join("\n");
 }
 
-function numericSummary(group: GroupRow, mode: NumericMode, numericKey: string) {
+function numericSummary(group: GroupRow, mode: NumericMode, numericKey: string): Record<string, number | null> {
   if (mode === "none" || !numericKey.trim()) return {};
-  if (mode === "average") return { [`Average ${numericKey}`]: group.average };
-  if (mode === "minmax") return { [`Min ${numericKey}`]: group.min, [`Max ${numericKey}`]: group.max };
-  return { [`Sum ${numericKey}`]: group.sum };
+  const output: Record<string, number | null> = {
+    [`${numericKey} values used`]: group.numericCount,
+  };
+  if (mode === "average") output[`Average ${numericKey}`] = group.average;
+  else if (mode === "minmax") {
+    output[`Min ${numericKey}`] = group.min;
+    output[`Max ${numericKey}`] = group.max;
+  } else {
+    output[`Sum ${numericKey}`] = group.numericCount ? group.sum : null;
+  }
+  return output;
 }
 
 function buildIssues(records: unknown[], groups: GroupRow[], options: {
@@ -879,6 +936,9 @@ function buildIssues(records: unknown[], groups: GroupRow[], options: {
   numericKey: string;
   missingMode: MissingMode;
   numericMode: NumericMode;
+  treatArraysAsJoinedText: boolean;
+  limitRecordsPerGroup: boolean;
+  includeRecordsInJson: boolean;
   warnMissingKeys: boolean;
   warnHighCardinality: boolean;
   warnNonNumericSummary: boolean;
@@ -886,21 +946,25 @@ function buildIssues(records: unknown[], groups: GroupRow[], options: {
   const issues: Issue[] = [];
 
   if (options.warnMissingKeys) {
-    const missingCount = records.filter((record) => readPath(record, options.groupKey) === undefined || readPath(record, options.groupKey) === null || readPath(record, options.groupKey) === "").length;
-    if (missingCount && options.missingMode !== "skip") {
+    const missingCount = records.filter((record) => {
+      const value = readPath(record, options.groupKey);
+      return value === undefined || value === null || value === "";
+    }).length;
+
+    if (missingCount) {
       issues.push({
-        severity: "warning",
-        title: "Missing group keys",
-        message: `${missingCount} record${missingCount === 1 ? "" : "s"} are missing the selected group key.`,
+        severity: options.missingMode === "skip" ? "info" : "warning",
+        title: options.missingMode === "skip" ? "Records skipped for a missing group value" : "Missing group values",
+        message: `${missingCount} record${missingCount === 1 ? "" : "s"} had no usable value at the selected group path.`,
       });
     }
   }
 
-  if (options.warnHighCardinality && groups.length > Math.max(20, records.length * 0.6)) {
+  if (options.warnHighCardinality && records.length > 0 && groups.length > Math.max(20, records.length * 0.6)) {
     issues.push({
       severity: "info",
-      title: "Many groups created",
-      message: "The selected key creates many groups. You may be grouping by a unique ID instead of a category-like field.",
+      title: "The key is close to unique",
+      message: "Most records became separate groups. Check whether the selected field is an identifier rather than a category-like value.",
     });
   }
 
@@ -909,14 +973,41 @@ function buildIssues(records: unknown[], groups: GroupRow[], options: {
       const value = readPath(record, options.numericKey);
       return value !== undefined && value !== null && (typeof value !== "number" || !Number.isFinite(value));
     }).length;
+    const missing = records.filter((record) => {
+      const value = readPath(record, options.numericKey);
+      return value === undefined || value === null;
+    }).length;
 
     if (nonNumeric) {
       issues.push({
-        severity: "info",
-        title: "Non-numeric values skipped",
-        message: `${nonNumeric} value${nonNumeric === 1 ? "" : "s"} in the numeric field were not finite numbers and were skipped in numeric summaries.`,
+        severity: "warning",
+        title: "Numeric-looking data was not coerced",
+        message: `${nonNumeric} present value${nonNumeric === 1 ? "" : "s"} were not finite JSON numbers and were excluded from numeric summaries.`,
       });
     }
+    if (missing) {
+      issues.push({
+        severity: "info",
+        title: "Some records have no numeric observation",
+        message: `${missing} record${missing === 1 ? "" : "s"} had no value at the numeric path. Averages use only finite numeric observations.`,
+      });
+    }
+  }
+
+  if (options.treatArraysAsJoinedText && records.some((record) => Array.isArray(readPath(record, options.groupKey)))) {
+    issues.push({
+      severity: "warning",
+      title: "Joined array labels can collide",
+      message: "Array boundaries are being flattened into display text. Keep arrays as JSON text when distinct array structure must remain distinct.",
+    });
+  }
+
+  if (options.limitRecordsPerGroup && options.includeRecordsInJson && groups.some((group) => group.count > group.records.length)) {
+    issues.push({
+      severity: "info",
+      title: "Embedded record samples are capped",
+      message: "Group counts cover every included record, but grouped JSON embeds at most 25 source records per group.",
+    });
   }
 
   return issues;
@@ -925,56 +1016,218 @@ function buildIssues(records: unknown[], groups: GroupRow[], options: {
 function getNotes(result: Result): Issue[] {
   const notes = [...result.issues];
 
-  if (result.recordCount > 1000) {
+  if (result.recordCount > 5000) {
     notes.push({
       severity: "info",
-      title: "Large JSON array",
-      message: "This tool is best for quick browser-side grouping. Very large datasets may be better handled in a database, spreadsheet, or local script.",
+      title: "Large in-browser grouping job",
+      message: "The full JSON array and group map are held in browser memory. A streaming or database aggregation is safer for substantially larger data.",
     });
   }
 
   if (result.outputLength > 50000) {
     notes.push({
       severity: "info",
-      title: "Large output",
-      message: "The generated grouped output is large. Consider CSV or counts JSON if you only need a compact summary.",
+      title: "Large export",
+      message: "Grouped records make the export sizeable. Counts JSON or CSV is more compact when source records are not needed.",
     });
   }
 
   return notes;
 }
 
-function flattenRecord(value: unknown, prefix = ""): Record<string, unknown> {
-  const output: Record<string, unknown> = {};
+function parseDotPath(path: string): { valid: boolean; parts: string[]; error: string } {
+  if (!path) return { valid: false, parts: [], error: "Enter a key or escaped dot path." };
 
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    if (prefix) output[prefix] = value;
-    return output;
+  const parts: string[] = [];
+  let current = "";
+  let escaping = false;
+
+  for (let index = 0; index < path.length; index += 1) {
+    const char = path[index];
+    if (escaping) {
+      if (char !== "." && char !== "\\") {
+        current += "\\";
+      }
+      current += char;
+      escaping = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaping = true;
+      continue;
+    }
+    if (char === ".") {
+      if (!current) return { valid: false, parts: [], error: "Empty path segments are not allowed. Escape a literal dot as \\." };
+      parts.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
   }
 
-  Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (item && typeof item === "object" && !Array.isArray(item)) {
-      Object.assign(output, flattenRecord(item, path));
-    } else {
-      output[path] = item;
-    }
-  });
-
-  return output;
+  if (escaping) return { valid: false, parts: [], error: "The path ends with an unfinished backslash escape." };
+  if (!current) return { valid: false, parts: [], error: "The path cannot end with an unescaped dot." };
+  parts.push(current);
+  return { valid: true, parts, error: "" };
 }
 
 function readPath(value: unknown, path: string): unknown {
-  if (!path.trim()) return undefined;
-  const direct = value && typeof value === "object" ? (value as Record<string, unknown>)[path] : undefined;
-  if (direct !== undefined) return direct;
+  const parsed = parseDotPath(path);
+  if (!parsed.valid) return undefined;
 
-  return path.split(".").reduce<unknown>((current, part) => {
-    if (current && typeof current === "object" && Object.prototype.hasOwnProperty.call(current as Record<string, unknown>, part)) {
-      return (current as Record<string, unknown>)[part];
+  let current = value;
+  for (const part of parsed.parts) {
+    if (!current || typeof current !== "object") return undefined;
+    if (!Object.prototype.hasOwnProperty.call(current as Record<string, unknown>, part)) return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
+function findJsonDataRisk(text: string): string | null {
+  let index = 0;
+
+  const skipWhitespace = () => {
+    while (index < text.length && /\s/.test(text[index])) index += 1;
+  };
+
+  const parseString = (): string => {
+    const start = index;
+    index += 1;
+    while (index < text.length) {
+      const char = text[index];
+      if (char === "\\") {
+        index += 2;
+        continue;
+      }
+      if (char === '"') {
+        index += 1;
+        return JSON.parse(text.slice(start, index)) as string;
+      }
+      index += 1;
     }
-    return undefined;
-  }, value);
+    throw new Error("syntax");
+  };
+
+  const parseNumber = () => {
+    const match = text.slice(index).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+    if (!match) throw new Error("syntax");
+    const token = match[0];
+    index += token.length;
+    const value = Number(token);
+    if (!Number.isFinite(value)) {
+      throw new Error("JSON number is outside JavaScript's finite numeric range. Convert it to a string before grouping.");
+    }
+    if (Number.isInteger(value) && !Number.isSafeInteger(value)) {
+      throw new Error(`JSON integer ${token} cannot be represented exactly by JavaScript. Convert it to a string before grouping.`);
+    }
+    if (Object.is(value, -0)) {
+      throw new Error("JSON number -0 can lose its sign during generated JSON output. Convert it to a string if that distinction matters.");
+    }
+  };
+
+  const parseValue = (depth: number): void => {
+    if (depth > 200) throw new Error("JSON nesting is deeper than 200 levels, which is unsafe for this browser-side grouping pass.");
+    skipWhitespace();
+    const char = text[index];
+
+    if (char === "{") {
+      index += 1;
+      skipWhitespace();
+      const names = new Set<string>();
+      if (text[index] === "}") {
+        index += 1;
+        return;
+      }
+      while (index < text.length) {
+        skipWhitespace();
+        if (text[index] !== '"') throw new Error("syntax");
+        const name = parseString();
+        if (names.has(name)) {
+          throw new Error(`Duplicate object member "${name}" would be collapsed by JSON.parse. Rename or remove the duplicate before grouping.`);
+        }
+        names.add(name);
+        skipWhitespace();
+        if (text[index] !== ":") throw new Error("syntax");
+        index += 1;
+        parseValue(depth + 1);
+        skipWhitespace();
+        if (text[index] === "}") {
+          index += 1;
+          return;
+        }
+        if (text[index] !== ",") throw new Error("syntax");
+        index += 1;
+      }
+      throw new Error("syntax");
+    }
+
+    if (char === "[") {
+      index += 1;
+      skipWhitespace();
+      if (text[index] === "]") {
+        index += 1;
+        return;
+      }
+      while (index < text.length) {
+        parseValue(depth + 1);
+        skipWhitespace();
+        if (text[index] === "]") {
+          index += 1;
+          return;
+        }
+        if (text[index] !== ",") throw new Error("syntax");
+        index += 1;
+      }
+      throw new Error("syntax");
+    }
+
+    if (char === '"') {
+      parseString();
+      return;
+    }
+
+    if (char === "-" || (char >= "0" && char <= "9")) {
+      parseNumber();
+      return;
+    }
+
+    if (text.slice(index, index + 4) === "true" || text.slice(index, index + 4) === "null") {
+      index += 4;
+      return;
+    }
+    if (text.slice(index, index + 5) === "false") {
+      index += 5;
+      return;
+    }
+    throw new Error("syntax");
+  };
+
+  try {
+    parseValue(0);
+    return null;
+  } catch (error) {
+    if (error instanceof Error && error.message !== "syntax") return error.message;
+    return null;
+  }
+}
+
+function issueCardClass(severity: Issue["severity"]) {
+  if (severity === "high") return "self-start rounded-xl border border-red-200 bg-red-50 p-4";
+  if (severity === "warning") return "self-start rounded-xl border border-amber-200 bg-amber-50 p-4";
+  return "self-start rounded-xl border border-gray-200 bg-gray-50 p-4";
+}
+
+function issueTitleClass(severity: Issue["severity"]) {
+  if (severity === "high") return "text-sm font-semibold text-red-900";
+  if (severity === "warning") return "text-sm font-semibold text-amber-900";
+  return "text-sm font-semibold text-gray-900";
+}
+
+function issueTextClass(severity: Issue["severity"]) {
+  if (severity === "high") return "mt-1 text-sm leading-6 text-red-800";
+  if (severity === "warning") return "mt-1 text-sm leading-6 text-amber-800";
+  return "mt-1 text-sm leading-6 text-gray-600";
 }
 
 function formatNumber(value: number) {
@@ -983,7 +1236,7 @@ function formatNumber(value: number) {
 }
 
 function escapeMarkdown(value: string) {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
+  return value.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
 }
 
 function csvCell(value: string) {
@@ -992,12 +1245,12 @@ function csvCell(value: string) {
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
   return (
-    <label className="flex items-center gap-3 text-sm text-gray-700">
+    <label className="flex items-start gap-3 text-sm text-gray-700">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
+        className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 accent-[#d9a928]"
       />
       <span>{label}</span>
     </label>
@@ -1013,11 +1266,3 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}
