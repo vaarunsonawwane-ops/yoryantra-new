@@ -380,14 +380,14 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Compose dependency guidance</h3>
+        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Compose dependency guidance</h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
