@@ -147,7 +147,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="IPv4 Subnet Calculator"
-      description="Calculate IPv4 subnet details, CIDR ranges, subnet masks, wildcard masks, usable hosts, binary notation, and subnet splits directly in your browser."
+      description="Calculate CIDR boundaries, masks, host ranges, binary form, and equal-size IPv4 subnet splits."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -269,7 +269,7 @@ export default function ToolClient() {
             <p className="mt-2 text-xs leading-relaxed text-gray-500">
               {splitMode === "prefix"
                 ? "Split the input subnet into smaller subnets using a longer prefix."
-                : "Split the input subnet into the closest equal-size subnet count."}
+                : "Split the input prefix into an exact power-of-two number of equal-size subnets."}
             </p>
           </div>
         </div>
@@ -448,7 +448,7 @@ export default function ToolClient() {
           </div>
 
           {splits.length === MAX_SPLIT_ROWS && (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-800">
+            <div className="mt-3 self-start rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-800">
               Split preview is capped at {MAX_SPLIT_ROWS.toLocaleString()} rows
               to keep the page responsive.
             </div>
@@ -477,7 +477,7 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
         IPv4 subnet calculation happens directly in your browser. Your IP
         addresses and network ranges are not uploaded to a server.
       </div>
@@ -485,7 +485,7 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Calculating IPv4 Subnets for Network Planning
+            From one host address to the containing IPv4 prefix
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -506,7 +506,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Using the Advanced Subnet Calculator
+            Reading the calculated boundary values
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -522,7 +522,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common IPv4 Subnet Calculator Use Cases
+            Where subnet boundaries matter in configuration
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -537,7 +537,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example IPv4 Subnet Calculation
+            Worked /27 boundary example
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
@@ -561,7 +561,7 @@ Usable hosts: 30`}
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Understanding Prefix Length and Subnet Masks
+            Prefix length controls address count and mask bits
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -577,15 +577,35 @@ Usable hosts: 30`}
           </p>
         </div>
 
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-lg font-semibold text-gray-900">
+            CIDR replaced classful network sizing
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-gray-600">
+            The Class A/B/C label is shown only as historical address context;
+            the prefix length is what determines this calculation. RFC 4632
+            describes classless IPv4 routing, while RFC 3021 defines the special
+            two-address /31 convention for point-to-point links.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            <a href="https://www.rfc-editor.org/rfc/rfc4632" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              RFC 4632 — CIDR
+            </a>
+            <a href="https://www.rfc-editor.org/rfc/rfc3021" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">
+              RFC 3021 — /31 links
+            </a>
+          </div>
+        </div>
+
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            IPv4 subnet edge cases
           </h2>
 
           <div className="mt-5 space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What is an IPv4 subnet calculator?
+                Why does a host address normalize to a network address?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -597,7 +617,7 @@ Usable hosts: 30`}
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                What does CIDR prefix length mean?
+                How does the slash prefix change the range?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -609,32 +629,32 @@ Usable hosts: 30`}
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                What are usable hosts?
+                Why are /31 and /32 different?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                In traditional IPv4 subnetting, usable hosts are addresses
-                between the network address and broadcast address. /31 and /32
-                ranges are treated specially because they are often used for
-                point-to-point or single-host scenarios.
+                For prefixes /30 and shorter, this page shows the traditional
+                network-and-broadcast exclusion. A /31 is treated as two usable
+                point-to-point endpoints under RFC 3021, while /32 represents one
+                address rather than a conventional multi-host subnet.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Can this split a subnet into smaller subnets?
+                Which subnet counts can divide a prefix evenly?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 Yes. You can split a subnet by choosing a longer prefix or by
-                entering a desired subnet count. The preview is capped to keep
+                entering an exact power-of-two subnet count. The preview is capped to keep
                 the browser responsive.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this support IPv6?
+                Why is IPv6 not handled here?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -645,7 +665,7 @@ Usable hosts: 30`}
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Are my IP addresses uploaded anywhere?
+                Where does the IPv4 input go?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -661,7 +681,7 @@ Usable hosts: 30`}
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/ipv4-subnet-calculator" />
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/ipv4-subnet-calculator" /></div>
         </div>
       </section>
     </ToolShell>
@@ -797,8 +817,13 @@ function calculateSubnetSplits(
       throw new Error("Subnet count must be a positive integer.");
     }
 
-    const powerOfTwoCount = nextPowerOfTwo(requestedCount);
-    targetPrefix = details.prefixLength + Math.log2(powerOfTwoCount);
+    if ((requestedCount & (requestedCount - 1)) !== 0) {
+      throw new Error(
+        "Equal-size CIDR splits require a power-of-two subnet count such as 2, 4, 8, or 16."
+      );
+    }
+
+    targetPrefix = details.prefixLength + Math.log2(requestedCount);
 
     if (targetPrefix > 32) {
       throw new Error("Subnet count is too large for this IPv4 range.");
@@ -937,6 +962,12 @@ function ipv4ToNumber(ip: string) {
       throw new Error("IPv4 address can only contain numeric octets.");
     }
 
+    if (part.length > 1 && part.startsWith("0")) {
+      throw new Error(
+        "Use canonical dotted-decimal IPv4 without leading zeroes in octets."
+      );
+    }
+
     const value = Number(part);
 
     if (!Number.isInteger(value) || value < 0 || value > 255) {
@@ -1003,47 +1034,28 @@ function getIPv4Class(ipNumber: number) {
 }
 
 function getIPv4Type(ipNumber: number) {
-  const ip = numberToIPv4(ipNumber);
-  const firstOctet = (ipNumber >>> 24) & 255;
-  const secondOctet = (ipNumber >>> 16) & 255;
+  const inRange = (start: string, end: string) => {
+    const startNumber = ipv4ToNumber(start);
+    const endNumber = ipv4ToNumber(end);
+    return ipNumber >= startNumber && ipNumber <= endNumber;
+  };
 
-  if (ip === "0.0.0.0") {
-    return "Unspecified";
-  }
-
-  if (ip === "255.255.255.255") {
-    return "Limited broadcast";
-  }
-
-  if (firstOctet === 10) {
-    return "Private";
-  }
-
-  if (firstOctet === 172 && secondOctet >= 16 && secondOctet <= 31) {
-    return "Private";
-  }
-
-  if (firstOctet === 192 && secondOctet === 168) {
-    return "Private";
-  }
-
-  if (firstOctet === 127) {
-    return "Loopback";
-  }
-
-  if (firstOctet === 169 && secondOctet === 254) {
-    return "Link-local";
-  }
-
-  if (firstOctet >= 224 && firstOctet <= 239) {
-    return "Multicast";
-  }
-
-  if (firstOctet >= 240) {
-    return "Reserved";
-  }
-
-  return "Public";
+  if (ipNumber === 0) return "Unspecified";
+  if (ipNumber === 0xffffffff) return "Limited broadcast";
+  if (inRange("10.0.0.0", "10.255.255.255")) return "Private";
+  if (inRange("172.16.0.0", "172.31.255.255")) return "Private";
+  if (inRange("192.168.0.0", "192.168.255.255")) return "Private";
+  if (inRange("100.64.0.0", "100.127.255.255")) return "Shared address space";
+  if (inRange("127.0.0.0", "127.255.255.255")) return "Loopback";
+  if (inRange("169.254.0.0", "169.254.255.255")) return "Link-local";
+  if (inRange("192.0.2.0", "192.0.2.255") ||
+      inRange("198.51.100.0", "198.51.100.255") ||
+      inRange("203.0.113.0", "203.0.113.255")) return "Documentation";
+  if (inRange("198.18.0.0", "198.19.255.255")) return "Benchmark testing";
+  if (inRange("224.0.0.0", "239.255.255.255")) return "Multicast";
+  if (inRange("240.0.0.0", "255.255.255.254")) return "Reserved";
+  if (inRange("0.0.0.0", "0.255.255.255")) return "Current network / special";
+  return "Global unicast";
 }
 
 function nextPowerOfTwo(value: number) {

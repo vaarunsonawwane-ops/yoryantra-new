@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { parseDocument } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -186,7 +187,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Docker Compose Ports Checker"
-      description="Check Docker Compose ports, find duplicate host ports, invalid port mappings, protocol issues, ranges, exposed ports, and service port conflicts directly in your browser."
+      description="Review published ports, host bindings, ranges, protocols, expose entries, and cross-service conflicts before deployment."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -499,7 +500,7 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
         Docker Compose port checking happens directly in your browser. Your YAML
         is not uploaded to a server.
       </div>
@@ -507,11 +508,11 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking Docker Compose Port Conflicts Before Running Containers
+            What Docker Compose port checks can catch before `up`
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Docker Compose port issues are common when several services try to
+            Port collisions often appear when several services try to
             publish the same host port. A web app, admin panel, database UI, or
             local debug service can fail to start because another container is
             already using the port.
@@ -527,7 +528,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Reviewing Ports in a Compose File
+            Reading short and long Compose port syntax
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -541,7 +542,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Docker Compose Ports Checker Use Cases
+            Where port collisions usually appear
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -556,7 +557,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example Port Mapping
+            Reading one published-port mapping
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
@@ -576,7 +577,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Ports and Expose Are Not the Same
+            `ports` and `expose` have different network effects
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -593,27 +594,50 @@ export default function ToolClient() {
           </p>
         </div>
 
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Compose syntax is the source of truth
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-gray-600">
+            Docker documents both short and long <code>ports</code> syntax,
+            requires equivalent host/container range lengths, and rejects port
+            publishing with <code>network_mode: host</code>. The checker follows
+            those rules, but it does not run the Docker Engine or test whether a
+            port is already occupied by a process outside this Compose file.
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            <a
+              href="https://docs.docker.com/reference/compose-file/services/#ports"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              Docker Compose services reference: ports
+            </a>
+          </p>
+        </div>
+
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Docker Compose port questions that change the result
           </h2>
 
           <div className="mt-5 space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What does a Docker Compose ports checker do?
+                What counts as a host-port conflict?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 It reads Docker Compose YAML and checks published ports, exposed
-                ports, duplicate host ports, invalid mappings, and common port
+                ports, duplicate host ports, invalid mappings, and port
                 configuration issues.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Can this find duplicate host ports?
+                When can the same container port appear in several services?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -624,7 +648,7 @@ export default function ToolClient() {
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this run Docker Compose?
+                Does this prove the Compose file will start?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -635,7 +659,7 @@ export default function ToolClient() {
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Is my Compose file uploaded anywhere?
+                Where does the Compose YAML go?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -651,7 +675,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/docker-compose-ports-checker" />
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/docker-compose-ports-checker" /></div>
         </div>
       </section>
     </ToolShell>
@@ -726,10 +750,12 @@ function analyzeComposePorts(
     warnUnquotedPorts: boolean;
   }
 ): PortSummary {
-  const lines = toLines(input);
-  const services = parseComposeServices(lines);
-  const mappings = services.flatMap((service) => [...service.ports, ...service.expose]);
-  const issues: PortIssue[] = [];
+  const services = parseComposeServicesFromDocument(input);
+  const mappings = services.reduce<PortMapping[]>(
+    (all, service) => all.concat(service.ports, service.expose),
+    []
+  );
+  const issues: PortIssue[] = [...findHostNetworkPortIssues(input)];
 
   mappings.forEach((mapping) => {
     if (!mapping.valid) {
@@ -762,7 +788,7 @@ function analyzeComposePorts(
       options.warnUnquotedPorts &&
       mapping.mode === "published" &&
       mapping.raw.includes(":") &&
-      !isQuoted(mapping.raw)
+      mapping.raw.startsWith("UNQUOTED:")
     ) {
       issues.push({
         severity: "info",
@@ -845,11 +871,173 @@ function analyzeComposePorts(
   };
 }
 
+function parseComposeServicesFromDocument(input: string): ServicePorts[] {
+  const document = parseDocument(input, {
+    prettyErrors: true,
+    uniqueKeys: true,
+  });
+
+  if (document.errors.length > 0) {
+    throw new Error(document.errors[0].message);
+  }
+
+  const root = document.toJS({ mapAsMap: false }) as unknown;
+
+  if (!isPlainRecord(root) || !isPlainRecord(root.services)) {
+    throw new Error("Could not find a top-level services mapping.");
+  }
+
+  const services = Object.entries(root.services).map(([service, serviceValue]) => {
+    if (!isPlainRecord(serviceValue)) {
+      return { service, ports: [], expose: [] };
+    }
+
+    return {
+      service,
+      ports: parsePortCollection(service, serviceValue.ports, "ports"),
+      expose: parsePortCollection(service, serviceValue.expose, "expose"),
+    };
+  });
+
+  if (services.length === 0) {
+    throw new Error("No services were found under the services mapping.");
+  }
+
+  return services;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parsePortCollection(
+  service: string,
+  value: unknown,
+  sectionName: "ports" | "expose"
+): PortMapping[] {
+  if (value === undefined || value === null) return [];
+
+  if (!Array.isArray(value)) {
+    return [
+      {
+        service,
+        raw: JSON.stringify(value),
+        line: 0,
+        hostIp: "",
+        hostPort: "",
+        containerPort: "",
+        protocol: "tcp",
+        mode: sectionName === "expose" ? "exposed" : "unknown",
+        valid: false,
+        normalizedHostKey: "",
+      },
+    ];
+  }
+
+  return value.map((entry) => {
+    if (typeof entry === "string" || typeof entry === "number") {
+      return parsePortString(service, String(entry), 0, sectionName);
+    }
+
+    if (isPlainRecord(entry)) {
+      return parseObjectPortValue(service, entry, sectionName);
+    }
+
+    return {
+      service,
+      raw: JSON.stringify(entry),
+      line: 0,
+      hostIp: "",
+      hostPort: "",
+      containerPort: "",
+      protocol: "tcp",
+      mode: "unknown" as const,
+      valid: false,
+      normalizedHostKey: "",
+    };
+  });
+}
+
+function parseObjectPortValue(
+  service: string,
+  value: Record<string, unknown>,
+  sectionName: "ports" | "expose"
+): PortMapping {
+  const hostIp = typeof value.host_ip === "string" ? value.host_ip : "";
+  const hostPort =
+    typeof value.published === "string" || typeof value.published === "number"
+      ? String(value.published)
+      : "";
+  const containerPort =
+    typeof value.target === "string" || typeof value.target === "number"
+      ? String(value.target)
+      : "";
+  const protocol = typeof value.protocol === "string" ? value.protocol.toLowerCase() : "tcp";
+  const valid =
+    Boolean(containerPort) &&
+    isPortOrRange(containerPort) &&
+    (!hostPort || isPortOrRange(hostPort)) &&
+    rangesHaveCompatibleCardinality(hostPort, containerPort);
+
+  return {
+    service,
+    raw: JSON.stringify(value),
+    line: 0,
+    hostIp,
+    hostPort,
+    containerPort,
+    protocol,
+    mode: sectionName === "expose" ? "exposed" : "object",
+    valid,
+    normalizedHostKey: buildHostKey(hostIp, hostPort, protocol),
+  };
+}
+
+function rangesHaveCompatibleCardinality(hostPort: string, containerPort: string) {
+  if (!hostPort || !hostPort.includes("-") || !containerPort.includes("-")) {
+    return true;
+  }
+
+  return portRangeSize(hostPort) === portRangeSize(containerPort);
+}
+
+function portRangeSize(value: string) {
+  const [start, end] = value.split("-").map(Number);
+  return end - start + 1;
+}
+
+function findHostNetworkPortIssues(input: string): PortIssue[] {
+  const document = parseDocument(input, { prettyErrors: true, uniqueKeys: true });
+  if (document.errors.length > 0) return [];
+  const root = document.toJS({ mapAsMap: false }) as unknown;
+  if (!isPlainRecord(root) || !isPlainRecord(root.services)) return [];
+
+  const issues: PortIssue[] = [];
+  Object.entries(root.services).forEach(([service, value]) => {
+    if (
+      isPlainRecord(value) &&
+      value.network_mode === "host" &&
+      Array.isArray(value.ports) &&
+      value.ports.length > 0
+    ) {
+      issues.push({
+        severity: "error",
+        title: "Port publishing conflicts with host networking",
+        message:
+          'Docker Compose rejects port mappings when network_mode is "host" because the container already uses the host network.',
+        service,
+        line: 0,
+      });
+    }
+  });
+  return issues;
+}
+
 function toLines(input: string): YAMLLine[] {
   return input.replace(/\r\n/g, "\n").split("\n").map((raw, index) => ({
     raw,
     trimmed: stripComment(raw).trim(),
-    indent: raw.length - raw.trimStart().length,
+    indent: raw.length - raw.replace(/^\s+/, "").length,
     line: index + 1,
   }));
 }
@@ -1001,7 +1189,11 @@ function parsePortString(
     containerPort = parts[parts.length - 1] || "";
   }
 
-  const valid = Boolean(containerPort) && isPortOrRange(containerPort) && (!hostPort || isPortOrRange(hostPort));
+  const valid =
+    Boolean(containerPort) &&
+    isPortOrRange(containerPort) &&
+    (!hostPort || isPortOrRange(hostPort)) &&
+    rangesHaveCompatibleCardinality(hostPort, containerPort);
 
   return {
     service,
@@ -1066,18 +1258,69 @@ function parseObjectPort(
 }
 
 function findDuplicateHostPorts(mappings: PortMapping[]) {
-  const groups = new Map<string, PortMapping[]>();
+  const published = mappings.filter(
+    (mapping) => mapping.hostPort && mapping.valid && mapping.mode !== "exposed"
+  );
+  const groups: PortMapping[][] = [];
+  const visited = new Set<number>();
 
-  mappings
-    .filter((mapping) => mapping.hostPort && mapping.valid)
-    .forEach((mapping) => {
-      const key = mapping.normalizedHostKey;
-      const existing = groups.get(key) || [];
-      existing.push(mapping);
-      groups.set(key, existing);
-    });
+  for (let index = 0; index < published.length; index += 1) {
+    if (visited.has(index)) continue;
+    const group = [published[index]];
 
-  return Array.from(groups.values()).filter((group) => group.length > 1);
+    for (let other = index + 1; other < published.length; other += 1) {
+      if (
+        published[index].protocol === published[other].protocol &&
+        hostBindingsOverlap(published[index], published[other])
+      ) {
+        group.push(published[other]);
+        visited.add(other);
+      }
+    }
+
+    if (group.length > 1) {
+      visited.add(index);
+      groups.push(group);
+    }
+  }
+
+  return groups;
+}
+
+function hostBindingsOverlap(left: PortMapping, right: PortMapping) {
+  if (!portRangesOverlap(left.hostPort, right.hostPort)) return false;
+
+  const leftIp = normalizeBindingIp(left.hostIp);
+  const rightIp = normalizeBindingIp(right.hostIp);
+
+  if (leftIp === rightIp) return true;
+  if (leftIp === "0.0.0.0" && isIPv4Binding(rightIp)) return true;
+  if (rightIp === "0.0.0.0" && isIPv4Binding(leftIp)) return true;
+  return false;
+}
+
+function normalizeBindingIp(value: string) {
+  const cleaned = value.replace(/^\[|\]$/g, "");
+  return cleaned || "0.0.0.0";
+}
+
+function isIPv4Binding(value: string) {
+  return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(value);
+}
+
+function portRangesOverlap(left: string, right: string) {
+  const [leftStart, leftEnd] = portRangeBounds(left);
+  const [rightStart, rightEnd] = portRangeBounds(right);
+  return leftStart <= rightEnd && rightStart <= leftEnd;
+}
+
+function portRangeBounds(value: string): [number, number] {
+  if (value.includes("-")) {
+    const [start, end] = value.split("-").map(Number);
+    return [start, end];
+  }
+  const port = Number(value);
+  return [port, port];
 }
 
 function findDuplicateContainerPorts(mappings: PortMapping[]) {

@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Docker Compose Ports Checker | Check Port Conflicts Online | Yoryantra",
+  title: "Docker Compose Ports Checker | Port Mapping Conflicts | Yoryantra",
   description:
-    "Check Docker Compose ports, find duplicate host ports, invalid port mappings, protocol issues, ranges, exposed ports, and service port conflicts directly in your browser.",
+    "Review Docker Compose port publishing, ranges, protocols, host bindings, expose entries, and conflicts before deployment.",
   keywords: [
     "Docker Compose ports checker",
     "Docker Compose port conflict checker",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/docker-compose-ports-checker",
   },
   openGraph: {
-    title: "Docker Compose Ports Checker | Check Port Conflicts Online | Yoryantra",
+    title: "Docker Compose Ports Checker | Port Mapping Conflicts | Yoryantra",
     description:
-      "Check Docker Compose ports, find duplicate host ports, invalid port mappings, protocol issues, ranges, exposed ports, and service port conflicts directly in your browser.",
+      "Review Docker Compose port publishing, ranges, protocols, host bindings, expose entries, and conflicts before deployment.",
     url: "https://yoryantra.com/tools/docker-compose-ports-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Docker Compose Ports Checker | Check Port Conflicts Online | Yoryantra",
+    title: "Docker Compose Ports Checker | Port Mapping Conflicts | Yoryantra",
     description:
-      "Check Docker Compose ports, find duplicate host ports, invalid port mappings, protocol issues, ranges, exposed ports, and service port conflicts directly in your browser.",
+      "Review Docker Compose port publishing, ranges, protocols, host bindings, expose entries, and conflicts before deployment.",
   },
 };
 

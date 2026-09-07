@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { parseDocument } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -204,7 +205,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="GitHub Actions YAML Validator"
-      description="Validate GitHub Actions workflow YAML, check jobs, steps, triggers, permissions, runners, and common workflow mistakes directly in your browser."
+      description="Parse workflow YAML and examine triggers, jobs, runners, permissions, action references, and secret-handling risks."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -535,7 +536,7 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
         Workflow validation happens directly in your browser. Your GitHub Actions
         YAML is not uploaded to a server.
       </div>
@@ -543,7 +544,7 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Checking GitHub Actions Workflow YAML Before It Fails
+            What a local workflow review can catch before GitHub runs it
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -555,7 +556,7 @@ export default function ToolClient() {
 
           <p className="mt-4 text-gray-600 leading-relaxed">
             This GitHub Actions YAML Validator checks the workflow structure and
-            points out common issues in jobs, steps, triggers, permissions,
+            points out structural and policy issues in jobs, steps, triggers, permissions,
             runners, action versions, and secret handling. It is meant for quick
             checks before committing or while debugging CI problems.
           </p>
@@ -563,7 +564,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Validating a GitHub Actions Workflow
+            How the workflow structure is interpreted
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -577,7 +578,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common GitHub Actions YAML Issues This Tool Checks
+            Workflow mistakes worth separating from YAML syntax
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -592,7 +593,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example GitHub Actions Workflow
+            A small workflow with explicit permissions
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
@@ -617,7 +618,7 @@ jobs:
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Why Permissions and Secrets Matter
+            Token permissions and secret references need separate attention
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -634,26 +635,50 @@ jobs:
           </p>
         </div>
 
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-lg font-semibold text-gray-900">
+            YAML validity is only the first layer
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-gray-600">
+            GitHub defines the workflow keys, expression contexts, event-specific
+            behavior, permissions, reusable workflows, and runner semantics.
+            Local parsing can catch malformed YAML and many structural mistakes,
+            but it cannot resolve repository secrets, environments, matrices,
+            permissions policies, referenced reusable workflows, or runner-time
+            behavior.
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            <a
+              href="https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              GitHub Actions workflow syntax
+            </a>
+          </p>
+        </div>
+
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            GitHub Actions validation boundaries
           </h2>
 
           <div className="mt-5 space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900">
-                What is a GitHub Actions YAML validator?
+                What does a local workflow validator actually verify?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks a GitHub Actions workflow file for common structure,
+                It checks a GitHub Actions workflow file for workflow structure,
                 job, step, trigger, permission, and secret-related issues.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Does this run the workflow?
+                Does this execute jobs or expressions?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -664,7 +689,7 @@ jobs:
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Can this replace GitHub’s own workflow checks?
+                What still needs GitHub’s runner and repository context?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -675,7 +700,7 @@ jobs:
 
             <div>
               <h3 className="font-semibold text-gray-900">
-                Are my workflow files uploaded anywhere?
+                Where does the workflow YAML go?
               </h3>
 
               <p className="mt-2 text-gray-600 leading-relaxed">
@@ -691,7 +716,7 @@ jobs:
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/github-actions-yaml-validator" />
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/github-actions-yaml-validator" /></div>
         </div>
       </section>
     </ToolShell>
@@ -833,17 +858,33 @@ function validateGitHubActionsWorkflow(
   }
 
   parsed.jobs.forEach((job) => {
-    if (!job.runsOn) {
+    const rawJobs =
+      isRecord(parsed.raw) && isRecord(parsed.raw.jobs) ? parsed.raw.jobs : null;
+    const rawJob =
+      rawJobs && isRecord(rawJobs[job.id]) ? (rawJobs[job.id] as Record<string, unknown>) : null;
+    const reusableWorkflow = Boolean(rawJob && rawJob.uses);
+
+    if (!job.runsOn && !reusableWorkflow) {
       issues.push({
         severity: "error",
         title: "Job is missing runs-on",
         message:
-          "Each job needs a runner such as ubuntu-latest, windows-latest, macos-latest, or a self-hosted runner.",
+          "A normal job needs runs-on. Jobs that call a reusable workflow use jobs.<job_id>.uses instead.",
         path: `jobs.${job.id}.runs-on`,
       });
     }
 
-    if (job.steps.length === 0) {
+    if (job.runsOn && reusableWorkflow) {
+      issues.push({
+        severity: "error",
+        title: "Reusable-workflow job also has runs-on",
+        message:
+          "A job that calls a reusable workflow with jobs.<job_id>.uses does not use runs-on or normal steps.",
+        path: `jobs.${job.id}`,
+      });
+    }
+
+    if (job.steps.length === 0 && !reusableWorkflow) {
       issues.push({
         severity: "warning",
         title: "Job has no steps",
@@ -915,64 +956,145 @@ function validateGitHubActionsWorkflow(
 
 function checkYAMLSyntax(input: string): WorkflowIssue[] {
   const issues: WorkflowIssue[] = [];
-  const lines = input.replace(/\r\n/g, "\n").split("\n");
-  const stack: string[] = [];
 
-  lines.forEach((line, index) => {
-    const lineNumber = index + 1;
-    const trimmed = line.trim();
+  try {
+    const document = parseDocument(input, {
+      prettyErrors: true,
+      uniqueKeys: true,
+    });
 
-    if (!trimmed || trimmed.startsWith("#")) {
-      return;
-    }
-
-    if (line.includes("\t")) {
+    document.errors.forEach((yamlError) => {
       issues.push({
         severity: "error",
-        title: "Tab character found",
-        message:
-          "YAML indentation should use spaces, not tabs.",
-        path: `line ${lineNumber}`,
+        title: "Invalid YAML",
+        message: yamlError.message,
+        path: yamlError.linePos?.[0]
+          ? `line ${yamlError.linePos[0].line}, column ${yamlError.linePos[0].col}`
+          : "workflow YAML",
       });
-    }
+    });
 
-    const quoteCount = countUnescapedQuotes(line, '"');
-    const singleQuoteCount = countUnescapedQuotes(line, "'");
-
-    if (quoteCount % 2 !== 0 || singleQuoteCount % 2 !== 0) {
+    document.warnings.forEach((yamlWarning) => {
       issues.push({
         severity: "warning",
-        title: "Possible unclosed quote",
-        message:
-          "This line has an odd number of quotes. Check whether the value is quoted correctly.",
-        path: `line ${lineNumber}`,
+        title: "YAML parser warning",
+        message: yamlWarning.message,
+        path: yamlWarning.linePos?.[0]
+          ? `line ${yamlWarning.linePos[0].line}, column ${yamlWarning.linePos[0].col}`
+          : "workflow YAML",
       });
-    }
-
-    if (/:\s*$/.test(trimmed)) {
-      stack.push(trimmed.slice(0, -1));
-    }
-  });
+    });
+  } catch (error) {
+    issues.push({
+      severity: "error",
+      title: "Unable to parse YAML",
+      message:
+        error instanceof Error ? error.message : "The workflow YAML could not be parsed.",
+      path: "workflow YAML",
+    });
+  }
 
   return issues;
 }
 
 function parseWorkflow(input: string): ParsedWorkflow {
-  const lines = toYAMLLines(input);
-  const workflowName = getTopLevelScalar(lines, "name");
-  const triggers = parseTriggers(lines);
-  const jobs = parseJobs(lines);
-  const permissions = parseBlockAsText(lines, "permissions");
-  const envKeys = parseTopLevelMapKeys(lines, "env");
+  const document = parseDocument(input, {
+    prettyErrors: true,
+    uniqueKeys: true,
+  });
+
+  if (document.errors.length > 0) {
+    throw new Error(document.errors[0].message);
+  }
+
+  const root = document.toJS({ mapAsMap: false }) as unknown;
+
+  if (!isRecord(root)) {
+    throw new Error("A GitHub Actions workflow must be a top-level YAML mapping.");
+  }
+
+  const jobsValue = root.jobs;
+  const jobs: WorkflowJob[] = [];
+
+  if (isRecord(jobsValue)) {
+    Object.entries(jobsValue).forEach(([id, value]) => {
+      if (!isRecord(value)) {
+        return;
+      }
+
+      const stepsValue = value.steps;
+      const steps: WorkflowStep[] = Array.isArray(stepsValue)
+        ? stepsValue
+            .filter(isRecord)
+            .map((step) => ({
+              name: scalarText(step.name),
+              uses: scalarText(step.uses),
+              run: scalarText(step.run),
+              shell: scalarText(step.shell),
+              withKeys: isRecord(step.with) ? Object.keys(step.with) : [],
+              envKeys: isRecord(step.env) ? Object.keys(step.env) : [],
+            }))
+        : [];
+
+      jobs.push({
+        id,
+        name: scalarText(value.name),
+        runsOn: scalarText(value["runs-on"]),
+        needs: stringList(value.needs),
+        steps,
+        permissions: value.permissions === undefined ? "" : compactValue(value.permissions),
+        envKeys: isRecord(value.env) ? Object.keys(value.env) : [],
+      });
+    });
+  }
 
   return {
-    workflowName,
-    triggers,
+    workflowName: scalarText(root.name),
+    triggers: triggerNames(root.on),
     jobs,
-    permissions,
-    envKeys,
-    raw: null,
+    permissions: root.permissions === undefined ? "" : compactValue(root.permissions),
+    envKeys: isRecord(root.env) ? Object.keys(root.env) : [],
+    raw: root,
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function scalarText(value: unknown) {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.map((item) => scalarText(item)).filter(Boolean).join(", ");
+  return "";
+}
+
+function stringList(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => scalarText(item)).filter(Boolean);
+  }
+
+  const single = scalarText(value);
+  return single ? [single] : [];
+}
+
+function triggerNames(value: unknown) {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.map((item) => scalarText(item)).filter(Boolean);
+  if (isRecord(value)) return Object.keys(value);
+  return [];
+}
+
+function compactValue(value: unknown) {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "(structured value)";
+  }
 }
 
 function toYAMLLines(input: string): YAMLLine[] {
@@ -981,7 +1103,7 @@ function toYAMLLines(input: string): YAMLLine[] {
     .split("\n")
     .map((raw, index) => {
       const withoutComment = stripComment(raw);
-      const indent = raw.length - raw.trimStart().length;
+      const indent = raw.length - raw.replace(/^\s+/, "").length;
       const trimmed = withoutComment.trim();
       const colonIndex = trimmed.indexOf(":");
 
@@ -1253,12 +1375,16 @@ function checkActionPin(
   path: string,
   validationLevel: ValidationLevel
 ): WorkflowIssue | null {
+  if (usesValue.startsWith("./") || usesValue.startsWith("docker://")) {
+    return null;
+  }
+
   if (!usesValue.includes("@")) {
     return {
       severity: "warning",
-      title: "Action version is missing",
+      title: "Action reference is missing",
       message:
-        "Actions should usually include a version, tag, branch, or commit after @.",
+        "Repository actions should include a ref after @. Local actions and docker:// images follow different forms.",
       path,
     };
   }
@@ -1275,12 +1401,14 @@ function checkActionPin(
     };
   }
 
-  if (validationLevel === "strict" && ["main", "master"].includes(ref)) {
+  if (validationLevel === "strict" && !/^[0-9a-fA-F]{40}$/.test(ref)) {
     return {
-      severity: "info",
-      title: "Action uses a moving branch",
+      severity: ["main", "master"].includes(ref) ? "warning" : "info",
+      title: /^[vV]?\d+(?:\.\d+){0,2}$/.test(ref)
+        ? "Action uses a version tag"
+        : "Action is not pinned to a full commit SHA",
       message:
-        "Strict mode prefers pinned tags or commit SHAs instead of main or master.",
+        "GitHub recommends a full commit SHA for the strongest immutability. Tags and branches can move.",
       path,
     };
   }

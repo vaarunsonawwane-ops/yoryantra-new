@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "GitHub Actions YAML Validator | Check Workflow YAML Online | Yoryantra",
+  title: "GitHub Actions YAML Validator | Workflow Structure Review | Yoryantra",
   description:
-    "Validate GitHub Actions workflow YAML, check jobs, steps, triggers, permissions, runners, and common workflow mistakes directly in your browser.",
+    "Parse GitHub Actions workflow YAML and review triggers, jobs, steps, runners, permissions, action references, and secret-handling risks.",
   keywords: [
     "GitHub Actions YAML validator",
     "GitHub Actions validator",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/github-actions-yaml-validator",
   },
   openGraph: {
-    title: "GitHub Actions YAML Validator | Check Workflow YAML Online | Yoryantra",
+    title: "GitHub Actions YAML Validator | Workflow Structure Review | Yoryantra",
     description:
-      "Validate GitHub Actions workflow YAML, check jobs, steps, triggers, permissions, runners, and common workflow mistakes directly in your browser.",
+      "Parse GitHub Actions workflow YAML and review triggers, jobs, steps, runners, permissions, action references, and secret-handling risks.",
     url: "https://yoryantra.com/tools/github-actions-yaml-validator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "GitHub Actions YAML Validator | Check Workflow YAML Online | Yoryantra",
+    title: "GitHub Actions YAML Validator | Workflow Structure Review | Yoryantra",
     description:
-      "Validate GitHub Actions workflow YAML, check jobs, steps, triggers, permissions, runners, and common workflow mistakes directly in your browser.",
+      "Parse GitHub Actions workflow YAML and review triggers, jobs, steps, runners, permissions, action references, and secret-handling risks.",
   },
 };
 

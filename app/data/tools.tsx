@@ -803,7 +803,7 @@ export const tools = [
 {
   title: "IPv4 Subnet Calculator",
   description:
-    "Calculate IPv4 subnet details, CIDR ranges, masks, usable hosts, and subnet splits.",
+    "Calculate CIDR boundaries, masks, host ranges, binary form, and equal-size IPv4 subnet splits.",
   href: "/tools/ipv4-subnet-calculator",
   category: "DevOps Tools",
 },
@@ -896,7 +896,7 @@ export const tools = [
 {
   title: "GitHub Actions YAML Validator",
   description:
-    "Validate GitHub Actions workflow YAML, jobs, steps, triggers, permissions, and common CI mistakes.",
+    "Parse workflow YAML and examine triggers, jobs, runners, permissions, action references, and secret risks.",
   href: "/tools/github-actions-yaml-validator",
   category: "DevOps Tools",
 },
@@ -930,7 +930,7 @@ export const tools = [
 {
   title: "Docker Compose Ports Checker",
   description:
-    "Check Docker Compose port mappings, duplicate host ports, exposed ports, and port conflicts.",
+    "Examine published ports, host bindings, ranges, protocols, expose entries, and cross-service collisions.",
   href: "/tools/docker-compose-ports-checker",
   category: "DevOps Tools",
 },
