@@ -2,42 +2,36 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "IPv4 CIDR Calculator for Subnets and Host Ranges | Yoryantra",
-
+  title: "IPv4 CIDR Calculator for Prefixes and Host Ranges | Yoryantra",
   description:
-    "Calculate IPv4 network and broadcast addresses, subnet and wildcard masks, address ranges, and /31 or /32 host behavior from CIDR notation."
-,
+    "Calculate IPv4 CIDR boundaries, subnet and wildcard masks, address counts, usable ranges, and RFC 3021 /31 point-to-point behavior.",
   keywords: [
-    "CIDR Calculator",
-    "Subnet Calculator",
-    "IPv4 CIDR Tool",
-    "Network Address Calculator",
-    "Broadcast Address Calculator",
-    "Subnet Mask Calculator",
-    "Usable Host Range",
-    "Wildcard Mask Calculator",
-    "CIDR Notation Tool",
-    "IP Range Calculator",
+    "CIDR calculator",
+    "IPv4 subnet calculator",
+    "subnet mask calculator",
+    "network address calculator",
+    "broadcast address calculator",
+    "wildcard mask calculator",
+    "usable IP range",
+    "RFC 3021 /31",
+    "IPv4 prefix calculator",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/cidr-calculator",
   },
-
   openGraph: {
-    title: "CIDR Calculator | Yoryantra",
+    title: "IPv4 CIDR Calculator for Prefixes and Host Ranges | Yoryantra",
     description:
-      "Calculate subnet masks, network ranges, usable IPs, wildcard masks, and broadcast addresses instantly.",
+      "Resolve IPv4 CIDR boundaries, masks, address counts, usable ranges, and /31 or /32 semantics.",
     url: "https://yoryantra.com/tools/cidr-calculator",
     siteName: "Yoryantra",
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-    title: "CIDR Calculator | Yoryantra",
+    title: "IPv4 CIDR Calculator for Prefixes and Host Ranges | Yoryantra",
     description:
-      "Calculate subnet masks, network ranges, usable IPs, wildcard masks, and broadcast addresses instantly.",
+      "Resolve IPv4 CIDR boundaries, masks, address counts, usable ranges, and /31 or /32 semantics.",
   },
 };
 

@@ -732,7 +732,7 @@ export const tools = [
 {
   title: "DNS Propagation Checker",
   description:
-    "Check DNS propagation for A, AAAA, CNAME, MX, TXT, NS, SOA, and CAA records across public resolvers.",
+    "Compare DNS record answers, response codes, and TTLs from Google and Cloudflare public resolvers.",
   href: "/tools/dns-propagation-checker",
   category: "DevOps Tools",
 },
@@ -741,7 +741,7 @@ export const tools = [
 {
   title: "CIDR Calculator",
   description:
-    "Calculate subnet masks, usable IP ranges, wildcard masks, and broadcast addresses instantly.",
+    "Calculate IPv4 prefix boundaries, subnet and wildcard masks, usable ranges, and /31 or /32 semantics.",
   href: "/tools/cidr-calculator",
   category: "DevOps Tools",
 },
@@ -794,7 +794,7 @@ export const tools = [
 {
   title: "CIDR Range Expander",
   description:
-    "Expand IPv4 CIDR ranges into IP addresses and calculate subnet details.",
+    "Enumerate IPv4 addresses from CIDR blocks with explicit boundary rules and browser-safe output limits.",
   href: "/tools/cidr-range-expander",
   category: "DevOps Tools",
 },

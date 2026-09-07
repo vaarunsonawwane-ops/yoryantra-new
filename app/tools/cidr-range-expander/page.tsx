@@ -2,37 +2,36 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "CIDR Range Expander | Expand CIDR to IP Addresses Online | Yoryantra",
+  title: "CIDR Range Expander for IPv4 Address Lists | Yoryantra",
   description:
-    "Expand IPv4 CIDR ranges into IP addresses, calculate network details, host counts, first and last usable IPs, and copy clean output directly in your browser.",
+    "Expand IPv4 CIDR blocks into bounded line, CSV, or JSON address lists with subnet details and correct /31 or /32 handling.",
   keywords: [
     "CIDR range expander",
     "CIDR to IP range",
-    "CIDR calculator",
-    "IP range expander",
-    "subnet calculator",
-    "IPv4 CIDR expander",
-    "CIDR block tool",
-    "network tools",
-    "developer tools",
-    "DevOps tools",
+    "IPv4 range expander",
+    "CIDR address list",
+    "subnet address list",
+    "CIDR to CSV",
+    "CIDR to JSON",
+    "IPv4 subnet expander",
+    "RFC 3021 /31",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/cidr-range-expander",
   },
   openGraph: {
-    title: "CIDR Range Expander | Expand CIDR to IP Addresses Online | Yoryantra",
+    title: "CIDR Range Expander for IPv4 Address Lists | Yoryantra",
     description:
-      "Expand IPv4 CIDR ranges into IP addresses, calculate network details, host counts, first and last usable IPs, and copy clean output directly in your browser.",
+      "Enumerate IPv4 CIDR blocks with explicit boundary rules, output formats, and browser-safe expansion limits.",
     url: "https://yoryantra.com/tools/cidr-range-expander",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "CIDR Range Expander | Expand CIDR to IP Addresses Online | Yoryantra",
+    title: "CIDR Range Expander for IPv4 Address Lists | Yoryantra",
     description:
-      "Expand IPv4 CIDR ranges into IP addresses, calculate network details, host counts, first and last usable IPs, and copy clean output directly in your browser.",
+      "Enumerate IPv4 CIDR blocks with explicit boundary rules, output formats, and browser-safe expansion limits.",
   },
 };
 
