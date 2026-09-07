@@ -169,7 +169,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Environment Variable Diff Checker"
-      description="Compare two .env files or environment variable blocks, find added, removed, changed, duplicate, empty, and secret-looking variables directly in your browser."
+      description="Compare dotenv assignments while surfacing missing keys, duplicate definitions, empty values, and secret-sensitive changes."
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -323,7 +323,7 @@ export default function ToolClient() {
               </span>
 
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Skip comment lines that start with #.
+                Treat # outside quoted values as the start of a comment; full comment lines are always ignored.
               </span>
             </span>
           </label>
@@ -356,15 +356,15 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={compareEnvFiles} className="yoryantra-btn">
+        <button onClick={compareEnvFiles} className="yoryantra-btn min-h-11 whitespace-nowrap">
           Compare Environment Variables
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -467,7 +467,7 @@ export default function ToolClient() {
         )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             Environment notes
           </h3>
@@ -497,7 +497,7 @@ export default function ToolClient() {
           {output && (
             <button
               onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
+              className="yoryantra-btn-outline min-h-11 whitespace-nowrap text-sm"
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -509,9 +509,8 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Environment variable comparison happens directly in your browser. The
-        values you paste are not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Comparison runs in this browser session. The values you paste are not sent to Yoryantra by this page.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
@@ -551,7 +550,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Environment Variable Diff Use Cases
+            Environment Changes Worth Comparing
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -607,9 +606,33 @@ LOG_LEVEL`}
           </p>
         </div>
 
+
+
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Dotenv Syntax Is Not Universal
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            There is no single formal dotenv standard across every runtime. This parser follows the widely used assignment model: valid variable names, optional <code className="font-mono">export</code>, quoted multiline values, and comments outside quotes. Project-specific expansion such as <code className="font-mono">${"{VAR}"}</code> is compared as text rather than executed.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Node.js publishes a concrete dotenv grammar and parser behavior in its{" "}
+            <a
+              href="https://nodejs.org/api/environment_variables.html#dotenv"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              environment variables documentation
+            </a>
+            . Compare against the runtime that actually loads your file when syntax compatibility matters.
+          </p>
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Dotenv Comparison Questions
           </h2>
 
           <div className="mt-5 space-y-6">
@@ -664,7 +687,11 @@ LOG_LEVEL`}
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/environment-variable-diff-checker" />
+          <div className="mt-4">
+
+            <YoryantraRelatedTools currentHref="/tools/environment-variable-diff-checker" />
+
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -867,61 +894,127 @@ function parseEnvBlock(
     ignoreComments: boolean;
   }
 ): EnvVariable[] {
+  const source = input.replace(/\r\n?/g, "\n");
   const variables: EnvVariable[] = [];
+  let offset = 0;
+  let line = 1;
 
-  input.replace(/\r\n/g, "\n").split("\n").forEach((line, index) => {
-    const raw = line;
-    const trimmed = line.trim();
+  while (offset < source.length) {
+    const lineStart = offset;
+    const lineEnd = source.indexOf("\n", offset);
+    const physicalEnd = lineEnd === -1 ? source.length : lineEnd;
+    const rawLine = source.slice(lineStart, physicalEnd);
+    const leadingTrimmed = rawLine.replace(/^\s+/, "");
 
-    if (!trimmed) {
-      return;
+    if (!leadingTrimmed || leadingTrimmed.startsWith("#")) {
+      offset = lineEnd === -1 ? source.length : lineEnd + 1;
+      line += 1;
+      continue;
     }
 
-    if (options.ignoreComments && trimmed.startsWith("#")) {
-      return;
+    let cursor = lineStart;
+    while (cursor < source.length && (source[cursor] === " " || source[cursor] === "\t")) {
+      cursor += 1;
     }
 
-    let workingLine = trimmed;
     let exported = false;
-
-    if (workingLine.startsWith("export ")) {
+    if (
+      source.slice(cursor, cursor + 6) === "export" &&
+      /\s/.test(source[cursor + 6] || "")
+    ) {
       exported = true;
-      workingLine = workingLine.slice("export ".length).trim();
+      cursor += 6;
+      while (source[cursor] === " " || source[cursor] === "\t") cursor += 1;
     }
 
-    const equalsIndex = workingLine.indexOf("=");
+    const keyStart = cursor;
+    while (cursor < source.length && /[A-Za-z0-9_]/.test(source[cursor])) cursor += 1;
+    const key = source.slice(keyStart, cursor);
 
-    if (equalsIndex === -1) {
-      return;
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+      throw new Error(`Line ${line}: invalid environment variable name.`);
     }
 
-    const key = workingLine.slice(0, equalsIndex).trim();
-    let value = workingLine.slice(equalsIndex + 1);
-    const quoted =
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"));
+    while (source[cursor] === " " || source[cursor] === "\t") cursor += 1;
+    if (source[cursor] !== "=") {
+      throw new Error(`Line ${line}: expected "=" after ${key}.`);
+    }
+    cursor += 1;
+    while (source[cursor] === " " || source[cursor] === "\t") cursor += 1;
 
-    if (quoted) {
-      value = value.slice(1, -1);
+    const valueStartLine = line;
+    const quote =
+      source[cursor] === '"' || source[cursor] === "'" || source[cursor] === "`"
+        ? source[cursor]
+        : null;
+    let value = "";
+    let quoted = Boolean(quote);
+
+    if (quote) {
+      cursor += 1;
+      let closed = false;
+
+      while (cursor < source.length) {
+        const char = source[cursor];
+        if (char === quote) {
+          closed = true;
+          cursor += 1;
+          break;
+        }
+        value += char;
+        if (char === "\n") line += 1;
+        cursor += 1;
+      }
+
+      if (!closed) {
+        throw new Error(`Line ${valueStartLine}: unterminated quoted value for ${key}.`);
+      }
+
+      while (source[cursor] === " " || source[cursor] === "\t") cursor += 1;
+      if (
+        cursor < source.length &&
+        source[cursor] !== "\n" &&
+        !(options.ignoreComments && source[cursor] === "#")
+      ) {
+        throw new Error(
+          `Line ${line}: unexpected text after the quoted value for ${key}.`
+        );
+      }
+
+      if (options.ignoreComments && source[cursor] === "#") {
+        while (cursor < source.length && source[cursor] !== "\n") cursor += 1;
+      }
+    } else {
+      const valueChars: string[] = [];
+      while (cursor < source.length && source[cursor] !== "\n") {
+        if (options.ignoreComments && source[cursor] === "#") break;
+        valueChars.push(source[cursor]);
+        cursor += 1;
+      }
+      value = valueChars.join("").replace(/[ \t]+$/, "");
     }
 
     if (options.trimValues) {
       value = value.trim();
     }
 
-    if (!key) {
-      return;
-    }
-
+    const rawEnd = cursor < source.length && source[cursor] === "\n" ? cursor : cursor;
     variables.push({
       key,
       value,
-      line: index + 1,
-      raw,
+      line: valueStartLine,
+      raw: source.slice(lineStart, rawEnd),
       quoted,
       exported,
     });
-  });
+
+    while (cursor < source.length && source[cursor] !== "\n") cursor += 1;
+    if (cursor < source.length && source[cursor] === "\n") {
+      cursor += 1;
+      line += 1;
+    }
+    offset = cursor;
+  }
 
   return variables;
 }
@@ -950,11 +1043,11 @@ function groupVariables(
   return Array.from(groups.values()).sort((a, b) => a.key.localeCompare(b.key));
 }
 
-function getLastValue(group: EnvGroup) {
+function getLastValue(group: EnvGroup): string {
   return group.values[group.values.length - 1]?.value || "";
 }
 
-function normalizeKey(key: string, caseSensitiveKeys: boolean) {
+function normalizeKey(key: string, caseSensitiveKeys: boolean): string {
   return caseSensitiveKeys ? key : key.toLowerCase();
 }
 
@@ -968,7 +1061,7 @@ function findDuplicates(groups: EnvGroup[]): DuplicateEnv[] {
     }));
 }
 
-function findEmptyValues(groups: EnvGroup[]) {
+function findEmptyValues(groups: EnvGroup[]): string[] {
   return groups
     .filter((group) => getLastValue(group) === "")
     .map((group) => group.key);
@@ -1115,7 +1208,7 @@ function formatEnvValue(key: string, value: string, hideSecretValues: boolean) {
   return value;
 }
 
-function isSecretKey(key: string) {
+function isSecretKey(key: string): boolean {
   const normalized = key.toLowerCase();
 
   return (

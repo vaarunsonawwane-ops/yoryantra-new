@@ -904,7 +904,7 @@ export const tools = [
 {
   title: "Environment Variable Diff Checker",
   description:
-    "Compare two .env files or environment variable blocks and find added, removed, changed, duplicate, and empty values.",
+    "Compare dotenv assignments while surfacing missing keys, duplicate definitions, empty values, and secret-sensitive changes.",
   href: "/tools/environment-variable-diff-checker",
   category: "DevOps Tools",
 },
@@ -912,7 +912,7 @@ export const tools = [
 {
   title: "Kubernetes Resource Calculator",
   description:
-    "Calculate Kubernetes CPU and memory requests, limits, container totals, and workload resource usage from YAML.",
+    "Total declared Kubernetes CPU and memory requests or limits across supported workload replicas.",
   href: "/tools/kubernetes-resource-calculator",
   category: "DevOps Tools",
 },
@@ -938,7 +938,7 @@ export const tools = [
 {
   title: "Nginx Redirect Rule Tester",
   description:
-    "Test Nginx return and rewrite redirect rules, HTTP to HTTPS redirects, and possible redirect loops.",
+    "Simulate scoped Nginx return and rewrite redirects with URL, location, query, and loop checks.",
   href: "/tools/nginx-redirect-rule-tester",
   category: "DevOps Tools",
 },

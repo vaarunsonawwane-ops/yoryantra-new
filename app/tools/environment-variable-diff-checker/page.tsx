@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Environment Variable Diff Checker | Compare .env Files Online | Yoryantra",
+  title: "Environment Variable Diff Checker | Compare .env Files | Yoryantra",
   description:
-    "Compare two .env files or environment variable blocks, find added, removed, changed, duplicate, empty, and secret-looking variables directly in your browser.",
+    "Compare dotenv assignments across two environments and find missing keys, changed values, duplicates, empty values, and secret-sensitive differences.",
   keywords: [
     "environment variable diff checker",
     ".env diff checker",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/environment-variable-diff-checker",
   },
   openGraph: {
-    title: "Environment Variable Diff Checker | Compare .env Files Online | Yoryantra",
+    title: "Environment Variable Diff Checker | Compare .env Files | Yoryantra",
     description:
-      "Compare two .env files or environment variable blocks, find added, removed, changed, duplicate, empty, and secret-looking variables directly in your browser.",
+      "Compare dotenv assignments across two environments and find missing keys, changed values, duplicates, empty values, and secret-sensitive differences.",
     url: "https://yoryantra.com/tools/environment-variable-diff-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Environment Variable Diff Checker | Compare .env Files Online | Yoryantra",
+    title: "Environment Variable Diff Checker | Compare .env Files | Yoryantra",
     description:
-      "Compare two .env files or environment variable blocks, find added, removed, changed, duplicate, empty, and secret-looking variables directly in your browser.",
+      "Compare dotenv assignments across two environments and find missing keys, changed values, duplicates, empty values, and secret-sensitive differences.",
   },
 };
 

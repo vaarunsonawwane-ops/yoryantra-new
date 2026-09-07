@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { parseDocument } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -197,7 +198,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Kubernetes Resource Calculator"
-      description="Calculate Kubernetes CPU and memory requests, limits, container totals, pod totals, and workload resource usage from YAML directly in your browser."
+      description="Total declared Kubernetes CPU and memory requests or limits across supported workload replicas."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -349,15 +350,15 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={calculateResources} className="yoryantra-btn">
+        <button onClick={calculateResources} className="yoryantra-btn min-h-11 whitespace-nowrap">
           Calculate Resources
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -501,7 +502,7 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             Resource notes
           </h3>
@@ -531,7 +532,7 @@ export default function ToolClient() {
           {output && (
             <button
               onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
+              className="yoryantra-btn-outline min-h-11 whitespace-nowrap text-sm"
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -543,9 +544,8 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Kubernetes resource calculation happens directly in your browser. Your
-        YAML is not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Resource calculation runs in this browser session. The YAML you paste is not sent to Yoryantra by this page.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
@@ -562,10 +562,7 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Kubernetes Resource Calculator reads CPU and memory requests and
-            limits from Kubernetes YAML and calculates totals by container and
-            workload. It is useful before deployments, cluster sizing checks,
-            namespace reviews, and cost or capacity discussions.
+            The calculation reads declared CPU and memory requests and limits from app containers in Pods, Deployments, StatefulSets, DaemonSets, Jobs, and CronJobs. Deployment and StatefulSet replicas can be multiplied into the displayed totals; other workload kinds stay at one pod because their eventual pod count depends on cluster or controller behavior.
           </p>
         </div>
 
@@ -585,7 +582,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Kubernetes Resource Calculator Use Cases
+            Kubernetes Resource Questions Behind the Totals
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -622,21 +619,30 @@ export default function ToolClient() {
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Requests are used by Kubernetes scheduling to reserve capacity. Limits
-            control the maximum resources a container can use. Both matter, but
-            they answer different questions.
+            Requests influence scheduling and resource guarantees. CPU limits can lead to throttling, while memory limits can lead to termination when a container exceeds the enforced limit. Requests and limits therefore answer different capacity questions.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This calculator is a browser-side estimate from the YAML you paste.
-            Always review the final values with your actual cluster settings,
-            namespaces, autoscaling rules, and deployment process.
+            These totals are not a scheduler simulation. They do not fold in init-container effective requests, pod overhead, Pod-level resources, autoscaler decisions, DaemonSet node count, Job parallelism, LimitRange defaults, or runtime usage. Check those separately before treating a total as cluster capacity.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Kubernetes documents CPU, memory, requests, limits, and quantity units in its{" "}
+            <a
+              href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              resource management guide
+            </a>
+            . Quantity suffixes are case-sensitive: for example, <code className="font-mono">400m</code> of memory means 0.4 bytes, not 400 MiB.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Kubernetes Quantity and Replica Questions
           </h2>
 
           <div className="mt-5 space-y-6">
@@ -703,7 +709,11 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/kubernetes-resource-calculator" />
+          <div className="mt-4">
+
+            <YoryantraRelatedTools currentHref="/tools/kubernetes-resource-calculator" />
+
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -744,21 +754,32 @@ function calculateKubernetesResources(
     includeReplicas: boolean;
   }
 ): ResourceTotals {
-  const documents = input
-    .replace(/\r\n/g, "\n")
-    .split(/\n---\s*\n/)
-    .map((document) => document.trim())
-    .filter(Boolean);
+  const sourceDocuments = splitYamlDocuments(input);
+  const containers: ContainerResource[] = [];
 
-  const containers = documents.flatMap((document) =>
-    parseDocumentResources(document, {
-      includeReplicas: options.includeReplicas,
-    })
-  );
+  sourceDocuments.forEach((source, index) => {
+    const document = parseDocument(source, {
+      uniqueKeys: true,
+      prettyErrors: true,
+    });
+
+    if (document.errors.length > 0) {
+      throw new Error(
+        `Invalid Kubernetes YAML in document ${index + 1}: ${document.errors[0].message}`
+      );
+    }
+
+    const value = document.toJS({ maxAliasCount: 100 }) as unknown;
+    if (value != null) {
+      containers.push(
+        ...parseKubernetesObject(value, options.includeReplicas, index + 1)
+      );
+    }
+  });
 
   if (containers.length === 0) {
     throw new Error(
-      "No containers with Kubernetes resource blocks were found. Check that the YAML contains containers and resources."
+      "No app containers with CPU or memory resource declarations were found in supported Kubernetes workloads."
     );
   }
 
@@ -778,280 +799,211 @@ function calculateKubernetesResources(
   };
 }
 
-function parseDocumentResources(
-  document: string,
-  options: {
-    includeReplicas: boolean;
-  }
+function splitYamlDocuments(input: string): string[] {
+  return input
+    .replace(/\r\n?/g, "\n")
+    .split(/^---(?:\s+#.*)?\s*$/m)
+    .map((document) => document.trim())
+    .filter(Boolean);
+}
+
+function parseKubernetesObject(
+  value: unknown,
+  includeReplicas: boolean,
+  documentNumber: number
 ): ContainerResource[] {
-  const lines = toLines(document);
-  const kind = getTopLevelValue(lines, "kind") as WorkloadKind || "Unknown";
-  const workload = getMetadataName(lines) || `${kind.toLowerCase()}-workload`;
-  const replicas = options.includeReplicas ? getReplicaCount(lines, kind) : 1;
-  const containerStarts = findContainerStarts(lines);
-
-  return containerStarts.map((start, index) => {
-    const nextStart = containerStarts[index + 1];
-    const blockLines = lines.filter(
-      (line) =>
-        line.line >= start.line &&
-        (!nextStart || line.line < nextStart.line)
-    );
-
-    const containerName =
-      parseContainerInlineName(start.trimmed) ||
-      getFirstNestedValue(blockLines, "name") ||
-      `container-${index + 1}`;
-    const resources = parseContainerResources(blockLines);
-
-    return {
-      workload,
-      kind,
-      container: containerName,
-      replicas,
-      cpuRequestMillicores: resources.cpuRequestMillicores * replicas,
-      cpuLimitMillicores: resources.cpuLimitMillicores * replicas,
-      memoryRequestMi: resources.memoryRequestMi * replicas,
-      memoryLimitMi: resources.memoryLimitMi * replicas,
-      hasRequest: resources.hasRequest,
-      hasLimit: resources.hasLimit,
-    };
-  });
-}
-
-function toLines(input: string): YAMLLine[] {
-  return input.split("\n").map((raw, index) => ({
-    raw,
-    trimmed: stripComment(raw).trim(),
-    indent: raw.length - raw.trimStart().length,
-    line: index + 1,
-  }));
-}
-
-function stripComment(line: string) {
-  let quote: "'" | '"' | null = null;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-
-    if (quote) {
-      if (char === quote) {
-        quote = null;
-      }
-
-      continue;
-    }
-
-    if (char === "'" || char === '"') {
-      quote = char;
-      continue;
-    }
-
-    if (char === "#") {
-      return line.slice(0, index);
-    }
+  if (!isRecord(value)) {
+    throw new Error(`Document ${documentNumber} must contain a Kubernetes object.`);
   }
 
-  return line;
-}
+  const kind = normalizeWorkloadKind(value.kind);
+  const workload =
+    stringValue(isRecord(value.metadata) ? value.metadata.name : "") ||
+    `${kind.toLowerCase()}-${documentNumber}`;
 
-function getTopLevelValue(lines: YAMLLine[], key: string) {
-  const line = lines.find(
-    (item) => item.indent === 0 && item.trimmed.startsWith(`${key}:`)
-  );
-
-  return line ? cleanYamlValue(line.trimmed.slice(key.length + 1)) : "";
-}
-
-function getMetadataName(lines: YAMLLine[]) {
-  const metadataLine = lines.find(
-    (line) => line.indent === 0 && line.trimmed === "metadata:"
-  );
-
-  if (!metadataLine) {
-    return "";
+  const podSpec = getPodSpec(value, kind);
+  if (!podSpec) {
+    return [];
   }
 
-  const nameLine = lines.find(
-    (line) =>
-      line.line > metadataLine.line &&
-      line.indent === metadataLine.indent + 2 &&
-      line.trimmed.startsWith("name:")
-  );
+  const replicas = includeReplicas ? getReplicaMultiplier(value, kind) : 1;
+  const rawContainers = Array.isArray(podSpec.containers) ? podSpec.containers : [];
 
-  return nameLine ? cleanYamlValue(nameLine.trimmed.slice("name:".length)) : "";
-}
+  return rawContainers
+    .filter(isRecord)
+    .map((container, index) => {
+      const resources = isRecord(container.resources) ? container.resources : {};
+      const requests = isRecord(resources.requests) ? resources.requests : {};
+      const limits = isRecord(resources.limits) ? resources.limits : {};
+      const requestCpu = quantityText(requests.cpu);
+      const requestMemory = quantityText(requests.memory);
+      const limitCpu = quantityText(limits.cpu);
+      const limitMemory = quantityText(limits.memory);
 
-function getReplicaCount(lines: YAMLLine[], kind: WorkloadKind) {
-  if (kind === "DaemonSet" || kind === "Pod") {
-    return 1;
-  }
-
-  const replicasLine = lines.find((line) => line.trimmed.startsWith("replicas:"));
-
-  if (!replicasLine) {
-    return 1;
-  }
-
-  const count = Number(cleanYamlValue(replicasLine.trimmed.slice("replicas:".length)));
-
-  return Number.isFinite(count) && count > 0 ? count : 1;
-}
-
-function findContainerStarts(lines: YAMLLine[]) {
-  return lines.filter((line) => {
-    const trimmed = line.trimmed;
-
-    return (
-      trimmed.startsWith("- name:") ||
-      trimmed === "- name" ||
-      trimmed.startsWith("- image:")
-    );
-  });
-}
-
-function parseContainerInlineName(trimmed: string) {
-  if (!trimmed.startsWith("- name:")) {
-    return "";
-  }
-
-  return cleanYamlValue(trimmed.slice("- name:".length));
-}
-
-function getFirstNestedValue(lines: YAMLLine[], key: string) {
-  const line = lines.find((item) => item.trimmed.startsWith(`${key}:`));
-
-  return line ? cleanYamlValue(line.trimmed.slice(key.length + 1)) : "";
-}
-
-function parseContainerResources(lines: YAMLLine[]) {
-  const resourcesLine = lines.find((line) => line.trimmed === "resources:");
-
-  if (!resourcesLine) {
-    return {
-      cpuRequestMillicores: 0,
-      cpuLimitMillicores: 0,
-      memoryRequestMi: 0,
-      memoryLimitMi: 0,
-      hasRequest: false,
-      hasLimit: false,
-    };
-  }
-
-  const requestLine = lines.find(
-    (line) =>
-      line.line > resourcesLine.line &&
-      line.indent > resourcesLine.indent &&
-      line.trimmed === "requests:"
-  );
-  const limitLine = lines.find(
-    (line) =>
-      line.line > resourcesLine.line &&
-      line.indent > resourcesLine.indent &&
-      line.trimmed === "limits:"
-  );
-
-  const requestValues = requestLine ? parseResourcePair(lines, requestLine) : {};
-  const limitValues = limitLine ? parseResourcePair(lines, limitLine) : {};
-
-  return {
-    cpuRequestMillicores: parseCpu(requestValues.cpu || ""),
-    cpuLimitMillicores: parseCpu(limitValues.cpu || ""),
-    memoryRequestMi: parseMemory(requestValues.memory || ""),
-    memoryLimitMi: parseMemory(limitValues.memory || ""),
-    hasRequest: Boolean(requestLine),
-    hasLimit: Boolean(limitLine),
-  };
-}
-
-function parseResourcePair(lines: YAMLLine[], sectionLine: YAMLLine) {
-  const values: Record<string, string> = {};
-
-  lines
+      return {
+        workload,
+        kind,
+        container: stringValue(container.name) || `container-${index + 1}`,
+        replicas,
+        cpuRequestMillicores: parseCpu(requestCpu) * replicas,
+        cpuLimitMillicores: parseCpu(limitCpu) * replicas,
+        memoryRequestMi: parseMemory(requestMemory) * replicas,
+        memoryLimitMi: parseMemory(limitMemory) * replicas,
+        hasRequest: requestCpu !== "" || requestMemory !== "",
+        hasLimit: limitCpu !== "" || limitMemory !== "",
+      };
+    })
     .filter(
-      (line) =>
-        line.line > sectionLine.line &&
-        line.indent > sectionLine.indent &&
-        (line.trimmed.startsWith("cpu:") || line.trimmed.startsWith("memory:"))
-    )
-    .forEach((line) => {
-      if (line.trimmed.startsWith("cpu:")) {
-        values.cpu = cleanYamlValue(line.trimmed.slice("cpu:".length));
-      }
+      (container) =>
+        container.hasRequest ||
+        container.hasLimit
+    );
+}
 
-      if (line.trimmed.startsWith("memory:")) {
-        values.memory = cleanYamlValue(line.trimmed.slice("memory:".length));
-      }
-    });
+function normalizeWorkloadKind(value: unknown): WorkloadKind {
+  const kind = stringValue(value);
+  if (
+    kind === "Deployment" ||
+    kind === "StatefulSet" ||
+    kind === "DaemonSet" ||
+    kind === "Job" ||
+    kind === "CronJob" ||
+    kind === "Pod"
+  ) {
+    return kind;
+  }
+  return "Unknown";
+}
 
-  return values;
+function getPodSpec(value: Record<string, unknown>, kind: WorkloadKind) {
+  const spec = isRecord(value.spec) ? value.spec : null;
+  if (!spec) return null;
+
+  if (kind === "Pod") return spec;
+
+  if (kind === "CronJob") {
+    const jobTemplate = isRecord(spec.jobTemplate) ? spec.jobTemplate : null;
+    const jobSpec = jobTemplate && isRecord(jobTemplate.spec) ? jobTemplate.spec : null;
+    const template = jobSpec && isRecord(jobSpec.template) ? jobSpec.template : null;
+    return template && isRecord(template.spec) ? template.spec : null;
+  }
+
+  const template = isRecord(spec.template) ? spec.template : null;
+  return template && isRecord(template.spec) ? template.spec : null;
+}
+
+function getReplicaMultiplier(value: Record<string, unknown>, kind: WorkloadKind) {
+  if (kind !== "Deployment" && kind !== "StatefulSet") {
+    return 1;
+  }
+
+  const spec = isRecord(value.spec) ? value.spec : null;
+  const replicas = spec ? Number(spec.replicas) : 1;
+
+  if (!Number.isInteger(replicas) || replicas < 0) {
+    throw new Error(`${kind} replicas must be a non-negative integer.`);
+  }
+
+  return replicas;
+}
+
+function quantityText(value: unknown) {
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+  return "";
 }
 
 function parseCpu(value: string) {
   const clean = value.trim();
+  if (!clean) return 0;
 
-  if (!clean) {
-    return 0;
+  const match = clean.match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+))(m|[eE][+-]?\d+)?$/);
+  if (!match) {
+    throw new Error(`Unsupported CPU quantity "${clean}".`);
   }
 
-  if (clean.endsWith("m")) {
-    return Number(clean.slice(0, -1)) || 0;
+  const amount = Number(match[1]);
+  const suffix = match[2] || "";
+  let cores = amount;
+
+  if (suffix === "m") {
+    cores = amount / 1000;
+  } else if (/^[eE]/.test(suffix)) {
+    cores = amount * 10 ** Number(suffix.slice(1));
   }
 
-  const cores = Number(clean);
+  if (!Number.isFinite(cores) || cores < 0) {
+    throw new Error(`CPU quantity "${clean}" must be finite and non-negative.`);
+  }
 
-  return Number.isFinite(cores) ? cores * 1000 : 0;
+  const millicores = cores * 1000;
+  if (millicores !== 0 && millicores < 1) {
+    throw new Error(
+      `CPU quantity "${clean}" is finer than Kubernetes' 1m CPU precision.`
+    );
+  }
+
+  return millicores;
 }
 
 function parseMemory(value: string) {
   const clean = value.trim();
+  if (!clean) return 0;
 
-  if (!clean) {
-    return 0;
-  }
-
-  const match = clean.match(/^([0-9.]+)\s*([a-zA-Z]+)?$/);
+  const match = clean.match(
+    /^([+-]?(?:\d+(?:\.\d*)?|\.\d+))(Ki|Mi|Gi|Ti|Pi|Ei|k|K|M|G|T|P|E|m|[eE][+-]?\d+)?$/
+  );
 
   if (!match) {
-    return 0;
+    throw new Error(`Unsupported memory quantity "${clean}".`);
   }
 
   const amount = Number(match[1]);
-  const unit = (match[2] || "Mi").toLowerCase();
-
-  if (!Number.isFinite(amount)) {
-    return 0;
+  const suffix = match[2] || "";
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error(`Memory quantity "${clean}" must be finite and non-negative.`);
   }
 
-  if (unit === "ki") {
-    return amount / 1024;
+  const binary: Record<string, number> = {
+    Ki: 2 ** 10,
+    Mi: 2 ** 20,
+    Gi: 2 ** 30,
+    Ti: 2 ** 40,
+    Pi: 2 ** 50,
+    Ei: 2 ** 60,
+  };
+  const decimal: Record<string, number> = {
+    k: 1e3,
+    K: 1e3,
+    M: 1e6,
+    G: 1e9,
+    T: 1e12,
+    P: 1e15,
+    E: 1e18,
+    m: 1e-3,
+  };
+
+  let bytes = amount;
+  if (suffix in binary) {
+    bytes = amount * binary[suffix];
+  } else if (suffix in decimal) {
+    bytes = amount * decimal[suffix];
+  } else if (/^[eE]/.test(suffix)) {
+    bytes = amount * 10 ** Number(suffix.slice(1));
   }
 
-  if (unit === "mi") {
-    return amount;
+  if (!Number.isFinite(bytes)) {
+    throw new Error(`Memory quantity "${clean}" is too large to calculate safely.`);
   }
 
-  if (unit === "gi") {
-    return amount * 1024;
+  if (bytes > 0 && bytes < 1) {
+    throw new Error(
+      `Memory quantity "${clean}" is less than one byte; check whether "Mi" was intended instead of "m".`
+    );
   }
 
-  if (unit === "ti") {
-    return amount * 1024 * 1024;
-  }
-
-  if (unit === "k") {
-    return amount / 1024;
-  }
-
-  if (unit === "m") {
-    return amount;
-  }
-
-  if (unit === "g") {
-    return amount * 1000;
-  }
-
-  return amount;
+  return bytes / 2 ** 20;
 }
 
 function summarizeWorkloads(containers: ContainerResource[]): WorkloadSummary[] {
@@ -1076,11 +1028,19 @@ function summarizeWorkloads(containers: ContainerResource[]): WorkloadSummary[] 
   }));
 }
 
-function sum<T extends Record<string, unknown>>(items: T[], key: keyof T) {
+function sum<T extends Record<string, unknown>>(items: T[], key: keyof T): number {
   return items.reduce((total, item) => {
     const value = item[key];
     return total + (typeof value === "number" ? value : 0);
   }, 0);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
 }
 
 function formatResourceOutput(

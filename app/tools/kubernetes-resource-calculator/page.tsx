@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Kubernetes Resource Calculator | Calculate CPU and Memory Requests | Yoryantra",
+  title: "Kubernetes Resource Calculator | CPU & Memory Totals | Yoryantra",
   description:
-    "Calculate Kubernetes CPU and memory requests, limits, container totals, pod totals, and workload resource usage from YAML directly in your browser.",
+    "Calculate declared Kubernetes CPU and memory requests and limits across supported workloads, containers, and Deployment or StatefulSet replicas.",
   keywords: [
     "Kubernetes resource calculator",
     "Kubernetes CPU memory calculator",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/kubernetes-resource-calculator",
   },
   openGraph: {
-    title: "Kubernetes Resource Calculator | Calculate CPU and Memory Requests | Yoryantra",
+    title: "Kubernetes Resource Calculator | CPU & Memory Totals | Yoryantra",
     description:
-      "Calculate Kubernetes CPU and memory requests, limits, container totals, pod totals, and workload resource usage from YAML directly in your browser.",
+      "Calculate declared Kubernetes CPU and memory requests and limits across supported workloads, containers, and Deployment or StatefulSet replicas.",
     url: "https://yoryantra.com/tools/kubernetes-resource-calculator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kubernetes Resource Calculator | Calculate CPU and Memory Requests | Yoryantra",
+    title: "Kubernetes Resource Calculator | CPU & Memory Totals | Yoryantra",
     description:
-      "Calculate Kubernetes CPU and memory requests, limits, container totals, pod totals, and workload resource usage from YAML directly in your browser.",
+      "Calculate declared Kubernetes CPU and memory requests and limits across supported workloads, containers, and Deployment or StatefulSet replicas.",
   },
 };
 

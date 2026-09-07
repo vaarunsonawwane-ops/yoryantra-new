@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Nginx Redirect Rule Tester | Test Rewrite and Return Rules | Yoryantra",
+  title: "Nginx Redirect Rule Tester | Return & Rewrite Preflight | Yoryantra",
   description:
-    "Test Nginx redirect rules, rewrite rules, return 301 and 302 redirects, HTTP to HTTPS redirects, server_name matches, and possible redirect loops directly in your browser.",
+    "Simulate common Nginx return and rewrite redirects against a URL, including server, location, status, target, and loop checks.",
   keywords: [
     "Nginx redirect rule tester",
     "Nginx rewrite tester",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/nginx-redirect-rule-tester",
   },
   openGraph: {
-    title: "Nginx Redirect Rule Tester | Test Rewrite and Return Rules | Yoryantra",
+    title: "Nginx Redirect Rule Tester | Return & Rewrite Preflight | Yoryantra",
     description:
-      "Test Nginx redirect rules, rewrite rules, return 301 and 302 redirects, HTTP to HTTPS redirects, server_name matches, and possible redirect loops directly in your browser.",
+      "Simulate common Nginx return and rewrite redirects against a URL, including server, location, status, target, and loop checks.",
     url: "https://yoryantra.com/tools/nginx-redirect-rule-tester",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nginx Redirect Rule Tester | Test Rewrite and Return Rules | Yoryantra",
+    title: "Nginx Redirect Rule Tester | Return & Rewrite Preflight | Yoryantra",
     description:
-      "Test Nginx redirect rules, rewrite rules, return 301 and 302 redirects, HTTP to HTTPS redirects, server_name matches, and possible redirect loops directly in your browser.",
+      "Simulate common Nginx return and rewrite redirects against a URL, including server, location, status, target, and loop checks.",
   },
 };
 
