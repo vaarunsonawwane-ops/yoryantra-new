@@ -198,21 +198,21 @@ export const tools = [
 
   {
   title: "JWT Expiration Checker",
-  description: "Check JWT token expiration, issued time, and validity instantly.",
+  description: "Check exp, nbf, and iat claims against the browser clock without treating timing as JWT verification.",
   href: "/tools/jwt-expiration-checker",
   category: "Security Tools",
   },
 
   {
   title: "Random Token Generator",
-  description: "Generate random tokens, secret strings, and secure identifiers instantly.",
+  description: "Generate unbiased random tokens in Base64URL, alphanumeric, hexadecimal, or numeric formats with selectable length.",
   href: "/tools/random-token-generator",
   category: "Security Tools",
   },
 
   {
   title: "SHA256 Generator",
-  description: "Generate SHA256 hashes from text instantly.",
+  description: "Hash exact UTF-8 text with SHA-256 and see how small input differences change the digest.",
   href: "/tools/sha256-generator",
   category: "Security Tools",
   },
