@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Kubernetes Service Port Mapper | Map K8s Service Ports Online | Yoryantra",
+  title: "Kubernetes Service Port Mapper | targetPort, NodePort & Ingress | Yoryantra",
   description:
-    "Map Kubernetes Service ports from pasted YAML. Review service type, port, targetPort, nodePort, selectors, container ports, ingress hosts, and exposure notes.",
+    "Map Kubernetes Service ports to targetPorts, selected workload ports, NodePorts, headless or ExternalName behavior, and Ingress Service backends.",
   keywords: [
     "Kubernetes Service Port Mapper",
     "Kubernetes service ports",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/kubernetes-service-port-mapper",
   },
   openGraph: {
-    title: "Kubernetes Service Port Mapper | Map K8s Service Ports Online | Yoryantra",
+    title: "Kubernetes Service Port Mapper | targetPort, NodePort & Ingress | Yoryantra",
     description:
-      "Map Kubernetes Service ports from pasted YAML. Review service type, port, targetPort, nodePort, selectors, container ports, ingress hosts, and exposure notes.",
+      "Map Kubernetes Service ports to targetPorts, selected workload ports, NodePorts, headless or ExternalName behavior, and Ingress Service backends.",
     url: "https://yoryantra.com/tools/kubernetes-service-port-mapper",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kubernetes Service Port Mapper | Map K8s Service Ports Online | Yoryantra",
+    title: "Kubernetes Service Port Mapper | targetPort, NodePort & Ingress | Yoryantra",
     description:
-      "Map Kubernetes Service ports from pasted YAML. Review service type, port, targetPort, nodePort, selectors, container ports, ingress hosts, and exposure notes.",
+      "Map Kubernetes Service ports to targetPorts, selected workload ports, NodePorts, headless or ExternalName behavior, and Ingress Service backends.",
   },
 };
 

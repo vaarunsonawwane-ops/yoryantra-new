@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Kubernetes Image Tag Checker | Check K8s Container Image Tags | Yoryantra",
+  title: "Kubernetes Image Tag Checker | Tags, Digests & Pull Policy | Yoryantra",
   description:
-    "Check Kubernetes YAML for container images, missing tags, latest tags, digest pins, registries, namespaces, and deployment review notes before release.",
+    "Review Kubernetes workload image references for latest semantics, tags, digests, registry names, pull policies, init containers, and malformed image syntax.",
   keywords: [
     "Kubernetes Image Tag Checker",
     "K8s image tag checker",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/kubernetes-image-tag-checker",
   },
   openGraph: {
-    title: "Kubernetes Image Tag Checker | Check K8s Container Image Tags | Yoryantra",
+    title: "Kubernetes Image Tag Checker | Tags, Digests & Pull Policy | Yoryantra",
     description:
-      "Check Kubernetes YAML for container images, missing tags, latest tags, digest pins, registries, namespaces, and deployment review notes before release.",
+      "Review Kubernetes workload image references for latest semantics, tags, digests, registry names, pull policies, init containers, and malformed image syntax.",
     url: "https://yoryantra.com/tools/kubernetes-image-tag-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kubernetes Image Tag Checker | Check K8s Container Image Tags | Yoryantra",
+    title: "Kubernetes Image Tag Checker | Tags, Digests & Pull Policy | Yoryantra",
     description:
-      "Check Kubernetes YAML for container images, missing tags, latest tags, digest pins, registries, namespaces, and deployment review notes before release.",
+      "Review Kubernetes workload image references for latest semantics, tags, digests, registry names, pull policies, init containers, and malformed image syntax.",
   },
 };
 

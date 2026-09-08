@@ -1356,7 +1356,7 @@ export const tools = [
 {
   title: "Kubernetes YAML Resource Summarizer",
   description:
-    "Summarize Kubernetes manifests with resources, namespaces, images, replicas, ports, hosts, and review notes.",
+    "Inventory Kubernetes resources, namespaces, workload images, replicas, ports, hosts, and configuration signals from manifests.",
   href: "/tools/kubernetes-yaml-resource-summarizer",
   category: "DevOps Tools",
 },
@@ -1364,7 +1364,7 @@ export const tools = [
 {
   title: "Kubernetes Service Port Mapper",
   description:
-    "Map Kubernetes service ports, targetPorts, nodePorts, selectors, container ports, and ingress hosts.",
+    "Map Service ports to selected workload ports and Ingress backends across Kubernetes manifests.",
   href: "/tools/kubernetes-service-port-mapper",
   category: "DevOps Tools",
 },
@@ -1372,7 +1372,7 @@ export const tools = [
 {
   title: "Kubernetes Image Tag Checker",
   description:
-    "Check Kubernetes image tags, latest usage, missing tags, digest pins, and registry names.",
+    "Trace Kubernetes container images, tags, digests, pull policies, and registry references across workload manifests.",
   href: "/tools/kubernetes-image-tag-checker",
   category: "DevOps Tools",
 },

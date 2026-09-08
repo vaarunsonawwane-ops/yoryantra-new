@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { parseAllDocuments } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -15,12 +16,16 @@ type ImageInfo = {
   resourceName: string;
   namespace: string;
   containerName: string;
+  containerType: "container" | "initContainer" | "ephemeralContainer";
   image: string;
+  imagePullPolicy: string;
+  expectedDefaultPullPolicy: "Always" | "IfNotPresent";
   registry: string;
   repository: string;
   tag: string;
   digest: string;
-  status: "tagged" | "latest" | "untagged" | "digest" | "tagged-and-digest";
+  referenceIssue: string;
+  status: "tagged" | "latest" | "untagged" | "digest" | "tagged-and-digest" | "invalid";
 };
 
 type Issue = {
@@ -34,9 +39,11 @@ type Result = {
   issues: Issue[];
   output: string;
   imageCount: number;
+  displayedImageCount: number;
   latestCount: number;
   untaggedCount: number;
   digestCount: number;
+  invalidCount: number;
 };
 
 const sampleYaml = `apiVersion: apps/v1
@@ -102,23 +109,30 @@ export default function ToolClient() {
       return;
     }
 
-    const next = buildResult({
-      yamlInput,
-      outputMode,
-      detailLevel,
-      imageFilter,
-      warnLatest,
-      warnUntagged,
-      warnNoDigest,
-      warnNoRegistry,
-      warnNoImages,
-      warnMutableTags,
-    });
+    try {
+      const next = buildResult({
+        yamlInput,
+        outputMode,
+        detailLevel,
+        imageFilter,
+        warnLatest,
+        warnUntagged,
+        warnNoDigest,
+        warnNoRegistry,
+        warnNoImages,
+        warnMutableTags,
+      });
 
-    setResult(next);
-    setOutput(next.output);
-    setError("");
-    setCopied(false);
+      setResult(next);
+      setOutput(next.output);
+      setError("");
+      setCopied(false);
+    } catch (caught) {
+      setResult(null);
+      setOutput("");
+      setCopied(false);
+      setError(caught instanceof Error ? caught.message : "Could not parse the Kubernetes YAML.");
+    }
   };
 
   const copyOutput = async () => {
@@ -159,7 +173,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Kubernetes Image Tag Checker"
-      description="Check Kubernetes YAML for container images, missing tags, latest tags, digest pins, registries, namespaces, and deployment review notes before release."
+      description="Trace container image tags, digests, pull policies, and registry references across Kubernetes manifests."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -168,7 +182,7 @@ export default function ToolClient() {
               Kubernetes YAML
             </label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Paste Kubernetes manifests to extract and review container image tags.
+              Paste workload manifests to examine container, init-container, and ephemeral-container image references.
             </p>
           </div>
 
@@ -262,24 +276,24 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          This checker reads pasted YAML only. It does not pull images, scan vulnerabilities, or contact a Kubernetes cluster.
+          Parsing stays in this browser. No registry, image layer, or Kubernetes API request is made.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={checkImages} className="yoryantra-btn">
+        <button onClick={checkImages} className="yoryantra-btn min-h-[44px] whitespace-nowrap">
           Check Image Tags
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-[44px] whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -293,9 +307,9 @@ export default function ToolClient() {
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Images" value={result.imageCount.toLocaleString()} />
-          <SummaryCard label="latest Tags" value={result.latestCount.toLocaleString()} />
-          <SummaryCard label="Untagged" value={result.untaggedCount.toLocaleString()} />
+          <SummaryCard label="latest / implicit" value={(result.latestCount + result.untaggedCount).toLocaleString()} />
           <SummaryCard label="Digest Pins" value={result.digestCount.toLocaleString()} />
+          <SummaryCard label="Reference Problems" value={result.invalidCount.toLocaleString()} />
         </div>
       )}
 
@@ -312,6 +326,7 @@ export default function ToolClient() {
                   <th className="px-4 py-3 font-semibold">Image</th>
                   <th className="px-4 py-3 font-semibold">Registry</th>
                   <th className="px-4 py-3 font-semibold">Tag / Digest</th>
+                  <th className="px-4 py-3 font-semibold">Pull policy</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                 </tr>
               </thead>
@@ -320,12 +335,17 @@ export default function ToolClient() {
                 {result.images.map((image, index) => (
                   <tr key={`${image.image}-${image.containerName}-${index}`}>
                     <td className="px-4 py-3 font-mono text-xs text-gray-700">{image.kind}/{image.resourceName || "unnamed"}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{image.containerName || "-"}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
+                      {image.containerName || "-"}<span className="mt-1 block text-[11px] text-gray-500">{image.containerType}</span>
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-900">
                       <span className="block max-w-[320px] break-words">{image.image}</span>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-700">{image.registry || "implicit"}</td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-700">{image.digest || image.tag || "-"}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
+                      {image.imagePullPolicy || `${image.expectedDefaultPullPolicy} (default)`}
+                    </td>
                     <td className="px-4 py-3 text-gray-700">{image.status}</td>
                   </tr>
                 ))}
@@ -336,29 +356,24 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Image findings</h3>
-
-          <div className="mt-3 space-y-3">
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Image findings</h3>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
             {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
+              <FindingCard key={`${issue.title}-${index}`} issue={issue} />
             ))}
           </div>
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Image review guidance</h3>
-
+        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Image reference notes</h3>
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -370,7 +385,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -381,104 +396,92 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This tool checks pasted Kubernetes YAML locally in your browser. It does not pull images, scan vulnerabilities, or contact your cluster.
+      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Manifest text is parsed in this browser. Image layers, registries, SBOMs, signatures, CVEs, and live cluster state are outside this check.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Checking Kubernetes Image Tags Before Release</h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">What an image reference actually fixes</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Container image tags decide what actually runs in a Kubernetes workload. Tags such as latest or missing tags can make deployments harder to reproduce, debug, and roll back.
+            Kubernetes accepts an image name with a tag, a digest, or both. A tag is a movable label; a digest identifies specific image content. When both are present, Kubernetes pulls by digest, so the digest is the part that fixes the content even if the tag later moves.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Kubernetes Image Tag Checker extracts image references from pasted manifests and highlights latest tags, missing tags, digest pins, registry names, and release review notes.
+            An image without a tag or digest has implicit <code>latest</code> semantics. That is different from writing a version tag such as <code>v1.8.2</code>, and it deserves the same release attention as an explicit <code>:latest</code> reference.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <h2 className="font-semibold text-amber-900">Pull policy can outlive an image edit</h2>
+            <p className="mt-2 text-sm leading-relaxed text-amber-800">
+              Kubernetes defaults <code>imagePullPolicy</code> when an object is first created. Changing a workload later from a version tag to <code>latest</code> does not automatically rewrite an already stored pull policy, so review the explicit field as well as the image text.
+            </p>
+          </div>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="font-semibold text-gray-900">A registry name is not a trust decision</h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              An explicit hostname makes the source easier to see, but it says nothing about provenance, vulnerability state, signature verification, or whether credentials are configured correctly.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Workload locations covered</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Images are collected from <code>containers</code>, <code>initContainers</code>, and <code>ephemeralContainers</code> in Pods and common Pod-template workloads such as Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, and CronJobs. Generic controllers with a standard <code>spec.template.spec</code> Pod template are also read.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            OCI image volume references and custom-resource fields that merely happen to be named <code>image</code> are not treated as container images. That boundary prevents unrelated YAML from being misreported as runnable containers.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Kubernetes Image Tag Checker</h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Reading the result before a release</h2>
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste Kubernetes Deployment, Pod, Job, CronJob, or other manifest YAML.</li>
-            <li>Choose the output format and image filter.</li>
-            <li>Review image tags, registries, repositories, and digest pins.</li>
-            <li>Check warnings for latest tags, untagged images, or mutable-looking tags.</li>
-            <li>Copy the summary, table, JSON, Markdown, CSV, or checklist output.</li>
+            <li>Separate digest-pinned references from movable tags.</li>
+            <li>Review explicit <code>latest</code> and implicit-latest references first.</li>
+            <li>Compare the image text with the declared or expected default pull policy.</li>
+            <li>Check whether an implicit registry is intentional for the target runtime.</li>
+            <li>Use registry, signature, SBOM, and vulnerability controls for questions the manifest cannot answer.</li>
           </ol>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Why latest Tags Are Risky</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A tag like latest can point to different image contents over time. That makes it harder to know exactly what was deployed, especially during rollbacks or incident reviews.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Version tags and digest pins make deployments easier to audit and reproduce. The right choice depends on your release process, registry policy, and deployment tooling.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Image Tag Review</h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Reference syntax worth checking</h2>
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`nginx:latest              -> latest tag
-ghcr.io/example/api:v1.8.2 -> tagged
-busybox                    -> untagged
-postgres@sha256:...        -> digest pinned`}
-            </pre>
+            <pre className="whitespace-pre-wrap break-words">{`nginx:latest
+nginx
+registry.k8s.io/pause:3.10
+registry.k8s.io/pause@sha256:<64-hex-digest>
+registry.k8s.io/pause:3.10@sha256:<64-hex-digest>`}</pre>
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Image Checking Is Not Vulnerability Scanning</h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool reviews image references inside YAML. It does not pull image layers, inspect SBOMs, check CVEs, verify signatures, or scan registries.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use it for fast manifest review, then use registry scanning, admission policies, signature verification, and CI checks for deeper security controls.
+            The Kubernetes <a className="underline decoration-gray-300 underline-offset-4 hover:text-gray-900" href="https://kubernetes.io/docs/concepts/containers/images/" target="_blank" rel="noreferrer">Images documentation</a> explains default tags, digest behavior, and pull-policy defaulting in more detail.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Questions that matter more than “is it tagged?”</h2>
           <div className="mt-5 space-y-6">
-            <Faq title="What does a Kubernetes Image Tag Checker do?">
-              It extracts container images from Kubernetes YAML and flags latest tags, missing tags, digest pins, and registry details.
+            <Faq title="Does a version tag guarantee immutable content?">
+              No. A registry can move a tag unless policy prevents it. A digest identifies the image content more precisely.
             </Faq>
-
-            <Faq title="Does this scan container vulnerabilities?">
-              No. It only checks image reference text in pasted YAML.
+            <Faq title="What happens when both a tag and digest are present?">
+              Kubernetes uses the digest for the pull. The tag remains readable context, but it does not decide the fetched image content.
             </Faq>
-
-            <Faq title="Is using latest always wrong?">
-              Not always, but it is usually risky for repeatable production deployments because the referenced image can change.
+            <Faq title="Does an omitted tag mean no tag at all?">
+              Kubernetes treats an omitted tag as <code>latest</code>. The result therefore distinguishes the text form while warning about the same release unpredictability.
             </Faq>
-
-            <Faq title="What is a digest-pinned image?">
-              A digest-pinned image uses sha256 content addressing, making the deployed image reference more precise than a mutable tag.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I check image tags?">
-              No. The check runs directly in your browser.
+            <Faq title="Why show imagePullPolicy next to the reference?">
+              Pull behavior depends on both fields, and the API server defaults the policy when the object is first created rather than continuously recalculating it after image edits.
             </Faq>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/kubernetes-image-tag-checker" />
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/kubernetes-image-tag-checker" /></div>
         </div>
       </section>
     </ToolShell>
@@ -508,6 +511,26 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function FindingCard({ issue }: { issue: Issue }) {
+  const style = issue.severity === "high"
+    ? "border-red-200 bg-red-50 text-red-800"
+    : issue.severity === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : "border-gray-200 bg-white text-gray-700";
+  const heading = issue.severity === "high"
+    ? "text-red-900"
+    : issue.severity === "warning"
+      ? "text-amber-900"
+      : "text-gray-900";
+
+  return (
+    <div className={`self-start rounded-lg border p-3 ${style}`}>
+      <p className={`text-sm font-semibold ${heading}`}>{issue.title}</p>
+      <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
+    </div>
+  );
+}
+
 function Faq({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
@@ -531,88 +554,174 @@ function buildResult(options: {
 }): Result {
   const allImages = parseImages(options.yamlInput);
   const images = filterImages(allImages, options.imageFilter);
-  const issues = buildIssues(images, allImages, options);
+  const issues = buildIssues(allImages, options);
   const base = {
     images,
     issues,
-    imageCount: images.length,
-    latestCount: images.filter((image) => image.status === "latest").length,
-    untaggedCount: images.filter((image) => image.status === "untagged").length,
-    digestCount: images.filter((image) => image.digest).length,
+    imageCount: allImages.length,
+    displayedImageCount: images.length,
+    latestCount: allImages.filter((image) => image.status === "latest").length,
+    untaggedCount: allImages.filter((image) => image.status === "untagged").length,
+    digestCount: allImages.filter((image) => Boolean(image.digest) && !image.referenceIssue).length,
+    invalidCount: allImages.filter((image) => Boolean(image.referenceIssue)).length,
   };
   const output = formatOutput(base, options.outputMode, options.detailLevel);
 
-  return {
-    ...base,
-    output,
-  };
+  return { ...base, output };
 }
 
-function parseImages(input: string) {
-  const documents = input
-    .split(/^---\s*$/m)
-    .map((text, index) => ({ text: text.trim(), index: index + 1 }))
-    .filter((doc) => doc.text);
+function parseImages(input: string): ImageInfo[] {
+  const documents = parseAllDocuments(input, {
+    prettyErrors: true,
+    strict: true,
+    uniqueKeys: true,
+  });
+  const parseErrors = documents.reduce<Array<{ message: string }>>(
+    (all, document) => all.concat(document.errors),
+    []
+  );
+  if (parseErrors.length > 0) {
+    throw new Error(parseErrors[0].message);
+  }
+
   const images: ImageInfo[] = [];
-
-  documents.forEach((doc) => {
-    const lines = doc.text.split(/\r?\n/);
-    const kind = getTopLevelValue(lines, "kind");
-    const resourceName = getMetadataValue(lines, "name");
-    const namespace = getMetadataValue(lines, "namespace");
-    let currentContainer = "";
-
-    lines.forEach((line) => {
-      const containerMatch = line.match(/^\s*-\s*name:\s*(.+)\s*$/);
-      if (containerMatch) currentContainer = stripQuotes(containerMatch[1].trim());
-
-      const imageMatch = line.match(/^\s*image:\s*(.+)\s*$/);
-      if (imageMatch) {
-        const image = stripQuotes(imageMatch[1].trim());
-        images.push({
-          documentIndex: doc.index,
-          kind: kind || "Unknown",
-          resourceName,
-          namespace,
-          containerName: currentContainer,
-          image,
-          ...parseImageReference(image),
-        });
-      }
-    });
+  documents.forEach((document, index) => {
+    const root = document.toJS({ maxAliasCount: 100 });
+    collectImagesFromValue(root, index + 1, images);
   });
 
   return images;
 }
 
-function parseImageReference(image: string): Omit<ImageInfo, "documentIndex" | "kind" | "resourceName" | "namespace" | "containerName" | "image"> {
-  const [withoutDigest, digest = ""] = image.split("@");
+function collectImagesFromValue(value: unknown, documentIndex: number, images: ImageInfo[]): void {
+  if (!isRecord(value)) return;
+
+  if (value.kind === "List" && Array.isArray(value.items)) {
+    value.items.forEach((item) => collectImagesFromValue(item, documentIndex, images));
+    return;
+  }
+
+  const kind = readString(value.kind) || "Unknown";
+  const metadata = isRecord(value.metadata) ? value.metadata : {};
+  const resourceName = readString(metadata.name);
+  const namespace = readString(metadata.namespace);
+  const podSpec = getPodSpec(value, kind);
+  if (!podSpec) return;
+
+  const groups: Array<{ key: string; type: ImageInfo["containerType"] }> = [
+    { key: "containers", type: "container" },
+    { key: "initContainers", type: "initContainer" },
+    { key: "ephemeralContainers", type: "ephemeralContainer" },
+  ];
+
+  groups.forEach(({ key, type }) => {
+    const raw = podSpec[key];
+    if (!Array.isArray(raw)) return;
+
+    raw.forEach((candidate, containerIndex) => {
+      if (!isRecord(candidate)) return;
+      const image = readString(candidate.image);
+      if (!image) return;
+      const parsed = parseImageReference(image);
+      const imagePullPolicy = readString(candidate.imagePullPolicy);
+
+      images.push({
+        documentIndex,
+        kind,
+        resourceName,
+        namespace,
+        containerName: readString(candidate.name) || `${type}-${containerIndex + 1}`,
+        containerType: type,
+        image,
+        imagePullPolicy,
+        expectedDefaultPullPolicy: getExpectedDefaultPullPolicy(parsed),
+        ...parsed,
+      });
+    });
+  });
+}
+
+function getPodSpec(root: Record<string, unknown>, kind: string): Record<string, unknown> | null {
+  const spec = isRecord(root.spec) ? root.spec : null;
+  if (!spec) return null;
+  if (kind === "Pod") return spec;
+
+  if (kind === "CronJob") {
+    const jobTemplate = isRecord(spec.jobTemplate) ? spec.jobTemplate : null;
+    const jobSpec = jobTemplate && isRecord(jobTemplate.spec) ? jobTemplate.spec : null;
+    const template = jobSpec && isRecord(jobSpec.template) ? jobSpec.template : null;
+    return template && isRecord(template.spec) ? template.spec : null;
+  }
+
+  const template = isRecord(spec.template) ? spec.template : null;
+  return template && isRecord(template.spec) ? template.spec : null;
+}
+
+function parseImageReference(image: string): Omit<ImageInfo, "documentIndex" | "kind" | "resourceName" | "namespace" | "containerName" | "containerType" | "image" | "imagePullPolicy" | "expectedDefaultPullPolicy"> {
+  const clean = image.trim();
+  let referenceIssue = "";
+  if (!clean || /\s/.test(clean)) {
+    referenceIssue = "Image references cannot be empty or contain whitespace.";
+  }
+
+  const firstAt = clean.indexOf("@");
+  const lastAt = clean.lastIndexOf("@");
+  if (!referenceIssue && firstAt !== lastAt) {
+    referenceIssue = "Image reference contains more than one digest separator (@).";
+  }
+
+  const withoutDigest = firstAt >= 0 ? clean.slice(0, firstAt) : clean;
+  const digest = firstAt >= 0 ? clean.slice(firstAt + 1) : "";
+  if (!referenceIssue && firstAt >= 0 && !digest) {
+    referenceIssue = "Digest separator is present but the digest is empty.";
+  }
+  if (!referenceIssue && digest && !isValidDigest(digest)) {
+    referenceIssue = `Digest ${digest} does not match the expected algorithm:value form.`;
+  }
+
   const lastSlash = withoutDigest.lastIndexOf("/");
   const lastColon = withoutDigest.lastIndexOf(":");
   const hasTag = lastColon > lastSlash;
   const tag = hasTag ? withoutDigest.slice(lastColon + 1) : "";
   const repositoryWithRegistry = hasTag ? withoutDigest.slice(0, lastColon) : withoutDigest;
-  const firstPart = repositoryWithRegistry.split("/")[0] || "";
-  const hasRegistry = firstPart.includes(".") || firstPart.includes(":") || firstPart === "localhost";
-  const registry = hasRegistry ? firstPart : "";
-  const repository = hasRegistry ? repositoryWithRegistry.split("/").slice(1).join("/") : repositoryWithRegistry;
-  let status: ImageInfo["status"] = "tagged";
 
-  if (digest && tag) status = "tagged-and-digest";
+  if (!referenceIssue && !repositoryWithRegistry) {
+    referenceIssue = "Image repository is empty.";
+  }
+  if (!referenceIssue && tag && !/^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$/.test(tag)) {
+    referenceIssue = `Tag ${tag} does not match the container image tag syntax accepted by Kubernetes.`;
+  }
+
+  const segments = repositoryWithRegistry.split("/");
+  const firstPart = segments[0] || "";
+  const hasRegistry = segments.length > 1 && (firstPart.includes(".") || firstPart.includes(":") || firstPart === "localhost");
+  const registry = hasRegistry ? firstPart : "";
+  const repository = hasRegistry ? segments.slice(1).join("/") : repositoryWithRegistry;
+
+  let status: ImageInfo["status"] = "tagged";
+  if (referenceIssue) status = "invalid";
+  else if (digest && tag) status = "tagged-and-digest";
   else if (digest) status = "digest";
   else if (!tag) status = "untagged";
-  else if (tag === "latest") status = "latest";
+  else if (tag.toLowerCase() === "latest") status = "latest";
 
-  return {
-    registry,
-    repository,
-    tag,
-    digest,
-    status,
-  };
+  return { registry, repository, tag, digest, referenceIssue, status };
 }
 
-function filterImages(images: ImageInfo[], filter: ImageFilter) {
+function isValidDigest(value: string): boolean {
+  const match = value.match(/^([a-z0-9]+(?:[._+-][a-z0-9]+)*):([A-Za-z0-9=_-]+)$/);
+  if (!match) return false;
+  if (match[1] === "sha256") return /^[a-fA-F0-9]{64}$/.test(match[2]);
+  return match[2].length >= 16;
+}
+
+function getExpectedDefaultPullPolicy(image: Pick<ImageInfo, "tag" | "digest">): "Always" | "IfNotPresent" {
+  if (image.digest) return "IfNotPresent";
+  if (!image.tag || image.tag.toLowerCase() === "latest") return "Always";
+  return "IfNotPresent";
+}
+
+function filterImages(images: ImageInfo[], filter: ImageFilter): ImageInfo[] {
   if (filter === "all") return images;
   if (filter === "latest") return images.filter((image) => image.status === "latest");
   if (filter === "untagged") return images.filter((image) => image.status === "untagged");
@@ -621,225 +730,175 @@ function filterImages(images: ImageInfo[], filter: ImageFilter) {
   return images;
 }
 
-function buildIssues(images: ImageInfo[], allImages: ImageInfo[], options: {
+function buildIssues(images: ImageInfo[], options: {
   warnLatest: boolean;
   warnUntagged: boolean;
   warnNoDigest: boolean;
   warnNoRegistry: boolean;
   warnNoImages: boolean;
   warnMutableTags: boolean;
-}) {
+}): Issue[] {
   const issues: Issue[] = [];
 
-  if (options.warnNoImages && allImages.length === 0) {
+  const invalid = images.filter((image) => image.referenceIssue);
+  if (invalid.length > 0) {
     issues.push({
-      severity: "warning",
-      title: "No container images found",
-      message: "No image fields were found in the pasted Kubernetes YAML.",
+      severity: "high",
+      title: "Malformed image reference",
+      message: `${invalid.length} image reference${invalid.length === 1 ? "" : "s"} need attention. ${invalid.slice(0, 2).map((image) => `${image.containerName}: ${image.referenceIssue}`).join(" ")}`,
     });
   }
 
-  if (options.warnLatest && images.some((image) => image.status === "latest")) {
-    issues.push({
-      severity: "warning",
-      title: "latest tag found",
-      message: "latest tags can change over time and make deployments harder to reproduce.",
-    });
+  if (options.warnNoImages && images.length === 0) {
+    issues.push({ severity: "warning", title: "No container images found", message: "No container, init-container, or ephemeral-container image references were found in supported Pod specs." });
   }
 
-  if (options.warnUntagged && images.some((image) => image.status === "untagged")) {
-    issues.push({
-      severity: "warning",
-      title: "Untagged image found",
-      message: "Images without tags usually default to latest behavior in many workflows. Pin a version or digest when possible.",
-    });
+  const latest = images.filter((image) => image.status === "latest");
+  if (options.warnLatest && latest.length > 0) {
+    issues.push({ severity: "warning", title: "Explicit latest tag", message: `${latest.length} image reference${latest.length === 1 ? " uses" : "s use"} :latest. Tags can move, which makes rollout history and rollback less deterministic.` });
   }
 
-  if (options.warnNoDigest && images.some((image) => !image.digest)) {
-    issues.push({
-      severity: "info",
-      title: "Images are not digest-pinned",
-      message: "Digest pins make image references more exact, though many teams still use version tags with deployment controls.",
-    });
+  const untagged = images.filter((image) => image.status === "untagged");
+  if (options.warnUntagged && untagged.length > 0) {
+    issues.push({ severity: "warning", title: "Implicit latest semantics", message: `${untagged.length} image reference${untagged.length === 1 ? " omits" : "s omit"} both tag and digest. Kubernetes treats an omitted tag as latest.` });
   }
 
-  if (options.warnNoRegistry && images.some((image) => !image.registry)) {
-    issues.push({
-      severity: "info",
-      title: "Implicit registry found",
-      message: "Some images do not specify a registry. Confirm whether the default registry is intended.",
-    });
+  const invalidPolicy = images.filter((image) => image.imagePullPolicy && !["Always", "IfNotPresent", "Never"].includes(image.imagePullPolicy));
+  if (invalidPolicy.length > 0) {
+    issues.push({ severity: "high", title: "Invalid imagePullPolicy value", message: `${invalidPolicy.length} container${invalidPolicy.length === 1 ? " has" : "s have"} an imagePullPolicy outside Always, IfNotPresent, or Never.` });
+  }
+
+  const cacheRisk = images.filter((image) => (image.status === "latest" || image.status === "untagged") && image.imagePullPolicy === "IfNotPresent");
+  if (cacheRisk.length > 0) {
+    issues.push({ severity: "warning", title: "Mutable reference with IfNotPresent", message: `${cacheRisk.length} image reference${cacheRisk.length === 1 ? " combines" : "s combine"} latest semantics with an explicit IfNotPresent policy. Existing node cache can therefore matter.` });
+  }
+
+  if (options.warnNoDigest) {
+    const unpinned = images.filter((image) => !image.digest && !image.referenceIssue);
+    if (unpinned.length > 0) {
+      issues.push({ severity: "info", title: "References are not digest-pinned", message: `${unpinned.length} image reference${unpinned.length === 1 ? " relies" : "s rely"} on tags or implicit latest semantics rather than immutable content digests.` });
+    }
+  }
+
+  if (options.warnNoRegistry) {
+    const implicit = images.filter((image) => !image.registry && !image.referenceIssue);
+    if (implicit.length > 0) {
+      issues.push({ severity: "info", title: "Registry is implicit", message: `${implicit.length} image reference${implicit.length === 1 ? " does" : "s do"} not include a registry hostname. Confirm the runtime's default registry behavior is intended.` });
+    }
   }
 
   if (options.warnMutableTags) {
-    const mutable = images.filter((image) => image.tag && /^(dev|test|staging|main|master|latest|snapshot)$/i.test(image.tag));
-
+    const mutable = images.filter((image) => image.tag && /^(dev|test|staging|main|master|edge|nightly|snapshot)$/i.test(image.tag));
     if (mutable.length > 0) {
-      issues.push({
-        severity: "info",
-        title: "Mutable-looking tags found",
-        message: `Review these tags for release predictability: ${Array.from(new Set(mutable.map((image) => image.tag))).join(", ")}.`,
-      });
+      issues.push({ severity: "info", title: "Branch or environment-style tags", message: `These tag names often move between builds: ${Array.from(new Set(mutable.map((image) => image.tag))).join(", ")}. Treat that as a release-process signal, not proof of mutability.` });
     }
   }
 
   if (issues.length === 0) {
-    issues.push({
-      severity: "info",
-      title: "Image tags checked",
-      message: "No obvious image tag warning was found from the enabled checks.",
-    });
+    issues.push({ severity: "info", title: "No enabled image-reference concern found", message: "The enabled checks did not find malformed references, latest semantics, or the selected pinning concerns." });
   }
 
   return issues;
 }
 
-function formatOutput(result: Omit<Result, "output">, mode: OutputMode, detailLevel: DetailLevel) {
-  if (mode === "json") {
-    return JSON.stringify(result, null, 2);
-  }
+function formatOutput(result: Omit<Result, "output">, mode: OutputMode, detailLevel: DetailLevel): string {
+  if (mode === "json") return JSON.stringify(result, null, 2);
 
   if (mode === "markdown") {
     return [
-      "| Resource | Container | Image | Registry | Tag | Digest | Status |",
-      "| --- | --- | --- | --- | --- | --- | --- |",
-      ...result.images.map((image) => `| ${image.kind}/${image.resourceName || "unnamed"} | ${image.containerName || "-"} | ${escapeMarkdown(image.image)} | ${image.registry || "implicit"} | ${image.tag || "-"} | ${image.digest ? "yes" : "no"} | ${image.status} |`),
+      "| Resource | Container | Type | Image | Registry | Tag | Digest | Pull policy | Status |",
+      "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+      ...result.images.map((image) => `| ${escapeMarkdown(`${image.kind}/${image.resourceName || "unnamed"}`)} | ${escapeMarkdown(image.containerName)} | ${image.containerType} | ${escapeMarkdown(image.image)} | ${escapeMarkdown(image.registry || "implicit")} | ${escapeMarkdown(image.tag || "-")} | ${image.digest ? "yes" : "no"} | ${escapeMarkdown(image.imagePullPolicy || `${image.expectedDefaultPullPolicy} (default)`)} | ${image.status} |`),
       "",
       "## Findings",
-      ...result.issues.map((issue) => `- **${issue.title}:** ${issue.message}`),
+      ...result.issues.map((issue) => `- **${escapeMarkdown(issue.title)}:** ${escapeMarkdown(issue.message)}`),
     ].join("\n");
   }
 
   if (mode === "csv") {
     const rows = [
-      ["resource", "namespace", "container", "image", "registry", "repository", "tag", "digest", "status"],
+      ["resource", "namespace", "container", "container_type", "image", "registry", "repository", "tag", "digest", "pull_policy", "status"],
       ...result.images.map((image) => [
         `${image.kind}/${image.resourceName}`,
         image.namespace,
         image.containerName,
+        image.containerType,
         image.image,
         image.registry,
         image.repository,
         image.tag,
         image.digest,
+        image.imagePullPolicy || `${image.expectedDefaultPullPolicy} (default)`,
         image.status,
       ]),
     ];
-
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
 
   if (mode === "checklist") {
     return [
-      "Kubernetes Image Tag Review Checklist",
-      "------------------------------------",
-      "- [ ] Confirm production images do not use latest accidentally.",
-      "- [ ] Confirm every workload image has an expected version tag or digest.",
-      "- [ ] Confirm image registries are trusted and intended.",
-      "- [ ] Confirm rollback versions are available.",
-      "- [ ] Confirm CI or registry scanning covers these images.",
-      "- [ ] Confirm image pull policies match the release process.",
+      "Kubernetes image reference review",
+      "---------------------------------",
+      "- [ ] Confirm production references avoid accidental latest semantics.",
+      "- [ ] Confirm digest pins where immutable content identity is required.",
+      "- [ ] Compare imagePullPolicy with the release and node-cache expectations.",
+      "- [ ] Confirm registry hostnames and image-pull credentials are intentional.",
+      "- [ ] Run registry vulnerability, signature, and SBOM controls separately.",
       "",
-      "Findings:",
       ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
     ].join("\n");
   }
 
   if (mode === "table") {
-    return result.images
-      .map((image) => `${image.kind}/${image.resourceName || "unnamed"} -> ${image.containerName || "container"} -> ${image.image} (${image.status})`)
-      .join("\n");
+    return result.images.map((image) => `${image.kind}/${image.resourceName || "unnamed"} -> ${image.containerType}/${image.containerName} -> ${image.image} -> ${image.imagePullPolicy || `${image.expectedDefaultPullPolicy} (default)`} -> ${image.status}`).join("\n");
   }
 
   const lines = detailLevel === "compact"
     ? result.images.map((image) => `- ${image.image} (${image.status})`)
-    : result.images.map((image) => `- ${image.kind}/${image.resourceName || "unnamed"} ${image.containerName || ""}: ${image.image} — ${image.status}`);
+    : result.images.map((image) => `- ${image.kind}/${image.resourceName || "unnamed"} ${image.containerType}/${image.containerName}: ${image.image} — ${image.status}; pull ${image.imagePullPolicy || `${image.expectedDefaultPullPolicy} default`}`);
 
   return [
-    "Kubernetes Image Tag Check Summary",
+    "Kubernetes image reference summary",
     "----------------------------------",
-    `Images: ${result.imageCount}`,
-    `latest tags: ${result.latestCount}`,
-    `untagged images: ${result.untaggedCount}`,
-    `digest pins: ${result.digestCount}`,
+    `Images found: ${result.imageCount}`,
+    `Images shown by filter: ${result.displayedImageCount}`,
+    `Explicit latest: ${result.latestCount}`,
+    `Implicit latest: ${result.untaggedCount}`,
+    `Digest-pinned: ${result.digestCount}`,
+    `Reference problems: ${result.invalidCount}`,
     "",
     "Images:",
-    ...(lines.length ? lines : ["- none found"]),
+    ...(lines.length ? lines : ["- none shown"]),
     "",
     "Findings:",
     ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
   ].join("\n");
 }
 
-function getTopLevelValue(lines: string[], key: string) {
-  const regex = new RegExp(`^${key}:\\s*(.+)\\s*$`);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
-  for (const line of lines) {
-    const match = line.match(regex);
-    if (match) return stripQuotes(match[1].trim());
-  }
-
+function readString(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
   return "";
 }
 
-function getMetadataValue(lines: string[], key: string) {
-  let inMetadata = false;
-  const regex = new RegExp(`^\\s{2}${key}:\\s*(.+)\\s*$`);
-
-  for (const line of lines) {
-    if (/^metadata:\s*$/.test(line)) {
-      inMetadata = true;
-      continue;
-    }
-
-    if (inMetadata && /^\S/.test(line)) inMetadata = false;
-
-    if (inMetadata) {
-      const match = line.match(regex);
-      if (match) return stripQuotes(match[1].trim());
-    }
-  }
-
-  return "";
-}
-
-function stripQuotes(value: string) {
-  return value.replace(/^["']|["']$/g, "");
-}
-
-function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-
+function csvEscape(value: string): string {
+  if (/[",\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
   return value;
 }
 
-function escapeMarkdown(value: string) {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, "\\n");
+function escapeMarkdown(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, "\\n");
 }
 
-function getNotes(result: Result) {
-  const notes: { title: string; message: string }[] = [];
-
-  if (result.latestCount > 0 || result.untaggedCount > 0) {
-    notes.push({
-      title: "Prefer predictable image references",
-      message: "Version tags or digest pins make deployments easier to reproduce and roll back.",
-    });
-  }
-
-  if (result.digestCount > 0) {
-    notes.push({
-      title: "Digest pins are precise",
-      message: "A digest points to exact image content, but teams should still keep a readable release process around it.",
-    });
-  }
-
-  notes.push({
-    title: "Use scanning for deeper checks",
-    message: "This tool checks image references in YAML. Vulnerabilities, signatures, and SBOMs need registry or CI security tooling.",
-  });
-
+function getNotes(result: Result): Array<{ title: string; message: string }> {
+  const notes: Array<{ title: string; message: string }> = [];
+  if (result.digestCount > 0) notes.push({ title: "Digest references fix content identity", message: "A digest does not prove the image is safe, but it prevents a registry tag move from silently changing the referenced image content." });
+  if (result.images.some((image) => !image.imagePullPolicy)) notes.push({ title: "Default pull policy is shown as an expectation", message: "The API server sets imagePullPolicy when an object is first created. Existing stored objects can retain a previously defaulted value after later image edits." });
+  notes.push({ title: "Manifest review stops before the registry", message: "Signature verification, vulnerability state, SBOM contents, image availability, credentials, and admission policy require registry, CI, or cluster-aware checks." });
   return notes;
 }
+

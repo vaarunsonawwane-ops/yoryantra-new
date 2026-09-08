@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { parseAllDocuments } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -12,16 +13,22 @@ type ExposureFilter = "all" | "cluster" | "node" | "loadBalancer" | "ingress";
 type ServicePort = {
   name: string;
   protocol: string;
+  appProtocol: string;
   port: string;
   targetPort: string;
+  targetPortWasDefaulted: boolean;
   nodePort: string;
+  problems: string[];
 };
 
 type KubeService = {
   name: string;
   namespace: string;
   type: string;
+  clusterIP: string;
+  externalName: string;
   selector: string[];
+  selectorMap: Record<string, string>;
   ports: ServicePort[];
   documentIndex: number;
 };
@@ -31,10 +38,28 @@ type WorkloadPort = {
   namespace: string;
   kind: string;
   labels: string[];
+  labelMap: Record<string, string>;
   container: string;
   image: string;
   containerPort: string;
   name: string;
+  protocol: string;
+};
+
+type WorkloadInfo = {
+  workload: string;
+  namespace: string;
+  kind: string;
+  labels: string[];
+  labelMap: Record<string, string>;
+  ports: WorkloadPort[];
+};
+
+type IngressBackend = {
+  host: string;
+  path: string;
+  serviceName: string;
+  servicePort: string;
 };
 
 type IngressInfo = {
@@ -42,6 +67,7 @@ type IngressInfo = {
   namespace: string;
   hosts: string[];
   services: string[];
+  backends: IngressBackend[];
 };
 
 type Issue = {
@@ -53,6 +79,7 @@ type Issue = {
 type Result = {
   services: KubeService[];
   workloadPorts: WorkloadPort[];
+  workloads: WorkloadInfo[];
   ingress: IngressInfo[];
   issues: Issue[];
   output: string;
@@ -145,29 +172,36 @@ export default function ToolClient() {
 
   const mapPorts = () => {
     if (!yamlInput.trim()) {
-      setError("Please paste Kubernetes Service, Deployment, Pod, or Ingress YAML.");
+      setError("Please paste Kubernetes Service, workload, or Ingress YAML.");
       setResult(null);
       setOutput("");
       return;
     }
 
-    const next = buildResult({
-      yamlInput,
-      outputMode,
-      detailLevel,
-      exposureFilter,
-      warnNodePort,
-      warnLoadBalancer,
-      warnMissingTargetPort,
-      warnSelectorMismatch,
-      warnNoServices,
-      warnIngressWithoutService,
-    });
+    try {
+      const next = buildResult({
+        yamlInput,
+        outputMode,
+        detailLevel,
+        exposureFilter,
+        warnNodePort,
+        warnLoadBalancer,
+        warnMissingTargetPort,
+        warnSelectorMismatch,
+        warnNoServices,
+        warnIngressWithoutService,
+      });
 
-    setResult(next);
-    setOutput(next.output);
-    setError("");
-    setCopied(false);
+      setResult(next);
+      setOutput(next.output);
+      setError("");
+      setCopied(false);
+    } catch (caught) {
+      setResult(null);
+      setOutput("");
+      setCopied(false);
+      setError(caught instanceof Error ? caught.message : "Could not parse the Kubernetes YAML.");
+    }
   };
 
   const copyOutput = async () => {
@@ -208,7 +242,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Kubernetes Service Port Mapper"
-      description="Map Kubernetes Service ports from pasted YAML. Review service type, port, targetPort, nodePort, selectors, container ports, ingress hosts, and exposure notes."
+      description="Map Service ports to selected workload ports and Ingress backends across Kubernetes manifests."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -217,7 +251,7 @@ export default function ToolClient() {
               Kubernetes YAML
             </label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Paste Service, Deployment, Pod, and Ingress YAML to map ports and exposure.
+              Paste Services with workload and Ingress manifests to trace declared traffic paths.
             </p>
           </div>
 
@@ -304,31 +338,31 @@ export default function ToolClient() {
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <CheckboxRow checked={warnNodePort} label="Warn about NodePort exposure" onChange={(checked) => { setWarnNodePort(checked); clearResult(); }} />
           <CheckboxRow checked={warnLoadBalancer} label="Warn about LoadBalancer services" onChange={(checked) => { setWarnLoadBalancer(checked); clearResult(); }} />
-          <CheckboxRow checked={warnMissingTargetPort} label="Warn when targetPort is missing" onChange={(checked) => { setWarnMissingTargetPort(checked); clearResult(); }} />
+          <CheckboxRow checked={warnMissingTargetPort} label="Note when targetPort defaults to port" onChange={(checked) => { setWarnMissingTargetPort(checked); clearResult(); }} />
           <CheckboxRow checked={warnSelectorMismatch} label="Warn when service selector does not match labels" onChange={(checked) => { setWarnSelectorMismatch(checked); clearResult(); }} />
           <CheckboxRow checked={warnNoServices} label="Warn when no Service resources are found" onChange={(checked) => { setWarnNoServices(checked); clearResult(); }} />
           <CheckboxRow checked={warnIngressWithoutService} label="Warn when Ingress references unknown services" onChange={(checked) => { setWarnIngressWithoutService(checked); clearResult(); }} />
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          This mapper reads pasted YAML only. It does not contact a Kubernetes cluster or check live endpoints.
+          Parsing stays in this browser. EndpointSlices, Pod readiness, cloud load balancers, and live traffic are not queried.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={mapPorts} className="yoryantra-btn">
+        <button onClick={mapPorts} className="yoryantra-btn min-h-[44px] whitespace-nowrap">
           Map Service Ports
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-[44px] whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -385,29 +419,24 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Port mapping findings</h3>
-
-          <div className="mt-3 space-y-3">
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Port mapping findings</h3>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
             {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
+              <FindingCard key={`${issue.title}-${index}`} issue={issue} />
             ))}
           </div>
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Kubernetes port guidance</h3>
-
+        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Service routing notes</h3>
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -419,7 +448,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -430,106 +459,85 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This tool analyzes pasted Kubernetes YAML locally in your browser. It does not contact a cluster, test endpoints, or verify live service routing.
+      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Manifest text is parsed in this browser. Live EndpointSlices, readiness, network policy, kube-proxy behavior, DNS, and cloud networking are outside the mapping.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Mapping Kubernetes Service Ports Before Deployment</h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Follow the port path in the right order</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Kubernetes Service YAML can be confusing because a service port, targetPort, nodePort, and containerPort each mean something different. When manifests grow across Services, Deployments, and Ingress resources, mapping the traffic path helps avoid broken routing.
+            A Service receives traffic on <code>spec.ports[].port</code> and sends it to <code>targetPort</code>. If <code>targetPort</code> is omitted, Kubernetes defaults it to the Service port. A named targetPort resolves against a named port on selected Pods; a numeric targetPort does not require the Pod manifest to declare <code>containerPort</code>.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Kubernetes Service Port Mapper extracts Service ports, target ports, node ports, selectors, container ports, and ingress hosts from pasted YAML so you can review exposure and routing in one place.
+            That distinction matters during static review: a missing numeric <code>containerPort</code> declaration is not proof that routing will fail, while a named targetPort with no matching named Pod port is a much stronger signal.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Kubernetes Service Port Mapper</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste Kubernetes Service, Deployment, Pod, and Ingress YAML.</li>
-            <li>Choose the output format and exposure filter.</li>
-            <li>Review service type, selector, port, targetPort, nodePort, and containerPort values.</li>
-            <li>Check warnings about exposure, missing target ports, or selector mismatches.</li>
-            <li>Copy the summary, mapping, JSON, Markdown, CSV, or checklist output.</li>
-          </ol>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <h2 className="font-semibold text-amber-900">Selectors are namespace-sensitive</h2>
+            <p className="mt-2 text-sm leading-relaxed text-amber-800">
+              A normal Service selects Pods by label equality inside its own namespace. A matching label set found in another namespace is not a backend for that Service.
+            </p>
+          </div>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h2 className="font-semibold text-gray-900">Selectorless Services are different</h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              A Service without a selector can be backed by manually managed EndpointSlices. Static workload-label matching therefore does not classify selectorless Services as broken.
+            </p>
+          </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Service Port, TargetPort, and NodePort</h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Exposure type changes the meaning of a port</h2>
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>port</strong> is the port exposed by the Kubernetes Service inside the cluster.</li>
-            <li><strong>targetPort</strong> points to the container port or named port behind the service.</li>
-            <li><strong>nodePort</strong> exposes the service on each node when the service type is NodePort.</li>
-            <li><strong>containerPort</strong> documents which port the container process listens on.</li>
-            <li><strong>Ingress hosts</strong> can route external HTTP traffic to a service and service port.</li>
+            <li><strong>ClusterIP</strong> exposes the Service on a cluster-internal virtual IP by default.</li>
+            <li><strong>NodePort</strong> adds a port on nodes; the configured cluster range can differ from the common default range.</li>
+            <li><strong>LoadBalancer</strong> asks an implementation or cloud integration to provision external load balancing and normally builds on Service networking underneath.</li>
+            <li><strong>ExternalName</strong> is DNS indirection rather than a proxy to selected Pods.</li>
+            <li><strong>Headless</strong> Services use <code>clusterIP: None</code> and rely on DNS/endpoints rather than the normal virtual IP.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Service Mapping</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Service web-service
-type: NodePort
-port: 80
-targetPort: 8080
-nodePort: 30080
-selector: app=web`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Selectors Decide Which Pods Receive Traffic</h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Ingress references are checked as namespaced backends</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A Service does not send traffic to a Deployment directly. It selects Pods by labels. If the service selector does not match the Pod template labels, the service may exist but have no useful endpoints.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use this mapper as a quick review helper, then confirm live routing with kubectl, endpoints, logs, and cluster-aware tests.
+            Standard Ingress backends name a Service and either a numeric or named Service port. The mapping checks that the referenced Service exists in the same namespace and that the requested Service port is declared in the pasted set. It also reads <code>defaultBackend</code> in addition to rule paths.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">What a static mapping still cannot prove</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Matching YAML does not prove that Pods are Ready, EndpointSlices contain usable endpoints, the application listens on the target port, NetworkPolicy allows the flow, kube-proxy or a service mesh is healthy, or a cloud load balancer has finished provisioning.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Kubernetes documents Service selectors, targetPort defaulting, named ports, multi-port Services, selectorless Services, and EndpointSlices in the <a className="underline decoration-gray-300 underline-offset-4 hover:text-gray-900" href="https://kubernetes.io/docs/concepts/services-networking/service/" target="_blank" rel="noreferrer">Service documentation</a>.
+          </p>
+        </div>
 
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Port-mapping details that often cause confusion</h2>
           <div className="mt-5 space-y-6">
-            <Faq title="What does a Kubernetes Service Port Mapper do?">
-              It extracts Service ports, target ports, node ports, selectors, container ports, and ingress hosts from pasted Kubernetes YAML.
+            <Faq title="Is targetPort required?">
+              No. If it is omitted, Kubernetes uses the Service <code>port</code> value as the targetPort.
             </Faq>
-
-            <Faq title="Does this contact my Kubernetes cluster?">
-              No. It only analyzes pasted YAML locally in your browser.
+            <Faq title="Must a Pod declare containerPort for numeric Service routing?">
+              No. A numeric targetPort can reach the Pod IP and port even when <code>containerPort</code> is not declared. The declaration is still useful documentation and is required for named-port resolution.
             </Faq>
-
-            <Faq title="What is the difference between port and targetPort?">
-              port is the Service port. targetPort is the backend container port or named port that receives the traffic.
+            <Faq title="Does a matching selector guarantee an endpoint?">
+              No. Pod readiness and EndpointSlice state are runtime facts. The comparison here only establishes that pasted Pod-template labels could match the Service selector.
             </Faq>
-
-            <Faq title="Can it detect selector mismatches?">
-              It can compare simple Service selectors with labels found in workload manifests, but it is not a full cluster-aware endpoint checker.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I map service ports?">
-              No. The mapping runs directly in your browser.
+            <Faq title="Can an Ingress point to a Service in another namespace?">
+              Standard Ingress Service backends are namespaced with the Ingress. Cross-namespace routing needs a different mechanism or controller-specific feature.
             </Faq>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/kubernetes-service-port-mapper" />
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/kubernetes-service-port-mapper" /></div>
         </div>
       </section>
     </ToolShell>
@@ -559,6 +567,25 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function FindingCard({ issue }: { issue: Issue }) {
+  const style = issue.severity === "high"
+    ? "border-red-200 bg-red-50 text-red-800"
+    : issue.severity === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : "border-gray-200 bg-white text-gray-700";
+  const heading = issue.severity === "high"
+    ? "text-red-900"
+    : issue.severity === "warning"
+      ? "text-amber-900"
+      : "text-gray-900";
+  return (
+    <div className={`self-start rounded-lg border p-3 ${style}`}>
+      <p className={`text-sm font-semibold ${heading}`}>{issue.title}</p>
+      <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
+    </div>
+  );
+}
+
 function Faq({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
@@ -580,15 +607,17 @@ function buildResult(options: {
   warnNoServices: boolean;
   warnIngressWithoutService: boolean;
 }): Result {
-  const documents = splitDocuments(options.yamlInput);
-  const allServices = documents.map(parseService).filter((service): service is KubeService => Boolean(service));
-  const workloadPorts = documents.flatMap(parseWorkloadPorts);
-  const ingress = documents.map(parseIngress).filter((item): item is IngressInfo => Boolean(item));
+  const parsed = parseKubernetesNetworkManifests(options.yamlInput);
+  const allServices = parsed.services;
+  const ingress = parsed.ingress;
+  const workloads = parsed.workloads;
+  const workloadPorts = workloads.reduce<WorkloadPort[]>((all, workload) => all.concat(workload.ports), []);
   const services = filterServices(allServices, ingress, options.exposureFilter);
-  const issues = buildIssues({ services, allServices, workloadPorts, ingress, options });
+  const issues = buildIssues({ allServices, workloads, ingress, options });
   const base = {
     services,
     workloadPorts,
+    workloads,
     ingress,
     issues,
     serviceCount: services.length,
@@ -597,289 +626,229 @@ function buildResult(options: {
     ingressHostCount: ingress.reduce((total, item) => total + item.hosts.length, 0),
   };
   const output = formatOutput(base, options.outputMode, options.detailLevel);
-
-  return {
-    ...base,
-    output,
-  };
+  return { ...base, output };
 }
 
-function splitDocuments(input: string) {
-  return input
-    .split(/^---\s*$/m)
-    .map((text, index) => ({ text: text.trim(), index: index + 1 }))
-    .filter((doc) => doc.text);
+function parseKubernetesNetworkManifests(input: string): {
+  services: KubeService[];
+  workloads: WorkloadInfo[];
+  ingress: IngressInfo[];
+} {
+  const documents = parseAllDocuments(input, { prettyErrors: true, strict: true, uniqueKeys: true });
+  const parseErrors = documents.reduce<Array<{ message: string }>>((all, document) => all.concat(document.errors), []);
+  if (parseErrors.length > 0) throw new Error(parseErrors[0].message);
+
+  const services: KubeService[] = [];
+  const workloads: WorkloadInfo[] = [];
+  const ingress: IngressInfo[] = [];
+  documents.forEach((document, index) => {
+    const value = document.toJS({ maxAliasCount: 100 });
+    collectNetworkObjects(value, index + 1, services, workloads, ingress);
+  });
+  return { services, workloads, ingress };
 }
 
-function parseService(doc: { text: string; index: number }): KubeService | null {
-  const lines = doc.text.split(/\r?\n/);
-  const kind = getTopLevelValue(lines, "kind");
-
-  if (kind !== "Service") return null;
-
-  return {
-    name: getMetadataValue(lines, "name"),
-    namespace: getMetadataValue(lines, "namespace"),
-    type: getSpecValue(lines, "type") || "ClusterIP",
-    selector: collectMapUnderKey(lines, "selector"),
-    ports: collectServicePorts(lines),
-    documentIndex: doc.index,
-  };
-}
-
-function parseWorkloadPorts(doc: { text: string; index: number }) {
-  const lines = doc.text.split(/\r?\n/);
-  const kind = getTopLevelValue(lines, "kind");
-
-  if (!["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "Pod", "Job", "CronJob"].includes(kind)) {
-    return [];
+function collectNetworkObjects(
+  value: unknown,
+  documentIndex: number,
+  services: KubeService[],
+  workloads: WorkloadInfo[],
+  ingress: IngressInfo[]
+): void {
+  if (!isRecord(value)) return;
+  if (value.kind === "List" && Array.isArray(value.items)) {
+    value.items.forEach((item) => collectNetworkObjects(item, documentIndex, services, workloads, ingress));
+    return;
   }
 
-  const workload = getMetadataValue(lines, "name");
-  const namespace = getMetadataValue(lines, "namespace");
-  const labels = collectAllLabels(lines);
+  const kind = readString(value.kind);
+  if (kind === "Service") {
+    const service = parseServiceObject(value, documentIndex);
+    if (service) services.push(service);
+    return;
+  }
+  if (kind === "Ingress") {
+    const item = parseIngressObject(value);
+    if (item) ingress.push(item);
+    return;
+  }
+
+  const workload = parseWorkloadObject(value, kind);
+  if (workload) workloads.push(workload);
+}
+
+function parseServiceObject(root: Record<string, unknown>, documentIndex: number): KubeService | null {
+  const metadata = isRecord(root.metadata) ? root.metadata : {};
+  const spec = isRecord(root.spec) ? root.spec : {};
+  const name = readString(metadata.name);
+  if (!name) return null;
+  const selectorMap = readStringMap(spec.selector);
+  const rawPorts = Array.isArray(spec.ports) ? spec.ports : [];
+  const ports: ServicePort[] = [];
+
+  rawPorts.forEach((candidate) => {
+    if (!isRecord(candidate)) return;
+    const port = readPortValue(candidate.port);
+    const rawTargetPort = readPortValue(candidate.targetPort);
+    const targetPort = rawTargetPort || port;
+    const nodePort = readPortValue(candidate.nodePort);
+    const problems: string[] = [];
+    if (candidate.port === undefined) problems.push("port is required");
+    else if (typeof candidate.port !== "number" || !Number.isInteger(candidate.port)) problems.push("port must be an integer, not a quoted/string value");
+    if (candidate.nodePort !== undefined && (typeof candidate.nodePort !== "number" || !Number.isInteger(candidate.nodePort))) problems.push("nodePort must be an integer when specified");
+    if (candidate.targetPort !== undefined && typeof candidate.targetPort !== "number" && typeof candidate.targetPort !== "string") problems.push("targetPort must be an integer or named string");
+    ports.push({
+      name: readString(candidate.name),
+      protocol: readString(candidate.protocol) || "TCP",
+      appProtocol: readString(candidate.appProtocol),
+      port,
+      targetPort,
+      targetPortWasDefaulted: candidate.targetPort === undefined && Boolean(port),
+      nodePort,
+      problems,
+    });
+  });
+
+  return {
+    name,
+    namespace: readString(metadata.namespace),
+    type: readString(spec.type) || "ClusterIP",
+    clusterIP: readString(spec.clusterIP),
+    externalName: readString(spec.externalName),
+    selector: mapToPairs(selectorMap),
+    selectorMap,
+    ports,
+    documentIndex,
+  };
+}
+
+function parseWorkloadObject(root: Record<string, unknown>, kind: string): WorkloadInfo | null {
+  const podSpec = getPodSpec(root, kind);
+  const podLabels = getPodTemplateLabels(root, kind);
+  if (!podSpec || !podLabels) return null;
+  const metadata = isRecord(root.metadata) ? root.metadata : {};
+  const workload = readString(metadata.name) || `${kind || "workload"}-unnamed`;
+  const namespace = readString(metadata.namespace);
   const ports: WorkloadPort[] = [];
-  let currentContainer = "";
-  let currentImage = "";
-  let currentPortName = "";
-  let seenContainers = false;
+  const containers = Array.isArray(podSpec.containers) ? podSpec.containers : [];
 
-  lines.forEach((line) => {
-    if (/^\s*containers:\s*$/.test(line)) seenContainers = true;
-
-    const containerNameMatch = line.match(/^\s*-\s*name:\s*(.+)\s*$/);
-    if (containerNameMatch && seenContainers) {
-      currentContainer = stripQuotes(containerNameMatch[1].trim());
-      currentPortName = "";
-    }
-
-    const imageMatch = line.match(/^\s*image:\s*(.+)\s*$/);
-    if (imageMatch) currentImage = stripQuotes(imageMatch[1].trim());
-
-    const portNameMatch = line.match(/^\s*-\s*name:\s*(.+)\s*$/);
-    if (portNameMatch) currentPortName = stripQuotes(portNameMatch[1].trim());
-
-    const containerPortMatch = line.match(/^\s*containerPort:\s*(.+)\s*$/);
-    if (containerPortMatch) {
+  containers.forEach((candidate, containerIndex) => {
+    if (!isRecord(candidate)) return;
+    const container = readString(candidate.name) || `container-${containerIndex + 1}`;
+    const image = readString(candidate.image);
+    const rawPorts = Array.isArray(candidate.ports) ? candidate.ports : [];
+    rawPorts.forEach((rawPort) => {
+      if (!isRecord(rawPort)) return;
+      const containerPort = readPortValue(rawPort.containerPort);
+      if (!containerPort) return;
       ports.push({
         workload,
         namespace,
         kind,
-        labels,
-        container: currentContainer,
-        image: currentImage,
-        containerPort: stripQuotes(containerPortMatch[1].trim()),
-        name: currentPortName,
+        labels: mapToPairs(podLabels),
+        labelMap: podLabels,
+        container,
+        image,
+        containerPort,
+        name: readString(rawPort.name),
+        protocol: readString(rawPort.protocol) || "TCP",
       });
-    }
+    });
   });
 
-  return ports;
+  return { workload, namespace, kind, labels: mapToPairs(podLabels), labelMap: podLabels, ports };
 }
 
-function parseIngress(doc: { text: string; index: number }): IngressInfo | null {
-  const lines = doc.text.split(/\r?\n/);
-  const kind = getTopLevelValue(lines, "kind");
+function getPodSpec(root: Record<string, unknown>, kind: string): Record<string, unknown> | null {
+  const spec = isRecord(root.spec) ? root.spec : null;
+  if (!spec) return null;
+  if (kind === "Pod") return spec;
+  if (kind === "CronJob") {
+    const jobTemplate = isRecord(spec.jobTemplate) ? spec.jobTemplate : null;
+    const jobSpec = jobTemplate && isRecord(jobTemplate.spec) ? jobTemplate.spec : null;
+    const template = jobSpec && isRecord(jobSpec.template) ? jobSpec.template : null;
+    return template && isRecord(template.spec) ? template.spec : null;
+  }
+  const template = isRecord(spec.template) ? spec.template : null;
+  return template && isRecord(template.spec) ? template.spec : null;
+}
 
-  if (kind !== "Ingress") return null;
+function getPodTemplateLabels(root: Record<string, unknown>, kind: string): Record<string, string> | null {
+  if (kind === "Pod") {
+    const metadata = isRecord(root.metadata) ? root.metadata : {};
+    return readStringMap(metadata.labels);
+  }
+  const spec = isRecord(root.spec) ? root.spec : null;
+  if (!spec) return null;
+  let template: Record<string, unknown> | null = null;
+  if (kind === "CronJob") {
+    const jobTemplate = isRecord(spec.jobTemplate) ? spec.jobTemplate : null;
+    const jobSpec = jobTemplate && isRecord(jobTemplate.spec) ? jobTemplate.spec : null;
+    template = jobSpec && isRecord(jobSpec.template) ? jobSpec.template : null;
+  } else {
+    template = isRecord(spec.template) ? spec.template : null;
+  }
+  if (!template) return null;
+  const metadata = isRecord(template.metadata) ? template.metadata : {};
+  return readStringMap(metadata.labels);
+}
+
+function parseIngressObject(root: Record<string, unknown>): IngressInfo | null {
+  const metadata = isRecord(root.metadata) ? root.metadata : {};
+  const spec = isRecord(root.spec) ? root.spec : {};
+  const name = readString(metadata.name);
+  if (!name) return null;
+  const namespace = readString(metadata.namespace);
+  const backends: IngressBackend[] = [];
+
+  const addBackend = (backend: unknown, host: string, path: string) => {
+    if (!isRecord(backend)) return;
+    const service = isRecord(backend.service) ? backend.service : null;
+    if (!service) return;
+    const serviceName = readString(service.name);
+    const port = isRecord(service.port) ? service.port : {};
+    const servicePort = readPortValue(port.number) || readString(port.name);
+    if (serviceName) backends.push({ host, path, serviceName, servicePort });
+  };
+
+  addBackend(spec.defaultBackend, "*", "defaultBackend");
+  const rules = Array.isArray(spec.rules) ? spec.rules : [];
+  rules.forEach((rule) => {
+    if (!isRecord(rule)) return;
+    const host = readString(rule.host) || "*";
+    const http = isRecord(rule.http) ? rule.http : null;
+    const paths = http && Array.isArray(http.paths) ? http.paths : [];
+    paths.forEach((pathItem) => {
+      if (!isRecord(pathItem)) return;
+      addBackend(pathItem.backend, host, readString(pathItem.path) || "/");
+    });
+  });
 
   return {
-    name: getMetadataValue(lines, "name"),
-    namespace: getMetadataValue(lines, "namespace"),
-    hosts: collectValues(lines, "host"),
-    services: collectNestedServiceNames(lines),
+    name,
+    namespace,
+    hosts: Array.from(new Set(backends.map((backend) => backend.host).filter((host) => host !== "*"))),
+    services: Array.from(new Set(backends.map((backend) => backend.serviceName))),
+    backends,
   };
 }
 
-function getTopLevelValue(lines: string[], key: string) {
-  const regex = new RegExp(`^${key}:\\s*(.+)\\s*$`);
-
-  for (const line of lines) {
-    const match = line.match(regex);
-    if (match) return stripQuotes(match[1].trim());
-  }
-
-  return "";
-}
-
-function getMetadataValue(lines: string[], key: string) {
-  let inMetadata = false;
-  const regex = new RegExp(`^\\s{2}${key}:\\s*(.+)\\s*$`);
-
-  for (const line of lines) {
-    if (/^metadata:\s*$/.test(line)) {
-      inMetadata = true;
-      continue;
-    }
-
-    if (inMetadata && /^\S/.test(line)) inMetadata = false;
-
-    if (inMetadata) {
-      const match = line.match(regex);
-      if (match) return stripQuotes(match[1].trim());
-    }
-  }
-
-  return "";
-}
-
-function getSpecValue(lines: string[], key: string) {
-  let inSpec = false;
-  const regex = new RegExp(`^\\s{2}${key}:\\s*(.+)\\s*$`);
-
-  for (const line of lines) {
-    if (/^spec:\s*$/.test(line)) {
-      inSpec = true;
-      continue;
-    }
-
-    if (inSpec && /^\S/.test(line)) inSpec = false;
-
-    if (inSpec) {
-      const match = line.match(regex);
-      if (match) return stripQuotes(match[1].trim());
-    }
-  }
-
-  return "";
-}
-
-function collectServicePorts(lines: string[]) {
-  const ports: ServicePort[] = [];
-  let inPorts = false;
-  let current: ServicePort | null = null;
-
-  lines.forEach((line) => {
-    if (/^\s{2}ports:\s*$/.test(line)) {
-      inPorts = true;
-      return;
-    }
-
-    if (inPorts && /^\S/.test(line)) {
-      if (current) ports.push(current);
-      current = null;
-      inPorts = false;
-      return;
-    }
-
-    if (!inPorts) return;
-
-    const itemMatch = line.match(/^\s*-\s*([A-Za-z]+):\s*(.+)\s*$/);
-    if (itemMatch) {
-      if (current) ports.push(current);
-      current = emptyPort();
-      assignPortField(current, itemMatch[1], itemMatch[2]);
-      return;
-    }
-
-    const fieldMatch = line.match(/^\s*([A-Za-z]+):\s*(.+)\s*$/);
-    if (fieldMatch && current) assignPortField(current, fieldMatch[1], fieldMatch[2]);
-  });
-
-  if (current) ports.push(current);
-
-  return ports;
-}
-
-function emptyPort(): ServicePort {
-  return {
-    name: "",
-    protocol: "TCP",
-    port: "",
-    targetPort: "",
-    nodePort: "",
-  };
-}
-
-function assignPortField(port: ServicePort, key: string, value: string) {
-  const clean = stripQuotes(value.trim());
-
-  if (key === "name") port.name = clean;
-  else if (key === "protocol") port.protocol = clean;
-  else if (key === "port") port.port = clean;
-  else if (key === "targetPort") port.targetPort = clean;
-  else if (key === "nodePort") port.nodePort = clean;
-}
-
-function collectMapUnderKey(lines: string[], key: string) {
-  const values: string[] = [];
-  let active = false;
-  let baseIndent = 0;
-
-  lines.forEach((line) => {
-    const match = line.match(new RegExp(`^(\\s*)${key}:\\s*$`));
-    if (match) {
-      active = true;
-      baseIndent = match[1].length;
-      return;
-    }
-
-    if (active) {
-      const indent = line.length - line.trimStart().length;
-      if (line.trim() && indent <= baseIndent) {
-        active = false;
-        return;
-      }
-
-      const pair = line.trim().match(/^([A-Za-z0-9_.-]+):\s*(.+)$/);
-      if (pair) values.push(`${pair[1]}=${stripQuotes(pair[2].trim())}`);
-    }
-  });
-
-  return Array.from(new Set(values));
-}
-
-function collectAllLabels(lines: string[]) {
-  const labels = new Set<string>();
-  collectMapUnderKey(lines, "labels").forEach((label) => labels.add(label));
-  collectMapUnderKey(lines, "matchLabels").forEach((label) => labels.add(label));
-  return Array.from(labels);
-}
-
-function collectValues(lines: string[], key: string) {
-  const values: string[] = [];
-  const regex = new RegExp(`^\\s*-?\\s*${key}:\\s*(.+)\\s*$`);
-
-  lines.forEach((line) => {
-    const match = line.match(regex);
-    if (match) values.push(stripQuotes(match[1].trim()));
-  });
-
-  return Array.from(new Set(values));
-}
-
-function collectNestedServiceNames(lines: string[]) {
-  const values: string[] = [];
-
-  lines.forEach((line, index) => {
-    if (/^\s*service:\s*$/.test(line)) {
-      for (let offset = index + 1; offset < Math.min(lines.length, index + 8); offset += 1) {
-        const match = lines[offset].match(/^\s*name:\s*(.+)\s*$/);
-        if (match) values.push(stripQuotes(match[1].trim()));
-      }
-    }
-  });
-
-  return Array.from(new Set(values));
-}
-
-function filterServices(services: KubeService[], ingress: IngressInfo[], filter: ExposureFilter) {
+function filterServices(services: KubeService[], ingress: IngressInfo[], filter: ExposureFilter): KubeService[] {
   if (filter === "all") return services;
   if (filter === "cluster") return services.filter((service) => service.type === "ClusterIP");
   if (filter === "node") return services.filter((service) => service.type === "NodePort");
   if (filter === "loadBalancer") return services.filter((service) => service.type === "LoadBalancer");
   if (filter === "ingress") {
-    const names = new Set(ingress.flatMap((item) => item.services));
-    return services.filter((service) => names.has(service.name));
+    const keys = new Set<string>();
+    ingress.forEach((item) => item.backends.forEach((backend) => keys.add(`${item.namespace}\u0000${backend.serviceName}`)));
+    return services.filter((service) => keys.has(`${service.namespace}\u0000${service.name}`));
   }
-
   return services;
 }
 
 function buildIssues(params: {
-  services: KubeService[];
   allServices: KubeService[];
-  workloadPorts: WorkloadPort[];
+  workloads: WorkloadInfo[];
   ingress: IngressInfo[];
   options: {
     warnNodePort: boolean;
@@ -889,211 +858,247 @@ function buildIssues(params: {
     warnNoServices: boolean;
     warnIngressWithoutService: boolean;
   };
-}) {
+}): Issue[] {
   const issues: Issue[] = [];
-  const serviceNames = new Set(params.allServices.map((service) => service.name));
+  const { allServices, workloads, ingress, options } = params;
 
-  if (params.options.warnNoServices && params.allServices.length === 0) {
-    issues.push({
-      severity: "warning",
-      title: "No Service resources found",
-      message: "No Kubernetes Service resources were found in the pasted YAML.",
-    });
+  if (options.warnNoServices && allServices.length === 0) {
+    issues.push({ severity: "warning", title: "No Service resources found", message: "No Kubernetes Service object was found in the pasted documents." });
   }
 
-  if (params.options.warnNodePort && params.services.some((service) => service.type === "NodePort")) {
-    issues.push({
-      severity: "info",
-      title: "NodePort service found",
-      message: "NodePort exposes a port on every node. Confirm this exposure is intended.",
-    });
+  if (options.warnNodePort) {
+    const node = allServices.filter((service) => service.type === "NodePort");
+    if (node.length > 0) issues.push({ severity: "warning", title: "NodePort exposure declared", message: `${node.length} Service${node.length === 1 ? "" : "s"} request NodePort exposure. Actual reachability still depends on node networking and firewalls.` });
   }
 
-  if (params.options.warnLoadBalancer && params.services.some((service) => service.type === "LoadBalancer")) {
-    issues.push({
-      severity: "warning",
-      title: "LoadBalancer service found",
-      message: "LoadBalancer can create external cloud load balancers and expose traffic outside the cluster.",
-    });
+  if (options.warnLoadBalancer) {
+    const load = allServices.filter((service) => service.type === "LoadBalancer");
+    if (load.length > 0) issues.push({ severity: "warning", title: "LoadBalancer Service declared", message: `${load.length} Service${load.length === 1 ? "" : "s"} request external load-balancer integration. Provisioning, addresses, and cost depend on the cluster implementation.` });
   }
 
-  if (params.options.warnMissingTargetPort && params.services.some((service) => service.ports.some((port) => !port.targetPort))) {
-    issues.push({
-      severity: "info",
-      title: "targetPort not set on some services",
-      message: "When targetPort is omitted, Kubernetes uses the service port value. Confirm that matches the container port.",
-    });
+  if (options.warnMissingTargetPort) {
+    const defaulted = allServices.reduce((total, service) => total + service.ports.filter((port) => port.targetPortWasDefaulted).length, 0);
+    if (defaulted > 0) issues.push({ severity: "info", title: "targetPort defaults to Service port", message: `${defaulted} Service port entr${defaulted === 1 ? "y omits" : "ies omit"} targetPort. Kubernetes validly defaults each target to the corresponding Service port.` });
   }
 
-  if (params.options.warnSelectorMismatch) {
-    const mismatched = params.services.filter((service) =>
-      service.selector.length > 0 &&
-      !params.workloadPorts.some((port) => service.selector.every((selector) => port.labels.includes(selector)))
-    );
-
-    if (mismatched.length > 0) {
-      issues.push({
-        severity: "warning",
-        title: "Possible selector mismatch",
-        message: `No matching workload labels were found for: ${mismatched.map((service) => service.name).join(", ")}.`,
-      });
+  allServices.forEach((service) => {
+    validateServicePortShape(service, issues);
+    if (!options.warnSelectorMismatch || Object.keys(service.selectorMap).length === 0) return;
+    const sameNamespace = workloads.filter((workload) => workload.namespace === service.namespace);
+    const selected = sameNamespace.filter((workload) => labelsMatch(service.selectorMap, workload.labelMap));
+    if (sameNamespace.length > 0 && selected.length === 0) {
+      issues.push({ severity: "warning", title: `No pasted workload matches ${service.name}`, message: `Service ${formatNamespaced(service.namespace, service.name)} has a selector, but none of the pasted Pod-template labels in that namespace satisfy it.` });
+      return;
     }
-  }
-
-  if (params.options.warnIngressWithoutService) {
-    const unknown = params.ingress.flatMap((item) => item.services).filter((name) => !serviceNames.has(name));
-
-    if (unknown.length > 0) {
-      issues.push({
-        severity: "warning",
-        title: "Ingress references unknown service",
-        message: `Ingress references service names not found in the pasted YAML: ${Array.from(new Set(unknown)).join(", ")}.`,
-      });
+    if (sameNamespace.length === 0) {
+      issues.push({ severity: "info", title: `Selector for ${service.name} cannot be cross-checked`, message: `No Pod or Pod-template workload from namespace ${service.namespace || "default/unspecified"} is present in the pasted set.` });
+      return;
     }
-  }
 
-  if (issues.length === 0) {
-    issues.push({
-      severity: "info",
-      title: "Service ports mapped",
-      message: "No obvious service port mapping warning was found from the enabled checks.",
+    service.ports.forEach((port) => {
+      if (!port.targetPort || /^\d+$/.test(port.targetPort)) return;
+      const namedMatches = selected.reduce<WorkloadPort[]>((all, workload) => all.concat(workload.ports), []).filter((item) => item.name === port.targetPort && item.protocol === port.protocol);
+      if (namedMatches.length === 0) {
+        issues.push({ severity: "warning", title: `Named targetPort ${port.targetPort} was not found`, message: `Service ${formatNamespaced(service.namespace, service.name)} refers to named targetPort ${port.targetPort}/${port.protocol}, but no selected pasted container declares that named port.` });
+      }
+    });
+  });
+
+  if (options.warnIngressWithoutService) {
+    ingress.forEach((item) => {
+      item.backends.forEach((backend) => {
+        const service = allServices.find((candidate) => candidate.namespace === item.namespace && candidate.name === backend.serviceName);
+        if (!service) {
+          issues.push({ severity: "warning", title: "Ingress backend Service not found", message: `Ingress ${formatNamespaced(item.namespace, item.name)} points to ${backend.serviceName}, but that Service is not present in the same namespace in the pasted set.` });
+          return;
+        }
+        if (backend.servicePort && !serviceHasPort(service, backend.servicePort)) {
+          issues.push({ severity: "warning", title: "Ingress backend port not found", message: `Ingress ${formatNamespaced(item.namespace, item.name)} requests ${backend.serviceName}:${backend.servicePort}, but that port name/number is not declared by the pasted Service.` });
+        }
+      });
     });
   }
 
-  return issues;
+  if (allServices.some((service) => service.type === "ExternalName")) {
+    issues.push({ severity: "info", title: "ExternalName uses DNS indirection", message: "ExternalName Services do not select Pods or proxy traffic through the normal Service virtual IP path." });
+  }
+  if (allServices.some((service) => service.clusterIP === "None")) {
+    issues.push({ severity: "info", title: "Headless Service present", message: "clusterIP: None changes discovery semantics; clients resolve backend endpoints rather than using the normal Service virtual IP." });
+  }
+
+  if (issues.length === 0) issues.push({ severity: "info", title: "No enabled static mapping concern found", message: "The pasted Service selectors, named target ports, and Ingress backends are internally consistent for the enabled checks." });
+  return dedupeIssues(issues);
 }
 
-function formatOutput(result: Omit<Result, "output">, mode: OutputMode, detailLevel: DetailLevel) {
-  if (mode === "json") {
-    return JSON.stringify(result, null, 2);
+function validateServicePortShape(service: KubeService, issues: Issue[]): void {
+  if (service.ports.length > 1 && service.ports.some((port) => !port.name)) {
+    issues.push({ severity: "warning", title: `Unnamed port in multi-port Service ${service.name}`, message: "Kubernetes requires port names when a Service exposes more than one port so each entry is unambiguous." });
   }
+  const names = service.ports.map((port) => port.name).filter(Boolean);
+  if (new Set(names).size !== names.length) {
+    issues.push({ severity: "high", title: `Duplicate Service port name in ${service.name}`, message: "Port names within a Service must be unique." });
+  }
+  service.ports.forEach((port) => {
+    port.problems.forEach((problem) => issues.push({ severity: "high", title: `Invalid Service port entry in ${service.name}`, message: problem }));
+    if (port.port && !isValidPortNumber(port.port)) issues.push({ severity: "high", title: `Invalid Service port ${port.port}`, message: `Service ${service.name} declares a port outside 1-65535 or a non-integer value.` });
+    if (port.nodePort && !isValidPortNumber(port.nodePort)) issues.push({ severity: "high", title: `Invalid nodePort ${port.nodePort}`, message: `Service ${service.name} declares a nodePort outside 1-65535 or a non-integer value. Cluster policy can impose a narrower range.` });
+    if (port.protocol && !["TCP", "UDP", "SCTP"].includes(port.protocol)) issues.push({ severity: "high", title: `Unsupported Service protocol ${port.protocol}`, message: `Service ports use TCP, UDP, or SCTP.` });
+  });
+}
 
+function labelsMatch(selector: Record<string, string>, labels: Record<string, string>): boolean {
+  return Object.keys(selector).every((key) => labels[key] === selector[key]);
+}
+
+function serviceHasPort(service: KubeService, reference: string): boolean {
+  return service.ports.some((port) => port.name === reference || port.port === reference);
+}
+
+function isValidPortNumber(value: string): boolean {
+  if (!/^\d+$/.test(value)) return false;
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 1 && number <= 65535;
+}
+
+function formatOutput(result: Omit<Result, "output">, mode: OutputMode, detailLevel: DetailLevel): string {
+  if (mode === "json") return JSON.stringify(result, null, 2);
   if (mode === "markdown") {
     return [
       "| Service | Type | Namespace | Selector | Ports |",
       "| --- | --- | --- | --- | --- |",
-      ...result.services.map((service) => `| ${service.name} | ${service.type} | ${service.namespace || "-"} | ${escapeMarkdown(service.selector.join(", ") || "-")} | ${escapeMarkdown(formatPorts(service.ports))} |`),
+      ...result.services.map((service) => `| ${escapeMarkdown(service.name)} | ${service.type} | ${escapeMarkdown(service.namespace || "-")} | ${escapeMarkdown(service.selector.join(", ") || "-")} | ${escapeMarkdown(formatPorts(service.ports))} |`),
+      "",
+      "## Ingress backends",
+      ...result.ingress.reduce<string[]>((all, item) => all.concat(item.backends.map((backend) => `- ${item.namespace || "default/unspecified"}/${item.name}: ${backend.host}${backend.path} -> ${backend.serviceName}:${backend.servicePort || "?"}`)), []),
       "",
       "## Findings",
-      ...result.issues.map((issue) => `- **${issue.title}:** ${issue.message}`),
+      ...result.issues.map((issue) => `- **${escapeMarkdown(issue.title)}:** ${escapeMarkdown(issue.message)}`),
     ].join("\n");
   }
-
   if (mode === "csv") {
-    const rows = [
-      ["service", "type", "namespace", "selector", "ports"],
-      ...result.services.map((service) => [service.name, service.type, service.namespace, service.selector.join("; "), formatPorts(service.ports)]),
-    ];
-
+    const rows = [["service", "type", "namespace", "selector", "ports", "cluster_ip", "external_name"], ...result.services.map((service) => [service.name, service.type, service.namespace, service.selector.join("; "), formatPorts(service.ports), service.clusterIP, service.externalName])];
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
-
   if (mode === "checklist") {
     return [
-      "Kubernetes Service Port Review Checklist",
-      "---------------------------------------",
-      "- [ ] Confirm service selectors match workload labels.",
-      "- [ ] Confirm service port maps to the intended container targetPort.",
-      "- [ ] Confirm NodePort or LoadBalancer exposure is intentional.",
-      "- [ ] Confirm Ingress backends point to existing services and ports.",
-      "- [ ] Confirm named targetPorts match named container ports.",
-      "- [ ] Confirm live endpoints with kubectl before deployment.",
+      "Kubernetes Service port review",
+      "------------------------------",
+      "- [ ] Confirm selectors match intended Pod-template labels in the same namespace.",
+      "- [ ] Confirm named targetPorts exist on selected container ports.",
+      "- [ ] Treat omitted targetPort as a valid default to the Service port.",
+      "- [ ] Confirm NodePort / LoadBalancer exposure is intentional for the target cluster.",
+      "- [ ] Confirm Ingress backends name existing Services and Service ports.",
+      "- [ ] Check live EndpointSlices and Pod readiness before diagnosing runtime routing.",
       "",
-      "Findings:",
       ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
     ].join("\n");
   }
-
   if (mode === "mapping") {
     return result.services.map((service) => {
+      const selected = result.workloads.filter((workload) => workload.namespace === service.namespace && labelsMatch(service.selectorMap, workload.labelMap));
       const lines = [
-        `${service.name} (${service.type})`,
-        `namespace: ${service.namespace || "default/unspecified"}`,
+        `${formatNamespaced(service.namespace, service.name)} (${service.type}${service.clusterIP === "None" ? ", headless" : ""})`,
         `selector: ${service.selector.join(", ") || "none"}`,
         `ports: ${formatPorts(service.ports)}`,
       ];
-
-      if (detailLevel === "detailed") {
-        const matching = result.workloadPorts.filter((port) => service.selector.every((selector) => port.labels.includes(selector)));
-        lines.push(`matching container ports: ${matching.map((port) => `${port.workload}/${port.container}:${port.containerPort}`).join(", ") || "not found"}`);
-      }
-
+      if (service.externalName) lines.push(`externalName: ${service.externalName}`);
+      if (detailLevel === "detailed") lines.push(`matching pasted workloads: ${selected.map((workload) => workload.workload).join(", ") || "none / not applicable"}`);
       return lines.join("\n");
     }).join("\n\n");
   }
 
   return [
-    "Kubernetes Service Port Mapping Summary",
+    "Kubernetes Service port mapping summary",
     "---------------------------------------",
-    `Services: ${result.serviceCount}`,
-    `Service ports: ${result.servicePortCount}`,
-    `Container ports found: ${result.workloadPortCount}`,
-    `Ingress hosts: ${result.ingressHostCount}`,
+    `Services shown: ${result.serviceCount}`,
+    `Service port entries shown: ${result.servicePortCount}`,
+    `Declared container ports found: ${result.workloadPortCount}`,
+    `Ingress hosts found: ${result.ingressHostCount}`,
     "",
     "Services:",
-    ...result.services.map((service) => `- ${service.name} (${service.type}): ${formatPorts(service.ports)}; selector ${service.selector.join(", ") || "none"}`),
+    ...(result.services.length ? result.services.map((service) => `- ${formatNamespaced(service.namespace, service.name)} (${service.type}): ${formatPorts(service.ports)}; selector ${service.selector.join(", ") || "none"}`) : ["- none shown"]),
     "",
-    "Ingress:",
-    ...(result.ingress.length ? result.ingress.map((item) => `- ${item.name}: hosts ${item.hosts.join(", ") || "none"} -> services ${item.services.join(", ") || "none"}`) : ["- none found"]),
+    "Ingress backends:",
+    ...(result.ingress.length ? result.ingress.reduce<string[]>((all, item) => all.concat(item.backends.map((backend) => `- ${formatNamespaced(item.namespace, item.name)} ${backend.host}${backend.path} -> ${backend.serviceName}:${backend.servicePort || "?"}`)), []) : ["- none found"]),
     "",
     "Findings:",
     ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
   ].join("\n");
 }
 
-function formatPorts(ports: ServicePort[]) {
+function formatPorts(ports: ServicePort[]): string {
   if (ports.length === 0) return "-";
-
   return ports.map((port) => {
     const parts = [
-      port.name ? `${port.name}` : "",
+      port.name || "",
       `port ${port.port || "?"}`,
-      `target ${port.targetPort || "same as port"}`,
+      `target ${port.targetPort || "?"}${port.targetPortWasDefaulted ? " (default)" : ""}`,
       port.nodePort ? `node ${port.nodePort}` : "",
-      port.protocol ? port.protocol : "",
+      port.protocol || "TCP",
+      port.appProtocol ? `app ${port.appProtocol}` : "",
     ].filter(Boolean);
-
     return parts.join(" / ");
   }).join("; ");
 }
 
-function stripQuotes(value: string) {
-  return value.replace(/^["']|["']$/g, "");
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
+function readString(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return "";
+}
 
+function readPortValue(value: unknown): string {
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "string") return value.trim();
+  return "";
+}
+
+function readStringMap(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {};
+  const result: Record<string, string> = Object.create(null) as Record<string, string>;
+  Object.keys(value).forEach((key) => {
+    const scalar = value[key];
+    if (typeof scalar === "string" || typeof scalar === "number" || typeof scalar === "boolean") result[key] = String(scalar);
+  });
+  return result;
+}
+
+function mapToPairs(value: Record<string, string>): string[] {
+  return Object.keys(value).sort().map((key) => `${key}=${value[key]}`);
+}
+
+function formatNamespaced(namespace: string, name: string): string {
+  return `${namespace || "default/unspecified"}/${name}`;
+}
+
+function dedupeIssues(issues: Issue[]): Issue[] {
+  const seen = new Set<string>();
+  return issues.filter((issue) => {
+    const key = `${issue.severity}\u0000${issue.title}\u0000${issue.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function csvEscape(value: string): string {
+  if (/[",\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
   return value;
 }
 
-function escapeMarkdown(value: string) {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, "\\n");
+function escapeMarkdown(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, "\\n");
 }
 
-function getNotes(result: Result) {
-  const notes: { title: string; message: string }[] = [];
-
-  if (result.serviceCount > 0) {
-    notes.push({
-      title: "Service routing depends on selectors",
-      message: "A Service routes to Pods selected by labels, not directly to a Deployment name.",
-    });
-  }
-
-  if (result.services.some((service) => ["NodePort", "LoadBalancer"].includes(service.type))) {
-    notes.push({
-      title: "Review external exposure",
-      message: "NodePort and LoadBalancer can expose traffic beyond the cluster depending on infrastructure and firewall rules.",
-    });
-  }
-
-  notes.push({
-    title: "Check live endpoints too",
-    message: "YAML review is helpful, but kubectl endpoints, logs, and live traffic tests confirm actual routing.",
-  });
-
+function getNotes(result: Result): Array<{ title: string; message: string }> {
+  const notes: Array<{ title: string; message: string }> = [];
+  if (result.services.some((service) => Object.keys(service.selectorMap).length > 0)) notes.push({ title: "Service selection is label-based", message: "The comparison uses Pod-template labels from the same namespace; it does not assume a Deployment name is a Service backend." });
+  if (result.services.some((service) => service.ports.some((port) => port.targetPortWasDefaulted))) notes.push({ title: "Omitted targetPort is valid", message: "Kubernetes defaults targetPort to the Service port. The mapping marks that default instead of treating the omission as an error." });
+  notes.push({ title: "Runtime routing starts after the manifest", message: "EndpointSlices, readiness, NetworkPolicy, service mesh behavior, kube-proxy/eBPF implementation, and external load balancers require live cluster evidence." });
   return notes;
 }
+
