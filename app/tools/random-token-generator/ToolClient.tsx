@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
@@ -47,6 +47,217 @@ const TOKEN_FORMATS: TokenFormat[] = [
 
 function getFormat(formatId: string) {
   return TOKEN_FORMATS.find((format) => format.id === formatId) ?? TOKEN_FORMATS[0];
+}
+
+function CharacterSetDropdown({
+  value,
+  onChange,
+}: {
+  value: TokenFormat["id"];
+  onChange: (value: TokenFormat["id"]) => void;
+}) {
+  const selectedIndex = Math.max(
+    0,
+    TOKEN_FORMATS.findIndex((format) => format.id === value)
+  );
+  const selectedFormat = TOKEN_FORMATS[selectedIndex];
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(selectedIndex);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const focusOption = (index: number) => {
+    const optionCount = TOKEN_FORMATS.length;
+    const wrappedIndex = (index + optionCount) % optionCount;
+
+    setActiveIndex(wrappedIndex);
+    optionRefs.current[wrappedIndex]?.focus();
+  };
+
+  const openMenu = (index: number) => {
+    setIsOpen(true);
+    setActiveIndex(index);
+
+    globalThis.setTimeout(() => {
+      optionRefs.current[index]?.focus();
+    }, 0);
+  };
+
+  const selectFormat = (formatId: TokenFormat["id"]) => {
+    onChange(formatId);
+    setIsOpen(false);
+
+    globalThis.setTimeout(() => {
+      triggerRef.current?.focus();
+    }, 0);
+  };
+
+  const handleTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      openMenu(selectedIndex);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      openMenu(selectedIndex);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      setIsOpen(false);
+    }
+  };
+
+  const handleOptionKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusOption(index + 1);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusOption(index - 1);
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      focusOption(0);
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      focusOption(TOKEN_FORMATS.length - 1);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setIsOpen(false);
+      triggerRef.current?.focus();
+    }
+  };
+
+  const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
+    const nextTarget = event.relatedTarget as Node | null;
+
+    if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <div className="relative" onBlur={handleBlur}>
+      <span
+        id="token-character-set-label"
+        className="block mb-2 text-sm font-medium text-gray-700"
+      >
+        Character Set
+      </span>
+
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls="token-character-set-options"
+        aria-labelledby="token-character-set-label"
+        onClick={() => {
+          if (isOpen) {
+            setIsOpen(false);
+          } else {
+            openMenu(selectedIndex);
+          }
+        }}
+        onKeyDown={handleTriggerKeyDown}
+        className={`group flex w-full items-center justify-between gap-3 rounded-xl border bg-white p-4 text-left text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] ${
+          isOpen
+            ? "border-[var(--green)]"
+            : "border-gray-300 hover:border-gray-400"
+        }`}
+      >
+        <span>{selectedFormat.label}</span>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 20 20"
+          fill="none"
+          className={`h-4 w-4 shrink-0 text-gray-500 transition-transform group-hover:text-[var(--green)] ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        >
+          <path
+            d="m6 8 4 4 4-4"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div
+          id="token-character-set-options"
+          role="listbox"
+          aria-labelledby="token-character-set-label"
+          className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+        >
+          {TOKEN_FORMATS.map((format, index) => {
+            const isSelected = format.id === value;
+            const isActive = index === activeIndex;
+
+            return (
+              <button
+                key={format.id}
+                ref={(element: HTMLButtonElement | null) => {
+                  optionRefs.current[index] = element;
+                }}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                tabIndex={isActive ? 0 : -1}
+                onMouseEnter={() => setActiveIndex(index)}
+                onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) =>
+                  handleOptionKeyDown(event, index)
+                }
+                onClick={() => selectFormat(format.id)}
+                className={`flex w-full items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 text-left text-sm outline-none transition last:border-b-0 hover:bg-gray-50 focus:bg-gray-50 ${
+                  isSelected
+                    ? "bg-gray-50 font-medium text-[var(--green)]"
+                    : "bg-white text-gray-800"
+                }`}
+              >
+                <span>{format.label}</span>
+                {isSelected && (
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    className="h-4 w-4 shrink-0 text-[var(--green)]"
+                  >
+                    <path
+                      d="m5.5 10.2 2.8 2.8 6.2-6.2"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function generateRandomString(length: number, chars: string) {
@@ -191,23 +402,15 @@ export default function ToolClient() {
         </div>
 
         <div className="self-start">
-          <label className="block mb-2 text-sm font-medium text-gray-700">Character Set</label>
-          <select
+          <CharacterSetDropdown
             value={formatId}
-            onChange={(event: { target: { value: string } }) => {
-              setFormatId(event.target.value as TokenFormat["id"]);
+            onChange={(nextFormatId) => {
+              setFormatId(nextFormatId);
               setResult(null);
               setError("");
               setCopied(false);
             }}
-            className="w-full rounded-xl border border-gray-300 bg-white p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-          >
-            {TOKEN_FORMATS.map((format) => (
-              <option key={format.id} value={format.id}>
-                {format.label}
-              </option>
-            ))}
-          </select>
+          />
           <p className="mt-2 text-xs leading-relaxed text-gray-500">{selectedFormat.note}</p>
         </div>
       </div>
