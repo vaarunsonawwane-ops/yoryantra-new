@@ -2,37 +2,36 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Kubernetes Resource Requests and Limits Checker | K8s CPU Memory Review | Yoryantra",
+  title: "Kubernetes Resource Requests & Limits Checker | CPU Memory Review | Yoryantra",
   description:
-    "Check Kubernetes YAML for CPU and memory requests and limits. Review missing resources, container settings, namespaces, workloads, and deployment notes.",
+    "Check Kubernetes YAML for container and Pod-level CPU or memory requests, limits, quantity errors, missing declarations, and request-limit conflicts.",
   keywords: [
-    "Kubernetes Resource Requests and Limits Checker",
-    "K8s resource limits checker",
-    "Kubernetes CPU memory checker",
-    "Kubernetes requests limits analyzer",
-    "Kubernetes manifest resource checker",
-    "K8s YAML resource analyzer",
-    "Kubernetes container resources",
-    "CPU memory limits Kubernetes",
+    "Kubernetes resource requests limits checker",
+    "Kubernetes CPU memory requests",
+    "Kubernetes resource limits",
+    "Kubernetes Pod level resources",
+    "Kubernetes resource quantity checker",
+    "Kubernetes LimitRange requests limits",
+    "K8s manifest resource review",
+    "Kubernetes init container resources",
     "DevOps tools",
-    "Kubernetes tools",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/kubernetes-resource-requests-limits-checker",
   },
   openGraph: {
-    title: "Kubernetes Resource Requests and Limits Checker | K8s CPU Memory Review | Yoryantra",
+    title: "Kubernetes Resource Requests & Limits Checker | Yoryantra",
     description:
-      "Check Kubernetes YAML for CPU and memory requests and limits. Review missing resources, container settings, namespaces, workloads, and deployment notes.",
+      "Review container and Pod-level resource declarations, Kubernetes quantities, missing fields, and request-limit conflicts.",
     url: "https://yoryantra.com/tools/kubernetes-resource-requests-limits-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Kubernetes Resource Requests and Limits Checker | K8s CPU Memory Review | Yoryantra",
+    card: "summary",
+    title: "Kubernetes Resource Requests & Limits Checker | Yoryantra",
     description:
-      "Check Kubernetes YAML for CPU and memory requests and limits. Review missing resources, container settings, namespaces, workloads, and deployment notes.",
+      "Review Kubernetes CPU and memory requests, limits, Pod-level budgets, quantity errors, and static manifest gaps.",
   },
 };
 

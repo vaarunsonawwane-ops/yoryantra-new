@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
+import { parseAllDocuments } from "yaml";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -8,6 +9,18 @@ import YoryantraSelect from "@/app/components/YoryantraSelect";
 type OutputMode = "summary" | "table" | "json" | "markdown" | "csv" | "checklist";
 type DetailLevel = "compact" | "balanced" | "detailed";
 type ContainerFilter = "all" | "missingRequests" | "missingLimits" | "complete" | "initContainers";
+type ContainerStatus = "complete" | "missing-requests" | "missing-limits" | "missing-both" | "pod-level-budget";
+
+type PodBudget = {
+  documentIndex: number;
+  kind: string;
+  workload: string;
+  namespace: string;
+  cpuRequest: string;
+  memoryRequest: string;
+  cpuLimit: string;
+  memoryLimit: string;
+};
 
 type ContainerResource = {
   documentIndex: number;
@@ -21,7 +34,12 @@ type ContainerResource = {
   memoryRequest: string;
   cpuLimit: string;
   memoryLimit: string;
-  status: "complete" | "missing-requests" | "missing-limits" | "missing-both";
+  cpuRequestMilli: number | null;
+  memoryRequestBytes: number | null;
+  cpuLimitMilli: number | null;
+  memoryLimitBytes: number | null;
+  podBudget: PodBudget | null;
+  status: ContainerStatus;
 };
 
 type Issue = {
@@ -30,14 +48,25 @@ type Issue = {
   message: string;
 };
 
+type ParseResult = {
+  containers: ContainerResource[];
+  podBudgets: PodBudget[];
+  ignoredEphemeralContainers: number;
+};
+
 type Result = {
   containers: ContainerResource[];
+  allContainers: ContainerResource[];
+  podBudgets: PodBudget[];
   issues: Issue[];
   output: string;
   containerCount: number;
+  visibleContainerCount: number;
   completeCount: number;
   missingRequestsCount: number;
   missingLimitsCount: number;
+  podBudgetCount: number;
+  ignoredEphemeralContainers: number;
 };
 
 const sampleYaml = `apiVersion: apps/v1
@@ -112,29 +141,35 @@ export default function ToolClient() {
 
   const checkResources = () => {
     if (!yamlInput.trim()) {
-      setError("Please paste Kubernetes YAML manifests.");
+      setError("Paste Kubernetes YAML manifests before checking resources.");
       setResult(null);
       setOutput("");
       return;
     }
 
-    const next = buildResult({
-      yamlInput,
-      outputMode,
-      detailLevel,
-      containerFilter,
-      warnMissingRequests,
-      warnMissingLimits,
-      warnLimitWithoutRequest,
-      warnNoResources,
-      warnMemoryOnly,
-      warnNoContainers,
-    });
-
-    setResult(next);
-    setOutput(next.output);
-    setError("");
-    setCopied(false);
+    try {
+      const next = buildResult({
+        yamlInput,
+        outputMode,
+        detailLevel,
+        containerFilter,
+        warnMissingRequests,
+        warnMissingLimits,
+        warnLimitWithoutRequest,
+        warnNoResources,
+        warnMemoryOnly,
+        warnNoContainers,
+      });
+      setResult(next);
+      setOutput(next.output);
+      setError("");
+      setCopied(false);
+    } catch (caught) {
+      setResult(null);
+      setOutput("");
+      setCopied(false);
+      setError(caught instanceof Error ? caught.message : "Unable to check the Kubernetes resources.");
+    }
   };
 
   const copyOutput = async () => {
@@ -175,39 +210,35 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Kubernetes Resource Requests and Limits Checker"
-      description="Check Kubernetes YAML for CPU and memory requests and limits. Review missing resources, container settings, namespaces, workloads, and deployment notes."
+      description="Check container and Pod-level CPU or memory declarations, quantity errors, missing fields, and request-limit conflicts."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-900">
-              Kubernetes YAML
-            </label>
+            <label className="block text-sm font-semibold text-gray-900">Kubernetes YAML</label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Paste workloads to check container CPU and memory requests and limits.
+              Paste Pods or workload manifests. Multi-document YAML and Kubernetes List objects are supported.
             </p>
           </div>
-
           <textarea
             value={yamlInput}
-            onChange={(event) => {
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
               setYamlInput(event.target.value);
               clearResult();
             }}
             placeholder={sampleYaml}
             spellCheck={false}
-            className="w-full min-h-[520px] rounded-xl border border-gray-300 p-4 text-sm leading-6 font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            className="min-h-[520px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Resource Check Settings</h3>
-
+        <div className="self-start rounded-2xl border border-gray-200 bg-white p-5">
+          <h3 className="text-lg font-semibold text-gray-900">Resource check settings</h3>
           <div className="mt-4 space-y-4">
             <YoryantraSelect
               label="Output"
               value={outputMode}
-              onChange={(value) => {
+              onChange={(value: string) => {
                 setOutputMode(value as OutputMode);
                 clearResult();
               }}
@@ -220,11 +251,10 @@ export default function ToolClient() {
                 { label: "Review checklist", value: "checklist" },
               ]}
             />
-
             <YoryantraSelect
-              label="Detail Level"
+              label="Detail"
               value={detailLevel}
-              onChange={(value) => {
+              onChange={(value: string) => {
                 setDetailLevel(value as DetailLevel);
                 clearResult();
               }}
@@ -234,305 +264,201 @@ export default function ToolClient() {
                 { label: "Detailed", value: "detailed" },
               ]}
             />
-
             <YoryantraSelect
-              label="Container Filter"
+              label="Container view"
               value={containerFilter}
-              onChange={(value) => {
+              onChange={(value: string) => {
                 setContainerFilter(value as ContainerFilter);
                 clearResult();
               }}
               options={[
-                { label: "All containers", value: "all" },
-                { label: "Missing requests", value: "missingRequests" },
-                { label: "Missing limits", value: "missingLimits" },
-                { label: "Complete resources", value: "complete" },
-                { label: "Init containers", value: "initContainers" },
+                { label: "All app and init containers", value: "all" },
+                { label: "Missing explicit requests", value: "missingRequests" },
+                { label: "Missing explicit limits", value: "missingLimits" },
+                { label: "Covered request and limit fields", value: "complete" },
+                { label: "Init containers only", value: "initContainers" },
               ]}
             />
+          </div>
 
-            <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
-              <p className="text-sm font-medium text-gray-700">Resource fields</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {["requests.cpu", "requests.memory", "limits.cpu", "limits.memory"].map((item) => (
-                  <span key={item} className="rounded-full border border-gray-200 bg-white px-2.5 py-1 font-mono text-xs text-gray-500">
-                    {item}
-                  </span>
-                ))}
-              </div>
+          <div className="mt-5 border-t border-gray-200 pt-5">
+            <p className="text-sm font-semibold text-gray-900">Findings</p>
+            <div className="mt-3 space-y-3">
+              <CheckboxRow checked={warnMissingRequests} onChange={setWarnMissingRequests} label="Missing explicit CPU or memory requests" />
+              <CheckboxRow checked={warnMissingLimits} onChange={setWarnMissingLimits} label="Missing explicit CPU or memory limits" />
+              <CheckboxRow checked={warnLimitWithoutRequest} onChange={setWarnLimitWithoutRequest} label="Limit present without matching request" />
+              <CheckboxRow checked={warnNoResources} onChange={setWarnNoResources} label="No container or Pod-level resource budget" />
+              <CheckboxRow checked={warnMemoryOnly} onChange={setWarnMemoryOnly} label="Only one compute resource family configured" />
+              <CheckboxRow checked={warnNoContainers} onChange={setWarnNoContainers} label="No supported containers found" />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Checks</h3>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <CheckboxRow checked={warnMissingRequests} label="Warn when CPU or memory requests are missing" onChange={(checked) => { setWarnMissingRequests(checked); clearResult(); }} />
-          <CheckboxRow checked={warnMissingLimits} label="Warn when CPU or memory limits are missing" onChange={(checked) => { setWarnMissingLimits(checked); clearResult(); }} />
-          <CheckboxRow checked={warnLimitWithoutRequest} label="Warn when limits exist without requests" onChange={(checked) => { setWarnLimitWithoutRequest(checked); clearResult(); }} />
-          <CheckboxRow checked={warnNoResources} label="Warn when resources block is missing" onChange={(checked) => { setWarnNoResources(checked); clearResult(); }} />
-          <CheckboxRow checked={warnMemoryOnly} label="Warn when only memory or only CPU is configured" onChange={(checked) => { setWarnMemoryOnly(checked); clearResult(); }} />
-          <CheckboxRow checked={warnNoContainers} label="Warn when no containers are found" onChange={(checked) => { setWarnNoContainers(checked); clearResult(); }} />
-        </div>
-
-        <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          This checker reads pasted YAML only. It does not contact a cluster, inspect live pods, or calculate real usage.
-        </p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button type="button" onClick={checkResources} className="min-h-11 whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90">Check Resources</button>
+        <button type="button" onClick={loadExample} className="min-h-11 whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50">Load Example</button>
+        <button type="button" onClick={resetAll} className="min-h-11 whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50">Reset</button>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={checkResources} className="yoryantra-btn">
-          Check Resources
-        </button>
-
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
-          {copied ? "Copied" : "Copy Output"}
-        </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
-          Load Example
-        </button>
-
-        <button onClick={resetAll} className="yoryantra-btn-outline">
-          Reset
-        </button>
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Pasted YAML is processed in the browser. No cluster, metrics API, admission controller, LimitRange, ResourceQuota, or live Pod state is queried.
       </div>
 
-      {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
-          {error}
-        </div>
-      )}
+      {error ? <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">{error}</div> : null}
 
-      {result && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Containers" value={result.containerCount.toLocaleString()} />
-          <SummaryCard label="Complete" value={result.completeCount.toLocaleString()} />
-          <SummaryCard label="Missing Requests" value={result.missingRequestsCount.toLocaleString()} />
-          <SummaryCard label="Missing Limits" value={result.missingLimitsCount.toLocaleString()} />
-        </div>
-      )}
+      {result ? (
+        <>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <SummaryCard label="Containers" value={String(result.containerCount)} />
+            <SummaryCard label="Visible" value={String(result.visibleContainerCount)} />
+            <SummaryCard label="Covered" value={String(result.completeCount)} />
+            <SummaryCard label="Missing requests" value={String(result.missingRequestsCount)} />
+            <SummaryCard label="Pod budgets" value={String(result.podBudgetCount)} />
+          </div>
 
-      {result && result.containers.length > 0 && (
-        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Container Resource Table</h3>
-
-          <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
-            <table className="w-full min-w-[1100px] text-left text-sm">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Workload</th>
-                  <th className="px-4 py-3 font-semibold">Container</th>
-                  <th className="px-4 py-3 font-semibold">Image</th>
-                  <th className="px-4 py-3 font-semibold">Requests</th>
-                  <th className="px-4 py-3 font-semibold">Limits</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-gray-100">
-                {result.containers.map((container, index) => (
-                  <tr key={`${container.workload}-${container.container}-${index}`}>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{container.kind}/{container.workload || "unnamed"}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-900">{container.container || "-"}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      <span className="block max-w-[280px] break-words">{container.image || "-"}</span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{formatRequest(container)}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{formatLimit(container)}</td>
-                    <td className="px-4 py-3 text-gray-700">{container.status}</td>
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+            <h3 className="text-lg font-semibold text-gray-900">Container resource table</h3>
+            <p className="mt-1 text-sm text-gray-500">The filter changes this view; findings still consider all supported containers in the pasted manifests.</p>
+            <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
+              <table className="w-full min-w-[1180px] text-left text-sm">
+                <thead className="bg-gray-50 text-gray-600">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Workload</th>
+                    <th className="px-4 py-3 font-semibold">Container</th>
+                    <th className="px-4 py-3 font-semibold">Type</th>
+                    <th className="px-4 py-3 font-semibold">Requests</th>
+                    <th className="px-4 py-3 font-semibold">Limits</th>
+                    <th className="px-4 py-3 font-semibold">Pod budget</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {result.containers.length ? result.containers.map((container, index) => (
+                    <tr key={`${container.documentIndex}-${container.workload}-${container.container}-${index}`}>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-700">{container.kind}/{container.workload || "unnamed"}<span className="block text-gray-500">{container.namespace || "default"}</span></td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-900">{container.container || "-"}</td>
+                      <td className="px-4 py-3 text-xs text-gray-700">{container.containerType}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-700">{formatRequest(container)}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-700">{formatLimit(container)}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-700">{formatPodBudget(container.podBudget)}</td>
+                      <td className="px-4 py-3 text-xs text-gray-700">{statusLabel(container.status)}</td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No containers match the selected view.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
+        </>
+      ) : null}
+
+      {result && result.issues.length ? (
+        <div className="mt-6 grid items-start gap-4 md:grid-cols-2">
+          {result.issues.map((issue, index) => <IssueCard key={`${issue.title}-${index}`} issue={issue} />)}
         </div>
-      )}
+      ) : null}
 
-      {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Resource findings</h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Kubernetes resource guidance</h3>
-
-          <div className="mt-3 space-y-3">
+      {notes.length ? (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <h3 className="text-lg font-semibold text-gray-900">Interpretation notes</h3>
+          <div className="mt-3 divide-y divide-gray-200">
             {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+              <div key={note.title} className="py-3 first:pt-0 last:pb-0">
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-6 text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-
-          {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
-              {copied ? "Copied" : "Copy"}
-            </button>
-          )}
+          {output ? <button type="button" onClick={copyOutput} className="min-h-11 whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50">{copied ? "Copied" : "Copy"}</button> : null}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[360px] whitespace-pre-wrap break-words">
-          {output || "Kubernetes resource check output will appear here."}
-        </pre>
+        <pre className="yoryantra-output min-h-[320px] overflow-auto whitespace-pre-wrap break-words text-sm">{output || "Kubernetes resource findings will appear here."}</pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This tool analyzes pasted Kubernetes YAML locally in your browser. It does not contact a cluster, inspect live pods, or calculate actual CPU and memory usage.
-      </div>
-
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Checking Kubernetes CPU and Memory Settings</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Kubernetes requests and limits affect scheduling, stability, and resource isolation. Missing CPU or memory settings can make workloads harder to place, tune, and protect under load.
+          <h2 className="text-2xl font-semibold text-gray-900">A missing request is not always an absent runtime request</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Requests influence scheduling. Limits control how much CPU or memory a workload may consume, but Kubernetes treats CPU and memory limits differently: CPU is throttled, while memory limits are enforced reactively and can lead to an OOM kill under pressure.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Kubernetes Resource Requests and Limits Checker extracts container resource settings from pasted YAML and highlights missing requests, missing limits, and incomplete CPU or memory configuration.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            There is an important admission-time detail: when a resource has a limit but no request, Kubernetes can copy that limit into the request if no admission mechanism supplied another default. A namespace LimitRange can also inject defaults. This page therefore distinguishes “not written in this manifest” from “guaranteed to remain absent after admission.”
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Kubernetes Resource Checker</h2>
+        <div className="grid items-start gap-5 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-lg font-semibold text-gray-900">Pod-level resources change the review</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              Kubernetes supports Pod-level CPU and memory requests and limits behind the PodLevelResources feature, Beta since 1.34 and enabled by default in current Kubernetes releases. When a pasted Pod spec has <code>spec.resources</code>, the result shows that budget rather than pretending every container must carry the complete budget individually.
+            </p>
+          </div>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste Kubernetes workload YAML such as Deployments, Pods, Jobs, or CronJobs.</li>
-            <li>Choose the output format and container filter.</li>
-            <li>Review CPU and memory requests and limits for each container.</li>
-            <li>Check warnings for missing or incomplete resource settings.</li>
-            <li>Copy the summary, table, JSON, Markdown, CSV, or checklist output.</li>
-          </ol>
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="text-lg font-semibold text-amber-900">Limits are not a universal “must have” rule</h2>
+            <p className="mt-3 text-sm leading-6 text-amber-800">
+              Platform policy matters. Some teams require CPU and memory limits; others deliberately avoid CPU limits for latency-sensitive services. Missing limits are therefore reported as a policy decision unless another concrete conflict exists.
+            </p>
+          </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Requests vs Limits</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Quantity mistakes can be tiny on screen and huge in meaning</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            CPU <code>500m</code> means half a CPU. Kubernetes does not accept CPU precision finer than <code>1m</code>. Memory is measured in bytes and suffix case matters: <code>400Mi</code> is hundreds of mebibytes, while <code>400m</code> means four-tenths of a byte. The parser validates CPU and memory quantities before comparing request and limit values so those mistakes do not quietly become ordinary “missing field” findings.
+          </p>
+        </div>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>CPU request</strong> helps Kubernetes decide where to schedule the pod.</li>
-            <li><strong>Memory request</strong> reserves expected memory for scheduling decisions.</li>
-            <li><strong>CPU limit</strong> can throttle containers when CPU usage goes above the limit.</li>
-            <li><strong>Memory limit</strong> can cause containers to be killed when they exceed the limit.</li>
-            <li><strong>Init containers</strong> can have different resource needs from long-running containers.</li>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Request greater than limit is a different class of finding</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A container that explicitly requests more CPU or memory than its explicit limit is surfaced as a high-severity conflict. Pod-level budgets receive the same comparison. That is different from an omitted field, where admission defaults, Pod-level resources, or deliberate platform policy may still be involved.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Init containers need their own capacity reasoning</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Init-container resources are listed so they cannot hide inside a workload review, but this page does not turn the table into a Pod scheduler calculation. Kubernetes uses special effective-resource rules for init containers, and restartable sidecar-style init containers add further accounting details. Use a dedicated calculator when you need Pod-level capacity totals.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">What static YAML cannot answer</h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Actual CPU usage, working-set memory, throttling, OOM history, or peak traffic.</li>
+            <li>LimitRange defaults, ResourceQuota admission, mutating policies, or organization-specific policies unless those effects are already present in the pasted manifest.</li>
+            <li>HPA or VPA recommendations, node allocatable capacity, scheduling constraints, or application SLOs.</li>
+            <li>Effective Pod request calculations involving init-container sequencing, Pod overhead, or every current sidecar rule.</li>
           </ul>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Resource Block</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`resources:
-  requests:
-    cpu: "250m"
-    memory: "256Mi"
-  limits:
-    cpu: "500m"
-    memory: "512Mi"`}
-            </pre>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-lg font-semibold text-gray-900">Kubernetes references behind these checks</h2>
+          <p className="mt-3 leading-relaxed text-gray-600">
+            The Kubernetes resource-management guide defines requests, limits, quantity units, limit-to-request fallback, and Pod-level resources. LimitRange documentation explains the namespace defaults that static workload YAML cannot see by itself.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            <a className="font-semibold text-[var(--green)] underline-offset-4 hover:underline" href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/" target="_blank" rel="noreferrer">Resource management</a>
+            <a className="font-semibold text-[var(--green)] underline-offset-4 hover:underline" href="https://kubernetes.io/docs/concepts/policy/limit-range/" target="_blank" rel="noreferrer">LimitRange defaults</a>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">YAML Review Is Not Capacity Planning</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This checker helps you spot missing manifest values, but it cannot know real application usage, traffic patterns, node pressure, or autoscaling behavior.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use it during manifest review, then tune resources using metrics, load tests, production observations, and platform policy.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-
-          <div className="mt-5 space-y-6">
-            <Faq title="What does a Kubernetes Resource Requests and Limits Checker do?">
-              It extracts container CPU and memory requests and limits from Kubernetes YAML and flags missing or incomplete settings.
-            </Faq>
-
-            <Faq title="Does this check live pod usage?">
-              No. It only checks pasted YAML and does not connect to your cluster or metrics system.
-            </Faq>
-
-            <Faq title="Should every container have requests and limits?">
-              Many teams require them for predictable scheduling and safety, but exact policies vary by platform and workload type.
-            </Faq>
-
-            <Faq title="Can this read initContainers?">
-              Yes. It checks both containers and initContainers when they appear in the manifest.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I check resources?">
-              No. The check runs directly in your browser.
-            </Faq>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/kubernetes-resource-requests-limits-checker" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/kubernetes-resource-requests-limits-checker" />
         </div>
       </section>
     </ToolShell>
-  );
-}
-
-function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 accent-[var(--light-gold)]"
-      />
-      {label}
-    </label>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
-    </div>
-  );
-}
-
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
   );
 }
 
@@ -548,249 +474,265 @@ function buildResult(options: {
   warnMemoryOnly: boolean;
   warnNoContainers: boolean;
 }): Result {
-  const allContainers = parseContainers(options.yamlInput);
+  const parsed = parseContainers(options.yamlInput);
+  const allContainers = parsed.containers;
   const containers = filterContainers(allContainers, options.containerFilter);
-  const issues = buildIssues(containers, allContainers, options);
+  const issues = buildIssues(allContainers, parsed.podBudgets, parsed.ignoredEphemeralContainers, options);
+  const completeCount = allContainers.filter((container) => container.status === "complete" || container.status === "pod-level-budget").length;
+  const missingRequestsCount = allContainers.filter((container) => !hasExplicitRequests(container)).length;
+  const missingLimitsCount = allContainers.filter((container) => !hasExplicitLimits(container)).length;
   const base = {
     containers,
+    allContainers,
+    podBudgets: parsed.podBudgets,
     issues,
-    containerCount: containers.length,
-    completeCount: containers.filter((container) => container.status === "complete").length,
-    missingRequestsCount: containers.filter((container) => container.status === "missing-requests" || container.status === "missing-both").length,
-    missingLimitsCount: containers.filter((container) => container.status === "missing-limits" || container.status === "missing-both").length,
+    containerCount: allContainers.length,
+    visibleContainerCount: containers.length,
+    completeCount,
+    missingRequestsCount,
+    missingLimitsCount,
+    podBudgetCount: parsed.podBudgets.length,
+    ignoredEphemeralContainers: parsed.ignoredEphemeralContainers,
   };
-  const output = formatOutput(base, options.outputMode, options.detailLevel);
-
-  return {
-    ...base,
-    output,
-  };
+  return { ...base, output: formatOutput(base, options.outputMode, options.detailLevel) };
 }
 
-function parseContainers(input: string) {
-  const docs = input
-    .split(/^---\s*$/m)
-    .map((text, index) => ({ text: text.trim(), index: index + 1 }))
-    .filter((doc) => doc.text);
+function parseContainers(input: string): ParseResult {
+  const documents = parseAllDocuments(input, { uniqueKeys: true, prettyErrors: true });
   const containers: ContainerResource[] = [];
+  const podBudgets: PodBudget[] = [];
+  let ignoredEphemeralContainers = 0;
 
-  docs.forEach((doc) => {
-    const lines = doc.text.split(/\r?\n/);
-    const kind = getTopLevelValue(lines, "kind") || "Unknown";
-    const workload = getMetadataValue(lines, "name");
-    const namespace = getMetadataValue(lines, "namespace");
-
-    containers.push(...extractContainerBlocks(lines, doc.index, kind, workload, namespace, "initContainers", "initContainer"));
-    containers.push(...extractContainerBlocks(lines, doc.index, kind, workload, namespace, "containers", "container"));
+  documents.forEach((document, index) => {
+    if (document.errors.length) throw new Error(`Kubernetes YAML document ${index + 1}: ${document.errors[0].message}`);
+    const value = document.toJS({ maxAliasCount: 100 }) as unknown;
+    if (value == null) return;
+    const parsed = parseKubernetesObject(value, index + 1);
+    containers.push(...parsed.containers);
+    podBudgets.push(...parsed.podBudgets);
+    ignoredEphemeralContainers += parsed.ignoredEphemeralContainers;
   });
 
-  return containers;
+  return { containers, podBudgets, ignoredEphemeralContainers };
 }
 
-function extractContainerBlocks(
-  lines: string[],
+function parseKubernetesObject(value: unknown, documentIndex: number): ParseResult {
+  if (!isRecord(value)) throw new Error(`Document ${documentIndex} must contain a Kubernetes object.`);
+  if (String(value.kind || "") === "List") {
+    const result: ParseResult = { containers: [], podBudgets: [], ignoredEphemeralContainers: 0 };
+    const items = Array.isArray(value.items) ? value.items : [];
+    items.forEach((item) => {
+      const child = parseKubernetesObject(item, documentIndex);
+      result.containers.push(...child.containers);
+      result.podBudgets.push(...child.podBudgets);
+      result.ignoredEphemeralContainers += child.ignoredEphemeralContainers;
+    });
+    return result;
+  }
+
+  const kind = stringValue(value.kind) || "Unknown";
+  const metadata = isRecord(value.metadata) ? value.metadata : {};
+  const workload = stringValue(metadata.name) || `unnamed-${documentIndex}`;
+  const namespace = stringValue(metadata.namespace) || "default";
+  const podSpec = getPodSpec(value, kind);
+  if (!podSpec) return { containers: [], podBudgets: [], ignoredEphemeralContainers: 0 };
+
+  const podBudget = parsePodBudget(podSpec, documentIndex, kind, workload, namespace);
+  const rawContainers = Array.isArray(podSpec.containers) ? podSpec.containers : [];
+  const rawInitContainers = Array.isArray(podSpec.initContainers) ? podSpec.initContainers : [];
+  const ephemeral = Array.isArray(podSpec.ephemeralContainers) ? podSpec.ephemeralContainers.length : 0;
+  const containers = [
+    ...parseContainerArray(rawContainers, "container", documentIndex, kind, workload, namespace, podBudget),
+    ...parseContainerArray(rawInitContainers, "initContainer", documentIndex, kind, workload, namespace, podBudget),
+  ];
+
+  return { containers, podBudgets: podBudget ? [podBudget] : [], ignoredEphemeralContainers: ephemeral };
+}
+
+function getPodSpec(value: Record<string, unknown>, kind: string): Record<string, unknown> | null {
+  const spec = isRecord(value.spec) ? value.spec : null;
+  if (!spec) return null;
+  if (kind === "Pod") return spec;
+  if (kind === "CronJob") {
+    const jobTemplate = isRecord(spec.jobTemplate) ? spec.jobTemplate : null;
+    const jobSpec = jobTemplate && isRecord(jobTemplate.spec) ? jobTemplate.spec : null;
+    const template = jobSpec && isRecord(jobSpec.template) ? jobSpec.template : null;
+    return template && isRecord(template.spec) ? template.spec : null;
+  }
+  if (["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "ReplicationController", "Job"].includes(kind)) {
+    const template = isRecord(spec.template) ? spec.template : null;
+    return template && isRecord(template.spec) ? template.spec : null;
+  }
+  return null;
+}
+
+function parsePodBudget(
+  podSpec: Record<string, unknown>,
+  documentIndex: number,
+  kind: string,
+  workload: string,
+  namespace: string
+): PodBudget | null {
+  if (!isRecord(podSpec.resources)) return null;
+  const resources = podSpec.resources;
+  const requests = isRecord(resources.requests) ? resources.requests : {};
+  const limits = isRecord(resources.limits) ? resources.limits : {};
+  const budget: PodBudget = {
+    documentIndex,
+    kind,
+    workload,
+    namespace,
+    cpuRequest: readQuantity(requests, "cpu", `${kind}/${workload} Pod-level CPU request`),
+    memoryRequest: readQuantity(requests, "memory", `${kind}/${workload} Pod-level memory request`),
+    cpuLimit: readQuantity(limits, "cpu", `${kind}/${workload} Pod-level CPU limit`),
+    memoryLimit: readQuantity(limits, "memory", `${kind}/${workload} Pod-level memory limit`),
+  };
+  validateResourcePair(budget.cpuRequest, budget.cpuLimit, "cpu");
+  validateResourcePair(budget.memoryRequest, budget.memoryLimit, "memory");
+  return budget.cpuRequest || budget.memoryRequest || budget.cpuLimit || budget.memoryLimit ? budget : null;
+}
+
+function parseContainerArray(
+  rawContainers: unknown[],
+  containerType: "container" | "initContainer",
   documentIndex: number,
   kind: string,
   workload: string,
   namespace: string,
-  sectionName: string,
-  containerType: "container" | "initContainer"
-) {
-  const results: ContainerResource[] = [];
-  let inSection = false;
-  let sectionIndent = 0;
-  let current: ContainerResource | null = null;
-  let inResources = false;
-  let resourceMode: "requests" | "limits" | "" = "";
-
-  const pushCurrent = () => {
-    if (!current) return;
-    current.status = getStatus(current);
-    results.push(current);
-    current = null;
-    inResources = false;
-    resourceMode = "";
-  };
-
-  lines.forEach((line) => {
-    const sectionMatch = line.match(new RegExp(`^(\\s*)${sectionName}:\\s*$`));
-
-    if (sectionMatch) {
-      inSection = true;
-      sectionIndent = sectionMatch[1].length;
-      pushCurrent();
-      return;
-    }
-
-    if (!inSection) return;
-
-    const indent = line.length - line.trimStart().length;
-
-    if (line.trim() && indent <= sectionIndent && !line.trim().startsWith("-")) {
-      pushCurrent();
-      inSection = false;
-      return;
-    }
-
-    const containerMatch = line.match(/^\s*-\s*name:\s*(.+)\s*$/);
-    if (containerMatch) {
-      pushCurrent();
-      current = {
-        documentIndex,
-        kind,
-        workload,
-        namespace,
-        container: stripQuotes(containerMatch[1].trim()),
-        image: "",
-        containerType,
-        cpuRequest: "",
-        memoryRequest: "",
-        cpuLimit: "",
-        memoryLimit: "",
-        status: "missing-both",
-      };
-      return;
-    }
-
-    if (!current) return;
-
-    const imageMatch = line.match(/^\s*image:\s*(.+)\s*$/);
-    if (imageMatch) {
-      current.image = stripQuotes(imageMatch[1].trim());
-      return;
-    }
-
-    if (/^\s*resources:\s*$/.test(line)) {
-      inResources = true;
-      return;
-    }
-
-    if (inResources && /^\s*requests:\s*$/.test(line)) {
-      resourceMode = "requests";
-      return;
-    }
-
-    if (inResources && /^\s*limits:\s*$/.test(line)) {
-      resourceMode = "limits";
-      return;
-    }
-
-    if (inResources && resourceMode) {
-      const cpuMatch = line.match(/^\s*cpu:\s*(.+)\s*$/);
-      const memoryMatch = line.match(/^\s*memory:\s*(.+)\s*$/);
-
-      if (cpuMatch && resourceMode === "requests") current.cpuRequest = stripQuotes(cpuMatch[1].trim());
-      if (memoryMatch && resourceMode === "requests") current.memoryRequest = stripQuotes(memoryMatch[1].trim());
-      if (cpuMatch && resourceMode === "limits") current.cpuLimit = stripQuotes(cpuMatch[1].trim());
-      if (memoryMatch && resourceMode === "limits") current.memoryLimit = stripQuotes(memoryMatch[1].trim());
-    }
+  podBudget: PodBudget | null
+): ContainerResource[] {
+  return rawContainers.map((raw, index) => {
+    if (!isRecord(raw)) throw new Error(`${kind}/${workload}: ${containerType} entry ${index + 1} must be an object.`);
+    const name = stringValue(raw.name) || `${containerType}-${index + 1}`;
+    const resources = raw.resources == null ? {} : requireRecord(raw.resources, `${kind}/${workload} ${name} resources`);
+    const requests = resources.requests == null ? {} : requireRecord(resources.requests, `${kind}/${workload} ${name} requests`);
+    const limits = resources.limits == null ? {} : requireRecord(resources.limits, `${kind}/${workload} ${name} limits`);
+    const cpuRequest = readQuantity(requests, "cpu", `${kind}/${workload} ${name} CPU request`);
+    const memoryRequest = readQuantity(requests, "memory", `${kind}/${workload} ${name} memory request`);
+    const cpuLimit = readQuantity(limits, "cpu", `${kind}/${workload} ${name} CPU limit`);
+    const memoryLimit = readQuantity(limits, "memory", `${kind}/${workload} ${name} memory limit`);
+    const cpuRequestMilli = cpuRequest ? parseCpu(cpuRequest) : null;
+    const memoryRequestBytes = memoryRequest ? parseMemory(memoryRequest) : null;
+    const cpuLimitMilli = cpuLimit ? parseCpu(cpuLimit) : null;
+    const memoryLimitBytes = memoryLimit ? parseMemory(memoryLimit) : null;
+    const base: ContainerResource = {
+      documentIndex,
+      kind,
+      workload,
+      namespace,
+      container: name,
+      image: stringValue(raw.image),
+      containerType,
+      cpuRequest,
+      memoryRequest,
+      cpuLimit,
+      memoryLimit,
+      cpuRequestMilli,
+      memoryRequestBytes,
+      cpuLimitMilli,
+      memoryLimitBytes,
+      podBudget,
+      status: "missing-both",
+    };
+    base.status = getStatus(base);
+    return base;
   });
-
-  pushCurrent();
-
-  return results;
 }
 
-function getStatus(container: ContainerResource): ContainerResource["status"] {
-  const hasRequests = Boolean(container.cpuRequest && container.memoryRequest);
-  const hasLimits = Boolean(container.cpuLimit && container.memoryLimit);
-
-  if (hasRequests && hasLimits) return "complete";
-  if (!hasRequests && !hasLimits) return "missing-both";
-  if (!hasRequests) return "missing-requests";
+function getStatus(container: ContainerResource): ContainerStatus {
+  const requestCovered = hasExplicitRequests(container) || podHasCompleteRequests(container.podBudget);
+  const limitCovered = hasExplicitLimits(container) || podHasCompleteLimits(container.podBudget);
+  if (container.podBudget && requestCovered && limitCovered && (!hasExplicitRequests(container) || !hasExplicitLimits(container))) return "pod-level-budget";
+  if (requestCovered && limitCovered) return "complete";
+  if (!requestCovered && !limitCovered) return "missing-both";
+  if (!requestCovered) return "missing-requests";
   return "missing-limits";
 }
 
-function filterContainers(containers: ContainerResource[], filter: ContainerFilter) {
+function filterContainers(containers: ContainerResource[], filter: ContainerFilter): ContainerResource[] {
   if (filter === "all") return containers;
-  if (filter === "missingRequests") return containers.filter((container) => container.status === "missing-requests" || container.status === "missing-both");
-  if (filter === "missingLimits") return containers.filter((container) => container.status === "missing-limits" || container.status === "missing-both");
-  if (filter === "complete") return containers.filter((container) => container.status === "complete");
+  if (filter === "missingRequests") return containers.filter((container) => !hasExplicitRequests(container));
+  if (filter === "missingLimits") return containers.filter((container) => !hasExplicitLimits(container));
+  if (filter === "complete") return containers.filter((container) => container.status === "complete" || container.status === "pod-level-budget");
   if (filter === "initContainers") return containers.filter((container) => container.containerType === "initContainer");
   return containers;
 }
 
-function buildIssues(containers: ContainerResource[], allContainers: ContainerResource[], options: {
-  warnMissingRequests: boolean;
-  warnMissingLimits: boolean;
-  warnLimitWithoutRequest: boolean;
-  warnNoResources: boolean;
-  warnMemoryOnly: boolean;
-  warnNoContainers: boolean;
-}) {
+function buildIssues(
+  containers: ContainerResource[],
+  podBudgets: PodBudget[],
+  ignoredEphemeralContainers: number,
+  options: { warnMissingRequests: boolean; warnMissingLimits: boolean; warnLimitWithoutRequest: boolean; warnNoResources: boolean; warnMemoryOnly: boolean; warnNoContainers: boolean }
+): Issue[] {
   const issues: Issue[] = [];
+  if (options.warnNoContainers && !containers.length) issues.push({ severity: "warning", title: "No supported containers found", message: "No app containers or initContainers were found under a supported Pod or workload template." });
 
-  if (options.warnNoContainers && allContainers.length === 0) {
-    issues.push({
-      severity: "warning",
-      title: "No containers found",
-      message: "No containers or initContainers were found in the pasted Kubernetes YAML.",
-    });
+  const noResourceContainers = containers.filter((container) => !container.cpuRequest && !container.memoryRequest && !container.cpuLimit && !container.memoryLimit && !container.podBudget);
+  if (options.warnNoResources && noResourceContainers.length) issues.push({ severity: "warning", title: "No declared resource budget", message: `${noResourceContainers.length} container${noResourceContainers.length === 1 ? " has" : "s have"} no CPU/memory fields and no pasted Pod-level budget.` });
+
+  const missingRequests = containers.filter((container) => !hasExplicitRequests(container));
+  if (options.warnMissingRequests && missingRequests.length) {
+    const coveredByPod = missingRequests.filter((container) => podHasCompleteRequests(container.podBudget)).length;
+    const limitFallback = missingRequests.filter((container) => hasBothLimits(container)).length;
+    issues.push({ severity: coveredByPod === missingRequests.length ? "info" : "warning", title: "Explicit requests are incomplete", message: `${missingRequests.length} container${missingRequests.length === 1 ? " is" : "s are"} missing an explicit CPU or memory request. ${coveredByPod ? `${coveredByPod} sit under a complete pasted Pod-level request budget. ` : ""}${limitFallback ? `${limitFallback} have both limits, which Kubernetes may copy into requests when admission has not supplied another default.` : ""}`.trim() });
   }
 
-  if (options.warnNoResources && containers.some((container) => container.status === "missing-both")) {
-    issues.push({
-      severity: "warning",
-      title: "Containers missing resource settings",
-      message: "Some containers have no complete CPU/memory requests or limits.",
-    });
+  const missingLimits = containers.filter((container) => !hasExplicitLimits(container));
+  if (options.warnMissingLimits && missingLimits.length) issues.push({ severity: "info", title: "Explicit limits are incomplete", message: `${missingLimits.length} container${missingLimits.length === 1 ? " is" : "s are"} missing an explicit CPU or memory limit. Whether that is acceptable depends on platform and workload policy.` });
+
+  if (options.warnLimitWithoutRequest) {
+    const limitWithoutRequest = containers.filter((container) => (container.cpuLimit && !container.cpuRequest) || (container.memoryLimit && !container.memoryRequest));
+    if (limitWithoutRequest.length) issues.push({ severity: "info", title: "Limit without matching request", message: `${limitWithoutRequest.length} container${limitWithoutRequest.length === 1 ? " has" : "s have"} at least one limit without the same explicit request; admission defaults or Kubernetes limit-to-request copying can affect the final Pod spec.` });
   }
 
-  if (options.warnMissingRequests && containers.some((container) => container.status === "missing-requests" || container.status === "missing-both")) {
-    issues.push({
-      severity: "warning",
-      title: "Missing requests",
-      message: "Some containers are missing CPU or memory requests, which can affect scheduling behavior.",
-    });
+  if (options.warnMemoryOnly) {
+    const oneFamily = containers.filter((container) => Boolean(container.cpuRequest || container.cpuLimit) !== Boolean(container.memoryRequest || container.memoryLimit));
+    if (oneFamily.length) issues.push({ severity: "info", title: "Only one compute resource family is declared", message: `${oneFamily.length} container${oneFamily.length === 1 ? " configures" : "s configure"} CPU without memory, or memory without CPU.` });
   }
 
-  if (options.warnMissingLimits && containers.some((container) => container.status === "missing-limits" || container.status === "missing-both")) {
-    issues.push({
-      severity: "info",
-      title: "Missing limits",
-      message: "Some containers are missing CPU or memory limits. Confirm whether this is allowed by your platform policy.",
-    });
-  }
+  if (podBudgets.length) issues.push({ severity: "info", title: "Pod-level resource budgets detected", message: `${podBudgets.length} Pod template${podBudgets.length === 1 ? " contains" : "s contain"} spec.resources. Current Kubernetes can use Pod-level CPU and memory budgets when the PodLevelResources feature is enabled.` });
+  if (ignoredEphemeralContainers) issues.push({ severity: "info", title: "Ephemeral containers are not scored", message: `${ignoredEphemeralContainers} ephemeral container${ignoredEphemeralContainers === 1 ? " was" : "s were"} present. Ephemeral containers are debugging constructs and are not included in this app/init-container resource score.` });
 
-  if (options.warnLimitWithoutRequest && containers.some((container) => (container.cpuLimit || container.memoryLimit) && (!container.cpuRequest || !container.memoryRequest))) {
-    issues.push({
-      severity: "info",
-      title: "Limits without complete requests",
-      message: "Some containers define limits without complete requests. Review scheduler expectations and QoS behavior.",
-    });
-  }
-
-  if (options.warnMemoryOnly && containers.some((container) =>
-    Boolean(container.cpuRequest || container.cpuLimit) !== Boolean(container.memoryRequest || container.memoryLimit)
-  )) {
-    issues.push({
-      severity: "info",
-      title: "Only CPU or only memory configured",
-      message: "Some containers appear to configure only one resource family. Confirm this is intentional.",
-    });
-  }
-
-  if (issues.length === 0) {
-    issues.push({
-      severity: "info",
-      title: "Resource settings checked",
-      message: "No obvious resource request or limit warning was found from the enabled checks.",
-    });
-  }
-
+  const conflicts = findRequestLimitConflicts(containers, podBudgets);
+  conflicts.forEach((message) => issues.unshift({ severity: "high", title: "Request exceeds limit", message }));
+  if (!issues.length) issues.push({ severity: "info", title: "No configured finding triggered", message: "The supported containers passed the enabled static checks. Runtime sizing still requires metrics and policy context." });
   return issues;
 }
 
-function formatOutput(result: Omit<Result, "output">, mode: OutputMode, detailLevel: DetailLevel) {
+function findRequestLimitConflicts(containers: ContainerResource[], podBudgets: PodBudget[]): string[] {
+  const messages: string[] = [];
+  containers.forEach((container) => {
+    if (container.cpuRequestMilli != null && container.cpuLimitMilli != null && container.cpuRequestMilli > container.cpuLimitMilli) messages.push(`${container.kind}/${container.workload} ${container.container}: CPU request ${container.cpuRequest} is greater than limit ${container.cpuLimit}.`);
+    if (container.memoryRequestBytes != null && container.memoryLimitBytes != null && container.memoryRequestBytes > container.memoryLimitBytes) messages.push(`${container.kind}/${container.workload} ${container.container}: memory request ${container.memoryRequest} is greater than limit ${container.memoryLimit}.`);
+  });
+  podBudgets.forEach((budget) => {
+    if (budget.cpuRequest && budget.cpuLimit && parseCpu(budget.cpuRequest) > parseCpu(budget.cpuLimit)) messages.push(`${budget.kind}/${budget.workload}: Pod-level CPU request ${budget.cpuRequest} is greater than limit ${budget.cpuLimit}.`);
+    if (budget.memoryRequest && budget.memoryLimit && parseMemory(budget.memoryRequest) > parseMemory(budget.memoryLimit)) messages.push(`${budget.kind}/${budget.workload}: Pod-level memory request ${budget.memoryRequest} is greater than limit ${budget.memoryLimit}.`);
+  });
+  return messages;
+}
+
+function formatOutput(result: Omit<Result, "output">, mode: OutputMode, detailLevel: DetailLevel): string {
   if (mode === "json") {
-    return JSON.stringify(result, null, 2);
+    return JSON.stringify({
+      containers: result.containers.map(stripNumericFields),
+      podBudgets: result.podBudgets,
+      issues: result.issues,
+      totals: {
+        containers: result.containerCount,
+        visibleContainers: result.visibleContainerCount,
+        covered: result.completeCount,
+        missingExplicitRequests: result.missingRequestsCount,
+        missingExplicitLimits: result.missingLimitsCount,
+      },
+    }, null, 2);
   }
 
   if (mode === "markdown") {
     return [
-      "| Workload | Container | Image | Requests | Limits | Status |",
-      "| --- | --- | --- | --- | --- | --- |",
-      ...result.containers.map((container) => `| ${container.kind}/${container.workload || "unnamed"} | ${container.container || "-"} | ${escapeMarkdown(container.image || "-")} | ${formatRequest(container)} | ${formatLimit(container)} | ${container.status} |`),
+      "| Workload | Container | Type | Requests | Limits | Pod budget | Status |",
+      "|---|---|---|---|---|---|---|",
+      ...result.containers.map((container) => `| ${escapeMarkdown(`${container.kind}/${container.workload}`)} | ${escapeMarkdown(container.container)} | ${container.containerType} | ${escapeMarkdown(formatRequest(container))} | ${escapeMarkdown(formatLimit(container))} | ${escapeMarkdown(formatPodBudget(container.podBudget))} | ${statusLabel(container.status)} |`),
       "",
       "## Findings",
       ...result.issues.map((issue) => `- **${issue.title}:** ${issue.message}`),
@@ -799,34 +741,22 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode, detailLe
 
   if (mode === "csv") {
     const rows = [
-      ["kind", "workload", "namespace", "container", "image", "cpu_request", "memory_request", "cpu_limit", "memory_limit", "status"],
-      ...result.containers.map((container) => [
-        container.kind,
-        container.workload,
-        container.namespace,
-        container.container,
-        container.image,
-        container.cpuRequest,
-        container.memoryRequest,
-        container.cpuLimit,
-        container.memoryLimit,
-        container.status,
-      ]),
+      ["kind", "workload", "namespace", "container", "type", "image", "cpu_request", "memory_request", "cpu_limit", "memory_limit", "pod_budget", "status"],
+      ...result.containers.map((container) => [container.kind, container.workload, container.namespace, container.container, container.containerType, container.image, container.cpuRequest, container.memoryRequest, container.cpuLimit, container.memoryLimit, formatPodBudget(container.podBudget), statusLabel(container.status)]),
     ];
-
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
 
   if (mode === "checklist") {
     return [
-      "Kubernetes Resource Review Checklist",
-      "------------------------------------",
-      "- [ ] Confirm CPU and memory requests are set for important workloads.",
-      "- [ ] Confirm limits match platform policy and workload behavior.",
-      "- [ ] Confirm initContainers have suitable resources.",
-      "- [ ] Confirm resource settings are based on metrics or load testing.",
-      "- [ ] Confirm HPA/VPA behavior is considered if autoscaling is used.",
-      "- [ ] Confirm namespace-level LimitRanges or ResourceQuotas are understood.",
+      "Kubernetes resource review",
+      "--------------------------",
+      "- [ ] Check request values against measured steady-state and peak usage.",
+      "- [ ] Decide whether CPU limits fit the workload latency policy.",
+      "- [ ] Check memory limits against OOM history and realistic peaks.",
+      "- [ ] Review LimitRange and ResourceQuota defaults in the target namespace.",
+      "- [ ] Account for Pod-level resources when the cluster enables PodLevelResources.",
+      "- [ ] Review init-container effective resource accounting separately for capacity planning.",
       "",
       "Findings:",
       ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
@@ -834,114 +764,210 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode, detailLe
   }
 
   if (mode === "table") {
-    return result.containers
-      .map((container) => `${container.kind}/${container.workload || "unnamed"} -> ${container.container || "container"} -> requests ${formatRequest(container)}; limits ${formatLimit(container)}; ${container.status}`)
-      .join("\n");
+    return result.containers.map((container) => `${container.kind}/${container.workload} -> ${container.container} (${container.containerType}) -> requests ${formatRequest(container)}; limits ${formatLimit(container)}; pod ${formatPodBudget(container.podBudget)}; ${statusLabel(container.status)}`).join("\n");
   }
 
-  const lines = detailLevel === "compact"
-    ? result.containers.map((container) => `- ${container.container || "container"}: ${container.status}`)
-    : result.containers.map((container) => `- ${container.kind}/${container.workload || "unnamed"} ${container.container || ""}: requests ${formatRequest(container)}; limits ${formatLimit(container)} — ${container.status}`);
+  const containerLines = result.containers.map((container) => {
+    if (detailLevel === "compact") return `- ${container.container}: ${statusLabel(container.status)}`;
+    const base = `- ${container.kind}/${container.workload} ${container.container}: requests ${formatRequest(container)}; limits ${formatLimit(container)} — ${statusLabel(container.status)}`;
+    return detailLevel === "detailed" ? `${base}; Pod budget ${formatPodBudget(container.podBudget)}` : base;
+  });
 
   return [
-    "Kubernetes Resource Requests and Limits Summary",
+    "Kubernetes resource requests and limits summary",
     "-----------------------------------------------",
-    `Containers: ${result.containerCount}`,
-    `Complete: ${result.completeCount}`,
-    `Missing requests: ${result.missingRequestsCount}`,
-    `Missing limits: ${result.missingLimitsCount}`,
+    `Containers found: ${result.containerCount}`,
+    `Containers in current view: ${result.visibleContainerCount}`,
+    `Covered by explicit fields or complete Pod-level budget: ${result.completeCount}`,
+    `Missing explicit requests: ${result.missingRequestsCount}`,
+    `Missing explicit limits: ${result.missingLimitsCount}`,
+    `Pod-level budgets: ${result.podBudgetCount}`,
     "",
-    "Containers:",
-    ...(lines.length ? lines : ["- none found"]),
+    "Current view:",
+    ...(containerLines.length ? containerLines : ["- none"]),
     "",
     "Findings:",
     ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
   ].join("\n");
 }
 
-function formatRequest(container: ContainerResource) {
-  const values = [];
+function stripNumericFields(container: ContainerResource): Record<string, unknown> {
+  return {
+    documentIndex: container.documentIndex,
+    kind: container.kind,
+    workload: container.workload,
+    namespace: container.namespace,
+    container: container.container,
+    image: container.image,
+    containerType: container.containerType,
+    cpuRequest: container.cpuRequest,
+    memoryRequest: container.memoryRequest,
+    cpuLimit: container.cpuLimit,
+    memoryLimit: container.memoryLimit,
+    podBudget: container.podBudget,
+    status: container.status,
+  };
+}
+
+function readQuantity(record: Record<string, unknown>, key: string, label: string): string {
+  if (!Object.prototype.hasOwnProperty.call(record, key)) return "";
+  const value = record[key];
+  if (typeof value !== "string" && typeof value !== "number") throw new Error(`${label} must be a Kubernetes quantity string or number.`);
+  const text = String(value).trim();
+  if (!text) throw new Error(`${label} cannot be empty.`);
+  if (key === "cpu") parseCpu(text);
+  if (key === "memory") parseMemory(text);
+  return text;
+}
+
+function parseCpu(value: string): number {
+  const units = parseQuantity(value, "CPU");
+  const millicpu = units * 1000;
+  if (millicpu !== 0 && Math.abs(millicpu) < 1) throw new Error(`CPU quantity "${value}" is finer than Kubernetes' 1m precision.`);
+  return millicpu;
+}
+
+function parseMemory(value: string): number {
+  const bytes = parseQuantity(value, "memory");
+  if (bytes > 0 && bytes < 1) throw new Error(`Memory quantity "${value}" is less than one byte; check whether "Mi" or "M" was intended instead of "m".`);
+  return bytes;
+}
+
+function parseQuantity(value: string, label: string): number {
+  const clean = value.trim();
+  const match = clean.match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+))(Ki|Mi|Gi|Ti|Pi|Ei|n|u|m|k|K|M|G|T|P|E|[eE][+-]?\d+)?$/);
+  if (!match) throw new Error(`Unsupported ${label} quantity "${clean}".`);
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount) || amount < 0) throw new Error(`${label} quantity "${clean}" must be finite and non-negative.`);
+  const suffix = match[2] || "";
+  const decimal: Record<string, number> = { n: 1e-9, u: 1e-6, m: 1e-3, k: 1e3, K: 1e3, M: 1e6, G: 1e9, T: 1e12, P: 1e15, E: 1e18 };
+  const binary: Record<string, number> = { Ki: 2 ** 10, Mi: 2 ** 20, Gi: 2 ** 30, Ti: 2 ** 40, Pi: 2 ** 50, Ei: 2 ** 60 };
+  let result = amount;
+  if (Object.prototype.hasOwnProperty.call(decimal, suffix)) result = amount * decimal[suffix];
+  else if (Object.prototype.hasOwnProperty.call(binary, suffix)) result = amount * binary[suffix];
+  else if (/^[eE]/.test(suffix)) result = amount * 10 ** Number(suffix.slice(1));
+  if (!Number.isFinite(result)) throw new Error(`${label} quantity "${clean}" is too large to compare safely.`);
+  return result;
+}
+
+function validateResourcePair(request: string, limit: string, resource: "cpu" | "memory"): void {
+  if (request) {
+    if (resource === "cpu") parseCpu(request);
+    else parseMemory(request);
+  }
+  if (limit) {
+    if (resource === "cpu") parseCpu(limit);
+    else parseMemory(limit);
+  }
+}
+
+function requireRecord(value: unknown, label: string): Record<string, unknown> {
+  if (!isRecord(value)) throw new Error(`${label} must be a mapping/object.`);
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+}
+
+function hasExplicitRequests(container: ContainerResource): boolean {
+  return Boolean(container.cpuRequest && container.memoryRequest);
+}
+
+function hasExplicitLimits(container: ContainerResource): boolean {
+  return Boolean(container.cpuLimit && container.memoryLimit);
+}
+
+function hasBothLimits(container: ContainerResource): boolean {
+  return Boolean(container.cpuLimit && container.memoryLimit);
+}
+
+function podHasCompleteRequests(budget: PodBudget | null): boolean {
+  return Boolean(budget && budget.cpuRequest && budget.memoryRequest);
+}
+
+function podHasCompleteLimits(budget: PodBudget | null): boolean {
+  return Boolean(budget && budget.cpuLimit && budget.memoryLimit);
+}
+
+function formatRequest(container: ContainerResource): string {
+  const values: string[] = [];
   if (container.cpuRequest) values.push(`cpu ${container.cpuRequest}`);
   if (container.memoryRequest) values.push(`memory ${container.memoryRequest}`);
   return values.join(" / ") || "-";
 }
 
-function formatLimit(container: ContainerResource) {
-  const values = [];
+function formatLimit(container: ContainerResource): string {
+  const values: string[] = [];
   if (container.cpuLimit) values.push(`cpu ${container.cpuLimit}`);
   if (container.memoryLimit) values.push(`memory ${container.memoryLimit}`);
   return values.join(" / ") || "-";
 }
 
-function getTopLevelValue(lines: string[], key: string) {
-  const regex = new RegExp(`^${key}:\\s*(.+)\\s*$`);
-
-  for (const line of lines) {
-    const match = line.match(regex);
-    if (match) return stripQuotes(match[1].trim());
-  }
-
-  return "";
+function formatPodBudget(budget: PodBudget | null): string {
+  if (!budget) return "-";
+  const request = [budget.cpuRequest ? `req cpu ${budget.cpuRequest}` : "", budget.memoryRequest ? `req mem ${budget.memoryRequest}` : ""].filter(Boolean).join(" / ");
+  const limit = [budget.cpuLimit ? `lim cpu ${budget.cpuLimit}` : "", budget.memoryLimit ? `lim mem ${budget.memoryLimit}` : ""].filter(Boolean).join(" / ");
+  return [request, limit].filter(Boolean).join("; ") || "-";
 }
 
-function getMetadataValue(lines: string[], key: string) {
-  let inMetadata = false;
-  const regex = new RegExp(`^\\s{2}${key}:\\s*(.+)\\s*$`);
-
-  for (const line of lines) {
-    if (/^metadata:\s*$/.test(line)) {
-      inMetadata = true;
-      continue;
-    }
-
-    if (inMetadata && /^\S/.test(line)) inMetadata = false;
-
-    if (inMetadata) {
-      const match = line.match(regex);
-      if (match) return stripQuotes(match[1].trim());
-    }
-  }
-
-  return "";
+function statusLabel(status: ContainerStatus): string {
+  if (status === "pod-level-budget") return "covered by Pod-level budget";
+  if (status === "missing-requests") return "missing request coverage";
+  if (status === "missing-limits") return "missing limit coverage";
+  if (status === "missing-both") return "missing request and limit coverage";
+  return "request and limit coverage present";
 }
 
-function stripQuotes(value: string) {
-  return value.replace(/^["']|["']$/g, "");
+function csvEscape(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
-function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-
-  return value;
-}
-
-function escapeMarkdown(value: string) {
+function escapeMarkdown(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\n/g, "\\n");
 }
 
-function getNotes(result: Result) {
+function getNotes(result: Result): { title: string; message: string }[] {
   const notes: { title: string; message: string }[] = [];
-
-  if (result.missingRequestsCount > 0) {
-    notes.push({
-      title: "Requests influence scheduling",
-      message: "CPU and memory requests help Kubernetes decide where a pod should run.",
-    });
-  }
-
-  if (result.missingLimitsCount > 0) {
-    notes.push({
-      title: "Limits are policy-dependent",
-      message: "Some platforms require limits, while others avoid strict CPU limits for latency-sensitive workloads.",
-    });
-  }
-
-  notes.push({
-    title: "Use metrics for real sizing",
-    message: "Manifest checks are useful, but resource values should be tuned with metrics, load tests, and production observations.",
-  });
-
+  if (result.podBudgetCount) notes.push({ title: "Pod-level resources are version-sensitive", message: "PodLevelResources is a current Kubernetes feature, but older clusters or disabled feature gates may not accept the same manifest." });
+  if (result.missingRequestsCount) notes.push({ title: "Check the admitted Pod, not only the source YAML", message: "A LimitRange or limit-to-request fallback can change the final request values seen after admission." });
+  if (result.allContainers.some((container) => container.containerType === "initContainer")) notes.push({ title: "Init containers affect Pod capacity differently", message: "Per-container fields are shown here, but the scheduler's effective Pod request uses init-container-specific accounting rules." });
+  notes.push({ title: "Sizing comes from measurements", message: "Static YAML can reveal omissions and contradictions; it cannot determine the right CPU or memory numbers for an application." });
   return notes;
+}
+
+function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 text-sm text-gray-700">
+      <input type="checkbox" checked={checked} onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]" />
+      <span className="leading-6">{label}</span>
+    </label>
+  );
+}
+
+function SummaryCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
+    </div>
+  );
+}
+
+function IssueCard({ issue }: { issue: Issue }) {
+  const classes = issue.severity === "high"
+    ? "border-red-200 bg-red-50 text-red-800"
+    : issue.severity === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : "border-gray-200 bg-gray-50 text-gray-700";
+  return (
+    <div className={`self-start rounded-xl border p-4 ${classes}`}>
+      <p className="text-sm font-semibold">{issue.title}</p>
+      <p className="mt-1 text-sm leading-6">{issue.message}</p>
+    </div>
+  );
 }

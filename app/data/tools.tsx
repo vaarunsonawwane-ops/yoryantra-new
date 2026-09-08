@@ -1381,7 +1381,7 @@ export const tools = [
 {
   title: "Kubernetes Resource Requests and Limits Checker",
   description:
-    "Check Kubernetes CPU and memory requests, limits, missing resources, and container settings.",
+    "Check container and Pod-level resource declarations for missing fields, invalid quantities, and request-limit conflicts.",
   href: "/tools/kubernetes-resource-requests-limits-checker",
   category: "DevOps Tools",
 },
@@ -1487,7 +1487,7 @@ export const tools = [
 
 {
   title: "Docker Compose Environment Variable Resolver",
-  description: "Preview Docker Compose .env substitutions, defaults, and missing environment variables.",
+  description: "Resolve Compose interpolation across shell and .env sources with exact fallback, required, and empty-value semantics.",
   href: "/tools/docker-compose-environment-variable-resolver",
   category: "DevOps Tools",
 },

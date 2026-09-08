@@ -2,20 +2,19 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Docker Compose Environment Variable Resolver | Preview Compose Variables",
+  title: "Docker Compose Environment Variable Resolver | Interpolation Preview | Yoryantra",
   description:
-    "Resolve Docker Compose environment variable placeholders, preview .env substitutions, inspect defaults, and find missing variables locally in your browser.",
+    "Preview Docker Compose interpolation with shell and .env precedence, fallback operators, required variables, literal dollars, and missing-value diagnostics.",
   keywords: [
-    "docker compose environment variable resolver",
-    "docker compose env resolver",
-    "compose variable substitution",
-    "docker compose env file checker",
-    "docker compose environment preview",
-    "docker compose variable checker",
-    "docker compose config helper",
-    "docker env interpolation",
-    "devops tools",
-    "browser docker compose tool",
+    "Docker Compose environment variable resolver",
+    "Docker Compose interpolation",
+    "Compose env precedence",
+    "Docker Compose variable substitution",
+    "Compose .env parser",
+    "Docker Compose config environment",
+    "Compose required variable",
+    "Compose default value",
+    "DevOps tools",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/docker-compose-environment-variable-resolver",
@@ -23,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Docker Compose Environment Variable Resolver | Yoryantra",
     description:
-      "Preview Docker Compose variable substitutions, inspect .env values, defaults, and missing variables without running Docker.",
+      "Trace Compose variable interpolation, source precedence, fallback operators, and unresolved values before running Docker.",
     url: "https://yoryantra.com/tools/docker-compose-environment-variable-resolver",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Docker Compose Environment Variable Resolver | Yoryantra",
     description:
-      "Resolve Docker Compose placeholders and find missing .env variables locally in your browser.",
+      "Trace Compose interpolation, shell precedence, fallbacks, required expressions, and unresolved values.",
   },
 };
 
