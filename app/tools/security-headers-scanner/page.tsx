@@ -2,28 +2,28 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Security Headers Scanner | Browser-Visible Header Review | Yoryantra",
+  title: "Security Headers Scanner | Paste or Browser-Check Response Headers | Yoryantra",
   description:
-    "Review browser-visible CSP, HSTS, framing, MIME, referrer, permissions, and cross-origin response headers. Results may be limited by CORS and header exposure rules.",
+    "Inspect pasted HTTP response headers for CSP, HSTS, framing, MIME, referrer, permissions, and cross-origin policies, with an optional CORS-limited browser URL check.",
   keywords: [
     "security headers scanner",
-    "security headers checker",
     "http security headers",
+    "response header checker",
     "csp header checker",
     "hsts header checker",
     "x frame options checker",
     "referrer policy checker",
     "permissions policy checker",
-    "browser visible response headers",
-    "developer security tools",
+    "coop coep corp headers",
+    "security tools",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/security-headers-scanner",
   },
   openGraph: {
-    title: "Security Headers Scanner | Browser-Visible Header Review | Yoryantra",
+    title: "Security Headers Scanner | Paste or Browser-Check Response Headers | Yoryantra",
     description:
-      "Review security-related response headers that a browser is allowed to expose for a URL.",
+      "Inspect pasted security response headers reliably, or try a browser URL check when CORS exposes the values.",
     url: "https://yoryantra.com/tools/security-headers-scanner",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Security Headers Scanner | Yoryantra",
     description:
-      "Review browser-visible CSP, HSTS, framing, MIME, referrer, permissions, and cross-origin headers.",
+      "Inspect pasted CSP, HSTS, framing, MIME, referrer, permissions, and cross-origin response headers.",
   },
 };
 

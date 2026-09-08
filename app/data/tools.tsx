@@ -432,7 +432,7 @@ export const tools = [
   {
   title: "Security Headers Scanner",
   description:
-    "Scan website security headers including CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP, COEP, and related headers.",
+    "Read pasted security response headers, with an optional browser check when CORS exposes them.",
   href: "/tools/security-headers-scanner",
   category: "Security Tools",
   },
@@ -637,7 +637,7 @@ export const tools = [
 {
   title: "CSP Analyzer",
   description:
-    "Analyze Content Security Policy headers, inspect CSP directives, and find common unsafe values or missing protections.",
+    "Parse CSP directives and sources, then flag duplicate rules, invalid combinations, and risky allowances.",
   href: "/tools/csp-analyzer",
   category: "Security Tools",
 },
@@ -811,7 +811,7 @@ export const tools = [
 {
   title: "CSP Policy Builder",
   description:
-    "Build Content Security Policy headers, configure CSP directives, and generate deployment-ready CSP output.",
+    "Build an enforced or report-only CSP from selected directives and sources, ready for an HTTP header.",
   href: "/tools/csp-policy-builder",
   category: "Security Tools",
 },

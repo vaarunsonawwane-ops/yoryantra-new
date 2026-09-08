@@ -2,37 +2,37 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "CSP Policy Builder | Content Security Policy Generator | Yoryantra",
+  title: "CSP Policy Builder | Directives, Sources and Report-Only Output | Yoryantra",
   description:
-    "Build Content Security Policy headers, configure CSP directives, add trusted sources, generate report-only policies, and copy production-ready CSP output directly in your browser.",
+    "Assemble Content Security Policy directives and source expressions, compare enforce and report-only delivery, and generate header, meta, Nginx, Apache, or JSON output.",
   keywords: [
-    "CSP policy builder",
-    "Content Security Policy generator",
-    "CSP header generator",
-    "security header builder",
-    "Content-Security-Policy tool",
-    "CSP directive builder",
-    "report only CSP",
-    "web security tools",
+    "csp policy builder",
+    "content security policy builder",
+    "csp header generator",
+    "csp directives",
+    "csp source expressions",
+    "report only csp",
+    "content security policy header",
+    "csp nginx header",
+    "csp apache header",
     "security tools",
-    "developer tools",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/csp-policy-builder",
   },
   openGraph: {
-    title: "CSP Policy Builder | Content Security Policy Generator | Yoryantra",
+    title: "CSP Policy Builder | Directives, Sources and Report-Only Output | Yoryantra",
     description:
-      "Build Content Security Policy headers, configure CSP directives, add trusted sources, generate report-only policies, and copy production-ready CSP output directly in your browser.",
+      "Assemble CSP directives and source expressions with enforce, report-only, header, meta, Nginx, Apache, and JSON output.",
     url: "https://yoryantra.com/tools/csp-policy-builder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "CSP Policy Builder | Content Security Policy Generator | Yoryantra",
+    title: "CSP Policy Builder | Yoryantra",
     description:
-      "Build Content Security Policy headers, configure CSP directives, add trusted sources, generate report-only policies, and copy production-ready CSP output directly in your browser.",
+      "Assemble CSP directives and sources into enforce or report-only policies with deployment-format output.",
   },
 };
 

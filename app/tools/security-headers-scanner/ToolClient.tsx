@@ -4,114 +4,201 @@ import { useMemo, useRef, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
-type HeaderResult = {
+type InputMode = "paste" | "browser";
+type ResultStatus = "present" | "absent" | "visible" | "not-visible";
+
+type HeaderRule = {
   name: string;
   label: string;
-  value: string | null;
-  status: "visible" | "not-visible";
-  relevance: "Common" | "Situational";
+  relevance: "Often considered" | "Situational";
   purpose: string;
-  suggestion: string;
+  guidance: string;
 };
 
-const securityHeaderRules = [
+type HeaderResult = HeaderRule & {
+  value: string | null;
+  status: ResultStatus;
+  assessment: string | null;
+};
+
+const securityHeaderRules: HeaderRule[] = [
   {
     name: "content-security-policy",
     label: "Content-Security-Policy",
-    relevance: "Common" as const,
+    relevance: "Often considered",
     purpose:
-      "Restricts where supported page resources can load from and can reduce the impact of some injection attacks when the policy is designed correctly.",
-    suggestion:
-      "Build a policy around the resources your site actually uses. Test with Content-Security-Policy-Report-Only before enforcing major changes.",
+      "Restricts supported resource loading and other document behavior according to the policy's directives.",
+    guidance:
+      "Read the directives themselves; presence alone says nothing about whether the policy is narrow, compatible, or effective.",
+  },
+  {
+    name: "content-security-policy-report-only",
+    label: "Content-Security-Policy-Report-Only",
+    relevance: "Situational",
+    purpose:
+      "Observes CSP violations without enforcing the policy, which is useful while testing a change.",
+    guidance:
+      "Treat report-only as telemetry, not protection. Confirm reporting endpoints and inspect the violations that actually arrive.",
   },
   {
     name: "strict-transport-security",
     label: "Strict-Transport-Security",
-    relevance: "Common" as const,
+    relevance: "Often considered",
     purpose:
-      "Tells supporting browsers to use HTTPS for future requests to the host after a valid HTTPS response has been received.",
-    suggestion:
-      "Enable HSTS only after HTTPS works reliably for the intended hostnames. Review max-age, includeSubDomains, and preload separately.",
+      "Tells supporting browsers to use HTTPS for future requests after receiving the header over a valid HTTPS connection.",
+    guidance:
+      "Check max-age carefully before adding includeSubDomains or preload; those choices can affect more hosts than the current page.",
   },
   {
     name: "x-frame-options",
     label: "X-Frame-Options",
-    relevance: "Common" as const,
+    relevance: "Often considered",
     purpose:
-      "Limits whether a page can be embedded in a frame, which can help reduce clickjacking exposure.",
-    suggestion:
-      "Use DENY or SAMEORIGIN where suitable, and review the CSP frame-ancestors directive for modern framing control.",
+      "Provides legacy framing control with DENY or SAMEORIGIN on supporting browsers.",
+    guidance:
+      "For modern framing rules, compare this value with CSP frame-ancestors rather than treating the two headers as independent guarantees.",
   },
   {
     name: "x-content-type-options",
     label: "X-Content-Type-Options",
-    relevance: "Common" as const,
+    relevance: "Often considered",
     purpose:
-      "The nosniff value tells browsers not to reinterpret certain responses as a different MIME type.",
-    suggestion:
-      "Use X-Content-Type-Options: nosniff where it matches your response handling, and send correct Content-Type values.",
+      "The nosniff value tells browsers not to reinterpret selected response MIME types.",
+    guidance:
+      "Send the correct Content-Type as well; nosniff does not repair a wrong media type.",
   },
   {
     name: "referrer-policy",
     label: "Referrer-Policy",
-    relevance: "Common" as const,
+    relevance: "Often considered",
     purpose:
-      "Controls how much referrer information the browser sends with supported navigations and requests.",
-    suggestion:
-      "Choose a policy that matches your privacy, analytics, and application requirements rather than copying a value blindly.",
+      "Controls how much referrer information supporting browsers send with navigations and requests.",
+    guidance:
+      "Choose the policy around privacy, analytics, and cross-origin navigation requirements rather than copying a value from another site.",
   },
   {
     name: "permissions-policy",
     label: "Permissions-Policy",
-    relevance: "Situational" as const,
+    relevance: "Situational",
     purpose:
-      "Controls access to selected browser features such as camera, microphone, geolocation, and fullscreen.",
-    suggestion:
-      "Restrict features the site does not need, but test embedded content and required browser APIs before deployment.",
+      "Controls access to selected browser features for the document and, where applicable, embedded content.",
+    guidance:
+      "Feature names and allowlists should match the APIs and frames the application really uses.",
   },
   {
     name: "cross-origin-opener-policy",
     label: "Cross-Origin-Opener-Policy",
-    relevance: "Situational" as const,
+    relevance: "Situational",
     purpose:
-      "Controls browsing-context isolation and is often considered when an application needs cross-origin isolation.",
-    suggestion:
-      "Use only when the application needs the related isolation behaviour. Test popups, authentication flows, and third-party integrations.",
+      "Controls browsing-context isolation between the document and cross-origin windows.",
+    guidance:
+      "Test popup, authentication, payment, and third-party window flows before tightening COOP.",
   },
   {
     name: "cross-origin-embedder-policy",
     label: "Cross-Origin-Embedder-Policy",
-    relevance: "Situational" as const,
+    relevance: "Situational",
     purpose:
-      "Requires compatible cross-origin resource loading rules when stronger document isolation is needed.",
-    suggestion:
-      "Test carefully because COEP can block third-party resources that do not send compatible headers.",
+      "Controls whether cross-origin resources need compatible CORS or CORP permission before the document can embed them.",
+    guidance:
+      "COEP can break third-party resources that do not opt in, so test every required dependency.",
   },
   {
     name: "cross-origin-resource-policy",
     label: "Cross-Origin-Resource-Policy",
-    relevance: "Situational" as const,
+    relevance: "Situational",
     purpose:
-      "Lets a resource state which origins may load it in supported cross-origin contexts.",
-    suggestion:
-      "Choose same-origin, same-site, or cross-origin according to how the resource is intended to be used.",
+      "Lets a resource limit which sites may include it in supported cross-origin contexts.",
+    guidance:
+      "Choose same-origin, same-site, or cross-origin according to how that particular resource is meant to be consumed.",
   },
 ];
 
+const sampleHeaders = `HTTP/2 200
+content-type: text/html; charset=utf-8
+content-security-policy: default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'
+strict-transport-security: max-age=31536000; includeSubDomains
+x-frame-options: DENY
+x-content-type-options: nosniff
+referrer-policy: strict-origin-when-cross-origin
+permissions-policy: camera=(), microphone=(), geolocation=()
+cross-origin-opener-policy: same-origin`;
+
 export default function ToolClient() {
+  const [mode, setMode] = useState<InputMode>("paste");
+  const [headerInput, setHeaderInput] = useState("");
   const [url, setUrl] = useState("");
   const [statusCode, setStatusCode] = useState("");
   const [finalUrl, setFinalUrl] = useState("");
   const [results, setResults] = useState<HeaderResult[]>([]);
+  const [resultSource, setResultSource] = useState<InputMode | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const activeController = useRef<AbortController | null>(null);
+
+  const summary = useMemo(() => {
+    const positive = results.filter(
+      (result) => result.status === "present" || result.status === "visible"
+    ).length;
+
+    return {
+      positive,
+      other: results.length - positive,
+      total: results.length,
+    };
+  }, [results]);
+
+  const clearResults = () => {
+    setResults([]);
+    setResultSource(null);
+    setStatusCode("");
+    setFinalUrl("");
+    setError("");
+    setCopied(false);
+  };
+
+  const switchMode = (nextMode: InputMode) => {
+    activeController.current?.abort();
+    activeController.current = null;
+    setLoading(false);
+    setMode(nextMode);
+    clearResults();
+  };
+
+  const inspectPastedHeaders = () => {
+    if (!headerInput.trim()) {
+      setError("Paste response headers copied from DevTools, curl, or another HTTP client.");
+      setResults([]);
+      setResultSource(null);
+      return;
+    }
+
+    try {
+      const parsed = parseHeaderBlock(headerInput);
+      setStatusCode(parsed.statusLine);
+      setFinalUrl("");
+      setResults(analyzeHeaderMap(parsed.headers, "paste"));
+      setResultSource("paste");
+      setError("");
+      setCopied(false);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to read the pasted response headers."
+      );
+      setResults([]);
+      setResultSource(null);
+      setCopied(false);
+    }
+  };
 
   const normalizeUrl = (value: string) => {
     const trimmed = value.trim();
 
     if (!trimmed) {
-      throw new Error("Please enter a website URL.");
+      throw new Error("Enter a website URL for the browser check.");
     }
 
     const candidate = /^https?:\/\//i.test(trimmed)
@@ -126,14 +213,14 @@ export default function ToolClient() {
       throw new Error("Enter a valid HTTP or HTTPS URL.");
     }
 
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
       throw new Error("Only HTTP and HTTPS URLs are supported.");
     }
 
     return parsed.toString();
   };
 
-  const scanHeaders = async () => {
+  const scanFromBrowser = async () => {
     activeController.current?.abort();
     const controller = new AbortController();
     activeController.current = controller;
@@ -143,6 +230,8 @@ export default function ToolClient() {
     setStatusCode("");
     setFinalUrl("");
     setResults([]);
+    setResultSource(null);
+    setCopied(false);
 
     const timeoutId = window.setTimeout(() => controller.abort(), 12000);
 
@@ -152,38 +241,32 @@ export default function ToolClient() {
         method: "GET",
         redirect: "follow",
         cache: "no-store",
+        credentials: "omit",
+        referrerPolicy: "no-referrer",
         signal: controller.signal,
       });
 
-      if (controller.signal.aborted) {
-        return;
-      }
+      if (controller.signal.aborted) return;
 
-      const scannedResults: HeaderResult[] = securityHeaderRules.map((rule) => {
-        const value = response.headers.get(rule.name);
-
-        return {
-          ...rule,
-          value,
-          status: value ? "visible" as const : "not-visible" as const,
-        };
+      const headerMap = new Map<string, string[]>();
+      response.headers.forEach((value, name) => {
+        headerMap.set(name.toLowerCase(), [value]);
       });
 
       setStatusCode(
         `${response.status}${response.statusText ? ` ${response.statusText}` : ""}`
       );
       setFinalUrl(response.url || targetUrl);
-      setResults(scannedResults);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
+      setResults(analyzeHeaderMap(headerMap, "browser"));
+      setResultSource("browser");
+    } catch (caught) {
+      if (caught instanceof DOMException && caught.name === "AbortError") {
         if (activeController.current === controller) {
           setError("The browser request timed out after 12 seconds.");
         }
       } else {
         setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to inspect this URL from the browser."
+          "The browser could not complete a readable CORS request to that URL. This can be caused by CORS, DNS, TLS, network policy, extensions, or the target itself. Paste response headers for a reliable presence check."
         );
       }
     } finally {
@@ -196,45 +279,53 @@ export default function ToolClient() {
     }
   };
 
+  const loadExample = () => {
+    setMode("paste");
+    setHeaderInput(sampleHeaders);
+    setUrl("");
+    clearResults();
+  };
+
   const resetAll = () => {
     activeController.current?.abort();
     activeController.current = null;
+    setHeaderInput("");
     setUrl("");
     setStatusCode("");
     setFinalUrl("");
     setResults([]);
+    setResultSource(null);
     setError("");
     setLoading(false);
+    setCopied(false);
+    setMode("paste");
   };
 
-  const summary = useMemo(() => {
-    const visible = results.filter((result) => result.status === "visible").length;
-
-    return {
-      visible,
-      notVisible: results.length - visible,
-      total: results.length,
-    };
-  }, [results]);
-
   const copyResults = async () => {
-    if (!results.length) {
-      return;
-    }
+    if (!results.length || !resultSource) return;
+
+    const sourceLine =
+      resultSource === "paste"
+        ? "Source: pasted response headers"
+        : "Source: browser CORS request";
 
     const output = [
+      "Security header review",
+      sourceLine,
       statusCode ? `Status: ${statusCode}` : "",
       finalUrl ? `Final URL: ${finalUrl}` : "",
-      "",
-      "Important: Not visible does not prove that a header is missing. CORS and Access-Control-Expose-Headers can hide response headers from browser JavaScript.",
+      resultSource === "browser"
+        ? "Important: Not visible does not prove that a header is absent. Browser JavaScript can read only CORS-exposed response headers."
+        : "",
       "",
       ...results.map((result) =>
         [
-          `${result.label}: ${result.status === "visible" ? "Visible" : "Not visible to this browser request"}`,
+          `${result.label}: ${statusLabel(result.status)}`,
           result.value ? `Value: ${result.value}` : "",
-          `Relevance: ${result.relevance}`,
+          `Context: ${result.relevance}`,
           `Purpose: ${result.purpose}`,
-          `Review: ${result.suggestion}`,
+          result.assessment ? `Value note: ${result.assessment}` : "",
+          `Next check: ${result.guidance}`,
         ]
           .filter(Boolean)
           .join("\n")
@@ -245,113 +336,221 @@ export default function ToolClient() {
 
     try {
       await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
+      window.setTimeout(() => setCopied(false), 1400);
     } catch {
-      setError("The results could not be copied. Copy them manually from the page.");
+      setCopied(false);
+      setError("The results could not be copied. Select and copy them manually.");
     }
   };
 
   const hasResults = results.length > 0;
+  const positiveLabel =
+    resultSource === "browser" ? "Visible" : "Present in paste";
+  const otherLabel =
+    resultSource === "browser" ? "Not visible" : "Not present in paste";
 
   return (
     <ToolShell
       title="Security Headers Scanner"
-      description="Review security-related response headers that the browser is allowed to expose for a URL. CORS rules can limit or hide results."
+      description="Inspect pasted response headers reliably, with an optional browser URL check when CORS exposes the values."
     >
-      <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Website URL
-        </label>
-
-        <input
-          type="url"
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
-          placeholder="https://example.com"
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-        />
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Header input method">
+        <button
+          type="button"
+          onClick={() => switchMode("paste")}
+          className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
+            mode === "paste"
+              ? "border-[var(--green)] bg-green-50 text-gray-900"
+              : "border-gray-200 bg-white text-gray-600 hover:border-[var(--green)]"
+          }`}
+          aria-pressed={mode === "paste"}
+        >
+          Paste Response Headers
+        </button>
+        <button
+          type="button"
+          onClick={() => switchMode("browser")}
+          className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
+            mode === "browser"
+              ? "border-[var(--green)] bg-green-50 text-gray-900"
+              : "border-gray-200 bg-white text-gray-600 hover:border-[var(--green)]"
+          }`}
+          aria-pressed={mode === "browser"}
+        >
+          Browser URL Check
+        </button>
       </div>
 
+      {mode === "paste" ? (
+        <div className="mt-5">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Response header block
+          </label>
+          <textarea
+            value={headerInput}
+            onChange={(event) => {
+              setHeaderInput(event.target.value);
+              clearResults();
+            }}
+            placeholder={sampleHeaders}
+            className="w-full min-h-[270px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          />
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+            Copy headers from the browser Network panel, curl -I, a reverse
+            proxy, or another HTTP client. This path does not make a network
+            request.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-5">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Website URL
+          </label>
+          <input
+            type="url"
+            value={url}
+            onChange={(event) => {
+              setUrl(event.target.value);
+              clearResults();
+            }}
+            placeholder="https://example.com"
+            className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          />
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+            This sends a real GET request directly from your browser without
+            cookies or a referrer. Cross-origin responses usually expose only a
+            limited header set to JavaScript.
+          </p>
+        </div>
+      )}
+
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={scanHeaders} disabled={loading} className="yoryantra-btn">
-          {loading ? "Scanning..." : "Scan Security Headers"}
-        </button>
+        {mode === "paste" ? (
+          <button
+            onClick={inspectPastedHeaders}
+            className="yoryantra-btn whitespace-nowrap"
+          >
+            Inspect Headers
+          </button>
+        ) : (
+          <button
+            onClick={scanFromBrowser}
+            disabled={loading}
+            className="yoryantra-btn whitespace-nowrap"
+          >
+            {loading ? "Checking..." : "Try Browser Check"}
+          </button>
+        )}
+
+        {mode === "paste" && (
+          <button
+            onClick={loadExample}
+            className="yoryantra-btn-outline whitespace-nowrap"
+          >
+            Load Example
+          </button>
+        )}
 
         <button
           onClick={copyResults}
           disabled={!hasResults}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline whitespace-nowrap"
         >
-          Copy Results
+          {copied ? "Copied" : "Copy Results"}
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       )}
 
       <div className="mt-8">
         <h3 className="mb-3 text-lg font-semibold text-gray-900">
-          Security Header Results
+          Header review
         </h3>
 
         {hasResults ? (
           <div className="yoryantra-output">
             <div className="space-y-5">
-              <div className="grid gap-4 md:grid-cols-3">
-                <SummaryCard label="Visible" value={`${summary.visible} / ${summary.total}`} />
-                <SummaryCard label="Not visible" value={String(summary.notVisible)} />
-                <SummaryCard label="Final status" value={statusCode || "Not available"} />
+              <div className="grid items-start gap-4 md:grid-cols-3">
+                <SummaryCard
+                  label={positiveLabel}
+                  value={`${summary.positive} / ${summary.total}`}
+                />
+                <SummaryCard label={otherLabel} value={String(summary.other)} />
+                <SummaryCard
+                  label={resultSource === "browser" ? "HTTP status" : "Status line"}
+                  value={statusCode || "Not supplied"}
+                />
               </div>
 
-              <div className="rounded-xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Final URL
-                </p>
-                <p className="mt-2 break-words text-sm text-gray-700">
-                  {finalUrl || "Not available"}
-                </p>
-              </div>
+              {finalUrl && (
+                <div className="rounded-xl border border-gray-200 bg-white p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Final URL
+                  </p>
+                  <p className="mt-2 break-words text-sm text-gray-700">
+                    {finalUrl}
+                  </p>
+                </div>
+              )}
 
               <div className="grid gap-4">
                 {results.map((result) => (
-                  <div key={result.name} className="rounded-xl border border-gray-200 bg-white p-5">
+                  <div
+                    key={result.name}
+                    className="rounded-xl border border-gray-200 bg-white p-5"
+                  >
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{result.label}</h4>
+                      <div className="min-w-0">
+                        <h4 className="break-words font-semibold text-gray-900">
+                          {result.label}
+                        </h4>
                         <p className="mt-2 text-sm leading-relaxed text-gray-600">
                           {result.purpose}
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        <span className={
-                          result.status === "visible"
-                            ? "rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700"
-                            : "rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"
-                        }>
-                          {result.status === "visible" ? "Visible" : "Not visible"}
+                      <div className="flex flex-wrap gap-2 md:justify-end">
+                        <span
+                          className={`self-start rounded-full px-3 py-1 text-xs font-semibold ${
+                            result.status === "present" ||
+                            result.status === "visible"
+                              ? "bg-green-50 text-green-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {statusLabel(result.status)}
                         </span>
-                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                        <span className="self-start rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                           {result.relevance}
                         </span>
                       </div>
                     </div>
 
                     {result.value && (
-                      <pre className="mt-4 overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs leading-relaxed text-gray-700 whitespace-pre-wrap break-words">
+                      <pre className="mt-4 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs leading-relaxed text-gray-700">
                         {result.value}
                       </pre>
                     )}
 
+                    {result.assessment && (
+                      <div className="mt-4 self-start rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-800">
+                        {result.assessment}
+                      </div>
+                    )}
+
                     <p className="mt-4 text-sm leading-relaxed text-gray-600">
-                      <strong className="text-gray-900">Review:</strong>{" "}
-                      {result.suggestion}
+                      <strong className="text-gray-900">Next check:</strong>{" "}
+                      {result.guidance}
                     </p>
                   </div>
                 ))}
@@ -359,109 +558,271 @@ export default function ToolClient() {
             </div>
           </div>
         ) : (
-          <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
-            Browser-visible security header results will appear here after scanning a URL.
+          <pre className="yoryantra-output min-h-[220px] overflow-auto whitespace-pre-wrap break-words text-sm">
+            Header presence and value notes will appear here.
           </pre>
         )}
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
-          Browser Visibility Limitation
-        </h3>
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          A browser cannot reliably inspect every response header on another origin.
-          CORS and Access-Control-Expose-Headers decide which headers JavaScript can
-          read. Therefore, “Not visible” does not prove that a header is missing.
-          Use a server-side scanner or your browser network panel for a complete check.
-        </p>
-      </div>
+      {mode === "browser" && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="text-sm font-semibold text-amber-900">
+            A browser URL check cannot prove a header is missing
+          </h3>
+          <p className="mt-2 text-sm leading-relaxed text-amber-800">
+            CORS controls whether JavaScript can read a cross-origin response,
+            and Access-Control-Expose-Headers controls many non-safelisted
+            response headers. “Not visible” therefore means only that this page
+            could not read the header. Paste the actual response headers when
+            presence or absence matters.
+          </p>
+        </div>
+      )}
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Reviewing Security-Related Response Headers
+            Paste headers when you need an answer about presence
           </h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Security-related HTTP headers tell supporting browsers how to handle
-            framing, transport, content loading, referrer data, browser features,
-            and selected cross-origin behaviour. Their usefulness depends on the
-            page, application, and exact header value.
+            Security headers such as CSP, HSTS, framing controls, referrer
+            policy, Permissions Policy, and cross-origin isolation headers are
+            ordinary HTTP response fields. If you already have the response
+            block from DevTools or curl, parsing that text avoids CORS ambiguity
+            and lets the page say whether a header is actually present in what
+            you pasted.
           </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            The URL check has a browser-shaped blind spot
+          </h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This scanner performs a browser request and reports only the headers
-            exposed to JavaScript. It is useful for a quick first look, but it is
-            not proof that a hidden header is absent or that a visible policy is correct.
+            A browser is intentionally not a general-purpose raw HTTP client.
+            Cross-origin fetches can fail entirely, and successful CORS
+            responses still expose only headers the Fetch rules allow script to
+            read. That is why the URL mode uses “visible” instead of “present.”
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use This Scanner</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter an HTTP or HTTPS URL.</li>
-            <li>Run the browser-based scan.</li>
-            <li>Review visible values and the final response URL.</li>
-            <li>Treat “Not visible” as an inconclusive result, not as “Missing.”</li>
-            <li>Confirm the complete response with server-side tools or browser developer tools.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Presence is not the same as a sound value
+          </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A CSP header can exist and still allow risky sources. HSTS can be
+            present with max-age=0, which disables the policy. X-Frame-Options
+            can contain an unsupported value, and nosniff only has the intended
+            effect when Content-Type is correct. The value notes here catch a
+            few obvious cases without pretending to replace header-specific
+            testing.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">What the Results Can and Cannot Confirm</h2>
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>A visible value confirms that this browser request could read that header.</li>
-            <li>A hidden value may still exist on the response.</li>
-            <li>Header presence does not prove that the value is secure or suitable.</li>
-            <li>Some headers are situational and should not be added to every site.</li>
-            <li>This scan does not test application logic, authentication, dependencies, or infrastructure.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Not every listed header belongs on every response
+          </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            COOP and COEP can alter window relationships and resource loading.
+            CORP is about how a resource may be included by other sites.
+            Permissions Policy depends on browser features the page actually
+            uses. Their absence is therefore shown neutrally rather than as a
+            red failure.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq
-              question="Why does a header show as not visible?"
-              answer="The browser may hide it because the target response does not expose that header through CORS. Not visible is different from missing."
-            />
-            <Faq
-              question="Does every website need every listed header?"
-              answer="No. CSP, HSTS, framing controls, permissions rules, and cross-origin isolation headers have different purposes and deployment requirements."
-            />
-            <Faq
-              question="Does finding a CSP header mean the policy is safe?"
-              answer="No. A CSP can be present but too broad, broken, or unsuitable for the page. Review the directives and test the application."
-            />
-            <Faq
-              question="Is this a complete website security audit?"
-              answer="No. It is a limited browser-visible header review. A security audit also covers application behaviour, access control, dependencies, infrastructure, monitoring, and testing."
-            />
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            What leaves the browser
+          </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Pasted headers are parsed locally and are not sent to a Yoryantra
+            server by this page. URL mode makes a direct GET request from your
+            browser to the URL you enter with credentials omitted and no
+            referrer. Avoid URL mode for endpoints where even a GET request can
+            change state.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            References for the two different questions here
+          </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The{" "}
+            <a
+              href="https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              OWASP HTTP Security Response Headers Cheat Sheet
+            </a>{" "}
+            explains why individual security headers are deployed. The{" "}
+            <a
+              href="https://fetch.spec.whatwg.org/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              WHATWG Fetch Standard
+            </a>{" "}
+            defines the CORS and response-header exposure rules that limit the
+            browser URL check.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/security-headers-scanner" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/security-headers-scanner" />
+          </div>
         </div>
       </section>
     </ToolShell>
   );
 }
 
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-2 break-words text-lg font-semibold text-gray-900">{value}</p>
-    </div>
-  );
+function parseHeaderBlock(input: string) {
+  const lines = input.replace(/\r\n?/g, "\n").split("\n");
+  const unfolded: string[] = [];
+
+  lines.forEach((line) => {
+    if (/^[ \t]/.test(line) && unfolded.length > 0) {
+      unfolded[unfolded.length - 1] += ` ${line.trim()}`;
+    } else {
+      unfolded.push(line.replace(/[ \\t]+$/, ""));
+    }
+  });
+
+  let statusLine = "";
+  const headers = new Map<string, string[]>();
+
+  unfolded.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+
+    if (/^HTTP\/\d(?:\.\d)?\s+\d{3}\b/i.test(trimmed)) {
+      statusLine = trimmed;
+      return;
+    }
+
+    const separator = trimmed.indexOf(":");
+    if (separator <= 0) return;
+
+    const name = trimmed.slice(0, separator).trim().toLowerCase();
+    const value = trimmed.slice(separator + 1).trim();
+
+    if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(name)) {
+      return;
+    }
+
+    const existing = headers.get(name) || [];
+    existing.push(value);
+    headers.set(name, existing);
+  });
+
+  if (headers.size === 0) {
+    throw new Error(
+      "No HTTP response headers were found. Paste lines in the form Header-Name: value."
+    );
+  }
+
+  return { headers, statusLine };
 }
 
-function Faq({ question, answer }: { question: string; answer: string }) {
+function analyzeHeaderMap(
+  headers: Map<string, string[]>,
+  source: InputMode
+): HeaderResult[] {
+  return securityHeaderRules.map((rule) => {
+    const values = headers.get(rule.name);
+    const value = values?.length ? values.join("\n") : null;
+
+    return {
+      ...rule,
+      value,
+      status: value
+        ? source === "paste"
+          ? "present"
+          : "visible"
+        : source === "paste"
+          ? "absent"
+          : "not-visible",
+      assessment: value ? assessHeaderValue(rule.name, value) : null,
+    };
+  });
+}
+
+function assessHeaderValue(name: string, value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "The header is present but its value is empty.";
+  }
+
+  if (name === "strict-transport-security") {
+    const match = trimmed.match(/(?:^|;)\s*max-age\s*=\s*(\d+)/i);
+    if (!match) {
+      return "No valid max-age directive was found. HSTS requires max-age.";
+    }
+    if (match[1] === "0") {
+      return "max-age=0 tells the browser to stop applying HSTS for this host.";
+    }
+  }
+
+  if (name === "x-frame-options") {
+    const normalized = trimmed.toUpperCase();
+    if (normalized === "ALLOW-FROM" || normalized.startsWith("ALLOW-FROM ")) {
+      return "ALLOW-FROM is obsolete and is not supported by modern browsers. Prefer CSP frame-ancestors for origin-specific framing rules.";
+    }
+    if (normalized !== "DENY" && normalized !== "SAMEORIGIN") {
+      return "Modern X-Frame-Options handling expects DENY or SAMEORIGIN. Check this value and compare it with CSP frame-ancestors.";
+    }
+  }
+
+  if (
+    name === "x-content-type-options" &&
+    trimmed.toLowerCase() !== "nosniff"
+  ) {
+    return "The defined X-Content-Type-Options value is nosniff; another value will not provide that behavior.";
+  }
+
+  if (
+    name === "content-security-policy-report-only" &&
+    !/\breport-(?:to|uri)\b/i.test(trimmed)
+  ) {
+    return "The report-only policy has no report-to or report-uri directive. Console violations can still appear, but no CSP reporting endpoint is named here.";
+  }
+
+  if (
+    name === "content-security-policy" &&
+    /(?:^|;)\s*script-src[^;]*'unsafe-eval'/i.test(trimmed)
+  ) {
+    return "script-src contains 'unsafe-eval', which enables string-to-code evaluation APIs that tighter CSPs block.";
+  }
+
+  return null;
+}
+
+function statusLabel(status: ResultStatus) {
+  if (status === "present") return "Present";
+  if (status === "absent") return "Not present";
+  if (status === "visible") return "Visible";
+  return "Not visible";
+}
+
+function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{question}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{answer}</p>
+    <div className="self-start rounded-xl border border-gray-200 bg-white p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </p>
+      <p className="mt-2 break-words text-lg font-semibold text-gray-900">
+        {value}
+      </p>
     </div>
   );
 }
