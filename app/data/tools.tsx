@@ -233,21 +233,21 @@ export const tools = [
 
   {
   title: "RSA Key Generator",
-  description: "Generate RSA public and private key pairs instantly.",
+  description: "Generate RSA signing key pairs with Web Crypto and export SPKI public and PKCS #8 private PEM.",
   href: "/tools/rsa-key-generator",
   category: "Security Tools",
   },
 
   {
   title: "Base64URL Encoder Decoder",
-  description: "Encode and decode Base64URL strings instantly.",
+  description: "Encode UTF-8 text as unpadded Base64URL or decode Base64URL and three-part JWT payload segments.",
   href: "/tools/base64url-encoder-decoder",
   category: "Security Tools",
   },
 
   {
   title: "PEM Formatter",
-  description: "Format PEM public keys, private keys, and certificates instantly.",
+  description: "Normalize PEM Base64 padding and line wrapping while checking boundaries, labels, and multiple blocks.",
   href: "/tools/pem-formatter",
   category: "Security Tools",
   },
