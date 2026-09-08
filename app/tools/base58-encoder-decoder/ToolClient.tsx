@@ -55,7 +55,7 @@ export default function ToolClient() {
   const notes = useMemo(() => (result ? getBase58Notes(result) : []), [result]);
 
   const convertBase58 = () => {
-    if (!input.trim()) {
+    if (input.length === 0) {
       setError("Please enter text, hex bytes, or a Base58 string.");
       setResult(null);
       setOutput("");
@@ -138,7 +138,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Base58 Encoder Decoder"
-      description="Encode text or hex bytes to Base58 and decode Base58 strings directly in your browser. Supports Bitcoin Base58, Flickr Base58, byte-safe output, grouped output, and clean developer reports."
+      description="Encode bytes with Bitcoin or Flickr Base58 alphabets while preserving leading-zero semantics."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -315,19 +315,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={convertBase58} className="yoryantra-btn">
+        <button onClick={convertBase58} className="yoryantra-btn min-h-11 whitespace-nowrap">
           Convert Base58
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-11 whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -365,7 +365,7 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             Base58 notes
           </h3>
@@ -393,7 +393,7 @@ export default function ToolClient() {
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-11 whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -404,152 +404,122 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Base58 conversion happens directly in your browser. Your input is not
-        uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Conversion runs in your browser. Yoryantra does not send the value to a
+        conversion API. Raw Base58 is an encoding only; it does not add a
+        checksum, encryption, or authenticity.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Encoding and Decoding Base58 Values
+            Base58 turns bytes into a human-oriented alphabet
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Base58 is an encoding format designed to avoid visually confusing
-            characters. It removes characters like zero, capital O, capital I,
-            and lowercase l from the alphabet, making encoded strings easier to
-            read and type.
+            Bitcoin-style Base58 represents a byte sequence as a large
+            base-256 number and repeatedly converts it into 58 symbols. The
+            familiar Bitcoin alphabet omits 0, O, I, and lowercase l so strings
+            are less likely to be misread when copied by hand.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Base58 Encoder Decoder converts text or hex bytes into Base58
-            and decodes Base58 back into text, hex, or byte values. It supports
-            Bitcoin-style Base58 and Flickr-style Base58 for common developer
-            workflows.
+            Base58 is not one universal standard. The Flickr alphabet contains
+            the same set of symbols in a different order, so a value encoded
+            with one alphabet can decode to different bytes under another. Keep
+            the alphabet with the data format that produced the value.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Using the Base58 Converter
+            Leading zero bytes are part of the byte sequence
           </h2>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste text, hex bytes, or a Base58 string.</li>
-            <li>Choose encode, decode, or auto detect.</li>
-            <li>Select Bitcoin Base58 or Flickr Base58 alphabet.</li>
-            <li>Choose text, hex, byte, clean, grouped, report, or JSON output.</li>
-            <li>Copy the converted value for debugging, tokens, or data work.</li>
-          </ol>
-        </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            In the Bitcoin convention, each leading zero byte is represented by
+            the alphabet's zero symbol, <code className="font-mono">1</code>.
+            That rule prevents a big-integer conversion from silently discarding
+            bytes at the front of the payload. The preserve option keeps this
+            byte-oriented convention; disabling it intentionally treats the
+            value more like an integer and can make round trips lossy.
+          </p>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Base58 Encoder Decoder Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Decoding Base58 values from logs, identifiers, or examples.</li>
-            <li>Encoding hex bytes into a compact readable string.</li>
-            <li>Working with Bitcoin-style Base58 strings.</li>
-            <li>Checking whether a pasted string uses invalid Base58 characters.</li>
-            <li>Creating copy-friendly identifiers without confusing characters.</li>
-            <li>Converting decoded bytes into text, hex, or byte value output.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Base58 Conversion
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Text:   hello
-Base58: Cn8eVZg`}
-            </pre>
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <pre className="whitespace-pre-wrap break-words">{`Hex bytes:  000001
+Bitcoin Base58 with leading zeros preserved: 112`}</pre>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Base58 vs Base64
+            Raw Base58 is not Base58Check
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Base64 is more compact and widely used for binary data, but it can
-            include symbols or characters that are awkward in manual copying.
-            Base58 is slightly longer but easier for humans to read, type, and
-            compare.
+            Bitcoin addresses and WIF private keys commonly use Base58Check,
+            which adds version bytes and a checksum around a payload before the
+            Base58 step. Only raw Base58 conversion is performed here. A string
+            can decode successfully here and still have an invalid Base58Check
+            checksum or the wrong version for a particular Bitcoin format.
+          </p>
+
+          <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+            A WIF string can contain a spend-capable private key. Do not paste
+            real private keys or recovery material merely to see their decoded
+            bytes. Local browser processing does not make secret handling
+            automatically safe.
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Text view is only appropriate for UTF-8 payloads
+          </h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Base58 represents bytes, not characters. When decoded bytes form
+            valid UTF-8, Text output renders them normally. If they do not, the
+            conversion stops and asks you to switch to Hex or Byte values so the
+            payload is not silently changed by Unicode replacement characters.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Use Base58 when readability and reduced character confusion matter.
-            Use Base64 when compact output and broad protocol support matter more.
+            Auto detect is necessarily heuristic because many ordinary words use
+            only Base58 characters. Select Encode or Decode explicitly for
+            production data. Grouped output is for reading; spaces are not part
+            of a Base58 alphabet and are removed only when the whitespace option
+            is enabled during decoding.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Reference implementations and conventions
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is Base58 encoding?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Base58 is an encoding format that represents bytes with 58
-                readable characters while avoiding easily confused characters.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What characters are removed from Base58?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Common Base58 alphabets avoid 0, O, I, and l because they can be
-                hard to tell apart.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is Base58 the same as Base58Check?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Base58Check adds version and checksum behavior on top of
-                Base58. This tool performs raw Base58 encoding and decoding.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this decode Bitcoin-style Base58?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It supports the Bitcoin Base58 alphabet, but it does not verify
-                Base58Check checksums.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I convert Base58?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Base58 conversion happens directly in your browser.
-              </p>
-            </div>
-          </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            There is no RFC that defines a single generic Base58 alphabet. The
+            <a
+              href="https://github.com/bitcoin/bitcoin/blob/master/src/base58.cpp"
+              target="_blank"
+              rel="noreferrer"
+              className="mx-1 font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              Bitcoin Core Base58 implementation
+            </a>
+            is the primary reference for the Bitcoin alphabet, while the
+            <a
+              href="https://en.bitcoin.it/wiki/Base58Check_encoding"
+              target="_blank"
+              rel="noreferrer"
+              className="mx-1 font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              Base58Check description
+            </a>
+            documents the leading-zero and checksum convention used by Bitcoin
+            formats. No Base58Check checksum is calculated or verified here.
+          </p>
         </div>
 
         <div>
@@ -557,7 +527,9 @@ Base58: Cn8eVZg`}
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/base58-encoder-decoder" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/base58-encoder-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -591,29 +563,75 @@ function runBase58Conversion(
     warnAmbiguousCharacters: boolean;
   }
 ): ConversionResult {
-  const alphabet = alphabets[options.alphabetMode];
-  const cleanInput = input.trim();
-  const preparedInput = options.ignoreWhitespace ? cleanInput.replace(/\s+/g, "") : cleanInput;
-  const warnings: string[] = [];
-
-  if (options.warnAmbiguousCharacters && /[0OIl]/.test(preparedInput)) {
-    warnings.push("Input contains characters commonly excluded from Base58: 0, O, I, or l.");
+  if (input.length > 10_000) {
+    throw new Error("Base58 conversion is intentionally limited to 10,000 input characters to keep the browser responsive.");
   }
 
+  const alphabet = alphabets[options.alphabetMode];
+  const probe = input.replace(/\s+/g, "");
+  const warnings: string[] = [];
   const modeUsed = options.mode === "auto"
-    ? looksLikeBase58(preparedInput, alphabet)
+    ? looksLikeBase58(probe, alphabet)
       ? "decode"
       : "encode"
     : options.mode;
+
+  if (options.mode === "auto") {
+    warnings.push(
+      `Auto detect chose ${modeUsed}. Ordinary text can consist entirely of Base58 symbols, so select the mode explicitly when a wrong guess would matter.`
+    );
+  }
 
   let rawOutput = "";
   let byteLength = 0;
 
   if (modeUsed === "encode") {
-    const bytes = options.inputEncoding === "hex" ? hexToBytes(cleanInput) : new TextEncoder().encode(cleanInput);
+    const bytes = options.inputEncoding === "hex"
+      ? hexToBytes(input)
+      : new TextEncoder().encode(input);
+
+    if (bytes.length === 0) {
+      throw new Error("The selected input does not contain any bytes to encode.");
+    }
+    if (bytes.length > 5_000) {
+      throw new Error("Base58 encoding is limited to 5,000 input bytes because base conversion becomes expensive for large payloads.");
+    }
+
     byteLength = bytes.length;
+
+    if (!options.preserveLeadingZeros && bytes[0] === 0) {
+      warnings.push("Leading zero bytes are being collapsed under integer-style conversion, so a byte-for-byte round trip is not guaranteed.");
+    }
+
     rawOutput = encodeBase58(bytes, alphabet, options.preserveLeadingZeros);
   } else {
+    let preparedInput = input;
+
+    if (options.ignoreWhitespace) {
+      const stripped = preparedInput.replace(/\s+/g, "");
+      if (stripped !== preparedInput) {
+        warnings.push("Whitespace was removed before decoding; spaces and line breaks are not Base58 symbols.");
+      }
+      preparedInput = stripped;
+    } else if (/\s/.test(preparedInput)) {
+      throw new Error("Whitespace is not part of the selected Base58 alphabet. Enable whitespace cleanup to remove it deliberately.");
+    }
+
+    if (!preparedInput) {
+      throw new Error("Enter a Base58 value to decode.");
+    }
+    if (preparedInput.length > 7_000) {
+      throw new Error("Base58 decoding is limited to 7,000 symbols to keep the browser responsive.");
+    }
+
+    if (options.warnAmbiguousCharacters && /[0OIl]/.test(preparedInput)) {
+      throw new Error("The selected Base58 alphabet excludes 0, O, I, and lowercase l.");
+    }
+
+    if (!options.preserveLeadingZeros && preparedInput.startsWith(alphabet[0])) {
+      warnings.push("Leading zero symbols are being collapsed under integer-style conversion, so original leading zero-byte count will be lost.");
+    }
+
     const bytes = decodeBase58(preparedInput, alphabet, options.preserveLeadingZeros);
     byteLength = bytes.length;
 
@@ -629,9 +647,9 @@ function runBase58Conversion(
   const groups = groupOutput(rawOutput, modeUsed === "encode" ? 8 : 16);
   const formattedOutput = formatOutput(rawOutput, {
     outputMode: options.outputMode,
-    input: cleanInput,
+    input,
     modeUsed,
-    inputLength: cleanInput.length,
+    inputLength: input.length,
     outputLength: rawOutput.length,
     byteLength,
     alphabetMode: options.alphabetMode,
@@ -640,12 +658,12 @@ function runBase58Conversion(
   });
 
   return {
-    input: cleanInput,
+    input,
     rawOutput,
     output: formattedOutput,
     modeUsed,
     alphabetMode: options.alphabetMode,
-    inputLength: cleanInput.length,
+    inputLength: input.length,
     outputLength: rawOutput.length,
     byteLength,
     groups,
@@ -653,87 +671,114 @@ function runBase58Conversion(
   };
 }
 
-function encodeBase58(bytes: Uint8Array, alphabet: string, preserveLeadingZeros: boolean) {
+function encodeBase58(bytes: Uint8Array, alphabet: string, preserveLeadingZeros: boolean): string {
   if (bytes.length === 0) {
     return "";
   }
 
-  let value = BigInt(0);
-
-  for (const byte of bytes) {
-    value = (value << BigInt(8)) + BigInt(byte);
+  let zeroCount = 0;
+  while (zeroCount < bytes.length && bytes[zeroCount] === 0) {
+    zeroCount += 1;
   }
 
-  let output = "";
+  const digits: number[] = [];
 
-  while (value > BigInt(0)) {
-    const remainder = Number(value % BigInt(58));
-    value = value / BigInt(58);
-    output = alphabet[remainder] + output;
-  }
+  for (let index = zeroCount; index < bytes.length; index += 1) {
+    let carry = bytes[index];
 
-  if (preserveLeadingZeros) {
-    for (const byte of bytes) {
-      if (byte === 0) {
-        output = alphabet[0] + output;
-      } else {
-        break;
-      }
+    for (let digitIndex = 0; digitIndex < digits.length; digitIndex += 1) {
+      carry += digits[digitIndex] * 256;
+      digits[digitIndex] = carry % 58;
+      carry = Math.floor(carry / 58);
+    }
+
+    while (carry > 0) {
+      digits.push(carry % 58);
+      carry = Math.floor(carry / 58);
     }
   }
 
-  return output || alphabet[0];
+  let output = preserveLeadingZeros ? alphabet[0].repeat(zeroCount) : "";
+
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    output += alphabet[digits[index]];
+  }
+
+  if (!output && bytes.length > 0) {
+    return alphabet[0];
+  }
+
+  return output;
 }
 
-function decodeBase58(input: string, alphabet: string, preserveLeadingZeros: boolean) {
+function decodeBase58(input: string, alphabet: string, preserveLeadingZeros: boolean): Uint8Array {
   if (!input) {
     return new Uint8Array();
   }
 
-  let value = BigInt(0);
-
-  for (const char of input) {
-    const index = alphabet.indexOf(char);
-
-    if (index === -1) {
-      throw new Error(`Invalid Base58 character: ${char}`);
-    }
-
-    value = value * BigInt(58) + BigInt(index);
+  let zeroCount = 0;
+  while (zeroCount < input.length && input[zeroCount] === alphabet[0]) {
+    zeroCount += 1;
   }
 
   const bytes: number[] = [];
+  const startIndex = preserveLeadingZeros ? zeroCount : 0;
 
-  while (value > BigInt(0)) {
-    bytes.unshift(Number(value & BigInt(255)));
-    value >>= BigInt(8);
-  }
+  for (let index = startIndex; index < input.length; index += 1) {
+    const value = alphabet.indexOf(input[index]);
 
-  if (preserveLeadingZeros) {
-    for (const char of input) {
-      if (char === alphabet[0]) {
-        bytes.unshift(0);
-      } else {
-        break;
-      }
+    if (value === -1) {
+      throw new Error(`Invalid Base58 character: ${input[index]}`);
+    }
+
+    let carry = value;
+
+    for (let byteIndex = 0; byteIndex < bytes.length; byteIndex += 1) {
+      carry += bytes[byteIndex] * 58;
+      bytes[byteIndex] = carry & 255;
+      carry = Math.floor(carry / 256);
+    }
+
+    while (carry > 0) {
+      bytes.push(carry & 255);
+      carry = Math.floor(carry / 256);
     }
   }
 
-  return new Uint8Array(bytes);
+  const decoded: number[] = [];
+  if (preserveLeadingZeros) {
+    for (let index = 0; index < zeroCount; index += 1) {
+      decoded.push(0);
+    }
+  }
+
+  for (let index = bytes.length - 1; index >= 0; index -= 1) {
+    decoded.push(bytes[index]);
+  }
+
+  if (!preserveLeadingZeros && decoded.length === 0 && input.length > 0) {
+    decoded.push(0);
+  }
+
+  return new Uint8Array(decoded);
 }
 
-function looksLikeBase58(input: string, alphabet: string) {
-  if (input.length < 4) {
+function looksLikeBase58(input: string, alphabet: string): boolean {
+  if (input.length < 6) {
     return false;
   }
 
   return Array.from(input).every((char) => alphabet.includes(char));
 }
 
-function hexToBytes(input: string) {
+function hexToBytes(input: string): Uint8Array {
   const clean = input.replace(/\s+/g, "");
 
-  if (!/^[a-f0-9]*$/i.test(clean) || clean.length % 2 !== 0) {
+  if (!clean) {
+    throw new Error("Enter at least one byte of hexadecimal input.");
+  }
+
+  if (!/^[a-f0-9]+$/i.test(clean) || clean.length % 2 !== 0) {
     throw new Error("Hex input must contain an even number of hexadecimal characters.");
   }
 
@@ -746,17 +791,23 @@ function hexToBytes(input: string) {
   return bytes;
 }
 
-function bytesToHex(bytes: Uint8Array) {
+function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
 }
 
-function decodeUtf8(bytes: Uint8Array) {
-  return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+function decodeUtf8(bytes: Uint8Array): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new Error(
+      "The decoded bytes are not valid UTF-8 text. Choose Hex or Byte values to inspect the bytes without changing them."
+    );
+  }
 }
 
-function groupOutput(value: string, size: number) {
+function groupOutput(value: string, size: number): string[] {
   const groups: string[] = [];
 
   for (let index = 0; index < value.length; index += size) {
@@ -765,7 +816,6 @@ function groupOutput(value: string, size: number) {
 
   return groups;
 }
-
 function formatOutput(
   rawOutput: string,
   details: {
@@ -831,7 +881,7 @@ function getBase58Notes(result: ConversionResult): Base58Note[] {
 
   if (result.warnings.length > 0) {
     notes.push({
-      title: "Review warnings",
+      title: "Compatibility notes",
       message: result.warnings.join(" "),
     });
   }

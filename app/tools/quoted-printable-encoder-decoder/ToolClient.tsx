@@ -44,12 +44,10 @@ export default function ToolClient() {
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<Mode>("encode");
   const [outputMode, setOutputMode] = useState<OutputMode>("clean");
-  const [newlineMode, setNewlineMode] = useState<NewlineMode>("preserve");
+  const [newlineMode, setNewlineMode] = useState<NewlineMode>("crlf");
   const [charsetMode, setCharsetMode] = useState<CharsetMode>("utf8");
   const [wrapLines, setWrapLines] = useState(true);
   const [maxLineLength, setMaxLineLength] = useState("76");
-  const [encodeTrailingWhitespace, setEncodeTrailingWhitespace] = useState(true);
-  const [encodeNonAscii, setEncodeNonAscii] = useState(true);
   const [strictDecode, setStrictDecode] = useState(false);
   const [result, setResult] = useState<ConversionResult | null>(null);
   const [output, setOutput] = useState("");
@@ -75,8 +73,6 @@ export default function ToolClient() {
         charsetMode,
         wrapLines,
         maxLineLength,
-        encodeTrailingWhitespace,
-        encodeNonAscii,
         strictDecode,
       });
 
@@ -112,12 +108,10 @@ export default function ToolClient() {
   const loadExample = () => {
     setInput(mode === "decode" ? sampleQuotedPrintable : samplePlainText);
     setOutputMode("clean");
-    setNewlineMode("preserve");
+    setNewlineMode("crlf");
     setCharsetMode("utf8");
     setWrapLines(true);
     setMaxLineLength("76");
-    setEncodeTrailingWhitespace(true);
-    setEncodeNonAscii(true);
     setStrictDecode(false);
     setResult(null);
     setOutput("");
@@ -129,12 +123,10 @@ export default function ToolClient() {
     setInput("");
     setMode("encode");
     setOutputMode("clean");
-    setNewlineMode("preserve");
+    setNewlineMode("crlf");
     setCharsetMode("utf8");
     setWrapLines(true);
     setMaxLineLength("76");
-    setEncodeTrailingWhitespace(true);
-    setEncodeNonAscii(true);
     setStrictDecode(false);
     setResult(null);
     setOutput("");
@@ -145,7 +137,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Quoted Printable Encoder Decoder"
-      description="Encode and decode Quoted-Printable text for email and MIME debugging. Handle soft line breaks, UTF-8 text, equals escapes, line wrapping, spaces, tabs, and clean report output."
+      description="Encode MIME text with RFC 2045 wrapping or decode quoted-printable bytes and soft breaks."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -223,8 +215,8 @@ export default function ToolClient() {
               setCopied(false);
             }}
             options={[
-              { label: "Preserve", value: "preserve" },
-              { label: "Use CRLF", value: "crlf" },
+              { label: "MIME CRLF (recommended)", value: "crlf" },
+              { label: "Preserve input line endings", value: "preserve" },
               { label: "Use LF", value: "lf" },
             ]}
           />
@@ -241,7 +233,7 @@ export default function ToolClient() {
             }}
             options={[
               { label: "UTF-8", value: "utf8" },
-              { label: "Latin-1 style bytes", value: "latin1" },
+              { label: "ISO-8859-1 byte mapping", value: "latin1" },
             ]}
           />
 
@@ -285,40 +277,6 @@ export default function ToolClient() {
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
               <input
                 type="checkbox"
-                checked={encodeTrailingWhitespace}
-                onChange={(event) => {
-                  setEncodeTrailingWhitespace(event.target.checked);
-                  setResult(null);
-                  setOutput("");
-                  setError("");
-                  setCopied(false);
-                }}
-                className="h-4 w-4 accent-[var(--light-gold)]"
-              />
-
-              Encode trailing spaces and tabs
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-              <input
-                type="checkbox"
-                checked={encodeNonAscii}
-                onChange={(event) => {
-                  setEncodeNonAscii(event.target.checked);
-                  setResult(null);
-                  setOutput("");
-                  setError("");
-                  setCopied(false);
-                }}
-                className="h-4 w-4 accent-[var(--light-gold)]"
-              />
-
-              Encode non-ASCII bytes
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-              <input
-                type="checkbox"
                 checked={strictDecode}
                 onChange={(event) => {
                   setStrictDecode(event.target.checked);
@@ -336,25 +294,26 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Quoted-Printable is common in email and MIME content because it keeps
-          most readable text visible while safely escaping special bytes.
+          Encoding always escapes trailing spaces/tabs and bytes outside the
+          RFC 2045 printable range. Wrapping at 76 characters keeps generated
+          MIME body lines conformant.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={convertQuotedPrintable} className="yoryantra-btn">
+        <button onClick={convertQuotedPrintable} className="yoryantra-btn min-h-11 whitespace-nowrap">
           Convert Quoted-Printable
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-11 whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -392,7 +351,7 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             Quoted-Printable notes
           </h3>
@@ -420,7 +379,7 @@ export default function ToolClient() {
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-11 whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -431,151 +390,134 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Quoted-Printable conversion happens directly in your browser. Your email
-        content or text is not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Conversion runs in your browser. Yoryantra does not send pasted message
+        text to a conversion API. Email bodies can still contain credentials,
+        reset links, addresses, or other private information, so handle them
+        according to the sensitivity of the message.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Encoding and Decoding Quoted-Printable Email Text
+            Quoted-Printable is a MIME transfer encoding for bytes
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Quoted-Printable is a MIME transfer encoding often used in email
-            bodies. It keeps normal readable text mostly unchanged while encoding
-            special bytes as equals escapes, such as =C3=A9 for part of a UTF-8
-            character.
+            Quoted-Printable keeps many printable ASCII bytes readable and
+            writes other bytes as an equals sign followed by two hexadecimal
+            digits. A UTF-8 character can therefore occupy several escapes: é
+            becomes the UTF-8 bytes C3 A9 and is represented as
+            <code className="mx-1 font-mono">=C3=A9</code>.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Quoted Printable Encoder Decoder helps you inspect encoded email
-            content, decode MIME text, encode text for email-safe transport, and
-            understand soft line breaks that end with an equals sign.
+            The transfer encoding does not identify the character set by itself.
+            MIME normally carries charset information in a Content-Type header.
+            Choose UTF-8 only when those decoded bytes are expected to be UTF-8;
+            invalid UTF-8 is reported instead of silently replaced. The
+            ISO-8859-1 option maps each byte directly to the corresponding
+            U+0000-U+00FF character and does not emulate Windows-1252.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Using the Quoted-Printable Converter
+            The 76-character line limit includes the soft-break equals sign
           </h2>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste normal text or Quoted-Printable encoded content.</li>
-            <li>Choose encode, decode, or auto detect.</li>
-            <li>Select newline handling and charset mode.</li>
-            <li>Adjust line wrapping, trailing whitespace, and strict decode options.</li>
-            <li>Copy the clean output, report, JSON, or hex bytes.</li>
-          </ol>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            RFC 2045 limits encoded Quoted-Printable lines to 76 characters,
+            excluding the terminating CRLF. A trailing equals sign marks a soft
+            break, meaning the next physical line continues the same logical
+            line. The encoder wraps without splitting an <code className="font-mono">=XX</code>
+            escape and counts that final equals sign inside the limit.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Disabling wrapping is kept for debugging existing systems, but the
+            result is flagged when any line exceeds the MIME limit. CRLF is the
+            canonical MIME line ending; LF or preserved local newlines are
+            available for inspection and are reported as non-canonical when
+            encoding.
+          </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Quoted-Printable Use Cases
-          </h2>
+        <div className="grid gap-4 md:grid-cols-2 items-start">
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h3 className="font-semibold text-gray-900">Trailing spaces and tabs</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              Space or tab at the end of an encoded line must be escaped because
+              mail transports may add or remove trailing whitespace. The encoder
+              always writes those bytes as =20 or =09.
+            </p>
+          </div>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Decoding MIME email bodies copied from raw email source.</li>
-            <li>Checking why symbols or accented characters appear as equals escapes.</li>
-            <li>Inspecting soft line breaks in long email lines.</li>
-            <li>Encoding UTF-8 text for email-safe content transfer.</li>
-            <li>Debugging email templates, transactional emails, and CRM exports.</li>
-            <li>Converting Quoted-Printable output into readable text or hex bytes.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Quoted-Printable Text
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Plain: café = price
-Quoted-Printable: caf=C3=A9 =3D price`}
-            </pre>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h3 className="font-semibold text-gray-900">Transport padding on decode</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              RFC 2045 tells decoders to discard trailing space or tab found on
+              an encoded physical line. Lenient decode follows that rule and
+              reports when such transport padding was removed.
+            </p>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Soft Line Breaks in Quoted-Printable
+            Strict decode is for syntax checking; lenient decode is for damaged mail
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Quoted-Printable content can wrap long lines using a soft line break.
-            A line ending with = means the next line continues the same logical
-            line. When decoding, those soft breaks are removed.
+            Strict mode rejects malformed equals escapes, non-ASCII literal
+            characters, non-CRLF soft breaks, and physical lines longer than 76
+            characters. Lenient mode keeps recoverable malformed text where
+            possible and reports what was accepted, which is useful when
+            examining mail that has already passed through gateways or copy/paste.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This is useful in email because MIME content often has line-length
-            limits. The visible line breaks in the raw message may not be actual
-            line breaks in the decoded text.
+            Auto detect is only a convenience heuristic. Plain text containing a
+            sequence such as <code className="font-mono">=3D</code> can look like
+            encoded content, so select Decode explicitly when validating a raw
+            MIME part.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Body Quoted-Printable is not MIME header Q-encoding
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is Quoted-Printable encoding?
-              </h3>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The scope here is the Content-Transfer-Encoding form defined for
+            MIME bodies. Encoded-word headers such as
+            <code className="mx-1 font-mono">=?UTF-8?Q?...?=</code> use related
+            but different rules from RFC 2047, including underscore handling.
+            Do not feed an entire encoded-word header here and assume it has been
+            validated as a mail header.
+          </p>
+        </div>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It is a MIME encoding that keeps most readable text visible while
-                escaping special bytes with equals signs and hexadecimal values.
-              </p>
-            </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            RFC 2045 is the wire-format reference
+          </h2>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does =C3=A9 mean?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It is the UTF-8 byte sequence for é written as Quoted-Printable
-                equals escapes.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why do some lines end with equals signs?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                That is usually a soft line break. It means the line continues on
-                the next line after decoding.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is Quoted-Printable the same as Base64?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Base64 encodes all bytes into a compact alphabet. Quoted-Printable
-                keeps many readable characters as-is and escapes only needed bytes.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I convert text?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Conversion happens directly in your browser.
-              </p>
-            </div>
-          </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc2045.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 2045 section 6.7
+            </a>{" "}
+            defines Quoted-Printable, including legal literal octets, trailing
+            whitespace treatment, soft line breaks, and the 76-character line
+            limit. Mail software may apply additional MIME header and charset
+            rules outside this body's transfer encoding.
+          </p>
         </div>
 
         <div>
@@ -583,7 +525,9 @@ Quoted-Printable: caf=C3=A9 =3D price`}
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/quoted-printable-encoder-decoder" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/quoted-printable-encoder-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -613,42 +557,69 @@ function runQuotedPrintableConversion(
     charsetMode: CharsetMode;
     wrapLines: boolean;
     maxLineLength: string;
-    encodeTrailingWhitespace: boolean;
-    encodeNonAscii: boolean;
     strictDecode: boolean;
   }
 ): ConversionResult {
+  if (input.length > 1_000_000) {
+    throw new Error("Input is too large for an interactive browser conversion. Keep it under 1,000,000 characters.");
+  }
+
   const modeUsed = options.mode === "auto" ? detectMode(input) : options.mode;
   const warnings: string[] = [];
-  const normalizedInput = normalizeNewlines(input, options.newlineMode);
   let rawOutput = "";
+  let outputBytes = new Uint8Array();
+  let normalizedInput = input;
+
+  if (options.mode === "auto") {
+    warnings.push(
+      `Auto detect chose ${modeUsed}. Sequences such as =3D can occur in ordinary text, so select the mode explicitly when validating MIME.`
+    );
+  }
 
   if (modeUsed === "encode") {
     const lineLength = Number(options.maxLineLength);
 
-    if (!Number.isFinite(lineLength) || lineLength < 20 || lineLength > 998) {
-      throw new Error("Max line length should be between 20 and 998.");
+    if (!Number.isInteger(lineLength) || lineLength < 20 || lineLength > 76) {
+      throw new Error("Max line length must be a whole number between 20 and 76 for RFC 2045 Quoted-Printable.");
+    }
+
+    normalizedInput = normalizeNewlines(input, options.newlineMode);
+
+    if (options.newlineMode !== "crlf" && /\r|\n/.test(normalizedInput)) {
+      warnings.push("Encoded hard line breaks are not canonical MIME CRLF because a local newline mode was selected.");
     }
 
     rawOutput = encodeQuotedPrintable(normalizedInput, {
       charsetMode: options.charsetMode,
       wrapLines: options.wrapLines,
-      maxLineLength: Math.floor(lineLength),
-      encodeTrailingWhitespace: options.encodeTrailingWhitespace,
-      encodeNonAscii: options.encodeNonAscii,
+      maxLineLength: lineLength,
     });
+
+    if (!options.wrapLines) {
+      const longest = longestPhysicalLine(rawOutput);
+      if (longest > 76) {
+        warnings.push(`Wrapping is disabled and the longest encoded line is ${longest} characters; RFC 2045 limits Quoted-Printable lines to 76.`);
+      }
+    }
+
+    outputBytes = new TextEncoder().encode(rawOutput);
   } else {
-    rawOutput = decodeQuotedPrintable(normalizedInput, {
+    const decoded = decodeQuotedPrintable(input, {
       charsetMode: options.charsetMode,
+      newlineMode: options.newlineMode,
       strictDecode: options.strictDecode,
       warnings,
     });
+    rawOutput = decoded.text;
+    outputBytes = decoded.bytes;
   }
 
-  const escapeCount = countMatches(rawOutput, /=[A-Fa-f0-9]{2}/g);
-  const softBreakCount = countMatches(modeUsed === "decode" ? normalizedInput : rawOutput, /=\r?\n/g);
-  const lineCount = rawOutput.split(/\r?\n/).length;
-  const output = formatOutput(rawOutput, {
+  const escapeSource = modeUsed === "decode" ? input : rawOutput;
+  const softBreakSource = modeUsed === "decode" ? input : rawOutput;
+  const escapeCount = countMatches(escapeSource, /=[A-Fa-f0-9]{2}/g);
+  const softBreakCount = countMatches(softBreakSource, /=\r\n|=\n|=\r/g);
+  const lineCount = rawOutput.split(/\r\n|\r|\n/).length;
+  const output = formatOutput(rawOutput, outputBytes, {
     input: normalizedInput,
     outputMode: options.outputMode,
     modeUsed,
@@ -676,9 +647,32 @@ function runQuotedPrintableConversion(
 
 function detectMode(input: string): "encode" | "decode" {
   const escapeCount = countMatches(input, /=[A-Fa-f0-9]{2}/g);
-  const softBreakCount = countMatches(input, /=\r?\n/g);
+  const softBreakCount = countMatches(input, /=\r\n|=\n|=\r/g);
+  return escapeCount + softBreakCount > 0 ? "decode" : "encode";
+}
 
-  return escapeCount + softBreakCount > 1 ? "decode" : "encode";
+type PhysicalLine = { text: string; newline: "\r\n" | "\n" | "\r" | "" };
+
+function splitPhysicalLines(input: string): PhysicalLine[] {
+  const lines: PhysicalLine[] = [];
+  let start = 0;
+
+  for (let index = 0; index < input.length; index += 1) {
+    if (input[index] === "\r") {
+      const newline = input[index + 1] === "\n" ? "\r\n" : "\r";
+      lines.push({ text: input.slice(start, index), newline });
+      if (newline === "\r\n") {
+        index += 1;
+      }
+      start = index + 1;
+    } else if (input[index] === "\n") {
+      lines.push({ text: input.slice(start, index), newline: "\n" });
+      start = index + 1;
+    }
+  }
+
+  lines.push({ text: input.slice(start), newline: "" });
+  return lines;
 }
 
 function encodeQuotedPrintable(
@@ -687,132 +681,271 @@ function encodeQuotedPrintable(
     charsetMode: CharsetMode;
     wrapLines: boolean;
     maxLineLength: number;
-    encodeTrailingWhitespace: boolean;
-    encodeNonAscii: boolean;
   }
-) {
-  const lines = input.split(/\r?\n/);
+): string {
+  const lines = splitPhysicalLines(input);
+  let output = "";
 
-  return lines
-    .map((line) => {
-      const bytes = encodeToBytes(line, options.charsetMode);
-      let encoded = "";
+  lines.forEach((line) => {
+    const bytes = encodeToBytes(line.text, options.charsetMode);
+    let encoded = "";
 
-      bytes.forEach((byte, index) => {
-        const isLast = index === bytes.length - 1;
-        const isSpace = byte === 32;
-        const isTab = byte === 9;
-        const isTrailingWhitespace = isLast && (isSpace || isTab);
-        const shouldEncode =
-          byte === 61 ||
-          byte < 32 ||
-          byte > 126 && options.encodeNonAscii ||
-          options.encodeTrailingWhitespace && isTrailingWhitespace;
+    bytes.forEach((byte, index) => {
+      const isLast = index === bytes.length - 1;
+      const isSpace = byte === 32;
+      const isTab = byte === 9;
+      const isTrailingWhitespace = isLast && (isSpace || isTab);
+      const isSafePrintable = (byte >= 33 && byte <= 60) || (byte >= 62 && byte <= 126);
+      const canStayLiteral = isSafePrintable || ((isSpace || isTab) && !isTrailingWhitespace);
 
-        if ((isSpace || isTab) && !shouldEncode) {
-          encoded += String.fromCharCode(byte);
-        } else if (shouldEncode) {
-          encoded += `=${byte.toString(16).toUpperCase().padStart(2, "0")}`;
-        } else {
-          encoded += String.fromCharCode(byte);
-        }
-      });
+      if (canStayLiteral) {
+        encoded += String.fromCharCode(byte);
+      } else {
+        encoded += `=${byte.toString(16).toUpperCase().padStart(2, "0")}`;
+      }
+    });
 
-      return options.wrapLines ? wrapQuotedPrintableLine(encoded, options.maxLineLength) : encoded;
-    })
-    .join("\r\n");
+    output += options.wrapLines
+      ? wrapQuotedPrintableLine(encoded, options.maxLineLength)
+      : encoded;
+    output += line.newline;
+  });
+
+  return output;
 }
 
 function decodeQuotedPrintable(
   input: string,
   options: {
     charsetMode: CharsetMode;
+    newlineMode: NewlineMode;
     strictDecode: boolean;
     warnings: string[];
   }
-) {
-  const withoutSoftBreaks = input.replace(/=\r?\n/g, "");
+): { text: string; bytes: Uint8Array } {
+  const lines = splitPhysicalLines(input);
   const bytes: number[] = [];
+  let transportPaddingLines = 0;
+  let nonCanonicalSoftBreaks = 0;
+  let longLines = 0;
 
-  for (let index = 0; index < withoutSoftBreaks.length; index += 1) {
-    const char = withoutSoftBreaks[index];
+  lines.forEach((line) => {
+    if (line.text.length > 76) {
+      longLines += 1;
+      if (options.strictDecode) {
+        throw new Error(`Encoded line is ${line.text.length} characters long; RFC 2045 limits Quoted-Printable physical lines to 76.`);
+      }
+    }
+
+    let text = line.text;
+    const softBreak = text.endsWith("=") && line.newline !== "";
+    if (softBreak) {
+      if (line.newline !== "\r\n") {
+        if (options.strictDecode) {
+          throw new Error("A Quoted-Printable soft break must end with CRLF in strict RFC 2045 mode.");
+        }
+        nonCanonicalSoftBreaks += 1;
+      }
+      text = text.slice(0, -1);
+    }
+
+    const trimmed = text.replace(/[ \t]+$/g, "");
+    if (trimmed !== text) {
+      transportPaddingLines += 1;
+      text = trimmed;
+    }
+
+    appendDecodedQuotedPrintableBytes(text, bytes, options);
+
+    if (!softBreak && line.newline) {
+      const newline = chooseOutputNewline(line.newline, options.newlineMode);
+      for (let index = 0; index < newline.length; index += 1) {
+        bytes.push(newline.charCodeAt(index));
+      }
+    }
+  });
+
+  if (transportPaddingLines > 0) {
+    options.warnings.push(`Trailing transport whitespace was removed from ${transportPaddingLines} encoded line${transportPaddingLines === 1 ? "" : "s"}, as RFC 2045 requires decoders to do.`);
+  }
+  if (nonCanonicalSoftBreaks > 0) {
+    options.warnings.push(`${nonCanonicalSoftBreaks} soft break${nonCanonicalSoftBreaks === 1 ? "" : "s"} used LF or CR instead of canonical CRLF and were accepted leniently.`);
+  }
+  if (longLines > 0) {
+    options.warnings.push(`${longLines} encoded line${longLines === 1 ? "" : "s"} exceeded the RFC 2045 76-character limit and were decoded leniently.`);
+  }
+
+  const outputBytes = new Uint8Array(bytes);
+  return { text: decodeBytes(outputBytes, options.charsetMode), bytes: outputBytes };
+}
+
+function appendDecodedQuotedPrintableBytes(
+  text: string,
+  bytes: number[],
+  options: {
+    charsetMode: CharsetMode;
+    strictDecode: boolean;
+    warnings: string[];
+  }
+): void {
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
 
     if (char === "=") {
-      const hex = withoutSoftBreaks.slice(index + 1, index + 3);
-
+      const hex = text.slice(index + 1, index + 3);
       if (/^[A-Fa-f0-9]{2}$/.test(hex)) {
         bytes.push(parseInt(hex, 16));
         index += 2;
-      } else if (options.strictDecode) {
-        throw new Error(`Invalid Quoted-Printable escape near =${hex}`);
-      } else {
-        options.warnings.push(`Invalid equals escape kept as text near =${hex}`);
-        bytes.push(char.charCodeAt(0));
+        continue;
       }
-    } else {
-      bytes.push(char.charCodeAt(0));
-    }
-  }
 
-  return decodeBytes(new Uint8Array(bytes), options.charsetMode);
+      if (options.strictDecode) {
+        throw new Error(`Invalid Quoted-Printable escape near =${hex}`);
+      }
+
+      options.warnings.push(`Invalid equals escape was kept as literal text near =${hex}.`);
+      bytes.push(61);
+      continue;
+    }
+
+    const code = char.charCodeAt(0);
+    const legalLiteral = code === 9 || code === 32 || (code >= 33 && code <= 60) || (code >= 62 && code <= 126);
+
+    if (code <= 127) {
+      if (!legalLiteral) {
+        if (options.strictDecode) {
+          throw new Error(`Illegal literal byte 0x${code.toString(16).toUpperCase().padStart(2, "0")} in Quoted-Printable input.`);
+        }
+        options.warnings.push(`A control character was accepted literally during lenient decode.`);
+      }
+      bytes.push(code);
+      continue;
+    }
+
+    if (options.strictDecode) {
+      throw new Error("Non-ASCII characters must be represented as =XX bytes in strict Quoted-Printable input.");
+    }
+
+    options.warnings.push("A non-ASCII literal character was accepted during lenient decode; canonical Quoted-Printable should escape those bytes.");
+    const rawBytes = encodeToBytes(char, options.charsetMode);
+    rawBytes.forEach((byte) => bytes.push(byte));
+  }
 }
 
-function encodeToBytes(input: string, charsetMode: CharsetMode) {
+function encodeToBytes(input: string, charsetMode: CharsetMode): Uint8Array {
   if (charsetMode === "latin1") {
-    return Uint8Array.from(Array.from(input).map((char) => (char.codePointAt(0) || 0) & 255));
+    const bytes: number[] = [];
+    for (const char of Array.from(input)) {
+      const codePoint = char.codePointAt(0) || 0;
+      if (codePoint > 255) {
+        throw new Error(`Character U+${codePoint.toString(16).toUpperCase()} cannot be represented by the ISO-8859-1 byte mapping. Choose UTF-8.`);
+      }
+      bytes.push(codePoint);
+    }
+    return new Uint8Array(bytes);
   }
 
   return new TextEncoder().encode(input);
 }
 
-function decodeBytes(bytes: Uint8Array, charsetMode: CharsetMode) {
+function decodeBytes(bytes: Uint8Array, charsetMode: CharsetMode): string {
   if (charsetMode === "latin1") {
     return Array.from(bytes).map((byte) => String.fromCharCode(byte)).join("");
   }
 
-  return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new Error("Decoded bytes are not valid UTF-8. Choose ISO-8859-1 byte mapping or inspect the Hex bytes if the MIME part declares another charset.");
+  }
 }
 
-function wrapQuotedPrintableLine(line: string, maxLineLength: number) {
+function wrapQuotedPrintableLine(line: string, maxLineLength: number): string {
   if (line.length <= maxLineLength) {
     return line;
   }
 
-  const chunks: string[] = [];
-  let remaining = line;
-
-  while (remaining.length > maxLineLength) {
-    let take = maxLineLength - 1;
-
-    if (remaining[take - 1] === "=") {
-      take -= 1;
+  const tokens: string[] = [];
+  for (let index = 0; index < line.length; index += 1) {
+    if (line[index] === "=" && /^[A-F0-9]{2}$/.test(line.slice(index + 1, index + 3))) {
+      tokens.push(line.slice(index, index + 3));
+      index += 2;
+    } else {
+      tokens.push(line[index]);
     }
-
-    if (remaining[take - 2] === "=") {
-      take -= 2;
-    }
-
-    chunks.push(`${remaining.slice(0, take)}=`);
-    remaining = remaining.slice(take);
   }
 
-  chunks.push(remaining);
+  const chunks: string[] = [];
+  const softCapacity = maxLineLength - 1;
+  let offset = 0;
+
+  while (offset < tokens.length) {
+    let length = 0;
+    let end = offset;
+
+    while (end < tokens.length && length + tokens[end].length <= softCapacity) {
+      length += tokens[end].length;
+      end += 1;
+    }
+
+    if (end === tokens.length) {
+      chunks.push(tokens.slice(offset).join(""));
+      break;
+    }
+
+    if (end === offset) {
+      throw new Error("The selected line length is too small for a Quoted-Printable escape.");
+    }
+
+    while (end > offset && (tokens[end - 1] === " " || tokens[end - 1] === "\t")) {
+      if (length + 2 <= softCapacity) {
+        const chunkTokens = tokens.slice(offset, end);
+        chunkTokens[chunkTokens.length - 1] = tokens[end - 1] === " " ? "=20" : "=09";
+        chunks.push(`${chunkTokens.join("")}=`);
+        offset = end;
+        break;
+      }
+      end -= 1;
+      length -= 1;
+    }
+
+    if (offset === end) {
+      continue;
+    }
+
+    chunks.push(`${tokens.slice(offset, end).join("")}=`);
+    offset = end;
+  }
 
   return chunks.join("\r\n");
 }
 
-function normalizeNewlines(input: string, mode: NewlineMode) {
+function chooseOutputNewline(source: "\r\n" | "\n" | "\r", mode: NewlineMode): string {
+  if (mode === "crlf") {
+    return "\r\n";
+  }
+  if (mode === "lf") {
+    return "\n";
+  }
+  return source;
+}
+
+function normalizeNewlines(input: string, mode: NewlineMode): string {
   if (mode === "preserve") {
     return input;
   }
 
   const normalized = input.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-
   return mode === "crlf" ? normalized.replace(/\n/g, "\r\n") : normalized;
+}
+
+function longestPhysicalLine(input: string): number {
+  return splitPhysicalLines(input).reduce((longest, line) => Math.max(longest, line.text.length), 0);
 }
 
 function formatOutput(
   rawOutput: string,
+  outputBytes: Uint8Array,
   details: {
     input: string;
     outputMode: OutputMode;
@@ -824,7 +957,7 @@ function formatOutput(
     softBreakCount: number;
     warnings: string[];
   }
-) {
+): string {
   if (details.outputMode === "json") {
     return JSON.stringify(
       {
@@ -833,6 +966,7 @@ function formatOutput(
         mode: details.modeUsed,
         inputLength: details.inputLength,
         outputLength: details.outputLength,
+        byteLength: outputBytes.length,
         lineCount: details.lineCount,
         escapeCount: details.escapeCount,
         softBreakCount: details.softBreakCount,
@@ -844,7 +978,7 @@ function formatOutput(
   }
 
   if (details.outputMode === "hex") {
-    return Array.from(new TextEncoder().encode(rawOutput))
+    return Array.from(outputBytes)
       .map((byte) => byte.toString(16).padStart(2, "0"))
       .join("");
   }
@@ -860,8 +994,9 @@ function formatOutput(
       `Mode: ${details.modeUsed}`,
       `Input length: ${details.inputLength}`,
       `Output length: ${details.outputLength}`,
+      `Output byte length: ${outputBytes.length}`,
       `Output lines: ${details.lineCount}`,
-      `Equals escapes in output: ${details.escapeCount}`,
+      `Quoted escapes: ${details.escapeCount}`,
       `Soft breaks: ${details.softBreakCount}`,
       "",
       "Output:",
@@ -874,7 +1009,6 @@ function formatOutput(
 
   return rawOutput;
 }
-
 function countMatches(value: string, pattern: RegExp) {
   return (value.match(pattern) || []).length;
 }
@@ -884,7 +1018,7 @@ function getQuotedPrintableNotes(result: ConversionResult): QPNote[] {
 
   if (result.warnings.length > 0) {
     notes.push({
-      title: "Review warnings",
+      title: "Decode and compatibility notes",
       message: result.warnings.join(" "),
     });
   }

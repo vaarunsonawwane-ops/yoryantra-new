@@ -2,37 +2,33 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Base32 Encoder Decoder | Encode and Decode Base32 Online | Yoryantra",
+  title: "Base32 Encoder Decoder | RFC 4648 Base32 & Base32hex | Yoryantra",
   description:
-    "Encode text to Base32 and decode Base32 strings directly in your browser. Supports RFC 4648 Base32, padding options, uppercase output, whitespace cleanup, and byte-safe output.",
+    "Encode UTF-8 or hex bytes with RFC 4648 Base32 and Base32hex, or validate and decode padded and unpadded values.",
   keywords: [
-    "Base32 Encoder Decoder",
-    "Base32 encoder",
-    "Base32 decoder",
-    "Base32 converter",
+    "Base32 encoder decoder",
     "RFC 4648 Base32",
-    "decode Base32 online",
-    "encode Base32 online",
-    "TOTP secret decoder",
-    "encoding tools",
-    "developer tools",
+    "Base32hex",
+    "Base32 padding",
+    "Base32 decode bytes",
+    "TOTP Base32",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/base32-encoder-decoder",
   },
   openGraph: {
-    title: "Base32 Encoder Decoder | Encode and Decode Base32 Online | Yoryantra",
+    title: "Base32 Encoder Decoder | RFC 4648 Base32 & Base32hex | Yoryantra",
     description:
-      "Encode text to Base32 and decode Base32 strings directly in your browser. Supports RFC 4648 Base32, padding options, uppercase output, whitespace cleanup, and byte-safe output.",
+      "Encode bytes with RFC 4648 Base32 or validate and decode padded and unpadded Base32 values.",
     url: "https://yoryantra.com/tools/base32-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base32 Encoder Decoder | Encode and Decode Base32 Online | Yoryantra",
+    title: "Base32 Encoder Decoder | RFC 4648 Base32 & Base32hex | Yoryantra",
     description:
-      "Encode text to Base32 and decode Base32 strings directly in your browser. Supports RFC 4648 Base32, padding options, uppercase output, whitespace cleanup, and byte-safe output.",
+      "Encode bytes with RFC 4648 Base32 or validate and decode padded and unpadded Base32 values.",
   },
 };
 

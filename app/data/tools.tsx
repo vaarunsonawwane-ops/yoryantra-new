@@ -1123,7 +1123,7 @@ export const tools = [
 {
   title: "Base32 Encoder Decoder",
   description:
-    "Encode text or hex bytes to Base32 and decode Base32 strings with RFC 4648, Base32hex, padding, and grouped output.",
+    "Encode bytes with RFC 4648 Base32 or Base32hex while validating padding, alphabet, and canonical pad bits.",
   href: "/tools/base32-encoder-decoder",
   category: "Encoding Tools",
 },
@@ -1131,7 +1131,7 @@ export const tools = [
 {
   title: "Base58 Encoder Decoder",
   description:
-    "Encode text or hex bytes to Base58 and decode Base58 strings with Bitcoin and Flickr alphabets.",
+    "Convert raw bytes with Bitcoin or Flickr Base58 while preserving leading-zero and alphabet semantics.",
   href: "/tools/base58-encoder-decoder",
   category: "Encoding Tools",
 },
@@ -1139,7 +1139,7 @@ export const tools = [
 {
   title: "Quoted Printable Encoder Decoder",
   description:
-    "Encode and decode Quoted-Printable MIME text with UTF-8, soft line breaks, line wrapping, and email debugging output.",
+    "Encode or decode MIME body bytes with RFC 2045 escapes, wrapping, whitespace, and charset boundaries.",
   href: "/tools/quoted-printable-encoder-decoder",
   category: "Encoding Tools",
 },

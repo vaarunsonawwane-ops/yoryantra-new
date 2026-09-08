@@ -55,7 +55,7 @@ export default function ToolClient() {
   const notes = useMemo(() => (result ? getBase32Notes(result) : []), [result]);
 
   const convertBase32 = () => {
-    if (!input.trim()) {
+    if (input.length === 0) {
       setError("Please enter text, hex bytes, or a Base32 string.");
       setResult(null);
       setOutput("");
@@ -146,7 +146,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Base32 Encoder Decoder"
-      description="Encode text to Base32 and decode Base32 strings directly in your browser. Supports RFC 4648 Base32, padding options, uppercase output, whitespace cleanup, and byte-safe output."
+      description="Encode bytes with RFC 4648 Base32 or decode padded and unpadded values safely."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -340,19 +340,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={convertBase32} className="yoryantra-btn">
+        <button onClick={convertBase32} className="yoryantra-btn min-h-11 whitespace-nowrap">
           Convert Base32
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-11 whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -390,7 +390,7 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             Base32 notes
           </h3>
@@ -418,7 +418,7 @@ export default function ToolClient() {
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-11 whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -429,152 +429,146 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Base32 conversion happens directly in your browser. Your input is not
-        uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Conversion runs in your browser. Yoryantra does not send the value to a
+        conversion API. Base32 is not encryption, so treat decoded secrets as
+        sensitive data.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Encoding and Decoding Base32 Values
+            Base32 is a byte encoding, not a text format
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Base32 represents binary data using a small alphabet of letters and
-            digits. It is less compact than Base64, but it is easier to read,
-            type, and handle in systems that avoid mixed case or special
+            RFC 4648 Base32 turns every five input bits into one character from
+            A-Z and 2-7. That makes arbitrary bytes easier to copy through systems
+            that prefer letters and digits, at the cost of producing more
+            characters than Base64.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Text input is encoded as UTF-8 bytes first. Hex input represents the
+            bytes directly. On decode, choose hex or byte output when the payload
+            is binary; text output deliberately rejects byte sequences that are
+            not valid UTF-8 instead of hiding corruption behind replacement
             characters.
           </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Padding has a shape, not just a trailing equals sign
+          </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Base32 Encoder Decoder converts text or hex bytes to Base32 and
-            decodes Base32 strings back to text, hex, or byte values. It supports
-            RFC 4648 Base32, Base32hex, padding control, grouped output, and
-            whitespace cleanup.
+            Standard Base32 works in eight-character output quanta. Depending on
+            the final byte count, a padded value can end with six, four, three,
+            one, or zero equals signs. A decoder should not accept arbitrary
+            padding or impossible data lengths because different malformed
+            strings could otherwise appear to represent the same bytes.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Unpadded Base32 is used by some surrounding protocols. When padding
+            is omitted here, the decoder still checks that the remaining symbol
+            count is possible and that unused pad bits are zero. RFC 4648 requires
+            padding by default unless the specification using Base32 says
+            otherwise.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Using the Base32 Converter
-          </h2>
+        <div className="grid gap-4 md:grid-cols-2 items-start">
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h3 className="font-semibold text-gray-900">RFC 4648 Base32</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              Uses A-Z followed by 2-7. Uppercase is the canonical alphabet shown
+              in RFC 4648; lowercase acceptance here is an explicit compatibility
+              option and is reported as a normalization.
+            </p>
+          </div>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste text, hex bytes, or a Base32 string.</li>
-            <li>Choose encode, decode, or auto detect.</li>
-            <li>Select the alphabet and output format.</li>
-            <li>Adjust padding, uppercase, whitespace, or lowercase handling.</li>
-            <li>Copy the converted Base32, decoded text, hex, or report output.</li>
-          </ol>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h3 className="font-semibold text-gray-900">Base32hex</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              Uses 0-9 followed by A-V. It carries the same five-bit values but
+              in a different symbol order, so decoding with the wrong alphabet
+              produces the wrong bytes or a validation error.
+            </p>
+          </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Base32 Encoder Decoder Use Cases
+            TOTP secrets need a different kind of caution
           </h2>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Decoding Base32 values found in developer tools or logs.</li>
-            <li>Encoding short text or byte values into RFC 4648 Base32.</li>
-            <li>Working with TOTP or OTP-style secret strings.</li>
-            <li>Checking whether a Base32 value needs padding.</li>
-            <li>Converting hex bytes into a Base32-safe representation.</li>
-            <li>Producing uppercase grouped output that is easier to read.</li>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Authenticator setup secrets are often displayed as unpadded Base32,
+            but Base32 itself provides no confidentiality or integrity. Decoding
+            a TOTP secret reveals the original secret bytes; it does not verify a
+            one-time password and it does not tell you whether the secret is safe
+            to disclose.
+          </p>
+
+          <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+            Avoid pasting production authentication seeds unless you genuinely
+            need to inspect them. Browser-local processing reduces network
+            exposure, but clipboard history, screen capture, extensions, and the
+            device itself can still expose a secret.
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Where decoding is intentionally strict
+          </h2>
+
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-gray-600 leading-relaxed">
+            <li>Characters outside the selected alphabet are rejected.</li>
+            <li>Padding may appear only at the end and must use a valid count.</li>
+            <li>Impossible unpadded lengths such as one, three, or six symbols modulo eight are rejected.</li>
+            <li>Non-zero unused pad bits are rejected to preserve canonical byte interpretation.</li>
+            <li>Whitespace and lowercase letters are accepted only when their compatibility options are enabled.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Example Base32 Conversion
+            A small byte-level example
           </h2>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Text:   hello
-Base32: NBSWY3DP`}
-            </pre>
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <pre className="whitespace-pre-wrap break-words">{`UTF-8 text: hello
+Hex bytes:  68656c6c6f
+Base32:     NBSWY3DP`}</pre>
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Base32 vs Base64
-          </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Base64 is more compact, but it can include characters such as plus,
-            slash, and equals depending on the variant. Base32 uses a smaller
-            alphabet, usually uppercase letters and digits, which makes it easier
-            to use in some manual-entry or case-insensitive workflows.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Choose Base32 when readability, typing, or case handling matters
-            more than compactness. Choose Base64 when shorter encoded output is
-            more important.
+            The encoded value is a representation of the five bytes, not a hash
+            or encryption result. Decoding NBSWY3DP returns those same bytes.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Reference behind the alphabet and padding rules
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is Base32 encoding?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Base32 is a way to represent binary data using 32 characters,
-                commonly uppercase letters A-Z and digits 2-7.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What alphabet does this tool use?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It supports standard RFC 4648 Base32 and Base32hex.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does Base32 require padding?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Some Base32 strings include equals signs for padding. This tool
-                can add or remove padding depending on your setting.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this decode TOTP-style secrets?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It can decode Base32 text used in many secret strings, but it
-                does not generate or verify one-time passwords.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I convert Base32?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Base32 conversion happens directly in your browser.
-              </p>
-            </div>
-          </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc4648.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 4648
+            </a>{" "}
+            defines Base32, Base32hex, padding, treatment of non-alphabet
+            characters, and canonical pad-bit requirements. Protocol-specific
+            formats may add stricter or different rules on top of it.
+          </p>
         </div>
 
         <div>
@@ -582,7 +576,9 @@ Base32: NBSWY3DP`}
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/base32-encoder-decoder" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/base32-encoder-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -617,33 +613,61 @@ function runBase32Conversion(
     acceptLowercase: boolean;
   }
 ): ConversionResult {
+  if (input.length > 1_000_000) {
+    throw new Error("Input is too large for an interactive browser conversion. Keep it under 1,000,000 characters.");
+  }
+
   const alphabet = alphabets[options.alphabetMode];
-  const cleanInput = input.trim();
+  const warnings: string[] = [];
+  const probe = input.replace(/\s+/g, "");
   const modeUsed = options.mode === "auto"
-    ? looksLikeBase32(cleanInput, alphabet, options.acceptLowercase)
+    ? looksLikeBase32(probe, alphabet, options.acceptLowercase)
       ? "decode"
       : "encode"
     : options.mode;
 
-  const warnings: string[] = [];
+  if (options.mode === "auto") {
+    warnings.push(
+      `Auto detect chose ${modeUsed}. Base32-looking plain text can be ambiguous, so choose the mode explicitly when the distinction matters.`
+    );
+  }
+
   let rawOutput = "";
   let byteLength = 0;
 
   if (modeUsed === "encode") {
-    const bytes = options.inputEncoding === "hex" ? hexToBytes(cleanInput) : new TextEncoder().encode(cleanInput);
+    const bytes = options.inputEncoding === "hex"
+      ? hexToBytes(input)
+      : new TextEncoder().encode(input);
+
+    if (bytes.length === 0) {
+      throw new Error("The selected input does not contain any bytes to encode.");
+    }
+
     byteLength = bytes.length;
     rawOutput = encodeBase32(bytes, alphabet, options.includePadding);
 
+    if (!options.includePadding && rawOutput.length % 8 !== 0) {
+      warnings.push(
+        "Padding was omitted. That is valid only when the surrounding format permits unpadded Base32."
+      );
+    }
+
     if (!options.uppercaseOutput) {
       rawOutput = rawOutput.toLowerCase();
+      warnings.push(
+        "Lowercase output is a compatibility form; RFC 4648 publishes the Base32 alphabets in uppercase."
+      );
     }
   } else {
-    const prepared = prepareBase32Input(cleanInput, {
+    const prepared = prepareBase32Input(input, {
       alphabet,
       ignoreWhitespace: options.ignoreWhitespace,
       acceptLowercase: options.acceptLowercase,
     });
-    const bytes = decodeBase32(prepared, alphabet);
+    warnings.push(...prepared.warnings);
+
+    const bytes = decodeBase32(prepared.value, alphabet);
     byteLength = bytes.length;
 
     if (options.decodedOutput === "hex") {
@@ -653,18 +677,14 @@ function runBase32Conversion(
     } else {
       rawOutput = decodeUtf8(bytes);
     }
-
-    if (!cleanInput.includes("=")) {
-      warnings.push("Input has no padding. That can be valid, but some systems expect padded Base32.");
-    }
   }
 
   const groups = groupOutput(rawOutput, modeUsed === "encode" ? 8 : 16);
   const formattedOutput = formatOutput(rawOutput, {
     outputMode: options.outputMode,
-    input: cleanInput,
+    input,
     modeUsed,
-    inputLength: cleanInput.length,
+    inputLength: input.length,
     outputLength: rawOutput.length,
     byteLength,
     alphabetMode: options.alphabetMode,
@@ -673,10 +693,10 @@ function runBase32Conversion(
   });
 
   return {
-    input: cleanInput,
+    input,
     output: formattedOutput,
     modeUsed,
-    inputLength: cleanInput.length,
+    inputLength: input.length,
     outputLength: rawOutput.length,
     byteLength,
     alphabet: options.alphabetMode,
@@ -685,23 +705,29 @@ function runBase32Conversion(
   };
 }
 
-function encodeBase32(bytes: Uint8Array, alphabet: string, includePadding: boolean) {
+function encodeBase32(bytes: Uint8Array, alphabet: string, includePadding: boolean): string {
   let bits = 0;
-  let value = 0;
+  let buffer = 0;
   let output = "";
 
   for (const byte of bytes) {
-    value = (value << 8) | byte;
+    buffer = (buffer << 8) | byte;
     bits += 8;
 
     while (bits >= 5) {
-      output += alphabet[(value >>> (bits - 5)) & 31];
       bits -= 5;
+      output += alphabet[(buffer >>> bits) & 31];
+    }
+
+    if (bits === 0) {
+      buffer = 0;
+    } else {
+      buffer &= (1 << bits) - 1;
     }
   }
 
   if (bits > 0) {
-    output += alphabet[(value << (5 - bits)) & 31];
+    output += alphabet[(buffer << (5 - bits)) & 31];
   }
 
   if (includePadding) {
@@ -713,10 +739,10 @@ function encodeBase32(bytes: Uint8Array, alphabet: string, includePadding: boole
   return output;
 }
 
-function decodeBase32(input: string, alphabet: string) {
+function decodeBase32(input: string, alphabet: string): Uint8Array {
   const clean = input.replace(/=+$/g, "");
   let bits = 0;
-  let value = 0;
+  let buffer = 0;
   const bytes: number[] = [];
 
   for (const char of clean) {
@@ -726,13 +752,25 @@ function decodeBase32(input: string, alphabet: string) {
       throw new Error(`Invalid Base32 character: ${char}`);
     }
 
-    value = (value << 5) | index;
+    buffer = (buffer << 5) | index;
     bits += 5;
 
     if (bits >= 8) {
-      bytes.push((value >>> (bits - 8)) & 255);
       bits -= 8;
+      bytes.push((buffer >>> bits) & 255);
+
+      if (bits === 0) {
+        buffer = 0;
+      } else {
+        buffer &= (1 << bits) - 1;
+      }
     }
+  }
+
+  if (bits > 0 && buffer !== 0) {
+    throw new Error(
+      "The final Base32 symbol contains non-zero pad bits, so the value is not a canonical encoding of these bytes."
+    );
   }
 
   return new Uint8Array(bytes);
@@ -745,32 +783,97 @@ function prepareBase32Input(
     ignoreWhitespace: boolean;
     acceptLowercase: boolean;
   }
-) {
-  let value = options.ignoreWhitespace ? input.replace(/\s+/g, "") : input;
+): { value: string; warnings: string[] } {
+  const warnings: string[] = [];
+  let value = input;
 
-  if (options.acceptLowercase) {
+  if (options.ignoreWhitespace) {
+    const stripped = value.replace(/\s+/g, "");
+    if (stripped !== value) {
+      warnings.push("Whitespace was ignored while decoding; RFC 4648 does not generally treat it as part of the Base32 alphabet.");
+    }
+    value = stripped;
+  } else if (/\s/.test(value)) {
+    throw new Error("Whitespace is not part of the selected Base32 alphabet. Enable whitespace cleanup to ignore it deliberately.");
+  }
+
+  if (!value) {
+    throw new Error("Enter a Base32 value to decode.");
+  }
+
+  if (/[a-z]/.test(value)) {
+    if (!options.acceptLowercase) {
+      throw new Error("Lowercase letters are present. Enable lowercase compatibility or provide uppercase Base32.");
+    }
+    warnings.push("Lowercase Base32 letters were normalized to uppercase before decoding.");
     value = value.toUpperCase();
   }
 
-  const allowed = new RegExp(`^[${escapeRegExp(options.alphabet)}=]+$`);
+  const firstPadding = value.indexOf("=");
+  const data = firstPadding === -1 ? value : value.slice(0, firstPadding);
+  const padding = firstPadding === -1 ? "" : value.slice(firstPadding);
 
-  if (!allowed.test(value)) {
+  if (padding && !/^=+$/.test(padding)) {
+    throw new Error("Base32 padding may appear only as a run of equals signs at the end.");
+  }
+
+  const allowedData = new RegExp(`^[${escapeRegExp(options.alphabet)}]+$`);
+  if (!allowedData.test(data)) {
     throw new Error("Input contains characters outside the selected Base32 alphabet.");
   }
 
-  return value;
+  const remainder = data.length % 8;
+  const expectedPadding: Record<number, number> = { 0: 0, 2: 6, 4: 4, 5: 3, 7: 1 };
+
+  if (expectedPadding[remainder] === undefined) {
+    throw new Error(
+      "The Base32 symbol count is impossible for whole input bytes. Valid unpadded lengths end in 0, 2, 4, 5, or 7 symbols modulo 8."
+    );
+  }
+
+  if (padding) {
+    if (value.length % 8 !== 0 || padding.length !== expectedPadding[remainder]) {
+      throw new Error(
+        `Invalid Base32 padding. This data length requires ${expectedPadding[remainder]} trailing equals sign${expectedPadding[remainder] === 1 ? "" : "s"}.`
+      );
+    }
+  } else if (expectedPadding[remainder] > 0) {
+    warnings.push(
+      "The value is unpadded. Some protocols allow that form, while generic RFC 4648 Base32 uses padding unless another specification says otherwise."
+    );
+  }
+
+  return { value: data + padding, warnings };
 }
 
-function looksLikeBase32(input: string, alphabet: string, acceptLowercase: boolean) {
-  const value = acceptLowercase ? input.replace(/\s+/g, "").toUpperCase() : input.replace(/\s+/g, "");
-  const allowed = new RegExp(`^[${escapeRegExp(alphabet)}=]+$`);
-  return value.length >= 8 && allowed.test(value);
+function looksLikeBase32(input: string, alphabet: string, acceptLowercase: boolean): boolean {
+  if (input.length < 8) {
+    return false;
+  }
+
+  let value = acceptLowercase ? input.toUpperCase() : input;
+  const firstPadding = value.indexOf("=");
+  const data = firstPadding === -1 ? value : value.slice(0, firstPadding);
+  const padding = firstPadding === -1 ? "" : value.slice(firstPadding);
+  const allowed = new RegExp(`^[${escapeRegExp(alphabet)}]+$`);
+  const validRemainders = [0, 2, 4, 5, 7];
+
+  return Boolean(
+    data &&
+    allowed.test(data) &&
+    (!padding || /^=+$/.test(padding)) &&
+    validRemainders.includes(data.length % 8)
+  );
 }
 
-function hexToBytes(input: string) {
+function hexToBytes(input: string): Uint8Array {
   const clean = input.replace(/\s+/g, "");
 
-  if (!/^[a-f0-9]*$/i.test(clean) || clean.length % 2 !== 0) {
+  if (!clean) {
+    throw new Error("Enter at least one byte of hexadecimal input.");
+  }
+
+  if (!/^[a-f0-9]+$/i.test(clean) || clean.length % 2 !== 0) {
     throw new Error("Hex input must contain an even number of hexadecimal characters.");
   }
 
@@ -783,21 +886,23 @@ function hexToBytes(input: string) {
   return bytes;
 }
 
-function bytesToHex(bytes: Uint8Array) {
+function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
 }
 
-function decodeUtf8(bytes: Uint8Array) {
+function decodeUtf8(bytes: Uint8Array): string {
   try {
-    return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
-    return Array.from(bytes).join(" ");
+    throw new Error(
+      "The decoded bytes are not valid UTF-8 text. Choose Hex or Byte values to inspect the bytes without changing them."
+    );
   }
 }
 
-function groupOutput(value: string, size: number) {
+function groupOutput(value: string, size: number): string[] {
   const groups: string[] = [];
 
   for (let index = 0; index < value.length; index += size) {
@@ -806,7 +911,6 @@ function groupOutput(value: string, size: number) {
 
   return groups;
 }
-
 function formatOutput(
   rawOutput: string,
   details: {
@@ -876,7 +980,7 @@ function getBase32Notes(result: ConversionResult): Base32Note[] {
 
   if (result.warnings.length > 0) {
     notes.push({
-      title: "Review warnings",
+      title: "Compatibility notes",
       message: result.warnings.join(" "),
     });
   }
