@@ -1,48 +1,227 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
-function decodeBase64Url(value: string) {
-  if (!/^[A-Za-z0-9_-]+$/.test(value)) {
-    throw new Error("Invalid Base64URL data.");
+type JsonObject = Record<string, unknown>;
+
+type VerificationResult = {
+  valid: boolean;
+  header: JsonObject;
+  payload: JsonObject;
+  secretBytes: number;
+  keyLengthWarning: string;
+};
+
+const SAMPLE_TOKEN =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsIm5hbWUiOiJTbmVoYSIsInJvbGUiOiJlZGl0b3IifQ.Xz_v3GTxUOmj6g25na2jtJYy3GBWVf5pCt3nrXFLuZ4";
+const SAMPLE_SECRET = "sN3ha-7xL9P2vQ6mR8tU1wY4zA5bC0dE";
+
+function encodeBase64Url(bytes: Uint8Array) {
+  let binary = "";
+
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
   }
 
-  const normalized = value
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
-
-  const padded =
-    normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
-
-  const binary = atob(padded);
-
-  return Uint8Array.from(binary, (character) =>
-    character.charCodeAt(0)
-  );
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
-function decodeJWTHeader(value: string) {
-  try {
-    const bytes = decodeBase64Url(value);
-    const text = new TextDecoder().decode(bytes);
-    const header = JSON.parse(text) as { alg?: unknown; typ?: unknown };
+export function decodeCanonicalBase64Url(value: string, label: string) {
+  if (!value) {
+    throw new Error(`${label} is empty.`);
+  }
 
-    if (
-      !header ||
-      typeof header !== "object" ||
-      Array.isArray(header)
-    ) {
-      throw new Error();
-    }
-
-    return header;
-  } catch {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) {
     throw new Error(
-      "The JWT header is not valid Base64URL-encoded JSON."
+      `${label} must use unpadded Base64URL characters only: A-Z, a-z, 0-9, - and _.`
     );
   }
+
+  if (value.length % 4 === 1) {
+    throw new Error(`${label} has an impossible Base64URL length.`);
+  }
+
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+
+  let binary: string;
+
+  try {
+    binary = atob(padded);
+  } catch {
+    throw new Error(`${label} is not valid Base64URL data.`);
+  }
+
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+
+  if (encodeBase64Url(bytes) !== value) {
+    throw new Error(
+      `${label} is not canonical unpadded Base64URL. The encoded characters do not round-trip to the same value.`
+    );
+  }
+
+  return bytes;
+}
+
+function decodeUtf8JsonObject(segment: string, label: string) {
+  const bytes = decodeCanonicalBase64Url(segment, label);
+  let text: string;
+
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new Error(`${label} does not decode to valid UTF-8 text.`);
+  }
+
+  let value: unknown;
+
+  try {
+    value = JSON.parse(text);
+  } catch {
+    throw new Error(`${label} does not decode to valid JSON.`);
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must decode to a JSON object for a compact JWT.`);
+  }
+
+  return value as JsonObject;
+}
+
+function validateProtectedHeader(header: JsonObject) {
+  if (header.alg !== "HS256") {
+    const declared =
+      typeof header.alg === "string" ? header.alg : "no string alg value";
+    throw new Error(
+      `Only HS256 is verified here. The protected header declares ${declared}.`
+    );
+  }
+
+  if (header.b64 === false) {
+    throw new Error(
+      "JWS with b64=false uses an unencoded payload and a different signing-input rule. That extension is not accepted by this JWT verifier."
+    );
+  }
+
+  if (header.crit !== undefined) {
+    if (
+      !Array.isArray(header.crit) ||
+      header.crit.some((item) => typeof item !== "string")
+    ) {
+      throw new Error("The crit protected-header parameter must be an array of strings.");
+    }
+
+    if (header.crit.length === 0) {
+      throw new Error("The crit protected-header parameter must not be an empty array.");
+    }
+
+    throw new Error(
+      `Critical JWS extensions are present (${header.crit.join(", ")}). Verification stops because those extensions are not implemented here.`
+    );
+  }
+}
+
+function toArrayBuffer(bytes: Uint8Array) {
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength
+  ) as ArrayBuffer;
+}
+
+export async function verifyHs256Jwt(
+  compactToken: string,
+  secret: string
+): Promise<VerificationResult> {
+  const cleanedToken = compactToken.trim();
+
+  if (!cleanedToken) {
+    throw new Error("Paste a compact JWT before verifying it.");
+  }
+
+  if (!secret) {
+    throw new Error("Enter the expected HS256 shared secret.");
+  }
+
+  if (/\s/.test(cleanedToken)) {
+    throw new Error("A compact JWT cannot contain spaces or line breaks inside the token.");
+  }
+
+  const parts = cleanedToken.split(".");
+
+  if (parts.length !== 3 || parts.some((part) => !part)) {
+    throw new Error(
+      "Enter a compact signed JWT with three non-empty dot-separated sections: header.payload.signature."
+    );
+  }
+
+  const header = decodeUtf8JsonObject(parts[0], "JWT header");
+  const payload = decodeUtf8JsonObject(parts[1], "JWT payload");
+  validateProtectedHeader(header);
+
+  const signature = decodeCanonicalBase64Url(parts[2], "JWT signature");
+
+  if (signature.byteLength !== 32) {
+    throw new Error(
+      `HS256 produces a 32-byte HMAC-SHA-256 value, but this signature decodes to ${signature.byteLength} bytes.`
+    );
+  }
+
+  const encoder = new TextEncoder();
+  const secretBytes = encoder.encode(secret);
+  const signingInput = encoder.encode(`${parts[0]}.${parts[1]}`);
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    secretBytes,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"]
+  );
+
+  const valid = await crypto.subtle.verify(
+    "HMAC",
+    key,
+    toArrayBuffer(signature),
+    toArrayBuffer(signingInput)
+  );
+
+  return {
+    valid,
+    header,
+    payload,
+    secretBytes: secretBytes.byteLength,
+    keyLengthWarning:
+      secretBytes.byteLength < 32
+        ? `The entered secret is ${secretBytes.byteLength} UTF-8 bytes. RFC 7518 requires an HS256 key at least as large as the 256-bit hash output.`
+        : "The entered secret is at least 32 UTF-8 bytes. Length meets the HS256 size floor, but length alone does not prove that the key has strong entropy.",
+  };
+}
+
+function formatResult(result: VerificationResult) {
+  const claimNames = Object.keys(result.payload);
+
+  return [
+    result.valid ? "Signature verification passed." : "Signature verification failed.",
+    "",
+    "Algorithm: HS256",
+    `Secret input: ${result.secretBytes} UTF-8 bytes`,
+    `Payload claims parsed: ${claimNames.length}`,
+    "",
+    result.valid
+      ? "The HMAC matches the exact encoded header and payload for the secret entered."
+      : "The HMAC does not match the exact encoded header and payload for the secret entered.",
+    "",
+    result.keyLengthWarning,
+    "",
+    result.valid
+      ? "A matching signature does not validate exp, nbf, iss, aud, permissions, revocation, or application policy."
+      : "Check the exact secret bytes and token value before assuming the token was signed by a different system.",
+  ].join("\n");
 }
 
 export default function ToolClient() {
@@ -50,406 +229,269 @@ export default function ToolClient() {
   const [secret, setSecret] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [shortKeyWarning, setShortKeyWarning] = useState("");
+  const verificationVersion = useRef(0);
+
+  const invalidateVerification = () => {
+    verificationVersion.current += 1;
+  };
+
+  const clearResult = () => {
+    setOutput("");
+    setError("");
+    setCopied(false);
+    setShortKeyWarning("");
+  };
 
   const verifyJWT = async () => {
+    const version = verificationVersion.current + 1;
+    verificationVersion.current = version;
+
     try {
-      const cleanedToken = token.trim();
-      const cleanedSecret = secret;
+      const result = await verifyHs256Jwt(token, secret);
 
-      if (!cleanedToken) {
-        throw new Error("Please enter a JWT token.");
-      }
+      if (verificationVersion.current !== version) return;
 
-      if (!cleanedSecret) {
-        throw new Error("Please enter the expected HS256 secret.");
-      }
-
-      const parts = cleanedToken.split(".");
-
-      if (parts.length !== 3 || parts.some((part) => !part)) {
-        throw new Error(
-          "Enter a compact JWT with three dot-separated sections."
-        );
-      }
-
-      if (!/^[A-Za-z0-9_-]+$/.test(parts[1])) {
-        throw new Error("The JWT payload is not valid Base64URL data.");
-      }
-
-      const header = decodeJWTHeader(parts[0]);
-
-      if (header.alg !== "HS256") {
-        throw new Error(
-          `This tool verifies HS256 tokens only. The JWT header declares ${
-            typeof header.alg === "string" ? header.alg : "no supported algorithm"
-          }.`
-        );
-      }
-
-      const encoder = new TextEncoder();
-      const key = await crypto.subtle.importKey(
-        "raw",
-        encoder.encode(cleanedSecret),
-        {
-          name: "HMAC",
-          hash: "SHA-256",
-        },
-        false,
-        ["verify"]
-      );
-
-      let signature: Uint8Array;
-
-      try {
-        signature = decodeBase64Url(parts[2]);
-      } catch {
-        throw new Error("The JWT signature is not valid Base64URL data.");
-      }
-
-      const signatureBuffer = signature.buffer.slice(
-        signature.byteOffset,
-        signature.byteOffset + signature.byteLength
-      ) as ArrayBuffer;
-
-      const data = encoder.encode(`${parts[0]}.${parts[1]}`);
-      const dataBuffer = data.buffer.slice(
-        data.byteOffset,
-        data.byteOffset + data.byteLength
-      ) as ArrayBuffer;
-
-      const isValid = await crypto.subtle.verify(
-        "HMAC",
-        key,
-        signatureBuffer,
-        dataBuffer
-      );
-
-      setOutput(
-        isValid
-          ? [
-              "Signature verification passed.",
-              "",
-              "Algorithm: HS256",
-              "The signature matches the token header and payload for the secret you entered.",
-              "",
-              "This result does not confirm claim validity, expiry, issuer, audience, or whether the application should accept the token.",
-            ].join("\n")
-          : [
-              "Signature verification failed.",
-              "",
-              "The signature does not match the token header and payload for the secret you entered.",
-              "Check the secret, token value, and signing algorithm.",
-            ].join("\n")
-      );
-
+      setOutput(formatResult(result));
       setError("");
-    } catch (err) {
+      setCopied(false);
+      setShortKeyWarning(result.secretBytes < 32 ? result.keyLengthWarning : "");
+    } catch (caught) {
+      if (verificationVersion.current !== version) return;
+
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to verify this JWT signature."
+        caught instanceof Error
+          ? caught.message
+          : "Unable to verify this HS256 JWT signature."
       );
       setOutput("");
+      setCopied(false);
+      setShortKeyWarning("");
     }
   };
 
+  const copyOutput = async () => {
+    if (!output) return;
+
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+      setError(
+        "The verification report could not be copied. Select the output and copy it manually."
+      );
+    }
+  };
+
+  const loadExample = () => {
+    invalidateVerification();
+    setToken(SAMPLE_TOKEN);
+    setSecret(SAMPLE_SECRET);
+    clearResult();
+  };
+
   const resetAll = () => {
+    invalidateVerification();
     setToken("");
     setSecret("");
-    setOutput("");
-    setError("");
+    clearResult();
   };
 
   return (
     <ToolShell
       title="JWT Signature Verifier"
-      description="Verify whether an HS256 JWT signature matches the token header and payload for the shared secret you enter."
+      description="Verify an HS256 JWT against an exact UTF-8 secret without treating signature validity as claim acceptance."
     >
-      {/* TOKEN */}
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          JWT Token
+        <label className="mb-2 block text-sm font-medium text-gray-700">
+          Compact JWT
         </label>
-
         <textarea
           value={token}
-          onChange={(e) =>
-            setToken(e.target.value)
-          }
-          placeholder="Paste JWT token here..."
-          className="w-full min-h-[180px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+            invalidateVerification();
+            setToken(event.target.value);
+            clearResult();
+          }}
+          placeholder="header.payload.signature"
+          spellCheck={false}
+          className="w-full min-h-[180px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
       </div>
 
-      {/* SECRET */}
       <div className="mt-6">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Secret Key
+        <label className="mb-2 block text-sm font-medium text-gray-700">
+          Expected HS256 Secret
         </label>
-
         <input
           type="password"
           value={secret}
-          onChange={(e) =>
-            setSecret(e.target.value)
-          }
-          placeholder="Enter the expected HS256 secret..."
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            invalidateVerification();
+            setSecret(event.target.value);
+            clearResult();
+          }}
+          placeholder="Enter the exact shared secret"
           autoComplete="off"
           spellCheck={false}
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
+        <p className="mt-2 text-xs leading-relaxed text-gray-500">
+          Interpreted as exact UTF-8 text. Base64 or Base64URL-looking text is not decoded first.
+        </p>
       </div>
 
-      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={verifyJWT}
-          className="yoryantra-btn"
-        >
-          Verify JWT Signature
+        <button onClick={verifyJWT} className="yoryantra-btn whitespace-nowrap">
+          Verify Signature
         </button>
-
-        <button
-          onClick={resetAll}
-          className="yoryantra-btn-outline"
-        >
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
+          Load Example
+        </button>
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
 
-      {/* ERROR */}
       {error && (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Verification Result
-          </h3>
+      {shortKeyWarning && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+          <strong className="text-amber-900">The secret is shorter than the HS256 key-size requirement.</strong>
+          <p className="mt-2">{shortKeyWarning}</p>
+        </div>
+      )}
 
+      <div className="mt-8">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">Verification Result</h3>
           {output && (
-            <button
-              onClick={() =>
-                navigator.clipboard.writeText(output)
-              }
-              className="yoryantra-btn-outline text-sm"
-            >
-              Copy
+            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm whitespace-nowrap">
+              {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
-
-        <div className="yoryantra-output min-h-[160px] text-sm whitespace-pre-wrap break-words">
-          {output ||
-            "JWT verification result will appear here..."}
+        <div className="yoryantra-output min-h-[180px] whitespace-pre-wrap break-words text-sm">
+          {output || "Paste a three-part HS256 JWT and its expected secret to compare the signature."}
         </div>
       </div>
 
-      {/* SECURITY NOTE */}
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
-          Security Note
+      <div className="mt-8 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-amber-900">
+          A matching signature is not an authorization decision
         </h3>
-
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Verification happens locally inside your browser. Avoid using live
-          production tokens or secrets unless you understand the risk. A valid
-          signature confirms integrity for the supplied secret, not that the
-          claims are acceptable or the token should be trusted.
+        <p className="mt-2 text-sm leading-relaxed text-amber-800">
+          Signature verification proves that the encoded header and payload match the supplied key. The application still has to validate time claims, issuer, audience, token type, permissions, revocation and its own acceptance rules.
         </p>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Verification uses the browser's Web Crypto API. The token and secret are not sent to a verification endpoint by this page.
+      </div>
+
+      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Verifying JWT Signatures Before Trusting Tokens
+            Matching the MAC is only the first gate
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            HS256 uses one shared secret to create and verify an HMAC-SHA256
-            signature. Verification checks whether the encoded header and
-            payload match the signature for the secret you provide.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            HS256 is HMAC with SHA-256. The signer and verifier share the same secret, and the MAC covers the exact compact-JWS signing input: the protected header segment, a dot, and the payload segment. Change one encoded character and the expected MAC changes.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool reads the algorithm declared in the JWT header and only
-            proceeds when it is exactly HS256. Tokens using RS256, ES256, none,
-            or another algorithm require a different verification method.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A successful signature check does not validate exp, nbf, iss, aud,
-            permissions, revocation, or application policy. Those checks must be
-            performed separately.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Before cryptography runs, the token is checked as a JWT rather than arbitrary JWS text: three non-empty compact sections, canonical unpadded Base64URL, strict UTF-8 JSON objects for the protected header and claims set, and an <code>alg</code> value of exactly <code>HS256</code>.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the JWT Signature Verifier
+            Why the exact secret bytes matter
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Paste your JWT token into the editor.
-            </li>
-
-            <li>
-              Enter the secret key used to sign the token.
-            </li>
-
-            <li>
-              Click <strong>Verify JWT Signature</strong>.
-            </li>
-
-            <li>
-              Review the result, then validate the token claims and application rules separately.
-            </li>
-          </ol>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The secret field is encoded as UTF-8 exactly as entered. If another library first decodes a Base64 or Base64URL key string into bytes, pasting that encoded text here describes a different HMAC key and verification will fail even when the visible characters look familiar.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 7518 requires an HS256 key at least 256 bits in size. A 32-byte string reaches that length threshold, but a predictable phrase can still have poor entropy. JWT Best Current Practices specifically warns about weak, human-memorable symmetric keys because a captured token can be used for offline guessing.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
+            Critical extensions are stopped rather than guessed
           </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A JWS <code>crit</code> header says that listed extensions must be understood before the signature can be safely processed. Unknown critical extensions are therefore rejected instead of ignored. The unencoded-payload <code>b64=false</code> extension is also rejected because it changes the JWS signing input and does not fit the normal compact JWT form handled here.
+          </p>
+        </div>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Testing JWT authentication systems.</li>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            After a signature matches
+          </h2>
+          <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+              <strong className="text-gray-900">Check time.</strong>
+              <p className="mt-2">Evaluate exp and nbf against the application's clock-skew policy. iat can be useful context but is not an expiry rule by itself.</p>
+            </div>
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+              <strong className="text-gray-900">Check who issued it and who it is for.</strong>
+              <p className="mt-2">Validate iss and aud against values configured by the relying application, not values learned from the token itself.</p>
+            </div>
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+              <strong className="text-gray-900">Keep token kinds separate.</strong>
+              <p className="mt-2">An access token, ID token and session token can carry overlapping claims but have different acceptance rules and should not be interchangeable.</p>
+            </div>
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+              <strong className="text-gray-900">Apply application policy.</strong>
+              <p className="mt-2">Roles, scopes, revocation, account state and endpoint authorization remain application decisions after cryptographic verification.</p>
+            </div>
+          </div>
+        </div>
 
-            <li>Debugging invalid token signature errors.</li>
-
-            <li>Inspecting HS256-signed JWT tokens.</li>
-
-            <li>Verifying API authentication workflows.</li>
-
-            <li>Checking token integrity during development.</li>
-
-            <li>Testing session and authorization systems.</li>
-
-            <li>Debugging OAuth and backend authentication flows.</li>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Why verification can fail even when the token looks normal
+          </h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>The shared secret differs by one character, space, line break or text encoding.</li>
+            <li>The application stores key bytes as decoded Base64 while the visible configuration contains the encoded form.</li>
+            <li>The protected header names another algorithm or uses a critical extension.</li>
+            <li>The compact segments contain padding, malformed Base64URL or non-canonical trailing bits.</li>
+            <li>The payload or protected header is not valid UTF-8 JSON for a JWT.</li>
+            <li>The signature was computed over a different header or payload than the token now contains.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Understanding JWT Signature Verification
+            Standards behind the result
           </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>Header:</strong> Contains token metadata and signing
-                algorithm details.
-              </li>
-
-              <li>
-                <strong>Payload:</strong> Contains claims, permissions, and
-                token information.
-              </li>
-
-              <li>
-                <strong>Signature:</strong> Confirms whether the token was
-                signed using the correct secret key.
-              </li>
-
-              <li>
-                <strong>Verification:</strong> Helps detect modified or invalid
-                tokens during authentication workflows.
-              </li>
-            </ul>
-          </div>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 7519 defines JWT, RFC 7515 defines JWS compact signing input, and RFC 7518 defines HS256 and its key-size requirement. RFC 8725 is the current best-practice reference for avoiding weak symmetric keys and algorithm confusion.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-gray-600">
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc7519" target="_blank" rel="noreferrer">RFC 7519 — JSON Web Token</a>
+            <span className="mx-2 text-gray-300">·</span>
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc7515" target="_blank" rel="noreferrer">RFC 7515 — JSON Web Signature</a>
+            <span className="mx-2 text-gray-300">·</span>
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc7518" target="_blank" rel="noreferrer">RFC 7518 — JSON Web Algorithms</a>
+            <span className="mx-2 text-gray-300">·</span>
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc8725" target="_blank" rel="noreferrer">RFC 8725 — JWT Best Current Practices</a>
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Verification Workflow
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <pre className="whitespace-pre-wrap break-words">
-{`1. Paste JWT token
-2. Enter secret key
-3. Verify signature
-4. Review claims and application rules separately`}
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/jwt-signature-verifier" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is JWT signature verification?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks whether the JWT signature matches the encoded header
-                and payload for the shared HS256 secret you entered.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Which JWT algorithm does this tool support?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                This verifier currently supports HS256 JWT signature
-                verification using HMAC SHA-256.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this tool decode JWT payloads?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                This tool focuses on signature verification. You can use the
-                JWT Decoder tool to inspect payload data separately.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are JWT secrets uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Verification happens locally inside your browser and secrets
-                are not uploaded or stored.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why would JWT verification fail?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Verification can fail because of invalid signatures, incorrect
-                secrets, modified payloads, unsupported algorithms, or malformed
-                tokens.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/jwt-signature-verifier" />
         </div>
       </section>
     </ToolShell>

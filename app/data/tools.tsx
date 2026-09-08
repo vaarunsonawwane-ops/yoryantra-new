@@ -317,21 +317,21 @@ export const tools = [
 
   {
   title: "CSP Generator",
-  description: "Generate Content Security Policy headers instantly.",
+  description: "Build a Content-Security-Policy header and spot broad sources, malformed keywords, and overly permissive script rules.",
   href: "/tools/csp-generator",
   category: "Security Tools"
   },
 
   {
   title: "JWT Signature Verifier",
-  description: "Verify JWT signatures using a secret key instantly.",
+  description: "Verify an HS256 JWT signature against exact UTF-8 secret bytes without treating a match as token acceptance.",
   href: "/tools/jwt-signature-verifier",
   category: "Security Tools"
   },
 
   {
   title: "CORS Header Checker",
-  description: "Analyze and validate CORS headers instantly.",
+  description: "Check whether CORS response headers match the requested origin, method, headers, and credentials mode.",
   href: "/tools/cors-header-checker",
   category: "Security Tools"
   },
