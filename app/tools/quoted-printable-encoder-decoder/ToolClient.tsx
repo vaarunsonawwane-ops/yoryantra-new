@@ -567,7 +567,7 @@ function runQuotedPrintableConversion(
   const modeUsed = options.mode === "auto" ? detectMode(input) : options.mode;
   const warnings: string[] = [];
   let rawOutput = "";
-  let outputBytes = new Uint8Array();
+  let outputBytes: Uint8Array = new Uint8Array();
   let normalizedInput = input;
 
   if (options.mode === "auto") {
