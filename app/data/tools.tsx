@@ -169,15 +169,14 @@ export const tools = [
   
   {
   title: "HMAC Generator",
-  description: "Generate HMAC signatures using SHA algorithms instantly.",
+  description: "Generate HMAC message authentication codes with a secret key using SHA-256, SHA-384, or SHA-512 for signing and integrity checks.",
   href: "/tools/hmac-generator",
   category: "Security Tools",
   },
   
 {
   title: "bcrypt Generator",
-  description:
-    "Generate salted bcrypt password hashes online with selectable cost factors for development and testing.",
+  description:"Generate salted bcrypt password hashes with a selectable cost factor for development, testing, and password-storage workflows.",
   href: "/tools/bcrypt-generator",
   category: "Security Tools",
 },
@@ -185,7 +184,7 @@ export const tools = [
   
   {
   title: "API Key Generator",
-  description: "Generate random API keys and secret tokens instantly.",
+  description: "Generate strong random API keys and secret tokens for development, testing, and application integrations.",
   href: "/tools/api-key-generator",
   category: "Security Tools",
   },

@@ -6,34 +6,49 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
+const MAX_BCRYPT_BYTES = 72;
+const DEFAULT_COST = 10;
+
+function utf8ByteLength(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
+}
+
+function readBcryptMetadata(hash: string): { version: string; cost: number } | null {
+  const match = /^\$(2[aby])\$(\d{2})\$/.exec(hash);
+  if (!match) return null;
+  return {
+    version: match[1],
+    cost: Number(match[2]),
+  };
+}
+
 export default function ToolClient() {
-  const [password, setPassword] =
-    useState("");
+  const [password, setPassword] = useState("");
+  const [cost, setCost] = useState(DEFAULT_COST);
+  const [hash, setHash] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const [rounds, setRounds] =
-    useState(10);
-
-  const [hash, setHash] =
-    useState("");
-
-  const [error, setError] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
+  const byteLength = utf8ByteLength(password);
+  const metadata = hash ? readBcryptMetadata(hash) : null;
 
   const generateHash = async () => {
     if (!password.length) {
-      setError("Enter a password or sample value to hash.");
+      setError("Enter a sample password or text value to hash.");
       setHash("");
       return;
     }
 
-    const byteLength = new TextEncoder().encode(password).byteLength;
+    if (!Number.isInteger(cost) || cost < 8 || cost > 14) {
+      setError("Choose a bcrypt cost factor from 8 to 14.");
+      setHash("");
+      return;
+    }
 
-    if (byteLength > 72) {
+    if (byteLength > MAX_BCRYPT_BYTES) {
       setError(
-        `bcrypt uses only the first 72 UTF-8 bytes. This input is ${byteLength} bytes, so shorten it before generating a hash.`
+        `bcrypt uses only the first ${MAX_BCRYPT_BYTES} password bytes in common implementations. This UTF-8 input is ${byteLength} bytes, so it is blocked instead of being silently truncated.`
       );
       setHash("");
       return;
@@ -41,98 +56,105 @@ export default function ToolClient() {
 
     setLoading(true);
     setError("");
+    setCopied(false);
 
     try {
-      const result = await bcrypt.hash(password, rounds);
+      const result = await bcrypt.hash(password, cost);
       setHash(result);
     } catch {
-      setError("Unable to generate the bcrypt hash.");
+      setError("Unable to generate the bcrypt hash in this browser.");
       setHash("");
     } finally {
       setLoading(false);
     }
   };
 
+  const copyHash = async () => {
+    if (!hash) return;
+    try {
+      await navigator.clipboard.writeText(hash);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("Copy failed. Select the generated hash and copy it manually.");
+    }
+  };
+
   const resetAll = () => {
     setPassword("");
-    setRounds(10);
+    setCost(DEFAULT_COST);
     setHash("");
     setError("");
     setLoading(false);
+    setCopied(false);
   };
 
   return (
     <ToolShell
-      title="bcrypt Hash Generator"
-      description="Generate a salted bcrypt hash with a selectable cost factor. The tool checks bcrypt’s 72-byte input limit and runs locally in your browser."
+      title="bcrypt Generator"
+      description="Create salted bcrypt hashes while checking UTF-8 byte length and a selectable cost factor."
     >
-      {/* PASSWORD */}
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Password
-        </label>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Sample Password
+          </label>
+          <span className={`text-xs ${byteLength > MAX_BCRYPT_BYTES ? "text-red-700" : "text-gray-500"}`}>
+            {byteLength}/{MAX_BCRYPT_BYTES} UTF-8 bytes
+          </span>
+        </div>
 
         <textarea
           value={password}
           autoComplete="off"
           spellCheck={false}
-          onChange={(e) =>
-            setPassword(
-              e.target.value
-            )
+          onChange={(event: { target: { value: string } }) =>
+            setPassword(event.target.value)
           }
-          placeholder="Enter password..."
-          className="w-full min-h-[120px] rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          placeholder="Enter a sample password..."
+          className="min-h-[120px] w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
       </div>
 
-      {/* SALT ROUNDS */}
       <div className="mt-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Salt Rounds
-        </label>
-
         <YoryantraSelect
-          value={String(rounds)}
-          onChange={(value) =>
-            setRounds(
-              Number(value)
-            )
-          }
+          label="Cost Factor"
+          value={String(cost)}
+          onChange={(value: string) => setCost(Number(value))}
           options={[
-            {
-              label: "8 — Faster",
-              value: "8",
-            },
-            {
-              label: "10 — Moderate",
-              value: "10",
-            },
-            {
-              label: "12 — Slower",
-              value: "12",
-            },
-            {
-              label: "14 — Very Slow",
-              value: "14",
-            },
+            { label: "8 — local speed comparison", value: "8" },
+            { label: "10 — OWASP legacy minimum", value: "10" },
+            { label: "11 — more work", value: "11" },
+            { label: "12 — slower", value: "12" },
+            { label: "13 — substantially slower", value: "13" },
+            { label: "14 — heavy browser workload", value: "14" },
           ]}
         />
+        <p className="mt-2 text-xs leading-relaxed text-gray-500">
+          bcrypt performs roughly 2<sup>cost</sup> key-setup work. A higher
+          value slows both legitimate verification and password guessing.
+        </p>
       </div>
 
-      {/* ACTIONS */}
+      {cost < 10 && (
+        <div className="mt-5 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <strong>Testing-only cost:</strong> current OWASP password-storage
+          guidance lists a bcrypt work factor of at least 10 for legacy systems.
+          Cost 8 is kept here only for local performance comparison.
+        </div>
+      )}
+
       <div className="mt-5 flex flex-wrap gap-3">
         <button
           onClick={generateHash}
           disabled={loading}
-          className="yoryantra-btn"
+          className="yoryantra-btn min-h-11 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Generating..." : "Generate bcrypt Hash"}
         </button>
-
         <button
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline min-h-11 whitespace-nowrap"
         >
           Reset
         </button>
@@ -144,209 +166,158 @@ export default function ToolClient() {
         </div>
       )}
 
-      {/* OUTPUT */}
       <div className="mt-8 min-w-0">
-        <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">
             Generated bcrypt Hash
           </h3>
-
           {hash && (
             <button
-              onClick={() =>
-                navigator.clipboard.writeText(
-                  hash
-                )
-              }
-              className="yoryantra-btn-outline text-sm"
+              onClick={copyHash}
+              className="yoryantra-btn-outline min-h-11 whitespace-nowrap text-sm"
             >
-              Copy
+              {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <div className="yoryantra-output min-h-[140px] min-w-0 flex items-center text-sm break-all">
-          {hash ||
-            "Generated bcrypt hash will appear here..."}
-        </div>
+        <pre className="yoryantra-output min-h-[145px] overflow-auto whitespace-pre-wrap break-all text-sm">
+          {hash || "Generated bcrypt hash will appear here."}
+        </pre>
+
+        {metadata && (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+              Version marker: <strong className="text-gray-900">${metadata.version}$</strong>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+              Encoded cost: <strong className="text-gray-900">{metadata.cost}</strong>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* PRIVACY */}
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
-          Privacy Note
-        </h3>
-
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          bcrypt hashing happens locally inside your browser. Use sample values
-          rather than real account passwords. Production applications should
-          generate and verify password hashes inside their trusted backend.
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">Local processing</h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+          Hashing runs in your browser with <code>bcryptjs</code>. Yoryantra does
+          not receive the password or resulting hash. Clipboard utilities,
+          extensions, local monitoring, and the device itself remain outside
+          that browser-local privacy boundary.
         </p>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <div className="mt-5 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-amber-900">
+          bcrypt is mainly a compatibility choice in 2026
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-amber-900">
+          OWASP currently recommends Argon2id first, then scrypt when Argon2id
+          is unavailable. bcrypt remains relevant for legacy systems and
+          existing password databases. Use sample values here; production
+          password hashing belongs in the trusted authentication environment.
+        </p>
+      </div>
+
+      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Generate bcrypt Password Hashes Online
+            What changes when the cost factor changes
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            bcrypt is a password-hashing algorithm designed for storing passwords more safely than fast general-purpose hashes. It creates a salted hash and applies a configurable cost factor so each hashing operation requires deliberate computing work.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            bcrypt stores its cost inside the final hash string. Raising that
+            value makes each password guess more expensive, but it also slows
+            every legitimate login. The right production value is therefore a
+            performance decision measured on the real authentication hardware,
+            not a number copied from a browser benchmark.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This bcrypt hash generator runs locally in your browser using bcryptjs. Enter a test password, choose the salt rounds, generate the hash, and copy it into a development or testing workflow.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            bcrypt processes at most 72 bytes of input. This tool blocks longer
-            UTF-8 input instead of silently hashing only the first 72 bytes.
-            Use sample values rather than real account passwords.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The options here stop at 14 because browser-side JavaScript can take
+            a noticeable amount of time at higher costs. That UI limit is not a
+            bcrypt format limit.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the bcrypt Generator
+            Why 72 bytes matters more than 72 characters
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter the password or sample text you want to hash.</li>
-            <li>Select the bcrypt cost factor, commonly called salt rounds.</li>
-            <li>Click <strong>Generate bcrypt Hash</strong>.</li>
-            <li>Copy the generated hash for development or testing.</li>
-          </ol>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Common bcrypt implementations only consume the first 72 password
+            bytes. ASCII usually uses one UTF-8 byte per character, while many
+            other characters use two, three, or four. A visually short Unicode
+            password can therefore reach the bcrypt limit sooner than its
+            character count suggests.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This page blocks longer UTF-8 input rather than hashing a truncated
+            prefix. That makes the limitation visible instead of creating two
+            different-looking passwords that could feed bcrypt the same first
+            72 bytes.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            bcrypt Cost Factor and Salt Rounds
+            Salt, cost and hash travel together
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The cost factor controls how much work bcrypt performs. Increasing it makes each hash slower to calculate, which can make large-scale password guessing more expensive. It also increases the time required by your own application, so the value should be tested on the hardware and environment where authentication will run.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A bcrypt string contains a version marker, two-digit cost, salt, and
+            hash data. A fresh random salt means the same password normally
+            produces a different stored string each time. Verification reads
+            the parameters from that stored value and recalculates bcrypt with
+            the candidate password.
           </p>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li><strong>8 rounds:</strong> Faster output for lightweight local testing.</li>
-              <li><strong>10 rounds:</strong> A common comparison point for local development and testing.</li>
-              <li><strong>12 rounds:</strong> More computational work and slower generation.</li>
-              <li><strong>14 rounds:</strong> Much slower in the browser and useful mainly for performance comparison.</li>
-            </ul>
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <pre className="whitespace-pre-wrap break-all">$2b$10$...salt-and-hash-data...</pre>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            What a bcrypt Hash Contains
+            Where browser-generated hashes fit
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A bcrypt hash normally includes the bcrypt version marker, cost factor, salt, and resulting hash data in one string. Because a fresh salt is generated each time, the same password can produce different bcrypt hashes.
-          </p>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-all">
-{`$2a$10$exampleSaltAndHashValue`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Uses
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Creating sample bcrypt hashes for backend development.</li>
-            <li>Testing login and password-verification workflows.</li>
-            <li>Comparing the performance of different cost factors.</li>
-            <li>Preparing test fixtures for authentication systems.</li>
-            <li>Learning how salted password hashing works.</li>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Preparing fixtures for authentication tests.</li>
+            <li>Checking whether another bcrypt implementation accepts a stored hash format.</li>
+            <li>Comparing cost-factor latency on the current browser and device.</li>
+            <li>Learning how a bcrypt record carries its version, cost, salt, and result.</li>
           </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            bcrypt Compared With Fast Hash Functions
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            General-purpose hash functions are designed to run quickly. That speed is useful for checksums and integrity checks, but it is not ideal for password storage. bcrypt is intentionally slower and includes a cost setting that can be increased as hardware becomes faster.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Applications should store only the bcrypt hash, not the original password. During login, the entered password is checked against the stored hash using a bcrypt verification function.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            It is not a replacement for server-side password enrollment,
+            rate-limited verification, breached-password screening, account
+            recovery, or secret-management controls.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Current password-storage guidance
           </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            OWASP&apos;s current Password Storage Cheat Sheet places bcrypt behind
+            Argon2id and scrypt for new designs, while still documenting bcrypt
+            for legacy systems with a work factor of 10 or more and the 72-byte
+            input limit.
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            Reference:{" "}
+            <a
+              href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-gray-900 underline underline-offset-4"
+            >
+              OWASP Password Storage Cheat Sheet
+            </a>
+          </p>
+        </div>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">What is bcrypt?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                bcrypt is a password-hashing algorithm that combines salting with a configurable cost factor.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Can bcrypt hashes be decrypted?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. bcrypt is designed as a one-way password-hashing function. Password verification compares an entered password against the stored hash.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Why does the same password generate different hashes?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                bcrypt generates a random salt for each hash. The salt is stored inside the final bcrypt string, allowing verification without storing it separately.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">What bcrypt rounds should I choose?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Choose a cost that your application can calculate within an acceptable login time. Test it in the real deployment environment rather than relying on one universal value.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Why is bcrypt limited to 72 bytes?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                bcrypt only uses the first 72 bytes of a password. Some Unicode
-                characters use more than one UTF-8 byte, so character count and
-                byte count are not always the same.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Does this tool upload passwords?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Hash generation runs in your browser. For safety, use sample passwords rather than real credentials.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Can I use the generated hash in my application?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                You can use it for development, testing, fixtures, and compatible bcrypt workflows. Production authentication should generate and verify hashes inside the trusted application environment.
-              </p>
-            </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/bcrypt-generator" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/bcrypt-generator" />
         </div>
       </section>
     </ToolShell>

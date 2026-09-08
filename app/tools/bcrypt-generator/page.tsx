@@ -1,50 +1,34 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "bcrypt Hash Generator for Testing | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "bcrypt Generator — Cost Factor and 72-Byte Check | Yoryantra",
   description:
-    "Generate salted bcrypt hashes with selectable cost factors in your browser. Includes byte-length checks and clear guidance for development and testing.",
-
+    "Create salted bcrypt hashes for testing, compare cost factors, see UTF-8 byte length, and understand bcrypt's 72-byte legacy constraint.",
   keywords: [
     "bcrypt generator",
     "bcrypt hash generator",
-    "bcrypt online",
-    "bcrypt password hash generator",
-    "generate bcrypt hash",
-    "bcrypt password",
     "bcrypt cost factor",
-    "bcrypt salt rounds",
-    "online password hash generator",
+    "bcrypt 72 byte limit",
+    "bcrypt salt",
+    "password hash testing",
   ],
-
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/bcrypt-generator",
+    canonical: "https://yoryantra.com/tools/bcrypt-generator",
   },
-
   openGraph: {
-    title: "bcrypt Hash Generator for Testing | Yoryantra",
-
+    title: "bcrypt Generator — Cost Factor and 72-Byte Check | Yoryantra",
     description:
-      "Generate salted bcrypt hashes with selectable cost factors directly in your browser for development and testing.",
-
-    url:
-      "https://yoryantra.com/tools/bcrypt-generator",
-
+      "Generate salted bcrypt hashes for development while seeing cost and UTF-8 byte-limit behavior clearly.",
+    url: "https://yoryantra.com/tools/bcrypt-generator",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "bcrypt Hash Generator for Testing | Yoryantra",
-
+    title: "bcrypt Generator — Cost Factor and 72-Byte Check | Yoryantra",
     description:
-      "Generate salted bcrypt password hashes locally with selectable cost factors.",
+      "Create test bcrypt hashes with selectable cost and a visible 72-byte UTF-8 safeguard.",
   },
 };
 

@@ -5,57 +5,134 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
+type KeyEncoding = "utf8" | "hex" | "base64";
+type OutputEncoding = "hex" | "base64" | "base64url";
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength
+  ) as ArrayBuffer;
+}
+
+function decodeHex(value: string): Uint8Array {
+  const normalized = value.trim();
+  if (!normalized.length) {
+    throw new Error("Enter a non-empty hexadecimal key.");
+  }
+  if (!/^[0-9a-fA-F]+$/.test(normalized)) {
+    throw new Error("Hexadecimal keys may contain only 0-9 and A-F.");
+  }
+  if (normalized.length % 2 !== 0) {
+    throw new Error("A hexadecimal key needs an even number of characters.");
+  }
+
+  const bytes: Uint8Array = new Uint8Array(normalized.length / 2);
+  for (let index = 0; index < normalized.length; index += 2) {
+    bytes[index / 2] = parseInt(normalized.slice(index, index + 2), 16);
+  }
+  return bytes;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const CHUNK = 0x8000;
+  for (let start = 0; start < bytes.length; start += CHUNK) {
+    const slice = bytes.subarray(start, Math.min(start + CHUNK, bytes.length));
+    binary += String.fromCharCode.apply(null, Array.from(slice));
+  }
+  return btoa(binary);
+}
+
+function decodeBase64(value: string): Uint8Array {
+  const compact = value.replace(/[\t\n\r ]+/g, "");
+  if (!compact.length) {
+    throw new Error("Enter a non-empty Base64 key.");
+  }
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(compact)) {
+    throw new Error("The key contains characters outside the standard Base64 alphabet.");
+  }
+  if (/=/.test(compact.slice(0, -2))) {
+    throw new Error("Base64 padding may appear only at the end.");
+  }
+
+  const paddingMatch = /=+$/.exec(compact);
+  const suppliedPadding = paddingMatch ? paddingMatch[0].length : 0;
+  const unpadded = compact.replace(/=+$/, "");
+  if (unpadded.length % 4 === 1) {
+    throw new Error("The Base64 key has an impossible encoded length.");
+  }
+
+  const requiredPadding = (4 - (unpadded.length % 4)) % 4;
+  if (suppliedPadding > 0 && (compact.length % 4 !== 0 || suppliedPadding !== requiredPadding)) {
+    throw new Error("The Base64 key has malformed explicit padding.");
+  }
+
+  const padded = unpadded + "=".repeat(requiredPadding);
+  let binary = "";
+  try {
+    binary = atob(padded);
+  } catch {
+    throw new Error("The Base64 key could not be decoded.");
+  }
+
+  const bytes: Uint8Array = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  const canonical = bytesToBase64(bytes).replace(/=+$/, "");
+  if (canonical !== unpadded) {
+    throw new Error("The Base64 key uses non-canonical padding bits.");
+  }
+
+  return bytes;
+}
+
+function parseKey(value: string, encoding: KeyEncoding): Uint8Array {
+  if (encoding === "hex") return decodeHex(value);
+  if (encoding === "base64") return decodeBase64(value);
+  if (!value.length) throw new Error("Enter a non-empty UTF-8 secret key.");
+  return new TextEncoder().encode(value);
+}
+
+function formatMac(bytes: Uint8Array, encoding: OutputEncoding): string {
+  if (encoding === "base64") return bytesToBase64(bytes);
+  if (encoding === "base64url") {
+    return bytesToBase64(bytes)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  }
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export default function ToolClient() {
-  const [message, setMessage] =
-    useState("");
-
-  const [secret, setSecret] =
-    useState("");
-
-  const [algorithm, setAlgorithm] =
-    useState("SHA-256");
-
-  const [output, setOutput] =
-    useState("");
-
-  const [error, setError] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
+  const [message, setMessage] = useState("");
+  const [secret, setSecret] = useState("");
+  const [keyEncoding, setKeyEncoding] = useState<KeyEncoding>("utf8");
+  const [algorithm, setAlgorithm] = useState("SHA-256");
+  const [outputEncoding, setOutputEncoding] = useState<OutputEncoding>("hex");
+  const [output, setOutput] = useState("");
+  const [messageBytes, setMessageBytes] = useState<number | null>(null);
+  const [keyBytes, setKeyBytes] = useState<number | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const generateHMAC = async () => {
-    if (!secret.length) {
-      setError("Enter the shared secret key.");
-      setOutput("");
-      return;
-    }
-
     setLoading(true);
     setError("");
+    setCopied(false);
 
     try {
-      const encoder = new TextEncoder();
-      const secretBytes = encoder.encode(secret);
-      const messageBytes = encoder.encode(message);
-
-      const secretBuffer = secretBytes.buffer.slice(
-        secretBytes.byteOffset,
-        secretBytes.byteOffset + secretBytes.byteLength
-      ) as ArrayBuffer;
-
-      const messageBuffer = messageBytes.buffer.slice(
-        messageBytes.byteOffset,
-        messageBytes.byteOffset + messageBytes.byteLength
-      ) as ArrayBuffer;
+      const messageData: Uint8Array = new TextEncoder().encode(message);
+      const keyData: Uint8Array = parseKey(secret, keyEncoding);
 
       const key = await crypto.subtle.importKey(
         "raw",
-        secretBuffer,
-        {
-          name: "HMAC",
-          hash: algorithm,
-        },
+        toArrayBuffer(keyData),
+        { name: "HMAC", hash: algorithm },
         false,
         ["sign"]
       );
@@ -63,417 +140,329 @@ export default function ToolClient() {
       const signature = await crypto.subtle.sign(
         "HMAC",
         key,
-        messageBuffer
+        toArrayBuffer(messageData)
       );
 
-      const hashHex = Array.from(new Uint8Array(signature))
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join("");
-
-      setOutput(hashHex);
-    } catch {
-      setError("Unable to generate the HMAC value.");
+      const macBytes: Uint8Array = new Uint8Array(signature);
+      setOutput(formatMac(macBytes, outputEncoding));
+      setMessageBytes(messageData.byteLength);
+      setKeyBytes(keyData.byteLength);
+    } catch (caught) {
+      const messageText = caught instanceof Error
+        ? caught.message
+        : "Unable to generate the HMAC value.";
+      setError(messageText);
       setOutput("");
+      setMessageBytes(null);
+      setKeyBytes(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const copyOutput = async () => {
+    if (!output) return;
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("Copy failed. Select the HMAC value and copy it manually.");
     }
   };
 
   const resetAll = () => {
     setMessage("");
     setSecret("");
+    setKeyEncoding("utf8");
     setAlgorithm("SHA-256");
+    setOutputEncoding("hex");
     setOutput("");
+    setMessageBytes(null);
+    setKeyBytes(null);
     setError("");
     setLoading(false);
+    setCopied(false);
   };
 
   return (
     <ToolShell
       title="HMAC Generator"
-      description="Generate an HMAC SHA-256, SHA-384, or SHA-512 value from UTF-8 text and a shared secret directly in your browser."
+      description="Compute HMAC values from exact UTF-8 messages, selectable key encodings, and SHA-2 algorithms."
     >
-      {/* MESSAGE */}
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 block text-sm font-medium text-gray-700">
           Message or Payload
         </label>
-
         <textarea
           spellCheck={false}
-          className="w-full h-40 rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-          placeholder="Enter message, request body, or payload..."
+          className="h-40 w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          placeholder="Enter the exact message bytes as UTF-8 text..."
           value={message}
-          onChange={(e) =>
-            setMessage(
-              e.target.value
-            )
+          onChange={(event: { target: { value: string } }) =>
+            setMessage(event.target.value)
           }
         />
+        <p className="mt-2 text-xs leading-relaxed text-gray-500">
+          Whitespace, line endings, punctuation, and JSON property order are not
+          normalized. The entered text is encoded as UTF-8 exactly as shown.
+        </p>
       </div>
 
-      {/* SECRET */}
-      <div className="mt-6">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Secret Key
-        </label>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="min-w-0">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Secret Key
+          </label>
+          <input
+            type="password"
+            value={secret}
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(event: { target: { value: string } }) =>
+              setSecret(event.target.value)
+            }
+            placeholder={
+              keyEncoding === "utf8"
+                ? "Enter UTF-8 secret text..."
+                : keyEncoding === "hex"
+                  ? "Enter hexadecimal key bytes..."
+                  : "Enter standard Base64 key bytes..."
+            }
+            className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          />
+        </div>
 
-        <input
-          type="password"
-          value={secret}
-          autoComplete="off"
-          spellCheck={false}
-          onChange={(e) =>
-            setSecret(
-              e.target.value
-            )
-          }
-          placeholder="Enter secret key..."
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-        />
+        <div className="min-w-0">
+          <YoryantraSelect
+            label="Key Encoding"
+            value={keyEncoding}
+            onChange={(value: string) => setKeyEncoding(value as KeyEncoding)}
+            options={[
+              { label: "UTF-8 text", value: "utf8" },
+              { label: "Hex bytes", value: "hex" },
+              { label: "Base64 bytes", value: "base64" },
+            ]}
+          />
+        </div>
       </div>
 
-      {/* ALGORITHM */}
-      <div className="mt-6">
-        <YoryantraSelect
-          label="HMAC Algorithm"
-          value={algorithm}
-          onChange={(value) =>
-            setAlgorithm(value)
-          }
-          options={[
-            { label: "SHA-256", value: "SHA-256" },
-            { label: "SHA-384", value: "SHA-384" },
-            { label: "SHA-512", value: "SHA-512" },
-          ]}
-        />
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="min-w-0">
+          <YoryantraSelect
+            label="HMAC Algorithm"
+            value={algorithm}
+            onChange={setAlgorithm}
+            options={[
+              { label: "SHA-256", value: "SHA-256" },
+              { label: "SHA-384", value: "SHA-384" },
+              { label: "SHA-512", value: "SHA-512" },
+            ]}
+          />
+        </div>
+
+        <div className="min-w-0">
+          <YoryantraSelect
+            label="Output Encoding"
+            value={outputEncoding}
+            onChange={(value: string) => setOutputEncoding(value as OutputEncoding)}
+            options={[
+              { label: "Lowercase hex", value: "hex" },
+              { label: "Base64", value: "base64" },
+              { label: "Base64URL (no padding)", value: "base64url" },
+            ]}
+          />
+        </div>
       </div>
 
-      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
         <button
           onClick={generateHMAC}
           disabled={loading}
-          className="yoryantra-btn"
+          className="yoryantra-btn min-h-11 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Generating..." : "Generate HMAC"}
+          {loading ? "Computing..." : "Compute HMAC"}
         </button>
-
         <button
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="yoryantra-btn-outline min-h-11 whitespace-nowrap"
         >
           Reset
         </button>
       </div>
 
-      {/* ERROR */}
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 overflow-auto">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      {/* OUTPUT */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Generated HMAC Signature
-          </h3>
-
+      <div className="mt-8 min-w-0">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">HMAC Value</h3>
           {output && (
             <button
-              onClick={() =>
-                navigator.clipboard.writeText(
-                  output
-                )
-              }
-              className="yoryantra-btn-outline text-sm"
+              onClick={copyOutput}
+              className="yoryantra-btn-outline min-h-11 whitespace-nowrap text-sm"
             >
-              Copy
+              {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[180px] whitespace-pre-wrap break-words">
-          {output ||
-            "Generated HMAC signature will appear here..."}
+        <pre className="yoryantra-output min-h-[160px] overflow-auto whitespace-pre-wrap break-all text-sm">
+          {output || "Computed HMAC will appear here."}
         </pre>
+
+        {output && messageBytes !== null && keyBytes !== null && (
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+              Message bytes: <strong className="text-gray-900">{messageBytes}</strong>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+              Key bytes: <strong className="text-gray-900">{keyBytes}</strong>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+              Output: <strong className="text-gray-900">{outputEncoding}</strong>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* PRIVACY */}
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
-          Privacy Note
-        </h3>
-
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          HMAC generation happens locally inside your browser using the Web
-          Crypto API. Avoid using live production secrets in browser tools.
-          Matching another system also requires the same text encoding, exact
-          message bytes, secret bytes, algorithm, and output format.
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">Browser-local computation</h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+          HMAC is computed with the Web Crypto API in your browser. The message,
+          key, and result are not sent to Yoryantra. Local extensions, clipboard
+          software, device monitoring, and malware remain outside that guarantee.
         </p>
       </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <div className="mt-5 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-amber-900">
+          Matching an API requires the exact signing recipe
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-amber-900">
+          Many services call an HMAC a “signature,” but HMAC is a shared-key
+          message authentication code, not a public-key digital signature. A
+          mismatch can come from different message bytes, canonicalization,
+          timestamp prefixes, key decoding, algorithm choice, or output encoding.
+        </p>
+      </div>
+
+      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Generating HMAC Signatures for API Requests
+            HMAC authenticates bytes, not what the text looks like
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            HMAC values are commonly used when APIs, webhook providers, and
-            backend services need to detect message changes using a shared
-            secret.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            HMAC combines a secret key with a hash function so someone holding
+            the same key can recompute the MAC for the same message. A changed
+            byte produces a different result. HMAC does not encrypt the message,
+            and it does not prove which individual person created it when more
+            than one system knows the shared key.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            HMAC stands for Hash-based Message Authentication Code. A verifier
-            can recalculate the value with the same secret and message bytes.
-            A match supports integrity and shared-secret authentication, but it
-            does not encrypt the message.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This generator treats the message and secret as UTF-8 text and returns
-            lowercase hexadecimal output. Other systems may expect Base64,
-            binary keys, canonicalized JSON, timestamps, or prefixed request
-            data, so follow the exact signing specification you are testing.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            That byte-level view explains many failed webhook tests. A trailing
+            newline, CRLF instead of LF, a reordered JSON object, or a decoded
+            key treated as literal Base64 text all change the input to HMAC.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Supported HMAC Algorithms
+            Key encoding is part of the protocol
           </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-2">
-              <li>
-                <strong>HMAC SHA-256</strong> — Commonly used in APIs, JWT
-                workflows, and webhook verification.
-              </li>
-
-              <li>
-                <strong>HMAC SHA-384</strong> — Higher-length SHA-2 family
-                signing algorithm.
-              </li>
-
-              <li>
-                <strong>HMAC SHA-512</strong> — Strong long-length signing
-                algorithm for advanced security workflows.
-              </li>
-            </ul>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+              <h3 className="font-semibold text-gray-900">UTF-8 text</h3>
+              <p className="mt-2 leading-relaxed">
+                Characters are encoded to UTF-8 bytes. Spaces and Unicode are
+                meaningful parts of the key.
+              </p>
+            </div>
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+              <h3 className="font-semibold text-gray-900">Hex bytes</h3>
+              <p className="mt-2 leading-relaxed">
+                Every two hex digits become one byte. Odd-length or non-hex input
+                is rejected instead of guessed.
+              </p>
+            </div>
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+              <h3 className="font-semibold text-gray-900">Base64 bytes</h3>
+              <p className="mt-2 leading-relaxed">
+                Standard Base64 is decoded first. Whitespace is ignored, while
+                impossible lengths and non-canonical pad bits are rejected.
+              </p>
+            </div>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the HMAC Generator
+            Hex, Base64 and Base64URL are only representations
           </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Changing the output encoding does not change the underlying HMAC
+            bytes. Hex uses two characters per byte. Base64 is denser and may
+            contain <code>+</code>, <code>/</code>, and padding. Base64URL swaps
+            those two alphabet characters and this page removes trailing
+            padding, which is common in token-oriented formats.
+          </p>
+        </div>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Enter the message or request payload.
-            </li>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Reading RFC 2104 in a modern SHA-2 workflow
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 2104 defines HMAC as a generic construction around an iterated
+            hash function. It also discusses key length: very short keys reduce
+            security strength, while keys longer than the hash block size are
+            first hashed by the HMAC construction. In an API integration, the
+            service&apos;s documented key format still takes precedence over any
+            generic rule of thumb.
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            References:{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc2104.html"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-gray-900 underline underline-offset-4"
+            >
+              RFC 2104
+            </a>
+            {" · "}
+            <a
+              href="https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/sign"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-gray-900 underline underline-offset-4"
+            >
+              Web Crypto HMAC signing
+            </a>
+          </p>
+        </div>
 
-            <li>
-              Enter the secret signing key.
-            </li>
-
-            <li>
-              Select the desired HMAC algorithm.
-            </li>
-
-            <li>
-              Click <strong>Generate HMAC</strong> to create the signature.
-            </li>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            A reliable mismatch checklist
+          </h2>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Compare the exact raw message body before parsing or reformatting it.</li>
+            <li>Confirm whether the service signs a prefix, timestamp, path, method, or body combination.</li>
+            <li>Decode the secret using the format the service specifies.</li>
+            <li>Use the required SHA-2 variant.</li>
+            <li>Encode the result exactly as the receiver expects before comparing.</li>
+            <li>For verification code, compare MACs with the platform&apos;s constant-time facility where available.</li>
           </ol>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>
-              Generating signed API requests.
-            </li>
-
-            <li>
-              Verifying webhook payload integrity.
-            </li>
-
-            <li>
-              Testing authentication workflows.
-            </li>
-
-            <li>
-              Generating request authentication codes for testing.
-            </li>
-
-            <li>
-              Debugging backend verification systems.
-            </li>
-
-            <li>
-              Building signed communication between services.
-            </li>
-
-            <li>
-              Verifying that request payloads were not modified.
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example HMAC Signature
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <p className="font-medium text-gray-900">
-              Payload:
-            </p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">
-{`{"user":"varun","action":"login"}`}
-            </pre>
-
-            <p className="mt-4 font-medium text-gray-900">
-              Secret key:
-            </p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">
-{`my-secret-key`}
-            </pre>
-
-            <p className="mt-4 font-medium text-gray-900">
-              Generated HMAC SHA-256:
-            </p>
-
-            <pre className="mt-2 whitespace-pre-wrap break-words">
-{`ab5b21516c2ad6eb5f6bd3ec23f9c026a8bb782a1ffa44d322b3e9412575f98e`}
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/hmac-generator" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Why HMAC Signatures Matter
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>Shared-secret authentication:</strong> A matching HMAC
-                shows that the sender had access to the same secret, assuming the
-                secret has remained private.
-              </li>
-
-              <li>
-                <strong>Integrity protection:</strong> Modified payloads produce
-                different signatures.
-              </li>
-
-              <li>
-                <strong>API security:</strong> Many authentication systems rely
-                on signed requests.
-              </li>
-
-              <li>
-                <strong>Webhook verification:</strong> HMAC signatures help
-                validate trusted event payloads.
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is HMAC?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                HMAC stands for Hash-based Message Authentication Code. It uses
-                a secret key together with a hashing algorithm to create a
-                message authentication code.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is HMAC used in APIs?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Many APIs and webhook systems use HMAC signatures to
-                check message integrity and confirm that the sender had access to the shared secret.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Which HMAC algorithm should I use?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Follow the algorithm required by the API or system you are testing.
-                HMAC SHA-256 is common, but the verifier and generator must use
-                the same algorithm.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why does my HMAC not match another service?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                The message bytes, secret bytes, algorithm, and output encoding
-                must match exactly. This tool uses UTF-8 text and lowercase
-                hexadecimal output.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this HMAC Generator secure?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Generation runs locally with the browser Web Crypto API. Still,
-                avoid entering live production secrets, and compare results with
-                the exact signing rules used by the target system.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is HMAC generation processed on the server?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. HMAC generation happens entirely inside your browser.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/hmac-generator" />
         </div>
       </section>
     </ToolShell>

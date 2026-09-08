@@ -7,17 +7,22 @@ import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 const ALPHABET =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const MIN_LENGTH = 16;
+const DEFAULT_LENGTH = 32;
 const MAX_LENGTH = 128;
+const BITS_PER_CHARACTER = 6;
+const MIN_128_BIT_LENGTH = Math.ceil(128 / BITS_PER_CHARACTER);
 
-function generateRandomString(length: number) {
-  const random = new Uint8Array(length);
+function generateRandomString(length: number): string {
+  const random: Uint8Array = new Uint8Array(length);
   window.crypto.getRandomValues(random);
 
+  // 256 is exactly divisible by 64, so masking the low six bits does not
+  // introduce modulo bias for this alphabet.
   return Array.from(random, (value) => ALPHABET[value & 63]).join("");
 }
 
 export default function ToolClient() {
-  const [length, setLength] = useState(32);
+  const [length, setLength] = useState(DEFAULT_LENGTH);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -42,7 +47,7 @@ export default function ToolClient() {
       setError("");
       setCopied(false);
     } catch {
-      setError("Your browser could not generate cryptographically random data.");
+      setError("Your browser could not generate cryptographically strong random values.");
       setOutput("");
     }
   };
@@ -55,27 +60,28 @@ export default function ToolClient() {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
-      setError("Copy failed. Select the generated string and copy it manually.");
+      setError("Copy failed. Select the generated value and copy it manually.");
     }
   };
 
   const resetAll = () => {
-    setLength(32);
+    setLength(DEFAULT_LENGTH);
     setOutput("");
     setError("");
     setCopied(false);
   };
 
-  const estimatedBits = length * 6;
+  const nominalBits = length * BITS_PER_CHARACTER;
+  const below128Bits = length < MIN_128_BIT_LENGTH;
 
   return (
     <ToolShell
       title="API Key Generator"
-      description="Generate Base64URL-safe random secret strings locally in your browser and review their estimated entropy."
+      description="Create random Base64URL-alphabet secret material and see how length changes the search space."
     >
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Key Length
+        <label className="mb-2 block text-sm font-medium text-gray-700">
+          Secret Length
         </label>
 
         <input
@@ -87,22 +93,36 @@ export default function ToolClient() {
           onChange={(event: { target: { value: string } }) =>
             setLength(Number(event.target.value))
           }
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
 
         <p className="mt-2 text-xs leading-relaxed text-gray-500">
-          Uses 64 URL-safe characters. At the selected length, the estimated
-          search space is about {estimatedBits} bits when every character is
-          generated independently.
+          The 64-character alphabet contributes a nominal 6 bits per character,
+          so {length} characters represent a {nominalBits}-bit search space under
+          the uniform-random model.
         </p>
       </div>
 
+      {below128Bits && (
+        <div className="mt-5 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <strong>Length caution:</strong> {length} characters provide less than
+          a 128-bit nominal search space. Choose at least {MIN_128_BIT_LENGTH}
+          characters when you want 128 bits or more from this alphabet.
+        </div>
+      )}
+
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generateKey} className="yoryantra-btn">
-          Generate Random String
+        <button
+          onClick={generateKey}
+          className="yoryantra-btn min-h-11 whitespace-nowrap"
+        >
+          Generate Secret
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button
+          onClick={resetAll}
+          className="yoryantra-btn-outline min-h-11 whitespace-nowrap"
+        >
           Reset
         </button>
       </div>
@@ -113,142 +133,161 @@ export default function ToolClient() {
         </div>
       )}
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+      <div className="mt-8 min-w-0">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Generated Secret String
+            Random Secret
           </h3>
 
           {output && (
             <button
               onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
+              className="yoryantra-btn-outline min-h-11 whitespace-nowrap text-sm"
             >
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <pre className="yoryantra-output min-h-[160px] overflow-auto whitespace-pre-wrap break-all text-sm">
-          {output || "Generated secret string will appear here."}
+        <pre className="yoryantra-output min-h-[150px] overflow-auto whitespace-pre-wrap break-all text-sm">
+          {output || "Generated secret material will appear here."}
         </pre>
       </div>
 
-      <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="text-sm font-semibold text-yellow-900">
-          Security and Storage Note
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">
+          Browser-local generation
         </h3>
-
-        <p className="mt-2 text-sm leading-relaxed text-yellow-800">
-          Generation happens locally with the browser Web Crypto API. The
-          string is not sent to Yoryantra, but copying it places it on your
-          clipboard. A random string is only one part of an API-key system:
-          production keys also need secure storage, access limits, rotation,
-          revocation, monitoring, and careful logging rules.
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+          Random bytes come from <code>crypto.getRandomValues()</code> in your
+          browser and are mapped to a 64-character URL-safe alphabet. The value
+          is not sent to Yoryantra. Copying it does place the secret on your
+          system clipboard, where other local software may be able to read it.
         </p>
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <div className="mt-5 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-amber-900">
+          A random string is not an API-key system
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-amber-900">
+          A production design still needs identity, scoped permissions, secure
+          storage, rotation, revocation, rate limits, monitoring, and logging
+          rules that do not expose the full credential.
+        </p>
+      </div>
+
+      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Creating Random Secret Strings for API-Key Workflows
+            What the generated value actually is
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool generates a random string from uppercase letters,
-            lowercase letters, numbers, hyphens, and underscores. That alphabet
-            is safe to place in many headers, URLs, configuration files, and
-            environment variables without Base64 padding characters.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Each character is selected independently from uppercase letters,
+            lowercase letters, digits, hyphen, and underscore. Those 64 symbols
+            are the Base64URL alphabet, but the result is <strong>not</strong> an
+            encoded copy of some hidden byte string; it is random secret
+            material generated directly from that alphabet.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The result can be used as test data or as the random secret portion
-            of a key design. It does not create an account record, assign
-            permissions, hash the stored value, or build a complete
-            authentication system.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The choice is deliberate: a URL-safe alphabet avoids spaces,
+            slashes, plus signs, and padding characters, which makes the secret
+            easier to carry in headers, environment variables, configuration,
+            and URLs when a protocol genuinely allows credentials there.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the API Key Generator
+            Reading the search-space number
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose a whole-number length from 16 to 128 characters.</li>
-            <li>Click <strong>Generate Random String</strong>.</li>
-            <li>Review the estimated search-space size.</li>
-            <li>Copy the value and store it using an appropriate secret-management process.</li>
-          </ol>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            With 64 equally likely characters, every position contributes six
+            bits to the nominal search space. A 16-character value therefore
+            has 96 bits, 22 characters have 132 bits, and the 32-character
+            default has 192 bits. This is a mathematical property of the
+            alphabet and length; it is not a claim that every browser exposes a
+            separately measurable entropy value of exactly that many bits.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Practical Uses
+            Storage changes the threat model
           </h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+              <h3 className="font-semibold text-gray-900">Server-side record</h3>
+              <p className="mt-2 leading-relaxed">
+                Many systems keep a public identifier or prefix separately from
+                the secret portion. That lets the server locate the right record
+                without logging or indexing the entire credential.
+              </p>
+            </div>
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+              <h3 className="font-semibold text-gray-900">Secret storage</h3>
+              <p className="mt-2 leading-relaxed">
+                Whether the server stores a one-way digest, an encrypted value,
+                or a reference depends on how the key must later be used. A key
+                that only needs equality verification can often be stored
+                differently from a key that must be forwarded to another system.
+              </p>
+            </div>
+          </div>
+        </div>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Generating test API-key values for local development.</li>
-            <li>Creating random webhook-secret material.</li>
-            <li>Preparing one-time tokens for controlled internal workflows.</li>
-            <li>Generating random configuration secrets before secure storage.</li>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Small implementation details that matter
+          </h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Do not place long-lived API keys in source control or client-side bundles.</li>
+            <li>Prefer authorization headers over query-string keys when the protocol allows it; URLs are more likely to appear in logs, history, and diagnostics.</li>
+            <li>Prefer short-lived, scoped credentials when the receiving system supports them.</li>
+            <li>Show the full secret only at creation time when possible.</li>
+            <li>Log a key identifier or prefix instead of the complete credential.</li>
+            <li>Rotate and revoke keys independently of user passwords.</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            What This Tool Does Not Decide
+            Browser randomness reference
           </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li><strong>Permissions:</strong> The generated value has no access rights by itself.</li>
-              <li><strong>Storage:</strong> Your application must decide whether to store a hash, encrypted value, or reference.</li>
-              <li><strong>Rotation:</strong> Expiry and replacement rules belong to the application using the key.</li>
-              <li><strong>Identification:</strong> Prefixes and public key IDs can help identify records without exposing the full secret.</li>
-            </ul>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">Is the result a complete API key?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It is random secret material that can be used in an API-key design. A complete system still needs identity, permissions, storage, rotation, revocation, and audit controls.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Why use a URL-safe alphabet?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                The generated value avoids spaces, plus signs, slashes, and padding characters, which makes it easier to use in many headers and configuration formats.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Can I use an eight-character key?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                This tool requires at least 16 characters. Short secrets have a much smaller search space and are easier to guess or exhaust.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Is anything uploaded?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No generated value is sent to Yoryantra. Clipboard software, browser extensions, device monitoring, or local malware can still affect confidentiality after generation.
-              </p>
-            </div>
-          </div>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The browser API used here is documented by MDN as providing
+            cryptographically strong random values. The Web Cryptography
+            specification does not promise a fixed minimum entropy figure for
+            every user agent, so the page reports the mathematical search space
+            instead of pretending to measure the browser&apos;s entropy source.
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            References:{" "}
+            <a
+              href="https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-gray-900 underline underline-offset-4"
+            >
+              Crypto.getRandomValues()
+            </a>
+            {" · "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc4648.html#section-5"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-gray-900 underline underline-offset-4"
+            >
+              RFC 4648 Base64URL alphabet
+            </a>
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <YoryantraRelatedTools currentHref="/tools/api-key-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/api-key-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
