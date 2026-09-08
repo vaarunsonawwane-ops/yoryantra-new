@@ -1,46 +1,33 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "JWT Decoder for Header and Payload Inspection | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "JWT Decoder for JWS Claims and JWE Structure | Yoryantra",
   description:
-    "Decode JWT header and payload data in your browser. Inspect claims and token structure without verifying the signature.",
-
+    "Decode JWT protected headers and JWS claims, interpret common timestamps, and recognize five-part encrypted JWE tokens without implying verification.",
   keywords: [
-    "jwt decoder",
-    "decode jwt",
-    "jwt token decoder",
-    "jwt parser",
-    "jwt payload viewer",
-    "jwt inspector",
-    "online jwt decoder",
-    "developer tools",
+    "JWT decoder",
+    "JWT claims",
+    "JWS decoder",
+    "JWE header",
+    "JWT exp claim",
+    "JWT payload",
+    "Base64URL JWT",
   ],
-
-  alternates: {
-    canonical: "https://yoryantra.com/tools/jwt-decoder",
-  },
-
+  alternates: { canonical: "https://yoryantra.com/tools/jwt-decoder" },
   openGraph: {
-    title: "JWT Decoder for Header and Payload Inspection | Yoryantra",
-
+    title: "JWT Decoder for JWS Claims and JWE Structure | Yoryantra",
     description:
-      "Decode JWT header and payload data in your browser without verifying the token signature.",
-
+      "Read JWT headers, claims, timestamps, and encrypted-token structure without treating decoded data as verified.",
     url: "https://yoryantra.com/tools/jwt-decoder",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "JWT Decoder for Header and Payload Inspection | Yoryantra",
-
+    title: "JWT Decoder for JWS Claims and JWE Structure | Yoryantra",
     description:
-      "Inspect JWT header, payload, and claims in your browser. Decoding does not verify trust.",
+      "Inspect JWT structure and registered claims while keeping decoding separate from cryptographic validation.",
   },
 };
 

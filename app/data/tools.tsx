@@ -15,7 +15,7 @@ export const tools = [
 
   {
   title: "JWT Decoder",
-  description: "Decode JWT tokens and inspect payload data easily.",
+  description: "Read protected headers, claims, NumericDate timestamps, and JWE structure without implying token verification.",
   href: "/tools/jwt-decoder",
   category: "Security Tools",
   },
@@ -78,14 +78,14 @@ export const tools = [
   
   {
   title: "Hash Generator",
-  description: "Generate MD5, SHA-1, SHA-256, and SHA-512 hashes instantly.",
+  description: "Produce hexadecimal SHA-1, SHA-256, SHA-384, or SHA-512 digests from exact UTF-8 text.",
   href: "/tools/hash-generator",
   category: "Security Tools",
   },
   
   {
   title: "Password Generator",
-  description: "Generate strong random passwords instantly.",
+  description: "Pick length and character groups, then generate a cryptographically random credential entirely in the browser.",
   href: "/tools/password-generator",
   category: "Security Tools",
   },

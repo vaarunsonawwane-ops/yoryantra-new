@@ -1,34 +1,33 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Hash Generator | Yoryantra",
+export const metadata: Metadata = {
+  title: "Hash Generator for SHA-1 and SHA-2 Text Digests | Yoryantra",
   description:
-    "Generate SHA-1, SHA-256, SHA-384, and SHA-512 hashes from text in your browser with clear hashing and security notes.",
+    "Generate hexadecimal SHA-1, SHA-256, SHA-384, or SHA-512 digests from exact UTF-8 text and understand byte-level comparison limits.",
   keywords: [
     "hash generator",
-    "sha1 generator",
-    "sha256 generator",
-    "sha384 generator",
-    "sha512 generator",
-    "online hash generator",
-    "developer utilities",
+    "SHA-256 hash",
+    "SHA-512 hash",
+    "SHA-384 hash",
+    "SHA-1 hash",
+    "UTF-8 digest",
+    "hex digest",
   ],
-  alternates: {
-    canonical: "https://yoryantra.com/tools/hash-generator",
-  },
+  alternates: { canonical: "https://yoryantra.com/tools/hash-generator" },
   openGraph: {
-    title: "Hash Generator | Yoryantra",
+    title: "Hash Generator for SHA-1 and SHA-2 Text Digests | Yoryantra",
     description:
-      "Generate SHA-1, SHA-256, SHA-384, and SHA-512 hashes from text in your browser.",
+      "Create hexadecimal SHA digests from exact UTF-8 text with byte, Unicode, and SHA-1 compatibility notes.",
     url: "https://yoryantra.com/tools/hash-generator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hash Generator | Yoryantra",
+    title: "Hash Generator for SHA-1 and SHA-2 Text Digests | Yoryantra",
     description:
-      "Generate SHA-1, SHA-256, SHA-384, and SHA-512 hashes from text in your browser.",
+      "Create hexadecimal SHA digests from exact UTF-8 text and see what can change the result.",
   },
 };
 

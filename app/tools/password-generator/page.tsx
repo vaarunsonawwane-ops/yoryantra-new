@@ -2,34 +2,31 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Random Password Generator | Yoryantra",
+  title: "Password Generator with Cryptographic Browser Randomness | Yoryantra",
   description:
-    "Generate a random password locally with uppercase and lowercase letters, numbers, and symbols. Uses the browser cryptography API and avoids modulo-biased character selection.",
+    "Generate cryptographically random passwords with configurable length, character groups, unbiased sampling, and clear handling guidance.",
   keywords: [
     "password generator",
-    "random password generator",
-    "strong password generator",
-    "secure password generator",
+    "cryptographic random password",
     "browser password generator",
-    "cryptographic password generator",
-    "developer security tools",
+    "password length",
+    "password character set",
+    "crypto getRandomValues",
   ],
-  alternates: {
-    canonical: "https://yoryantra.com/tools/password-generator",
-  },
+  alternates: { canonical: "https://yoryantra.com/tools/password-generator" },
   openGraph: {
-    title: "Random Password Generator | Yoryantra",
+    title: "Password Generator with Cryptographic Browser Randomness | Yoryantra",
     description:
-      "Generate random passwords locally in your browser with letters, numbers, and symbols.",
+      "Choose length and character groups, then generate a password locally with cryptographic randomness and unbiased character sampling.",
     url: "https://yoryantra.com/tools/password-generator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Random Password Generator | Yoryantra",
+    title: "Password Generator with Cryptographic Browser Randomness | Yoryantra",
     description:
-      "Generate random passwords locally using the browser cryptography API.",
+      "Generate a local random password with configurable character sets and transparent randomness rules.",
   },
 };
 
