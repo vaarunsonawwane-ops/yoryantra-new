@@ -970,7 +970,7 @@ export const tools = [
 {
   title: "Data URI Generator",
   description:
-    "Generate data URIs for text, SVG, HTML, CSS, JSON, and small snippets with percent or Base64 encoding.",
+    "Build compact data URLs with explicit media type, charset, percent encoding, or Base64 choices.",
   href: "/tools/data-uri-generator",
   category: "Encoding Tools",
 },
@@ -978,7 +978,7 @@ export const tools = [
 {
   title: "Unicode Escape Sequence Converter",
   description:
-    "Convert Unicode escape sequences like \\uXXXX, \\u{1F600}, \\xXX, HTML entities, and plain text.",
+    "Decode or encode Unicode escapes while exposing code points, surrogate pairs, and invalid scalar values.",
   href: "/tools/unicode-escape-sequence-converter",
   category: "Encoding Tools",
 },
@@ -1114,7 +1114,7 @@ export const tools = [
 {
   title: "Punycode Converter",
   description:
-    "Convert international domain names between Unicode and xn-- Punycode for IDN, URL, email, and SEO/domain debugging.",
+    "Convert IDN hostnames between Unicode and ASCII form with label-level IDNA validation.",
   href: "/tools/punycode-converter",
   category: "Encoding Tools",
 },

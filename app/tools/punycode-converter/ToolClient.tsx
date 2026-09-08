@@ -152,7 +152,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Punycode Converter"
-      description="Convert international domain names between Unicode and Punycode. Encode IDN domains to xn-- format, decode Punycode domains, inspect labels, and copy clean output in your browser."
+      description="Convert IDN hostnames between readable Unicode and ASCII form with label-level validation."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -406,7 +406,7 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             Punycode notes
           </h3>
@@ -445,7 +445,7 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
         Punycode conversion happens directly in your browser. Your domains, URLs,
         and email addresses are not uploaded to a server.
       </div>
@@ -457,23 +457,17 @@ export default function ToolClient() {
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Punycode is the encoding used to represent international domain names
-            with non-ASCII characters in a DNS-safe format. A domain like
-            mañana.com becomes an ASCII form starting with xn-- so browsers and
-            domain systems can handle it correctly.
+            Punycode is the reversible ASCII encoding defined by RFC 3492. Domain-name processing adds another layer: IDNA decides which Unicode labels are acceptable and how they are mapped before an xn-- label is produced. Raw Punycode and a usable IDN hostname are therefore not interchangeable concepts.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Punycode Converter encodes Unicode domains to xn-- Punycode and
-            decodes Punycode domains back to readable Unicode. It can also handle
-            full URLs and email domains while preserving paths, query strings,
-            fragments, and local parts.
+            Unicode-to-ASCII conversion here goes through the browser URL host parser so IDNA processing happens before the ASCII hostname is returned. Decoding an xn-- label still exposes the underlying Punycode string, then round-trips it through that host parser to flag suspicious or non-canonical labels.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Using the Punycode Converter
+            Converting the hostname without rewriting the rest
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -487,7 +481,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Punycode Converter Use Cases
+            Places where the ASCII hostname matters
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -526,16 +520,17 @@ Punycode: xn--maana-pta.com`}
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Use Punycode conversion to understand what a browser or DNS system is
-            actually using. For important domains, review the Unicode version,
-            Punycode version, script mix, and final URL carefully before
-            publishing.
+            An xn-- result does not prove that a name is safe, registrable, or visually unambiguous. Registry policy, browser display rules, script mixing, and look-alike characters remain separate checks.
+          </p>
+
+          <p className="mt-4 text-sm text-gray-600 leading-relaxed">
+            Encoding reference: <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc3492" target="_blank" rel="noreferrer">RFC 3492 — Punycode</a>. IDNA processing updates that foundation through the IDNA2008 specifications.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            IDN questions worth checking
           </h2>
 
           <div className="mt-5 space-y-6">
@@ -600,7 +595,7 @@ Punycode: xn--maana-pta.com`}
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/punycode-converter" />
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/punycode-converter" /></div>
         </div>
       </section>
     </ToolShell>
@@ -754,10 +749,13 @@ function convertDomain(
 ): ConversionItem {
   const original = value.trim();
   const cleanDomain = stripDomainNoise(original);
-  const labels = cleanDomain
-    .split(".")
-    .filter((label) => label.length > 0)
-    .map((label) => convertLabel(label, mode, options));
+  if (!cleanDomain) {
+    throw new Error("A domain name is required.");
+  }
+  if (cleanDomain.split(".").some((label) => label.length === 0)) {
+    throw new Error("Domain names cannot contain empty labels between dots.");
+  }
+  const labels = cleanDomain.split(".").map((label) => convertLabel(label, mode, options));
   const converted = labels.map((label) => label.converted).join(".");
   const warnings = labels.map((label) => label.warning).filter(Boolean);
 
@@ -798,10 +796,14 @@ function convertLabel(
       converted = original.toLowerCase().startsWith("xn--")
         ? decodePunycodeLabel(original.slice(4))
         : original;
+      if (original.toLowerCase().startsWith("xn--")) {
+        const roundTrip = toAsciiIdnaLabel(converted).toLowerCase();
+        if (roundTrip !== original.toLowerCase()) {
+          warning = "The decoded label does not round-trip through the browser IDNA host parser. Treat this ACE label as suspect.";
+        }
+      }
     } else {
-      converted = /[^\x00-\x7F]/.test(original)
-        ? `xn--${encodePunycodeLabel(original)}`
-        : original;
+      converted = toAsciiIdnaLabel(original);
     }
 
     if (options.lowercaseAscii && /^[\x00-\x7F]+$/.test(converted)) {
@@ -823,6 +825,23 @@ function convertLabel(
     changed: original !== converted,
     warning,
   };
+}
+
+function toAsciiIdnaLabel(input: string) {
+  if (!input) {
+    throw new Error("Domain labels cannot be empty.");
+  }
+  const url = new URL(`http://${input}.example`);
+  const host = url.hostname;
+  const suffix = ".example";
+  if (!host.endsWith(suffix)) {
+    throw new Error("The browser could not normalize this label as an IDNA hostname label.");
+  }
+  const ascii = host.slice(0, -suffix.length);
+  if (!ascii || ascii.indexOf(".") !== -1) {
+    throw new Error("The label changes hostname structure during IDNA processing.");
+  }
+  return ascii;
 }
 
 function encodePunycodeLabel(input: string) {

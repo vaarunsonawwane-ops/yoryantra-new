@@ -147,7 +147,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Data URI Generator"
-      description="Generate data URIs from SVG, text, HTML, CSS, JSON, and small snippets. Choose MIME type, encoding style, charset, output format, and preview supported data URLs directly in your browser."
+      description="Build standards-shaped data URLs from trusted text content with explicit media type, charset, and encoding choices."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="mb-4">
@@ -358,6 +358,7 @@ export default function ToolClient() {
               <iframe
                 title="Data URI preview"
                 src={result.dataUri}
+                sandbox=""
                 className="h-[240px] w-full rounded-xl border border-gray-200 bg-white"
               />
             )}
@@ -388,16 +389,20 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Data URI Generator creates clean data URLs from source content. You can choose the MIME type, charset, percent encoding, Base64 output, and copy the result as a raw data URI, HTML snippet, CSS url(), or JSON object.
+            A data URL is a media-type declaration followed by inline data. RFC 2397 defines the shape as data:[mediatype][;base64],data; without ;base64, bytes outside the URL-safe range are percent encoded.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool is especially helpful for small SVG icons, short text examples, inline CSS tests, documentation snippets, and browser behavior checks.
+            Small SVG icons, short test payloads, documentation examples, and isolated browser experiments are the sensible end of the spectrum. Large assets lose normal file caching and can make source harder to inspect.
+          </p>
+
+          <p className="mt-4 text-sm text-gray-600 leading-relaxed">
+            Specification: <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc2397" target="_blank" rel="noreferrer">RFC 2397 — The data URL scheme</a>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Generate a Data URI</h2>
+          <h2 className="text-xl font-semibold text-gray-900">From source bytes to a data URL</h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Choose the content type, such as SVG, plain text, HTML, CSS, or JSON.</li>
@@ -409,7 +414,7 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This Data URI Generator Helps</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Where inline data earns its cost</h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <p>Embedding a small SVG icon directly in CSS or HTML.</p>
@@ -445,7 +450,7 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Questions that matter before embedding</h2>
 
           <div className="mt-5 space-y-6">
             <Faq title="What is a data URI?">
@@ -479,7 +484,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/data-uri-generator" />
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/data-uri-generator" /></div>
         </div>
       </section>
     </ToolShell>
@@ -515,6 +520,10 @@ function buildDataUri({
   const source = trimInput ? input.trim() : input;
   const cleanMime = mimeType.trim() || mimeByKind[inputKind];
   const cleanCharset = charset.trim() || "utf-8";
+  validateMediaType(cleanMime);
+  if (charsetMode === "include") {
+    validateParameterToken(cleanCharset, "charset");
+  }
   const metaParts = [cleanMime];
 
   if (charsetMode === "include" && cleanCharset) {
@@ -543,7 +552,15 @@ function buildDataUri({
   }
 
   if (inputKind === "html") {
-    warnings.push("HTML data URIs can render markup in some contexts. Use only trusted content.");
+    warnings.push("HTML data URLs can create an active document context. Keep untrusted markup out of generated links and previews.");
+  }
+
+  if (charsetMode === "include" && !isTextualMediaType(cleanMime)) {
+    warnings.push("A charset parameter is unusual for this media type. Keep it only if the receiving format actually defines charset semantics.");
+  }
+
+  if (inputKind === "svg" && cleanMime.toLowerCase() !== "image/svg+xml") {
+    warnings.push("The selected content is SVG but the declared media type is different. Consumers trust the declared media type, not the editor label.");
   }
 
   return {
@@ -559,17 +576,43 @@ function buildDataUri({
   };
 }
 
+function validateMediaType(value: string) {
+  const token = "[!#$%&'*+.^_`|~0-9A-Za-z-]+";
+  const pattern = new RegExp(`^${token}/${token}$`);
+  if (!pattern.test(value)) {
+    throw new Error("MIME type must be a type/subtype value such as text/plain or image/svg+xml. Put charset in the separate charset field.");
+  }
+}
+
+function validateParameterToken(value: string, label: string) {
+  if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(value)) {
+    throw new Error(`${label} contains characters that need parameter quoting or escaping, which this generator intentionally does not guess.`);
+  }
+}
+
+function isTextualMediaType(value: string) {
+  const lower = value.toLowerCase();
+  return lower.indexOf("text/") === 0 || lower === "application/json" || lower === "image/svg+xml" || lower.endsWith("+json") || lower.endsWith("+xml");
+}
+
+function escapeHtmlAttribute(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 function formatOutput(result: DataUriResult, options: { outputMode: OutputMode }) {
   if (options.outputMode === "json") {
     return JSON.stringify(result, null, 2);
   }
 
   if (options.outputMode === "htmlLink") {
-    return `<a href="${result.dataUri}">Open data URI</a>`;
+    return `<a href="${escapeHtmlAttribute(result.dataUri)}">Open data URI</a>`;
   }
 
   if (options.outputMode === "htmlImg") {
-    return `<img src="${result.dataUri}" alt="Data URI image" />`;
+    if (result.mimeType.toLowerCase().indexOf("image/") !== 0) {
+      throw new Error("HTML image output requires an image/* media type.");
+    }
+    return `<img src="${escapeHtmlAttribute(result.dataUri)}" alt="Data URI image" />`;
   }
 
   if (options.outputMode === "cssUrl") {

@@ -2,40 +2,11 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Punycode Converter | Convert IDN Domains to xn-- Punycode | Yoryantra",
-  description:
-    "Convert international domain names between Unicode and Punycode. Encode IDN domains to xn-- format, decode Punycode domains, inspect labels, and copy clean output in your browser.",
-  keywords: [
-    "Punycode Converter",
-    "IDN converter",
-    "convert domain to punycode",
-    "punycode decoder",
-    "punycode encoder",
-    "xn-- converter",
-    "international domain name converter",
-    "unicode domain converter",
-    "encoding tools",
-    "developer tools",
-  ],
-  alternates: {
-    canonical: "https://yoryantra.com/tools/punycode-converter",
-  },
-  openGraph: {
-    title: "Punycode Converter | Convert IDN Domains to xn-- Punycode | Yoryantra",
-    description:
-      "Convert international domain names between Unicode and Punycode. Encode IDN domains to xn-- format, decode Punycode domains, inspect labels, and copy clean output in your browser.",
-    url: "https://yoryantra.com/tools/punycode-converter",
-    siteName: "Yoryantra",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Punycode Converter | Convert IDN Domains to xn-- Punycode | Yoryantra",
-    description:
-      "Convert international domain names between Unicode and Punycode. Encode IDN domains to xn-- format, decode Punycode domains, inspect labels, and copy clean output in your browser.",
-  },
+  title: "Punycode Converter | Unicode and xn-- IDN Labels | Yoryantra",
+  description: "Convert internationalized hostnames between Unicode and ASCII form, inspect xn-- labels, and flag IDNA or mixed-script concerns.",
+  alternates: { canonical: "https://yoryantra.com/tools/punycode-converter" },
+  openGraph: { title: "Punycode Converter | Yoryantra", description: "Convert internationalized hostnames between Unicode and ASCII form while keeping IDNA and raw Punycode boundaries clear.", url: "https://yoryantra.com/tools/punycode-converter", siteName: "Yoryantra", type: "website" },
+  twitter: { card: "summary", title: "Punycode Converter | Yoryantra", description: "Convert Unicode hostnames and xn-- labels with IDNA-aware validation." },
 };
 
-export default function PunycodeConverterPage() {
-  return <ToolClient />;
-}
+export default function PunycodeConverterPage() { return <ToolClient />; }

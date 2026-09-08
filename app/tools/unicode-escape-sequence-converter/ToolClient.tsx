@@ -152,7 +152,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Unicode Escape Sequence Converter"
-      description="Convert Unicode escape sequences like \\uXXXX, \\u{1F600}, \\xXX, HTML entities, and plain text directly in your browser."
+      description="Decode or encode Unicode escapes while exposing code points, surrogate pairs, and invalid values."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
@@ -528,7 +528,7 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             Unicode notes
           </h3>
@@ -570,7 +570,7 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
         Unicode escape conversion happens directly in your browser. Your pasted
         text is not uploaded to a server.
       </div>
@@ -589,16 +589,13 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Unicode Escape Sequence Converter decodes common escape formats
-            and can also encode readable text into escape sequences. It is useful
-            when working with multilingual text, emoji, broken display output,
-            serialized JSON, and text copied from code or logs.
+            JavaScript&apos;s four-digit {"\\uXXXX"} form represents one UTF-16 code unit, not necessarily one complete Unicode character. Characters above U+FFFF need a surrogate pair in that form, while {"\\u{...}"} can represent the code point directly.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Decoding or Encoding Unicode Escapes
+            Choosing code units, code points, or numeric references
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -612,7 +609,7 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Unicode Escape Converter Use Cases
+            Where escaped text usually appears
           </h2>
 
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -650,15 +647,17 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Use the character details table when you need to check the exact code
-            point for emoji, symbols, Indic text, or characters that look similar
-            but are not the same internally.
+            Lone surrogate code units are not Unicode scalar values. During decode they are surfaced as the replacement character rather than being silently presented as valid text. The character table is useful when emoji, combining marks, Indic text, or visually similar symbols need exact code-point inspection.
+          </p>
+
+          <p className="mt-4 text-sm text-gray-600 leading-relaxed">
+            JavaScript syntax reference: <a className="font-medium text-gray-900 underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#string_literals" target="_blank" rel="noreferrer">MDN lexical grammar — string escapes</a>.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Unicode edge cases worth knowing
           </h2>
 
           <div className="mt-5 space-y-6">
@@ -723,7 +722,7 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/unicode-escape-sequence-converter" />
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/unicode-escape-sequence-converter" /></div>
         </div>
       </section>
     </ToolShell>
@@ -814,6 +813,9 @@ function convertUnicodeEscapes(
   if (/\\u[0-9A-Fa-f]{0,3}(?![0-9A-Fa-f])/.test(input)) {
     warnings.push("Some \\u escapes look incomplete. A standard \\u escape needs four hex digits.");
   }
+  if (/\\u\{[0-9A-Fa-f]{7,}\}/.test(input)) {
+    warnings.push("A braced Unicode escape contains more than six hexadecimal digits and cannot represent a Unicode code point.");
+  }
 
   const output = formatUnicodeOutput({
     mode: options.mode,
@@ -841,31 +843,37 @@ function decodeEscapes(
 ) {
   let output = input;
 
-  output = output.replace(/\\u\{([0-9A-Fa-f]+)\}/g, (_match, hex: string) => {
+  output = output.replace(/\\u\{([0-9A-Fa-f]{1,6})\}/g, (_match, hex: string) => {
     const codePoint = parseInt(hex, 16);
-    return safeFromCodePoint(codePoint);
+    return scalarFromCodePoint(codePoint);
   });
 
-  output = output.replace(/\\u([0-9A-Fa-f]{4})/g, (_match, hex: string) => {
-    const codeUnit = parseInt(hex, 16);
-    return String.fromCharCode(codeUnit);
+  output = output.replace(/\\u([0-9A-Fa-f]{4})(?:\\u([0-9A-Fa-f]{4}))?/g, (match, firstHex: string, secondHex?: string) => {
+    const first = parseInt(firstHex, 16);
+    if (first >= 0xd800 && first <= 0xdbff) {
+      if (!secondHex) {
+        return "\uFFFD";
+      }
+      const second = parseInt(secondHex, 16);
+      if (second < 0xdc00 || second > 0xdfff) {
+        return "\uFFFD" + scalarFromCodePoint(second);
+      }
+      const codePoint = 0x10000 + ((first - 0xd800) << 10) + (second - 0xdc00);
+      return String.fromCodePoint(codePoint);
+    }
+    if (first >= 0xdc00 && first <= 0xdfff) {
+      return "\uFFFD" + (secondHex ? scalarFromCodePoint(parseInt(secondHex, 16)) : "");
+    }
+    return String.fromCharCode(first) + (secondHex ? scalarFromCodePoint(parseInt(secondHex, 16)) : "");
   });
 
   output = output.replace(/\\x([0-9A-Fa-f]{2})/g, (_match, hex: string) => {
-    const codeUnit = parseInt(hex, 16);
-    return String.fromCharCode(codeUnit);
+    return String.fromCharCode(parseInt(hex, 16));
   });
 
   if (options.decodeHtmlEntities) {
-    output = output.replace(/&#(\d+);/g, (_match, decimal: string) => {
-      const codePoint = Number(decimal);
-      return safeFromCodePoint(codePoint);
-    });
-
-    output = output.replace(/&#x([0-9A-Fa-f]+);/g, (_match, hex: string) => {
-      const codePoint = parseInt(hex, 16);
-      return safeFromCodePoint(codePoint);
-    });
+    output = output.replace(/&#(\d+);/g, (_match, decimal: string) => scalarFromCodePoint(Number(decimal)));
+    output = output.replace(/&#x([0-9A-Fa-f]+);/g, (_match, hex: string) => scalarFromCodePoint(parseInt(hex, 16)));
   }
 
   return output;
@@ -948,16 +956,12 @@ function formatHex(value: number, uppercase: boolean) {
   return uppercase ? hex.toUpperCase() : hex.toLowerCase();
 }
 
-function safeFromCodePoint(value: number) {
-  try {
-    if (!Number.isFinite(value) || value < 0 || value > 0x10ffff) {
-      return "\uFFFD";
-    }
-
-    return String.fromCodePoint(value);
-  } catch {
+function scalarFromCodePoint(value: number) {
+  if (!Number.isFinite(value) || value < 0 || value > 0x10ffff || (value >= 0xd800 && value <= 0xdfff)) {
     return "\uFFFD";
   }
+
+  return String.fromCodePoint(value);
 }
 
 function formatUnicodeOutput({
