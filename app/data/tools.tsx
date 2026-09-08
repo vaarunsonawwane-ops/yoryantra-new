@@ -1423,14 +1423,14 @@ export const tools = [
 
 {
     title: "XML Escape Unescape",
-    description: "Escape and unescape XML entities for feeds, APIs, SVG, SOAP, and sitemap text.",
+    description: "Escape XML text safely or decode predefined and numeric entities under XML 1.0 or 1.1 rules.",
     href: "/tools/xml-escape-unescape",
     category: "Encoding Tools",
   },
 
 {
     title: "Shell Command Escape Tool",
-    description: "Quote and escape command-line arguments for Bash, PowerShell, CMD, and env values.",
+    description: "Prepare literal arguments for POSIX shells and PowerShell, with clear warnings for CMD and dotenv differences.",
     href: "/tools/shell-command-escape-tool",
     category: "Encoding Tools",
   },
@@ -1494,7 +1494,7 @@ export const tools = [
 
 {
   title: "Octal Encoder Decoder",
-  description: "Convert text to octal values and decode octal bytes back to readable text.",
+  description: "Convert between readable text and octal byte values using ASCII or UTF-8 decoding.",
   href: "/tools/octal-encoder-decoder",
   category: "Encoding Tools",
 },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -9,6 +9,7 @@ type ActionMode = "escape" | "unescape" | "inspect" | "normalize";
 type QuoteMode = "both" | "double" | "single" | "none";
 type OutputMode = "text" | "json" | "markdown" | "csv" | "checklist";
 type NewlineMode = "preserve" | "lf" | "crlf";
+type XmlVersion = "1.0" | "1.1";
 
 type EntityRow = {
   entity: string;
@@ -52,10 +53,9 @@ export default function ToolClient() {
   const [quoteMode, setQuoteMode] = useState<QuoteMode>("both");
   const [outputMode, setOutputMode] = useState<OutputMode>("text");
   const [newlineMode, setNewlineMode] = useState<NewlineMode>("preserve");
+  const [xmlVersion, setXmlVersion] = useState<XmlVersion>("1.0");
   const [trimInput, setTrimInput] = useState(false);
   const [avoidDoubleEscaping, setAvoidDoubleEscaping] = useState(true);
-  const [escapeQuotes, setEscapeQuotes] = useState(true);
-  const [escapeApostrophes, setEscapeApostrophes] = useState(true);
   const [warnUnescapedAmpersands, setWarnUnescapedAmpersands] = useState(true);
   const [warnAngleBrackets, setWarnAngleBrackets] = useState(true);
   const [warnUnknownEntities, setWarnUnknownEntities] = useState(true);
@@ -88,10 +88,9 @@ export default function ToolClient() {
       quoteMode,
       outputMode,
       newlineMode,
+      xmlVersion,
       trimInput,
       avoidDoubleEscaping,
-      escapeQuotes,
-      escapeApostrophes,
       warnUnescapedAmpersands,
       warnAngleBrackets,
       warnUnknownEntities,
@@ -117,10 +116,9 @@ export default function ToolClient() {
     setQuoteMode("both");
     setOutputMode("text");
     setNewlineMode("preserve");
+    setXmlVersion("1.0");
     setTrimInput(false);
     setAvoidDoubleEscaping(true);
-    setEscapeQuotes(true);
-    setEscapeApostrophes(true);
     setWarnUnescapedAmpersands(true);
     setWarnAngleBrackets(true);
     setWarnUnknownEntities(true);
@@ -134,10 +132,9 @@ export default function ToolClient() {
     setQuoteMode("both");
     setOutputMode("text");
     setNewlineMode("preserve");
+    setXmlVersion("1.0");
     setTrimInput(false);
     setAvoidDoubleEscaping(true);
-    setEscapeQuotes(true);
-    setEscapeApostrophes(true);
     setWarnUnescapedAmpersands(true);
     setWarnAngleBrackets(true);
     setWarnUnknownEntities(true);
@@ -148,7 +145,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="XML Escape Unescape"
-      description="Escape XML-sensitive characters, decode XML entities, inspect entity usage, and prepare safer XML text for feeds, APIs, SVG, SOAP, and sitemap snippets."
+      description="Escape XML character data or decode valid entity references with explicit XML 1.0 and 1.1 character rules."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -206,6 +203,19 @@ export default function ToolClient() {
             />
 
             <YoryantraSelect
+              label="XML Version"
+              value={xmlVersion}
+              onChange={(value) => {
+                setXmlVersion(value as XmlVersion);
+                clearResult();
+              }}
+              options={[
+                { label: "XML 1.0 (default)", value: "1.0" },
+                { label: "XML 1.1", value: "1.1" },
+              ]}
+            />
+
+            <YoryantraSelect
               label="Output"
               value={outputMode}
               onChange={(value) => {
@@ -243,15 +253,13 @@ export default function ToolClient() {
         <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
           <Toggle checked={trimInput} onChange={setTrimInput} label="Trim outer whitespace" />
           <Toggle checked={avoidDoubleEscaping} onChange={setAvoidDoubleEscaping} label="Avoid double-escaping existing entities" />
-          <Toggle checked={escapeQuotes} onChange={setEscapeQuotes} label="Escape double quotes" />
-          <Toggle checked={escapeApostrophes} onChange={setEscapeApostrophes} label="Escape apostrophes" />
           <Toggle checked={warnUnescapedAmpersands} onChange={setWarnUnescapedAmpersands} label="Warn about unescaped ampersands" />
           <Toggle checked={warnAngleBrackets} onChange={setWarnAngleBrackets} label="Warn about angle brackets" />
           <Toggle checked={warnUnknownEntities} onChange={setWarnUnknownEntities} label="Warn about unknown entities" />
           <Toggle checked={warnControlCharacters} onChange={setWarnControlCharacters} label="Warn about control characters" />
         </div>
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          These checks help catch common XML text issues without trying to validate a full XML document or schema.
+          These checks apply to character data and entity references. They do not parse element structure, namespaces, DTD declarations, schemas, or external entities.
         </p>
       </div>
 
@@ -259,21 +267,21 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={processXml}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="min-h-11 whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Convert XML Text
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="min-h-11 whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="min-h-11 whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
         >
           Reset
         </button>
@@ -293,7 +301,7 @@ export default function ToolClient() {
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-11 whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
@@ -318,9 +326,18 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((issue, index) => (
-              <div key={`${issue.title}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{issue.message}</p>
+              <div
+                key={`${issue.title}-${index}`}
+                className={`self-start rounded-xl border p-4 ${
+                  issue.severity === "high"
+                    ? "border-red-200 bg-red-50"
+                    : issue.severity === "warning"
+                      ? "border-amber-200 bg-amber-50"
+                      : "border-gray-200 bg-gray-50"
+                }`}
+              >
+                <p className={`text-sm font-semibold ${issue.severity === "high" ? "text-red-900" : issue.severity === "warning" ? "text-amber-900" : "text-gray-900"}`}>{issue.title}</p>
+                <p className={`mt-1 text-sm leading-6 ${issue.severity === "high" ? "text-red-700" : issue.severity === "warning" ? "text-amber-800" : "text-gray-600"}`}>{issue.message}</p>
               </div>
             ))}
           </div>
@@ -357,84 +374,61 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Escaping XML Text for Feeds, APIs, and Markup</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Escape the text value, not an entire XML document</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            XML uses a few characters as markup. A plain ampersand, less-than sign, quote, or apostrophe can change how a document is parsed when it appears inside text or attributes. Escaping turns those characters into safe entity references such as <code className="rounded bg-gray-100 px-1 py-0.5">&amp;amp;</code>, <code className="rounded bg-gray-100 px-1 py-0.5">&amp;lt;</code>, and <code className="rounded bg-gray-100 px-1 py-0.5">&amp;quot;</code>.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool is built for quick XML text cleanup when you are working with RSS descriptions, SOAP values, SVG snippets, sitemap text, config values, or XML-like API payloads.
+            In element character data, <code>&amp;</code> and <code>&lt;</code> have markup meaning and must be escaped when they are literal text. Quotes matter when they match an attribute delimiter. Escaping a complete XML fragment will also escape its tags, so this page is for text values and entity references rather than structural XML editing.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">When XML Escaping Helps</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Preparing text values for XML attributes or element content.</p>
-            <p className="mt-2">Cleaning copied RSS, Atom, SOAP, SVG, sitemap, or configuration snippets.</p>
-            <p className="mt-2">Decoding entity-heavy text back into a readable form for review.</p>
-            <p className="mt-2">Checking whether text contains unescaped ampersands, angle brackets, or unknown entities.</p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+            <p className="font-semibold text-gray-900">Only five entities are predefined by XML</p>
+            <p className="mt-2"><code>&amp;amp;</code>, <code>&amp;lt;</code>, <code>&amp;gt;</code>, <code>&amp;quot;</code>, and <code>&amp;apos;</code> are available without a DTD declaration. HTML names such as <code>&amp;nbsp;</code> are not automatically XML entities.</p>
+          </div>
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+            <p className="font-semibold">“Avoid double escaping” is deliberately strict</p>
+            <p className="mt-2">Only the five predefined names and numeric references that are valid for the selected XML version are preserved. Unknown named references are escaped as text instead of being allowed to produce undeclared entities.</p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the XML Escape Unescape Tool</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste XML text, entity text, RSS content, SVG markup, SOAP values, or a sitemap snippet.</li>
-            <li>Choose whether to escape, unescape, inspect, or normalize the text.</li>
-            <li>Pick quote handling and output format based on where you will copy the result.</li>
-            <li>Use the review notes to catch suspicious entities or XML-sensitive characters.</li>
-            <li>Copy the converted output when it matches your target format.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">XML 1.0 and XML 1.1 differ around control characters</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            XML 1.0 rejects most C0 controls even when written as numeric references. XML 1.1 permits references to more control characters, but many of them are restricted and still cannot appear literally. In XML 1.1 mode, restricted numeric references stay encoded when unescaping so the output does not quietly become ill-formed XML text.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">XML Entity Examples</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <div>
-              <div className="font-medium text-gray-900">Ampersand</div>
-              <div className="mt-1 font-mono">Input: Yoryantra & Encoding</div>
-              <div className="mt-1 font-mono">Escaped: Yoryantra &amp;amp; Encoding</div>
-            </div>
-            <div className="mt-4">
-              <div className="font-medium text-gray-900">Angle brackets</div>
-              <div className="mt-1 font-mono">Input: &lt;title&gt;Tools&lt;/title&gt;</div>
-              <div className="mt-1 font-mono">Escaped: &amp;lt;title&amp;gt;Tools&amp;lt;/title&amp;gt;</div>
-            </div>
-            <div className="mt-4">
-              <div className="font-medium text-gray-900">Attribute quotes</div>
-              <div className="mt-1 font-mono">Input: title="XML tools"</div>
-              <div className="mt-1 font-mono">Escaped: title=&amp;quot;XML tools&amp;quot;</div>
-            </div>
+          <h2 className="text-xl font-semibold text-gray-900">What normalization can and cannot establish</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Normalize mode decodes references this page can safely interpret, then escapes the resulting character data again. It does not prove that an XML document is well-formed, resolve internal or external DTD entities, validate namespaces, apply a schema, or check an RSS, SOAP, SVG, sitemap, or application-specific vocabulary.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+          <p className="font-semibold text-gray-900">Security and privacy boundary</p>
+          <p className="mt-2">Conversion is local browser string processing. No DTD is fetched and no external entity is resolved here. That does not protect the generated text from XXE or entity-expansion behavior in a separate XML parser that later consumes a full document; configure that parser independently.</p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Line-ending option is not parser-level XML normalization</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            LF and CRLF options only rewrite pasted CR/LF sequences. XML processors have their own end-of-line normalization rules, and XML 1.1 additionally recognizes NEL and U+2028. This page does not simulate the complete parser normalization stage.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">XML references used for these boundaries</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The <a href="https://www.w3.org/TR/xml/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">XML 1.0 Recommendation</a> defines the five predefined entities, legal characters and character references. <a href="https://www.w3.org/TR/xml11/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">XML 1.1</a> expands the character-reference model while keeping NUL forbidden and restricting direct use of several control ranges.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/xml-escape-unescape" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What does XML escaping do?">
-              XML escaping replaces markup-sensitive characters with entity references so text can be placed safely inside XML content or attributes.
-            </Faq>
-            <Faq title="Is XML escaping the same as HTML escaping?">
-              They overlap, but XML is stricter and commonly uses the predefined XML entities for ampersand, less-than, greater-than, quotes, and apostrophes.
-            </Faq>
-            <Faq title="Does this validate a full XML document?">
-              No. It converts and inspects text. It does not validate XML structure, schemas, namespaces, DTDs, or feed correctness.
-            </Faq>
-            <Faq title="Can this decode numeric XML entities?">
-              Yes. It can decode decimal entities such as <code>&amp;#65;</code> and hexadecimal entities such as <code>&amp;#x41;</code> when they are valid.
-            </Faq>
-            <Faq title="Is anything uploaded while escaping XML text?">
-              No. The conversion runs entirely inside your browser.
-            </Faq>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/xml-escape-unescape" />
         </div>
       </section>
     </ToolShell>
@@ -447,136 +441,151 @@ function buildResult(options: {
   quoteMode: QuoteMode;
   outputMode: OutputMode;
   newlineMode: NewlineMode;
+  xmlVersion: XmlVersion;
   trimInput: boolean;
   avoidDoubleEscaping: boolean;
-  escapeQuotes: boolean;
-  escapeApostrophes: boolean;
   warnUnescapedAmpersands: boolean;
   warnAngleBrackets: boolean;
   warnUnknownEntities: boolean;
   warnControlCharacters: boolean;
 }): Result {
   const prepared = normalizeNewlines(options.trimInput ? options.input.trim() : options.input, options.newlineMode);
-  const rows = summarizeEntities(prepared);
+  const rows = summarizeEntities(prepared, options.xmlVersion);
   const issues: Issue[] = [];
   const entityCount = rows.reduce((sum, row) => sum + row.count, 0);
   const specialCharacterCount = countSpecialCharacters(prepared);
 
+  const forbiddenLiteral = findForbiddenLiteralCharacters(prepared, options.xmlVersion);
+  const restrictedLiteral = options.xmlVersion === "1.1" ? findXml11RestrictedLiteralCharacters(prepared) : [];
+  if (options.warnControlCharacters && forbiddenLiteral.length) {
+    issues.push({ severity: "high", title: `Characters forbidden by XML ${options.xmlVersion}`, message: `${forbiddenLiteral.length} character${forbiddenLiteral.length === 1 ? "" : "s"} cannot appear in the selected XML version, even as ordinary literal text. XML 1.0 also forbids most of these values as numeric references.` });
+  }
+  if (options.warnControlCharacters && restrictedLiteral.length) {
+    issues.push({
+      severity: options.actionMode === "escape" || options.actionMode === "normalize" ? "warning" : "high",
+      title: "XML 1.1 restricted controls are present literally",
+      message: options.actionMode === "escape" || options.actionMode === "normalize"
+        ? `${restrictedLiteral.length} restricted control character${restrictedLiteral.length === 1 ? " will" : "s will"} be emitted as numeric character references.`
+        : `${restrictedLiteral.length} restricted control character${restrictedLiteral.length === 1 ? " is" : "s are"} not allowed literally in XML 1.1; keep them as numeric references.`,
+    });
+  }
+
+  const invalidNumeric = findInvalidNumericReferences(prepared, options.xmlVersion);
+  if (invalidNumeric.length) {
+    issues.push({ severity: "high", title: "Invalid numeric character references", message: `Found ${invalidNumeric.slice(0, 4).join(", ")}${invalidNumeric.length > 4 ? " and more" : ""}. Those code points are not legal character references in XML ${options.xmlVersion}.` });
+  }
+
   if (options.warnUnescapedAmpersands) {
-    const badAmpersands = prepared.match(/&(?!#\d+;|#x[0-9a-fA-F]+;|[A-Za-z][A-Za-z0-9_.-]*;)/g)?.length ?? 0;
-    if (badAmpersands > 0) {
-      issues.push({
-        severity: "warning",
-        title: "Unescaped ampersands found",
-        message: `${badAmpersands} ampersand character${badAmpersands === 1 ? "" : "s"} may need to be escaped as &amp;amp; inside XML text.`,
-      });
-    }
+    const badAmpersands = countBareAmpersands(prepared);
+    if (badAmpersands > 0) issues.push({ severity: "warning", title: "Bare ampersands found", message: `${badAmpersands} ampersand${badAmpersands === 1 ? " is" : "s are"} not the start of a syntactic entity or numeric character reference. Literal ampersands in XML character data need &amp;amp;.` });
   }
 
   if (options.warnAngleBrackets && /[<>]/.test(prepared) && options.actionMode !== "unescape") {
-    issues.push({
-      severity: "info",
-      title: "Angle brackets detected",
-      message: "Angle brackets may be real XML markup or plain text that needs escaping. Review the result before copying it into a document.",
-    });
+    issues.push({ severity: "info", title: "Markup delimiters are present", message: "Angle brackets may be actual XML markup or literal text. Escaping the whole input will turn tags into text; decide which part is the value before copying." });
   }
 
   if (options.warnUnknownEntities) {
     const unknown = findUnknownEntities(prepared);
-    if (unknown.length) {
-      issues.push({
-        severity: "warning",
-        title: "Unknown named entities detected",
-        message: `Found ${unknown.slice(0, 4).join(", ")}${unknown.length > 4 ? " and more" : ""}. XML only defines a small set of named entities unless a DTD defines more.`,
-      });
-    }
-  }
-
-  if (options.warnControlCharacters && /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(prepared)) {
-    issues.push({
-      severity: "high",
-      title: "Control characters detected",
-      message: "Some control characters are not allowed in normal XML text. Remove or replace them before using the value in production XML.",
-    });
+    if (unknown.length) issues.push({ severity: "warning", title: "Named entities are not predefined", message: `Found ${unknown.slice(0, 4).join(", ")}${unknown.length > 4 ? " and more" : ""}. XML only predefines amp, lt, gt, quot and apos; other names require a DTD declaration.` });
   }
 
   let convertedText = prepared;
-  if (options.actionMode === "escape") {
-    convertedText = escapeXml(prepared, options);
-  } else if (options.actionMode === "unescape") {
-    convertedText = unescapeXml(prepared);
-  } else if (options.actionMode === "normalize") {
-    convertedText = escapeXml(unescapeXml(prepared), options);
-  }
+  if (options.actionMode === "escape") convertedText = escapeXml(prepared, options);
+  else if (options.actionMode === "unescape") convertedText = unescapeXml(prepared, options.xmlVersion);
+  else if (options.actionMode === "normalize") convertedText = escapeXml(unescapeXml(prepared, options.xmlVersion), options);
 
-  const result: Result = {
-    output: "",
-    convertedText,
-    rows,
-    issues,
-    inputLength: prepared.length,
-    outputLength: convertedText.length,
-    entityCount,
-    specialCharacterCount,
-  };
-
-  return {
-    ...result,
-    output: formatOutput(result, options.outputMode, options.actionMode),
-  };
+  const result: Result = { output: "", convertedText, rows, issues, inputLength: prepared.length, outputLength: convertedText.length, entityCount, specialCharacterCount };
+  return { ...result, output: formatOutput(result, options.outputMode, options.actionMode, options.xmlVersion) };
 }
 
-function escapeXml(text: string, options: { quoteMode: QuoteMode; avoidDoubleEscaping: boolean; escapeQuotes: boolean; escapeApostrophes: boolean }) {
-  let output = options.avoidDoubleEscaping
-    ? text.replace(/&(?!#\d+;|#x[0-9a-fA-F]+;|[A-Za-z][A-Za-z0-9_.-]*;)/g, "&amp;")
-    : text.replace(/&/g, "&amp;");
-
+function escapeXml(text: string, options: { quoteMode: QuoteMode; avoidDoubleEscaping: boolean; xmlVersion: XmlVersion }) {
+  let output = options.avoidDoubleEscaping ? preserveOnlyValidReferences(text, options.xmlVersion) : text.replace(/&/g, "&amp;");
   output = output.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  if (options.quoteMode === "both" || options.quoteMode === "double") output = output.replace(/"/g, "&quot;");
+  if (options.quoteMode === "both" || options.quoteMode === "single") output = output.replace(/'/g, "&apos;");
 
-  const shouldEscapeDouble = options.escapeQuotes && (options.quoteMode === "both" || options.quoteMode === "double");
-  const shouldEscapeSingle = options.escapeApostrophes && (options.quoteMode === "both" || options.quoteMode === "single");
-
-  if (shouldEscapeDouble) output = output.replace(/"/g, "&quot;");
-  if (shouldEscapeSingle) output = output.replace(/'/g, "&apos;");
-
+  if (options.xmlVersion === "1.1") {
+    output = Array.from(output).map((character) => {
+      const codePoint = character.codePointAt(0) ?? 0;
+      return isXml11Restricted(codePoint) ? `&#x${codePoint.toString(16).toUpperCase()};` : character;
+    }).join("");
+  }
   return output;
 }
 
-function unescapeXml(text: string) {
-  return text.replace(/&(#\d+|#x[0-9a-fA-F]+|[A-Za-z][A-Za-z0-9_.-]*);/g, (match, entity) => {
-    if (entity.startsWith("#x")) {
-      const value = Number.parseInt(entity.slice(2), 16);
-      return Number.isFinite(value) ? safeCodePoint(value, match) : match;
-    }
-    if (entity.startsWith("#")) {
-      const value = Number.parseInt(entity.slice(1), 10);
-      return Number.isFinite(value) ? safeCodePoint(value, match) : match;
-    }
-    return namedEntities[entity] ?? match;
+function preserveOnlyValidReferences(text: string, version: XmlVersion) {
+  return text.replace(/&(#\d+;|#x[0-9a-fA-F]+;|[A-Za-z][A-Za-z0-9_.-]*;)?/g, (match, body: string | undefined) => {
+    if (!body) return "&amp;";
+    const reference = `&${body}`;
+    if (/^&(amp|lt|gt|quot|apos);$/.test(reference)) return reference;
+    const value = numericReferenceValue(reference);
+    if (/^&#/.test(reference) && value !== null && isXmlCharacter(value, version)) return reference;
+    return `&amp;${body}`;
   });
 }
 
-function safeCodePoint(value: number, fallback: string) {
-  try {
-    return String.fromCodePoint(value);
-  } catch {
-    return fallback;
-  }
+function unescapeXml(text: string, version: XmlVersion) {
+  return text.replace(/&(#\d+|#x[0-9a-fA-F]+|[A-Za-z][A-Za-z0-9_.-]*);/g, (match, entity: string) => {
+    if (!entity.startsWith("#")) return namedEntities[entity] ?? match;
+    const value = numericReferenceValue(match);
+    if (value === null || !isXmlCharacter(value, version)) return match;
+    if (version === "1.1" && isXml11Restricted(value)) return match;
+    try { return String.fromCodePoint(value); } catch { return match; }
+  });
 }
 
-function summarizeEntities(text: string): EntityRow[] {
+function numericReferenceValue(reference: string): number | null {
+  const hex = /^&#x([0-9a-fA-F]+);$/.exec(reference);
+  const dec = /^&#(\d+);$/.exec(reference);
+  const raw = hex ? Number.parseInt(hex[1], 16) : dec ? Number.parseInt(dec[1], 10) : Number.NaN;
+  return Number.isFinite(raw) && raw >= 0 && raw <= 0x10ffff ? raw : null;
+}
+
+function isXmlCharacter(value: number, version: XmlVersion) {
+  if (version === "1.1") return (value >= 0x1 && value <= 0xd7ff) || (value >= 0xe000 && value <= 0xfffd) || (value >= 0x10000 && value <= 0x10ffff);
+  return value === 0x9 || value === 0xa || value === 0xd || (value >= 0x20 && value <= 0xd7ff) || (value >= 0xe000 && value <= 0xfffd) || (value >= 0x10000 && value <= 0x10ffff);
+}
+
+function isXml11Restricted(value: number) {
+  return (value >= 0x1 && value <= 0x8) || value === 0xb || value === 0xc || (value >= 0xe && value <= 0x1f) || (value >= 0x7f && value <= 0x84) || (value >= 0x86 && value <= 0x9f);
+}
+
+function findForbiddenLiteralCharacters(text: string, version: XmlVersion) {
+  const invalid: number[] = [];
+  for (const character of Array.from(text)) {
+    const value = character.codePointAt(0) ?? 0;
+    if (!isXmlCharacter(value, version)) invalid.push(value);
+  }
+  return invalid;
+}
+
+function findXml11RestrictedLiteralCharacters(text: string) {
+  const restricted: number[] = [];
+  for (const character of Array.from(text)) {
+    const value = character.codePointAt(0) ?? 0;
+    if (isXml11Restricted(value)) restricted.push(value);
+  }
+  return restricted;
+}
+
+function findInvalidNumericReferences(text: string, version: XmlVersion) {
+  const refs = text.match(/&#\d+;|&#x[0-9a-fA-F]+;/g) ?? [];
+  return refs.filter((reference) => {
+    const value = numericReferenceValue(reference);
+    return value === null || !isXmlCharacter(value, version);
+  });
+}
+
+function summarizeEntities(text: string, version: XmlVersion): EntityRow[] {
   const counts = new Map<string, number>();
   const matches = text.match(/&(#\d+|#x[0-9a-fA-F]+|[A-Za-z][A-Za-z0-9_.-]*);/g) ?? [];
   for (const entity of matches) counts.set(entity, (counts.get(entity) ?? 0) + 1);
-
   return Array.from(counts.entries()).map(([entity, count]) => {
-    const value = unescapeXml(entity);
-    return {
-      entity,
-      value,
-      count,
-      note: value === entity ? "Not a predefined XML entity" : "Decoded by this tool",
-    };
+    const value = unescapeXml(entity, version);
+    let note = "Decoded by the selected XML rules";
+    if (/^&[A-Za-z]/.test(entity) && value === entity) note = "Not one of XML's five predefined entities";
+    if (/^&#/.test(entity) && value === entity) note = "Preserved because the reference is invalid or restricted";
+    return { entity, value, count, note };
   });
 }
 
@@ -585,9 +594,8 @@ function findUnknownEntities(text: string) {
   return Array.from(new Set(matches.filter((entity) => !Object.prototype.hasOwnProperty.call(namedEntities, entity.slice(1, -1)))));
 }
 
-function countSpecialCharacters(text: string) {
-  return (text.match(/[<>&"']/g) ?? []).length;
-}
+function countBareAmpersands(text: string) { return text.match(/&(?!#\d+;|#x[0-9a-fA-F]+;|[A-Za-z][A-Za-z0-9_.-]*;)/g)?.length ?? 0; }
+function countSpecialCharacters(text: string) { return (text.match(/[<>&"']/g) ?? []).length; }
 
 function normalizeNewlines(text: string, mode: NewlineMode) {
   if (mode === "preserve") return text;
@@ -595,52 +603,28 @@ function normalizeNewlines(text: string, mode: NewlineMode) {
   return mode === "crlf" ? normalized.replace(/\n/g, "\r\n") : normalized;
 }
 
-function formatOutput(result: Result, outputMode: OutputMode, actionMode: ActionMode) {
+function formatOutput(result: Result, outputMode: OutputMode, actionMode: ActionMode, xmlVersion: XmlVersion) {
   if (outputMode === "text") return result.convertedText;
-
-  if (outputMode === "json") {
-    return JSON.stringify(
-      {
-        action: actionMode,
-        inputLength: result.inputLength,
-        outputLength: result.outputLength,
-        entityCount: result.entityCount,
-        specialCharacterCount: result.specialCharacterCount,
-        convertedText: result.convertedText,
-        entities: result.rows,
-        issues: result.issues,
-      },
-      null,
-      2,
-    );
-  }
-
+  if (outputMode === "json") return JSON.stringify({ action: actionMode, xmlVersion, inputLength: result.inputLength, outputLength: result.outputLength, entityCount: result.entityCount, specialCharacterCount: result.specialCharacterCount, convertedText: result.convertedText, entities: result.rows, issues: result.issues }, null, 2);
   if (outputMode === "markdown") {
-    const lines = ["| Entity | Value | Count | Note |", "|---|---|---:|---|"];
-    if (result.rows.length) {
-      result.rows.forEach((row) => lines.push(`| ${row.entity} | ${row.value.replace(/\|/g, "\\|")} | ${row.count} | ${row.note} |`));
-    } else {
-      lines.push("| None | - | 0 | No XML entities found |");
-    }
+    const lines = ["| Entity | Value | Count | Interpretation |", "|---|---|---:|---|"];
+    if (result.rows.length) result.rows.forEach((row) => lines.push(`| ${row.entity} | ${row.value.replace(/\|/g, "\\|")} | ${row.count} | ${row.note} |`));
+    else lines.push("| None | - | 0 | No entity references found |");
     return lines.join("\n");
   }
-
   if (outputMode === "csv") {
     const rows = [["entity", "value", "count", "note"], ...result.rows.map((row) => [row.entity, row.value, String(row.count), row.note])];
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
-
-  const checklist = [
-    "# XML Escaping Checklist",
-    "",
+  return [
+    "# XML Character-Data Review", "",
+    `- [ ] XML version checked: ${xmlVersion}`,
     `- [ ] Action reviewed: ${actionMode}`,
-    `- [ ] Output length checked: ${result.outputLength} characters`,
-    `- [ ] Entity count checked: ${result.entityCount}`,
+    `- [ ] Entity references checked: ${result.entityCount}`,
     `- [ ] XML-sensitive characters checked: ${result.specialCharacterCount}`,
-    `- [ ] Warnings reviewed: ${result.issues.length}`,
-    "- [ ] Result tested in the target XML/RSS/SOAP/SVG context",
-  ];
-  return checklist.join("\n");
+    `- [ ] Findings reviewed: ${result.issues.length}`,
+    "- [ ] Result tested inside the actual element or attribute context",
+  ].join("\n");
 }
 
 function csvEscape(value: string) {
@@ -690,11 +674,3 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}

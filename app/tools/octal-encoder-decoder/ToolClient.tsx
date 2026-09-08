@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -172,7 +172,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Octal Encoder Decoder"
-      description="Convert text into octal byte values, decode octal back into readable text, and inspect decimal, hexadecimal, and character values locally in your browser."
+      description="Convert text and byte-oriented octal without hiding invalid groups, ASCII limits, or UTF-8 decoding failures."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -270,7 +270,7 @@ export default function ToolClient() {
                 { label: "Auto detect", value: "auto" },
                 { label: "Three-digit groups", value: "threeDigit" },
                 { label: "Escaped octal like \\131", value: "escaped" },
-                { label: "Mixed text and octal", value: "mixed" },
+                { label: "Separated or escaped groups", value: "mixed" },
               ]}
             />
           </div>
@@ -286,13 +286,13 @@ export default function ToolClient() {
           <Toggle checked={ignoreInvalidGroups} onChange={setIgnoreInvalidGroups} label="Ignore invalid octal groups while decoding" />
           <Toggle checked={showControlNames} onChange={setShowControlNames} label="Show control character names" />
           <Toggle checked={uppercaseHex} onChange={setUppercaseHex} label="Use uppercase hex values" />
-          <Toggle checked={includeByteTable} onChange={setIncludeByteTable} label="Include byte table in reports" />
+          <Toggle checked={includeByteTable} onChange={setIncludeByteTable} label="Show byte table" />
           <Toggle checked={warnInvalidOctal} onChange={setWarnInvalidOctal} label="Warn about invalid octal values" />
           <Toggle checked={warnNonAscii} onChange={setWarnNonAscii} label="Warn about non-ASCII characters" />
           <Toggle checked={warnControlCharacters} onChange={setWarnControlCharacters} label="Warn about control characters" />
         </div>
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          These options help format octal output, decode copied octal strings safely, and inspect bytes without uploading your text.
+          Formatting changes only the representation. Decoding still validates every supplied group instead of silently dropping malformed tokens.
         </p>
       </div>
 
@@ -300,28 +300,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={processInput}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="min-h-11 whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Convert Octal
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="min-h-11 whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Load Text Example
         </button>
         <button
           type="button"
           onClick={loadDecodeExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="min-h-11 whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Load Octal Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="min-h-11 whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
         >
           Reset
         </button>
@@ -341,7 +341,7 @@ export default function ToolClient() {
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-11 whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
@@ -366,9 +366,18 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((note) => (
-              <div key={`${note.title}-${note.message}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{note.message}</p>
+              <div
+                key={`${note.title}-${note.message}`}
+                className={`self-start rounded-xl border p-4 ${
+                  note.severity === "high"
+                    ? "border-red-200 bg-red-50"
+                    : note.severity === "warning"
+                      ? "border-amber-200 bg-amber-50"
+                      : "border-gray-200 bg-gray-50"
+                }`}
+              >
+                <p className={`text-sm font-semibold ${note.severity === "high" ? "text-red-900" : note.severity === "warning" ? "text-amber-900" : "text-gray-900"}`}>{note.title}</p>
+                <p className={`mt-1 text-sm leading-6 ${note.severity === "high" ? "text-red-700" : note.severity === "warning" ? "text-amber-800" : "text-gray-600"}`}>{note.message}</p>
               </div>
             ))}
           </div>
@@ -413,84 +422,60 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Converting Text and Bytes Into Octal</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Octal here represents bytes, not characters</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Octal is a base-8 number format that sometimes appears in old Unix examples, byte dumps, escape sequences, file permission explanations, and low-level debugging notes. Text can be represented as octal byte values, and copied octal values can be decoded back into readable text.
+            One byte ranges from decimal 0 to 255, which is octal 000 to 377. ASCII uses only 0 to 127. UTF-8 can use several bytes for one visible character, so a character such as é or an emoji produces multiple octal groups rather than one “Unicode octal value.”
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This converter helps encode text into octal, decode octal groups back into text, and inspect the byte values behind each character. It is useful when comparing ASCII, UTF-8 bytes, escaped octal, decimal values, and hexadecimal values side by side.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This Octal Converter Helps</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Decoding copied octal byte sequences from logs, documentation, scripts, or older systems.</p>
-            <p className="mt-2">Encoding short text into octal values for examples, tests, or byte-level explanations.</p>
-            <p className="mt-2">Inspecting how text maps to octal, decimal, hexadecimal, and visible character values.</p>
-            <p className="mt-2">Checking escaped octal strings such as \131\157\162 before using them in examples or scripts.</p>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the Octal Encoder Decoder</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste text, spaced octal values, or escaped octal sequences into the input box.</li>
-            <li>Choose whether to encode, decode, or inspect the values.</li>
-            <li>Select UTF-8 or ASCII handling, separator style, and output format.</li>
-            <li>Use the options to pad octal values, show escaped output, or skip invalid groups.</li>
-            <li>Review the converted output, byte table, and warnings before copying.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Octal Conversion</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`Text:
-Yoryantra
-
-Octal:
-131 157 162 171 141 156 164 162 141
-
-Escaped octal:
-\\131\\157\\162\\171\\141\\156\\164\\162\\141`}</pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Octal Bytes Are Not the Same as File Permissions</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Octal is also used in Unix-style permissions such as 755 or 644, but this tool focuses on text and byte conversion. It can help explain byte values, escaped strings, and encoded text, but it is not a chmod permission calculator.
+            The byte table therefore describes encoded bytes. Values above 127 are not displayed as if each byte were a standalone Unicode character.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What does this octal encoder decoder do?">
-              It converts text into octal byte values and decodes octal values back into readable text.
-            </Faq>
-            <Faq title="Can it decode escaped octal strings?">
-              Yes. It can read escaped octal values such as \131\157\162 and decode them into text.
-            </Faq>
-            <Faq title="Should I use UTF-8 or ASCII mode?">
-              Use UTF-8 for normal modern text. Use ASCII mode when you specifically want one-byte ASCII-only behavior and warnings for non-ASCII characters.
-            </Faq>
-            <Faq title="Why are some octal groups invalid?">
-              Octal values can only use digits 0 through 7. Values outside the byte range or groups containing 8 or 9 are invalid for byte decoding.
-            </Faq>
-            <Faq title="Is anything uploaded while converting octal values?">
-              No. The conversion runs entirely inside your browser.
-            </Faq>
+          <h2 className="text-xl font-semibold text-gray-900">Decoding without guessing past bad input</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+              <p className="font-semibold text-gray-900">Separated or escaped values</p>
+              <p className="mt-2">Inputs such as <code>131 157 162</code>, <code>131,157,162</code>, and <code>\131\157\162</code> have explicit group boundaries that can be validated independently.</p>
+            </div>
+            <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+              <p className="font-semibold">Unseparated octal is inherently ambiguous</p>
+              <p className="mt-2">A stream such as <code>10112</code> could be split in more than one way. Three-digit mode accepts complete three-digit byte groups instead of silently choosing a convenient parse.</p>
+            </div>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">ASCII and UTF-8 answer different questions</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            ASCII mode accepts only byte values 0–127. UTF-8 mode accepts the full byte range but requires the complete byte sequence to be valid UTF-8 before it is presented as readable text. Invalid UTF-8 is reported rather than replaced with the Unicode replacement character.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/octal-encoder-decoder" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Escaped octal depends on the language reading it</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A backslash followed by octal digits is familiar from C-family and Unix tooling, but exact escape grammar varies by language and command. Treat the escaped form here as a byte representation, then check the parser that will consume it. Unix permission values such as 755 are a separate use of base eight and are not byte strings.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+          <p className="font-semibold text-gray-900">Browser boundary</p>
+          <p className="mt-2">Conversion happens in the browser and no network request is needed by the conversion logic. This page does not interpret chmod permissions or execute octal escapes in a programming language.</p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Reference point</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            UTF-8 is defined by <a href="https://www.rfc-editor.org/rfc/rfc3629" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">RFC 3629</a>. The important boundary here is simple: octal represents byte values; UTF-8 defines how sequences of those bytes represent Unicode text.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/octal-encoder-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -519,8 +504,17 @@ function buildResult(options: {
   const units = options.actionMode === "encode" ? encodeText(source, options) : decodeOctal(source, options);
   const validUnits = units.filter((unit) => unit.valid);
   const issues = buildIssues(units, options);
-  const output = formatOutput(validUnits, units, issues, options);
 
+  if (options.actionMode !== "encode" && validUnits.length) {
+    const decoded = decodeBytes(validUnits.map((unit) => unit.decimal), options.textEncoding);
+    if (!decoded.ok) issues.push({ severity: "high", title: decoded.title, message: decoded.message });
+  }
+
+  if (options.actionMode === "encode" && options.separatorMode === "none" && !options.padToThreeDigits && validUnits.length > 1) {
+    issues.push({ severity: "warning", title: "Unseparated output is ambiguous", message: "Variable-width octal values without separators cannot always be split back into the original bytes. Pad to three digits or keep a separator for round trips." });
+  }
+
+  const output = formatOutput(validUnits, units, issues, options);
   return {
     output,
     units,
@@ -529,7 +523,7 @@ function buildResult(options: {
     unitCount: units.length,
     invalidCount: units.filter((unit) => !unit.valid).length,
     outputLength: output.length,
-    detectedShape: options.actionMode === "encode" ? "text input" : "octal input",
+    detectedShape: options.actionMode === "encode" ? `${options.textEncoding.toUpperCase()} text` : describeDecodeShape(source, options.decodeMode),
   };
 }
 
@@ -539,19 +533,33 @@ function encodeText(input: string, options: {
   prefixEscapedOctal: boolean;
   uppercaseHex: boolean;
   showControlNames: boolean;
-}) {
-  const bytes = options.textEncoding === "utf8" ? Array.from(new TextEncoder().encode(input)) : Array.from(input).map((char) => char.charCodeAt(0));
-  return bytes.map((byte, index) => {
-    const octal = formatOctal(byte, options);
-    return {
+}): OctalUnit[] {
+  if (options.textEncoding === "utf8") {
+    const bytes = Array.from(new TextEncoder().encode(input));
+    return bytes.map((byte, index) => ({
       index,
-      input: String.fromCharCode(byte),
-      octal,
+      input: String(byte),
+      octal: formatOctal(byte, options),
       decimal: byte,
       hex: formatHex(byte, options.uppercaseHex),
-      character: displayCharacter(byte, options.showControlNames),
-      valid: byte >= 0 && byte <= 255,
-      message: byte >= 0 && byte <= 255 ? "Encoded" : "Outside byte range",
+      character: displayByte(byte, options.showControlNames),
+      valid: true,
+      message: "UTF-8 byte",
+    }));
+  }
+
+  return Array.from(input).map((character, index) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    const valid = codePoint <= 0x7f;
+    return {
+      index,
+      input: character,
+      octal: valid ? formatOctal(codePoint, options) : "",
+      decimal: codePoint,
+      hex: valid ? formatHex(codePoint, options.uppercaseHex) : `U+${codePoint.toString(16).toUpperCase()}`,
+      character,
+      valid,
+      message: valid ? "ASCII byte" : "Outside ASCII range",
     };
   });
 }
@@ -563,50 +571,60 @@ function decodeOctal(input: string, options: {
   ignoreInvalidGroups: boolean;
   uppercaseHex: boolean;
   showControlNames: boolean;
-}) {
+}): OctalUnit[] {
   const groups = extractOctalGroups(input, options.decodeMode);
   return groups.map((group, index) => {
     const clean = group.replace(/^\\/, "");
-    const valid = /^[0-7]{1,3}$/.test(clean);
-    const decimal = valid ? parseInt(clean, 8) : NaN;
-    const inByteRange = valid && decimal >= 0 && decimal <= 255;
-    const ok = valid && inByteRange;
+    const syntaxValid = options.decodeMode === "threeDigit" ? /^[0-7]{3}$/.test(clean) : /^[0-7]{1,3}$/.test(clean);
+    const decimal = syntaxValid ? Number.parseInt(clean, 8) : Number.NaN;
+    const valid = syntaxValid && decimal <= 0xff;
     return {
       index,
       input: group,
       octal: valid ? formatOctal(decimal, options) : group,
-      decimal: ok ? decimal : 0,
-      hex: ok ? formatHex(decimal, options.uppercaseHex) : "",
-      character: ok ? displayCharacter(decimal, options.showControlNames) : "",
-      valid: ok,
-      message: ok ? "Decoded" : valid ? "Outside byte range" : "Invalid octal",
+      decimal: valid ? decimal : 0,
+      hex: valid ? formatHex(decimal, options.uppercaseHex) : "",
+      character: valid ? displayByte(decimal, options.showControlNames) : "",
+      valid,
+      message: valid ? "Byte" : syntaxValid ? "Outside byte range" : "Invalid octal group",
     };
   });
 }
 
-function extractOctalGroups(input: string, mode: DecodeMode) {
+function extractOctalGroups(input: string, mode: DecodeMode): string[] {
+  const source = input.trim();
+  if (!source) return [];
+
   if (mode === "escaped") {
-    return input.match(/\\[0-7]{1,3}/g) ?? [];
+    const tokens: string[] = source.match(/\\[^\\\s,]+/g) ?? [];
+    const residue = source.replace(/\\[^\\\s,]+/g, "").replace(/[\s,]+/g, "");
+    if (residue) tokens.push(residue);
+    return tokens.length ? tokens : [source];
   }
 
   if (mode === "threeDigit") {
-    const clean = input.replace(/[^0-7]/g, "");
-    return clean.match(/[0-7]{1,3}/g) ?? [];
+    if (/[\s,]/.test(source)) return source.split(/[\s,]+/).filter(Boolean);
+    const groups: string[] = [];
+    for (let index = 0; index < source.length; index += 3) groups.push(source.slice(index, index + 3));
+    return groups;
   }
 
   if (mode === "mixed") {
-    return input.match(/\\[0-7]{1,3}|[0-7]{1,3}/g) ?? [];
+    if (/\\/.test(source)) return extractOctalGroups(source, "escaped");
+    return source.split(/[\s,]+/).filter(Boolean);
   }
 
-  const escaped = input.match(/\\[0-7]{1,3}/g);
-  if (escaped?.length) return escaped;
+  if (/\\/.test(source)) return extractOctalGroups(source, "escaped");
+  if (/[\s,]/.test(source)) return source.split(/[\s,]+/).filter(Boolean);
+  if (/^[0-7]+$/.test(source) && source.length % 3 === 0) return extractOctalGroups(source, "threeDigit");
+  return [source];
+}
 
-  if (/^[0-7\s,]+$/.test(input)) {
-    const split = input.split(/[\s,]+/).filter(Boolean);
-    if (split.length > 1) return split;
-  }
-
-  return input.match(/[0-7]{1,3}/g) ?? [];
+function describeDecodeShape(input: string, mode: DecodeMode) {
+  if (mode === "escaped" || (mode === "auto" && /\\/.test(input))) return "escaped octal";
+  if (mode === "threeDigit") return "three-digit groups";
+  if (/[\s,]/.test(input)) return "separated octal";
+  return "single / ambiguous group";
 }
 
 function formatOutput(validUnits: OctalUnit[], allUnits: OctalUnit[], issues: Issue[], options: {
@@ -615,64 +633,31 @@ function formatOutput(validUnits: OctalUnit[], allUnits: OctalUnit[], issues: Is
   separatorMode: SeparatorMode;
   prefixEscapedOctal: boolean;
   padToThreeDigits: boolean;
+  textEncoding: TextEncoding;
 }) {
   if (options.outputMode === "converted") {
-    if (options.actionMode === "encode") return joinOctal(validUnits.map((unit) => unit.octal), options.separatorMode);
-    return bytesToText(validUnits.map((unit) => unit.decimal));
-  }
-
-  if (options.outputMode === "spaced") {
-    return validUnits.map((unit) => unit.octal.replace(/^\\/, "")).join(" ");
-  }
-
-  if (options.outputMode === "escaped") {
-    return validUnits.map((unit) => `\\${unit.octal.replace(/^\\/, "")}`).join("");
-  }
-
-  if (options.outputMode === "json") {
-    return JSON.stringify({
-      action: options.actionMode,
-      units: allUnits,
-      issues,
-    }, null, 2);
-  }
-
-  if (options.outputMode === "markdown") {
-    const lines = [
-      "| Index | Octal | Decimal | Hex | Character | Status |",
-      "|---:|---|---:|---|---|---|",
-      ...allUnits.map((unit) => `| ${unit.index} | ${escapeMarkdown(unit.octal)} | ${unit.decimal} | ${unit.hex} | ${escapeMarkdown(unit.character)} | ${unit.message} |`),
-    ];
-
-    if (issues.length) {
-      lines.push("", "Notes:");
-      issues.forEach((issue) => lines.push(`- ${issue.title}: ${issue.message}`));
+    if (options.actionMode === "encode") {
+      if (allUnits.some((unit) => !unit.valid)) return "[input contains characters outside the selected text encoding]";
+      return joinOctal(validUnits.map((unit) => unit.octal), options.separatorMode);
     }
-
+    const decoded = decodeBytes(validUnits.map((unit) => unit.decimal), options.textEncoding);
+    return decoded.ok ? decoded.text : `[${decoded.title}]`;
+  }
+  if (options.outputMode === "spaced") return validUnits.map((unit) => unit.octal.replace(/^\\/, "")).join(" ");
+  if (options.outputMode === "escaped") return validUnits.map((unit) => `\\${unit.octal.replace(/^\\/, "")}`).join("");
+  if (options.outputMode === "json") return JSON.stringify({ action: options.actionMode, textEncoding: options.textEncoding, units: allUnits, issues }, null, 2);
+  if (options.outputMode === "markdown") {
+    const lines = ["| Index | Octal | Decimal | Hex | Byte view | Status |", "|---:|---|---:|---|---|---|", ...allUnits.map((unit) => `| ${unit.index} | ${escapeMarkdown(unit.octal)} | ${unit.valid ? unit.decimal : "-"} | ${unit.hex || "-"} | ${escapeMarkdown(unit.character || "-")} | ${unit.message} |`)];
+    if (issues.length) { lines.push("", "Notes:"); issues.forEach((issue) => lines.push(`- ${issue.title}: ${issue.message}`)); }
     return lines.join("\n");
   }
-
   if (options.outputMode === "csv") {
-    const rows = [["index", "octal", "decimal", "hex", "character", "valid", "message"]];
-    allUnits.forEach((unit) => {
-      rows.push([String(unit.index), unit.octal, String(unit.decimal), unit.hex, unit.character, unit.valid ? "true" : "false", unit.message]);
-    });
+    const rows = [["index", "input", "octal", "decimal", "hex", "byte_view", "valid", "message"]];
+    allUnits.forEach((unit) => rows.push([String(unit.index), unit.input, unit.octal, unit.valid ? String(unit.decimal) : "", unit.hex, unit.character, unit.valid ? "true" : "false", unit.message]));
     return rows.map((row) => row.map(csvCell).join(",")).join("\n");
   }
-
-  const lines = [
-    "# Octal Conversion Checklist",
-    "",
-    `- [${allUnits.length ? "x" : " "}] Parsed ${allUnits.length} unit${allUnits.length === 1 ? "" : "s"}.`,
-    `- [${allUnits.every((unit) => unit.valid) ? "x" : " "}] All octal groups are valid byte values.`,
-    `- [${issues.every((issue) => issue.severity !== "high") ? "x" : " "}] No high-severity conversion issues found.`,
-  ];
-
-  if (issues.length) {
-    lines.push("", "Notes:");
-    issues.forEach((issue) => lines.push(`- ${issue.title}: ${issue.message}`));
-  }
-
+  const lines = ["# Octal Byte Review", "", `- [${allUnits.length ? "x" : " "}] Parsed ${allUnits.length} supplied group${allUnits.length === 1 ? "" : "s"}.`, `- [${allUnits.every((unit) => unit.valid) ? "x" : " "}] Every supplied group is a valid byte-sized octal value.`, `- [${issues.every((issue) => issue.severity !== "high") ? "x" : " "}] Selected text encoding can represent the result without a high-severity conflict.`];
+  if (issues.length) { lines.push("", "Notes:"); issues.forEach((issue) => lines.push(`- ${issue.title}: ${issue.message}`)); }
   return lines.join("\n");
 }
 
@@ -682,53 +667,34 @@ function buildIssues(units: OctalUnit[], options: {
   warnInvalidOctal: boolean;
   warnNonAscii: boolean;
   warnControlCharacters: boolean;
-}) {
+}): Issue[] {
   const issues: Issue[] = [];
   const invalid = units.filter((unit) => !unit.valid);
-  const nonAscii = units.filter((unit) => unit.decimal > 127);
-  const control = units.filter((unit) => unit.valid && unit.decimal < 32);
-
+  const nonAsciiBytes = units.filter((unit) => unit.valid && unit.decimal > 0x7f);
+  const control = units.filter((unit) => unit.valid && (unit.decimal < 0x20 || unit.decimal === 0x7f));
   if (options.warnInvalidOctal && invalid.length) {
     issues.push({
       severity: "high",
-      title: "Invalid octal groups",
-      message: `${invalid.length} group${invalid.length === 1 ? "" : "s"} could not be parsed as valid byte-sized octal values.`,
+      title: options.actionMode === "encode" && options.textEncoding === "ascii" ? "Input is not ASCII" : "Invalid octal groups",
+      message: options.actionMode === "encode"
+        ? `${invalid.length} character${invalid.length === 1 ? " is" : "s are"} outside the 7-bit ASCII range. Switch to UTF-8 to encode modern Unicode text.`
+        : `${invalid.length} supplied group${invalid.length === 1 ? "" : "s"} could not be parsed as octal byte values. Malformed tokens are reported rather than skipped.`,
     });
   }
-
-  if (options.warnNonAscii && nonAscii.length) {
-    issues.push({
-      severity: "info",
-      title: "Non-ASCII bytes",
-      message: `${nonAscii.length} byte${nonAscii.length === 1 ? "" : "s"} are above ASCII range. Use UTF-8 mode for modern text.`,
-    });
+  if (options.warnNonAscii && nonAsciiBytes.length) {
+    issues.push({ severity: options.textEncoding === "ascii" ? "high" : "info", title: options.textEncoding === "ascii" ? "Bytes outside ASCII" : "Bytes above ASCII range", message: `${nonAsciiBytes.length} byte${nonAsciiBytes.length === 1 ? " is" : "s are"} above 127. ${options.textEncoding === "ascii" ? "ASCII cannot represent them." : "They can be valid parts of a UTF-8 sequence."}` });
   }
-
-  if (options.warnControlCharacters && control.length) {
-    issues.push({
-      severity: "warning",
-      title: "Control characters",
-      message: `${control.length} decoded byte${control.length === 1 ? "" : "s"} represent control characters rather than visible text.`,
-    });
-  }
-
-  if (options.actionMode === "encode" && options.textEncoding === "ascii" && nonAscii.length) {
-    issues.push({
-      severity: "warning",
-      title: "ASCII mode with non-ASCII input",
-      message: "Some characters are outside the ASCII range and may not encode as expected in ASCII-only workflows.",
-    });
-  }
-
+  if (options.warnControlCharacters && control.length) issues.push({ severity: "warning", title: "Control bytes present", message: `${control.length} byte${control.length === 1 ? "" : "s"} represent control values rather than ordinary visible text.` });
   return issues;
 }
 
-function bytesToText(bytes: number[]) {
-  try {
-    return new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(bytes));
-  } catch {
-    return bytes.map((byte) => String.fromCharCode(byte)).join("");
+function decodeBytes(bytes: number[], encoding: TextEncoding): { ok: true; text: string } | { ok: false; title: string; message: string } {
+  if (encoding === "ascii") {
+    if (bytes.some((byte) => byte > 0x7f)) return { ok: false, title: "Not valid ASCII", message: "At least one decoded byte is above 127, so the selected ASCII interpretation cannot represent the byte sequence." };
+    return { ok: true, text: bytes.map((byte) => String.fromCharCode(byte)).join("") };
   }
+  try { return { ok: true, text: new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes)) }; }
+  catch { return { ok: false, title: "Invalid UTF-8 byte sequence", message: "The octal bytes do not form valid UTF-8. The page will not silently replace invalid bytes with U+FFFD." }; }
 }
 
 function joinOctal(values: string[], separator: SeparatorMode) {
@@ -749,19 +715,12 @@ function formatHex(byte: number, uppercase: boolean) {
   return uppercase ? `0x${value.toUpperCase()}` : `0x${value}`;
 }
 
-function displayCharacter(byte: number, showControlNames: boolean) {
-  const names: Record<number, string> = {
-    0: "NUL",
-    9: "TAB",
-    10: "LF",
-    13: "CR",
-    27: "ESC",
-    32: "space",
-  };
-
+function displayByte(byte: number, showControlNames: boolean) {
+  const names: Record<number, string> = { 0: "NUL", 9: "TAB", 10: "LF", 13: "CR", 27: "ESC", 32: "space", 127: "DEL" };
   if (showControlNames && names[byte]) return names[byte];
-  if (byte < 32 || byte === 127) return showControlNames ? "control" : "";
-  return String.fromCharCode(byte);
+  if (byte < 0x20 || byte === 0x7f) return showControlNames ? "control" : "";
+  if (byte <= 0x7e) return String.fromCharCode(byte);
+  return "UTF-8 byte";
 }
 
 function getNotes(result: Result): Issue[] {
@@ -817,11 +776,3 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}

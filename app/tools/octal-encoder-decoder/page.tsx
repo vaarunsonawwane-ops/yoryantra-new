@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Octal Encoder Decoder | Convert Text, Bytes, and Octal Values",
+  title: "Octal Encoder Decoder | Text, UTF-8 Bytes & Octal",
   description:
-    "Convert text to octal, decode octal values back to readable text, inspect byte values, and format octal output locally in your browser.",
+    "Convert text to octal bytes or decode supplied octal groups with explicit ASCII, UTF-8, malformed-token, and ambiguous-boundary checks.",
   keywords: [
     "octal encoder decoder",
     "text to octal converter",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Octal Encoder Decoder | Yoryantra",
     description:
-      "Encode text into octal values, decode octal back to readable text, and inspect byte-level output locally in your browser.",
+      "Convert text and octal bytes while keeping ASCII limits, UTF-8 validity, and malformed groups visible.",
     url: "https://yoryantra.com/tools/octal-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Octal Encoder Decoder | Yoryantra",
     description:
-      "Convert between text, UTF-8 bytes, and octal values with local browser-side processing.",
+      "Convert between text and byte-oriented octal with strict token and text-encoding boundaries.",
   },
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -56,6 +56,8 @@ const shellCharacters: Record<string, { meaning: string; risk: string }> = {
   "?": { meaning: "Glob wildcard", risk: "Can expand to matching filenames." },
   "[": { meaning: "Glob pattern", risk: "Can take part in filename pattern expansion." },
   "]": { meaning: "Glob pattern", risk: "Can take part in filename pattern expansion." },
+  "%": { meaning: "CMD percent expansion", risk: "Can expand environment variables or batch parameters in cmd.exe contexts." },
+  "!": { meaning: "CMD delayed expansion", risk: "Can expand variables when cmd.exe delayed expansion is enabled." },
 };
 
 export default function ToolClient() {
@@ -160,7 +162,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Shell Command Escape Tool"
-      description="Quote and escape command-line arguments for POSIX shells, Bash-style examples, PowerShell, Windows CMD, and .env values without running pasted commands."
+      description="Quote one argument for POSIX or PowerShell and expose CMD and dotenv context limits before copying."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -213,8 +215,8 @@ export default function ToolClient() {
                 { label: "POSIX / Bash single quotes", value: "posix-single" },
                 { label: "POSIX / Bash double quotes", value: "posix-double" },
                 { label: "PowerShell single quotes", value: "powershell" },
-                { label: "Windows CMD caret escaping", value: "cmd" },
-                { label: ".env quoted value", value: "env" },
+                { label: "Windows CMD (context-sensitive)", value: "cmd" },
+                { label: "Dotenv-style quoted value", value: "env" },
               ]}
             />
 
@@ -257,14 +259,16 @@ export default function ToolClient() {
           <Toggle checked={trimInput} onChange={setTrimInput} label="Trim outer whitespace" />
           <Toggle checked={quoteEmptyStrings} onChange={setQuoteEmptyStrings} label="Quote empty strings" />
           <Toggle checked={wrapResult} onChange={setWrapResult} label="Wrap result as one argument" />
-          <Toggle checked={escapeDollarExpansion} onChange={setEscapeDollarExpansion} label="Escape dollar expansion in double quotes" />
+          {shellStyle === "posix-double" ? (
+            <Toggle checked={escapeDollarExpansion} onChange={setEscapeDollarExpansion} label="Escape dollar expansion in double quotes" />
+          ) : null}
           <Toggle checked={warnShellOperators} onChange={setWarnShellOperators} label="Warn about shell operators" />
           <Toggle checked={warnVariableExpansion} onChange={setWarnVariableExpansion} label="Warn about variable expansion" />
           <Toggle checked={warnNewlines} onChange={setWarnNewlines} label="Warn about newlines" />
           <Toggle checked={warnSecretLikeText} onChange={setWarnSecretLikeText} label="Warn about secret-like text" />
         </div>
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          This tool formats text only. It does not execute commands, test shell behavior, connect to a terminal, or verify whether a command is safe to run.
+          Nothing is executed. Quoting one argument is also different from validating an entire command, and Windows CMD or dotenv syntax can depend on the exact caller and parser.
         </p>
       </div>
 
@@ -272,21 +276,21 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={processShellText}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="min-h-11 whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Escape Text
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="min-h-11 whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="min-h-11 whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
         >
           Reset
         </button>
@@ -306,7 +310,7 @@ export default function ToolClient() {
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-11 whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
@@ -331,9 +335,18 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((issue, index) => (
-              <div key={`${issue.title}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{issue.message}</p>
+              <div
+                key={`${issue.title}-${index}`}
+                className={`self-start rounded-xl border p-4 ${
+                  issue.severity === "high"
+                    ? "border-red-200 bg-red-50"
+                    : issue.severity === "warning"
+                      ? "border-amber-200 bg-amber-50"
+                      : "border-gray-200 bg-gray-50"
+                }`}
+              >
+                <p className={`text-sm font-semibold ${issue.severity === "high" ? "text-red-900" : issue.severity === "warning" ? "text-amber-900" : "text-gray-900"}`}>{issue.title}</p>
+                <p className={`mt-1 text-sm leading-6 ${issue.severity === "high" ? "text-red-700" : issue.severity === "warning" ? "text-amber-800" : "text-gray-600"}`}>{issue.message}</p>
               </div>
             ))}
           </div>
@@ -370,84 +383,61 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Escaping Shell Arguments Before Copying Commands</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Quoting is grammar-specific, not a universal escape operation</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Shells treat spaces, quotes, dollar signs, pipes, redirects, semicolons, and other characters as syntax. When a file path, token, URL, or copied value contains those characters, it may need quoting before you paste it into a command example or script.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Shell Command Escape Tool helps format one value as a shell argument for common command-line contexts. It is designed for text preparation and review, not for executing or approving commands.
+            A literal argument that is correct in a POSIX shell is not automatically correct in PowerShell or <code>cmd.exe</code>. The strongest output on this page is a quoted <em>single argument</em> for the selected grammar. It is not a review of a whole command line and it never approves pasted command text for execution.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">When Shell Escaping Helps</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Quoting file paths, URLs, or values with spaces before adding them to command examples.</p>
-            <p className="mt-2">Preparing copied strings for Bash-style scripts, PowerShell snippets, Windows CMD examples, or .env files.</p>
-            <p className="mt-2">Reviewing strings that contain characters such as <code className="rounded bg-white px-1 py-0.5">&amp;</code>, <code className="rounded bg-white px-1 py-0.5">|</code>, <code className="rounded bg-white px-1 py-0.5">$</code>, <code className="rounded bg-white px-1 py-0.5">;</code>, quotes, or backticks.</p>
-            <p className="mt-2">Creating safer documentation examples without accidentally changing the argument value.</p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+            <p className="font-semibold text-gray-900">POSIX single quotes</p>
+            <p className="mt-2">Single quotes preserve every enclosed character literally. Because a single quote cannot occur inside that quote pair, an embedded apostrophe is represented by closing the quote, adding an escaped quote, then reopening it.</p>
+          </div>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+            <p className="font-semibold text-gray-900">PowerShell single quotes</p>
+            <p className="mt-2">PowerShell single-quoted strings are verbatim strings; an embedded single quote is written twice. Passing that value to a native executable can still involve PowerShell's native-argument serialization rules.</p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the Shell Command Escape Tool</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste the single argument, path, value, or token-like text you want to quote.</li>
-            <li>Choose the target shell style such as POSIX single quotes, PowerShell, Windows CMD, or .env.</li>
-            <li>Review warnings for shell operators, variable expansion, newlines, or secret-like text.</li>
-            <li>Copy the escaped value and test it carefully in your real shell or script context.</li>
-            <li>Do not use this tool as a security approval for commands you do not understand.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Shell Escaping Examples</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <div>
-              <div className="font-medium text-gray-900">POSIX single quotes</div>
-              <div className="mt-1 font-mono">Input: path/with spaces</div>
-              <div className="mt-1 font-mono">Output: 'path/with spaces'</div>
-            </div>
-            <div className="mt-4">
-              <div className="font-medium text-gray-900">Single quote inside value</div>
-              <div className="mt-1 font-mono">Input: Yoryantra's tools</div>
-              <div className="mt-1 font-mono">Output: 'Yoryantra'\''s tools'</div>
-            </div>
-            <div className="mt-4">
-              <div className="font-medium text-gray-900">PowerShell single quotes</div>
-              <div className="mt-1 font-mono">Input: Yoryantra's tools</div>
-              <div className="mt-1 font-mono">Output: 'Yoryantra''s tools'</div>
-            </div>
+          <h2 className="text-xl font-semibold text-gray-900">Why CMD is deliberately marked context-sensitive</h2>
+          <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+            <p><code>cmd.exe</code> has several parsing layers. Carets and quotes can protect metacharacters such as <code>&amp;</code>, <code>|</code>, <code>&lt;</code>, and <code>&gt;</code>, but percent expansion, delayed <code>!</code> expansion, batch-file rules, <code>cmd /c</code> quote stripping, and the target program's own argument parser can change the result. The CMD output here is therefore a reviewable fragment, not a universal escaping guarantee.</p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="Does this tool run shell commands?">
-              No. It only formats text in your browser. It does not open a terminal, execute commands, contact a server, or verify whether a command is safe.
-            </Faq>
-            <Faq title="Which shell style should I use?">
-              Use POSIX single quotes for many Bash/sh examples, PowerShell for PowerShell commands, Windows CMD for cmd.exe examples, and .env mode for environment files.
-            </Faq>
-            <Faq title="Can shell escaping make unsafe commands safe?">
-              No. Escaping helps preserve one value as text, but it does not make an unknown command trustworthy. Always review the full command before running it.
-            </Faq>
-            <Faq title="Why are there different escaping styles?">
-              Shells parse quotes and special characters differently. A value escaped for Bash may not be correct for PowerShell or Windows CMD.
-            </Faq>
-            <Faq title="Is anything uploaded while escaping command text?">
-              No. The conversion runs entirely inside your browser.
-            </Faq>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Dotenv files do not share one universal quoting grammar</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The dotenv option produces a conservative double-quoted representation with escaped backslashes, quotes, CR and LF. Node, Docker Compose, libraries, CI systems, and application frameworks do not all parse dotenv files identically. Check the parser that will actually load the file before treating the generated value as portable.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Unescape is intentionally best-effort</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Shell source cannot in general be reversed by string replacement because parsing may involve expansions, concatenated quote segments, command substitution, variables, redirection and multiple arguments. Unescape mode only reverses the narrow quote forms generated here; it is not a shell parser.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/shell-command-escape-tool" />
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+          <p className="font-semibold text-gray-900">Security boundary</p>
+          <p className="mt-2">The browser never runs the pasted command. Treat real tokens, passwords and API keys as sensitive even when processing is local, because copied output can still end up in shell history, logs, screenshots, tickets or source control.</p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Authoritative syntax references</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            POSIX quoting rules are defined by <a href="https://pubs.opengroup.org/onlinepubs/9799919799/utilities/V3_chap02.html#tag_19_02" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">The Open Group Shell Command Language</a>. Microsoft documents <a href="https://learn.microsoft.com/powershell/module/microsoft.powershell.core/about/about_quoting_rules" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">PowerShell quoting</a> and <a href="https://learn.microsoft.com/windows-server/administration/windows-commands/cmd" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">cmd.exe parsing and special characters</a> separately.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/shell-command-escape-tool" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -526,8 +516,8 @@ function escapeForShell(text: string, style: ShellStyle, options: { quoteEmptySt
   }
 
   if (style === "cmd") {
-    const escaped = text.replace(/([&|<>^%])/g, "^$1").replace(/"/g, '""');
-    return options.wrapResult ? `"${escaped}"` : escaped;
+    if (options.wrapResult) return `"${text.replace(/"/g, '""')}"`;
+    return text.replace(/([&|<>^()])/g, "^$1");
   }
 
   return escapeEnvValue(text, options.wrapResult);
@@ -559,7 +549,7 @@ function bestEffortUnescape(text: string, style: ShellStyle) {
 
   let value = text;
   if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) value = value.slice(1, -1);
-  return value.replace(/\^([&|<>^%])/g, "$1").replace(/""/g, '"');
+  return value.replace(/\^([&|<>^()])/g, "$1").replace(/\\"/g, '"');
 }
 
 function summarizeShellCharacters(text: string): CharacterRow[] {
@@ -579,49 +569,49 @@ function summarizeShellCharacters(text: string): CharacterRow[] {
 
 function buildIssues(
   text: string,
-  options: { warnShellOperators: boolean; warnVariableExpansion: boolean; warnNewlines: boolean; warnSecretLikeText: boolean; actionMode: ActionMode },
+  options: { warnShellOperators: boolean; warnVariableExpansion: boolean; warnNewlines: boolean; warnSecretLikeText: boolean; actionMode: ActionMode; shellStyle: ShellStyle; wrapResult: boolean },
   rows: CharacterRow[],
 ): Issue[] {
   const issues: Issue[] = [];
 
+  if (text.includes("\0")) {
+    issues.push({ severity: "high", title: "NUL cannot be a normal command argument", message: "Operating-system command argument strings cannot contain an embedded NUL byte. Quoting cannot make that value portable as argv text." });
+  }
+
   if (options.warnShellOperators && /[;&|<>]/.test(text)) {
-    issues.push({
-      severity: "high",
-      title: "Shell operators found",
-      message: "The input contains characters that can separate, pipe, or redirect commands. Escaping a value is not the same as approving a full command.",
-    });
+    issues.push({ severity: "warning", title: "Command operators are present", message: "These characters can separate, pipe or redirect commands when they reach a shell unquoted. Review the selected quoting style before insertion into a command." });
   }
 
   if (options.warnVariableExpansion && /[$`]/.test(text)) {
-    issues.push({
-      severity: "warning",
-      title: "Expansion characters found",
-      message: "Dollar signs and backticks can trigger expansion or command substitution in some shells if not quoted correctly.",
-    });
+    issues.push({ severity: "warning", title: "Expansion characters are present", message: "Dollar signs and backticks have expansion or substitution meaning in POSIX-family shells and PowerShell contexts. Literal quoting must match the selected shell." });
+  }
+
+  if (options.shellStyle === "cmd" && /"/.test(text)) {
+    issues.push({ severity: "high", title: "Embedded CMD quotes need caller-specific handling", message: "cmd.exe quote removal and the target program's argv parser can disagree about embedded double quotes. The displayed form is only a review aid when the value itself contains quotes." });
+  }
+
+  if (options.shellStyle === "cmd" && /%/.test(text)) {
+    issues.push({ severity: "high", title: "CMD percent expansion is context-dependent", message: "Percent signs participate in environment and batch-parameter expansion. Interactive cmd.exe and .bat/.cmd files do not use one universal escaping rule, so the generated fragment cannot guarantee a literal percent sequence." });
+  }
+
+  if (options.shellStyle === "cmd" && /!/.test(text)) {
+    issues.push({ severity: "warning", title: "Delayed expansion may affect exclamation marks", message: "With cmd.exe delayed expansion enabled, !name! can be expanded after other parsing. Verify the actual /v or setlocal state before using the fragment." });
+  }
+
+  if (!options.wrapResult && options.actionMode === "escape" && rows.length) {
+    issues.push({ severity: "warning", title: "Result is not wrapped as one argument", message: "Escaped fragments without their surrounding quote pair are not a general one-argument boundary. Keep wrapping enabled when the goal is a literal argument." });
   }
 
   if (options.warnNewlines && /[\r\n]/.test(text)) {
-    issues.push({
-      severity: "warning",
-      title: "Newlines found",
-      message: "Newlines can make command examples harder to review. Use the newline option if you need a single-line argument.",
-    });
+    issues.push({ severity: "warning", title: "Newlines are part of the value", message: "Quoted strings can sometimes contain line breaks, but pasted multi-line command examples are harder to review and may behave differently in scripts or terminals." });
   }
 
   if (options.warnSecretLikeText && /(token|secret|password|api[_-]?key|bearer)\s*[:=]/i.test(text)) {
-    issues.push({
-      severity: "warning",
-      title: "Secret-like text detected",
-      message: "The text looks like it may contain a secret. Avoid copying real credentials into docs, tickets, logs, or shared command examples.",
-    });
+    issues.push({ severity: "warning", title: "Secret-like text detected", message: "Local processing does not make a credential safe to paste elsewhere. Shell history, logs, screenshots and source files can still expose copied output." });
   }
 
   if (!rows.length && options.actionMode === "inspect") {
-    issues.push({
-      severity: "info",
-      title: "No common shell metacharacters found",
-      message: "The input does not contain the shell-sensitive characters this tool checks for, but you should still test in the target shell.",
-    });
+    issues.push({ severity: "info", title: "No tracked metacharacters found", message: "The input does not contain the metacharacters summarized by this page. The target shell and program can still impose their own argument rules." });
   }
 
   return issues;
@@ -717,11 +707,3 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}

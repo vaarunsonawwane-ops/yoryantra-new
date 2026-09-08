@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "XML Escape Unescape | Convert XML Entities Safely | Yoryantra",
+  title: "XML Escape Unescape | XML 1.0/1.1 Entities & Character Data",
   description:
-    "Escape and unescape XML entities for API payloads, RSS feeds, SOAP messages, SVG snippets, sitemaps, and configuration text locally in your browser.",
+    "Escape XML character data or decode predefined and numeric entities with XML 1.0/1.1 character, control-code, and undeclared-entity checks.",
   keywords: [
     "XML Escape Unescape",
     "XML escape tool",
@@ -22,18 +22,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/xml-escape-unescape",
   },
   openGraph: {
-    title: "XML Escape Unescape | Convert XML Entities Safely | Yoryantra",
+    title: "XML Escape Unescape | XML 1.0/1.1 Entities & Character Data",
     description:
-      "Escape and unescape XML entities for API payloads, RSS feeds, SOAP messages, SVG snippets, sitemaps, and configuration text locally in your browser.",
+      "Escape XML character data or decode predefined and numeric entities with XML 1.0/1.1 character, control-code, and undeclared-entity checks.",
     url: "https://yoryantra.com/tools/xml-escape-unescape",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "XML Escape Unescape | Convert XML Entities Safely | Yoryantra",
+    title: "XML Escape Unescape | XML 1.0/1.1 Entities & Character Data",
     description:
-      "Escape and unescape XML entities for API payloads, RSS feeds, SOAP messages, SVG snippets, sitemaps, and configuration text locally in your browser.",
+      "Escape XML character data or decode predefined and numeric entities with XML 1.0/1.1 character, control-code, and undeclared-entity checks.",
   },
 };
 
