@@ -293,7 +293,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Base64 Image Encoder Decoder"
-      description="Convert images to Base64 data URLs, decode Base64 image strings, preview images, check size, MIME type, and copy clean output directly in your browser."
+      description="Encode image bytes as Base64 or inspect pasted image data URLs without uploading the source."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
@@ -568,7 +568,7 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             Image notes
           </h3>
@@ -610,159 +610,43 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Base64 image encoding and decoding happens directly in your browser. Your
-        image file and pasted Base64 text are not uploaded to a server.
+      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Image reading, Base64 conversion, and previewing happen in this browser tab. Yoryantra does not send the selected file or pasted Base64 value to its server.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Converting Images to Base64 Data URLs
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Base64 image strings are useful when you need to embed a small image
-            directly inside HTML, CSS, JSON, email templates, or documentation.
-            Instead of linking to a separate file, the image is stored as text.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Base64 Image Encoder Decoder converts image files into Base64
-            data URLs and can also decode Base64 image strings back into a
-            preview. It is useful for quick checks, small icons, test data, and
-            places where an image needs to be copied as text.
-          </p>
+          <h2 className="text-2xl font-semibold text-gray-900">What changes when an image becomes Base64</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">Base64 represents binary bytes with printable ASCII characters. It does not compress the image, improve quality, or change the pixel data. A Base64 payload is normally about one third larger than the original bytes before the data-URL prefix is added.</p>
+          <p className="mt-4 text-gray-600 leading-relaxed">A data URL adds a media type such as <code>image/png</code> and the <code>;base64</code> marker. That media type is metadata supplied by the source, so the decoder also checks common raster signatures instead of trusting a PNG, JPEG, GIF, WebP, or BMP label blindly.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Encoding or Decoding a Base64 Image
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose Image to Base64 or Base64 to Image.</li>
-            <li>Upload an image file or paste a Base64 image string.</li>
-            <li>Select data URL, Base64-only, HTML img tag, or CSS url output.</li>
-            <li>Review the preview, MIME type, dimensions, and size notes.</li>
-            <li>Copy the output for your code, test data, or notes.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">Small inline assets versus normal image files</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">Inlining can make sense for a tiny icon, fixture, email snippet, or reproducible bug example. For ordinary site images, separate files are usually easier to cache, inspect, replace, and serve efficiently. A 400 KB image does not become cheaper because it is embedded in CSS or HTML.</p>
+          <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">Treat large data URLs as a transport convenience, not an optimization. They increase text size and can make source files, logs, tickets, and browser devtools difficult to work with.</div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Base64 Image Converter Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Embedding a small icon inside HTML or CSS.</li>
-            <li>Creating a data URL for quick image testing.</li>
-            <li>Previewing a Base64 image copied from JSON or an API response.</li>
-            <li>Checking whether a Base64 image string is valid.</li>
-            <li>Converting SVG, PNG, JPG, GIF, or WebP images into text.</li>
-            <li>Preparing small image examples for documentation or bug reports.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">MIME labels, SVG, and trust boundaries</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">A pasted data URL can claim any media type. Raster signatures provide a useful sanity check, but they are not malware scanning. SVG is XML-based text and may contain links, external references, or active constructs depending on where it is later embedded. Review untrusted SVG before placing it into HTML or CSS.</p>
+          <p className="mt-4 text-gray-600 leading-relaxed">The preview proves only that the browser can decode the supplied bytes as an image. It does not prove that the content is safe for every downstream context.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Base64 Image Data URL
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...`}
-            </pre>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Base64 rules used here</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">The alphabet and padding rules follow RFC 4648 Base64. Pasted values may omit final padding when the remaining length can still represent complete bytes; impossible one-character remainders and malformed padding are rejected. Whitespace between Base64 characters is removed for pasted input.</p>
+          <p className="mt-3 text-gray-600 leading-relaxed">Reference: <a className="text-[var(--gold)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc4648" target="_blank" rel="noreferrer">RFC 4648 — Base-N Encodings</a>.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            When Base64 Images Are Useful
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Base64 images work well for very small assets, examples, inline SVG
-            previews, and quick test data. They are not always the best choice
-            for large photos because Base64 text is usually larger than the
-            original binary image.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            For production websites, use Base64 images carefully. Large inline
-            images can make HTML or CSS heavier and harder to cache separately.
-          </p>
+          <h2 className="text-xl font-semibold text-gray-900">A quick size check before copying</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">Compare the decoded byte estimate with the Base64 character count shown above. If the result is going into source control, an API payload, or a support ticket, check whether a normal file attachment or object URL would carry the intent more clearly.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a Base64 image?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                A Base64 image is an image converted into text. It is often used
-                inside data URLs that start with data:image/type;base64.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this convert an image to a data URL?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Upload an image and choose Data URL output to get a full
-                data:image/...;base64 string.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this decode Base64 back to an image?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Paste a Base64 image string or data URL and the tool will
-                show a preview when the image is valid.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this upload my image?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Image reading and Base64 conversion happen directly in your
-                browser.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should I use Base64 for large images?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Usually no. Base64 can make large images heavier as text. It is
-                better for small icons, SVGs, examples, or quick test data.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/base64-image-encoder-decoder" />
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/base64-image-encoder-decoder" /></div>
         </div>
       </section>
     </ToolShell>
@@ -829,13 +713,16 @@ function parseBase64ImageInput(
     throw new Error("Please paste a Base64 image string.");
   }
 
-  const dataUrlMatch = trimmed.match(/^data:([^;,]+);base64,([\s\S]+)$/i);
+  if (trimmed.length > 20_000_000) {
+    throw new Error("The pasted Base64 value is too large for a browser-side preview. Keep it under 20 million characters.");
+  }
+
+  const dataUrlMatch = trimmed.match(/^data:([^;,]+);base64,([\s\S]*)$/i);
 
   if (options.decodeInputType !== "base64Only" && dataUrlMatch) {
-    const mimeType = dataUrlMatch[1].trim();
-    const base64 = cleanupBase64(dataUrlMatch[2]);
-
-    validateBase64(base64);
+    const mimeType = normalizeImageMimeType(dataUrlMatch[1]);
+    const base64 = normalizeBase64(dataUrlMatch[2]);
+    validateDecodedImageBytes(base64, mimeType);
 
     return {
       mimeType,
@@ -845,13 +732,12 @@ function parseBase64ImageInput(
   }
 
   if (options.decodeInputType === "dataUrl") {
-    throw new Error("This does not look like a valid Base64 image data URL.");
+    throw new Error("This does not look like a Base64 image data URL.");
   }
 
-  const base64 = cleanupBase64(trimmed);
-  validateBase64(base64);
-
-  const mimeType = options.fallbackMimeType.trim() || "image/png";
+  const base64 = normalizeBase64(trimmed);
+  const mimeType = normalizeImageMimeType(options.fallbackMimeType || "image/png");
+  validateDecodedImageBytes(base64, mimeType);
 
   return {
     mimeType,
@@ -860,21 +746,62 @@ function parseBase64ImageInput(
   };
 }
 
-function cleanupBase64(value: string) {
+function cleanupBase64(value: string): string {
   return value.replace(/\s+/g, "");
 }
 
-function validateBase64(value: string) {
-  if (!value) {
+function normalizeBase64(value: string): string {
+  const clean = cleanupBase64(value);
+
+  if (!clean) {
     throw new Error("The Base64 value is empty.");
   }
 
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
-    throw new Error("The pasted value contains characters that are not valid Base64.");
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(clean) || /=/.test(clean.slice(0, -2))) {
+    throw new Error("The pasted value contains invalid Base64 characters or padding.");
   }
 
-  if (value.length % 4 !== 0) {
-    throw new Error("The Base64 length looks incomplete. It should usually be divisible by 4.");
+  const unpadded = clean.replace(/=+$/g, "");
+  const remainder = unpadded.length % 4;
+
+  if (remainder === 1) {
+    throw new Error("The Base64 length is impossible: one trailing Base64 character cannot form a byte sequence.");
+  }
+
+  const normalized = unpadded + (remainder === 0 ? "" : "=".repeat(4 - remainder));
+
+  try {
+    atob(normalized);
+  } catch {
+    throw new Error("The pasted value is not decodable Base64.");
+  }
+
+  return normalized;
+}
+
+function normalizeImageMimeType(value: string): string {
+  const mime = value.trim().toLowerCase();
+
+  if (!/^image\/[a-z0-9.+-]+$/.test(mime)) {
+    throw new Error("The MIME type must be an image/* media type.");
+  }
+
+  return mime;
+}
+
+function validateDecodedImageBytes(base64: string, mimeType: string): void {
+  const binary = atob(base64);
+  const bytes = Array.from(binary.slice(0, 16), (char) => char.charCodeAt(0));
+  const has = (...values: number[]) => values.every((value, index) => bytes[index] === value);
+  const claimedRaster =
+    (mimeType === "image/png" && has(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) ||
+    ((mimeType === "image/jpeg" || mimeType === "image/jpg") && has(0xff, 0xd8, 0xff)) ||
+    (mimeType === "image/gif" && binary.slice(0, 6).match(/^GIF8[79]a$/)) ||
+    (mimeType === "image/webp" && binary.slice(0, 4) === "RIFF" && binary.slice(8, 12) === "WEBP") ||
+    (mimeType === "image/bmp" && binary.slice(0, 2) === "BM");
+
+  if (["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp", "image/bmp"].includes(mimeType) && !claimedRaster) {
+    throw new Error(`The decoded bytes do not match the declared ${mimeType} image type.`);
   }
 }
 

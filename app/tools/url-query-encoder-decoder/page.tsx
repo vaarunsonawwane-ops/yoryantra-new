@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "URL Query Encoder Decoder | Encode and Decode Query Strings | Yoryantra",
+  title: "URL Query Encoder Decoder | Query Parameters & Form Encoding | Yoryantra",
   description:
-    "Encode and decode URL query strings, query parameters, form-style values, plus signs, percent encoding, and copied URL query text directly in your browser.",
+    "Decode ordered URL query parameters or encode key-value pairs with percent encoding, form-style plus handling, duplicate keys, and malformed-input checks.",
   keywords: [
     "URL query encoder decoder",
     "query string encoder decoder",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/url-query-encoder-decoder",
   },
   openGraph: {
-    title: "URL Query Encoder Decoder | Encode and Decode Query Strings | Yoryantra",
+    title: "URL Query Encoder Decoder | Query Parameters & Form Encoding | Yoryantra",
     description:
-      "Encode and decode URL query strings, query parameters, form-style values, plus signs, percent encoding, and copied URL query text directly in your browser.",
+      "Decode ordered URL query parameters or encode key-value pairs with percent encoding, form-style plus handling, duplicate keys, and malformed-input checks.",
     url: "https://yoryantra.com/tools/url-query-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "URL Query Encoder Decoder | Encode and Decode Query Strings | Yoryantra",
+    title: "URL Query Encoder Decoder | Query Parameters & Form Encoding | Yoryantra",
     description:
-      "Encode and decode URL query strings, query parameters, form-style values, plus signs, percent encoding, and copied URL query text directly in your browser.",
+      "Decode ordered URL query parameters or encode key-value pairs with percent encoding, form-style plus handling, duplicate keys, and malformed-input checks.",
   },
 };
 

@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JWT Base64URL Encoder Decoder | Encode and Decode JWT Parts | Yoryantra",
+  title: "JWT Base64URL Encoder Decoder | Compact JOSE Parts | Yoryantra",
   description:
-    "Encode and decode JWT Base64URL strings, convert JWT header and payload JSON, add or remove padding, and compare Base64 with Base64URL directly in your browser.",
+    "Decode compact JWT/JWS/JWE Base64URL parts, encode UTF-8 JSON or text, validate padding rules, and compare standard Base64 with Base64URL.",
   keywords: [
     "JWT Base64URL encoder decoder",
     "Base64URL encoder decoder",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/jwt-base64url-encoder-decoder",
   },
   openGraph: {
-    title: "JWT Base64URL Encoder Decoder | Encode and Decode JWT Parts | Yoryantra",
+    title: "JWT Base64URL Encoder Decoder | Compact JOSE Parts | Yoryantra",
     description:
-      "Encode and decode JWT Base64URL strings, convert JWT header and payload JSON, add or remove padding, and compare Base64 with Base64URL directly in your browser.",
+      "Decode compact JWT/JWS/JWE Base64URL parts, encode UTF-8 JSON or text, validate padding rules, and compare standard Base64 with Base64URL.",
     url: "https://yoryantra.com/tools/jwt-base64url-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "JWT Base64URL Encoder Decoder | Encode and Decode JWT Parts | Yoryantra",
+    title: "JWT Base64URL Encoder Decoder | Compact JOSE Parts | Yoryantra",
     description:
-      "Encode and decode JWT Base64URL strings, convert JWT header and payload JSON, add or remove padding, and compare Base64 with Base64URL directly in your browser.",
+      "Decode compact JWT/JWS/JWE Base64URL parts, encode UTF-8 JSON or text, validate padding rules, and compare standard Base64 with Base64URL.",
   },
 };
 

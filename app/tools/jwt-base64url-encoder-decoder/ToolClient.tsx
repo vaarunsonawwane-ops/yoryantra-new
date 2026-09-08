@@ -24,7 +24,7 @@ type DecodedPart = {
 type JWTAnalysis = {
   parts: DecodedPart[];
   partCount: number;
-  looksLikeJwt: boolean;
+  compactType: "single" | "jws" | "jwe";
   hasSignature: boolean;
   warnings: string[];
 };
@@ -95,7 +95,7 @@ export default function ToolClient() {
         const nextAnalysis: JWTAnalysis = {
           parts: [],
           partCount: 0,
-          looksLikeJwt: false,
+          compactType: "single",
           hasSignature: false,
           warnings: [],
         };
@@ -111,7 +111,7 @@ export default function ToolClient() {
         const nextAnalysis: JWTAnalysis = {
           parts: [],
           partCount: 0,
-          looksLikeJwt: false,
+          compactType: "single",
           hasSignature: false,
           warnings: [],
         };
@@ -193,7 +193,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JWT Base64URL Encoder Decoder"
-      description="Encode and decode JWT Base64URL strings, convert JWT header and payload JSON, add or remove padding, and compare Base64 with Base64URL directly in your browser."
+      description="Decode JWT compact parts or encode UTF-8 data with RFC 4648 Base64URL rules."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
@@ -477,12 +477,12 @@ export default function ToolClient() {
             value={analysis.partCount.toLocaleString()}
           />
           <SummaryCard
-            label="Looks Like JWT"
-            value={analysis.looksLikeJwt ? "Yes" : "No"}
+            label="Compact Shape"
+            value={analysis.compactType === "jwe" ? "JWE (5-part)" : analysis.compactType === "jws" ? "JWS (3-part)" : "Single part"}
           />
           <SummaryCard
-            label="Signature"
-            value={analysis.hasSignature ? "Present" : "Missing"}
+            label={analysis.compactType === "jwe" ? "Auth Tag" : "Signature"}
+            value={analysis.compactType === "jwe" ? (analysis.parts[4]?.base64url ? "Present" : "Empty") : analysis.hasSignature ? "Present" : "Missing"}
           />
           <SummaryCard
             label="Warnings"
@@ -533,7 +533,7 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             Base64URL notes
           </h3>
@@ -575,163 +575,41 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        JWT Base64URL encoding and decoding happens directly in your browser.
-        Your token parts and pasted text are not uploaded to a server.
+      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Encoding and decoding happen in this browser tab. Yoryantra does not send the pasted token, JSON, or text to its server. Avoid copying production credentials into screenshots, tickets, or shared devices after decoding them.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Encoding and Decoding JWT Base64URL Parts
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            JWT header and payload parts use Base64URL encoding. It looks similar
-            to normal Base64, but it replaces characters that can be awkward in
-            URLs and usually removes padding. That is why JWT parts often contain
-            hyphens and underscores instead of plus and slash.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This JWT Base64URL Encoder Decoder helps you decode JWT parts into
-            readable JSON, encode JSON into JWT-safe Base64URL, and convert
-            between normal Base64 and Base64URL formats.
-          </p>
+          <h2 className="text-2xl font-semibold text-gray-900">Base64URL is encoding, not JWT verification</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">JWT compact parts are Base64URL-encoded bytes separated by dots. Decoding those bytes can reveal a protected header or payload, but it does not prove who created the token, whether the signature is valid, whether the token is expired, or whether an application should trust any claim inside it.</p>
+          <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">Treat decoded claims as untrusted data until signature or authenticated-encryption verification succeeds under the protocol that issued the token.</div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Working With JWT Header and Payload Text
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose whether to decode, encode, or convert Base64 formats.</li>
-            <li>Paste a full JWT, JWT part, JSON, text, Base64, or Base64URL value.</li>
-            <li>Select clean output, JSON, or explanation output.</li>
-            <li>Review decoded parts, warnings, and formatting notes.</li>
-            <li>Copy the result for debugging, documentation, or local testing.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">Three compact parts and five compact parts mean different things</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">A compact JWS normally has three segments: protected header, payload, and signature. Compact JWE has five: protected header, encrypted key, initialization vector, ciphertext, and authentication tag. The binary signature, ciphertext, IV, and tag are not assumed to be UTF-8 text; binary segments are reported as byte data instead of being silently replaced with Unicode replacement characters.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common JWT Base64URL Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Decoding a JWT payload without verifying the signature.</li>
-            <li>Encoding a sample JWT header or payload for testing.</li>
-            <li>Converting Base64 strings into URL-safe Base64URL text.</li>
-            <li>Adding or removing Base64URL padding.</li>
-            <li>Checking whether a JWT part contains valid JSON.</li>
-            <li>Preparing safe examples for API documentation or debugging notes.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">Padding and the URL-safe alphabet</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">RFC 4648 Base64URL replaces <code>+</code> with <code>-</code> and <code>/</code> with <code>_</code>. JOSE compact serialization normally omits trailing <code>=</code> padding. Missing padding can be reconstructed from the segment length, but a length with remainder one modulo four is impossible and is rejected.</p>
+          <p className="mt-3 text-gray-600 leading-relaxed">References: <a className="text-[var(--gold)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc4648#section-5" target="_blank" rel="noreferrer">RFC 4648 §5</a>, <a className="text-[var(--gold)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc7515" target="_blank" rel="noreferrer">RFC 7515 (JWS)</a>, and <a className="text-[var(--gold)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc7516" target="_blank" rel="noreferrer">RFC 7516 (JWE)</a>.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example JWT Payload
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`{
-  "sub": "1234567890",
-  "name": "Yoryantra User",
-  "iat": 1717075200
-}`}
-            </pre>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">JSON text versus arbitrary payload bytes</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">JWT headers are JSON. Many JWT payloads are JSON too, but JOSE can carry other payload conventions, including detached content in profiles that define it. A non-JSON payload therefore is not automatically corrupt. The decoder keeps that distinction visible instead of calling every non-JSON compact segment invalid.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            This Does Not Verify JWT Signatures
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Base64URL decoding only turns JWT parts into readable text. It does
-            not prove that the token is valid, trusted, unexpired, or signed with
-            the correct key.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use this tool for reading and formatting JWT parts. For real
-            authentication or authorization decisions, your application must
-            verify the JWT signature and claims on the server.
-          </p>
+          <h2 className="text-xl font-semibold text-gray-900">Safer handling of real credentials</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">Local browser processing avoids sending the token to Yoryantra, but the decoded text may still expose account identifiers, scopes, internal hostnames, or other sensitive claims on your screen and clipboard. Prefer test tokens when demonstrating behavior or sharing screenshots.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is Base64URL in JWT?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Base64URL is a URL-safe version of Base64 used by JWT header and
-                payload parts. It uses - and _ instead of + and /.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this decode a full JWT?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Paste a full JWT and the tool will decode the header and
-                payload parts when possible.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this verify the JWT signature?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool only encodes and decodes Base64URL text. It does
-                not verify signatures or token trust.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should I paste real tokens here?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Avoid pasting real production tokens into any online tool. Use
-                safe test tokens or remove sensitive values before sharing.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my JWT uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Encoding and decoding happens directly in your browser, and
-                your input is not uploaded to a server.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/jwt-base64url-encoder-decoder" />
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/jwt-base64url-encoder-decoder" /></div>
         </div>
       </section>
     </ToolShell>
@@ -787,78 +665,108 @@ function decodeJwtBase64Url(
   }
 ): JWTAnalysis {
   const trimmed = input.trim();
-  const parts =
+  const rawParts =
     options.decodeInputType === "fullJwt" ||
-    (options.decodeInputType === "auto" && trimmed.split(".").length >= 2)
+    (options.decodeInputType === "auto" && trimmed.includes("."))
       ? trimmed.split(".")
       : [trimmed];
 
-  const decodedParts = parts.slice(0, 3).map((part, index) =>
-    decodePart(part, getPartLabel(index, parts.length), options.prettyJson)
-  );
+  if (rawParts.length !== 1 && rawParts.length !== 3 && rawParts.length !== 5) {
+    throw new Error("Compact JWT/JWS input should normally contain 3 parts; compact JWE contains 5. Decode a single part explicitly for other input.");
+  }
 
+  const labels = rawParts.length === 5
+    ? ["Protected Header", "Encrypted Key", "Initialization Vector", "Ciphertext", "Authentication Tag"]
+    : rawParts.length === 3
+      ? ["Header", "Payload", "Signature"]
+      : ["JWT Part"];
+
+  const decodedParts = rawParts.map((part, index) =>
+    decodePart(part, labels[index] || "JWT Part", options.prettyJson, rawParts.length, index)
+  );
   const warnings: string[] = [];
 
-  if (parts.length > 3) {
-    warnings.push("The input has more than three dot-separated parts. A normal JWT usually has three parts.");
+  if (rawParts.length === 3) {
+    if (!decodedParts[0].validJson) warnings.push("The JWS/JWT header is not valid JSON text.");
+    if (rawParts[1] && !decodedParts[1].validJson) warnings.push("The JWT payload is not valid JSON text. Detached or non-JSON payload profiles need protocol-specific handling.");
+    if (!rawParts[2]) warnings.push("The signature segment is empty. That can occur for unsecured JWS profiles, but trust still depends on the surrounding protocol and algorithm rules.");
   }
 
-  if (parts.length === 2) {
-    warnings.push("The input has two parts. A signed JWT usually has header, payload, and signature.");
+  if (rawParts.length === 5 && !decodedParts[0].validJson) {
+    warnings.push("The JWE protected header is not valid JSON text.");
   }
 
-  if (decodedParts.some((part) => !part.validJson) && parts.length >= 2) {
-    warnings.push("One or more decoded JWT parts are not valid JSON.");
-  }
-
-  if (parts[2] && parts[2].includes("=")) {
-    warnings.push("JWT signature part contains padding. JWT Base64URL usually omits padding.");
+  if (rawParts.some((part) => /=/.test(part))) {
+    warnings.push("Compact JOSE Base64URL segments normally omit '=' padding.");
   }
 
   return {
     parts: decodedParts,
-    partCount: parts.length,
-    looksLikeJwt: parts.length >= 2 && parts.length <= 3,
-    hasSignature: Boolean(parts[2]),
+    partCount: rawParts.length,
+    compactType: rawParts.length === 5 ? "jwe" : rawParts.length === 3 ? "jws" : "single",
+    hasSignature: rawParts.length === 3 && rawParts[2].length > 0,
     warnings,
   };
 }
 
-function decodePart(part: string, label: string, prettyJson: boolean): DecodedPart {
+function decodePart(
+  part: string,
+  label: string,
+  prettyJson: boolean,
+  partCount: number,
+  index: number
+): DecodedPart {
   const cleaned = part.trim();
+  const mayBeEmptyBinary = (partCount === 3 && index === 2) || (partCount === 5 && index > 0);
 
-  if (!cleaned) {
+  if (!cleaned && !mayBeEmptyBinary) {
     throw new Error(`${label} is empty.`);
   }
 
-  if (!/^[A-Za-z0-9_-]+={0,2}$/.test(cleaned)) {
-    throw new Error(`${label} contains characters that are not valid Base64URL.`);
-  }
-
-  const padded = addBase64Padding(cleaned.replace(/-/g, "+").replace(/_/g, "/"));
-  const decodedText = decodeUtf8Base64(padded);
+  validateBase64Url(cleaned, label, mayBeEmptyBinary);
+  const standard = cleaned.replace(/-/g, "+").replace(/_/g, "/").replace(/=+$/g, "");
+  const padded = addBase64Padding(standard);
+  const bytes = decodeBase64Bytes(padded);
+  const decoded = decodeUtf8Bytes(bytes);
   let parsedJson: unknown | null = null;
   let validJson = false;
 
-  try {
-    parsedJson = JSON.parse(decodedText);
-    validJson = true;
-  } catch {
-    parsedJson = null;
+  if (decoded !== null) {
+    try {
+      parsedJson = JSON.parse(decoded);
+      validJson = true;
+    } catch {
+      parsedJson = null;
+    }
   }
+
+  const decodedText = validJson && parsedJson !== null
+    ? JSON.stringify(parsedJson, null, prettyJson ? 2 : 0)
+    : decoded !== null
+      ? decoded
+      : `[binary data: ${bytes.length} byte${bytes.length === 1 ? "" : "s"}]`;
 
   return {
     label,
     base64url: cleaned,
-    decodedText:
-      validJson && parsedJson !== null
-        ? JSON.stringify(parsedJson, null, prettyJson ? 2 : 0)
-        : decodedText,
+    decodedText,
     parsedJson,
     validJson,
     length: cleaned.length,
     padded,
   };
+}
+
+function validateBase64Url(value: string, label: string, allowEmpty = false): void {
+  if (!value && allowEmpty) return;
+  if (!value) throw new Error(`${label} is empty.`);
+  if (!/^[A-Za-z0-9_-]*={0,2}$/.test(value) || /=/.test(value.slice(0, -2))) {
+    throw new Error(`${label} contains invalid Base64URL characters or padding.`);
+  }
+  const unpadded = value.replace(/=+$/g, "");
+  if (unpadded.length % 4 === 1) {
+    throw new Error(`${label} has an impossible Base64URL length.`);
+  }
 }
 
 function encodeToBase64Url(
@@ -868,7 +776,7 @@ function encodeToBase64Url(
     includePadding: boolean;
     prettyJson: boolean;
   }
-) {
+): string {
   let source = input;
 
   if (options.encodeInputType === "json") {
@@ -880,38 +788,40 @@ function encodeToBase64Url(
     }
   }
 
-  const encoded = encodeUtf8Base64(source)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
+  const encoded = encodeUtf8Base64(source).replace(/\+/g, "-").replace(/\//g, "_");
   return options.includePadding ? encoded : encoded.replace(/=+$/g, "");
 }
 
-function convertValue(
-  input: string,
-  options: {
-    convertMode: ConvertMode;
-  }
-) {
+function convertValue(input: string, options: { convertMode: ConvertMode }): string {
   const cleaned = input.trim().replace(/\s+/g, "");
-
-  if (!cleaned) {
-    throw new Error("Input is empty.");
-  }
+  if (!cleaned) throw new Error("Input is empty.");
 
   if (options.convertMode === "base64ToBase64url") {
+    validateStandardBase64(cleaned);
     return cleaned.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
   }
 
   if (options.convertMode === "base64urlToBase64") {
-    return addBase64Padding(cleaned.replace(/-/g, "+").replace(/_/g, "/"));
+    validateBase64Url(cleaned, "Base64URL input");
+    return addBase64Padding(cleaned.replace(/-/g, "+").replace(/_/g, "/").replace(/=+$/g, ""));
   }
 
   if (options.convertMode === "addPadding") {
-    return addBase64Padding(cleaned);
+    if (/[-_]/.test(cleaned)) validateBase64Url(cleaned, "Base64URL input"); else validateStandardBase64(cleaned, true);
+    return addBase64Padding(cleaned.replace(/=+$/g, ""));
   }
 
+  if (/[-_]/.test(cleaned)) validateBase64Url(cleaned, "Base64URL input"); else validateStandardBase64(cleaned, true);
   return cleaned.replace(/=+$/g, "");
+}
+
+function validateStandardBase64(value: string, allowUnpadded = false): void {
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value) || /=/.test(value.slice(0, -2))) {
+    throw new Error("Input contains invalid Base64 characters or padding.");
+  }
+  const unpadded = value.replace(/=+$/g, "");
+  if (unpadded.length % 4 === 1) throw new Error("Input has an impossible Base64 length.");
+  if (!allowUnpadded && value.length % 4 !== 0) throw new Error("Standard Base64 input is missing padding.");
 }
 
 function formatDecodeOutput(
@@ -930,7 +840,7 @@ function formatDecodeOutput(
       "JWT Base64URL Decode",
       "--------------------",
       `Parts found: ${analysis.partCount}`,
-      `Looks like JWT: ${analysis.looksLikeJwt ? "yes" : "no"}`,
+      `Compact shape: ${analysis.compactType === "jwe" ? "JWE (5-part)" : analysis.compactType === "jws" ? "JWS (3-part)" : "single Base64URL part"}`,
       `Signature present: ${analysis.hasSignature ? "yes" : "no"}`,
       "",
       ...analysis.parts.map((part) =>
@@ -1071,6 +981,24 @@ function decodeUtf8Base64(value: string) {
   }
 }
 
+
+function decodeBase64Bytes(value: string): Uint8Array {
+  try {
+    const binary = atob(value);
+    return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  } catch {
+    throw new Error("Unable to decode the Base64URL bytes.");
+  }
+}
+
+function decodeUtf8Bytes(bytes: Uint8Array): string | null {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
 function getNotes({
   mode,
   analysis,
@@ -1094,7 +1022,7 @@ function getNotes({
     notes.push({
       title: "Signature is not verified",
       message:
-        "This tool decodes JWT parts but does not verify the JWT signature.",
+        "Decoding compact parts does not verify a JWT signature or establish token trust.",
     });
   }
 

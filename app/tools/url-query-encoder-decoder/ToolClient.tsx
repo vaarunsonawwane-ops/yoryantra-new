@@ -91,8 +91,8 @@ export default function ToolClient() {
     () =>
       pairs
         .filter((pair) => pair.enabled)
-        .filter((pair) => pair.key.trim())
-        .filter((pair) => !(skipEmptyValues && !pair.value.trim())),
+        .filter((pair) => pair.key.length > 0)
+        .filter((pair) => !(skipEmptyValues && pair.value.length === 0)),
     [pairs, skipEmptyValues]
   );
 
@@ -284,7 +284,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="URL Query Encoder Decoder"
-      description="Encode and decode URL query strings, query parameters, form-style values, plus signs, percent encoding, and copied URL query text directly in your browser."
+      description="Decode query components or build percent-encoded parameters with explicit form-style space handling."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">
@@ -685,7 +685,7 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             Query notes
           </h3>
@@ -727,161 +727,42 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        URL query encoding and decoding happens directly in your browser. Your
-        pasted query strings and values are not uploaded to a server.
+      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Query parsing and encoding happen in this browser tab. Yoryantra does not send the pasted URL, query string, or parameter values to its server.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Encoding and Decoding URL Query Strings
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Query strings often contain percent-encoded spaces, email addresses,
-            redirect URLs, filters, UTM tags, search text, and copied API
-            parameters. They can become hard to read when everything is packed
-            into one long line.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This URL Query Encoder Decoder turns encoded query text into readable
-            key-value pairs and can build a clean encoded query string from plain
-            keys and values. It is useful for debugging URLs, API requests,
-            tracking links, redirects, and copied browser query strings.
-          </p>
+          <h2 className="text-2xl font-semibold text-gray-900">A query string is a sequence, not a JavaScript object</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">Repeated keys, empty values, ordering, and even an empty key can carry meaning to an application. The result therefore keeps parameters as ordered pairs instead of collapsing them into one object where duplicate names would be lost.</p>
+          <p className="mt-4 text-gray-600 leading-relaxed">A full URL can be pasted to isolate its query component, or plain key/value rows can be encoded without touching the path or fragment.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Decoding or Building a Query String
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose decode, encode, or parse full URL mode.</li>
-            <li>Paste a query string or add key-value parameter rows.</li>
-            <li>Choose output format and space handling.</li>
-            <li>Review decoded keys, values, duplicate keys, and empty values.</li>
-            <li>Copy the encoded query string, JSON, table, or key-value lines.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">Percent encoding and form encoding are not identical</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">Normal URI component encoding represents a space as <code>%20</code>. The <code>application/x-www-form-urlencoded</code> algorithm uses <code>+</code> for spaces and also applies a slightly different percent-encode set. The “plus” option follows that form-style component behavior rather than merely replacing <code>%20</code>.</p>
+          <p className="mt-3 text-gray-600 leading-relaxed">Reference: <a className="text-[var(--gold)] underline underline-offset-2" href="https://url.spec.whatwg.org/#application/x-www-form-urlencoded" target="_blank" rel="noreferrer">WHATWG URL Standard — form-urlencoded</a>.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common URL Query Encoder Decoder Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Decoding copied URLs with long query strings.</li>
-            <li>Building API query parameters from readable values.</li>
-            <li>Checking redirect URLs embedded inside query parameters.</li>
-            <li>Reading UTM campaign parameters from a tracking URL.</li>
-            <li>Converting spaces as %20 or plus signs for form-style queries.</li>
-            <li>Finding duplicate or empty query parameters before sharing a URL.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">When a plus sign must remain a plus sign</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">In form-style data, a raw <code>+</code> commonly represents a space; a literal plus is normally encoded as <code>%2B</code>. In other query conventions, a server may treat <code>+</code> literally. Turn off plus-as-space decoding when examining a protocol that does not use form semantics.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Encoded Query String
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`name=Yoryantra%20User&email=user%40example.com&redirect=https%3A%2F%2Fexample.com%2Fthank-you`}
-            </pre>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Malformed and double-encoded input</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">A broken percent escape such as <code>%E0%A4</code> is rejected rather than quietly returned as if it decoded successfully. <code>%25</code> is not automatically wrong—it is the encoding of a literal percent sign—but a dense sequence of <code>%25</code> values is worth checking when debugging accidental double encoding.</p>
+          <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">Decoding a query reveals data; it does not validate whether redirect targets, callback URLs, tokens, or tracking values are trustworthy. Treat security-sensitive parameters according to the application that consumes them.</div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Query Strings, Plus Signs, and Percent Encoding
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Normal URL percent encoding represents spaces as %20. In
-            form-encoded query strings, spaces are often written as plus signs.
-            That is why a value like hello+world may mean hello world in some
-            query contexts.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use the plus-as-space option when working with form-style query
-            strings. Turn it off when a literal plus sign should stay as a plus
-            sign.
-          </p>
+          <h2 className="text-xl font-semibold text-gray-900">Empty values and meaningful whitespace</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">An empty value (<code>flag=</code>) is different from a value containing spaces. The “skip empty values” option removes only truly empty strings; it does not trim whitespace and silently change the source data.</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a URL query encoder decoder?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It encodes and decodes the query part of a URL, usually the text
-                after the question mark.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this parse a full URL?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Paste a full URL and the tool can extract and decode the
-                query parameters.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is the difference between this and a normal URL encoder?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                A normal URL encoder works on any text. This tool focuses on
-                query strings and key-value parameters, so it is better for
-                reading and building URL queries.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should plus signs decode as spaces?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                In form-style query strings, plus signs often mean spaces. This
-                tool lets you choose how to handle them.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my query string uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Query encoding and decoding happens directly in your browser.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/url-query-encoder-decoder" />
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/url-query-encoder-decoder" /></div>
         </div>
       </section>
     </ToolShell>
@@ -968,7 +849,7 @@ function parseQueryInput(
   }
 
   const finalParams = options.sortKeys
-    ? [...params].sort((a, b) => a.key.localeCompare(b.key))
+    ? [...params].sort((a, b) => compareText(a.key, b.key))
     : params;
 
   const duplicateKeys = findDuplicateKeys(params);
@@ -1013,7 +894,7 @@ function encodeQueryPairs(
   });
 
   const finalParams = options.sortKeys
-    ? [...params].sort((a, b) => a.key.localeCompare(b.key))
+    ? [...params].sort((a, b) => compareText(a.key, b.key))
     : params;
 
   const cleanQuery = finalParams
@@ -1061,20 +942,27 @@ function extractQuery(input: string) {
   }
 }
 
-function safeDecode(value: string, decodePlusAsSpace: boolean) {
+function safeDecode(value: string, decodePlusAsSpace: boolean): string {
   const prepared = decodePlusAsSpace ? value.replace(/\+/g, " ") : value;
 
   try {
     return decodeURIComponent(prepared);
   } catch {
-    return prepared;
+    throw new Error(`Malformed percent-encoding in query component: ${value.slice(0, 80)}`);
   }
 }
 
-function encodeQueryComponent(value: string, spaceMode: SpaceMode) {
-  const encoded = encodeURIComponent(value);
+function encodeQueryComponent(value: string, spaceMode: SpaceMode): string {
+  try {
+    const encoded = encodeURIComponent(value);
+    if (spaceMode === "percent20") return encoded;
 
-  return spaceMode === "plus" ? encoded.replace(/%20/g, "+") : encoded;
+    return encoded
+      .replace(/[!'()~]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+      .replace(/%20/g, "+");
+  } catch {
+    throw new Error("A query key or value contains an unpaired Unicode surrogate and cannot be percent-encoded safely.");
+  }
 }
 
 function formatOutput(
@@ -1121,6 +1009,10 @@ function formatOutput(
   return params
     .map((param) => `${param.encodedKey}=${param.encodedValue}`)
     .join("&");
+}
+
+function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 function findDuplicateKeys(params: ParsedParam[]) {

@@ -946,7 +946,7 @@ export const tools = [
 {
   title: "Base64 Image Encoder Decoder",
   description:
-    "Convert images to Base64 data URLs, decode Base64 image strings, and preview image output.",
+    "Encode image bytes as Base64 or validate and preview pasted image data URLs.",
   href: "/tools/base64-image-encoder-decoder",
   category: "Encoding Tools",
 },
@@ -954,7 +954,7 @@ export const tools = [
 {
   title: "JWT Base64URL Encoder Decoder",
   description:
-    "Encode and decode JWT Base64URL strings, convert JWT parts, and add or remove Base64URL padding.",
+    "Decode compact JOSE parts or encode UTF-8 data with strict Base64URL rules.",
   href: "/tools/jwt-base64url-encoder-decoder",
   category: "Encoding Tools",
 },
@@ -962,7 +962,7 @@ export const tools = [
 {
   title: "URL Query Encoder Decoder",
   description:
-    "Encode and decode URL query strings, parse query parameters, and handle plus signs or percent encoding.",
+    "Decode ordered query parameters or build percent-encoded values with explicit form-style handling.",
   href: "/tools/url-query-encoder-decoder",
   category: "Encoding Tools",
 },

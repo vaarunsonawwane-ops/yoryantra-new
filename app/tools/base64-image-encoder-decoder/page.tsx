@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Base64 Image Encoder Decoder | Convert Image to Base64 Online | Yoryantra",
+  title: "Base64 Image Encoder Decoder | Image Data URLs | Yoryantra",
   description:
-    "Convert images to Base64 data URLs, decode Base64 image strings, preview images, check size, MIME type, and copy clean output directly in your browser.",
+    "Encode image files as Base64 or decode image data URLs with byte validation, MIME checks, previews, dimensions, and browser-local processing.",
   keywords: [
     "Base64 image encoder decoder",
     "image to Base64",
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "data URL generator",
     "image data URI converter",
     "Base64 image preview",
-    "convert image to Base64 online",
+    "image Base64 encoding",
     "Encoding tools",
     "developer tools",
   ],
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/base64-image-encoder-decoder",
   },
   openGraph: {
-    title: "Base64 Image Encoder Decoder | Convert Image to Base64 Online | Yoryantra",
+    title: "Base64 Image Encoder Decoder | Image Data URLs | Yoryantra",
     description:
-      "Convert images to Base64 data URLs, decode Base64 image strings, preview images, check size, MIME type, and copy clean output directly in your browser.",
+      "Encode image files as Base64 or decode image data URLs with byte validation, MIME checks, previews, dimensions, and browser-local processing.",
     url: "https://yoryantra.com/tools/base64-image-encoder-decoder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base64 Image Encoder Decoder | Convert Image to Base64 Online | Yoryantra",
+    title: "Base64 Image Encoder Decoder | Image Data URLs | Yoryantra",
     description:
-      "Convert images to Base64 data URLs, decode Base64 image strings, preview images, check size, MIME type, and copy clean output directly in your browser.",
+      "Encode image files as Base64 or decode image data URLs with byte validation, MIME checks, previews, dimensions, and browser-local processing.",
   },
 };
 
