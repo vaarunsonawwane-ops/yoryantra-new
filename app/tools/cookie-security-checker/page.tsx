@@ -2,38 +2,36 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Cookie Security Checker | Review Secure HttpOnly SameSite Cookies | Yoryantra",
+  title: "Cookie Security Checker – Set-Cookie Flags & Scope | Yoryantra",
   description:
-    "Review Set-Cookie headers for common security issues. Check Secure, HttpOnly, SameSite, expiry, Domain, Path, cookie prefixes, Partitioned cookies, and risky settings in your browser.",
+    "Check Set-Cookie headers for Secure, HttpOnly, SameSite, Domain, Path, prefix rules, Partitioned cookies, expiry, and duplicate attributes.",
   keywords: [
     "Cookie Security Checker",
-    "Set-Cookie header checker",
-    "HttpOnly cookie checker",
-    "Secure cookie checker",
-    "SameSite cookie checker",
-    "cookie security scanner",
-    "Partitioned cookie checker",
-    "cookie header analyzer",
-    "session cookie checker",
-    "security tools",
-    "developer tools",
+    "Set-Cookie checker",
+    "Secure cookie",
+    "HttpOnly cookie",
+    "SameSite cookie",
+    "cookie prefix rules",
+    "Partitioned cookie",
+    "cookie Domain Path",
+    "RFC 10025 cookies",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/cookie-security-checker",
   },
   openGraph: {
-    title: "Cookie Security Checker | Review Secure HttpOnly SameSite Cookies | Yoryantra",
+    title: "Cookie Security Checker – Set-Cookie Flags & Scope | Yoryantra",
     description:
-      "Review Set-Cookie headers for common security issues. Check Secure, HttpOnly, SameSite, expiry, Domain, Path, cookie prefixes, Partitioned cookies, and risky settings in your browser.",
+      "Check Set-Cookie flags, scope, prefix rules, Partitioned requirements, expiry, and duplicate attributes.",
     url: "https://yoryantra.com/tools/cookie-security-checker",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Cookie Security Checker | Review Secure HttpOnly SameSite Cookies | Yoryantra",
+    title: "Cookie Security Checker – Set-Cookie Flags & Scope | Yoryantra",
     description:
-      "Review Set-Cookie headers for common security issues. Check Secure, HttpOnly, SameSite, expiry, Domain, Path, cookie prefixes, Partitioned cookies, and risky settings in your browser.",
+      "Check Set-Cookie flags, scope, prefix rules, Partitioned requirements, expiry, and duplicate attributes.",
   },
 };
 

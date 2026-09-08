@@ -2,38 +2,35 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Permissions Policy Header Generator | Create Permissions-Policy Header | Yoryantra",
+  title: "Permissions-Policy Header Generator | Yoryantra",
   description:
-    "Generate Permissions-Policy headers for browser features like camera, microphone, geolocation, fullscreen, payment, USB, clipboard, autoplay, and more directly in your browser.",
+    "Build Permissions-Policy headers with explicit feature allowlists, exact origins, browser-support cautions, and server configuration output.",
   keywords: [
-    "Permissions Policy Header Generator",
-    "Permissions-Policy generator",
-    "Feature Policy generator",
-    "Permissions Policy checker",
-    "browser permissions policy",
-    "Permissions Policy header",
-    "camera microphone geolocation policy",
-    "security header generator",
-    "browser feature policy",
-    "security tools",
-    "developer tools",
+    "Permissions-Policy header generator",
+    "Permissions Policy",
+    "browser feature allowlist",
+    "camera permissions policy",
+    "microphone permissions policy",
+    "geolocation permissions policy",
+    "Permissions Policy iframe",
+    "security headers",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/permissions-policy-header-generator",
   },
   openGraph: {
-    title: "Permissions Policy Header Generator | Create Permissions-Policy Header | Yoryantra",
+    title: "Permissions-Policy Header Generator | Yoryantra",
     description:
-      "Generate Permissions-Policy headers for browser features like camera, microphone, geolocation, fullscreen, payment, USB, clipboard, autoplay, and more directly in your browser.",
+      "Build Permissions-Policy headers with explicit feature allowlists, exact origins, and browser-support cautions.",
     url: "https://yoryantra.com/tools/permissions-policy-header-generator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Permissions Policy Header Generator | Create Permissions-Policy Header | Yoryantra",
+    title: "Permissions-Policy Header Generator | Yoryantra",
     description:
-      "Generate Permissions-Policy headers for browser features like camera, microphone, geolocation, fullscreen, payment, USB, clipboard, autoplay, and more directly in your browser.",
+      "Build Permissions-Policy headers with explicit feature allowlists, exact origins, and browser-support cautions.",
   },
 };
 

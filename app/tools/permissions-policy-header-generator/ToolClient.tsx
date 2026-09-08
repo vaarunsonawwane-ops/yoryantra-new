@@ -5,14 +5,16 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
-type PresetMode = "strict" | "balanced" | "media" | "custom";
+type PresetMode = "restrictive" | "baseline" | "media" | "custom";
 type OutputMode = "header" | "nginx" | "apache" | "cloudflare" | "json";
 type AllowMode = "none" | "self" | "all" | "custom";
+type FeatureStatus = "standardized" | "proposed";
 
 type FeatureSetting = {
   key: string;
   label: string;
   description: string;
+  status: FeatureStatus;
   mode: AllowMode;
   origins: string;
   enabled: boolean;
@@ -22,10 +24,12 @@ type PolicyResult = {
   headerValue: string;
   fullHeader: string;
   output: string;
-  enabledCount: number;
+  directiveCount: number;
   blockedCount: number;
   customCount: number;
-  warnings: string[];
+  broadCount: number;
+  proposedCount: number;
+  cautions: string[];
 };
 
 type PolicyNote = {
@@ -33,11 +37,12 @@ type PolicyNote = {
   message: string;
 };
 
-const defaultFeatures: FeatureSetting[] = [
+const baseFeatures: FeatureSetting[] = [
   {
     key: "camera",
     label: "Camera",
-    description: "Controls access to camera devices.",
+    description: "Limits which origins may request camera access.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -45,7 +50,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "microphone",
     label: "Microphone",
-    description: "Controls access to microphone devices.",
+    description: "Limits which origins may request microphone access.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -53,7 +59,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "geolocation",
     label: "Geolocation",
-    description: "Controls browser location access.",
+    description: "Limits use of the browser geolocation feature.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -61,7 +68,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "fullscreen",
     label: "Fullscreen",
-    description: "Controls fullscreen API access.",
+    description: "Limits use of the Fullscreen API.",
+    status: "standardized",
     mode: "self",
     origins: "",
     enabled: true,
@@ -69,7 +77,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "payment",
     label: "Payment",
-    description: "Controls Payment Request API access.",
+    description: "Limits use of payment-related browser capabilities.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -77,7 +86,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "usb",
     label: "USB",
-    description: "Controls WebUSB access.",
+    description: "Limits access to USB devices through WebUSB.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -85,7 +95,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "serial",
     label: "Serial",
-    description: "Controls Web Serial API access.",
+    description: "Limits access to serial devices through Web Serial.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -93,31 +104,17 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "bluetooth",
     label: "Bluetooth",
-    description: "Controls Web Bluetooth access where supported.",
+    description: "Limits Bluetooth access where the directive is supported.",
+    status: "standardized",
     mode: "none",
-    origins: "",
-    enabled: true,
-  },
-  {
-    key: "clipboard-read",
-    label: "Clipboard Read",
-    description: "Controls reading from the clipboard.",
-    mode: "none",
-    origins: "",
-    enabled: true,
-  },
-  {
-    key: "clipboard-write",
-    label: "Clipboard Write",
-    description: "Controls writing to the clipboard.",
-    mode: "self",
     origins: "",
     enabled: true,
   },
   {
     key: "display-capture",
     label: "Display Capture",
-    description: "Controls screen sharing / display capture.",
+    description: "Limits screen and window capture requests.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -125,7 +122,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "web-share",
     label: "Web Share",
-    description: "Controls Web Share API access.",
+    description: "Limits calls to the Web Share API.",
+    status: "standardized",
     mode: "self",
     origins: "",
     enabled: true,
@@ -133,7 +131,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "accelerometer",
     label: "Accelerometer",
-    description: "Controls accelerometer sensor access.",
+    description: "Limits accelerometer sensor access.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -141,7 +140,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "gyroscope",
     label: "Gyroscope",
-    description: "Controls gyroscope sensor access.",
+    description: "Limits gyroscope sensor access.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -149,7 +149,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "magnetometer",
     label: "Magnetometer",
-    description: "Controls magnetometer sensor access.",
+    description: "Limits magnetometer sensor access.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -157,7 +158,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "autoplay",
     label: "Autoplay",
-    description: "Controls autoplay for audio and video media.",
+    description: "Limits autoplay of audio and video media.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -165,7 +167,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "encrypted-media",
     label: "Encrypted Media",
-    description: "Controls Encrypted Media Extensions for protected media.",
+    description: "Limits access to Encrypted Media Extensions.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -173,7 +176,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "picture-in-picture",
     label: "Picture in Picture",
-    description: "Controls picture-in-picture video behavior.",
+    description: "Limits picture-in-picture video behavior.",
+    status: "standardized",
     mode: "self",
     origins: "",
     enabled: true,
@@ -181,7 +185,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "publickey-credentials-get",
     label: "Passkey / WebAuthn Get",
-    description: "Controls reading public-key credentials with WebAuthn.",
+    description: "Limits retrieval of public-key credentials through WebAuthn.",
+    status: "standardized",
     mode: "self",
     origins: "",
     enabled: true,
@@ -189,7 +194,8 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "screen-wake-lock",
     label: "Screen Wake Lock",
-    description: "Controls whether the page can keep the screen awake.",
+    description: "Limits requests that keep the screen awake.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
@@ -197,25 +203,56 @@ const defaultFeatures: FeatureSetting[] = [
   {
     key: "xr-spatial-tracking",
     label: "XR Spatial Tracking",
-    description: "Controls spatial tracking for WebXR experiences.",
+    description: "Limits spatial tracking used by WebXR experiences.",
+    status: "standardized",
     mode: "none",
     origins: "",
     enabled: true,
   },
+  {
+    key: "clipboard-read",
+    label: "Clipboard Read",
+    description: "Limits clipboard reads; the directive remains proposed in the W3C feature list.",
+    status: "proposed",
+    mode: "none",
+    origins: "",
+    enabled: false,
+  },
+  {
+    key: "clipboard-write",
+    label: "Clipboard Write",
+    description: "Limits clipboard writes; the directive remains proposed in the W3C feature list.",
+    status: "proposed",
+    mode: "self",
+    origins: "",
+    enabled: false,
+  },
 ];
 
+function cloneFeatures() {
+  return baseFeatures.map((feature) => ({ ...feature }));
+}
+
 export default function ToolClient() {
-  const [features, setFeatures] = useState<FeatureSetting[]>(defaultFeatures);
-  const [presetMode, setPresetMode] = useState<PresetMode>("balanced");
+  const [features, setFeatures] = useState<FeatureSetting[]>(() =>
+    applyPresetToFeatures("baseline")
+  );
+  const [presetMode, setPresetMode] = useState<PresetMode>("baseline");
   const [outputMode, setOutputMode] = useState<OutputMode>("header");
   const [includeDisabled, setIncludeDisabled] = useState(false);
-  const [oneDirectivePerLine, setOneDirectivePerLine] = useState(false);
   const [result, setResult] = useState<PolicyResult | null>(null);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
   const notes = useMemo(() => (result ? getPolicyNotes(result) : []), [result]);
+
+  const clearResult = () => {
+    setResult(null);
+    setOutput("");
+    setError("");
+    setCopied(false);
+  };
 
   const updateFeature = (
     key: string,
@@ -224,76 +261,19 @@ export default function ToolClient() {
   ) => {
     setFeatures((current) =>
       current.map((feature) =>
-        feature.key === key
-          ? {
-              ...feature,
-              [field]: value,
-            }
-          : feature
+        feature.key === key ? { ...feature, [field]: value } : feature
       )
     );
     setPresetMode("custom");
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    clearResult();
   };
 
   const applyPreset = (preset: PresetMode) => {
     setPresetMode(preset);
-
-    if (preset === "strict") {
-      setFeatures(
-        defaultFeatures.map((feature) => ({
-          ...feature,
-          enabled: true,
-          mode: "none",
-          origins: "",
-        }))
-      );
+    if (preset !== "custom") {
+      setFeatures(applyPresetToFeatures(preset));
     }
-
-    if (preset === "balanced") {
-      setFeatures(
-        defaultFeatures.map((feature) => ({
-          ...feature,
-          enabled: true,
-          mode:
-            feature.key === "fullscreen" ||
-            feature.key === "clipboard-write" ||
-            feature.key === "web-share" ||
-            feature.key === "picture-in-picture" ||
-            feature.key === "publickey-credentials-get"
-              ? "self"
-              : "none",
-          origins: "",
-        }))
-      );
-    }
-
-    if (preset === "media") {
-      setFeatures(
-        defaultFeatures.map((feature) => ({
-          ...feature,
-          enabled: true,
-          mode:
-            feature.key === "camera" ||
-            feature.key === "microphone" ||
-            feature.key === "fullscreen" ||
-            feature.key === "clipboard-write" ||
-            feature.key === "autoplay" ||
-            feature.key === "picture-in-picture"
-              ? "self"
-              : "none",
-          origins: "",
-        }))
-      );
-    }
-
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    clearResult();
   };
 
   const generatePolicy = () => {
@@ -302,76 +282,81 @@ export default function ToolClient() {
         features,
         outputMode,
         includeDisabled,
-        oneDirectivePerLine,
       });
-
       setResult(nextResult);
       setOutput(nextResult.output);
       setError("");
       setCopied(false);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to generate this Permissions-Policy header."
-      );
+    } catch (caught) {
       setResult(null);
       setOutput("");
       setCopied(false);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to build this Permissions-Policy header."
+      );
     }
   };
 
   const copyOutput = async () => {
-    if (!output) {
-      return;
-    }
+    if (!output) return;
 
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-
-    window.setTimeout(() => {
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
       setCopied(false);
-    }, 1400);
+      setError(
+        "The Permissions-Policy output could not be copied. Select it and copy it manually."
+      );
+    }
   };
 
   const loadExample = () => {
-    applyPreset("balanced");
+    setPresetMode("custom");
+    setFeatures(
+      applyPresetToFeatures("baseline").map((feature) =>
+        feature.key === "camera"
+          ? {
+              ...feature,
+              mode: "custom" as AllowMode,
+              origins: "self https://video.example.com",
+            }
+          : feature
+      )
+    );
     setOutputMode("header");
     setIncludeDisabled(false);
-    setOneDirectivePerLine(false);
+    clearResult();
   };
 
   const resetAll = () => {
-    setFeatures(defaultFeatures);
-    setPresetMode("balanced");
+    setFeatures(applyPresetToFeatures("baseline"));
+    setPresetMode("baseline");
     setOutputMode("header");
     setIncludeDisabled(false);
-    setOneDirectivePerLine(false);
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    clearResult();
   };
 
   return (
     <ToolShell
       title="Permissions Policy Header Generator"
-      description="Generate Permissions-Policy headers for browser features like camera, microphone, geolocation, fullscreen, payment, USB, clipboard, autoplay, and more directly in your browser."
+      description="Build Permissions-Policy directives for selected browser features with explicit allowlists and origin scope."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Header Settings
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900">Policy setup</h3>
 
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
           <YoryantraSelect
-            label="Preset"
+            label="Starting point"
             value={presetMode}
             onChange={(value) => applyPreset(value as PresetMode)}
             options={[
-              { label: "Strict - block most features", value: "strict" },
-              { label: "Balanced - allow common safe features", value: "balanced" },
-              { label: "Media app - allow camera and microphone", value: "media" },
+              { label: "Restrictive — explicitly block selected features", value: "restrictive" },
+              { label: "Baseline — same-origin for a few UI features", value: "baseline" },
+              { label: "Media page — camera and microphone on same origin", value: "media" },
               { label: "Custom", value: "custom" },
             ]}
           />
@@ -381,10 +366,7 @@ export default function ToolClient() {
             value={outputMode}
             onChange={(value) => {
               setOutputMode(value as OutputMode);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
+              clearResult();
             }}
             options={[
               { label: "HTTP header", value: "header" },
@@ -395,93 +377,65 @@ export default function ToolClient() {
             ]}
           />
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+          <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900 md:col-span-2">
             <input
               type="checkbox"
               checked={includeDisabled}
-              onChange={(event) => {
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 setIncludeDisabled(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
+                clearResult();
               }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
-
-            Include disabled feature rows in JSON output
-          </label>
-
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
-            <input
-              type="checkbox"
-              checked={oneDirectivePerLine}
-              onChange={(event) => {
-                setOneDirectivePerLine(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
-            />
-
-            Put each directive on a new line
+            <span>
+              Include omitted feature rows in JSON output
+              <span className="mt-1 block font-normal leading-relaxed text-gray-500">
+                Omitted features are not automatically blocked; their specification-defined default allowlist still matters.
+              </span>
+            </span>
           </label>
         </div>
-
-        <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Permissions-Policy controls which browser features are allowed on your
-          page and in embedded frames. Browser support can vary, so test the
-          final header on the pages that use these APIs.
-        </p>
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Browser Features
-        </h3>
-
-        <p className="mt-2 text-sm text-gray-500">
-          Choose which features to include and how each feature should be allowed.
-          Use custom origins only when a trusted third-party origin needs access.
+        <h3 className="text-lg font-semibold text-gray-900">Feature directives</h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          Include a feature only when you want the response header to state an explicit rule for it. Custom allowlists accept <code className="font-mono">self</code> and exact HTTP(S) origins.
         </p>
 
-        <div className="mt-5 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
-          <div className="hidden grid-cols-[96px_1fr_170px] gap-3 border-b border-gray-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 md:grid">
+        <div className="mt-5 overflow-visible rounded-xl border border-gray-200 bg-gray-50">
+          <div className="hidden grid-cols-[92px_1fr_176px] gap-3 rounded-t-xl border-b border-gray-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 md:grid">
             <span>Include</span>
             <span>Feature</span>
-            <span>Allow</span>
+            <span>Allowlist</span>
           </div>
 
           <div className="divide-y divide-gray-200">
             {features.map((feature) => (
               <div key={feature.key} className="px-4 py-3">
-                <div className="grid gap-3 md:grid-cols-[96px_1fr_170px] md:items-center">
+                <div className="grid gap-3 md:grid-cols-[92px_1fr_176px] md:items-center">
                   <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
                     <input
                       type="checkbox"
                       checked={feature.enabled}
-                      onChange={(event) =>
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                         updateFeature(feature.key, "enabled", event.target.checked)
                       }
-                      className="h-4 w-4 accent-[var(--light-gold)]"
+                      className="h-4 w-4 shrink-0 accent-[var(--light-gold)]"
                     />
-
                     Include
                   </label>
 
-                  <div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <p className="font-semibold text-gray-900">
-                        {feature.label}
-                      </p>
-
-                      <p className="font-mono text-xs text-gray-500">
-                        {feature.key}
-                      </p>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p className="font-semibold text-gray-900">{feature.label}</p>
+                      <code className="break-all text-xs text-gray-500">{feature.key}</code>
+                      {feature.status === "proposed" && (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                          Proposed
+                        </span>
+                      )}
                     </div>
-
                     <p className="mt-0.5 text-sm leading-relaxed text-gray-500">
                       {feature.description}
                     </p>
@@ -490,29 +444,26 @@ export default function ToolClient() {
                   <CompactAllowSelect
                     value={feature.mode}
                     label={feature.label}
-                    onChange={(value) =>
-                      updateFeature(feature.key, "mode", value)
-                    }
+                    disabled={!feature.enabled}
+                    onChange={(value) => updateFeature(feature.key, "mode", value)}
                   />
                 </div>
 
-                {feature.mode === "custom" && (
-                  <div className="mt-3 border-t border-gray-200 pt-3 md:ml-[109px]">
+                {feature.enabled && feature.mode === "custom" && (
+                  <div className="mt-3 border-t border-gray-200 pt-3 md:ml-[105px]">
                     <label className="block text-sm font-medium text-gray-700">
-                      Allowed Origins
+                      Exact origins
                     </label>
-
                     <input
                       value={feature.origins}
-                      onChange={(event) =>
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                         updateFeature(feature.key, "origins", event.target.value)
                       }
-                      placeholder="https://example.com https://cdn.example.com"
+                      placeholder="self https://video.example.com"
                       className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
                     />
-
                     <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                      Separate origins with spaces. Example: https://example.com
+                      Separate entries with spaces. Paths, query strings, credentials, and wildcard hostnames are rejected because this field is for origins, not URLs.
                     </p>
                   </div>
                 )}
@@ -523,19 +474,20 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generatePolicy} className="yoryantra-btn">
-          Generate Header
+        <button onClick={generatePolicy} className="yoryantra-btn whitespace-nowrap">
+          Build Policy
         </button>
-
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button
+          onClick={copyOutput}
+          className="yoryantra-btn whitespace-nowrap"
+          disabled={!output}
+        >
           {copied ? "Copied" : "Copy Output"}
         </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
-          Load Balanced Example
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
+          Load Example
         </button>
-
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -547,239 +499,152 @@ export default function ToolClient() {
       )}
 
       {result && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Included" value={result.enabledCount.toLocaleString()} />
-          <SummaryCard label="Blocked" value={result.blockedCount.toLocaleString()} />
-          <SummaryCard label="Custom" value={result.customCount.toLocaleString()} />
-          <SummaryCard label="Warnings" value={result.warnings.length.toLocaleString()} />
-        </div>
-      )}
-
-      {result && (
-        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Generated Header
-          </h3>
-
-          <p className="mt-2 text-sm text-gray-500">
-            Copy this header into your web server, CDN, reverse proxy, or hosting
-            response header settings.
-          </p>
-
-          <pre className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm font-mono text-gray-800 whitespace-pre-wrap break-words">
-            {result.fullHeader}
-          </pre>
+        <div className="mt-8 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryCard label="Directives" value={String(result.directiveCount)} />
+          <SummaryCard label="Blocked" value={String(result.blockedCount)} />
+          <SummaryCard label="Custom origin rules" value={String(result.customCount)} />
+          <SummaryCard label="Broad rules" value={String(result.broadCount)} />
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Permissions Policy notes
-          </h3>
-
-          <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {note.title}
-                </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {note.message}
-                </p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 grid items-start gap-4 md:grid-cols-2">
+          {notes.map((note) => (
+            <div
+              key={note.title}
+              className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4"
+            >
+              <p className="text-sm font-semibold text-amber-900">{note.title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-amber-800">{note.message}</p>
+            </div>
+          ))}
         </div>
       )}
 
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Output
-          </h3>
-
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">Output</h3>
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
-          {output || "Generated Permissions-Policy output will appear here."}
+        <pre className="yoryantra-output min-h-[250px] overflow-auto whitespace-pre-wrap break-words text-sm">
+          {output || "The Permissions-Policy output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Permissions-Policy generation happens directly in your browser. Your
-        settings are not uploaded to a server.
+      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Policy construction happens in this browser. The feature choices and custom origins entered here are not sent anywhere by this page.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Generating Permissions-Policy Headers
+            A policy can block a feature; it cannot grant permission
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Permissions-Policy is a browser security header that controls access
-            to powerful browser features. It can block or limit APIs such as
-            camera, microphone, geolocation, payment, USB, clipboard, fullscreen,
-            display capture, and sensors.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Permissions-Policy sits in front of browser capabilities such as camera, microphone, geolocation, fullscreen, and sensors. Allowing an origin in the header only makes that feature eligible under this policy. It does not bypass a user permission prompt, secure-context requirement, API requirement, or browser setting.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Permissions Policy Header Generator helps you build a clear
-            header without writing every directive by hand. You can start with a
-            strict, balanced, or media-friendly preset, then adjust each feature
-            based on what your site actually needs.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            That distinction matters when debugging. A page may be allowed by Permissions-Policy and still be denied by the user, blocked because the page is not in a secure context, or fail because that browser does not implement the API.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Creating a Browser Feature Policy Header
+            Omitted is not the same as blocked
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose a preset or start editing features manually.</li>
-            <li>Set each feature to none, self, all, or custom origins.</li>
-            <li>Generate the Permissions-Policy header.</li>
-            <li>Review warnings for broad or custom access.</li>
-            <li>Copy the header for your server, CDN, or hosting provider.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Permissions Policy Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Blocking camera and microphone on pages that do not need them.</li>
-            <li>Disabling geolocation for privacy-sensitive pages.</li>
-            <li>Allowing fullscreen, picture-in-picture, or WebAuthn only for the same origin.</li>
-            <li>Limiting payment, USB, serial, and Bluetooth APIs.</li>
-            <li>Creating safer defaults for embedded frames.</li>
-            <li>Preparing a modern browser security header for a website.</li>
-            <li>Testing a policy before adding it to a CDN or hosting provider.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Permissions-Policy Header
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Permissions-Policy: camera=(), microphone=(), geolocation=(), fullscreen=(self)`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Only Allow Features You Really Need
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A good Permissions-Policy header is usually restrictive. If your page
-            does not use camera, microphone, USB, payment, or geolocation, it is
-            safer to block those features instead of leaving access open.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Some directives may behave differently across browsers because
-            Permissions-Policy support is still not equal everywhere. Test the
-            final header on the pages that use browser APIs, especially if your
-            site embeds third-party frames, payments, sign-in flows, or media
-            tools.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A directive such as <code className="font-mono">camera=()</code> explicitly disables camera for that response. Leaving <code className="font-mono">camera</code> out of the header does something different: the directive&apos;s default allowlist and normal browser rules still apply. This page therefore keeps “Include” separate from the allowlist choice instead of pretending an omitted row is denied.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            self, *, and exact origins describe different boundaries
           </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a Permissions-Policy header?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It is a browser response header that controls which browser
-                features a page or embedded frame is allowed to use. The header
-                can contain one directive or many comma-separated directives.
-              </p>
+          <div className="mt-4 grid items-start gap-4 md:grid-cols-3">
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="font-mono font-semibold text-gray-900">()</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">Explicitly allows no origin for that feature.</p>
             </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is Permissions-Policy the same as Feature-Policy?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Permissions-Policy is the newer name and format. Feature-Policy
-                was the older version used by some browsers in the past.
-              </p>
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="font-mono font-semibold text-gray-900">(self)</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">Allows the response&apos;s own origin, subject to the rest of the browser&apos;s checks.</p>
             </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does camera=() mean?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It means camera access is disabled for the page and its allowed
-                contexts.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does fullscreen=(self) mean?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It allows fullscreen only for the same origin.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does every browser support every directive?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Support can vary by directive and browser version. Use the
-                generated header as a starting point, then test the pages that
-                actually use those browser APIs.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I generate the header?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The header is generated directly in your browser.
-              </p>
+            <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="font-mono font-semibold text-amber-900">*</p>
+              <p className="mt-2 text-sm leading-relaxed text-amber-800">Broadly allows the feature to origins covered by the wildcard. Use it only when that breadth is deliberate.</p>
             </div>
           </div>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A custom list can combine <code className="font-mono">self</code> with exact origins such as <code className="font-mono">https://video.example.com</code>. A URL path is not an origin, so entries such as <code className="font-mono">https://example.com/embed</code> are rejected instead of being silently rewritten.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
+            Cross-origin iframes need both sides of the policy
           </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A response header can set the upper bound for a feature, but an embedded frame can also be constrained by its iframe <code className="font-mono">allow</code> attribute and by policy inheritance. If a cross-origin video frame needs camera access, adding its origin to the header is only one part of the setup. Check the iframe markup and the embedded document as well.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/permissions-policy-header-generator" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Clipboard directives still need compatibility testing
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            <code className="font-mono">clipboard-read</code> and <code className="font-mono">clipboard-write</code> are included as optional rows because they are implemented in some browsers, notably Chromium-based ones. The W3C feature list still marks them as proposed, so they start disabled here and are labelled rather than presented as universally standardized controls.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Keep an HTTP header on one physical line
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The generated header joins directives with commas on a single line. Pretty-printing a header by inserting raw newlines can turn one field into invalid or unintended HTTP syntax in a configuration file. Server snippets preserve the same one-line field value and only wrap it in the syntax expected by that server.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            The directive list changes as browser features evolve
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The authoritative Permissions Policy specification is maintained by the W3C Web Application Security Working Group. The separate feature registry is useful when you need to check whether a directive is standardized, proposed, or still tied to a particular implementation. Browser support should still be tested for the exact directives your application depends on.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-gray-600">
+            References: {" "}
+            <a
+              href="https://w3c.github.io/webappsec-permissions-policy/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              W3C Permissions Policy
+            </a>{" "}
+            and {" "}
+            <a
+              href="https://github.com/w3c/webappsec-permissions-policy/blob/main/features.md"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              W3C feature list
+            </a>.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/permissions-policy-header-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -789,13 +654,16 @@ export default function ToolClient() {
 function CompactAllowSelect({
   value,
   label,
+  disabled,
   onChange,
 }: {
   value: AllowMode;
   label: string;
+  disabled: boolean;
   onChange: (value: AllowMode) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const options: Array<{ label: string; value: AllowMode }> = [
     { label: "None", value: "none" },
@@ -803,64 +671,104 @@ function CompactAllowSelect({
     { label: "All", value: "all" },
     { label: "Custom origins", value: "custom" },
   ];
-  const selected = options.find((option) => option.value === value) || options[0];
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === value)
+  );
+  const selected = options[selectedIndex];
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
+    if (!open) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(event.target as Node)
-      ) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
-
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
+      if (event.key === "Escape") setOpen(false);
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [open]);
 
+  const openMenu = () => {
+    if (disabled) return;
+    setActiveIndex(selectedIndex);
+    setOpen(true);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!open) {
+        openMenu();
+        return;
+      }
+      const delta = event.key === "ArrowDown" ? 1 : -1;
+      setActiveIndex((current) => (current + delta + options.length) % options.length);
+      return;
+    }
+
+    if ((event.key === "Enter" || event.key === " ") && open) {
+      event.preventDefault();
+      onChange(options[activeIndex].value);
+      setOpen(false);
+      return;
+    }
+
+    if ((event.key === "Enter" || event.key === " ") && !open) {
+      event.preventDefault();
+      openMenu();
+    }
+  };
+
   return (
-    <div ref={wrapperRef} className="relative">
+    <div ref={wrapperRef} className="relative min-w-0">
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="flex w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-900 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-        aria-label={`Allow setting for ${label}`}
+        disabled={disabled}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        onKeyDown={handleKeyDown}
+        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-900 outline-none transition enabled:hover:border-gray-400 focus:border-transparent focus:ring-2 focus:ring-[var(--green)] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+        aria-label={`Allowlist for ${label}`}
+        aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span>{selected.label}</span>
-        <span className="ml-3 text-xs text-gray-500">▾</span>
+        <span className="truncate">{selected.label}</span>
+        <span className="shrink-0 text-xs text-[var(--green)]">▾</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 z-20 mt-1 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
-          {options.map((option) => (
+        <div
+          role="listbox"
+          aria-label={`Allowlist options for ${label}`}
+          className="absolute right-0 z-30 mt-1 w-full min-w-[170px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+        >
+          {options.map((option, index) => (
             <button
               key={option.value}
               type="button"
+              role="option"
+              aria-selected={option.value === value}
+              onMouseEnter={() => setActiveIndex(index)}
               onClick={() => {
                 onChange(option.value);
                 setOpen(false);
               }}
-              className={`block w-full px-3 py-2 text-left text-sm transition ${
+              className={`block min-h-10 w-full px-3 py-2 text-left text-sm transition ${
                 option.value === value
-                  ? "bg-[var(--green)]/10 font-medium text-[var(--green)]"
-                  : "text-gray-700 hover:bg-gray-50"
+                  ? "bg-[var(--green)]/10 font-semibold text-[var(--green)]"
+                  : index === activeIndex
+                    ? "bg-gray-50 text-gray-900"
+                    : "text-gray-700 hover:bg-gray-50"
               }`}
             >
               {option.label}
@@ -874,127 +782,168 @@ function CompactAllowSelect({
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {label}
-      </div>
-
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">
-        {value}
-      </div>
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
     </div>
   );
+}
+
+function applyPresetToFeatures(preset: Exclude<PresetMode, "custom">) {
+  const features = cloneFeatures();
+
+  return features.map((feature) => {
+    if (feature.status === "proposed") {
+      return { ...feature, enabled: false };
+    }
+
+    if (preset === "restrictive") {
+      return { ...feature, enabled: true, mode: "none" as AllowMode, origins: "" };
+    }
+
+    if (preset === "media") {
+      const sameOrigin = new Set([
+        "camera",
+        "microphone",
+        "fullscreen",
+        "autoplay",
+        "picture-in-picture",
+      ]);
+      return {
+        ...feature,
+        enabled: true,
+        mode: sameOrigin.has(feature.key) ? ("self" as AllowMode) : ("none" as AllowMode),
+        origins: "",
+      };
+    }
+
+    const selfFeatures = new Set([
+      "fullscreen",
+      "web-share",
+      "picture-in-picture",
+      "publickey-credentials-get",
+    ]);
+    return {
+      ...feature,
+      enabled: true,
+      mode: selfFeatures.has(feature.key) ? ("self" as AllowMode) : ("none" as AllowMode),
+      origins: "",
+    };
+  });
 }
 
 function buildPermissionsPolicy({
   features,
   outputMode,
   includeDisabled,
-  oneDirectivePerLine,
 }: {
   features: FeatureSetting[];
   outputMode: OutputMode;
   includeDisabled: boolean;
-  oneDirectivePerLine: boolean;
 }): PolicyResult {
   const selected = features.filter((feature) => feature.enabled);
-  const warnings: string[] = [];
-
   if (selected.length === 0) {
-    throw new Error("Select at least one browser feature to include.");
+    throw new Error("Include at least one feature before building the policy.");
   }
 
+  const cautions: string[] = [];
   const directives = selected.map((feature) => {
     const value = formatAllowList(feature);
-
     if (feature.mode === "all") {
-      warnings.push(`${feature.label} is allowed for all origins.`);
+      cautions.push(`${feature.label} is allowed with a wildcard.`);
     }
-
-    if (feature.mode === "custom") {
-      const origins = parseOrigins(feature.origins);
-
-      if (origins.length === 0) {
-        warnings.push(`${feature.label} uses custom origins but no origin was entered.`);
-      }
-
-      if (origins.includes("*")) {
-        warnings.push(`${feature.label} custom origins include *, which should be used alone.`);
-      }
-
-      origins
-        .filter((origin) => origin !== "self" && origin !== "*" && !/^https?:\/\//i.test(origin))
-        .forEach((origin) => {
-          warnings.push(`${feature.label} has a custom origin that may not be a valid origin: ${origin}`);
-        });
+    if (feature.status === "proposed") {
+      cautions.push(`${feature.label} uses a directive that is still listed as proposed by W3C.`);
     }
-
     return `${feature.key}=${value}`;
   });
 
-  const separator = oneDirectivePerLine ? ",\n  " : ", ";
-  const headerValue = directives.join(separator);
+  const headerValue = directives.join(", ");
   const fullHeader = `Permissions-Policy: ${headerValue}`;
-  const enabledCount = selected.length;
+  const directiveCount = selected.length;
   const blockedCount = selected.filter((feature) => feature.mode === "none").length;
   const customCount = selected.filter((feature) => feature.mode === "custom").length;
+  const broadCount = selected.filter((feature) => feature.mode === "all").length;
+  const proposedCount = selected.filter((feature) => feature.status === "proposed").length;
   const output = formatOutput({
     outputMode,
     headerValue,
     fullHeader,
     features: includeDisabled ? features : selected,
-    enabledCount,
+    directiveCount,
     blockedCount,
     customCount,
-    warnings,
+    broadCount,
+    proposedCount,
+    cautions,
   });
 
   return {
     headerValue,
     fullHeader,
     output,
-    enabledCount,
+    directiveCount,
     blockedCount,
     customCount,
-    warnings,
+    broadCount,
+    proposedCount,
+    cautions,
   };
 }
 
 function formatAllowList(feature: FeatureSetting) {
-  if (feature.mode === "none") {
-    return "()";
-  }
+  if (feature.mode === "none") return "()";
+  if (feature.mode === "self") return "(self)";
+  if (feature.mode === "all") return "*";
 
-  if (feature.mode === "self") {
-    return "(self)";
-  }
-
-  if (feature.mode === "all") {
-    return "*";
-  }
-
-  const rawOrigins = parseOrigins(feature.origins);
-
-  if (rawOrigins.includes("*")) {
-    return "*";
-  }
-
-  const origins = rawOrigins.map((origin) => {
-    if (origin === "self") {
-      return origin;
-    }
-
-    return `"${origin}"`;
-  });
-
-  return origins.length > 0 ? `(${origins.join(" ")})` : "()";
+  const origins = parseCustomAllowlist(feature.origins, feature.label);
+  return `(${origins.map((origin) => (origin === "self" ? "self" : `"${origin}"`)).join(" ")})`;
 }
 
-function parseOrigins(value: string) {
-  return value
+function parseCustomAllowlist(value: string, featureLabel: string) {
+  const raw = value
     .split(/\s+/)
-    .map((origin) => origin.trim().replace(/^"|"$/g, ""))
+    .map((entry) => entry.trim().replace(/^"|"$/g, ""))
     .filter(Boolean);
+
+  if (raw.length === 0) {
+    throw new Error(`${featureLabel}: enter at least one exact origin or self for the custom allowlist.`);
+  }
+
+  const normalized: string[] = [];
+  raw.forEach((entry) => {
+    if (entry.toLowerCase() === "self") {
+      if (!normalized.includes("self")) normalized.push("self");
+      return;
+    }
+
+    if (entry === "*") {
+      throw new Error(`${featureLabel}: choose All instead of placing * inside a custom allowlist.`);
+    }
+
+    if (entry.includes("*")) {
+      throw new Error(`${featureLabel}: wildcard hostnames are not accepted in the exact-origin field.`);
+    }
+
+    let url: URL;
+    try {
+      url = new URL(entry);
+    } catch {
+      throw new Error(`${featureLabel}: ${entry} is not a valid HTTP(S) origin.`);
+    }
+
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      throw new Error(`${featureLabel}: ${entry} must use http:// or https://.`);
+    }
+
+    if (url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
+      throw new Error(`${featureLabel}: ${entry} contains more than an origin. Remove credentials, path, query, or fragment.`);
+    }
+
+    if (!normalized.includes(url.origin)) normalized.push(url.origin);
+  });
+
+  return normalized;
 }
 
 function formatOutput({
@@ -1002,30 +951,36 @@ function formatOutput({
   headerValue,
   fullHeader,
   features,
-  enabledCount,
+  directiveCount,
   blockedCount,
   customCount,
-  warnings,
+  broadCount,
+  proposedCount,
+  cautions,
 }: {
   outputMode: OutputMode;
   headerValue: string;
   fullHeader: string;
   features: FeatureSetting[];
-  enabledCount: number;
+  directiveCount: number;
   blockedCount: number;
   customCount: number;
-  warnings: string[];
+  broadCount: number;
+  proposedCount: number;
+  cautions: string[];
 }) {
   if (outputMode === "json") {
     return JSON.stringify(
       {
         header: fullHeader,
         value: headerValue,
-        enabledCount,
+        directiveCount,
         blockedCount,
         customCount,
+        broadCount,
+        proposedCount,
         features,
-        warnings,
+        cautions,
       },
       null,
       2
@@ -1045,7 +1000,7 @@ function formatOutput({
       "Header name: Permissions-Policy",
       `Header value: ${headerValue}`,
       "",
-      "Apply this as a response header rule on pages where these browser feature limits should apply.",
+      "Apply as a response-header rule on the responses that should carry this policy.",
     ].join("\n");
   }
 
@@ -1055,26 +1010,24 @@ function formatOutput({
 function getPolicyNotes(result: PolicyResult): PolicyNote[] {
   const notes: PolicyNote[] = [];
 
-  if (result.warnings.length > 0) {
+  if (result.broadCount > 0) {
     notes.push({
-      title: "Review broad access",
-      message: result.warnings.join(" "),
-    });
-  }
-
-  if (result.blockedCount >= 10) {
-    notes.push({
-      title: "Restrictive policy",
-      message:
-        "Many browser features are blocked. This is usually good for pages that do not need powerful browser APIs.",
+      title: "Wildcard access is broad",
+      message: `${result.broadCount} directive${result.broadCount === 1 ? "" : "s"} use *. Confirm that cross-origin access is intentional rather than choosing the wildcard for convenience.`,
     });
   }
 
   if (result.customCount > 0) {
     notes.push({
-      title: "Custom origins used",
-      message:
-        "Custom origins should be exact trusted origins. Review them before deploying the header.",
+      title: "Custom origins need iframe checks too",
+      message: "An origin in the header can still be constrained by iframe allow attributes, policy inheritance, user permission, and API-specific browser requirements.",
+    });
+  }
+
+  if (result.proposedCount > 0) {
+    notes.push({
+      title: "Proposed directives included",
+      message: "Clipboard policy directives are implemented in some browsers but remain proposed in the W3C feature list. Test the exact browser set you support.",
     });
   }
 

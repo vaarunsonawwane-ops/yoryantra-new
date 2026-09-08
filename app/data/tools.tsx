@@ -1019,7 +1019,7 @@ export const tools = [
 {
   title: "Cookie Security Checker",
   description:
-    "Check Set-Cookie headers for Secure, HttpOnly, SameSite, expiry, domain, path, and prefix issues.",
+    "Check Set-Cookie attributes, prefix rules, cross-site behavior, and scope without guessing application intent.",
   href: "/tools/cookie-security-checker",
   category: "Security Tools",
 },
@@ -1027,7 +1027,7 @@ export const tools = [
 {
   title: "HSTS Header Generator",
   description:
-    "Generate Strict-Transport-Security headers with max-age, includeSubDomains, preload, and server config output.",
+    "Build an HSTS header while keeping max-age, subdomain scope, and preload consequences visible.",
   href: "/tools/hsts-header-generator",
   category: "Security Tools",
 },
@@ -1035,7 +1035,7 @@ export const tools = [
 {
   title: "Permissions Policy Header Generator",
   description:
-    "Generate Permissions-Policy headers for browser features like camera, microphone, geolocation, fullscreen, payment, USB, and clipboard.",
+    "Define browser-feature allowlists and exact origin scope in a Permissions-Policy header.",
   href: "/tools/permissions-policy-header-generator",
   category: "Security Tools",
 },

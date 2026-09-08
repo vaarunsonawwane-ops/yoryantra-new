@@ -2,37 +2,35 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "HSTS Header Generator | Create Strict-Transport-Security Headers | Yoryantra",
+  title: "HSTS Header Generator – max-age & Preload | Yoryantra",
   description:
-    "Generate Strict-Transport-Security headers for HTTPS sites. Configure max-age, includeSubDomains, preload, rollout warnings, and copy clean HSTS output in your browser.",
+    "Build Strict-Transport-Security headers with exact max-age values, includeSubDomains, preload cautions, rollout guidance, and server configuration output.",
   keywords: [
-    "HSTS Header Generator",
-    "Strict-Transport-Security generator",
-    "HSTS generator",
-    "HSTS preload header",
-    "Strict Transport Security header",
-    "HSTS max-age generator",
-    "security header generator",
-    "HTTPS security header",
-    "security tools",
-    "developer tools",
+    "HSTS header generator",
+    "Strict-Transport-Security",
+    "HSTS max-age",
+    "includeSubDomains",
+    "HSTS preload",
+    "RFC 6797",
+    "Nginx HSTS header",
+    "Apache HSTS header",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/hsts-header-generator",
   },
   openGraph: {
-    title: "HSTS Header Generator | Create Strict-Transport-Security Headers | Yoryantra",
+    title: "HSTS Header Generator – max-age & Preload | Yoryantra",
     description:
-      "Generate Strict-Transport-Security headers for HTTPS sites. Configure max-age, includeSubDomains, preload, rollout warnings, and copy clean HSTS output in your browser.",
+      "Build Strict-Transport-Security headers with exact max-age values, subdomain scope, preload cautions, and deployment-ready output.",
     url: "https://yoryantra.com/tools/hsts-header-generator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "HSTS Header Generator | Create Strict-Transport-Security Headers | Yoryantra",
+    title: "HSTS Header Generator – max-age & Preload | Yoryantra",
     description:
-      "Generate Strict-Transport-Security headers for HTTPS sites. Configure max-age, includeSubDomains, preload, rollout warnings, and copy clean HSTS output in your browser.",
+      "Build HSTS headers with exact max-age values, subdomain scope, preload cautions, and server configuration output.",
   },
 };
 

@@ -356,31 +356,30 @@ export default function ToolClient() {
       title="Security Headers Scanner"
       description="Inspect pasted response headers reliably, with an optional browser URL check when CORS exposes the values."
     >
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Header input method">
-        <button
-          type="button"
-          onClick={() => switchMode("paste")}
-          className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
-            mode === "paste"
-              ? "border-[var(--green)] bg-green-50 text-gray-900"
-              : "border-gray-200 bg-white text-gray-600 hover:border-[var(--green)]"
-          }`}
-          aria-pressed={mode === "paste"}
+      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Choose a Header Source
+        </h3>
+
+        <div
+          className="mt-4 grid gap-4 sm:grid-cols-2"
+          role="group"
+          aria-label="Header input method"
         >
-          Paste Response Headers
-        </button>
-        <button
-          type="button"
-          onClick={() => switchMode("browser")}
-          className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
-            mode === "browser"
-              ? "border-[var(--green)] bg-green-50 text-gray-900"
-              : "border-gray-200 bg-white text-gray-600 hover:border-[var(--green)]"
-          }`}
-          aria-pressed={mode === "browser"}
-        >
-          Browser URL Check
-        </button>
+          <HeaderSourceButton
+            active={mode === "paste"}
+            title="Paste Response Headers"
+            description="Inspect headers copied from DevTools, curl, or another HTTP client."
+            onClick={() => switchMode("paste")}
+          />
+
+          <HeaderSourceButton
+            active={mode === "browser"}
+            title="Browser URL Check"
+            description="Try a direct browser request when CORS exposes the response headers."
+            onClick={() => switchMode("browser")}
+          />
+        </div>
       </div>
 
       {mode === "paste" ? (
@@ -682,6 +681,36 @@ export default function ToolClient() {
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function HeaderSourceButton({
+  active,
+  title,
+  description,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`self-start rounded-xl border border-gray-200 bg-white p-4 text-left transition ${
+        active
+          ? "shadow-sm ring-2 ring-[var(--green)]"
+          : "hover:border-[var(--green)]"
+      }`}
+    >
+      <span className="block text-sm font-semibold text-gray-900">{title}</span>
+      <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+        {description}
+      </span>
+    </button>
   );
 }
 

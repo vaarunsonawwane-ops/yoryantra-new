@@ -5,16 +5,23 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
-type PresetMode = "testing" | "thirtyDays" | "sixMonths" | "oneYear" | "twoYears" | "custom";
+type PresetMode =
+  | "testing"
+  | "thirtyDays"
+  | "sixMonths"
+  | "oneYear"
+  | "twoYears"
+  | "custom";
 type OutputMode = "header" | "nginx" | "apache" | "cloudflare" | "json";
+
 type HeaderResult = {
   headerValue: string;
   fullHeader: string;
   maxAge: number;
   output: string;
-  preloadReady: boolean;
+  preloadHeaderShape: boolean;
   warnings: string[];
-  notes: string[];
+  observations: string[];
 };
 
 type HSTSNote = {
@@ -37,13 +44,19 @@ export default function ToolClient() {
   const [outputMode, setOutputMode] = useState<OutputMode>("header");
   const [includeSubDomains, setIncludeSubDomains] = useState(true);
   const [preload, setPreload] = useState(false);
-  const [forceHttpsNote, setForceHttpsNote] = useState(true);
   const [result, setResult] = useState<HeaderResult | null>(null);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
   const notes = useMemo(() => (result ? getHSTSNotes(result) : []), [result]);
+
+  const clearResult = () => {
+    setResult(null);
+    setOutput("");
+    setError("");
+    setCopied(false);
+  };
 
   const generateHeader = () => {
     try {
@@ -53,17 +66,16 @@ export default function ToolClient() {
         outputMode,
         includeSubDomains,
         preload,
-        forceHttpsNote,
       });
 
       setResult(nextResult);
       setOutput(nextResult.output);
       setError("");
       setCopied(false);
-    } catch (err) {
+    } catch (caught) {
       setError(
-        err instanceof Error
-          ? err.message
+        caught instanceof Error
+          ? caught.message
           : "Unable to generate this HSTS header."
       );
       setResult(null);
@@ -73,29 +85,27 @@ export default function ToolClient() {
   };
 
   const copyOutput = async () => {
-    if (!output) {
-      return;
-    }
+    if (!output) return;
 
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-
-    window.setTimeout(() => {
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
       setCopied(false);
-    }, 1400);
+      setError(
+        "The HSTS output could not be copied. Select it and copy it manually."
+      );
+    }
   };
 
   const loadExample = () => {
-    setPresetMode("oneYear");
-    setCustomMaxAge("31536000");
+    setPresetMode("testing");
+    setCustomMaxAge("300");
     setOutputMode("header");
     setIncludeSubDomains(true);
     setPreload(false);
-    setForceHttpsNote(true);
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    clearResult();
   };
 
   const resetAll = () => {
@@ -104,38 +114,29 @@ export default function ToolClient() {
     setOutputMode("header");
     setIncludeSubDomains(true);
     setPreload(false);
-    setForceHttpsNote(true);
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    clearResult();
   };
 
   return (
     <ToolShell
       title="HSTS Header Generator"
-      description="Generate Strict-Transport-Security headers for HTTPS sites. Configure max-age, includeSubDomains, preload, rollout warnings, and copy clean HSTS output in your browser."
+      description="Build an HSTS header while keeping max-age, subdomain scope, and preload consequences visible."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          HSTS Settings
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900">HSTS settings</h3>
 
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
           <YoryantraSelect
-            label="Max-Age Preset"
+            label="Max-Age preset"
             value={presetMode}
             onChange={(value) => {
               const next = value as PresetMode;
               setPresetMode(next);
               setCustomMaxAge(String(presetSeconds[next]));
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
+              clearResult();
             }}
             options={[
-              { label: "Testing - 5 minutes", value: "testing" },
+              { label: "Testing — 5 minutes", value: "testing" },
               { label: "30 days", value: "thirtyDays" },
               { label: "6 months", value: "sixMonths" },
               { label: "1 year", value: "oneYear" },
@@ -149,10 +150,7 @@ export default function ToolClient() {
             value={outputMode}
             onChange={(value) => {
               setOutputMode(value as OutputMode);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
+              clearResult();
             }}
             options={[
               { label: "HTTP header", value: "header" },
@@ -165,96 +163,89 @@ export default function ToolClient() {
 
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700">
-              Custom Max-Age Seconds
+              Max-Age seconds
             </label>
-
             <input
+              inputMode="numeric"
               value={customMaxAge}
-              onChange={(event) => {
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 setPresetMode("custom");
                 setCustomMaxAge(event.target.value);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
+                clearResult();
               }}
               placeholder="31536000"
               className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
             />
+            <p className="mt-2 text-xs leading-relaxed text-gray-500">
+              HSTS uses decimal seconds. Enter 0 only when you intentionally want
+              the receiving browser to forget this host&apos;s stored HSTS policy.
+            </p>
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+          <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900 md:col-span-2">
             <input
               type="checkbox"
               checked={includeSubDomains}
-              onChange={(event) => {
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 setIncludeSubDomains(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
+                clearResult();
               }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
-
-            Include subdomains
+            <span>
+              Include subdomains
+              <span className="mt-1 block font-normal leading-relaxed text-gray-500">
+                Every affected subdomain must keep working over HTTPS while the
+                policy is remembered.
+              </span>
+            </span>
           </label>
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+          <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900 md:col-span-2">
             <input
               type="checkbox"
               checked={preload}
-              onChange={(event) => {
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 setPreload(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
+                clearResult();
               }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
-
-            Add preload directive
-          </label>
-
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
-            <input
-              type="checkbox"
-              checked={forceHttpsNote}
-              onChange={(event) => {
-                setForceHttpsNote(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
-            />
-
-            Include HTTPS readiness warnings
+            <span>
+              Add preload directive
+              <span className="mt-1 block font-normal leading-relaxed text-gray-500">
+                This is an opt-in signal for browser preload lists, not part of
+                the core RFC 6797 grammar and not an automatic submission.
+              </span>
+            </span>
           </label>
         </div>
-
-        <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Start with a short max-age while testing. Use long values only after
-          HTTPS works correctly on the main domain and all subdomains you include.
-        </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generateHeader} className="yoryantra-btn">
+        <button
+          onClick={generateHeader}
+          className="yoryantra-btn whitespace-nowrap"
+        >
           Generate HSTS Header
         </button>
-
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button
+          onClick={copyOutput}
+          className="yoryantra-btn whitespace-nowrap"
+          disabled={!output}
+        >
           {copied ? "Copied" : "Copy Output"}
         </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
-          Load Example
+        <button
+          onClick={loadExample}
+          className="yoryantra-btn-outline whitespace-nowrap"
+        >
+          Load Rollout Example
         </button>
-
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button
+          onClick={resetAll}
+          className="yoryantra-btn-outline whitespace-nowrap"
+        >
           Reset
         </button>
       </div>
@@ -266,53 +257,45 @@ export default function ToolClient() {
       )}
 
       {result && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Max-Age" value={result.maxAge.toLocaleString()} />
-          <SummaryCard
-            label="Duration"
-            value={formatDuration(result.maxAge)}
-          />
+          <SummaryCard label="Duration" value={formatDuration(result.maxAge)} />
           <SummaryCard
             label="Subdomains"
             value={includeSubDomains ? "Included" : "Not included"}
           />
           <SummaryCard
-            label="Preload Ready"
-            value={result.preloadReady ? "Yes" : "No"}
+            label="Preload header shape"
+            value={result.preloadHeaderShape ? "Meets header fields" : "No"}
           />
         </div>
       )}
 
       {result && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Generated Header
-          </h3>
-
-          <p className="mt-2 text-sm text-gray-500">
-            Copy this value into your web server, CDN, reverse proxy, or hosting
-            header settings.
+          <h3 className="text-lg font-semibold text-gray-900">Generated header</h3>
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+            HSTS is meaningful only when this response header is received over
+            HTTPS. Do not send a production policy until the affected hosts are
+            ready to stay HTTPS-only for the selected lifetime.
           </p>
-
-          <pre className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm font-mono text-gray-800 whitespace-pre-wrap break-words">
+          <pre className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm font-mono text-gray-800 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
             {result.fullHeader}
           </pre>
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
-            HSTS notes
+            Before you deploy it
           </h3>
-
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
                 <p className="text-sm font-semibold text-amber-900">
                   {note.title}
                 </p>
-
                 <p className="mt-1 text-sm leading-relaxed text-amber-800">
                   {note.message}
                 </p>
@@ -322,192 +305,173 @@ export default function ToolClient() {
         </div>
       )}
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Output
-          </h3>
+      {result && result.observations.length > 0 && (
+        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">What this value means</h3>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">
+            {result.observations.join(" ")}
+          </p>
+        </div>
+      )}
 
+      <div className="mt-8">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">Output</h3>
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button
+              onClick={copyOutput}
+              className="yoryantra-btn-outline whitespace-nowrap text-sm"
+            >
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[300px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output min-h-[260px] overflow-auto whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
           {output || "Generated HSTS output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        HSTS header generation happens directly in your browser. No domain or
-        header value is uploaded to a server.
+      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        The header is assembled in your browser. No hostname, policy value, or
+        generated output is sent anywhere by this page.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-11 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Generating Strict-Transport-Security Headers
+            What the browser remembers after HSTS arrives
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            HSTS tells browsers to use HTTPS for future visits to your site. It
-            helps prevent accidental HTTP access and reduces the chance of
-            downgrade-related problems after a visitor has received the header.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A browser that accepts a Strict-Transport-Security header remembers
+            that host as HTTPS-only for the number of seconds in max-age. During
+            that period it upgrades HTTP attempts before making the network
+            request. The policy is learned from an HTTPS response; sending the
+            header over plain HTTP does not establish HSTS.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This HSTS Header Generator creates a clean
-            Strict-Transport-Security header with max-age, includeSubDomains, and
-            preload options. It also gives practical warnings so you do not lock
-            yourself into a setting before your HTTPS setup is ready. It also
-            treats max-age=0 as a removal value, not a normal protection value.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            That memory is why a long value deserves care. A certificate outage,
+            forgotten subdomain, old device endpoint, or internal hostname can
+            become inaccessible instead of falling back to HTTP. HSTS is meant to
+            make that fallback impossible.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Creating an HSTS Header Safely
+            Roll out max-age before you commit for a year
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose a max-age value. Start small while testing.</li>
-            <li>Enable includeSubDomains only if all subdomains support HTTPS.</li>
-            <li>Add preload only when the root domain and all included subdomains are ready.</li>
-            <li>Generate the header and review the warnings.</li>
-            <li>Copy the output for your server, CDN, or hosting provider.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common HSTS Header Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Adding a Strict-Transport-Security header to an HTTPS site.</li>
-            <li>Preparing Nginx or Apache header configuration.</li>
-            <li>Testing short max-age values before a longer rollout.</li>
-            <li>Checking whether a header meets common preload-style requirements.</li>
-            <li>Creating a max-age=0 header when you intentionally need to remove HSTS.</li>
-            <li>Creating CDN or hosting provider header values.</li>
-            <li>Reviewing includeSubDomains before enabling it site-wide.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example HSTS Header
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Strict-Transport-Security: max-age=31536000; includeSubDomains`}
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A short policy is easier to recover from while you are checking
+            redirects, certificates, mixed deployment paths, and subdomains.
+            The HSTS preload project recommends staged values such as five
+            minutes, one week, and one month before a long-term policy. Waiting
+            through each stage matters because previously cached HSTS state does
+            not disappear when you change the server configuration.
+          </p>
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <pre className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+{`Strict-Transport-Security: max-age=300; includeSubDomains`}
             </pre>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Be Careful With Long HSTS Values
+            includeSubDomains is a domain-wide promise
           </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            HSTS is powerful because browsers remember it. A long max-age can
-            keep browsers forcing HTTPS for months or years. That is useful for a
-            stable HTTPS site, but risky if your HTTPS setup is incomplete.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            With includeSubDomains present, the policy covers descendants of the
+            HSTS host as well. That can include old applications, internal names,
+            customer-specific subdomains, and hosts managed by another team. A
+            forgotten HTTP-only subdomain is enough to make a broad policy hurt.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Before using includeSubDomains or preload, check that every affected
-            hostname can serve HTTPS correctly. Start with a short value while
-            testing, then increase it after you are confident. Use max-age=0
-            only when you intentionally need browsers to forget an existing HSTS
-            policy after receiving the response over HTTPS.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Also remember that a child host cannot reliably opt out while it is
+            still covered by an ancestor&apos;s active includeSubDomains policy.
+            Sending max-age=0 on the child does not cancel the parent&apos;s policy.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Preload is separate from ordinary HSTS
           </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 6797 defines HSTS itself. The preload directive is an ecosystem
+            convention used by browser preload lists. A header containing
+            max-age of at least one year, includeSubDomains, and preload has the
+            required header shape for the current submission service, but that
+            does not make a domain eligible by itself. Certificates, redirects,
+            the base domain, and every subdomain still have to satisfy the
+            service&apos;s checks.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The preload project explicitly advises against enabling preload by
+            default because removal can take months to reach users. Treat it as
+            a separate operational decision, not a checkbox that makes HSTS
+            stronger automatically.
+          </p>
+        </div>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is an HSTS header?
-              </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            What max-age=0 actually removes
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A value of zero tells a browser that receives the HTTPS response to
+            stop treating that host as an HSTS host. It does not repair a broken
+            certificate path before the browser can reach the HTTPS response,
+            and it does not override HSTS inherited from a parent domain that is
+            still active with includeSubDomains.
+          </p>
+        </div>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                HSTS stands for HTTP Strict Transport Security. It tells browsers
-                to use HTTPS for future requests to a site.
-              </p>
-            </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Keep the header and the deployment target separate
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Nginx, Apache, a CDN, and a managed host all express response-header
+            rules differently. The generated server snippets only place the same
+            HSTS value into common configuration syntax. They cannot verify that
+            the rule runs on every HTTPS response, survives redirects, or is
+            inherited into nested configuration blocks.
+          </p>
+        </div>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does max-age mean?
-              </h3>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            The two references worth checking before a long-lived policy
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The protocol behavior comes from{" "}
+            <a
+              href="https://www.rfc-editor.org/rfc/rfc6797"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              RFC 6797
+            </a>
+            . If you are considering preload, read the current{" "}
+            <a
+              href="https://hstspreload.org/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              HSTS preload requirements and rollout guidance
+            </a>
+            . The preload service can change independently of the RFC, so its
+            live requirements matter more than an old copied checklist.
+          </p>
+        </div>
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                max-age is the number of seconds a browser should remember the
-                HSTS rule for your site.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should I enable includeSubDomains?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Only enable it if every subdomain that matters supports HTTPS
-                correctly. Otherwise some subdomains may become hard to access.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is HSTS preload?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Preload is a stronger setup where browsers can know your site
-                should use HTTPS before the first visit. It should be used only
-                when you are sure the whole domain is ready.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can I use max-age=0?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes, but it is normally used to remove an existing HSTS policy.
-                It must still be sent over HTTPS for browsers to apply it.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I generate the header?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The HSTS header is generated directly in your browser.
-              </p>
-            </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/hsts-header-generator" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/hsts-header-generator" />
         </div>
       </section>
     </ToolShell>
@@ -516,12 +480,11 @@ export default function ToolClient() {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
         {label}
       </div>
-
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">
+      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900 [overflow-wrap:anywhere]">
         {value}
       </div>
     </div>
@@ -534,87 +497,97 @@ function buildHSTSHeader({
   outputMode,
   includeSubDomains,
   preload,
-  forceHttpsNote,
 }: {
   presetMode: PresetMode;
   customMaxAge: string;
   outputMode: OutputMode;
   includeSubDomains: boolean;
   preload: boolean;
-  forceHttpsNote: boolean;
 }): HeaderResult {
-  const maxAge = presetMode === "custom" ? Number(customMaxAge) : presetSeconds[presetMode];
+  const rawMaxAge =
+    presetMode === "custom" ? customMaxAge.trim() : String(presetSeconds[presetMode]);
 
-  if (!Number.isFinite(maxAge) || maxAge < 0) {
-    throw new Error("Max-age must be 0 or a positive number of seconds.");
+  if (!/^\d+$/.test(rawMaxAge)) {
+    throw new Error("Max-age must contain decimal digits only, such as 300 or 31536000.");
   }
 
-  const parts = [`max-age=${Math.floor(maxAge)}`];
+  const maxAge = Number(rawMaxAge);
 
-  if (includeSubDomains) {
-    parts.push("includeSubDomains");
+  if (!Number.isSafeInteger(maxAge)) {
+    throw new Error(
+      "Max-age is too large for this browser tool to preserve exactly. Use a value up to 9007199254740991 seconds."
+    );
   }
 
-  if (preload) {
-    parts.push("preload");
-  }
+  const parts = [`max-age=${maxAge}`];
+  if (includeSubDomains) parts.push("includeSubDomains");
+  if (preload) parts.push("preload");
 
   const headerValue = parts.join("; ");
   const fullHeader = `Strict-Transport-Security: ${headerValue}`;
-  const preloadReady = maxAge >= 31536000 && includeSubDomains && preload;
+  const preloadHeaderShape =
+    maxAge >= 31536000 && includeSubDomains && preload;
   const warnings: string[] = [];
-  const notes: string[] = [];
+  const observations: string[] = [];
 
   if (maxAge === 0) {
-    notes.push("max-age=0 is used to remove an existing HSTS policy after the browser receives it over HTTPS.");
-  } else if (maxAge < 86400) {
-    notes.push("Short max-age is useful for testing but too short for long-term HSTS protection.");
-  }
-
-  if (maxAge >= 31536000) {
-    notes.push("Long max-age is suitable only after HTTPS is stable.");
+    observations.push(
+      "max-age=0 is a removal instruction for this host after the browser receives it over HTTPS."
+    );
+  } else if (maxAge < 2592000) {
+    observations.push(
+      "This is a short-lived policy, which is easier to recover from during staged rollout."
+    );
+  } else if (maxAge >= 31536000) {
+    observations.push(
+      "This browser may remember the HTTPS-only policy for a year or longer unless a later HTTPS response changes it."
+    );
   }
 
   if (includeSubDomains && maxAge > 0) {
-    warnings.push("includeSubDomains affects every subdomain. Make sure they all support HTTPS.");
+    warnings.push(
+      "includeSubDomains extends the policy to descendant hosts, so every affected subdomain needs working HTTPS."
+    );
   }
 
-  if (includeSubDomains && maxAge === 0) {
-    notes.push("With max-age=0, includeSubDomains does not extend protection. It is normally used only when removing a policy.");
-  }
-
-  if (preload && !preloadReady) {
-    warnings.push("Preload expects max-age of at least 1 year, includeSubDomains, and the preload directive.");
+  if (preload && !preloadHeaderShape) {
+    warnings.push(
+      "The current preload submission header shape requires max-age of at least 31536000 seconds plus includeSubDomains and preload."
+    );
   }
 
   if (preload) {
-    warnings.push("Preload can be difficult to undo. Review the domain carefully before submitting it for preload.");
+    warnings.push(
+      "Preload is a separate browser-list commitment and can be slow to undo; the header alone does not submit or qualify the domain."
+    );
   }
 
-  if (forceHttpsNote) {
-    warnings.push("Only send HSTS over HTTPS. Browsers ignore it over plain HTTP.");
+  if (maxAge === 0 && (includeSubDomains || preload)) {
+    warnings.push(
+      "A removal header normally does not need includeSubDomains or preload; inherited parent-domain HSTS can still apply."
+    );
   }
 
   const output = formatOutput({
     outputMode,
     headerValue,
     fullHeader,
-    maxAge: Math.floor(maxAge),
+    maxAge,
     includeSubDomains,
     preload,
-    preloadReady,
+    preloadHeaderShape,
     warnings,
-    notes,
+    observations,
   });
 
   return {
     headerValue,
     fullHeader,
-    maxAge: Math.floor(maxAge),
+    maxAge,
     output,
-    preloadReady,
+    preloadHeaderShape,
     warnings,
-    notes,
+    observations,
   };
 }
 
@@ -625,9 +598,9 @@ function formatOutput({
   maxAge,
   includeSubDomains,
   preload,
-  preloadReady,
+  preloadHeaderShape,
   warnings,
-  notes,
+  observations,
 }: {
   outputMode: OutputMode;
   headerValue: string;
@@ -635,9 +608,9 @@ function formatOutput({
   maxAge: number;
   includeSubDomains: boolean;
   preload: boolean;
-  preloadReady: boolean;
+  preloadHeaderShape: boolean;
   warnings: string[];
-  notes: string[];
+  observations: string[];
 }) {
   if (outputMode === "json") {
     return JSON.stringify(
@@ -648,9 +621,9 @@ function formatOutput({
         duration: formatDuration(maxAge),
         includeSubDomains,
         preload,
-        preloadReady,
+        preloadHeaderShape,
         warnings,
-        notes,
+        observations,
       },
       null,
       2
@@ -670,7 +643,7 @@ function formatOutput({
       "Header name: Strict-Transport-Security",
       `Header value: ${headerValue}`,
       "",
-      "Apply this as a response header rule on HTTPS traffic only.",
+      "Apply the response-header rule to HTTPS responses only.",
     ].join("\n");
   }
 
@@ -678,56 +651,31 @@ function formatOutput({
 }
 
 function formatDuration(seconds: number) {
-  if (seconds < 60) {
-    return `${seconds} seconds`;
+  if (seconds === 0) return "Removal value";
+  if (seconds < 60) return `${seconds} second${seconds === 1 ? "" : "s"}`;
+  if (seconds < 86400) {
+    const hours = seconds / 3600;
+    return Number.isInteger(hours) ? `${hours} hour${hours === 1 ? "" : "s"}` : `${seconds.toLocaleString()} seconds`;
   }
-
-  const days = Math.round(seconds / 86400);
-
-  if (days < 30) {
-    return `${days} days`;
-  }
-
-  const months = Math.round(days / 30);
-
-  if (months < 12) {
-    return `${months} months`;
-  }
-
-  const years = Math.round(months / 12);
-
-  return `${years} year${years === 1 ? "" : "s"}`;
+  const days = seconds / 86400;
+  if (Number.isInteger(days) && days < 365) return `${days} days`;
+  const years = seconds / 31536000;
+  if (Number.isInteger(years)) return `${years} year${years === 1 ? "" : "s"}`;
+  return `${seconds.toLocaleString()} seconds`;
 }
 
 function getHSTSNotes(result: HeaderResult): HSTSNote[] {
   const notes: HSTSNote[] = [];
 
-  if (result.warnings.length > 0) {
-    notes.push({
-      title: "Review before deploying",
-      message: result.warnings.join(" "),
-    });
-  }
+  result.warnings.forEach((warning, index) => {
+    notes.push({ title: `Caution ${index + 1}`, message: warning });
+  });
 
-  if (result.preloadReady) {
+  if (result.preloadHeaderShape) {
     notes.push({
-      title: "Preload-style header",
+      title: "Header shape, not preload readiness",
       message:
-        "This header has the common preload directives. Review your whole domain and subdomains before using preload.",
-    });
-  }
-
-  if (result.maxAge === 0) {
-    notes.push({
-      title: "Removal value",
-      message:
-        "max-age=0 asks browsers to remove the HSTS policy after receiving the header over HTTPS.",
-    });
-  } else if (result.maxAge < 86400) {
-    notes.push({
-      title: "Testing value",
-      message:
-        "This max-age is short. It is useful for testing, but it does not provide long-term HSTS behavior.",
+        "The directive combination matches the current preload header requirements, but domain-wide HTTPS, redirects, certificates, and submission status still have to be checked separately.",
     });
   }
 
