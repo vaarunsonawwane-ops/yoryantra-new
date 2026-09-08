@@ -8,6 +8,7 @@ import YoryantraSelect from "@/app/components/YoryantraSelect";
 type InputMode = "text" | "url" | "query";
 type DecodeMode = "component" | "uri" | "safe";
 type OutputMode = "summary" | "decoded" | "table" | "json" | "report";
+type Severity = "info" | "warning" | "high";
 
 type EscapeItem = {
   sequence: string;
@@ -20,7 +21,7 @@ type EscapeItem = {
 };
 
 type AnalyzerIssue = {
-  severity: "info" | "warning" | "high";
+  severity: Severity;
   title: string;
   message: string;
 };
@@ -35,8 +36,10 @@ type AnalyzerResult = {
   decodedLength: number;
   escapeCount: number;
   invalidEscapeCount: number;
+  invalidUtf8RunCount: number;
   plusCount: number;
   reservedEscapeCount: number;
+  doubleEncodedCount: number;
 };
 
 type AnalyzerNote = {
@@ -45,11 +48,13 @@ type AnalyzerNote = {
 };
 
 const sampleInput =
-  "https://example.com/search?q=caf%C3%A9%20menu&redirect=https%3A%2F%2Fyoryantra.com%2Ftools%3Ftag%3Dseo&bad=%E0%A4%A";
+  "https://example.com/search?q=caf%C3%A9+menu&redirect=https%3A%2F%2Fyoryantra.com%2Ftools%3Ftag%3Dseo&bad=%E0%A4%A";
 
 const reservedCharacters = new Set([
   ":", "/", "?", "#", "[", "]", "@", "!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "=",
 ]);
+
+const MAX_INPUT_CHARS = 750_000;
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -65,10 +70,20 @@ export default function ToolClient() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const notes = useMemo(() => (result ? getAnalyzerNotes(result) : []), [result]);
+  const notes = useMemo(
+    () => (result ? getAnalyzerNotes(result, inputMode, decodeMode, treatPlusAsSpace) : []),
+    [result, inputMode, decodeMode, treatPlusAsSpace]
+  );
+
+  const clearResult = () => {
+    setResult(null);
+    setOutput("");
+    setError("");
+    setCopied(false);
+  };
 
   const analyzeEncoding = () => {
-    if (!input.trim()) {
+    if (input.length === 0) {
       setError("Please enter a URL, query string, or percent-encoded text.");
       setResult(null);
       setOutput("");
@@ -104,16 +119,10 @@ export default function ToolClient() {
   };
 
   const copyOutput = async () => {
-    if (!output) {
-      return;
-    }
-
+    if (!output) return;
     await navigator.clipboard.writeText(output);
     setCopied(true);
-
-    window.setTimeout(() => {
-      setCopied(false);
-    }, 1400);
+    window.setTimeout(() => setCopied(false), 1400);
   };
 
   const loadExample = () => {
@@ -125,10 +134,7 @@ export default function ToolClient() {
     setHighlightReservedEscapes(true);
     setShowUtf8Warnings(true);
     setPreserveInvalidEscapes(true);
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    clearResult();
   };
 
   const resetAll = () => {
@@ -140,78 +146,60 @@ export default function ToolClient() {
     setHighlightReservedEscapes(true);
     setShowUtf8Warnings(true);
     setPreserveInvalidEscapes(true);
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    clearResult();
   };
 
   return (
     <ToolShell
       title="Percent Encoding Analyzer"
-      description="Analyze percent-encoded URL text. Inspect %XX escapes, decode UTF-8 bytes, find malformed percent encoding, compare raw and decoded values, and debug URLs directly in your browser."
+      description="Trace percent escapes, UTF-8 byte runs, malformed sequences, reserved characters, and query plus semantics."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          URL or Percent-Encoded Text
-        </label>
-
+        <label className="mb-2 block text-sm font-medium text-gray-700">URL or percent-encoded text</label>
         <textarea
           value={input}
           onChange={(event) => {
             setInput(event.target.value);
-            setResult(null);
-            setOutput("");
-            setError("");
-            setCopied(false);
+            clearResult();
           }}
           placeholder={sampleInput}
+          spellCheck={false}
           className="w-full min-h-[330px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Paste a URL, query string, redirect target, API parameter, or any text
-          containing percent escapes like %20, %2F, or %E2%82%B9.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          Input is analyzed exactly as pasted, including leading or trailing spaces. Percent escapes are byte values, so a single Unicode character may span several %XX sequences.
         </p>
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Options
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900">Interpretation settings</h3>
 
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
           <YoryantraSelect
-            label="Input Type"
+            label="Input context"
             value={inputMode}
             onChange={(value) => {
               setInputMode(value as InputMode);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
+              clearResult();
             }}
             options={[
               { label: "Full URL", value: "url" },
-              { label: "Query string", value: "query" },
-              { label: "Plain text", value: "text" },
+              { label: "Query string / form value", value: "query" },
+              { label: "Plain component text", value: "text" },
             ]}
           />
 
           <YoryantraSelect
-            label="Decode Mode"
+            label="Decode behavior"
             value={decodeMode}
             onChange={(value) => {
               setDecodeMode(value as DecodeMode);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
+              clearResult();
             }}
             options={[
-              { label: "Safe decoder", value: "safe" },
-              { label: "decodeURIComponent style", value: "component" },
-              { label: "decodeURI style", value: "uri" },
+              { label: "Lossless tolerant decode", value: "safe" },
+              { label: "decodeURIComponent semantics", value: "component" },
+              { label: "decodeURI semantics", value: "uri" },
             ]}
           />
 
@@ -220,10 +208,7 @@ export default function ToolClient() {
             value={outputMode}
             onChange={(value) => {
               setOutputMode(value as OutputMode);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
+              clearResult();
             }}
             options={[
               { label: "Summary", value: "summary" },
@@ -234,165 +219,69 @@ export default function ToolClient() {
             ]}
           />
 
-          <div className="md:col-span-2 space-y-3">
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-              <input
-                type="checkbox"
-                checked={treatPlusAsSpace}
-                onChange={(event) => {
-                  setTreatPlusAsSpace(event.target.checked);
-                  setResult(null);
-                  setOutput("");
-                  setError("");
-                  setCopied(false);
-                }}
-                className="h-4 w-4 accent-[var(--light-gold)]"
-              />
-
-              Treat plus signs as spaces for form/query decoding
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-              <input
-                type="checkbox"
-                checked={highlightReservedEscapes}
-                onChange={(event) => {
-                  setHighlightReservedEscapes(event.target.checked);
-                  setResult(null);
-                  setOutput("");
-                  setError("");
-                  setCopied(false);
-                }}
-                className="h-4 w-4 accent-[var(--light-gold)]"
-              />
-
-              Highlight escaped reserved URL characters
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-              <input
-                type="checkbox"
-                checked={showUtf8Warnings}
-                onChange={(event) => {
-                  setShowUtf8Warnings(event.target.checked);
-                  setResult(null);
-                  setOutput("");
-                  setError("");
-                  setCopied(false);
-                }}
-                className="h-4 w-4 accent-[var(--light-gold)]"
-              />
-
-              Warn about broken UTF-8 escape sequences
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-              <input
-                type="checkbox"
-                checked={preserveInvalidEscapes}
-                onChange={(event) => {
-                  setPreserveInvalidEscapes(event.target.checked);
-                  setResult(null);
-                  setOutput("");
-                  setError("");
-                  setCopied(false);
-                }}
-                className="h-4 w-4 accent-[var(--light-gold)]"
-              />
-
-              Preserve invalid percent escapes in safe decoding
-            </label>
+          <div className="space-y-3 md:col-span-2">
+            <CheckboxRow checked={treatPlusAsSpace} label="Treat plus as space in form/query data" onChange={(checked) => { setTreatPlusAsSpace(checked); clearResult(); }} />
+            <CheckboxRow checked={highlightReservedEscapes} label="Flag escapes that decode to RFC 3986 reserved characters" onChange={(checked) => { setHighlightReservedEscapes(checked); clearResult(); }} />
+            <CheckboxRow checked={showUtf8Warnings} label="Check percent-byte runs for invalid UTF-8" onChange={(checked) => { setShowUtf8Warnings(checked); clearResult(); }} />
+            <CheckboxRow checked={preserveInvalidEscapes} label="Keep malformed percent text in tolerant output" onChange={(checked) => { setPreserveInvalidEscapes(checked); clearResult(); }} />
           </div>
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          This analyzer explains percent escapes instead of only decoding them,
-          which helps when debugging broken redirects, query strings, and copied URLs.
+        <p className="mt-4 text-sm leading-relaxed text-gray-500">
+          For a full URL, plus-to-space applies only inside the query portion. A literal plus in the path is left alone.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={analyzeEncoding} className="yoryantra-btn">
-          Analyze Percent Encoding
-        </button>
-
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
-          {copied ? "Copied" : "Copy Output"}
-        </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
-          Load Example
-        </button>
-
-        <button onClick={resetAll} className="yoryantra-btn-outline">
-          Reset
-        </button>
+        <button onClick={analyzeEncoding} className="yoryantra-btn min-h-11 whitespace-nowrap">Analyze Percent Encoding</button>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-11 whitespace-nowrap" disabled={!output}>{copied ? "Copied" : "Copy Output"}</button>
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">Load Example</button>
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-11 whitespace-nowrap">Reset</button>
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
-          {error}
-        </div>
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">{error}</div>
       )}
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Escapes" value={result.escapeCount.toLocaleString()} />
-          <SummaryCard label="Invalid" value={result.invalidEscapeCount.toLocaleString()} />
-          <SummaryCard label="Plus Signs" value={result.plusCount.toLocaleString()} />
-          <SummaryCard label="Issues" value={result.issues.length.toLocaleString()} />
+          <SummaryCard label="Percent escapes" value={result.escapeCount.toLocaleString()} />
+          <SummaryCard label="Malformed" value={result.invalidEscapeCount.toLocaleString()} />
+          <SummaryCard label="Invalid UTF-8 runs" value={result.invalidUtf8RunCount.toLocaleString()} />
+          <SummaryCard label="Reserved escapes" value={result.reservedEscapeCount.toLocaleString()} />
         </div>
       )}
 
       {result && result.escapes.length > 0 && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Percent Escape Review
-          </h3>
-
-          <p className="mt-2 text-sm text-gray-500">
-            Each percent escape found in the input, with decoded character and
-            validity details.
+          <h3 className="text-lg font-semibold text-gray-900">Percent-byte table</h3>
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+            Each valid %XX triplet represents one byte. Bytes above 0x7F are marked as UTF-8 bytes rather than being mislabelled as standalone characters.
           </p>
 
           <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className="w-full min-w-[780px] text-left text-sm">
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Index</th>
                   <th className="px-4 py-3 font-semibold">Escape</th>
                   <th className="px-4 py-3 font-semibold">Byte</th>
-                  <th className="px-4 py-3 font-semibold">Character</th>
+                  <th className="px-4 py-3 font-semibold">Meaning</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold">Note</th>
                 </tr>
               </thead>
-
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-200">
                 {result.escapes.slice(0, 120).map((item) => (
-                  <tr key={`${item.index}-${item.sequence}`}>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      {item.index}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-900">
-                      {item.sequence}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      {item.decimal === null ? "-" : item.decimal}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      {item.character || "-"}
-                    </td>
+                  <tr key={`${item.index}-${item.sequence}`} className="align-top">
+                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{item.index}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-900">{item.sequence}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{item.decimal === null ? "-" : `0x${item.hex.toUpperCase()} (${item.decimal})`}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{item.character || "-"}</td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                        item.valid ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                      }`}>
-                        {item.valid ? "valid" : "invalid"}
-                      </span>
+                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${item.valid ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>{item.valid ? "valid byte" : "malformed"}</span>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {item.warning || "-"}
-                    </td>
+                    <td className="px-4 py-3 text-gray-700">{item.warning || "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -400,51 +289,27 @@ export default function ToolClient() {
           </div>
 
           {result.escapes.length > 120 && (
-            <p className="mt-3 text-sm text-gray-500">
-              Showing the first 120 escapes. Copy the output for the full result.
-            </p>
+            <p className="mt-3 text-sm text-gray-500">Showing the first 120 escapes in the browser table. The selected JSON/table/report output includes the full analysis.</p>
           )}
         </div>
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Encoding findings
-          </h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {issue.title}
-                </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {issue.message}
-                </p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {result.issues.map((issue, index) => (
+            <IssueCard key={`${issue.title}-${index}`} issue={issue} />
+          ))}
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">
-            Percent encoding notes
-          </h3>
-
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Context notes</h3>
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">
-                  {note.title}
-                </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">
-                  {note.message}
-                </p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -452,196 +317,123 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Output
-          </h3>
-
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">Output</h3>
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
-              {copied ? "Copied" : "Copy"}
-            </button>
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-11 whitespace-nowrap text-sm">{copied ? "Copied" : "Copy"}</button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
-          {output || "Percent encoding analysis output will appear here."}
-        </pre>
+        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">{output || "Percent-encoding analysis output will appear here."}</pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Percent encoding analysis happens directly in your browser. Your URL or
-        text is not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Analysis runs in your browser and does not request the pasted URL. That means redirects, server routing, proxy normalization, framework decoding, and application behavior are not executed or reproduced.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Inspecting Percent-Encoding in URLs and Query Strings
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">A percent escape represents one byte</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Percent encoding is used in URLs to represent characters that cannot
-            safely appear as plain text. A space may become %20, a slash may
-            become %2F, and UTF-8 characters can appear as multiple percent
-            escapes.
+            RFC 3986 writes a percent-encoded octet as <strong>%</strong> followed by two hexadecimal digits. ASCII characters fit in one byte, but UTF-8 text often needs several bytes. For example, <code>%C3%A9</code> is one UTF-8 character made from two percent-encoded bytes; treating each byte as an independent character produces misleading mojibake.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Percent Encoding Analyzer goes beyond a normal URL decoder. It
-            shows each percent escape, checks whether it is valid, highlights
-            reserved characters, detects malformed sequences, and compares the
-            raw value with the decoded output.
+            The byte table therefore labels non-ASCII octets as UTF-8 bytes and validates consecutive percent-byte runs separately. Tolerant decode preserves invalid UTF-8 escapes rather than inserting replacement characters that could hide corruption.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Using the Percent Encoding Analyzer
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a full URL, query string, redirect URL, or encoded text.</li>
-            <li>Choose safe, component-style, or URI-style decoding.</li>
-            <li>Turn plus-to-space handling on for form-style query values if needed.</li>
-            <li>Review valid and invalid percent escapes in the table.</li>
-            <li>Copy the decoded output, report, JSON, or escape table.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Percent Encoding Analyzer Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Debugging broken URLs with malformed percent escapes.</li>
-            <li>Checking encoded redirect parameters inside query strings.</li>
-            <li>Understanding why %2F, %3A, or %26 changes URL behavior.</li>
-            <li>Inspecting UTF-8 characters encoded as multiple %XX bytes.</li>
-            <li>Comparing plus signs and spaces in form/query decoding.</li>
-            <li>Reviewing copied URLs from browsers, logs, APIs, and analytics tools.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Percent Escapes
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`%20  -> space
-%2F  -> /
-%3A  -> :
-%C3%A9 -> é`}
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900">Component boundaries must be known before reserved bytes are decoded</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Characters such as <strong>/</strong>, <strong>?</strong>, <strong>#</strong>, <strong>&</strong>, and <strong>=</strong> can delimit URL structure. RFC 3986 warns that decoding a reserved character before the URI has been split into its components can turn data into syntax. That is why <code>decodeURI</code> and <code>decodeURIComponent</code> intentionally behave differently.
+          </p>
+          <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+            Decoding a complete URL with component-style rules can expose reserved delimiters such as an encoded slash or ampersand. Analyze the component you actually intend to decode rather than repeatedly decoding the whole URL.
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Plus Signs Are Not Always Spaces
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Plus-to-space is form parsing, not percent decoding</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            In application/x-www-form-urlencoded query values, a plus sign is
-            often treated as a space. In a normal URL path, however, plus is just
-            a plus character. This is why the tool lets you choose whether plus
-            signs should be decoded as spaces.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            When debugging API requests or redirect URLs, this difference can
-            matter. A value copied from a form body may need different decoding
-            than a raw URL path.
+            A literal <strong>+</strong> is not a percent escape. The HTML/URL form-encoding algorithm uses plus as a representation of space when parsing <code>application/x-www-form-urlencoded</code> data. A plus in a path remains a plus. When full-URL mode is selected here, plus-to-space is limited to the query portion so path data is not rewritten accidentally.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is percent encoding?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Percent encoding represents characters in URLs using a percent
-                sign followed by two hexadecimal digits, such as %20 for a space.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a malformed percent escape?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It is a percent sign that is not followed by two valid hexadecimal
-                digits, such as %G1 or a trailing % at the end of a string.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is %2F the same as a slash?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It decodes to a slash, but whether it behaves like a path slash
-                depends on where and when decoding happens.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should plus signs become spaces?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Only in some form/query decoding contexts. A plus sign in a URL
-                path is normally a literal plus sign.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I analyze a URL?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Analysis happens directly in your browser.
-              </p>
-            </div>
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h3 className="font-semibold text-gray-900">Malformed escape</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              A bare percent sign, <code>%G1</code>, or an incomplete triplet is not valid percent encoding. Strict JavaScript URI decoders throw a URIError for malformed syntax.
+            </p>
+          </div>
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h3 className="font-semibold text-gray-900">Valid escapes, invalid UTF-8</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              <code>%FF</code> is syntactically a valid percent-encoded byte, but it is not valid standalone UTF-8. URI component decoders can therefore reject input whose %XX syntax looks correct.
+            </p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Double decoding can change meaning</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            <code>%252F</code> becomes <code>%2F</code> after one decode and <code>/</code> after a second. RFC 3986 explicitly cautions against encoding or decoding the same string more than once. Differences between proxies, routers, web frameworks, and application code are a common reason encoded delimiters become security-sensitive.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/percent-encoding-analyzer" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Standards behind the analysis</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            <a href="https://www.rfc-editor.org/rfc/rfc3986.html" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">RFC 3986</a>{" "}
+            defines percent-encoded octets, reserved and unreserved URI characters, and the warning about decoding before component boundaries are known. The living <a href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">WHATWG URL Standard</a>{" "}
+            defines browser URL percent-encode sets and the form-urlencoded parser used for modern query/form behavior.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/percent-encoding-analyzer" />
+          </div>
         </div>
       </section>
     </ToolShell>
   );
 }
 
+function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900">
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--light-gold)]" />
+      <span>{label}</span>
+    </label>
+  );
+}
+
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {label}
-      </div>
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
+    </div>
+  );
+}
 
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">
-        {value}
-      </div>
+function IssueCard({ issue }: { issue: AnalyzerIssue }) {
+  const classes = issue.severity === "high"
+    ? "border-red-200 bg-red-50 text-red-800"
+    : issue.severity === "warning"
+      ? "self-start border-amber-200 bg-amber-50 text-amber-800"
+      : "border-gray-200 bg-gray-50 text-gray-600";
+  const titleClass = issue.severity === "high"
+    ? "text-red-900"
+    : issue.severity === "warning"
+      ? "text-amber-900"
+      : "text-gray-900";
+
+  return (
+    <div className={`rounded-xl border p-4 ${classes}`}>
+      <p className={`text-sm font-semibold ${titleClass}`}>{issue.title}</p>
+      <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
     </div>
   );
 }
@@ -658,130 +450,183 @@ function analyzePercentEncoding(
     preserveInvalidEscapes: boolean;
   }
 ): AnalyzerResult {
-  const cleanInput = input.trim();
-  const adjustedInput = options.treatPlusAsSpace ? cleanInput.replace(/\+/g, " ") : cleanInput;
+  if (input.length > MAX_INPUT_CHARS) {
+    throw new Error(`Input is too large for an interactive browser analysis. Keep it under ${MAX_INPUT_CHARS.toLocaleString()} characters.`);
+  }
+
+  const adjustedInput = options.treatPlusAsSpace
+    ? applyPlusHandling(input, options.inputMode)
+    : input;
   const escapes = extractEscapes(adjustedInput, options.highlightReservedEscapes);
-  const issues = getIssues(adjustedInput, escapes, options);
-  const decoded = decodeInput(adjustedInput, options);
-  const plusCount = (cleanInput.match(/\+/g) || []).length;
+  const invalidUtf8RunCount = countInvalidUtf8Runs(adjustedInput);
+  const plusCount = (input.match(/\+/g) || []).length;
   const invalidEscapeCount = escapes.filter((item) => !item.valid).length;
-  const reservedEscapeCount = escapes.filter((item) => item.valid && reservedCharacters.has(item.character)).length;
+  const reservedEscapeCount = escapes.filter((item) => item.valid && item.decimal !== null && reservedCharacters.has(String.fromCharCode(item.decimal))).length;
+  const doubleEncodedCount = (input.match(/%25[A-Fa-f0-9]{2}/g) || []).length;
+  const issues = getIssues(input, escapes, invalidUtf8RunCount, doubleEncodedCount, options);
+  const decoded = decodeInput(adjustedInput, options);
   const output = formatOutput({
-    input: cleanInput,
+    input,
     decoded,
     escapes,
     issues,
     outputMode: options.outputMode,
-    inputLength: cleanInput.length,
+    inputLength: input.length,
     decodedLength: decoded.length,
     escapeCount: escapes.length,
     invalidEscapeCount,
+    invalidUtf8RunCount,
     plusCount,
     reservedEscapeCount,
+    doubleEncodedCount,
   });
 
   return {
-    input: cleanInput,
+    input,
     decoded,
     output,
     escapes,
     issues,
-    inputLength: cleanInput.length,
+    inputLength: input.length,
     decodedLength: decoded.length,
     escapeCount: escapes.length,
     invalidEscapeCount,
+    invalidUtf8RunCount,
     plusCount,
     reservedEscapeCount,
+    doubleEncodedCount,
   };
+}
+
+function applyPlusHandling(input: string, inputMode: InputMode): string {
+  if (inputMode !== "url") {
+    return input.replace(/\+/g, " ");
+  }
+
+  const queryStart = input.indexOf("?");
+  if (queryStart === -1) return input;
+  const fragmentStart = input.indexOf("#", queryStart + 1);
+  const end = fragmentStart === -1 ? input.length : fragmentStart;
+  return input.slice(0, queryStart + 1) + input.slice(queryStart + 1, end).replace(/\+/g, " ") + input.slice(end);
 }
 
 function extractEscapes(input: string, highlightReservedEscapes: boolean): EscapeItem[] {
   const items: EscapeItem[] = [];
 
   for (let index = 0; index < input.length; index += 1) {
-    if (input[index] !== "%") {
-      continue;
-    }
+    if (input[index] !== "%") continue;
 
     const sequence = input.slice(index, index + 3);
     const hex = input.slice(index + 1, index + 3);
     const valid = /^[A-Fa-f0-9]{2}$/.test(hex);
     const decimal = valid ? parseInt(hex, 16) : null;
-    const character = valid ? String.fromCharCode(decimal || 0) : "";
+    let character = "";
     let warning = "";
 
     if (!valid) {
       warning = "Malformed percent escape";
-    } else if (highlightReservedEscapes && reservedCharacters.has(character)) {
-      warning = "Reserved URL character";
+    } else if (decimal !== null && decimal < 0x80) {
+      character = describeAsciiByte(decimal);
+      if (highlightReservedEscapes && reservedCharacters.has(String.fromCharCode(decimal))) {
+        warning = "RFC 3986 reserved character";
+      }
+    } else {
+      character = "UTF-8 byte";
     }
 
-    items.push({
-      sequence,
-      index,
-      hex,
-      decimal,
-      character: character === " " ? "space" : character,
-      valid,
-      warning,
-    });
+    items.push({ sequence, index, hex, decimal, character, valid, warning });
   }
 
   return items;
 }
 
+function describeAsciiByte(value: number): string {
+  if (value === 0x20) return "space";
+  if (value === 0x09) return "tab";
+  if (value === 0x0A) return "LF";
+  if (value === 0x0D) return "CR";
+  if (value < 0x20 || value === 0x7F) return `control 0x${value.toString(16).toUpperCase().padStart(2, "0")}`;
+  return String.fromCharCode(value);
+}
+
 function getIssues(
   input: string,
   escapes: EscapeItem[],
+  invalidUtf8RunCount: number,
+  doubleEncodedCount: number,
   options: {
     inputMode: InputMode;
     decodeMode: DecodeMode;
     treatPlusAsSpace: boolean;
+    highlightReservedEscapes: boolean;
     showUtf8Warnings: boolean;
+    preserveInvalidEscapes: boolean;
   }
 ): AnalyzerIssue[] {
   const issues: AnalyzerIssue[] = [];
   const invalidEscapes = escapes.filter((item) => !item.valid);
-  const reservedEscapes = escapes.filter((item) => item.valid && reservedCharacters.has(item.character));
+  const reservedEscapes = escapes.filter((item) => item.valid && item.decimal !== null && reservedCharacters.has(String.fromCharCode(item.decimal)));
   const plusCount = (input.match(/\+/g) || []).length;
 
   if (invalidEscapes.length > 0) {
     issues.push({
       severity: "high",
-      title: "Malformed percent escapes found",
-      message: `${invalidEscapes.length} percent escape${invalidEscapes.length === 1 ? "" : "s"} are not followed by two valid hexadecimal digits.`,
+      title: "Malformed percent escapes",
+      message: `${invalidEscapes.length} percent sign${invalidEscapes.length === 1 ? " is" : "s are"} not followed by two hexadecimal digits. Strict URI decoders reject this syntax.`,
     });
   }
 
-  if (reservedEscapes.length > 0) {
-    issues.push({
-      severity: "info",
-      title: "Reserved characters are escaped",
-      message: `${reservedEscapes.length} escape${reservedEscapes.length === 1 ? "" : "s"} decode to reserved URL characters such as /, :, ?, &, or =.`,
-    });
-  }
-
-  if (plusCount > 0 && !options.treatPlusAsSpace) {
-    issues.push({
-      severity: "info",
-      title: "Plus signs found",
-      message: "Plus signs were kept as plus characters. Enable plus-to-space if this is form/query encoded text.",
-    });
-  }
-
-  if (options.showUtf8Warnings && looksLikeBrokenUtf8(input)) {
+  if (options.showUtf8Warnings && invalidUtf8RunCount > 0) {
     issues.push({
       severity: "warning",
-      title: "Possible incomplete UTF-8 sequence",
-      message: "The input appears to contain a partial percent-encoded UTF-8 byte sequence.",
+      title: "Percent bytes are not valid UTF-8",
+      message: `${invalidUtf8RunCount} consecutive percent-byte run${invalidUtf8RunCount === 1 ? "" : "s"} cannot be decoded as valid UTF-8. Tolerant mode preserves those escapes rather than replacing their bytes.`,
     });
   }
 
-  if (options.decodeMode === "uri") {
+  if (options.highlightReservedEscapes && reservedEscapes.length > 0) {
     issues.push({
       severity: "info",
-      title: "decodeURI-style mode selected",
-      message: "decodeURI-style decoding keeps some reserved URL characters escaped compared with component decoding.",
+      title: "Reserved URL characters are encoded",
+      message: `${reservedEscapes.length} escape${reservedEscapes.length === 1 ? "" : "s"} represent RFC 3986 reserved characters. Decoding them before URL component boundaries are known can change structure.`,
+    });
+  }
+
+  if (plusCount > 0) {
+    issues.push({
+      severity: "info",
+      title: options.treatPlusAsSpace ? "Plus-to-space handling applied" : "Literal plus signs preserved",
+      message: options.treatPlusAsSpace
+        ? options.inputMode === "url"
+          ? "Only plus signs inside the full URL's query portion were changed to spaces; path and fragment plus signs were preserved."
+          : "Plus signs were interpreted using form/query semantics rather than ordinary URL path semantics."
+        : "A plus sign is not a percent escape. Enable plus-to-space only when the data follows application/x-www-form-urlencoded query/form rules.",
+    });
+  }
+
+  if (doubleEncodedCount > 0) {
+    issues.push({
+      severity: "warning",
+      title: "Possible second-stage percent encoding",
+      message: `${doubleEncodedCount} sequence${doubleEncodedCount === 1 ? "" : "s"} begin with %25 followed by hex digits, so another decode could expose a new %XX escape. Repeated decoding can change URL meaning and should not be assumed safe.`,
+    });
+  }
+
+  if (options.inputMode === "url" && options.decodeMode === "component") {
+    issues.push({
+      severity: "warning",
+      title: "Component decoding selected for a full URL",
+      message: "decodeURIComponent semantics decode reserved escapes that decodeURI would preserve. That can expose delimiters inside the pasted URL.",
+    });
+  }
+
+  if (options.decodeMode === "safe" && (invalidEscapes.length > 0 || invalidUtf8RunCount > 0)) {
+    issues.push({
+      severity: "info",
+      title: "Tolerant output stays lossless around invalid data",
+      message: options.preserveInvalidEscapes
+        ? "Malformed percent text and invalid UTF-8 byte escapes are preserved verbatim so the output does not hide damaged input."
+        : "Malformed percent signs are omitted by request, while valid %XX bytes that are not valid UTF-8 remain encoded to avoid replacement-character corruption.",
     });
   }
 
@@ -794,75 +639,129 @@ function decodeInput(
     decodeMode: DecodeMode;
     preserveInvalidEscapes: boolean;
   }
-) {
+): string {
   if (options.decodeMode === "component") {
-    return decodeURIComponent(input);
+    try {
+      return decodeURIComponent(input);
+    } catch {
+      throw new Error("decodeURIComponent semantics rejected the input because a percent escape is malformed or the escaped bytes are not valid UTF-8.");
+    }
   }
 
   if (options.decodeMode === "uri") {
-    return decodeURI(input);
+    try {
+      return decodeURI(input);
+    } catch {
+      throw new Error("decodeURI semantics rejected the input because a percent escape is malformed or the escaped bytes are not valid UTF-8.");
+    }
   }
 
   return safeDecode(input, options.preserveInvalidEscapes);
 }
 
-function safeDecode(input: string, preserveInvalidEscapes: boolean) {
+function safeDecode(input: string, preserveInvalidEscapes: boolean): string {
   let output = "";
-  let byteBuffer: number[] = [];
+  let index = 0;
 
-  const flushBytes = () => {
-    if (byteBuffer.length === 0) {
-      return;
-    }
-
-    output += new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(byteBuffer));
-    byteBuffer = [];
-  };
-
-  for (let index = 0; index < input.length; index += 1) {
-    const char = input[index];
-
-    if (char === "%" && /^[A-Fa-f0-9]{2}$/.test(input.slice(index + 1, index + 3))) {
-      byteBuffer.push(parseInt(input.slice(index + 1, index + 3), 16));
-      index += 2;
+  while (index < input.length) {
+    if (input[index] !== "%") {
+      output += input[index];
+      index += 1;
       continue;
     }
 
-    flushBytes();
-
-    if (char === "%" && !preserveInvalidEscapes) {
+    const hex = input.slice(index + 1, index + 3);
+    if (!/^[A-Fa-f0-9]{2}$/.test(hex)) {
+      if (preserveInvalidEscapes) output += "%";
+      index += 1;
       continue;
     }
 
-    output += char;
+    const firstByte = parseInt(hex, 16);
+    if (firstByte < 0x80) {
+      output += String.fromCharCode(firstByte);
+      index += 3;
+      continue;
+    }
+
+    const expected = utf8SequenceLength(firstByte);
+    if (expected === 0) {
+      output += input.slice(index, index + 3);
+      index += 3;
+      continue;
+    }
+
+    const bytes: number[] = [firstByte];
+    let cursor = index + 3;
+    let original = input.slice(index, index + 3);
+    let complete = true;
+
+    for (let part = 1; part < expected; part += 1) {
+      if (input[cursor] !== "%" || !/^[A-Fa-f0-9]{2}$/.test(input.slice(cursor + 1, cursor + 3))) {
+        complete = false;
+        break;
+      }
+      const nextByte = parseInt(input.slice(cursor + 1, cursor + 3), 16);
+      if ((nextByte & 0xC0) !== 0x80) {
+        complete = false;
+        break;
+      }
+      bytes.push(nextByte);
+      original += input.slice(cursor, cursor + 3);
+      cursor += 3;
+    }
+
+    if (!complete) {
+      output += input.slice(index, index + 3);
+      index += 3;
+      continue;
+    }
+
+    try {
+      output += new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+      index = cursor;
+    } catch {
+      output += original;
+      index = cursor;
+    }
   }
-
-  flushBytes();
 
   return output;
 }
 
-function looksLikeBrokenUtf8(input: string) {
-  const trailing = input.match(/(?:%[A-Fa-f0-9]{2})+$/);
+function utf8SequenceLength(firstByte: number): number {
+  if (firstByte >= 0xC2 && firstByte <= 0xDF) return 2;
+  if (firstByte >= 0xE0 && firstByte <= 0xEF) return 3;
+  if (firstByte >= 0xF0 && firstByte <= 0xF4) return 4;
+  return 0;
+}
 
-  if (!trailing) {
-    return false;
+function countInvalidUtf8Runs(input: string): number {
+  let count = 0;
+  let index = 0;
+
+  while (index < input.length) {
+    if (input[index] !== "%" || !/^[A-Fa-f0-9]{2}$/.test(input.slice(index + 1, index + 3))) {
+      index += 1;
+      continue;
+    }
+
+    const bytes: number[] = [];
+    let cursor = index;
+    while (cursor < input.length && input[cursor] === "%" && /^[A-Fa-f0-9]{2}$/.test(input.slice(cursor + 1, cursor + 3))) {
+      bytes.push(parseInt(input.slice(cursor + 1, cursor + 3), 16));
+      cursor += 3;
+    }
+
+    try {
+      new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+    } catch {
+      count += 1;
+    }
+    index = cursor;
   }
 
-  const bytes = (trailing[0].match(/%[A-Fa-f0-9]{2}/g) || []).map((part) => parseInt(part.slice(1), 16));
-  const first = bytes[0];
-
-  if (first === undefined) {
-    return false;
-  }
-
-  const expected =
-    first >= 0xF0 ? 4 :
-    first >= 0xE0 ? 3 :
-    first >= 0xC0 ? 2 :
-    1;
-
-  return bytes.length < expected;
+  return count;
 }
 
 function formatOutput(result: {
@@ -875,113 +774,105 @@ function formatOutput(result: {
   decodedLength: number;
   escapeCount: number;
   invalidEscapeCount: number;
+  invalidUtf8RunCount: number;
   plusCount: number;
   reservedEscapeCount: number;
-}) {
-  if (result.outputMode === "decoded") {
-    return result.decoded;
-  }
+  doubleEncodedCount: number;
+}): string {
+  if (result.outputMode === "decoded") return result.decoded;
 
   if (result.outputMode === "json") {
-    return JSON.stringify(
-      {
-        input: result.input,
-        decoded: result.decoded,
-        inputLength: result.inputLength,
-        decodedLength: result.decodedLength,
-        escapeCount: result.escapeCount,
-        invalidEscapeCount: result.invalidEscapeCount,
-        plusCount: result.plusCount,
-        reservedEscapeCount: result.reservedEscapeCount,
-        escapes: result.escapes,
-        issues: result.issues,
-      },
-      null,
-      2
-    );
+    return JSON.stringify({
+      input: result.input,
+      decoded: result.decoded,
+      inputLength: result.inputLength,
+      decodedLength: result.decodedLength,
+      escapeCount: result.escapeCount,
+      invalidEscapeCount: result.invalidEscapeCount,
+      invalidUtf8RunCount: result.invalidUtf8RunCount,
+      plusCount: result.plusCount,
+      reservedEscapeCount: result.reservedEscapeCount,
+      doubleEncodedCount: result.doubleEncodedCount,
+      escapes: result.escapes,
+      issues: result.issues,
+    }, null, 2);
   }
 
   if (result.outputMode === "table") {
     return [
-      "| Index | Escape | Byte | Character | Status | Note |",
+      "| Index | Escape | Byte | Meaning | Status | Note |",
       "| --- | --- | --- | --- | --- | --- |",
       ...result.escapes.map((item) =>
-        `| ${item.index} | ${item.sequence} | ${item.decimal === null ? "-" : item.decimal} | ${escapeMarkdown(item.character || "-")} | ${item.valid ? "valid" : "invalid"} | ${escapeMarkdown(item.warning || "-")} |`
+        `| ${item.index} | ${item.sequence} | ${item.decimal === null ? "-" : `0x${item.hex.toUpperCase()} (${item.decimal})`} | ${escapeMarkdown(item.character || "-")} | ${item.valid ? "valid byte" : "malformed"} | ${escapeMarkdown(item.warning || "-")} |`
       ),
     ].join("\n");
   }
 
-  if (result.outputMode === "report") {
-    const issues = result.issues.length
-      ? result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`)
-      : ["- No common percent-encoding issues found."];
-
-    return [
-      "Percent Encoding Analysis Report",
-      "--------------------------------",
-      `Input length: ${result.inputLength}`,
-      `Decoded length: ${result.decodedLength}`,
-      `Percent escapes: ${result.escapeCount}`,
-      `Invalid escapes: ${result.invalidEscapeCount}`,
-      `Plus signs: ${result.plusCount}`,
-      `Reserved escapes: ${result.reservedEscapeCount}`,
-      "",
-      "Decoded:",
-      result.decoded,
-      "",
-      "Findings:",
-      ...issues,
-    ].join("\n");
-  }
-
-  const issues = result.issues.length
+  const issueLines = result.issues.length
     ? result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`)
-    : ["- No common percent-encoding issues found."];
+    : ["- No structural percent-encoding findings were detected with the selected options."];
 
-  return [
-    "Percent Encoding Summary",
-    "------------------------",
+  const body = [
+    `Input characters: ${result.inputLength}`,
+    `Decoded characters: ${result.decodedLength}`,
     `Percent escapes: ${result.escapeCount}`,
-    `Invalid escapes: ${result.invalidEscapeCount}`,
+    `Malformed escapes: ${result.invalidEscapeCount}`,
+    `Invalid UTF-8 runs: ${result.invalidUtf8RunCount}`,
     `Plus signs: ${result.plusCount}`,
     `Reserved escapes: ${result.reservedEscapeCount}`,
+    `Possible double-encoded escapes: ${result.doubleEncodedCount}`,
     "",
     "Decoded:",
     result.decoded,
     "",
     "Findings:",
-    ...issues,
-  ].join("\n");
+    ...issueLines,
+  ];
+
+  if (result.outputMode === "report") {
+    return ["Percent-encoding analysis report", "--------------------------------", ...body].join("\n");
+  }
+
+  return ["Percent-encoding summary", "------------------------", ...body.slice(2)].join("\n");
 }
 
-function escapeMarkdown(value: string) {
-  return value.replace(/\|/g, "\\|");
+function escapeMarkdown(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 }
 
-function getAnalyzerNotes(result: AnalyzerResult): AnalyzerNote[] {
+function getAnalyzerNotes(
+  result: AnalyzerResult,
+  inputMode: InputMode,
+  decodeMode: DecodeMode,
+  treatPlusAsSpace: boolean
+): AnalyzerNote[] {
   const notes: AnalyzerNote[] = [];
 
-  if (result.invalidEscapeCount > 0) {
+  if (result.escapeCount === 0) {
     notes.push({
-      title: "Malformed escapes need review",
-      message:
-        "Invalid percent escapes can break strict decoders such as decodeURIComponent.",
+      title: "No percent escapes were found",
+      message: "The input can still contain URL syntax or plus characters, but there are no %XX byte triplets to inspect.",
     });
   }
 
-  if (result.reservedEscapeCount > 0) {
+  if (inputMode === "url") {
     notes.push({
-      title: "Reserved characters",
-      message:
-        "Escaped reserved characters may change URL structure after decoding, especially /, ?, &, =, and #.",
+      title: "Static text analysis only",
+      message: "A server, reverse proxy, router, or framework may normalize or decode a URL differently. This page does not send a request or simulate that stack.",
     });
   }
 
-  if (result.plusCount > 0) {
+  if (decodeMode === "safe") {
     notes.push({
-      title: "Plus handling",
-      message:
-        "Plus signs may represent spaces in form/query encoding, but not in every URL context.",
+      title: "Lossless tolerant mode",
+      message: "Valid UTF-8 escapes are decoded while malformed or undecodable byte sequences stay visible instead of becoming replacement characters.",
+    });
+  }
+
+  if (result.plusCount > 0 && !treatPlusAsSpace) {
+    notes.push({
+      title: "Plus was left literal",
+      message: "Enable form/query handling only when the surrounding format defines plus as space.",
     });
   }
 

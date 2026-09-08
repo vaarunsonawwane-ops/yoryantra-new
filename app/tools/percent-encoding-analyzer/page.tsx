@@ -2,37 +2,36 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Percent Encoding Analyzer | Inspect URL Percent Escapes Online | Yoryantra",
+  title: "Percent Encoding Analyzer | URL Escape Diagnostics | Yoryantra",
   description:
-    "Analyze percent-encoded URL text. Inspect %XX escapes, decode UTF-8 bytes, find malformed percent encoding, compare raw and decoded values, and debug URLs directly in your browser.",
+    "Trace URL percent-encoded bytes, malformed escapes, UTF-8 failures, reserved delimiters, double encoding, and query plus handling.",
   keywords: [
     "Percent Encoding Analyzer",
-    "percent encoding checker",
+    "percent encoding",
     "URL percent decoder",
     "percent escape analyzer",
     "malformed percent encoding",
-    "URL escape checker",
-    "decode percent encoded string",
-    "URL debugging tool",
+    "UTF-8 percent encoding",
+    "RFC 3986",
+    "URL query decoding",
     "encoding tools",
-    "developer tools",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/percent-encoding-analyzer",
   },
   openGraph: {
-    title: "Percent Encoding Analyzer | Inspect URL Percent Escapes Online | Yoryantra",
+    title: "Percent Encoding Analyzer | URL Escape Diagnostics | Yoryantra",
     description:
-      "Analyze percent-encoded URL text. Inspect %XX escapes, decode UTF-8 bytes, find malformed percent encoding, compare raw and decoded values, and debug URLs directly in your browser.",
+      "Trace URL percent-encoded bytes, malformed escapes, UTF-8 failures, reserved delimiters, double encoding, and query plus handling.",
     url: "https://yoryantra.com/tools/percent-encoding-analyzer",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Percent Encoding Analyzer | Inspect URL Percent Escapes Online | Yoryantra",
+    title: "Percent Encoding Analyzer | URL Escape Diagnostics | Yoryantra",
     description:
-      "Analyze percent-encoded URL text. Inspect %XX escapes, decode UTF-8 bytes, find malformed percent encoding, compare raw and decoded values, and debug URLs directly in your browser.",
+      "Trace URL percent-encoded bytes, malformed escapes, UTF-8 failures, reserved delimiters, double encoding, and query plus handling.",
   },
 };
 

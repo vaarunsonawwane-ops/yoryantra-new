@@ -1147,7 +1147,7 @@ export const tools = [
 {
   title: "Percent Encoding Analyzer",
   description:
-    "Inspect percent-encoded URL text, decode %XX escapes, find malformed percent encoding, and debug URL/query values.",
+    "Trace percent-encoded bytes, malformed escapes, UTF-8 failures, reserved delimiters, and query plus handling.",
   href: "/tools/percent-encoding-analyzer",
   category: "Encoding Tools",
 },
@@ -1389,7 +1389,7 @@ export const tools = [
 {
   title: "URL Safe Base64 Converter",
   description:
-    "Convert Base64URL, standard Base64, text, padding, and JWT-style token segments.",
+    "Convert between standard Base64 and Base64URL with strict alphabet, padding, pad-bit, and UTF-8 validation.",
   href: "/tools/url-safe-base64-converter",
   category: "Encoding Tools",
 },
