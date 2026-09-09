@@ -2,37 +2,33 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "CSP Report Analyzer – Parse Violation Reports | Yoryantra",
+  title: "CSP Report Analyzer – Violation JSON & NDJSON | Yoryantra",
   description:
-    "Analyze CSP violation reports, parse report JSON or NDJSON, group blocked resources, inspect directives, and review report-only or enforced Content Security Policy signals.",
+    "Group CSP violation reports by directive or blocked resource, distinguish enforced from report-only events, and parse legacy or Reporting API payloads.",
   keywords: [
     "CSP report analyzer",
-    "Content Security Policy report analyzer",
-    "CSP violation report analyzer",
     "CSP violation report parser",
-    "analyze CSP reports",
-    "CSP report JSON parser",
-    "CSP blocked URI analyzer",
-    "CSP report-only analyzer",
-    "CSP debugging tool",
-    "Content Security Policy violations",
+    "Content Security Policy reports",
+    "CSP report JSON",
+    "CSP Reporting API",
+    "CSP report-only",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/csp-report-analyzer",
   },
   openGraph: {
-    title: "CSP Report Analyzer – Parse Violation Reports | Yoryantra",
+    title: "CSP Report Analyzer – Violation JSON & NDJSON | Yoryantra",
     description:
-      "Analyze CSP violation reports, parse report JSON or NDJSON, group blocked resources, inspect directives, and review report-only or enforced Content Security Policy signals.",
+      "Group CSP violation reports, separate enforced and report-only events, and read legacy or Reporting API payloads.",
     url: "https://yoryantra.com/tools/csp-report-analyzer",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "CSP Report Analyzer – Parse Violation Reports | Yoryantra",
+    title: "CSP Report Analyzer – Violation JSON & NDJSON | Yoryantra",
     description:
-      "Analyze CSP violation reports, parse report JSON or NDJSON, group blocked resources, inspect directives, and review report-only or enforced Content Security Policy signals.",
+      "Group CSP violation reports, separate enforced and report-only events, and read legacy or Reporting API payloads.",
   },
 };
 

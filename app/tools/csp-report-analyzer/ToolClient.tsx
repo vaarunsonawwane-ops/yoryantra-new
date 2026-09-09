@@ -6,10 +6,12 @@ import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type InputMode = "auto" | "json" | "ndjson";
-type OutputMode = "summary" | "report" | "table" | "json" | "csv";
+type OutputMode = "summary" | "report" | "json" | "csv";
 type GroupMode = "directive" | "blockedUri" | "documentUri" | "sourceFile";
+type FindingSeverity = "warning" | "info";
 
 type CspViolation = {
+  sourceFormat: "legacy" | "reporting-api" | "body";
   documentUri: string;
   blockedUri: string;
   violatedDirective: string;
@@ -22,11 +24,10 @@ type CspViolation = {
   statusCode: string;
   sample: string;
   disposition: string;
-  rawType: string;
 };
 
 type CspFinding = {
-  severity: "info" | "warning" | "high";
+  severity: FindingSeverity;
   title: string;
   message: string;
 };
@@ -46,28 +47,26 @@ type AnalysisResult = {
   totalReports: number;
   blockedUriCount: number;
   directiveCount: number;
-  highRiskCount: number;
-  inlineCount: number;
-  evalCount: number;
-  dataBlobCount: number;
+  warningCount: number;
+  ignoredReportCount: number;
+  enforceCount: number;
   reportOnlyCount: number;
-  enforcedCount: number;
+  unknownDispositionCount: number;
 };
 
 const sampleInput = `[
   {
     "csp-report": {
-      "document-uri": "https://example.com/account",
-      "referrer": "",
+      "document-uri": "https://example.com/account?session=redact-me",
+      "disposition": "enforce",
       "violated-directive": "script-src-elem",
       "effective-directive": "script-src-elem",
       "original-policy": "default-src 'self'; script-src 'self'; report-uri /csp-report",
-      "blocked-uri": "https://cdn.bad-example.com/tracker.js",
+      "blocked-uri": "https://cdn.example.net/tracker.js?build=42",
       "source-file": "https://example.com/account",
       "line-number": 42,
       "column-number": 13,
-      "status-code": 200,
-      "script-sample": ""
+      "status-code": 200
     }
   },
   {
@@ -75,21 +74,15 @@ const sampleInput = `[
     "url": "https://example.com/checkout",
     "body": {
       "documentURL": "https://example.com/checkout",
-      "effectiveDirective": "script-src",
+      "effectiveDirective": "script-src-attr",
       "blockedURL": "inline",
       "sourceFile": "https://example.com/checkout",
       "lineNumber": 18,
       "columnNumber": 5,
-      "sample": "onclick attribute"
-    }
-  },
-  {
-    "csp-report": {
-      "document-uri": "https://example.com/blog",
-      "violated-directive": "img-src",
-      "effective-directive": "img-src",
-      "blocked-uri": "http://images.example-cdn.com/banner.png",
-      "source-file": "https://example.com/blog"
+      "sample": "onclick=...",
+      "disposition": "report",
+      "statusCode": 200,
+      "originalPolicy": "default-src 'self'; script-src 'self' 'report-sample'; report-to csp"
     }
   }
 ]`;
@@ -100,16 +93,23 @@ export default function ToolClient() {
   const [outputMode, setOutputMode] = useState<OutputMode>("summary");
   const [groupMode, setGroupMode] = useState<GroupMode>("directive");
   const [redactQueryStrings, setRedactQueryStrings] = useState(true);
-  const [includeRawSamples, setIncludeRawSamples] = useState(true);
-  const [warnInlineAndEval, setWarnInlineAndEval] = useState(true);
-  const [warnInsecureHttp, setWarnInsecureHttp] = useState(true);
-  const [warnThirdParty, setWarnThirdParty] = useState(true);
+  const [includeSamples, setIncludeSamples] = useState(false);
+  const [flagInlineEval, setFlagInlineEval] = useState(true);
+  const [flagInsecureHttp, setFlagInsecureHttp] = useState(true);
+  const [flagCrossOrigin, setFlagCrossOrigin] = useState(true);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const notes = useMemo(() => (result ? getCspNotes(result) : []), [result]);
+  const warnings = useMemo(
+    () => (result ? result.findings.filter((item) => item.severity === "warning") : []),
+    [result]
+  );
+  const information = useMemo(
+    () => (result ? result.findings.filter((item) => item.severity === "info") : []),
+    [result]
+  );
 
   const clearResult = () => {
     setResult(null);
@@ -120,9 +120,10 @@ export default function ToolClient() {
 
   const analyzeReports = () => {
     if (!input.trim()) {
-      setError("Please paste CSP violation report JSON, a JSON array, or NDJSON report lines.");
+      setError("Paste a CSP violation report, a JSON array of reports, or NDJSON report lines.");
       setResult(null);
       setOutput("");
+      setCopied(false);
       return;
     }
 
@@ -132,28 +133,33 @@ export default function ToolClient() {
         outputMode,
         groupMode,
         redactQueryStrings,
-        includeRawSamples,
-        warnInlineAndEval,
-        warnInsecureHttp,
-        warnThirdParty,
+        includeSamples,
+        flagInlineEval,
+        flagInsecureHttp,
+        flagCrossOrigin,
       });
-
       setResult(nextResult);
       setOutput(nextResult.output);
       setError("");
       setCopied(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to analyze these CSP reports.");
+    } catch (caught) {
       setResult(null);
       setOutput("");
+      setCopied(false);
+      setError(caught instanceof Error ? caught.message : "Unable to read these CSP reports.");
     }
   };
 
   const copyOutput = async () => {
     if (!output) return;
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+      setError("The report could not be copied. Select and copy the output manually.");
+    }
   };
 
   const loadExample = () => {
@@ -162,14 +168,11 @@ export default function ToolClient() {
     setOutputMode("summary");
     setGroupMode("directive");
     setRedactQueryStrings(true);
-    setIncludeRawSamples(true);
-    setWarnInlineAndEval(true);
-    setWarnInsecureHttp(true);
-    setWarnThirdParty(true);
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    setIncludeSamples(false);
+    setFlagInlineEval(true);
+    setFlagInsecureHttp(true);
+    setFlagCrossOrigin(true);
+    clearResult();
   };
 
   const resetAll = () => {
@@ -178,49 +181,42 @@ export default function ToolClient() {
     setOutputMode("summary");
     setGroupMode("directive");
     setRedactQueryStrings(true);
-    setIncludeRawSamples(true);
-    setWarnInlineAndEval(true);
-    setWarnInsecureHttp(true);
-    setWarnThirdParty(true);
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    setIncludeSamples(false);
+    setFlagInlineEval(true);
+    setFlagInsecureHttp(true);
+    setFlagCrossOrigin(true);
+    clearResult();
   };
 
   return (
     <ToolShell
       title="CSP Report Analyzer"
-      description="Analyze CSP violation reports, parse JSON or NDJSON, group blocked resources, inspect directives, and detect risky Content Security Policy patterns."
+      description="Group CSP violation reports and separate enforced blocks from report-only signals."
     >
       <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          CSP Report JSON
-        </label>
-
+        <label className="mb-2 block text-sm font-medium text-gray-700">Violation report data</label>
         <textarea
           value={input}
-          onChange={(event) => {
+          onChange={(event: { target: { value: string } }) => {
             setInput(event.target.value);
             clearResult();
           }}
           placeholder={sampleInput}
-          className="w-full min-h-[420px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          className="min-h-[390px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Paste a single CSP report, a JSON array, Report-To style reports, or NDJSON lines from a log export.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          Accepts legacy <span className="font-mono">csp-report</span> payloads, Reporting API
+          <span className="font-mono"> csp-violation</span> objects, JSON arrays, and one-report-per-line NDJSON.
         </p>
       </div>
 
       <div className="mt-6 min-w-0 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Options</h3>
-
+        <h3 className="text-lg font-semibold text-gray-900">How should the report set be read?</h3>
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
           <YoryantraSelect
-            label="Input"
+            label="Input format"
             value={inputMode}
-            onChange={(value) => {
+            onChange={(value: string) => {
               setInputMode(value as InputMode);
               clearResult();
             }}
@@ -230,93 +226,96 @@ export default function ToolClient() {
               { label: "NDJSON lines", value: "ndjson" },
             ]}
           />
-
           <YoryantraSelect
-            label="Group By"
+            label="Group repeated reports by"
             value={groupMode}
-            onChange={(value) => {
+            onChange={(value: string) => {
               setGroupMode(value as GroupMode);
               clearResult();
             }}
             options={[
-              { label: "Directive", value: "directive" },
-              { label: "Blocked URI", value: "blockedUri" },
-              { label: "Document URI", value: "documentUri" },
+              { label: "Effective directive", value: "directive" },
+              { label: "Blocked URL or keyword", value: "blockedUri" },
+              { label: "Document URL", value: "documentUri" },
               { label: "Source file", value: "sourceFile" },
             ]}
           />
-
           <YoryantraSelect
-            label="Output"
+            label="Copied output"
             value={outputMode}
-            onChange={(value) => {
+            onChange={(value: string) => {
               setOutputMode(value as OutputMode);
               clearResult();
             }}
             options={[
-              { label: "Summary", value: "summary" },
+              { label: "Compact summary", value: "summary" },
               { label: "Detailed report", value: "report" },
-              { label: "Markdown table", value: "table" },
               { label: "JSON", value: "json" },
               { label: "CSV", value: "csv" },
             ]}
           />
 
-          <div className="md:col-span-2 space-y-3">
-            <CheckboxRow checked={redactQueryStrings} label="Redact query strings from URLs" onChange={(checked) => { setRedactQueryStrings(checked); clearResult(); }} />
-            <CheckboxRow checked={includeRawSamples} label="Include script samples when available" onChange={(checked) => { setIncludeRawSamples(checked); clearResult(); }} />
-            <CheckboxRow checked={warnInlineAndEval} label="Warn about inline script, inline style, and eval violations" onChange={(checked) => { setWarnInlineAndEval(checked); clearResult(); }} />
-            <CheckboxRow checked={warnInsecureHttp} label="Warn about insecure http:// blocked resources" onChange={(checked) => { setWarnInsecureHttp(checked); clearResult(); }} />
-            <CheckboxRow checked={warnThirdParty} label="Warn about third-party blocked resources" onChange={(checked) => { setWarnThirdParty(checked); clearResult(); }} />
+          <div className="space-y-3 md:col-span-2">
+            <CheckboxRow checked={redactQueryStrings} label="Redact query strings and fragments in URL fields" onChange={(checked) => { setRedactQueryStrings(checked); clearResult(); }} />
+            <CheckboxRow checked={includeSamples} label="Include script/style samples in copied output" onChange={(checked) => { setIncludeSamples(checked); clearResult(); }} />
+            <CheckboxRow checked={flagInlineEval} label="Call out inline and eval-like violations" onChange={(checked) => { setFlagInlineEval(checked); clearResult(); }} />
+            <CheckboxRow checked={flagInsecureHttp} label="Call out blocked http:// resources" onChange={(checked) => { setFlagInsecureHttp(checked); clearResult(); }} />
+            <CheckboxRow checked={flagCrossOrigin} label="Count blocked resources from another origin" onChange={(checked) => { setFlagCrossOrigin(checked); clearResult(); }} />
           </div>
         </div>
-
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Parses legacy csp-report payloads and newer Report-To style CSP violation reports, then groups the violations for easier debugging.
+          Query redaction applies to known URL fields. Original policy text can still contain an endpoint URL, and samples can contain page content.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={analyzeReports} className="yoryantra-btn">Analyze CSP Reports</button>
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>{copied ? "Copied" : "Copy Output"}</button>
-        <button onClick={loadExample} className="yoryantra-btn-outline">Load Example</button>
-        <button onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
+        <button onClick={analyzeReports} className="yoryantra-btn whitespace-nowrap">Analyze Reports</button>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>{copied ? "Copied" : "Copy Output"}</button>
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">Load Example</button>
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">Reset</button>
       </div>
 
-      {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">{error}</div>}
+      {error && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
+        </div>
+      )}
 
       {result && (
-        <div className="mt-8 grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Reports" value={result.totalReports.toLocaleString()} />
-          <SummaryCard label="Directives" value={result.directiveCount.toLocaleString()} />
-          <SummaryCard label="Blocked URIs" value={result.blockedUriCount.toLocaleString()} />
-          <SummaryCard label="High Risk" value={result.highRiskCount.toLocaleString()} />
-          <SummaryCard label="Report-Only" value={result.reportOnlyCount.toLocaleString()} />
+        <div className="mt-8 grid min-w-0 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <SummaryCard label="Reports" value={String(result.totalReports)} />
+          <SummaryCard label="Enforced" value={String(result.enforceCount)} />
+          <SummaryCard label="Report-only" value={String(result.reportOnlyCount)} />
+          <SummaryCard label="Disposition unknown" value={String(result.unknownDispositionCount)} />
+          <SummaryCard label="Non-CSP ignored" value={String(result.ignoredReportCount)} />
+          <SummaryCard label="Directives" value={String(result.directiveCount)} />
+          <SummaryCard label="Blocked values" value={String(result.blockedUriCount)} />
         </div>
       )}
 
       {result && result.groups.length > 0 && (
         <div className="mt-8 min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">Grouped Violations</h3>
-          <p className="mt-2 text-sm text-gray-500">The most common CSP violations grouped by the selected field.</p>
-
-          <div className="mt-4 min-w-0 overflow-auto rounded-xl border border-gray-200">
-            <table className="w-full min-w-[860px] text-left text-sm">
+          <h3 className="text-lg font-semibold text-gray-900">Where the reports are clustering</h3>
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+            Repetition is often more actionable than a single event. The table is limited to the first 100 groups.
+          </p>
+          <div className="mt-4 min-w-0 overflow-x-auto rounded-xl border border-gray-200">
+            <table className="w-full min-w-[820px] text-left text-sm">
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Group</th>
                   <th className="px-4 py-3 font-semibold">Count</th>
                   <th className="px-4 py-3 font-semibold">Directives</th>
-                  <th className="px-4 py-3 font-semibold">Blocked URIs</th>
+                  <th className="px-4 py-3 font-semibold">Blocked values</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {result.groups.slice(0, 100).map((group) => (
                   <tr key={group.key}>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-900"><span className="block max-w-[280px] break-words">{group.key || "(empty)"}</span></td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-900"><span className="block max-w-[300px] break-words [overflow-wrap:anywhere]">{group.key}</span></td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-700">{group.count}</td>
-                    <td className="px-4 py-3 text-gray-700"><span className="block max-w-[260px] break-words">{group.directives.slice(0, 5).join(", ") || "-"}</span></td>
-                    <td className="px-4 py-3 text-gray-700"><span className="block max-w-[320px] break-words">{group.blockedUris.slice(0, 5).join(", ") || "-"}</span></td>
+                    <td className="px-4 py-3 text-gray-700"><span className="block max-w-[260px] break-words [overflow-wrap:anywhere]">{group.directives.slice(0, 5).join(", ") || "—"}</span></td>
+                    <td className="px-4 py-3 text-gray-700"><span className="block max-w-[320px] break-words [overflow-wrap:anywhere]">{group.blockedUris.slice(0, 5).join(", ") || "—"}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -325,12 +324,12 @@ export default function ToolClient() {
         </div>
       )}
 
-      {result && result.findings.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">CSP findings</h3>
+      {warnings.length > 0 && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="text-sm font-semibold text-amber-900">Signals worth checking before changing policy</h3>
           <div className="mt-3 space-y-3">
-            {result.findings.map((finding, index) => (
-              <div key={`${finding.title}-${index}`}>
+            {warnings.map((finding) => (
+              <div key={finding.title}>
                 <p className="text-sm font-semibold text-amber-900">{finding.title}</p>
                 <p className="mt-1 text-sm leading-relaxed text-amber-800">{finding.message}</p>
               </div>
@@ -339,14 +338,14 @@ export default function ToolClient() {
         </div>
       )}
 
-      {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">CSP rollout guidance</h3>
+      {information.length > 0 && (
+        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Context from this report set</h3>
           <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+            {information.map((finding) => (
+              <div key={finding.title}>
+                <p className="text-sm font-semibold text-gray-900">{finding.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{finding.message}</p>
               </div>
             ))}
           </div>
@@ -354,97 +353,86 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 min-w-0">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-          {output && <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">{copied ? "Copied" : "Copy"}</button>}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">Copyable analysis</h3>
+          {output && <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">{copied ? "Copied" : "Copy"}</button>}
         </div>
-        <pre className="yoryantra-output min-h-[320px] min-w-0 overflow-auto whitespace-pre-wrap break-all text-sm">
-          {output || "CSP report analysis output will appear here."}
+        <pre className="yoryantra-output min-h-[300px] min-w-0 overflow-auto whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
+          {output || "The grouped CSP analysis will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        CSP report analysis happens directly in your browser. Your reports, URLs, and script samples are not uploaded to a server.
+      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Parsing stays in the browser. Query redaction is enabled by default, and copied output omits script/style samples unless you turn them on.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Analyze Content Security Policy Violation Reports</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">Content Security Policy reports help you understand what a browser blocked or would have blocked because of your CSP header. They are useful during CSP rollout because they show blocked scripts, styles, images, frames, connections, and inline code before you make a policy stricter.</p>
-          <p className="mt-4 text-gray-600 leading-relaxed">This CSP Report Analyzer parses common CSP report JSON and NDJSON formats, groups repeated violations, highlights risky patterns, and creates clean summaries for debugging or policy review. It does not automatically prove that every report is an attack, because reports can also come from browser extensions, old cached pages, third-party widgets, or rollout testing.</p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the CSP Report Analyzer</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a CSP violation report, JSON array, or NDJSON report export.</li>
-            <li>Choose whether to group by directive, blocked URI, document URI, or source file.</li>
-            <li>Keep query-string redaction enabled if reports may contain private URL parameters.</li>
-            <li>Review high-risk findings such as inline script, eval, data/blob URLs, insecure HTTP resources, and report-only versus enforced behavior.</li>
-            <li>Copy the summary, detailed report, Markdown table, JSON, or CSV output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Supported CSP Report Formats</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The analyzer supports a single legacy <span className="font-mono text-gray-800">csp-report</span> object, JSON arrays of reports, newer report objects with a <span className="font-mono text-gray-800">body</span> field, and NDJSON log exports with one JSON object per line.
+          <h2 className="text-2xl font-semibold text-gray-900">A violation report is evidence, not an allowlist request</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A CSP report says that a browser encountered activity outside a policy. With an enforced policy, that activity was blocked. With a report-only policy, the browser reported what would have been blocked. Neither case means the blocked source should automatically be added to the policy.
           </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            It reads fields such as document URI, blocked URI, violated directive, effective directive, source file, line number, column number, status code, disposition, raw report type, and script sample when available.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Extension-injected scripts, stale pages, third-party widgets, experiments, compromised code, and genuine application dependencies can all create reports. Grouping repeated events helps separate a one-off signal from something that deserves investigation.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common CSP Report Debugging Use Cases</h2>
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Finding which third-party scripts or images are blocked most often.</li>
-            <li>Checking whether inline scripts or inline styles are still used.</li>
-            <li>Spotting insecure http:// resources on HTTPS pages.</li>
-            <li>Grouping reports by violated directive before updating a CSP header.</li>
-            <li>Reviewing CSP reports before switching from report-only mode to enforcing mode.</li>
-            <li>Cleaning report exports before sharing them with a developer or security reviewer.</li>
+          <h2 className="text-xl font-semibold text-gray-900">Legacy report-uri and Reporting API payloads are not identical</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Legacy delivery wraps fields inside <span className="font-mono text-gray-800">csp-report</span> and commonly arrives as <span className="font-mono text-gray-800">application/csp-report</span>. Newer Reporting API delivery uses report objects whose type is <span className="font-mono text-gray-800">csp-violation</span>, places CSP fields inside <span className="font-mono text-gray-800">body</span>, and uses <span className="font-mono text-gray-800">application/reports+json</span> for server delivery.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The normalizer accepts both shapes without pretending they contain exactly the same metadata. Missing disposition is left unknown instead of being guessed.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">The blocked value may be a keyword or a shortened URL</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Values such as <span className="font-mono text-gray-800">inline</span>, <span className="font-mono text-gray-800">eval</span>, <span className="font-mono text-gray-800">data:</span>, or <span className="font-mono text-gray-800">blob:</span> are meaningful CSP signals even though they are not ordinary resource URLs. Browsers can also reduce a cross-origin blocked URL to its origin to avoid leaking path information.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            That is why the cross-origin count compares origins only when both the document and blocked values can be parsed as HTTP(S) URLs. It does not label every different hostname as an unsafe third party.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Treat report content as untrusted input</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Violation reports can contain URLs and, when <span className="font-mono text-gray-800">'report-sample'</span> is enabled for the relevant directive, a short sample of inline script, handler, or style content. Report collectors should store and render those fields as untrusted data rather than HTML.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Query-string redaction reduces accidental leakage when sharing an analysis, but it cannot scrub secrets embedded in paths, policy text, custom log fields, or samples. Read the copied output before posting it to an issue tracker or chat.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">What to look for before moving from report-only to enforcement</h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
+            <li>Repeated violations from application code you actually intend to run.</li>
+            <li>Inline code that can be removed or covered with a nonce or hash rather than a broad source.</li>
+            <li>HTTP resources that should be upgraded to HTTPS instead of permitted as mixed content.</li>
+            <li>Cross-origin dependencies whose ownership, necessity, and failure behavior are understood.</li>
+            <li>Important user paths that have been exercised long enough to expose realistic policy gaps.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example CSP Report Fields</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`{
-  "csp-report": {
-    "document-uri": "https://example.com/account",
-    "violated-directive": "script-src-elem",
-    "blocked-uri": "https://cdn.example.com/app.js",
-    "source-file": "https://example.com/account"
-  }
-}`}</pre>
+          <h2 className="text-xl font-semibold text-gray-900">The specifications behind these fields</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            CSP Level 3 defines the violation body and the difference between enforced and report-only disposition. The Reporting API defines report envelopes, endpoint delivery, and the <span className="font-mono text-gray-800">application/reports+json</span> format. The older <span className="font-mono text-gray-800">report-uri</span> mechanism remains relevant for compatibility even though CSP Level 3 marks that directive deprecated.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+            References: <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.w3.org/TR/CSP3/" target="_blank" rel="noreferrer">Content Security Policy Level 3</a> and <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.w3.org/TR/reporting-1/" target="_blank" rel="noreferrer">Reporting API</a>.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/csp-report-analyzer" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Report-Only CSP vs Enforced CSP</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">A report-only CSP lets browsers send violation reports without actually blocking the resource. This is useful when testing a new policy. An enforced CSP blocks resources that violate the policy, so it should be deployed carefully after reviewing reports and testing important user flows.</p>
-          <p className="mt-4 text-gray-600 leading-relaxed">When reports look clean and expected resources are allowed intentionally, you can gradually tighten the policy and move from report-only mode to enforcement.</p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What is a CSP violation report?" text="It is a browser-generated report that describes a resource blocked, or in report-only mode would have been blocked, by a Content Security Policy directive." />
-            <Faq title="Can I paste multiple CSP reports at once?" text="Yes. You can paste a JSON array, a reports array, or NDJSON with one report object per line." />
-            <Faq title="Can this parse Report-To style CSP reports?" text="Yes. It supports common legacy csp-report payloads and newer report objects with a body field." />
-            <Faq title="Why should query strings be redacted?" text="URLs in security reports can sometimes contain tokens, IDs, or private parameters. Redacting query strings makes reports safer to share." />
-            <Faq title="Does this update my CSP policy automatically?" text="No. It analyzes reports and highlights patterns. You should review changes before updating a real CSP header." />
-            <Faq title="Is anything uploaded when I analyze reports?" text="No. Analysis happens directly in your browser." />
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/csp-report-analyzer" />
         </div>
       </section>
     </ToolShell>
@@ -453,25 +441,16 @@ export default function ToolClient() {
 
 function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-[var(--light-gold)]" />
-      {label}
+    <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900">
+      <input type="checkbox" checked={checked} onChange={(event: { target: { checked: boolean } }) => onChange(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]" />
+      <span>{label}</span>
     </label>
-  );
-}
-
-function Faq({ title, text }: { title: string; text: string }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{text}</p>
-    </div>
   );
 }
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
     </div>
@@ -485,17 +464,23 @@ function analyzeCspReports(
     outputMode: OutputMode;
     groupMode: GroupMode;
     redactQueryStrings: boolean;
-    includeRawSamples: boolean;
-    warnInlineAndEval: boolean;
-    warnInsecureHttp: boolean;
-    warnThirdParty: boolean;
+    includeSamples: boolean;
+    flagInlineEval: boolean;
+    flagInsecureHttp: boolean;
+    flagCrossOrigin: boolean;
   }
 ): AnalysisResult {
-  const rawReports = parseReports(input, options.inputMode);
-  if (rawReports.length === 0) throw new Error("No CSP reports were found.");
-  const violations = rawReports.map((report) => normalizeReport(report, options.redactQueryStrings));
+  const parsedReports = parseReports(input, options.inputMode);
+  const rawReports = parsedReports.cspReports;
+  if (rawReports.length === 0) throw new Error("No CSP violation reports were found in this input.");
+  if (rawReports.length > 5000) throw new Error("This paste contains more than 5,000 CSP reports. Split it into smaller batches before analyzing it in the browser.");
+
+  const violations = rawReports.map((report, index) => normalizeReport(report, options.redactQueryStrings, index));
   const groups = groupViolations(violations, options.groupMode);
   const findings = getFindings(violations, options);
+  const enforceCount = violations.filter((item) => item.disposition.toLowerCase() === "enforce").length;
+  const reportOnlyCount = violations.filter((item) => item.disposition.toLowerCase() === "report").length;
+  const unknownDispositionCount = violations.length - enforceCount - reportOnlyCount;
   const base = {
     violations,
     groups,
@@ -503,73 +488,118 @@ function analyzeCspReports(
     totalReports: violations.length,
     blockedUriCount: uniqueCount(violations.map((item) => item.blockedUri).filter(Boolean)),
     directiveCount: uniqueCount(violations.map((item) => item.effectiveDirective || item.violatedDirective).filter(Boolean)),
-    highRiskCount: findings.filter((item) => item.severity === "high").length,
-    inlineCount: violations.filter((item) => isInlineBlocked(item.blockedUri)).length,
-    evalCount: violations.filter(isEvalLike).length,
-    dataBlobCount: violations.filter((item) => isDataOrBlob(item.blockedUri)).length,
-    reportOnlyCount: violations.filter(isReportOnly).length,
-    enforcedCount: violations.filter((item) => item.disposition.toLowerCase() === "enforce").length,
+    warningCount: findings.filter((item) => item.severity === "warning").length,
+    ignoredReportCount: parsedReports.ignoredCount,
+    enforceCount,
+    reportOnlyCount,
+    unknownDispositionCount,
   };
-  const output = formatOutput(base, options);
-  return { ...base, output };
+  return { ...base, output: formatOutput(base, options.outputMode, options.includeSamples) };
 }
 
-function parseReports(input: string, mode: InputMode): unknown[] {
+function parseReports(input: string, mode: InputMode) {
   const trimmed = input.trim();
-  if (mode === "ndjson") return parseNdjson(trimmed);
-  if (mode === "json") return flattenJsonReports(JSON.parse(trimmed));
-  try {
-    return flattenJsonReports(JSON.parse(trimmed));
-  } catch {
-    return parseNdjson(trimmed);
+  let allReports: unknown[];
+  if (mode === "ndjson") {
+    allReports = parseNdjson(trimmed);
+  } else if (mode === "json") {
+    allReports = flattenJsonReports(JSON.parse(trimmed));
+  } else {
+    try {
+      allReports = flattenJsonReports(JSON.parse(trimmed));
+    } catch {
+      allReports = parseNdjson(trimmed);
+    }
   }
+  const cspReports = allReports.filter(isCspCandidate);
+  return { cspReports, ignoredCount: allReports.length - cspReports.length };
 }
 
 function parseNdjson(input: string): unknown[] {
-  return input.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line, index) => {
-    try { return JSON.parse(line); } catch { throw new Error(`Invalid JSON on NDJSON line ${index + 1}.`); }
+  const lines = input.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  return lines.map((line, index) => {
+    try {
+      return JSON.parse(line) as unknown;
+    } catch {
+      throw new Error(`NDJSON line ${index + 1} is not valid JSON.`);
+    }
   });
 }
 
 function flattenJsonReports(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value.flatMap(flattenJsonReports);
-  if (isObject(value) && Array.isArray(value.reports)) return value.reports.flatMap(flattenJsonReports);
-  return [value];
+  const result: unknown[] = [];
+  appendReports(value, result);
+  return result;
 }
 
-function normalizeReport(value: unknown, redactQueryStrings: boolean): CspViolation {
-  const objectValue = isObject(value) ? value : {};
-  const legacy = isObject(objectValue["csp-report"]) ? objectValue["csp-report"] as Record<string, unknown> : null;
-  const body = isObject(objectValue.body) ? objectValue.body as Record<string, unknown> : null;
-  const source = legacy || body || objectValue;
-  const documentUri = readString(source, ["document-uri", "documentURL", "documentUrl", "documentUri", "url"]) || readString(objectValue, ["url"]);
+function appendReports(value: unknown, result: unknown[]) {
+  if (Array.isArray(value)) {
+    value.forEach((item) => appendReports(item, result));
+    return;
+  }
+  if (isObject(value) && Array.isArray(value.reports)) {
+    value.reports.forEach((item) => appendReports(item, result));
+    return;
+  }
+  result.push(value);
+}
+
+function isCspCandidate(value: unknown) {
+  if (!isObject(value)) return false;
+  if (isObject(value["csp-report"])) return true;
+  if (value.type === "csp-violation") return true;
+  return looksLikeCspBody(value);
+}
+
+function normalizeReport(value: unknown, redactQueryStrings: boolean, index: number): CspViolation {
+  if (!isObject(value)) {
+    throw new Error(`Report ${index + 1} is not a JSON object.`);
+  }
+
+  let source: Record<string, unknown>;
+  let sourceFormat: CspViolation["sourceFormat"];
+
+  if (isObject(value["csp-report"])) {
+    source = value["csp-report"] as Record<string, unknown>;
+    sourceFormat = "legacy";
+  } else if (value.type === "csp-violation" && isObject(value.body)) {
+    source = value.body as Record<string, unknown>;
+    sourceFormat = "reporting-api";
+  } else if (looksLikeCspBody(value)) {
+    source = value;
+    sourceFormat = "body";
+  } else {
+    throw new Error(`Report ${index + 1} does not look like a CSP violation report.`);
+  }
+
+  const documentUri = readString(source, ["document-uri", "documentURL", "documentUrl", "documentUri"]) || readString(value, ["url"]);
   const blockedUri = readString(source, ["blocked-uri", "blockedURL", "blockedUrl", "blockedURI"]);
   const violatedDirective = readString(source, ["violated-directive", "violatedDirective"]);
   const effectiveDirective = readString(source, ["effective-directive", "effectiveDirective"]) || violatedDirective;
-  const originalPolicy = readString(source, ["original-policy", "originalPolicy"]);
-  const sourceFile = readString(source, ["source-file", "sourceFile"]);
-  const referrer = readString(source, ["referrer"]);
-  const lineNumber = readString(source, ["line-number", "lineNumber"]);
-  const columnNumber = readString(source, ["column-number", "columnNumber"]);
-  const statusCode = readString(source, ["status-code", "statusCode"]);
-  const sample = readString(source, ["script-sample", "sample"]);
-  const disposition = readString(source, ["disposition", "effectiveDisposition"]) || readString(objectValue, ["disposition"]);
-  const rawType = readString(objectValue, ["type"]) || (legacy ? "csp-report" : "unknown");
+
+  if (!documentUri && !blockedUri && !effectiveDirective) {
+    throw new Error(`Report ${index + 1} is missing the core CSP violation fields.`);
+  }
+
   return {
+    sourceFormat,
     documentUri: cleanUrl(documentUri, redactQueryStrings),
     blockedUri: cleanUrl(blockedUri, redactQueryStrings),
     violatedDirective,
     effectiveDirective,
-    originalPolicy,
-    sourceFile: cleanUrl(sourceFile, redactQueryStrings),
-    referrer: cleanUrl(referrer, redactQueryStrings),
-    lineNumber,
-    columnNumber,
-    statusCode,
-    sample,
-    disposition,
-    rawType,
+    originalPolicy: readString(source, ["original-policy", "originalPolicy"]),
+    sourceFile: cleanUrl(readString(source, ["source-file", "sourceFile"]), redactQueryStrings),
+    referrer: cleanUrl(readString(source, ["referrer"]), redactQueryStrings),
+    lineNumber: readString(source, ["line-number", "lineNumber"]),
+    columnNumber: readString(source, ["column-number", "columnNumber"]),
+    statusCode: readString(source, ["status-code", "statusCode"]),
+    sample: readString(source, ["script-sample", "sample"]),
+    disposition: readString(source, ["disposition"]),
   };
+}
+
+function looksLikeCspBody(value: Record<string, unknown>) {
+  return ["effectiveDirective", "violated-directive", "blockedURL", "blocked-uri", "documentURL", "document-uri"].some((key) => value[key] !== undefined);
 }
 
 function readString(objectValue: Record<string, unknown>, keys: string[]) {
@@ -581,29 +611,35 @@ function readString(objectValue: Record<string, unknown>, keys: string[]) {
 }
 
 function cleanUrl(value: string, redactQueryStrings: boolean) {
-  if (!value || !redactQueryStrings) return value;
+  if (!value || !redactQueryStrings || /^(inline|eval|data:|blob:)/i.test(value)) return value;
   try {
     const url = new URL(value);
-    url.search = url.search ? "?…" : "";
-    url.hash = url.hash ? "#…" : "";
-    return url.toString();
+    const hadSearch = Boolean(url.search);
+    const hadHash = Boolean(url.hash);
+    url.search = "";
+    url.hash = "";
+    return `${url.toString()}${hadSearch ? "?…" : ""}${hadHash ? "#…" : ""}`;
   } catch {
-    return value.replace(/\?.*$/, "?…").replace(/#.*$/, "#…");
+    return value.replace(/\?[^#]*/, "?…").replace(/#.*$/, "#…");
   }
 }
 
 function groupViolations(violations: CspViolation[], groupMode: GroupMode): GroupedRow[] {
-  const map = new Map<string, CspViolation[]>();
+  const grouped = new Map<string, CspViolation[]>();
   violations.forEach((violation) => {
-    const key = getGroupKey(violation, groupMode) || "(empty)";
-    map.set(key, [...(map.get(key) || []), violation]);
+    const key = getGroupKey(violation, groupMode) || "(missing)";
+    const rows = grouped.get(key) || [];
+    rows.push(violation);
+    grouped.set(key, rows);
   });
-  return Array.from(map.entries()).map(([key, rows]) => ({
-    key,
-    count: rows.length,
-    directives: uniqueValues(rows.map((row) => row.effectiveDirective || row.violatedDirective).filter(Boolean)),
-    blockedUris: uniqueValues(rows.map((row) => row.blockedUri).filter(Boolean)),
-  })).sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+  return Array.from(grouped.entries())
+    .map(([key, rows]) => ({
+      key,
+      count: rows.length,
+      directives: uniqueValues(rows.map((row) => row.effectiveDirective || row.violatedDirective).filter(Boolean)),
+      blockedUris: uniqueValues(rows.map((row) => row.blockedUri).filter(Boolean)),
+    }))
+    .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
 }
 
 function getGroupKey(violation: CspViolation, groupMode: GroupMode) {
@@ -613,93 +649,156 @@ function getGroupKey(violation: CspViolation, groupMode: GroupMode) {
   return violation.effectiveDirective || violation.violatedDirective;
 }
 
-function getFindings(violations: CspViolation[], options: { warnInlineAndEval: boolean; warnInsecureHttp: boolean; warnThirdParty: boolean; }): CspFinding[] {
+function getFindings(
+  violations: CspViolation[],
+  options: { flagInlineEval: boolean; flagInsecureHttp: boolean; flagCrossOrigin: boolean }
+): CspFinding[] {
   const findings: CspFinding[] = [];
   const inlineCount = violations.filter((item) => isInlineBlocked(item.blockedUri)).length;
   const evalCount = violations.filter(isEvalLike).length;
   const httpCount = violations.filter((item) => /^http:\/\//i.test(item.blockedUri)).length;
-  const dataBlobCount = violations.filter((item) => isDataOrBlob(item.blockedUri)).length;
-  const thirdPartyCount = violations.filter(isLikelyThirdParty).length;
-  const missingDirectiveCount = violations.filter((item) => !item.effectiveDirective && !item.violatedDirective).length;
+  const crossOriginCount = violations.filter(isCrossOriginHttpResource).length;
+  const reportOnlyCount = violations.filter((item) => item.disposition.toLowerCase() === "report").length;
+  const missingDispositionCount = violations.filter((item) => !item.disposition).length;
+  const reportingApiCount = violations.filter((item) => item.sourceFormat === "reporting-api").length;
+  const legacyCount = violations.filter((item) => item.sourceFormat === "legacy").length;
 
-  if (options.warnInlineAndEval && inlineCount > 0) findings.push({ severity: "warning", title: "Inline code blocked", message: `${inlineCount} report${inlineCount === 1 ? "" : "s"} involved inline script or inline style. Review whether inline code can be removed or covered with nonces/hashes.` });
-  if (options.warnInlineAndEval && evalCount > 0) findings.push({ severity: "high", title: "Eval-like behavior blocked", message: `${evalCount} report${evalCount === 1 ? "" : "s"} may involve eval, wasm eval, or unsafe dynamic script behavior.` });
-  if (options.warnInsecureHttp && httpCount > 0) findings.push({ severity: "high", title: "Insecure HTTP resource blocked", message: `${httpCount} blocked resource${httpCount === 1 ? " uses" : "s use"} http://. Prefer HTTPS resources on secure pages.` });
-  if (dataBlobCount > 0) findings.push({ severity: "warning", title: "data: or blob: resource blocked", message: `${dataBlobCount} report${dataBlobCount === 1 ? "" : "s"} involved data: or blob: URLs. Allow these only when truly needed.` });
-  if (options.warnThirdParty && thirdPartyCount > 0) findings.push({ severity: "info", title: "Third-party resources blocked", message: `${thirdPartyCount} report${thirdPartyCount === 1 ? "" : "s"} appear to involve third-party resources. Review whether each source is trusted and necessary before allowing it.` });
-  const reportOnlyCount = violations.filter(isReportOnly).length;
-  if (reportOnlyCount > 0) findings.push({ severity: "info", title: "Report-only reports found", message: `${reportOnlyCount} report${reportOnlyCount === 1 ? " is" : "s are"} marked as report-only or came from a report-only style header. Treat these as testing signals, not proof that a user-facing resource was blocked.` });
-  if (missingDirectiveCount > 0) findings.push({ severity: "info", title: "Some reports are missing directive fields", message: `${missingDirectiveCount} report${missingDirectiveCount === 1 ? " is" : "s are"} missing violated/effective directive fields.` });
-  if (findings.length === 0) findings.push({ severity: "info", title: "No high-risk CSP patterns found", message: "The pasted reports did not trigger the selected high-risk pattern checks." });
+  if (options.flagInlineEval && inlineCount > 0) {
+    findings.push({ severity: "warning", title: "Inline code appears in the violations", message: `${inlineCount} report${inlineCount === 1 ? "" : "s"} use an inline blocked value. Confirm whether the code should disappear, receive a nonce/hash, or remain blocked before loosening script or style policy.` });
+  }
+  if (options.flagInlineEval && evalCount > 0) {
+    findings.push({ severity: "warning", title: "Eval-like execution appears in the violations", message: `${evalCount} report${evalCount === 1 ? "" : "s"} mention eval-like behavior. A blocked eval report is evidence that CSP is doing work; it is not a reason by itself to add 'unsafe-eval'.` });
+  }
+  if (options.flagInsecureHttp && httpCount > 0) {
+    findings.push({ severity: "warning", title: "HTTP resources appear in the blocked values", message: `${httpCount} report${httpCount === 1 ? "" : "s"} reference an http:// resource. Prefer correcting the resource URL to HTTPS rather than weakening policy on an HTTPS page.` });
+  }
+  if (options.flagCrossOrigin && crossOriginCount > 0) {
+    findings.push({ severity: "info", title: "Some blocked resources are cross-origin", message: `${crossOriginCount} report${crossOriginCount === 1 ? "" : "s"} contain parseable HTTP(S) document and blocked URLs with different origins. Cross-origin does not automatically mean untrusted or third-party.` });
+  }
+  if (reportOnlyCount > 0) {
+    findings.push({ severity: "info", title: "Report-only signals are present", message: `${reportOnlyCount} report${reportOnlyCount === 1 ? " is" : "s are"} marked disposition=report. Those events describe what would have been blocked, not necessarily what a user actually lost.` });
+  }
+  if (missingDispositionCount > 0) {
+    findings.push({ severity: "info", title: "Some reports do not say whether policy was enforced", message: `${missingDispositionCount} report${missingDispositionCount === 1 ? " lacks" : "s lack"} a disposition field, so enforcement is left unknown instead of inferred.` });
+  }
+  findings.push({ severity: "info", title: "Payload formats in this paste", message: `Legacy csp-report: ${legacyCount}. Reporting API csp-violation: ${reportingApiCount}. Other CSP body objects: ${violations.length - legacyCount - reportingApiCount}.` });
   return findings;
 }
 
-function isReportOnly(violation: CspViolation) {
-  return violation.disposition.toLowerCase() === "report" || violation.rawType.toLowerCase().includes("report-only");
-}
-
 function isInlineBlocked(value: string) {
-  return /^(inline|eval)$/i.test(value) || value.toLowerCase().includes("inline");
+  return /^inline$/i.test(value) || value.toLowerCase().indexOf("inline") !== -1;
 }
 
 function isEvalLike(violation: CspViolation) {
-  const combined = `${violation.blockedUri} ${violation.sample} ${violation.violatedDirective} ${violation.effectiveDirective}`.toLowerCase();
-  return combined.includes("eval") || combined.includes("unsafe-eval") || combined.includes("wasm-unsafe-eval");
+  const combined = `${violation.blockedUri} ${violation.sample}`.toLowerCase();
+  return combined.indexOf("eval") !== -1 || combined.indexOf("wasm-unsafe-eval") !== -1;
 }
 
-function isDataOrBlob(value: string) {
-  return /^(data|blob):/i.test(value);
+function isCrossOriginHttpResource(violation: CspViolation) {
+  const documentOrigin = getHttpOrigin(violation.documentUri);
+  const blockedOrigin = getHttpOrigin(violation.blockedUri);
+  return Boolean(documentOrigin && blockedOrigin && documentOrigin !== blockedOrigin);
 }
 
-function isLikelyThirdParty(violation: CspViolation) {
-  const documentHost = getHost(violation.documentUri);
-  const blockedHost = getHost(violation.blockedUri);
-  return Boolean(documentHost && blockedHost && documentHost !== blockedHost);
-}
-
-function getHost(value: string) {
-  try { return new URL(value).hostname.replace(/^www\./, ""); } catch { return ""; }
-}
-
-function formatOutput(result: Omit<AnalysisResult, "output">, options: { outputMode: OutputMode; includeRawSamples: boolean; }) {
-  if (options.outputMode === "json") return JSON.stringify(result, null, 2);
-  if (options.outputMode === "csv") {
-    const rows = [["documentUri", "blockedUri", "directive", "sourceFile", "line", "column", "sample"], ...result.violations.map((item) => [item.documentUri, item.blockedUri, item.effectiveDirective || item.violatedDirective, item.sourceFile, item.lineNumber, item.columnNumber, options.includeRawSamples ? item.sample : ""] )];
-    return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+function getHttpOrigin(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.origin : "";
+  } catch {
+    return "";
   }
-  if (options.outputMode === "table") {
-    return ["| Count | Group | Directives | Blocked URIs |", "| ---: | --- | --- | --- |", ...result.groups.map((group) => `| ${group.count} | ${escapeMarkdown(group.key)} | ${escapeMarkdown(group.directives.join(", ") || "-")} | ${escapeMarkdown(group.blockedUris.slice(0, 3).join(", ") || "-")} |`)].join("\n");
+}
+
+function formatOutput(
+  result: Omit<AnalysisResult, "output">,
+  outputMode: OutputMode,
+  includeSamples: boolean
+) {
+  if (outputMode === "json") {
+    return JSON.stringify({
+      summary: {
+        reports: result.totalReports,
+        enforced: result.enforceCount,
+        reportOnly: result.reportOnlyCount,
+        dispositionUnknown: result.unknownDispositionCount,
+        directives: result.directiveCount,
+        blockedValues: result.blockedUriCount,
+        warnings: result.warningCount,
+        nonCspReportsIgnored: result.ignoredReportCount,
+      },
+      groups: result.groups,
+      violations: result.violations.map((item) => ({ ...item, sample: includeSamples ? item.sample : item.sample ? "[omitted]" : "" })),
+      findings: result.findings,
+    }, null, 2);
   }
-  if (options.outputMode === "report") {
-    const findings = result.findings.map((finding) => `- [${finding.severity}] ${finding.title}: ${finding.message}`);
-    const reports = result.violations.slice(0, 50).map((item, index) => {
-      const lines = [`${index + 1}. ${item.effectiveDirective || item.violatedDirective || "unknown directive"}`, `   document: ${item.documentUri || "-"}`, `   blocked: ${item.blockedUri || "-"}`, `   source: ${item.sourceFile || "-"}`];
-      if (options.includeRawSamples && item.sample) lines.push(`   sample: ${item.sample}`);
-      return lines.join("\n");
+
+  if (outputMode === "csv") {
+    const header = ["format", "disposition", "document", "directive", "blocked", "source", "line", "column", "status", "sample"];
+    const rows = result.violations.map((item) => [
+      item.sourceFormat,
+      item.disposition,
+      item.documentUri,
+      item.effectiveDirective || item.violatedDirective,
+      item.blockedUri,
+      item.sourceFile,
+      item.lineNumber,
+      item.columnNumber,
+      item.statusCode,
+      includeSamples ? item.sample : item.sample ? "[omitted]" : "",
+    ]);
+    return [header, ...rows].map((row) => row.map(csvEscape).join(",")).join("\n");
+  }
+
+  if (outputMode === "report") {
+    const lines: string[] = [
+      "CSP violation report analysis",
+      "-----------------------------",
+      `Reports: ${result.totalReports}`,
+      `Enforced: ${result.enforceCount}`,
+      `Report-only: ${result.reportOnlyCount}`,
+      `Disposition unknown: ${result.unknownDispositionCount}`,
+      `Unique directives: ${result.directiveCount}`,
+      `Unique blocked values: ${result.blockedUriCount}`,
+      `Non-CSP reports ignored: ${result.ignoredReportCount}`,
+      "",
+      "Grouped counts:",
+    ];
+    result.groups.forEach((group) => lines.push(`- ${group.key}: ${group.count}`));
+    lines.push("", "Findings:");
+    result.findings.forEach((finding) => lines.push(`- [${finding.severity}] ${finding.title}: ${finding.message}`));
+    lines.push("", "Reports:");
+    result.violations.forEach((item, index) => {
+      lines.push(
+        `${index + 1}. ${item.effectiveDirective || item.violatedDirective || "(directive missing)"}`,
+        `   disposition: ${item.disposition || "unknown"}`,
+        `   document: ${item.documentUri || "(missing)"}`,
+        `   blocked: ${item.blockedUri || "(missing)"}`,
+        `   source: ${item.sourceFile || "(missing)"}`
+      );
+      if (includeSamples && item.sample) lines.push(`   sample: ${item.sample}`);
     });
-    return ["CSP Report Analysis", "-------------------", `Reports: ${result.totalReports}`, `Unique directives: ${result.directiveCount}`, `Unique blocked URIs: ${result.blockedUriCount}`, `High-risk findings: ${result.highRiskCount}`, `Inline violations: ${result.inlineCount}`, `Eval-like violations: ${result.evalCount}`, `data/blob violations: ${result.dataBlobCount}`, `Report-only reports: ${result.reportOnlyCount}`, `Enforced reports: ${result.enforcedCount}`, "", "Findings:", ...findings, "", "Sample reports:", ...(reports.length ? reports : ["No reports found."])].join("\n");
+    return lines.join("\n");
   }
-  const findings = result.findings.map((finding) => `- [${finding.severity}] ${finding.title}: ${finding.message}`);
-  const topGroups = result.groups.slice(0, 10).map((group) => `- ${group.key}: ${group.count}`);
-  return ["CSP Report Summary", "------------------", `Reports: ${result.totalReports}`, `Unique directives: ${result.directiveCount}`, `Unique blocked URIs: ${result.blockedUriCount}`, `High-risk findings: ${result.highRiskCount}`, `Inline violations: ${result.inlineCount}`, `Eval-like violations: ${result.evalCount}`, `data/blob violations: ${result.dataBlobCount}`, `Report-only reports: ${result.reportOnlyCount}`, `Enforced reports: ${result.enforcedCount}`, "", "Top groups:", ...(topGroups.length ? topGroups : ["- No groups found."]), "", "Findings:", ...findings].join("\n");
-}
 
-function getCspNotes(result: AnalysisResult) {
-  const notes: { title: string; message: string }[] = [];
-  if (result.highRiskCount > 0) notes.push({ title: "Fix high-risk patterns first", message: "Prioritize insecure HTTP resources, eval-like behavior, and broad inline code problems before tightening enforcement." });
-  if (result.inlineCount > 0) notes.push({ title: "Inline reports need careful review", message: "Inline script and style reports can come from app code, third-party widgets, browser extensions, or injected markup." });
-  if (result.reportOnlyCount > 0) notes.push({ title: "Report-only is a testing signal", message: "Report-only results help test a policy, but they do not mean the browser blocked a live resource for users." });
-  if (result.totalReports > 0) notes.push({ title: "Group before changing policy", message: "Repeated violations are usually more important than one-off noise. Review grouped results before allowing new sources." });
-  return notes;
+  return [
+    "CSP violation report summary",
+    "----------------------------",
+    `Reports: ${result.totalReports}`,
+    `Enforced: ${result.enforceCount}`,
+    `Report-only: ${result.reportOnlyCount}`,
+    `Disposition unknown: ${result.unknownDispositionCount}`,
+    `Unique directives: ${result.directiveCount}`,
+    `Unique blocked values: ${result.blockedUriCount}`,
+    `Warnings: ${result.warningCount}`,
+    `Non-CSP reports ignored: ${result.ignoredReportCount}`,
+    "",
+    "Largest groups:",
+    ...result.groups.slice(0, 10).map((group) => `- ${group.key}: ${group.count}`),
+  ].join("\n");
 }
 
 function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-  return value;
-}
-
-function escapeMarkdown(value: string) {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, "\\n");
+  return `"${value.replace(/"/g, '""')}"`;
 }
 
 function uniqueCount(values: string[]) {

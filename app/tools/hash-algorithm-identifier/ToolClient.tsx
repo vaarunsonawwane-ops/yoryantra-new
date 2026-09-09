@@ -14,17 +14,16 @@ type HashMatch = {
   family: string;
   confidence: Confidence;
   reason: string;
-  example: string;
   securityNote: string;
 };
 
 type HashAnalysis = {
   input: string;
-  normalized: string;
+  value: string;
   length: number;
   characterSet: string;
   format: string;
-  entropyHint: string;
+  shapeNote: string;
   matches: HashMatch[];
   warnings: string[];
 };
@@ -34,172 +33,113 @@ type IdentifierResult = {
   output: string;
   totalInputs: number;
   matchedInputs: number;
+  ambiguousInputs: number;
   warningCount: number;
 };
 
-type HashNote = {
-  title: string;
-  message: string;
+type Pattern = {
+  name: string;
+  family: string;
+  confidence: Confidence;
+  test: (value: string) => boolean;
+  reason: string;
+  securityNote: string;
 };
 
 const sampleHashes = `5d41402abc4b2a76b9719d911017c592
 2aae6c35c94fcfb415dbe95f408b9ce91ee846ed
 a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447
-$2b$12$abcdefghijklmnopqrstuuJg6kCz3Wr2WlZEVW31KqZ8p.9JZ9L6
-$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$hashvaluehere`;
+$2b$12$abcdefghijklmnopqrstuuJg6kCz3Wr2WlZEVW31KqZ8p.9JZ9L6A
+$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YWJjZGVmZ2hpamtsbW5vcA`;
 
-const knownPatterns: Array<{
-  name: string;
-  family: string;
-  test: (value: string) => boolean;
-  confidence: Confidence;
-  reason: string;
-  example: string;
-  securityNote: string;
-}> = [
+const patterns: Pattern[] = [
   {
-    name: "MD5",
-    family: "Fast hash",
-    test: (value) => /^[a-f0-9]{32}$/i.test(value),
-    confidence: "medium",
-    reason: "32 hexadecimal characters is a common MD5 digest shape.",
-    example: "5d41402abc4b2a76b9719d911017c592",
-    securityNote: "MD5 is a legacy hash and is not suitable for password storage, signatures, or collision-resistant security use.",
-  },
-  {
-    name: "SHA-1",
-    family: "Fast hash",
-    test: (value) => /^[a-f0-9]{40}$/i.test(value),
-    confidence: "medium",
-    reason: "40 hexadecimal characters is a common SHA-1 digest shape.",
-    example: "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed",
-    securityNote: "SHA-1 is legacy for collision-resistant use and should be replaced in security-sensitive systems.",
-  },
-  {
-    name: "SHA-224",
-    family: "Fast hash",
-    test: (value) => /^[a-f0-9]{56}$/i.test(value),
-    confidence: "medium",
-    reason: "56 hexadecimal characters is a common SHA-224 digest shape.",
-    example: "d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f",
-    securityNote: "SHA-224 is uncommon compared with SHA-256 and SHA-512, and this shape can overlap with other 224-bit digests.",
-  },
-  {
-    name: "SHA-256",
-    family: "Fast hash",
-    test: (value) => /^[a-f0-9]{64}$/i.test(value),
-    confidence: "medium",
-    reason: "64 hexadecimal characters is a common SHA-256 digest shape.",
-    example: "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
-    securityNote: "SHA-256 is fast. It can be fine for integrity checks, but raw SHA-256 alone is not suitable for password storage.",
-  },
-  {
-    name: "SHA-384",
-    family: "Fast hash",
-    test: (value) => /^[a-f0-9]{96}$/i.test(value),
-    confidence: "medium",
-    reason: "96 hexadecimal characters is a common SHA-384 digest shape.",
-    example: "hex string with 96 characters",
-    securityNote: "SHA-384 is a cryptographic hash, but password storage still needs a slow password hash.",
-  },
-  {
-    name: "SHA-512",
-    family: "Fast hash",
-    test: (value) => /^[a-f0-9]{128}$/i.test(value),
-    confidence: "medium",
-    reason: "128 hexadecimal characters is a common SHA-512 digest shape.",
-    example: "hex string with 128 characters",
-    securityNote: "SHA-512 is fast. It can be fine for integrity checks, but raw SHA-512 alone is not suitable for password storage.",
-  },
-  {
-    name: "SHA3-256 or another 256-bit hex digest",
-    family: "Fast hash",
-    test: (value) => /^[a-f0-9]{64}$/i.test(value),
-    confidence: "low",
-    reason: "64 hexadecimal characters can also represent SHA3-256, BLAKE2s-256, SHA-512/256, or another 256-bit digest.",
-    example: "hex string with 64 characters",
-    securityNote: "Length alone cannot prove which 256-bit hash algorithm produced the value.",
-  },
-  {
-    name: "SHA3-512 or another 512-bit hex digest",
-    family: "Fast hash",
-    test: (value) => /^[a-f0-9]{128}$/i.test(value),
-    confidence: "low",
-    reason: "128 hexadecimal characters can also represent SHA3-512, BLAKE2b-512, or another 512-bit digest.",
-    example: "hex string with 128 characters",
-    securityNote: "Length alone cannot prove which 512-bit hash algorithm produced the value.",
-  },
-  {
-    name: "bcrypt",
+    name: "bcrypt formatted password hash",
     family: "Password hash",
-    test: (value) => /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(value),
     confidence: "high",
-    reason: "bcrypt hashes use the $2a$, $2b$, or $2y$ prefix with cost and salt/hash data.",
-    example: "$2y$10$abcdefghijklmnopqrstuuJg6kCz3Wr2WlZEVW31KqZ8p.9JZ9L6",
-    securityNote: "bcrypt is designed for password hashing when configured with a suitable cost.",
+    test: (value) => /^\$2[aby]\$(0[4-9]|[12]\d|3[01])\$[./A-Za-z0-9]{53}$/.test(value),
+    reason: "The value has a bcrypt version prefix, valid two-digit cost range, and the expected 60-character layout.",
+    securityNote: "The format identifies bcrypt, but it does not tell you whether the chosen cost is appropriate for your system today.",
   },
   {
-    name: "Argon2",
+    name: "Argon2 PHC string",
     family: "Password hash",
-    test: (value) => /^\$argon2(id|i|d)\$v=\d+\$m=\d+,t=\d+,p=\d+\$/.test(value),
     confidence: "high",
-    reason: "Argon2 hashes include an argon2 prefix and memory, time, and parallelism parameters.",
-    example: "$argon2id$v=19$m=65536,t=3,p=4$...",
-    securityNote: "Argon2id is commonly recommended for modern password hashing.",
+    test: (value) => /^\$argon2(id|i|d)\$v=19\$m=\d+,t=\d+,p=\d+\$[A-Za-z0-9+/]+={0,2}\$[A-Za-z0-9+/]+={0,2}$/.test(value),
+    reason: "The value carries an Argon2 variant, version, memory/time/parallelism parameters, salt, and encoded tag.",
+    securityNote: "Argon2 parameters still need to be judged against the application and hardware; the prefix alone does not prove a strong configuration.",
   },
   {
-    name: "scrypt",
-    family: "Password hash",
-    test: (value) => /^\$scrypt\$/.test(value) || /^scrypt[:$]/i.test(value),
+    name: "PBKDF2-labelled string",
+    family: "Password KDF",
+    confidence: "high",
+    test: (value) => /(^|[$:_-])pbkdf2([_$:-]|$)/i.test(value),
+    reason: "The formatted value explicitly names PBKDF2.",
+    securityNote: "PBKDF2 storage formats vary by framework. Iteration count, PRF, salt, and derived-key length matter more than the label alone.",
+  },
+  {
+    name: "scrypt-labelled string",
+    family: "Password KDF",
     confidence: "medium",
-    reason: "The value has a scrypt-style prefix.",
-    example: "$scrypt$ln=16,r=8,p=1$...",
-    securityNote: "scrypt is a password hashing KDF when configured with suitable parameters.",
-  },
-  {
-    name: "PBKDF2-style string",
-    family: "Password hash / KDF",
-    test: (value) => /pbkdf2/i.test(value),
-    confidence: "high",
-    reason: "The value explicitly includes PBKDF2 in the formatted string.",
-    example: "pbkdf2_sha256$600000$salt$hash",
-    securityNote: "PBKDF2 security depends heavily on iteration count, salt, and algorithm.",
-  },
-  {
-    name: "Base64 encoded 128-bit value",
-    family: "Token / digest shape",
-    test: (value) => /^[A-Za-z0-9+/]{22}={0,2}$/.test(value) || /^[A-Za-z0-9_-]{22}$/.test(value),
-    confidence: "low",
-    reason: "The value looks like Base64/Base64URL data around 128 bits.",
-    example: "XUFAKrxLKna5cZ2REBfFkg",
-    securityNote: "This shape could be a token, digest, random ID, or encoded bytes.",
-  },
-  {
-    name: "Base64 encoded 256-bit value",
-    family: "Token / digest shape",
-    test: (value) => /^[A-Za-z0-9+/]{43}={0,2}$/.test(value) || /^[A-Za-z0-9_-]{43,44}$/.test(value),
-    confidence: "low",
-    reason: "The value looks like Base64/Base64URL data around 256 bits.",
-    example: "qUiQTy8PR5-4mIgOSFZ2WokT6idTQ1R_iE5nZ9N8Z8w",
-    securityNote: "This shape could be a token, SHA-256 bytes, random secret, or encoded data.",
+    test: (value) => /^\$scrypt\$/i.test(value) || /^scrypt[:$]/i.test(value),
+    reason: "The value starts with a recognizable scrypt label, although there is no single universal storage string for every scrypt implementation.",
+    securityNote: "Confirm the exact parameter encoding in the library or framework that produced the value.",
   },
   {
     name: "UUID",
-    family: "Identifier",
-    test: (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value),
+    family: "Identifier, not a hash",
     confidence: "high",
-    reason: "The value matches the common UUID format.",
-    example: "550e8400-e29b-41d4-a716-446655440000",
-    securityNote: "A UUID is usually an identifier, not a password hash.",
+    test: (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value),
+    reason: "The hyphenated layout and variant bits match the familiar UUID text form.",
+    securityNote: "A UUID is normally an identifier. Do not infer password hashing or digest semantics from it.",
   },
   {
-    name: "NTLM",
-    family: "Password hash",
-    test: (value) => /^[a-f0-9]{32}$/i.test(value),
+    name: "128-bit hexadecimal digest shape",
+    family: "Ambiguous digest shape",
     confidence: "low",
-    reason: "NTLM hashes are also 32 hexadecimal characters, overlapping with MD5.",
-    example: "8846f7eaee8fb117ad06bdd830b7586c",
-    securityNote: "NTLM is weak for modern password security.",
+    test: (value) => isHexLength(value, 32),
+    reason: "Thirty-two hexadecimal characters encode 128 bits. MD5 and NTLM are two familiar examples, but the shape is not unique to either.",
+    securityNote: "Do not label a 32-character hex value as MD5 or NTLM without source-system evidence.",
+  },
+  {
+    name: "SHA-1-sized hexadecimal digest",
+    family: "Ambiguous digest shape",
+    confidence: "low",
+    test: (value) => isHexLength(value, 40),
+    reason: "Forty hexadecimal characters encode 160 bits, the output size commonly associated with SHA-1.",
+    securityNote: "Length suggests a SHA-1-sized digest but does not prove SHA-1. SHA-1 is being retired from security-sensitive uses.",
+  },
+  {
+    name: "224-bit hexadecimal digest shape",
+    family: "Ambiguous digest shape",
+    confidence: "low",
+    test: (value) => isHexLength(value, 56),
+    reason: "Fifty-six hexadecimal characters encode 224 bits, matching outputs such as SHA-224 and SHA3-224.",
+    securityNote: "Several algorithms can produce a 224-bit digest, so metadata is needed to identify the algorithm.",
+  },
+  {
+    name: "256-bit hexadecimal digest shape",
+    family: "Ambiguous digest shape",
+    confidence: "low",
+    test: (value) => isHexLength(value, 64),
+    reason: "Sixty-four hexadecimal characters encode 256 bits, matching SHA-256, SHA3-256, SHA-512/256, BLAKE2s-256, and other digests.",
+    securityNote: "A 64-character hex value is not proof of SHA-256.",
+  },
+  {
+    name: "384-bit hexadecimal digest shape",
+    family: "Ambiguous digest shape",
+    confidence: "low",
+    test: (value) => isHexLength(value, 96),
+    reason: "Ninety-six hexadecimal characters encode 384 bits, matching SHA-384, SHA3-384, and other 384-bit outputs.",
+    securityNote: "Output size narrows possibilities but does not identify the algorithm by itself.",
+  },
+  {
+    name: "512-bit hexadecimal digest shape",
+    family: "Ambiguous digest shape",
+    confidence: "low",
+    test: (value) => isHexLength(value, 128),
+    reason: "One hundred twenty-eight hexadecimal characters encode 512 bits, matching SHA-512, SHA3-512, BLAKE2b-512, and other outputs.",
+    securityNote: "Output size narrows possibilities but does not identify the algorithm by itself.",
   },
 ];
 
@@ -208,19 +148,25 @@ export default function ToolClient() {
   const [inputMode, setInputMode] = useState<InputMode>("multi");
   const [outputMode, setOutputMode] = useState<OutputMode>("summary");
   const [trimInput, setTrimInput] = useState(true);
-  const [caseInsensitiveHex, setCaseInsensitiveHex] = useState(true);
-  const [includeWeakHashWarnings, setIncludeWeakHashWarnings] = useState(true);
+  const [includeLegacyCaution, setIncludeLegacyCaution] = useState(true);
   const [showLowConfidence, setShowLowConfidence] = useState(true);
   const [result, setResult] = useState<IdentifierResult | null>(null);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const notes = useMemo(() => (result ? getHashNotes(result) : []), [result]);
+  const cautionNotes = useMemo(() => (result ? getCautionNotes(result) : []), [result]);
+
+  const clearResult = () => {
+    setResult(null);
+    setOutput("");
+    setError("");
+    setCopied(false);
+  };
 
   const identifyHashes = () => {
     if (!input.trim()) {
-      setError("Please paste one or more hash strings.");
+      setError("Paste one value, or put multiple values on separate lines.");
       setResult(null);
       setOutput("");
       setCopied(false);
@@ -232,38 +178,31 @@ export default function ToolClient() {
         inputMode,
         outputMode,
         trimInput,
-        caseInsensitiveHex,
-        includeWeakHashWarnings,
+        includeLegacyCaution,
         showLowConfidence,
       });
-
       setResult(nextResult);
       setOutput(nextResult.output);
       setError("");
       setCopied(false);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to identify this hash value."
-      );
+    } catch (caught) {
       setResult(null);
       setOutput("");
       setCopied(false);
+      setError(caught instanceof Error ? caught.message : "Unable to classify these values.");
     }
   };
 
   const copyOutput = async () => {
-    if (!output) {
-      return;
-    }
-
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-
-    window.setTimeout(() => {
+    if (!output) return;
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
       setCopied(false);
-    }, 1400);
+      setError("The classification report could not be copied. Select and copy it manually.");
+    }
   };
 
   const loadExample = () => {
@@ -271,13 +210,9 @@ export default function ToolClient() {
     setInputMode("multi");
     setOutputMode("summary");
     setTrimInput(true);
-    setCaseInsensitiveHex(true);
-    setIncludeWeakHashWarnings(true);
+    setIncludeLegacyCaution(true);
     setShowLowConfidence(true);
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    clearResult();
   };
 
   const resetAll = () => {
@@ -285,277 +220,138 @@ export default function ToolClient() {
     setInputMode("multi");
     setOutputMode("summary");
     setTrimInput(true);
-    setCaseInsensitiveHex(true);
-    setIncludeWeakHashWarnings(true);
+    setIncludeLegacyCaution(true);
     setShowLowConfidence(true);
-    setResult(null);
-    setOutput("");
-    setError("");
-    setCopied(false);
+    clearResult();
   };
 
   return (
     <ToolShell
       title="Hash Algorithm Identifier"
-      description="Identify possible hash algorithms from a pasted value. Check length, character set, common digest shapes, password-hash prefixes, token-like values, and ambiguity warnings locally in your browser."
+      description="Distinguish self-identifying password hashes from ambiguous digest shapes and token-like values."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Hash Input
-        </label>
-
+        <label className="mb-2 block text-sm font-medium text-gray-700">Hash or hash-like value</label>
         <textarea
           value={input}
-          onChange={(event) => {
+          onChange={(event: { target: { value: string } }) => {
             setInput(event.target.value);
-            setResult(null);
-            setOutput("");
-            setError("");
-            setCopied(false);
+            clearResult();
           }}
           placeholder={sampleHashes}
-          className="w-full min-h-[320px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          className="min-h-[300px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Paste one hash or multiple hashes on separate lines. This tool
-          identifies possible formats; it cannot prove the exact algorithm when
-          formats overlap.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          Self-describing password formats can be recognized with much more confidence than a bare hexadecimal digest. A bare digest is classified by shape, not declared to be a specific algorithm.
         </p>
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Options
-        </h3>
-
+        <h3 className="text-lg font-semibold text-gray-900">How much ambiguity should stay visible?</h3>
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
           <YoryantraSelect
-            label="Input"
+            label="Input layout"
             value={inputMode}
-            onChange={(value) => {
+            onChange={(value: string) => {
               setInputMode(value as InputMode);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
+              clearResult();
             }}
             options={[
-              { label: "Multiple lines", value: "multi" },
+              { label: "One value per line", value: "multi" },
               { label: "Single value", value: "single" },
             ]}
           />
-
           <YoryantraSelect
-            label="Output"
+            label="Copied output"
             value={outputMode}
-            onChange={(value) => {
+            onChange={(value: string) => {
               setOutputMode(value as OutputMode);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
+              clearResult();
             }}
             options={[
-              { label: "Summary", value: "summary" },
-              { label: "Detailed report", value: "detailed" },
+              { label: "Compact summary", value: "summary" },
+              { label: "Detailed reasoning", value: "detailed" },
               { label: "JSON", value: "json" },
               { label: "Matches only", value: "matches" },
             ]}
           />
-
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
-            <input
-              type="checkbox"
-              checked={trimInput}
-              onChange={(event) => {
-                setTrimInput(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
-            />
-
-            Trim whitespace
-          </label>
-
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
-            <input
-              type="checkbox"
-              checked={caseInsensitiveHex}
-              onChange={(event) => {
-                setCaseInsensitiveHex(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
-            />
-
-            Treat hexadecimal as case-insensitive
-          </label>
-
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
-            <input
-              type="checkbox"
-              checked={includeWeakHashWarnings}
-              onChange={(event) => {
-                setIncludeWeakHashWarnings(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
-            />
-
-            Include weak hash warnings
-          </label>
-
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
-            <input
-              type="checkbox"
-              checked={showLowConfidence}
-              onChange={(event) => {
-                setShowLowConfidence(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
-            />
-
-            Show low-confidence matches
-          </label>
+          <CheckboxRow checked={trimInput} label="Trim leading and trailing whitespace before classification" onChange={(checked) => { setTrimInput(checked); clearResult(); }} />
+          <CheckboxRow checked={showLowConfidence} label="Keep digest-size and encoded-byte clues that cannot prove an algorithm" onChange={(checked) => { setShowLowConfidence(checked); clearResult(); }} />
+          <CheckboxRow checked={includeLegacyCaution} label="Call out SHA-1-sized and 128-bit legacy digest shapes" onChange={(checked) => { setIncludeLegacyCaution(checked); clearResult(); }} />
         </div>
-
-        <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Hash identification is based on format, length, prefix, and character
-          set. Different algorithms can share the same visible shape.
-        </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={identifyHashes} className="yoryantra-btn">
-          Identify Hash
-        </button>
-
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
-          {copied ? "Copied" : "Copy Output"}
-        </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
-          Load Example
-        </button>
-
-        <button onClick={resetAll} className="yoryantra-btn-outline">
-          Reset
-        </button>
+        <button onClick={identifyHashes} className="yoryantra-btn whitespace-nowrap">Classify Values</button>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>{copied ? "Copied" : "Copy Output"}</button>
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">Load Example</button>
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">Reset</button>
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
-          {error}
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">{error}</div>
+      )}
+
+      {result && (
+        <div className="mt-8 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryCard label="Inputs" value={String(result.totalInputs)} />
+          <SummaryCard label="With clues" value={String(result.matchedInputs)} />
+          <SummaryCard label="Ambiguous" value={String(result.ambiguousInputs)} />
+          <SummaryCard label="Cautions" value={String(result.warningCount)} />
         </div>
       )}
 
       {result && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Inputs" value={result.totalInputs.toLocaleString()} />
-          <SummaryCard label="Matched" value={result.matchedInputs.toLocaleString()} />
-          <SummaryCard label="Warnings" value={result.warningCount.toLocaleString()} />
-          <SummaryCard
-            label="Best Match"
-            value={result.analyses[0]?.matches[0]?.name || "(none)"}
-          />
-        </div>
-      )}
-
-      {result && result.analyses.length > 0 && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Identification Results
-          </h3>
-
-          <p className="mt-2 text-sm text-gray-500">
-            Possible algorithms based on visible hash format and known prefixes.
-          </p>
-
+          <h3 className="text-lg font-semibold text-gray-900">What the visible format actually supports</h3>
           <div className="mt-4 space-y-4">
             {result.analyses.map((analysis, index) => (
-              <div key={`${analysis.normalized}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-gray-900">
-                    Input {index + 1}
-                  </span>
-
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700">
-                    {analysis.length} chars
-                  </span>
-
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700">
-                    {analysis.characterSet}
-                  </span>
-
-                  {analysis.matches[0] && (
-                    <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-                      Best: {analysis.matches[0].name}
-                    </span>
-                  )}
+              <div key={`${index}-${analysis.input}`} className="min-w-0 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <MiniStat label="Length" value={String(analysis.length)} />
+                  <MiniStat label="Character set" value={analysis.characterSet} />
+                  <MiniStat label="Visible form" value={analysis.format} />
                 </div>
-
-                <pre className="mt-3 overflow-auto rounded-lg bg-white p-3 text-xs font-mono text-gray-800 whitespace-pre-wrap break-words">
-                  {analysis.normalized}
-                </pre>
+                <p className="mt-3 break-words font-mono text-xs text-gray-600 [overflow-wrap:anywhere]">{analysis.value}</p>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">{analysis.shapeNote}</p>
 
                 {analysis.matches.length > 0 ? (
-                  <div className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-white">
+                  <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white">
                     <table className="w-full min-w-[760px] text-left text-sm">
                       <thead className="bg-gray-50 text-gray-600">
                         <tr>
-                          <th className="px-4 py-3 font-semibold">Possible Type</th>
+                          <th className="px-4 py-3 font-semibold">Clue</th>
                           <th className="px-4 py-3 font-semibold">Confidence</th>
-                          <th className="px-4 py-3 font-semibold">Reason</th>
-                          <th className="px-4 py-3 font-semibold">Note</th>
+                          <th className="px-4 py-3 font-semibold">Why it matched</th>
+                          <th className="px-4 py-3 font-semibold">Boundary</th>
                         </tr>
                       </thead>
-
                       <tbody className="divide-y divide-gray-100">
                         {analysis.matches.map((match) => (
-                          <tr key={`${analysis.normalized}-${match.name}`}>
-                            <td className="px-4 py-3 font-semibold text-gray-900">
-                              {match.name}
-                            </td>
+                          <tr key={match.name}>
+                            <td className="px-4 py-3 font-semibold text-gray-900">{match.name}</td>
                             <td className="px-4 py-3">
-                              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                                match.confidence === "high"
-                                  ? "bg-green-50 text-green-700"
-                                  : match.confidence === "medium"
-                                  ? "bg-amber-50 text-amber-700"
-                                  : "bg-gray-100 text-gray-700"
-                              }`}>
-                                {match.confidence}
-                              </span>
+                              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${match.confidence === "high" ? "bg-green-50 text-green-700" : match.confidence === "medium" ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-700"}`}>{match.confidence}</span>
                             </td>
-                            <td className="px-4 py-3 text-gray-700">
-                              {match.reason}
-                            </td>
-                            <td className="px-4 py-3 text-gray-700">
-                              {match.securityNote}
-                            </td>
+                            <td className="px-4 py-3 leading-relaxed text-gray-700">{match.reason}</td>
+                            <td className="px-4 py-3 leading-relaxed text-gray-700">{match.securityNote}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p className="mt-3 text-sm text-amber-700">
-                    No common hash format matched this value.
-                  </p>
+                  <div className="mt-4 rounded-lg border border-gray-200 bg-white p-3 text-sm leading-relaxed text-gray-600">
+                    No supported format clue matched this exact value.
+                  </div>
+                )}
+
+                {analysis.warnings.length > 0 && (
+                  <div className="mt-4 self-start rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    <ul className="list-disc space-y-1 pl-5">
+                      {analysis.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+                    </ul>
+                  </div>
                 )}
               </div>
             ))}
@@ -563,219 +359,113 @@ export default function ToolClient() {
         </div>
       )}
 
-      {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Hash identification notes
-          </h3>
-
+      {cautionNotes.length > 0 && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="text-sm font-semibold text-amber-900">What still needs source-system evidence</h3>
           <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {note.title}
-                </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {note.message}
-                </p>
-              </div>
+            {cautionNotes.map((note) => (
+              <p key={note} className="text-sm leading-relaxed text-amber-800">{note}</p>
             ))}
           </div>
         </div>
       )}
 
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Output
-          </h3>
-
-          {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
-              {copied ? "Copied" : "Copy"}
-            </button>
-          )}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">Copyable classification</h3>
+          {output && <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">{copied ? "Copied" : "Copy"}</button>}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[340px] whitespace-pre-wrap break-words">
-          {output || "Hash identification output will appear here."}
+        <pre className="yoryantra-output min-h-[300px] overflow-auto whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
+          {output || "The format clues will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Hash identification happens directly in your browser. Your pasted values
-        are not uploaded to a server.
+      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        Classification runs in the browser and performs no hash lookup or cracking. Pasted values are not sent to a server by this page.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Identifying Possible Hash Algorithms
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Hash strings often appear in logs, database dumps, API responses,
-            password migration work, security reports, and old application code.
-            The visible shape of a hash can suggest likely algorithms, but it
-            usually cannot prove the exact algorithm by itself.
+          <h2 className="text-2xl font-semibold text-gray-900">A hash string can reveal a format without revealing an algorithm</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Prefix-rich password hashes such as bcrypt and Argon2 carry identifying structure: algorithm family, version or parameters, salt, and encoded output. A bare 64-character hexadecimal string carries far less information. It tells you that 256 bits are being represented, not whether the bytes came from SHA-256, SHA3-256, BLAKE2s, SHA-512/256, random data, or something application-specific.
           </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This Hash Algorithm Identifier checks length, character set, common
-            prefixes, and known formats to suggest possible hash types such as
-            MD5, SHA-1, SHA-256, SHA-512, bcrypt, Argon2, scrypt, PBKDF2-style
-            strings, Base64-like values, and UUID-like identifiers.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The distinction matters during migrations and incident work. A confident-looking algorithm label based only on digest length can send debugging in the wrong direction.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Checking a Hash Type
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste one hash or multiple hashes on separate lines.</li>
-            <li>Choose single or multi-line input mode.</li>
-            <li>Turn low-confidence matches on or off.</li>
-            <li>Run the identifier and review possible algorithms.</li>
-            <li>Use the result as a clue, not as final proof.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">Why MD5 and NTLM cannot be separated by 32 hex characters</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Both are often written as 32 hexadecimal characters. Many unrelated 128-bit values have the same text shape. Without surrounding metadata—database column meaning, framework settings, source code, protocol context, or a known test vector—the string alone does not prove which algorithm produced it.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            For the same reason, 40, 56, 64, 96, and 128 hex characters are described here as digest-size clues rather than definitive SHA labels.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Hash Identifier Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Recognizing whether a value looks like MD5, SHA-1, or SHA-256.</li>
-            <li>Checking if a stored password hash looks like bcrypt or Argon2.</li>
-            <li>Reviewing old application hashes during migration work.</li>
-            <li>Separating random tokens, UUIDs, and hash-like values.</li>
-            <li>Finding weak legacy hash formats in exported data.</li>
-            <li>Documenting possible algorithms during security cleanup.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">Password-hash prefixes carry more evidence, but parameters still matter</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A valid-looking bcrypt string identifies the bcrypt storage format and exposes its cost field. An Argon2 PHC string exposes the variant and memory, time, and parallelism parameters. Recognition still does not answer whether those settings are suitable for current hardware, whether salts were generated correctly, or whether the application verifies passwords safely.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            PBKDF2 and scrypt are especially dependent on framework-specific serialization. A visible label can be a strong clue while the exact string grammar remains implementation-specific.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Hash Shapes
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Encoded random bytes can look exactly like a digest</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Base64 and Base64URL strings often appear in API keys, nonces, session identifiers, binary digests, and random secrets. When an encoded value has a canonical form, the decoded byte count is a useful clue. It is still only a byte count. Random 32-byte data and a 32-byte hash digest can have the same encoded length.
+          </p>
+        </div>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`MD5:    5d41402abc4b2a76b9719d911017c592
-SHA-1:  2aae6c35c94fcfb415dbe95f408b9ce91ee846ed
-SHA256: a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447
-bcrypt: $2y$10$...`}
-            </pre>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Security decisions need more than a guessed name</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            NIST's Secure Hash Standard defines the SHA-1 and SHA-2 digest sizes, while SHA-3 is defined separately. NIST is transitioning away from SHA-1 for remaining applications. For password storage, fast message digests and memory-hard password hashes solve different problems; RFC 9106 documents Argon2 and recommends Argon2id for broadly applicable password-hashing settings.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+            References: <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://csrc.nist.gov/pubs/fips/180-4/upd1/final" target="_blank" rel="noreferrer">NIST FIPS 180-4</a>, <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.nist.gov/news-events/news/2022/12/nist-transitioning-away-sha-1-all-applications" target="_blank" rel="noreferrer">NIST SHA-1 transition guidance</a>, and <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc9106" target="_blank" rel="noreferrer">RFC 9106</a>.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/hash-algorithm-identifier" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Hash Identification Has Limits
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Many algorithms produce outputs with the same length and character
-            set. For example, a 32-character hex string may be MD5, NTLM, or
-            something else entirely. Without metadata, configuration, or a known
-            input, the exact algorithm may remain uncertain.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use this tool to narrow down possibilities. For security decisions,
-            confirm the algorithm from the source system, code, database schema,
-            or hashing configuration.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this prove the exact hash algorithm?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. It identifies likely algorithms based on format. Some hash
-                algorithms share the same visible shape.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why can MD5 and NTLM look similar?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Both are commonly represented as 32 hexadecimal characters, so a
-                value can match both shapes.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this identify bcrypt and Argon2?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. bcrypt and Argon2 have recognizable formatted prefixes and
-                parameter sections.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this crack or reverse hashes?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool only identifies possible hash formats. It does not
-                crack, reverse, or look up hashes.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are my hash values uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Identification happens directly in your browser.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/hash-algorithm-identifier" />
         </div>
       </section>
     </ToolShell>
   );
 }
 
+function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+      <input type="checkbox" checked={checked} onChange={(event: { target: { checked: boolean } }) => onChange(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]" />
+      <span>{label}</span>
+    </label>
+  );
+}
+
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {label}
-      </div>
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
+    </div>
+  );
+}
 
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">
-        {value}
-      </div>
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-gray-200 bg-white p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]">{value}</p>
     </div>
   );
 }
@@ -786,267 +476,195 @@ function identifyHashAlgorithms(
     inputMode: InputMode;
     outputMode: OutputMode;
     trimInput: boolean;
-    caseInsensitiveHex: boolean;
-    includeWeakHashWarnings: boolean;
+    includeLegacyCaution: boolean;
     showLowConfidence: boolean;
   }
 ): IdentifierResult {
-  const values =
-    options.inputMode === "single"
-      ? [input]
-      : input.split(/\r?\n/);
+  const sourceValues = options.inputMode === "single" ? [input] : input.split(/\r?\n/);
+  const values = sourceValues
+    .filter((value) => value.trim().length > 0)
+    .map((value) => options.trimInput ? value.trim() : value);
 
-  const analyses = values
-    .map((value) => (options.trimInput ? value.trim() : value))
-    .filter(Boolean)
-    .map((value) => analyzeHash(value, options));
+  if (values.length === 0) throw new Error("No values were found after applying the input settings.");
+  if (values.length > 1000) throw new Error("Classify at most 1,000 values at a time in the browser.");
 
-  if (analyses.length === 0) {
-    throw new Error("No hash-like values were found.");
-  }
-
+  const analyses = values.map((value) => analyzeHash(value, options));
   const matchedInputs = analyses.filter((analysis) => analysis.matches.length > 0).length;
+  const ambiguousInputs = analyses.filter((analysis) => analysis.matches.some((match) => match.family === "Ambiguous digest shape" || match.confidence === "low")).length;
   const warningCount = analyses.reduce((count, analysis) => count + analysis.warnings.length, 0);
-  const output = formatOutput(analyses, options.outputMode);
 
   return {
     analyses,
-    output,
+    output: formatOutput(analyses, options.outputMode),
     totalInputs: analyses.length,
     matchedInputs,
+    ambiguousInputs,
     warningCount,
   };
 }
 
 function analyzeHash(
   value: string,
-  options: {
-    includeWeakHashWarnings: boolean;
-    showLowConfidence: boolean;
-  }
+  options: { includeLegacyCaution: boolean; showLowConfidence: boolean }
 ): HashAnalysis {
-  const normalized = value.trim();
-  const matches = knownPatterns
-    .filter((pattern) => pattern.test(normalized))
+  const matches = patterns
+    .filter((pattern) => pattern.test(value))
     .map<HashMatch>((pattern) => ({
       name: pattern.name,
       family: pattern.family,
       confidence: pattern.confidence,
       reason: pattern.reason,
-      example: pattern.example,
       securityNote: pattern.securityNote,
-    }))
+    }));
+
+  const encoded = getEncodedByteClue(value);
+  if (encoded) matches.push(encoded);
+
+  const filteredMatches = matches
     .filter((match) => options.showLowConfidence || match.confidence !== "low")
     .sort((a, b) => confidenceRank(b.confidence) - confidenceRank(a.confidence));
-  const warnings = getWarnings(normalized, matches, options.includeWeakHashWarnings);
 
   return {
     input: value,
-    normalized,
-    length: normalized.length,
-    characterSet: detectCharacterSet(normalized),
-    format: detectFormat(normalized),
-    entropyHint: getEntropyHint(normalized),
-    matches,
-    warnings,
+    value,
+    length: value.length,
+    characterSet: detectCharacterSet(value),
+    format: detectFormat(value),
+    shapeNote: getShapeNote(value, encoded),
+    matches: filteredMatches,
+    warnings: getWarnings(value, filteredMatches, options.includeLegacyCaution),
   };
 }
 
 function confidenceRank(confidence: Confidence) {
-  if (confidence === "high") {
-    return 3;
-  }
-
-  if (confidence === "medium") {
-    return 2;
-  }
-
+  if (confidence === "high") return 3;
+  if (confidence === "medium") return 2;
   return 1;
 }
 
+function isHexLength(value: string, length: number) {
+  return value.length === length && /^[0-9a-f]+$/i.test(value);
+}
+
 function detectCharacterSet(value: string) {
-  if (/^[a-f0-9]+$/i.test(value)) {
-    return "hexadecimal";
-  }
-
-  if (/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
-    return "base64-like";
-  }
-
-  if (/^[A-Za-z0-9_-]+$/.test(value)) {
-    return "base64url/token-like";
-  }
-
-  if (/^\$/.test(value)) {
-    return "modular crypt format";
-  }
-
+  if (/^[0-9a-f]+$/i.test(value)) return "hexadecimal";
+  if (/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return "Base64 alphabet";
+  if (/^[A-Za-z0-9_-]+$/.test(value)) return "Base64URL/token alphabet";
+  if (value.charAt(0) === "$") return "structured $-delimited text";
   return "mixed";
 }
 
 function detectFormat(value: string) {
-  if (/^\$2[aby]\$/.test(value)) {
-    return "bcrypt formatted";
-  }
-
-  if (/^\$argon2/.test(value)) {
-    return "Argon2 formatted";
-  }
-
-  if (/^[a-f0-9]+$/i.test(value)) {
-    return "plain hex";
-  }
-
-  if (/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
-    return "Base64-like";
-  }
-
-  if (/^[A-Za-z0-9_-]+$/.test(value)) {
-    return "Base64URL or token-like";
-  }
-
-  return "unknown or custom";
+  if (/^\$2[aby]\$/.test(value)) return "bcrypt-like";
+  if (/^\$argon2(id|i|d)\$/.test(value)) return "Argon2-like";
+  if (/^[0-9a-f]+$/i.test(value)) return "plain hexadecimal";
+  if (/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return "Base64-like";
+  if (/^[A-Za-z0-9_-]+$/.test(value)) return "Base64URL/token-like";
+  return "custom or unknown";
 }
 
-function getEntropyHint(value: string) {
-  if (value.length < 16) {
-    return "short value";
-  }
-
-  if (/^(.)\1+$/.test(value)) {
-    return "repeated characters";
-  }
-
-  if (/^[a-f0-9]+$/i.test(value) && value.length >= 64) {
-    return "long hex digest shape";
-  }
-
-  if (value.length >= 60) {
-    return "long formatted value";
-  }
-
-  return "normal-looking length";
+function getShapeNote(value: string, encoded: HashMatch | null) {
+  if (/^(.)\1+$/.test(value)) return "The value repeats one character, which is not a normal-looking cryptographic output.";
+  if (encoded) return encoded.reason;
+  if (/^[0-9a-f]+$/i.test(value)) return `The hexadecimal text represents ${value.length * 4} bits if every digit is part of the encoded value.`;
+  if (/^\$/.test(value)) return "A structured prefix can carry more identifying evidence than length alone.";
+  return "No entropy estimate is inferred from appearance; visual complexity is not a measurement of randomness.";
 }
 
-function getWarnings(
-  value: string,
-  matches: HashMatch[],
-  includeWeakHashWarnings: boolean
-) {
+function getWarnings(value: string, matches: HashMatch[], includeLegacyCaution: boolean) {
   const warnings: string[] = [];
-
-  if (matches.length === 0) {
-    warnings.push("No common hash format matched this value. It may be custom, truncated, encoded, salted, or not a hash.");
-  }
-
-  if (matches.length > 1) {
-    warnings.push("More than one format matched. Length and character set cannot prove the exact hash algorithm.");
-  }
-
-  if (includeWeakHashWarnings && matches.some((match) => ["MD5", "SHA-1", "NTLM"].includes(match.name))) {
-    warnings.push("This value may be a weak legacy hash type. Do not reuse MD5, SHA-1, or NTLM for modern password or signature security.");
-  }
-
-  if (value.length < 16) {
-    warnings.push("This value is short and may not be a cryptographic hash.");
-  }
-
-  if (/\s/.test(value)) {
-    warnings.push("Whitespace was found inside the value.");
-  }
-
+  if (matches.length === 0) warnings.push("No supported format clue matched. The value may be custom, truncated, encoded differently, or not a hash.");
+  if (matches.filter((match) => match.family === "Ambiguous digest shape").length > 0) warnings.push("Digest length narrows the output size but cannot prove the generating algorithm.");
+  if (includeLegacyCaution && isHexLength(value, 32)) warnings.push("A 128-bit hex shape can match legacy values such as MD5 or NTLM; neither should be assumed from shape alone.");
+  if (includeLegacyCaution && isHexLength(value, 40)) warnings.push("A 160-bit hex shape is compatible with SHA-1 output size. SHA-1 is being retired from remaining security-sensitive uses.");
+  if (/\s/.test(value)) warnings.push("Whitespace is part of the value because trimming is disabled; that can prevent an otherwise familiar format from matching.");
+  if (value.length < 8) warnings.push("The value is very short for a cryptographic digest or password-hash string.");
   return warnings;
 }
 
+function getEncodedByteClue(value: string): HashMatch | null {
+  if (/^[0-9a-f]+$/i.test(value) || value.charAt(0) === "$" || /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(value)) return null;
+  const standardBytes = decodeCanonicalBase64Length(value);
+  if (standardBytes !== null) {
+    return {
+      name: `Base64 data (${standardBytes} bytes)`,
+      family: "Encoded bytes",
+      confidence: "low",
+      reason: `The value is canonical standard Base64 representing ${standardBytes} bytes. Those bytes could be a digest, random secret, token, or other binary data.`,
+      securityNote: "Encoded byte length is not an algorithm identifier.",
+    };
+  }
+  const urlBytes = decodeCanonicalBase64UrlLength(value);
+  if (urlBytes !== null) {
+    return {
+      name: `Base64URL data (${urlBytes} bytes)`,
+      family: "Encoded bytes",
+      confidence: "low",
+      reason: `The value is canonical unpadded Base64URL representing ${urlBytes} bytes. Those bytes could be a digest, random secret, token, or other binary data.`,
+      securityNote: "Encoded byte length is not an algorithm identifier.",
+    };
+  }
+  return null;
+}
+
+function decodeCanonicalBase64Length(value: string) {
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value) || value.length % 4 !== 0) return null;
+  const firstPad = value.indexOf("=");
+  if (firstPad !== -1 && firstPad < value.length - 2) return null;
+  try {
+    const binary = atob(value);
+    const canonical = btoa(binary);
+    return canonical === value ? binary.length : null;
+  } catch {
+    return null;
+  }
+}
+
+function decodeCanonicalBase64UrlLength(value: string) {
+  if (!/^[A-Za-z0-9_-]+$/.test(value) || value.length % 4 === 1) return null;
+  try {
+    const standard = value.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = standard + "=".repeat((4 - (standard.length % 4)) % 4);
+    const binary = atob(padded);
+    const canonical = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    return canonical === value ? binary.length : null;
+  } catch {
+    return null;
+  }
+}
+
 function formatOutput(analyses: HashAnalysis[], outputMode: OutputMode) {
-  if (outputMode === "json") {
-    return JSON.stringify(analyses, null, 2);
-  }
-
+  if (outputMode === "json") return JSON.stringify(analyses, null, 2);
   if (outputMode === "matches") {
-    return analyses
-      .map((analysis, index) => {
-        const matches = analysis.matches.length
-          ? analysis.matches.map((match) => `${match.name} (${match.confidence})`).join(", ")
-          : "(no match)";
-
-        return `Input ${index + 1}: ${matches}`;
-      })
-      .join("\n");
+    return analyses.map((analysis, index) => `Input ${index + 1}: ${analysis.matches.length ? analysis.matches.map((match) => `${match.name} [${match.confidence}]`).join(", ") : "no supported clue"}`).join("\n");
   }
-
   if (outputMode === "detailed") {
-    return analyses
-      .map((analysis, index) => {
-        const matches = analysis.matches.length
-          ? analysis.matches.map((match) => `- ${match.name} [${match.confidence}]: ${match.reason}\n  ${match.securityNote}`).join("\n")
-          : "- No common format matched.";
-        const warnings = analysis.warnings.length
-          ? analysis.warnings.map((warning) => `- ${warning}`).join("\n")
-          : "- None";
-
-        return [
-          `Input ${index + 1}`,
-          "-------",
-          `Value: ${analysis.normalized}`,
-          `Length: ${analysis.length}`,
-          `Character set: ${analysis.characterSet}`,
-          `Format: ${analysis.format}`,
-          `Entropy hint: ${analysis.entropyHint}`,
-          "",
-          "Possible matches:",
-          matches,
-          "",
-          "Warnings:",
-          warnings,
-        ].join("\n");
-      })
-      .join("\n\n");
+    return analyses.map((analysis, index) => [
+      `Input ${index + 1}`,
+      "-------",
+      `Value: ${analysis.value}`,
+      `Length: ${analysis.length}`,
+      `Character set: ${analysis.characterSet}`,
+      `Visible form: ${analysis.format}`,
+      `Shape note: ${analysis.shapeNote}`,
+      "",
+      "Clues:",
+      ...(analysis.matches.length ? analysis.matches.map((match) => `- ${match.name} [${match.confidence}]: ${match.reason} ${match.securityNote}`) : ["- No supported format clue matched."]),
+      "",
+      "Cautions:",
+      ...(analysis.warnings.length ? analysis.warnings.map((warning) => `- ${warning}`) : ["- None"]),
+    ].join("\n")).join("\n\n");
   }
-
   return [
-    "Hash Algorithm Identification Summary",
-    "-------------------------------------",
-    ...analyses.map((analysis, index) => {
-      const best = analysis.matches[0];
-
-      return [
-        `Input ${index + 1}:`,
-        `  Length: ${analysis.length}`,
-        `  Character set: ${analysis.characterSet}`,
-        `  Best match: ${best ? `${best.name} (${best.confidence})` : "(no match)"}`,
-        `  Warnings: ${analysis.warnings.length}`,
-      ].join("\n");
-    }),
+    "Hash-format classification",
+    "--------------------------",
+    ...analyses.map((analysis, index) => `Input ${index + 1}: ${analysis.matches[0] ? `${analysis.matches[0].name} [${analysis.matches[0].confidence}]` : "no supported clue"}${analysis.matches.length > 1 ? ` + ${analysis.matches.length - 1} more` : ""}`),
   ].join("\n");
 }
 
-function getHashNotes(result: IdentifierResult): HashNote[] {
-  const notes: HashNote[] = [];
-
-  if (result.analyses.some((analysis) => analysis.matches.length === 0)) {
-    notes.push({
-      title: "Some values did not match",
-      message:
-        "One or more inputs did not match common hash formats. They may be custom tokens, truncated hashes, encoded data, or non-hash values.",
-    });
-  }
-
-  if (result.analyses.some((analysis) => analysis.matches.length > 1)) {
-    notes.push({
-      title: "Overlapping formats",
-      message:
-        "Some values match more than one format. Length and character set alone cannot always prove the exact algorithm.",
-    });
-  }
-
-  if (result.analyses.some((analysis) => analysis.matches.some((match) => ["MD5", "SHA-1", "NTLM"].includes(match.name)))) {
-    notes.push({
-      title: "Possible weak legacy hash",
-      message:
-        "MD5, SHA-1, and NTLM are weak for modern security-sensitive use. Review old systems carefully before reusing them.",
-    });
-  }
-
+function getCautionNotes(result: IdentifierResult) {
+  const notes: string[] = [];
+  if (result.ambiguousInputs > 0) notes.push("At least one value is classified from digest size or encoded-byte length. Confirm the algorithm in source code, framework configuration, protocol documentation, or a known test vector before making a migration or security decision.");
+  if (result.analyses.some((analysis) => analysis.matches.some((match) => match.name.indexOf("bcrypt") !== -1 || match.name.indexOf("Argon2") !== -1))) notes.push("Recognizing a password-hash format does not validate its cost, memory settings, salt generation, password policy, or verification code.");
   return notes;
 }

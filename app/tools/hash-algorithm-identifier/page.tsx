@@ -2,37 +2,33 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Hash Algorithm Identifier | Check Possible Hash Types | Yoryantra",
+  title: "Hash Algorithm Identifier – Format & Digest Clues | Yoryantra",
   description:
-    "Identify possible hash algorithms from a pasted value. Check length, character set, common digest shapes, MD5, SHA-1, SHA-256, SHA-512, bcrypt, Argon2, UUID-like values, and ambiguity warnings locally in your browser.",
+    "Separate self-identifying password hashes from ambiguous hex or Base64 digest shapes using prefixes, length, encoding, and format evidence.",
   keywords: [
-    "Hash Algorithm Identifier",
-    "hash identifier",
-    "identify hash type",
-    "MD5 SHA1 SHA256 identifier",
-    "hash type checker",
-    "hash algorithm checker",
-    "bcrypt hash identifier",
-    "Argon2 hash identifier",
-    "security tools",
-    "developer tools",
+    "hash algorithm identifier",
+    "identify hash format",
+    "bcrypt hash format",
+    "Argon2 hash format",
+    "SHA-256 digest length",
+    "MD5 NTLM hash shape",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/hash-algorithm-identifier",
   },
   openGraph: {
-    title: "Hash Algorithm Identifier | Check Possible Hash Types | Yoryantra",
+    title: "Hash Algorithm Identifier – Format & Digest Clues | Yoryantra",
     description:
-      "Identify possible hash algorithms from a pasted value. Check length, character set, common digest shapes, MD5, SHA-1, SHA-256, SHA-512, bcrypt, Argon2, UUID-like values, and ambiguity warnings locally in your browser.",
+      "Distinguish structured password hashes from ambiguous digest shapes using prefixes, length, encoding, and visible format.",
     url: "https://yoryantra.com/tools/hash-algorithm-identifier",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hash Algorithm Identifier | Check Possible Hash Types | Yoryantra",
+    title: "Hash Algorithm Identifier – Format & Digest Clues | Yoryantra",
     description:
-      "Identify possible hash algorithms from a pasted value. Check length, character set, common digest shapes, MD5, SHA-1, SHA-256, SHA-512, bcrypt, Argon2, UUID-like values, and ambiguity warnings locally in your browser.",
+      "Distinguish structured password hashes from ambiguous digest shapes using prefixes, length, encoding, and visible format.",
   },
 };
 

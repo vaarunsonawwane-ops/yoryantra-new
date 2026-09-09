@@ -2,37 +2,33 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JWT Claims Inspector | Check exp iat nbf aud iss Claims | Yoryantra",
+  title: "JWT Claims Inspector – exp, nbf, iss & aud | Yoryantra",
   description:
-    "Inspect JWT claims locally and check exp, iat, nbf, issuer, audience, subject, scopes, roles, lifetime, NumericDate values, and common claim issues without verifying the signature.",
+    "Read JWT timing, issuer, audience, subject, scope, and role claims while keeping decoded data separate from signature verification and token trust.",
   keywords: [
-    "JWT Claims Inspector",
-    "JWT claims checker",
-    "JWT exp checker",
-    "JWT aud iss checker",
-    "JWT token claims",
-    "JWT expiration inspector",
-    "JWT scope checker",
-    "JWT role checker",
-    "security tools",
-    "developer tools",
+    "JWT claims inspector",
+    "JWT exp nbf iat",
+    "JWT issuer audience",
+    "JWT NumericDate",
+    "JWT scope roles",
+    "JWT claims decoder",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/jwt-claims-inspector",
   },
   openGraph: {
-    title: "JWT Claims Inspector | Check exp iat nbf aud iss Claims | Yoryantra",
+    title: "JWT Claims Inspector – exp, nbf, iss & aud | Yoryantra",
     description:
-      "Inspect JWT claims locally and check exp, iat, nbf, issuer, audience, subject, scopes, roles, lifetime, NumericDate values, and common claim issues without verifying the signature.",
+      "Read JWT timing and identity claims without treating decoded data as cryptographically verified.",
     url: "https://yoryantra.com/tools/jwt-claims-inspector",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "JWT Claims Inspector | Check exp iat nbf aud iss Claims | Yoryantra",
+    title: "JWT Claims Inspector – exp, nbf, iss & aud | Yoryantra",
     description:
-      "Inspect JWT claims locally and check exp, iat, nbf, issuer, audience, subject, scopes, roles, lifetime, NumericDate values, and common claim issues without verifying the signature.",
+      "Read JWT timing and identity claims without treating decoded data as cryptographically verified.",
   },
 };
 

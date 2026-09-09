@@ -1044,7 +1044,7 @@ export const tools = [
 {
   title: "JWT Claims Inspector",
   description:
-    "Inspect JWT claims and check expiration, issuer, audience, subject, scopes, roles, and common token issues.",
+    "Decode JWT claims, interpret exp/nbf/iat timing, and read issuer, audience, scope, and role values without signature verification.",
   href: "/tools/jwt-claims-inspector",
   category: "Security Tools",
 },
@@ -1052,7 +1052,7 @@ export const tools = [
 {
   title: "Hash Algorithm Identifier",
   description:
-    "Identify possible hash algorithms from format, length, character set, prefixes, and common hash shapes.",
+    "Separate self-identifying password hashes from ambiguous digest shapes using prefixes, length, and encoding.",
   href: "/tools/hash-algorithm-identifier",
   category: "Security Tools",
 },
@@ -1198,7 +1198,7 @@ export const tools = [
 {
   title: "CSP Report Analyzer",
   description:
-    "Analyze CSP violation reports, parse JSON or NDJSON, group blocked resources, inspect directives, and detect risky policy patterns.",
+    "Group CSP violation reports by directive and disposition, while separating blocked resources from report-only findings.",
   href: "/tools/csp-report-analyzer",
   category: "Security Tools",
 },
