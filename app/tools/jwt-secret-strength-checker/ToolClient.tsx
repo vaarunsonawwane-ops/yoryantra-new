@@ -358,7 +358,7 @@ export default function ToolClient() {
 
       {infoItems.length > 0 && (
         <FindingCard
-          tone="blue"
+          tone="neutral"
           title="What the local check can confirm"
           items={infoItems}
         />
@@ -563,7 +563,7 @@ function FindingCard({
   title,
   items,
 }: {
-  tone: "red" | "amber" | "blue";
+  tone: "red" | "amber" | "neutral";
   title: string;
   items: Issue[];
 }) {
@@ -572,14 +572,14 @@ function FindingCard({
       ? "border-red-200 bg-red-50 text-red-800"
       : tone === "amber"
         ? "border-amber-200 bg-amber-50 text-amber-800"
-        : "border-blue-200 bg-blue-50 text-blue-800";
+        : "border-gray-200 bg-gray-50 text-gray-600";
 
   const heading =
     tone === "red"
       ? "text-red-900"
       : tone === "amber"
         ? "text-amber-900"
-        : "text-blue-900";
+        : "text-gray-900";
 
   return (
     <div className={`mt-6 self-start rounded-xl border p-4 ${classes}`}>

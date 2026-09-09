@@ -1232,7 +1232,7 @@ export const tools = [
 {
   title: "Subresource Integrity Hash Generator",
   description:
-    "Hash exact UTF-8 script or stylesheet text for SRI and generate deployable integrity attributes.",
+    "Hash exact UTF-8 script or stylesheet text for SRI and produce integrity attributes for HTML tags.",
   href: "/tools/subresource-integrity-hash-generator",
   category: "Security Tools",
 },
@@ -1265,7 +1265,7 @@ export const tools = [
 {
   title: "JWT Secret Strength Checker",
   description:
-    "Check HS256, HS384, or HS512 key bytes against JWA minimums and obvious guessable-secret patterns..",
+    "Check HS256, HS384, or HS512 key bytes against required minimum lengths and flag obviously guessable secrets.",
   href: "/tools/jwt-secret-strength-checker",
   category: "Security Tools",
 },

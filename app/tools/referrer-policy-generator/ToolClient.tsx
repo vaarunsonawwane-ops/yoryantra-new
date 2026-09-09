@@ -355,7 +355,7 @@ export default function ToolClient() {
       )}
 
       {infoItems.length > 0 && (
-        <FindingCard tone="blue" title="Behavior to keep in mind" items={infoItems} />
+        <FindingCard tone="neutral" title="Behavior to keep in mind" items={infoItems} />
       )}
 
       <div className="mt-8">
@@ -542,7 +542,7 @@ function FindingCard({
   title,
   items,
 }: {
-  tone: "amber" | "blue";
+  tone: "amber" | "neutral";
   title: string;
   items: Finding[];
 }) {
@@ -553,16 +553,16 @@ function FindingCard({
       className={`mt-6 self-start rounded-xl border p-4 ${
         amber
           ? "border-amber-200 bg-amber-50 text-amber-800"
-          : "border-blue-200 bg-blue-50 text-blue-800"
+          : "border-gray-200 bg-gray-50 text-gray-600"
       }`}
     >
-      <h3 className={`text-sm font-semibold ${amber ? "text-amber-900" : "text-blue-900"}`}>
+      <h3 className={`text-sm font-semibold ${amber ? "text-amber-900" : "text-gray-900"}`}>
         {title}
       </h3>
       <div className="mt-3 space-y-3">
         {items.map((item, index) => (
           <div key={`${item.title}-${index}`}>
-            <p className={`text-sm font-semibold ${amber ? "text-amber-900" : "text-blue-900"}`}>
+            <p className={`text-sm font-semibold ${amber ? "text-amber-900" : "text-gray-900"}`}>
               {item.title}
             </p>
             <p className="mt-1 text-sm leading-relaxed">{item.message}</p>
