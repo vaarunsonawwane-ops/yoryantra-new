@@ -174,7 +174,6 @@ export default function ToolClient() {
 
       {mode === "date-to-timestamp" ? (
         <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-          <div className="mb-3 text-sm font-medium text-gray-700">Date and Time</div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-3 sm:grid-cols-2">
               <DatePickerField
