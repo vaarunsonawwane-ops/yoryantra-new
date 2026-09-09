@@ -1232,7 +1232,7 @@ export const tools = [
 {
   title: "Subresource Integrity Hash Generator",
   description:
-    "Generate SHA-256, SHA-384, and SHA-512 Subresource Integrity hashes and script/style integrity attributes for CDN resources.",
+    "Hash exact UTF-8 script or stylesheet text for SRI and generate deployable integrity attributes.",
   href: "/tools/subresource-integrity-hash-generator",
   category: "Security Tools",
 },
@@ -1240,7 +1240,7 @@ export const tools = [
 {
   title: "Referrer Policy Generator",
   description:
-    "Generate Referrer-Policy headers, Nginx/Apache config, HTML meta tags, and privacy guidance for browser referrer behavior.",
+    "Build a Referrer-Policy header and compare same-origin, cross-origin, and HTTPS-to-HTTP referrer behavior.",
   href: "/tools/referrer-policy-generator",
   category: "Security Tools",
 },
@@ -1265,7 +1265,7 @@ export const tools = [
 {
   title: "JWT Secret Strength Checker",
   description:
-    "Check JWT and HMAC signing secrets for length, entropy estimate, weak/default words, repeated patterns, and risky secret formats.",
+    "Check HS256, HS384, or HS512 key bytes against JWA minimums and obvious guessable-secret patterns..",
   href: "/tools/jwt-secret-strength-checker",
   category: "Security Tools",
 },

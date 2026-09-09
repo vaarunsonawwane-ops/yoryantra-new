@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -15,22 +16,25 @@ type PolicyValue =
   | "strict-origin-when-cross-origin"
   | "unsafe-url";
 
-type Preset = "balanced" | "privacy" | "analytics" | "legacy" | "custom";
+type Preset = "browserDefault" | "noReferrer" | "sameOrigin" | "originOnly" | "custom";
 type OutputMode = "header" | "nginx" | "apache" | "html" | "json" | "markdown";
 type Scenario = "general" | "publicSite" | "app" | "marketing" | "sensitive";
+type Severity = "info" | "warning";
 
 type PolicyInfo = {
   value: PolicyValue;
-  label: string;
-  privacy: "high" | "medium" | "low";
-  compatibility: "high" | "medium";
   summary: string;
 };
 
 type Finding = {
-  severity: "info" | "warning" | "high";
+  severity: Severity;
   title: string;
   message: string;
+};
+
+type BehaviorExample = {
+  scenario: string;
+  sent: string;
 };
 
 type Result = {
@@ -38,88 +42,62 @@ type Result = {
   output: string;
   headerValue: string;
   findings: Finding[];
-  examples: string[];
-  privacyScore: number;
-  compatibilityScore: number;
+  examples: BehaviorExample[];
 };
 
 const policies: PolicyInfo[] = [
   {
     value: "no-referrer",
-    label: "no-referrer",
-    privacy: "high",
-    compatibility: "medium",
-    summary: "Never sends the Referer header.",
+    summary: "No Referer header is sent.",
   },
   {
     value: "no-referrer-when-downgrade",
-    label: "no-referrer-when-downgrade",
-    privacy: "low",
-    compatibility: "high",
-    summary: "Sends full URL except when moving from HTTPS to HTTP.",
+    summary: "Full referrer can be sent except from HTTPS to a less secure destination.",
   },
   {
     value: "origin",
-    label: "origin",
-    privacy: "medium",
-    compatibility: "high",
-    summary: "Sends only the origin, not the full path.",
+    summary: "Only the source origin is sent, including on HTTPS-to-HTTP requests.",
   },
   {
     value: "origin-when-cross-origin",
-    label: "origin-when-cross-origin",
-    privacy: "medium",
-    compatibility: "high",
-    summary: "Sends full URL on same-origin requests and origin only cross-origin.",
+    summary: "Full same-origin referrer; origin only for cross-origin requests, including downgrades.",
   },
   {
     value: "same-origin",
-    label: "same-origin",
-    privacy: "high",
-    compatibility: "medium",
-    summary: "Sends referrer only for same-origin requests.",
+    summary: "Referrer data stays on same-origin requests and is omitted cross-origin.",
   },
   {
     value: "strict-origin",
-    label: "strict-origin",
-    privacy: "medium",
-    compatibility: "high",
-    summary: "Sends only origin and avoids HTTPS-to-HTTP downgrades.",
+    summary: "Only the origin is sent when the destination is not less secure.",
   },
   {
     value: "strict-origin-when-cross-origin",
-    label: "strict-origin-when-cross-origin",
-    privacy: "medium",
-    compatibility: "high",
-    summary: "Modern browser default: full same-origin URL, origin only for same-security cross-origin requests, and no HTTPS-to-HTTP downgrade referrer.",
+    summary: "Full same-origin referrer, origin cross-origin at the same security level, nothing on HTTPS-to-HTTP downgrade.",
   },
   {
     value: "unsafe-url",
-    label: "unsafe-url",
-    privacy: "low",
-    compatibility: "high",
-    summary: "Sends full URL to all requests. Usually not recommended.",
+    summary: "Full referrer is sent for same-origin, cross-origin, and downgrade requests.",
   },
 ];
 
 const presetPolicies: Record<Preset, PolicyValue> = {
-  balanced: "strict-origin-when-cross-origin",
-  privacy: "no-referrer",
-  analytics: "origin-when-cross-origin",
-  legacy: "no-referrer-when-downgrade",
+  browserDefault: "strict-origin-when-cross-origin",
+  noReferrer: "no-referrer",
+  sameOrigin: "same-origin",
+  originOnly: "strict-origin",
   custom: "strict-origin-when-cross-origin",
 };
 
 export default function ToolClient() {
-  const [preset, setPreset] = useState<Preset>("balanced");
+  const [preset, setPreset] = useState<Preset>("browserDefault");
   const [policy, setPolicy] = useState<PolicyValue>("strict-origin-when-cross-origin");
   const [scenario, setScenario] = useState<Scenario>("general");
   const [outputMode, setOutputMode] = useState<OutputMode>("header");
   const [includeMetaTag, setIncludeMetaTag] = useState(false);
   const [includeExplanation, setIncludeExplanation] = useState(true);
-  const [warnAboutUnsafeUrl, setWarnAboutUnsafeUrl] = useState(true);
   const [result, setResult] = useState<Result | null>(null);
   const [output, setOutput] = useState("");
+  const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
   const selectedInfo = useMemo(
@@ -127,11 +105,19 @@ export default function ToolClient() {
     [policy]
   );
 
-  const notes = useMemo(() => (result ? getNotes(result) : []), [result]);
+  const warnings = useMemo(
+    () => result?.findings.filter((item) => item.severity === "warning") || [],
+    [result]
+  );
+  const infoItems = useMemo(
+    () => result?.findings.filter((item) => item.severity === "info") || [],
+    [result]
+  );
 
   const clearResult = () => {
     setResult(null);
     setOutput("");
+    setError("");
     setCopied(false);
   };
 
@@ -142,58 +128,62 @@ export default function ToolClient() {
       outputMode,
       includeMetaTag,
       includeExplanation,
-      warnAboutUnsafeUrl,
     });
 
     setResult(next);
     setOutput(next.output);
+    setError("");
     setCopied(false);
   };
 
   const copyOutput = async () => {
     if (!output) return;
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+      setError("The generated policy could not be copied. Select and copy it manually.");
+    }
   };
 
   const loadExample = () => {
-    setPreset("balanced");
+    setPreset("browserDefault");
     setPolicy("strict-origin-when-cross-origin");
     setScenario("publicSite");
     setOutputMode("header");
     setIncludeMetaTag(false);
     setIncludeExplanation(true);
-    setWarnAboutUnsafeUrl(true);
     clearResult();
   };
 
   const resetAll = () => {
-    setPreset("balanced");
+    setPreset("browserDefault");
     setPolicy("strict-origin-when-cross-origin");
     setScenario("general");
     setOutputMode("header");
     setIncludeMetaTag(false);
     setIncludeExplanation(true);
-    setWarnAboutUnsafeUrl(true);
     clearResult();
   };
 
   return (
     <ToolShell
       title="Referrer Policy Generator"
-      description="Generate Referrer-Policy headers for websites. Compare strict-origin-when-cross-origin, no-referrer, same-origin, origin, and other browser referrer privacy policies."
+      description="Build one Referrer-Policy value and preview same-origin, cross-origin, and downgrade behavior."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <h3 className="text-lg font-semibold text-gray-900">
-          Policy Settings
+          Choose how much referrer information may leave a page
         </h3>
 
         <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
           <YoryantraSelect
-            label="Preset"
+            label="Starting point"
             value={preset}
-            onChange={(value) => {
+            onChange={(value: string) => {
               const nextPreset = value as Preset;
               setPreset(nextPreset);
 
@@ -204,48 +194,48 @@ export default function ToolClient() {
               clearResult();
             }}
             options={[
-              { label: "Balanced - modern default", value: "balanced" },
-              { label: "Privacy focused", value: "privacy" },
-              { label: "Analytics friendly", value: "analytics" },
-              { label: "Legacy behavior", value: "legacy" },
-              { label: "Custom", value: "custom" },
+              { label: "Current browser default", value: "browserDefault" },
+              { label: "Send no referrer", value: "noReferrer" },
+              { label: "Same-origin only", value: "sameOrigin" },
+              { label: "Origin only, with downgrade protection", value: "originOnly" },
+              { label: "Choose manually", value: "custom" },
             ]}
           />
 
           <YoryantraSelect
-            label="Policy"
+            label="Policy value"
             value={policy}
-            onChange={(value) => {
+            onChange={(value: string) => {
               setPolicy(value as PolicyValue);
               setPreset("custom");
               clearResult();
             }}
             options={policies.map((item) => ({
-              label: item.label,
+              label: item.value,
               value: item.value,
             }))}
           />
 
           <YoryantraSelect
-            label="Site Type"
+            label="Page context"
             value={scenario}
-            onChange={(value) => {
+            onChange={(value: string) => {
               setScenario(value as Scenario);
               clearResult();
             }}
             options={[
               { label: "General website", value: "general" },
               { label: "Public content site", value: "publicSite" },
-              { label: "Logged-in web app", value: "app" },
-              { label: "Marketing / analytics site", value: "marketing" },
-              { label: "Sensitive pages", value: "sensitive" },
+              { label: "Signed-in web app", value: "app" },
+              { label: "Marketing / attribution site", value: "marketing" },
+              { label: "Sensitive account or recovery pages", value: "sensitive" },
             ]}
           />
 
           <YoryantraSelect
             label="Output"
             value={outputMode}
-            onChange={(value) => {
+            onChange={(value: string) => {
               setOutputMode(value as OutputMode);
               clearResult();
             }}
@@ -259,10 +249,10 @@ export default function ToolClient() {
             ]}
           />
 
-          <div className="md:col-span-2 space-y-3">
+          <div className="space-y-3 md:col-span-2">
             <CheckboxRow
               checked={includeMetaTag}
-              label="Also include HTML meta tag in text output"
+              label="Include the equivalent meta element in text/config output"
               onChange={(checked) => {
                 setIncludeMetaTag(checked);
                 clearResult();
@@ -271,18 +261,9 @@ export default function ToolClient() {
 
             <CheckboxRow
               checked={includeExplanation}
-              label="Include explanation and behavior notes"
+              label="Include behavior notes with copied output"
               onChange={(checked) => {
                 setIncludeExplanation(checked);
-                clearResult();
-              }}
-            />
-
-            <CheckboxRow
-              checked={warnAboutUnsafeUrl}
-              label="Warn about unsafe-url and weak privacy policies"
-              onChange={(checked) => {
-                setWarnAboutUnsafeUrl(checked);
                 clearResult();
               }}
             />
@@ -291,253 +272,220 @@ export default function ToolClient() {
 
         <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
           <p className="text-sm font-semibold text-gray-900">
-            Selected policy: {selectedInfo.label}
+            {policy}
           </p>
-
           <p className="mt-2 text-sm leading-relaxed text-gray-600">
             {selectedInfo.summary}
           </p>
-
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-white px-3 py-1 text-gray-700 border border-gray-200">
-              Privacy: {selectedInfo.privacy}
-            </span>
-
-            <span className="rounded-full bg-white px-3 py-1 text-gray-700 border border-gray-200">
-              Compatibility: {selectedInfo.compatibility}
-            </span>
-          </div>
         </div>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generatePolicy} className="yoryantra-btn">
-          Generate Referrer Policy
+        <button onClick={generatePolicy} className="yoryantra-btn whitespace-nowrap">
+          Generate Policy
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button
+          onClick={copyOutput}
+          className="yoryantra-btn-outline whitespace-nowrap"
+          disabled={!output}
+        >
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
 
-      {result && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Policy" value={result.policy} />
-          <SummaryCard label="Privacy Score" value={`${result.privacyScore}/100`} />
-          <SummaryCard label="Compatibility" value={`${result.compatibilityScore}/100`} />
-          <SummaryCard label="Findings" value={result.findings.length.toLocaleString()} />
+      {error && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+          {error}
         </div>
       )}
 
-      {result && result.examples.length > 0 && (
+      {result && (
+        <div className="mt-8 grid items-start gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <SummaryCard label="Policy" value={result.policy} />
+          <SummaryCard label="Same-origin" value={result.examples[0]?.sent || "—"} />
+          <SummaryCard label="Cross-origin HTTPS" value={result.examples[1]?.sent || "—"} />
+          <SummaryCard label="HTTPS → HTTP" value={result.examples[2]?.sent || "—"} />
+        </div>
+      )}
+
+      {result && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">
-            Referrer Behavior Examples
+            What the browser would send from the example page
           </h3>
 
-          <p className="mt-2 text-sm text-gray-500">
-            These examples follow the standard behavior for a page starting from https://example.com/account/settings?tab=billing.
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+            Source page: <span className="font-mono">https://example.com/account/settings?tab=billing</span>. Fragments and credentials are not included in a Referer header.
           </p>
 
-          <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
-            <table className="w-full min-w-[780px] text-left text-sm">
+          <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Scenario</th>
-                  <th className="px-4 py-3 font-semibold">Referrer Sent</th>
+                  <th className="px-4 py-3 font-semibold">Request</th>
+                  <th className="px-4 py-3 font-semibold">Referer value</th>
                 </tr>
               </thead>
-
               <tbody className="divide-y divide-gray-100">
-                {result.examples.map((example, index) => {
-                  const [scenarioText, valueText] = example.split("=>");
-
-                  return (
-                    <tr key={`${example}-${index}`}>
-                      <td className="px-4 py-3 text-gray-700">
-                        {scenarioText.trim()}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-800">
-                        {valueText.trim()}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {result.examples.map((example) => (
+                  <tr key={example.scenario}>
+                    <td className="px-4 py-3 text-gray-700">{example.scenario}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-800">
+                      <span className="break-all">{example.sent}</span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {result && result.findings.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Referrer policy findings
-          </h3>
-
-          <div className="mt-3 space-y-3">
-            {result.findings.map((finding, index) => (
-              <div key={`${finding.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {finding.title}
-                </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {finding.message}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+      {warnings.length > 0 && (
+        <FindingCard tone="amber" title="Before you deploy this policy" items={warnings} />
       )}
 
-      {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">
-            Deployment guidance
-          </h3>
-
-          <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">
-                  {note.title}
-                </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">
-                  {note.message}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+      {infoItems.length > 0 && (
+        <FindingCard tone="blue" title="Behavior to keep in mind" items={infoItems} />
       )}
 
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-900">
             Output
           </h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button
+              onClick={copyOutput}
+              className="yoryantra-btn-outline whitespace-nowrap text-sm"
+            >
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
 
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output min-h-[280px] overflow-auto whitespace-pre-wrap break-words text-sm">
           {output || "Generated Referrer-Policy output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This tool generates configuration text only. Test your policy on staging before applying it to production pages.
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+        Referrer changes can alter attribution, third-party dashboards, fraud signals, and login handoffs. Test the actual navigation and resource requests that matter before a site-wide rollout.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Controlling Referrer Data With a Referrer-Policy Header
+            A referrer policy changes what leaves the current URL
           </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The Referrer-Policy header controls how much URL information a browser sends in the Referer header when a user navigates, loads images, calls scripts, or opens third-party links.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Browsers can send a <span className="font-mono">Referer</span> request header when a page follows a link or loads another resource. Referrer-Policy decides whether that value contains the full source URL, only its origin, or nothing at all.
           </p>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A good policy can reduce accidental leakage of full page paths, query strings, user IDs, campaign URLs, and sensitive page context while still allowing enough referrer information for basic analytics.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Paths and query strings can reveal more context than intended—for example an account section, search term, campaign parameter, or internal route. The policy is therefore a privacy boundary as well as a deployment setting.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Using the Referrer Policy Generator
+            The current browser default already has downgrade protection
           </h2>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose a preset or select a Referrer-Policy value manually.</li>
-            <li>Select the site type so the tool can add practical warnings.</li>
-            <li>Choose HTTP header, Nginx, Apache, HTML meta, JSON, or Markdown output.</li>
-            <li>Copy the generated policy and test it on staging.</li>
-            <li>Check analytics, third-party integrations, and login flows before full rollout.</li>
-          </ol>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            <span className="font-mono">strict-origin-when-cross-origin</span> is the current default when no valid policy is supplied. It keeps a full referrer on same-origin requests, sends only the origin to same-security cross-origin destinations, and sends nothing when an HTTPS page requests an HTTP destination.
+          </p>
+
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The older <span className="font-mono">no-referrer-when-downgrade</span> value prevents downgrade leakage but can still send a full path and query string to an HTTPS third party. That difference matters when old configuration is copied forward.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common Referrer-Policy Choices
+            “Origin only” and “same-origin only” solve different problems
           </h2>
 
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>strict-origin-when-cross-origin</strong> is the modern default in browsers and a practical explicit setting for many websites.</li>
-            <li><strong>no-referrer</strong> is privacy-focused and sends no referrer information.</li>
-            <li><strong>same-origin</strong> sends referrer data only within the same origin.</li>
-            <li><strong>origin</strong> sends only scheme, host, and port.</li>
-            <li><strong>unsafe-url</strong> sends full URLs and is usually not recommended.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Referrer-Policy Header
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Referrer-Policy: strict-origin-when-cross-origin`}
-            </pre>
+          <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="font-semibold text-gray-900">strict-origin</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                Cross-origin destinations can still learn the source origin, but not the path or query. HTTPS-to-HTTP gets no referrer.
+              </p>
+            </div>
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="font-semibold text-gray-900">same-origin</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                Same-origin requests receive the full referrer. Cross-origin destinations receive no referrer at all.
+              </p>
+            </div>
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Privacy and Analytics Tradeoffs
+            Header, meta element, and per-element policy can coexist
           </h2>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Stronger referrer privacy can reduce the detail available to analytics and third-party tools. For example, no-referrer protects the most information, but it also removes referrer data that some reporting workflows expect.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The response header is a clean site or route-level control. An HTML <span className="font-mono">&lt;meta name="referrer"&gt;</span> element can set a document policy when response headers are not available, while elements such as links, scripts, images, and iframes can use a <span className="font-mono">referrerpolicy</span> attribute for a more specific request.
           </p>
 
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            For many public sites, strict-origin-when-cross-origin is a balanced choice because it avoids sending full cross-origin paths while still allowing origin-level referrer information.
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A link using <span className="font-mono">rel="noreferrer"</span> is another request-specific override. When debugging an unexpected Referer value, check all of those layers instead of assuming the response header is the only source.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            The policy cannot remove sensitive data that has already leaked elsewhere
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <Faq title="What does Referrer-Policy do?">
-              It controls how much referrer information the browser sends when loading or navigating to another resource.
-            </Faq>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Referrer-Policy does not sanitize URLs, fix third-party scripts, or protect query parameters copied into logs, analytics payloads, browser history, or application code. Avoid putting secrets in URLs even when a strict referrer policy is present.
+          </p>
+        </div>
 
-            <Faq title="Which Referrer-Policy should I use?">
-              strict-origin-when-cross-origin is a good explicit default for many websites. Sensitive pages may prefer no-referrer or same-origin.
-            </Faq>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Standards and browser behavior
+          </h2>
 
-            <Faq title="Is unsafe-url safe to use?">
-              Usually no. unsafe-url can send full URLs, including paths and query strings, to other origins.
-            </Faq>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The Referrer Policy specification defines the policy values and how Fetch derives a referrer. MDN documents the current default and the request behavior of each value. Test in the browsers and embedded contexts your application actually supports.
+          </p>
 
-            <Faq title="Can I use a meta tag instead of a header?">
-              Yes, but an HTTP header is usually cleaner and applies before the page body is parsed. Meta tags can be useful when header control is limited.
-            </Faq>
-
-            <Faq title="Will this break analytics?">
-              It can change what referrer data analytics tools receive. Test before deploying a stricter policy everywhere.
-            </Faq>
-          </div>
+          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+            References:{" "}
+            <a
+              href="https://www.w3.org/TR/referrer-policy/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              W3C Referrer Policy
+            </a>
+            {" "}and{" "}
+            <a
+              href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-2"
+            >
+              MDN Referrer-Policy
+            </a>.
+          </p>
         </div>
 
         <div>
@@ -545,7 +493,9 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/referrer-policy-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/referrer-policy-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -562,42 +512,63 @@ function CheckboxRow({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
+    <label className="flex cursor-pointer items-start gap-2 text-sm font-medium leading-relaxed text-gray-900">
       <input
         type="checkbox"
         checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 accent-[var(--light-gold)]"
+        onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.checked)}
+        className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
       />
-      {label}
+      <span>{label}</span>
     </label>
   );
 }
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
         {label}
       </div>
-
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">
+      <div className="mt-1 break-words font-mono text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]">
         {value}
       </div>
     </div>
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
+function FindingCard({
+  tone,
+  title,
+  items,
+}: {
+  tone: "amber" | "blue";
+  title: string;
+  items: Finding[];
+}) {
+  const amber = tone === "amber";
+
   return (
-    <div>
-      <h3 className="font-semibold text-gray-900">
+    <div
+      className={`mt-6 self-start rounded-xl border p-4 ${
+        amber
+          ? "border-amber-200 bg-amber-50 text-amber-800"
+          : "border-blue-200 bg-blue-50 text-blue-800"
+      }`}
+    >
+      <h3 className={`text-sm font-semibold ${amber ? "text-amber-900" : "text-blue-900"}`}>
         {title}
       </h3>
-
-      <p className="mt-2 text-gray-600 leading-relaxed">
-        {children}
-      </p>
+      <div className="mt-3 space-y-3">
+        {items.map((item, index) => (
+          <div key={`${item.title}-${index}`}>
+            <p className={`text-sm font-semibold ${amber ? "text-amber-900" : "text-blue-900"}`}>
+              {item.title}
+            </p>
+            <p className="mt-1 text-sm leading-relaxed">{item.message}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -608,153 +579,112 @@ function buildResult(options: {
   outputMode: OutputMode;
   includeMetaTag: boolean;
   includeExplanation: boolean;
-  warnAboutUnsafeUrl: boolean;
 }): Result {
-  const info = policies.find((item) => item.value === options.policy) || policies[6];
   const headerValue = `Referrer-Policy: ${options.policy}`;
   const examples = buildExamples(options.policy);
-  const findings = buildFindings(options.policy, options.scenario, options.warnAboutUnsafeUrl);
-  const privacyScore = getPrivacyScore(info.privacy);
-  const compatibilityScore = getCompatibilityScore(info.compatibility);
-  const output = formatOutput(
-    {
-      policy: options.policy,
-      headerValue,
-      findings,
-      examples,
-      privacyScore,
-      compatibilityScore,
-    },
-    options
-  );
-
-  return {
+  const findings = buildFindings(options.policy, options.scenario);
+  const base = {
     policy: options.policy,
-    output,
     headerValue,
     findings,
     examples,
-    privacyScore,
-    compatibilityScore,
+  };
+
+  return {
+    ...base,
+    output: formatOutput(base, options),
   };
 }
 
-function buildExamples(policy: PolicyValue) {
+function buildExamples(policy: PolicyValue): BehaviorExample[] {
   const full = "https://example.com/account/settings?tab=billing";
   const origin = "https://example.com/";
-  const none = "(no referrer sent)";
+  const none = "(no Referer header)";
 
-  if (policy === "no-referrer") {
-    return [
-      `Same-origin page => ${none}`,
-      `Cross-origin HTTPS link => ${none}`,
-      `HTTPS to HTTP downgrade => ${none}`,
-    ];
-  }
+  const map: Record<PolicyValue, [string, string, string]> = {
+    "no-referrer": [none, none, none],
+    "no-referrer-when-downgrade": [full, full, none],
+    origin: [origin, origin, origin],
+    "origin-when-cross-origin": [full, origin, origin],
+    "same-origin": [full, none, none],
+    "strict-origin": [origin, origin, none],
+    "strict-origin-when-cross-origin": [full, origin, none],
+    "unsafe-url": [full, full, full],
+  };
 
-  if (policy === "same-origin") {
-    return [
-      `Same-origin page => ${full}`,
-      `Cross-origin HTTPS link => ${none}`,
-      `HTTPS to HTTP downgrade => ${none}`,
-    ];
-  }
-
-  if (policy === "origin") {
-    return [
-      `Same-origin page => ${origin}`,
-      `Cross-origin HTTPS link => ${origin}`,
-      `HTTPS to HTTP downgrade => ${origin}`,
-    ];
-  }
-
-  if (policy === "strict-origin") {
-    return [
-      `Same-origin page => ${origin}`,
-      `Cross-origin HTTPS link => ${origin}`,
-      `HTTPS to HTTP downgrade => ${none}`,
-    ];
-  }
-
-  if (policy === "origin-when-cross-origin") {
-    return [
-      `Same-origin page => ${full}`,
-      `Cross-origin HTTPS link => ${origin}`,
-      `HTTPS to HTTP downgrade => ${origin}`,
-    ];
-  }
-
-  if (policy === "strict-origin-when-cross-origin") {
-    return [
-      `Same-origin page => ${full}`,
-      `Cross-origin HTTPS link => ${origin}`,
-      `HTTPS to HTTP downgrade => ${none}`,
-    ];
-  }
-
-  if (policy === "unsafe-url") {
-    return [
-      `Same-origin page => ${full}`,
-      `Cross-origin HTTPS link => ${full}`,
-      `HTTPS to HTTP downgrade => ${full}`,
-    ];
-  }
+  const values = map[policy];
 
   return [
-    `Same-origin page => ${full}`,
-    `Cross-origin HTTPS link => ${full}`,
-    `HTTPS to HTTP downgrade => ${none}`,
+    { scenario: "Same-origin HTTPS request", sent: values[0] },
+    { scenario: "Cross-origin HTTPS request", sent: values[1] },
+    { scenario: "HTTPS page → HTTP destination", sent: values[2] },
   ];
 }
 
-function buildFindings(policy: PolicyValue, scenario: Scenario, warnAboutUnsafeUrl: boolean) {
+function buildFindings(policy: PolicyValue, scenario: Scenario): Finding[] {
   const findings: Finding[] = [];
 
-  if (policy === "unsafe-url" && warnAboutUnsafeUrl) {
+  if (policy === "unsafe-url") {
     findings.push({
-      severity: "high",
-      title: "unsafe-url can leak full URLs",
-      message: "unsafe-url may send full paths and query strings to other origins. Avoid it unless you have a very specific reason.",
+      severity: "warning",
+      title: "Full URL details can leave the origin",
+      message: "unsafe-url can send paths and query strings cross-origin and even from HTTPS to HTTP. Use it only when that disclosure is intentional.",
     });
   }
 
   if (policy === "no-referrer-when-downgrade") {
     findings.push({
       severity: "warning",
-      title: "Weak cross-origin privacy",
-      message: "This older policy can still send full URL paths and query strings to HTTPS third-party destinations.",
+      title: "Legacy behavior exposes more cross-origin detail",
+      message: "An HTTPS third party can receive the full source path and query string. strict-origin-when-cross-origin is the current browser default.",
     });
   }
 
-  if (scenario === "sensitive" && !["no-referrer", "same-origin"].includes(policy)) {
+  if (policy === "origin-when-cross-origin") {
     findings.push({
       severity: "warning",
-      title: "Consider stricter policy for sensitive pages",
-      message: "Sensitive pages often benefit from no-referrer or same-origin to reduce information leakage.",
+      title: "Origin can cross an HTTPS-to-HTTP downgrade",
+      message: "The path is withheld cross-origin, but the source origin may still be sent to an insecure HTTP destination.",
     });
   }
 
-  if (scenario === "marketing" && policy === "no-referrer") {
+  if (policy === "origin") {
+    findings.push({
+      severity: "warning",
+      title: "Origin is sent on downgrade requests",
+      message: "Only scheme, host, and port are disclosed, but that origin can still be sent from HTTPS to HTTP.",
+    });
+  }
+
+  if (scenario === "sensitive" && policy !== "no-referrer" && policy !== "same-origin") {
+    findings.push({
+      severity: "warning",
+      title: "Sensitive pages may deserve a narrower boundary",
+      message: "Account recovery, billing, and similarly sensitive routes often benefit from no-referrer or same-origin after compatibility testing.",
+    });
+  }
+
+  if (scenario === "marketing" && (policy === "no-referrer" || policy === "same-origin")) {
     findings.push({
       severity: "info",
-      title: "Analytics may receive less referrer data",
-      message: "no-referrer improves privacy, but analytics and attribution tools may lose referrer context.",
+      title: "Cross-origin attribution may lose referrer context",
+      message: "Analytics and partner destinations may receive less or no referrer information under this policy.",
     });
   }
 
   if (policy === "strict-origin-when-cross-origin") {
     findings.push({
       severity: "info",
-      title: "Balanced modern default",
-      message: "This policy is also the modern browser default. Setting it explicitly keeps behavior clearer across deployments.",
+      title: "This matches the current browser default",
+      message: "Setting it explicitly can still make the intended policy easier to audit in server configuration.",
     });
   }
 
   if (findings.length === 0) {
     findings.push({
       severity: "info",
-      title: "Policy generated",
-      message: "Review behavior examples and test the policy with your analytics and third-party integrations.",
+      title: "No special caution for the selected combination",
+      message: "The behavior table is still the important part; confirm it matches the navigation and third-party requests your site depends on.",
     });
   }
 
@@ -762,14 +692,7 @@ function buildFindings(policy: PolicyValue, scenario: Scenario, warnAboutUnsafeU
 }
 
 function formatOutput(
-  result: {
-    policy: PolicyValue;
-    headerValue: string;
-    findings: Finding[];
-    examples: string[];
-    privacyScore: number;
-    compatibilityScore: number;
-  },
+  result: Omit<Result, "output">,
   options: {
     outputMode: OutputMode;
     includeMetaTag: boolean;
@@ -777,7 +700,7 @@ function formatOutput(
   }
 ) {
   const meta = `<meta name="referrer" content="${result.policy}" />`;
-  const plainNotes = explanationText(result);
+  const notes = explanationText(result);
 
   if (options.outputMode === "json") {
     return JSON.stringify(result, null, 2);
@@ -786,66 +709,59 @@ function formatOutput(
   if (options.outputMode === "nginx") {
     return joinOptional([
       `add_header Referrer-Policy "${result.policy}" always;`,
-      options.includeMetaTag ? commentBlock(["Optional HTML fallback if you cannot set headers on a page:", meta], "#") : "",
-      options.includeExplanation ? commentBlock(plainNotes.split("\n"), "#") : "",
+      options.includeMetaTag
+        ? commentBlock(["Equivalent document-level meta element:", meta], "#")
+        : "",
+      options.includeExplanation ? commentBlock(notes.split("\n"), "#") : "",
     ]);
   }
 
   if (options.outputMode === "apache") {
     return joinOptional([
       `Header always set Referrer-Policy "${result.policy}"`,
-      options.includeMetaTag ? commentBlock(["Optional HTML fallback if you cannot set headers on a page:", meta], "#") : "",
-      options.includeExplanation ? commentBlock(plainNotes.split("\n"), "#") : "",
+      options.includeMetaTag
+        ? commentBlock(["Equivalent document-level meta element:", meta], "#")
+        : "",
+      options.includeExplanation ? commentBlock(notes.split("\n"), "#") : "",
     ]);
   }
 
   if (options.outputMode === "html") {
     return joinOptional([
       meta,
-      options.includeExplanation ? `<!--\n${plainNotes}\n-->` : "",
+      options.includeExplanation ? `<!--\n${notes}\n-->` : "",
     ]);
   }
 
   if (options.outputMode === "markdown") {
     return [
-      "# Referrer Policy",
+      "# Referrer policy",
       "",
       `Policy: \`${result.policy}\``,
       `Header: \`${result.headerValue}\``,
-      `Privacy score: ${result.privacyScore}/100`,
-      `Compatibility score: ${result.compatibilityScore}/100`,
       "",
-      "## Behavior examples",
-      ...result.examples.map((example) => `- ${example}`),
+      "## Example behavior",
+      ...result.examples.map((item) => `- ${item.scenario}: \`${item.sent}\``),
       "",
-      "## Findings",
-      ...result.findings.map((finding) => `- **${finding.title}:** ${finding.message}`),
+      "## Notes",
+      ...result.findings.map((item) => `- **${item.title}:** ${item.message}`),
     ].join("\n");
   }
 
   return joinOptional([
     result.headerValue,
     options.includeMetaTag ? meta : "",
-    options.includeExplanation ? plainNotes : "",
+    options.includeExplanation ? notes : "",
   ]);
 }
 
-function explanationText(result: {
-  findings: Finding[];
-  examples: string[];
-  privacyScore: number;
-  compatibilityScore: number;
-}) {
+function explanationText(result: Omit<Result, "output">) {
   return [
+    "Example behavior:",
+    ...result.examples.map((item) => `- ${item.scenario}: ${item.sent}`),
+    "",
     "Notes:",
-    `Privacy score: ${result.privacyScore}/100`,
-    `Compatibility score: ${result.compatibilityScore}/100`,
-    "",
-    "Behavior examples:",
-    ...result.examples.map((example) => `- ${example}`),
-    "",
-    "Findings:",
-    ...result.findings.map((finding) => `- ${finding.title}: ${finding.message}`),
+    ...result.findings.map((item) => `- ${item.title}: ${item.message}`),
   ].join("\n");
 }
 
@@ -855,40 +771,4 @@ function commentBlock(lines: string[], prefix: "#") {
 
 function joinOptional(parts: string[]) {
   return parts.filter(Boolean).join("\n");
-}
-
-function getPrivacyScore(value: PolicyInfo["privacy"]) {
-  if (value === "high") return 95;
-  if (value === "medium") return 75;
-  return 40;
-}
-
-function getCompatibilityScore(value: PolicyInfo["compatibility"]) {
-  if (value === "high") return 95;
-  return 80;
-}
-
-function getNotes(result: Result) {
-  const notes: { title: string; message: string }[] = [];
-
-  if (result.policy === "strict-origin-when-cross-origin") {
-    notes.push({
-      title: "Good general-purpose choice",
-      message: "This policy is commonly suitable for public websites and many apps because it balances privacy with referrer usefulness, and it is the current default in modern browsers.",
-    });
-  }
-
-  if (result.policy === "no-referrer") {
-    notes.push({
-      title: "Strongest privacy option",
-      message: "No referrer data is sent, but analytics and attribution workflows may see less information.",
-    });
-  }
-
-  notes.push({
-    title: "Test before rollout",
-    message: "Referrer changes can affect analytics, third-party dashboards, and fraud detection workflows. Test before applying broadly.",
-  });
-
-  return notes;
 }
