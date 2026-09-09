@@ -179,7 +179,7 @@ export default function ToolClient() {
           Parsing Options
         </h3>
 
-        <div className="mt-4 max-w-xl">
+        <div className="mt-4 w-full sm:max-w-sm">
           <YoryantraSelect
             label="Output Format"
             value={outputFormat}
