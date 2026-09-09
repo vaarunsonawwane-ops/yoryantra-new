@@ -71,7 +71,7 @@ export const tools = [
 
   {
     title: "UUID Generator",
-    description: "Generate random UUID v4 values instantly.",
+    description: "Generate RFC 9562 UUIDv4 identifiers locally from cryptographically secure browser randomness.",
     href: "/tools/uuid-generator",
 	category: "Developer Tools",
   },
@@ -345,7 +345,7 @@ export const tools = [
 
   {
   title: "CURL Command Builder",
-  description: "Build CURL commands for API requests instantly.",
+  description: "Build curl commands with POSIX-shell-safe quoting for methods, URLs, headers, and request bodies.",
   href: "/tools/curl-command-builder",
   category: "Developer Tools"
   },
@@ -561,7 +561,7 @@ export const tools = [
 {
   title: "UUID Validator",
   description:
-    "Validate UUID values, check UUID format, and detect UUID versions directly in your browser.",
+    "Check UUID structure, version, variant, Nil, Max, and reserved forms against RFC 9562.",
   href: "/tools/uuid-validator",
   category: "Developer Tools",
 },

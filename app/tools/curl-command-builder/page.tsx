@@ -1,49 +1,34 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "CURL Command Builder Online Free | Yoryantra",
-
+  title: "CURL Command Builder | Build API Requests | Yoryantra",
   description:
-    "Build CURL commands for API requests instantly with this free online CURL Command Builder.",
-
+    "Build POSIX-shell-safe curl commands from an HTTP method, URL, headers, and request body, with quoting and request-behavior guidance.",
   keywords: [
     "curl command builder",
-    "curl generator",
-    "api curl builder",
-    "generate curl command",
-    "curl request generator",
-    "rest api curl tool",
-    "developer api tools",
+    "curl request builder",
+    "curl api request",
+    "curl headers",
+    "curl json body",
+    "shell safe curl command",
+    "http request curl",
   ],
-
   alternates: {
-    canonical:
-      "https://yoryantra.com/tools/curl-command-builder",
+    canonical: "https://yoryantra.com/tools/curl-command-builder",
   },
-
   openGraph: {
-    title:
-      "CURL Command Builder Online Free | Yoryantra",
-
+    title: "CURL Command Builder | Yoryantra",
     description:
-      "Build CURL commands for API requests instantly online.",
-
-    url:
-      "https://yoryantra.com/tools/curl-command-builder",
-
+      "Build curl requests with POSIX-shell-safe quoting for URLs, headers, and optional request bodies.",
+    url: "https://yoryantra.com/tools/curl-command-builder",
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title:
-      "CURL Command Builder Online Free | Yoryantra",
-
+    title: "CURL Command Builder | Yoryantra",
     description:
-      "Generate CURL commands instantly.",
+      "Build curl requests with POSIX-shell-safe quoting for URLs, headers, and optional request bodies.",
   },
 };
 
