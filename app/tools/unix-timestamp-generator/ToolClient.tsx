@@ -174,41 +174,39 @@ export default function ToolClient() {
 
       {mode === "date-to-timestamp" ? (
         <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+          <div className="mb-3 text-sm font-medium text-gray-700">Date and Time</div>
           <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <span className="block mb-2 text-sm font-medium text-gray-700">Date and Time</span>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <DatePickerField
-                  label="Date"
-                  value={dateInput}
-                  onChange={(value) => {
-                    setDateInput(value);
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DatePickerField
+                label="Date"
+                value={dateInput}
+                onChange={(value) => {
+                  setDateInput(value);
+                  setOutput("");
+                  setError("");
+                  setCopyState("idle");
+                }}
+              />
+
+              <div>
+                <label htmlFor="unix-time" className="mb-2 block text-sm font-medium text-gray-700">
+                  Time
+                </label>
+                <input
+                  id="unix-time"
+                  type="text"
+                  value={timeInput}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                    setTimeInput(event.target.value);
                     setOutput("");
                     setError("");
                     setCopyState("idle");
                   }}
+                  placeholder="HH:MM:SS.SSS"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
                 />
-
-                <div>
-                  <label htmlFor="unix-time" className="mb-2 block text-sm font-medium text-gray-700">
-                    Time
-                  </label>
-                  <input
-                    id="unix-time"
-                    type="text"
-                    value={timeInput}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                      setTimeInput(event.target.value);
-                      setOutput("");
-                      setError("");
-                      setCopyState("idle");
-                    }}
-                    placeholder="HH:MM:SS.SSS"
-                    autoComplete="off"
-                    spellCheck={false}
-                    className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-                  />
-                </div>
               </div>
             </div>
 
