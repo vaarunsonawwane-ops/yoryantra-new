@@ -130,7 +130,7 @@ export default function ToolClient() {
     setEncryptionUrl("https://example.com/pgp-key.txt");
     setAcknowledgmentsUrl("https://example.com/security/thanks");
     setHiringUrl("");
-    setPreferredLanguages("en, hi");
+    setPreferredLanguages("en");
     setExpiryPreset("180");
     setCustomExpiry("");
     setContactType("both");
@@ -314,7 +314,7 @@ export default function ToolClient() {
               setPreferredLanguages(value);
               clearResult();
             }}
-            placeholder="en, hi"
+            placeholder="en"
           />
 
           <YoryantraSelect
