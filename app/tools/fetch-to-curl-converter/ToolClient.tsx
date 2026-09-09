@@ -241,7 +241,7 @@ export default function ToolClient() {
           />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 grid max-w-3xl gap-4 sm:grid-cols-2">
           <label className="flex cursor-pointer gap-3 self-start rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
