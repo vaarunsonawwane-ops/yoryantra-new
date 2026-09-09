@@ -16,6 +16,7 @@ type ParsedPair = {
 type ParsedHeader = {
   name: string;
   value: string;
+  behavior: "set" | "remove" | "empty";
 };
 
 type ParsedCurlCommand = {
@@ -26,16 +27,21 @@ type ParsedCurlCommand = {
   headers: ParsedHeader[];
   cookies: ParsedPair[];
   body: string;
+  bodyPreview: string;
+  bodyKind: "none" | "data" | "json" | "multipart-form";
+  formParts: string[];
   userAgent: string;
   username: string;
   password: string;
+  usernameOnly: boolean;
   followRedirects: boolean;
   insecure: boolean;
   compressed: boolean;
   headOnly: boolean;
   outputFile: string;
-  timeout: string;
-  rawTokens: string[];
+  connectTimeout: string;
+  maxTime: string;
+  shellExpansionPossible: boolean;
 };
 
 type CurlWarning = {
@@ -142,7 +148,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="cURL Command Parser"
-      description="Parse cURL commands into method, URL, headers, cookies, query parameters, body, and readable request details directly in your browser."
+      description="Break an HTTP(S) cURL command into method, URL, headers, cookies, body data, and supported transfer flags."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -151,7 +157,7 @@ export default function ToolClient() {
 
         <textarea
           value={input}
-          onChange={(event) => {
+          onChange={(event: { target: { value: string } }) => {
             setInput(event.target.value);
             setParsedCommand(null);
             setOutput("");
@@ -177,7 +183,7 @@ export default function ToolClient() {
           <YoryantraSelect
             label="Output Format"
             value={outputFormat}
-            onChange={(value) => {
+            onChange={(value: string) => {
               setOutputFormat(value as OutputFormat);
               setOutput("");
               setError("");
@@ -201,11 +207,11 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="self-start flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={hideSensitiveValues}
-              onChange={(event) => {
+              onChange={(event: { target: { checked: boolean } }) => {
                 setHideSensitiveValues(event.target.checked);
                 setOutput("");
                 setCopied(false);
@@ -215,21 +221,20 @@ export default function ToolClient() {
 
             <span>
               <span className="block text-sm font-medium text-gray-900">
-                Hide sensitive values
+                Mask recognized secrets
               </span>
 
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Hide Authorization, cookies, tokens, API keys, and password-like
-                values in copied output.
+                Mask recognized sensitive headers, cookies, query keys, URL credentials, and --user passwords in copied output. Body text is left unchanged.
               </span>
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="self-start flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={decodeQueryParams}
-              onChange={(event) => {
+              onChange={(event: { target: { checked: boolean } }) => {
                 setDecodeQueryParams(event.target.checked);
                 setParsedCommand(null);
                 setOutput("");
@@ -245,16 +250,16 @@ export default function ToolClient() {
               </span>
 
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Convert URL-encoded query text like %20 into readable text.
+                Percent-decode query names and values. A literal + stays + because URI queries do not universally treat it as a space.
               </span>
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="self-start flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={prettyPrintBody}
-              onChange={(event) => {
+              onChange={(event: { target: { checked: boolean } }) => {
                 setPrettyPrintBody(event.target.checked);
                 setParsedCommand(null);
                 setOutput("");
@@ -270,7 +275,7 @@ export default function ToolClient() {
               </span>
 
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Format JSON-looking request bodies when possible.
+                Format valid JSON for the on-page preview only; copied raw HTTP keeps the original body text.
               </span>
             </span>
           </label>
@@ -278,19 +283,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={parseCurl} className="yoryantra-btn">
+        <button onClick={parseCurl} className="yoryantra-btn whitespace-nowrap">
           Parse cURL Command
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
 
-        <Link href="/tools/curl-command-builder" className="yoryantra-btn-outline">
+        <Link href="/tools/curl-command-builder" className="yoryantra-btn-outline whitespace-nowrap">
           cURL Command Builder
         </Link>
       </div>
@@ -332,7 +337,10 @@ export default function ToolClient() {
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <DetailCard label="Method" value={parsedCommand.method} />
-            <DetailCard label="URL" value={parsedCommand.url || "(not found)"} />
+            <DetailCard
+              label="URL"
+              value={hideSensitiveValues ? redactUrl(parsedCommand.url) : parsedCommand.url}
+            />
             <DetailCard label="Path" value={parsedCommand.urlPath || "(not found)"} />
             <DetailCard
               label="Follow Redirects"
@@ -357,7 +365,9 @@ export default function ToolClient() {
           columns={["Name", "Value"]}
           rows={parsedCommand.queryParams.map((param) => [
             param.key,
-            param.value,
+            hideSensitiveValues && isSensitiveName(param.key)
+              ? "[hidden]"
+              : param.value,
           ])}
         />
       )}
@@ -365,13 +375,14 @@ export default function ToolClient() {
       {parsedCommand && parsedCommand.headers.length > 0 && (
         <ParsedTable
           title="Headers"
-          description="Headers parsed from -H, --header, user-agent, cookie, and auth options."
-          columns={["Header", "Value"]}
+          description="Headers parsed from -H, --header, user-agent, cookie, and referer options. curl header suppression and forced-empty values stay distinct."
+          columns={["Header", "Behavior", "Value"]}
           rows={parsedCommand.headers.map((header) => [
             header.name,
-            hideSensitiveValues && isSensitiveHeader(header.name)
+            header.behavior === "remove" ? "Suppress" : header.behavior === "empty" ? "Send empty" : "Set",
+            hideSensitiveValues && isSensitiveHeader(header.name) && header.behavior === "set"
               ? "[hidden]"
-              : header.value,
+              : header.value || "—",
           ])}
         />
       )}
@@ -395,18 +406,19 @@ export default function ToolClient() {
           </h3>
 
           <p className="mt-2 text-sm text-gray-500">
-            Body data parsed from --data, --data-raw, --data-binary, -d, or
-            similar cURL body flags.
+            {parsedCommand.bodyKind === "multipart-form"
+              ? "Multipart form expressions are listed as entered. curl creates the MIME boundary and encoded body when it runs."
+              : "Body data is preserved as request text. JSON pretty printing changes only this preview."}
           </p>
 
           <pre className="mt-4 yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
-            {parsedCommand.body}
+            {parsedCommand.bodyPreview}
           </pre>
         </div>
       )}
 
       {warnings.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">
             cURL review notes
           </h3>
@@ -436,7 +448,7 @@ export default function ToolClient() {
           {output && (
             <button
               onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
+              className="yoryantra-btn-outline whitespace-nowrap text-sm"
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -448,164 +460,79 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        cURL parsing happens directly in your browser. Your command, headers,
-        cookies, and body are not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Parsing runs in your browser and does not send the command to the target URL. Masking is intended for copied output; body text is not automatically scrubbed for secrets.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Parsing cURL Commands for API Debugging
+            Reading the Request Hidden Inside a cURL Command
           </h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            cURL commands are copied from browser DevTools, API docs, terminals,
-            logs, Postman, Insomnia, and support tickets all the time. They are
-            useful, but long commands can be hard to read when headers, cookies,
-            body data, and URLs are packed into one line.
+            A copied cURL command mixes shell quoting with curl options and HTTP details. Separating those layers matters: <code className="font-mono text-sm">-H</code> adds a header, <code className="font-mono text-sm">-d</code> contributes request data, <code className="font-mono text-sm">-L</code> changes redirect behavior, and <code className="font-mono text-sm">-k</code> changes TLS verification rather than the HTTP message itself.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This cURL Command Parser breaks a command into readable request
-            details. You can inspect the method, URL, query parameters, headers,
-            cookies, body, and common cURL flags before using the request for
-            debugging or documentation.
+            The parser handles one HTTP or HTTPS transfer written with ordinary POSIX-style shell quoting. It deliberately stops on options whose request semantics cannot be reconstructed safely, instead of silently inventing a request.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Reading a cURL Command Without Manually Splitting It
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a cURL command into the input box.</li>
-            <li>Choose whether sensitive values should be hidden in output.</li>
-            <li>Pick summary, JSON, or raw HTTP request output.</li>
-            <li>Review the parsed URL, headers, cookies, query values, and body.</li>
-            <li>Copy the parsed output when you need to share or document it.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common cURL Parser Use Cases
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">What Is Parsed Exactly</h2>
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Reading long cURL commands copied from browser DevTools.</li>
-            <li>Checking which headers and cookies are being sent.</li>
-            <li>Inspecting JSON request bodies before replaying an API call.</li>
-            <li>Hiding sensitive Authorization or Cookie values before sharing.</li>
-            <li>Turning a cURL command into a readable raw HTTP request.</li>
-            <li>Documenting API examples in a cleaner format.</li>
+            <li>Method selection from <code className="font-mono text-sm">-X</code>, body options, <code className="font-mono text-sm">-G</code>, and <code className="font-mono text-sm">-I</code>.</li>
+            <li>HTTP(S) URL, raw path, query pairs, request headers, Cookie values, user agent, redirect and TLS flags.</li>
+            <li><code className="font-mono text-sm">--data</code>, <code className="font-mono text-sm">--data-raw</code>, <code className="font-mono text-sm">--data-binary</code>, simple <code className="font-mono text-sm">--data-urlencode</code>, <code className="font-mono text-sm">--json</code>, and multipart form expressions.</li>
+            <li>Separate connect and total timeout values when those options are present.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example cURL Command
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`curl -X POST "https://api.example.com/users?role=admin" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer token" \\
-  --data-raw '{"name":"Yoryantra User"}'`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Handling Tokens and Cookies Carefully
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Where Text Parsing Has to Stop</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            cURL commands often contain Authorization headers, cookies, session
-            IDs, API keys, or bearer tokens. The parser can hide sensitive values
-            in copied output so it is safer to paste into tickets, notes, or chat
-            messages.
+            curl can read request data from files, expand its own variables, perform several transfers in one command, negotiate authentication, and build multipart MIME bodies at runtime. A browser parser cannot reproduce those effects from command text alone. File-backed bodies, multiple URLs, <code className="font-mono text-sm">--next</code>, and unsupported transfer-changing options therefore produce an error rather than a plausible-looking but wrong result.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Even then, it is better to remove real secrets before sharing a
-            command with anyone else. Use fake test values when you are writing
-            documentation or asking for help.
+            Shell variables, command substitution, globbing, PowerShell escaping, and Windows CMD quoting are not executed. If a command depends on them, the parsed text is not necessarily the request that a shell would eventually give curl.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a cURL command parser?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                A cURL command parser reads a cURL request and separates it into
-                method, URL, headers, cookies, body data, and request options.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this parse headers from cURL?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Headers passed with -H or --header are parsed and shown in a
-                separate table.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this parse JSON request bodies?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Body values from --data, --data-raw, -d, and similar flags
-                are extracted, and JSON-looking bodies can be pretty printed.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this make the API request?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool only parses the command text. It does not send the
-                request or contact the API endpoint.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are my cURL commands uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Parsing happens directly in your browser, and your cURL
-                command is not uploaded to a server.
-              </p>
-            </div>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Data Flags Are Not Interchangeable</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            curl joins repeated data options with an ampersand. <code className="font-mono text-sm">--data-raw</code> differs from <code className="font-mono text-sm">--data</code> because a leading <code className="font-mono text-sm">@</code> is literal instead of a file reference. <code className="font-mono text-sm">--json</code> is a curl shortcut that also supplies JSON Accept and Content-Type headers when you have not overridden them. Multipart <code className="font-mono text-sm">--form</code> is different again because curl generates a MIME boundary while sending the request.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Credentials Need Context</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            An explicit Authorization header can be shown as a header. <code className="font-mono text-sm">--user user:password</code> is different: it supplies credentials to curl's authentication machinery, so this page does not fabricate a Basic Authorization header from the plain <code className="font-mono text-sm">user:password</code> text.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Masking covers recognized header names, cookies, credential fields, URL user information, and sensitive-looking query keys. It cannot reliably discover secrets hidden in arbitrary request-body text. Replace real credentials before sharing the original command.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/curl-command-parser" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Empty and Suppressed Headers Are Different in curl</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            curl gives <code className="font-mono text-sm">-H "Name:"</code> and <code className="font-mono text-sm">-H "Name;"</code> different meanings. The colon form suppresses an internal header; the semicolon form sends that header with an empty value. The parsed header table keeps that distinction because collapsing both to an empty string would change the request model.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Primary References</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            curl's current option behavior is documented in the <a href="https://curl.se/docs/manpage.html" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">official curl man page</a>. HTTP method and field semantics are defined by <a href="https://www.rfc-editor.org/rfc/rfc9110.html" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 9110</a>.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/curl-command-parser" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -698,7 +625,8 @@ function parseCurlCommand(
     prettyPrintBody: boolean;
   }
 ): ParsedCurlCommand {
-  const tokens = tokenizeShellCommand(cleanCurlLineContinuations(input));
+  const tokenized = tokenizeShellCommand(cleanCurlLineContinuations(input));
+  const tokens = tokenized.tokens;
 
   if (tokens.length === 0) {
     throw new Error("The cURL command is empty.");
@@ -713,27 +641,79 @@ function parseCurlCommand(
   let userAgent = "";
   let username = "";
   let password = "";
+  let usernameOnly = false;
   let followRedirects = false;
   let insecure = false;
   let compressed = false;
   let headOnly = false;
+  let useGet = false;
   let outputFile = "";
-  let timeout = "";
+  let connectTimeout = "";
+  let maxTime = "";
   const headers: ParsedHeader[] = [];
   const cookies: ParsedPair[] = [];
-  const bodyParts: string[] = [];
+  const dataParts: string[] = [];
+  const formParts: string[] = [];
+  let jsonMode = false;
+
+  const setUrl = (nextUrl: string) => {
+    if (!/^https?:\/\//i.test(nextUrl)) {
+      throw new Error("This parser accepts one HTTP or HTTPS URL.");
+    }
+    if (url && url !== nextUrl) {
+      throw new Error("Multiple URLs are not supported in one parse. Split the curl transfers first.");
+    }
+    url = nextUrl;
+  };
+
+  const addData = (flag: string, value: string) => {
+    if ((flag === "-d" || flag === "--data" || flag === "--data-binary") && value.startsWith("@")) {
+      throw new Error(`${flag} refers to a local file. File contents cannot be reconstructed from command text.`);
+    }
+    if (flag === "--data-urlencode") {
+      dataParts.push(encodeCurlDataUrlencode(value));
+      return;
+    }
+    dataParts.push(value);
+  };
+
+  const ignoredNoRequestEffect = new Set([
+    "-s", "--silent", "-S", "--show-error", "-v", "--verbose", "-f", "--fail",
+    "--fail-with-body", "--no-progress-meter", "-#", "--progress-bar", "-i", "--show-headers",
+  ]);
 
   for (let index = 1; index < tokens.length; index += 1) {
     const token = tokens[index];
 
+    if (ignoredNoRequestEffect.has(token)) continue;
+    if (token === "--next") {
+      throw new Error("--next starts another transfer. Parse each transfer separately.");
+    }
+
     if (token === "-X" || token === "--request") {
       method = readRequiredValue(tokens, index, token);
+      validateMethodToken(method);
       index += 1;
       continue;
     }
-
     if (token.startsWith("--request=")) {
       method = token.slice("--request=".length);
+      validateMethodToken(method);
+      continue;
+    }
+    if (token.startsWith("-X") && token.length > 2) {
+      method = token.slice(2);
+      validateMethodToken(method);
+      continue;
+    }
+
+    if (token === "--url") {
+      setUrl(readRequiredValue(tokens, index, token));
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--url=")) {
+      setUrl(token.slice("--url=".length));
       continue;
     }
 
@@ -741,594 +721,550 @@ function parseCurlCommand(
       const headerValue = readRequiredValue(tokens, index, token);
       const parsedHeader = parseHeaderValue(headerValue);
       headers.push(parsedHeader);
-
-      if (parsedHeader.name.toLowerCase() === "cookie") {
-        cookies.push(...parseCookieString(parsedHeader.value));
-      }
-
+      if (parsedHeader.name.toLowerCase() === "cookie") cookies.push(...parseCookieString(parsedHeader.value));
       index += 1;
       continue;
     }
-
     if (token.startsWith("-H") && token.length > 2) {
       const parsedHeader = parseHeaderValue(token.slice(2));
       headers.push(parsedHeader);
-
-      if (parsedHeader.name.toLowerCase() === "cookie") {
-        cookies.push(...parseCookieString(parsedHeader.value));
-      }
-
+      if (parsedHeader.name.toLowerCase() === "cookie") cookies.push(...parseCookieString(parsedHeader.value));
       continue;
     }
-
     if (token.startsWith("--header=")) {
       const parsedHeader = parseHeaderValue(token.slice("--header=".length));
       headers.push(parsedHeader);
-
-      if (parsedHeader.name.toLowerCase() === "cookie") {
-        cookies.push(...parseCookieString(parsedHeader.value));
-      }
-
+      if (parsedHeader.name.toLowerCase() === "cookie") cookies.push(...parseCookieString(parsedHeader.value));
       continue;
     }
 
-    if (isBodyFlag(token)) {
-      bodyParts.push(readRequiredValue(tokens, index, token));
+    const bodyFlag = normalizedBodyFlag(token);
+    if (bodyFlag) {
+      const value = readRequiredValue(tokens, index, token);
+      addData(bodyFlag, value);
       index += 1;
       continue;
     }
-
-    if (token.startsWith("--data=")) {
-      bodyParts.push(token.slice("--data=".length));
+    const attachedBody = readAttachedBodyFlag(token);
+    if (attachedBody) {
+      addData(attachedBody.flag, attachedBody.value);
       continue;
     }
 
-    if (token.startsWith("--data-raw=")) {
-      bodyParts.push(token.slice("--data-raw=".length));
+    if (token === "--json") {
+      const value = readRequiredValue(tokens, index, token);
+      if (value.startsWith("@")) throw new Error("--json refers to a local file. File contents are not available to the browser parser.");
+      dataParts.push(value);
+      jsonMode = true;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--json=")) {
+      const value = token.slice("--json=".length);
+      if (value.startsWith("@")) throw new Error("--json refers to a local file. File contents are not available to the browser parser.");
+      dataParts.push(value);
+      jsonMode = true;
       continue;
     }
 
-    if (token.startsWith("--data-binary=")) {
-      bodyParts.push(token.slice("--data-binary=".length));
+    if (token === "-F" || token === "--form") {
+      formParts.push(readRequiredValue(tokens, index, token));
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("-F") && token.length > 2) {
+      formParts.push(token.slice(2));
+      continue;
+    }
+    if (token.startsWith("--form=")) {
+      formParts.push(token.slice("--form=".length));
+      continue;
+    }
+
+    if (token === "-G" || token === "--get") {
+      useGet = true;
       continue;
     }
 
     if (token === "-b" || token === "--cookie") {
       const cookieValue = readRequiredValue(tokens, index, token);
+      if (cookieValue.startsWith("@")) throw new Error("Cookie files are not supported because their contents are not present in the command text.");
       cookies.push(...parseCookieString(cookieValue));
-      headers.push({
-        name: "Cookie",
-        value: cookieValue,
-      });
+      headers.push({ name: "Cookie", value: cookieValue, behavior: "set" });
       index += 1;
       continue;
     }
-
     if (token.startsWith("--cookie=")) {
       const cookieValue = token.slice("--cookie=".length);
+      if (cookieValue.startsWith("@")) throw new Error("Cookie files are not supported because their contents are not present in the command text.");
       cookies.push(...parseCookieString(cookieValue));
-      headers.push({
-        name: "Cookie",
-        value: cookieValue,
-      });
+      headers.push({ name: "Cookie", value: cookieValue, behavior: "set" });
+      continue;
+    }
+    if (token.startsWith("-b") && token.length > 2) {
+      const cookieValue = token.slice(2);
+      cookies.push(...parseCookieString(cookieValue));
+      headers.push({ name: "Cookie", value: cookieValue, behavior: "set" });
       continue;
     }
 
     if (token === "-A" || token === "--user-agent") {
       userAgent = readRequiredValue(tokens, index, token);
-      headers.push({
-        name: "User-Agent",
-        value: userAgent,
-      });
+      replaceSingletonHeader(headers, { name: "User-Agent", value: userAgent, behavior: "set" });
       index += 1;
       continue;
     }
-
     if (token.startsWith("--user-agent=")) {
       userAgent = token.slice("--user-agent=".length);
-      headers.push({
-        name: "User-Agent",
-        value: userAgent,
-      });
+      replaceSingletonHeader(headers, { name: "User-Agent", value: userAgent, behavior: "set" });
+      continue;
+    }
+    if (token.startsWith("-A") && token.length > 2) {
+      userAgent = token.slice(2);
+      replaceSingletonHeader(headers, { name: "User-Agent", value: userAgent, behavior: "set" });
       continue;
     }
 
     if (token === "-u" || token === "--user") {
       const authValue = readRequiredValue(tokens, index, token);
-      const [nextUsername, nextPassword = ""] = authValue.split(":");
-      username = nextUsername;
-      password = nextPassword;
-      headers.push({
-        name: "Authorization",
-        value: `Basic ${authValue}`,
-      });
+      ({ username, password, usernameOnly } = splitCurlUser(authValue));
       index += 1;
       continue;
     }
-
     if (token.startsWith("--user=")) {
-      const authValue = token.slice("--user=".length);
-      const [nextUsername, nextPassword = ""] = authValue.split(":");
-      username = nextUsername;
-      password = nextPassword;
-      headers.push({
-        name: "Authorization",
-        value: `Basic ${authValue}`,
-      });
+      ({ username, password, usernameOnly } = splitCurlUser(token.slice("--user=".length)));
+      continue;
+    }
+    if (token.startsWith("-u") && token.length > 2) {
+      ({ username, password, usernameOnly } = splitCurlUser(token.slice(2)));
       continue;
     }
 
-    if (token === "-L" || token === "--location") {
-      followRedirects = true;
+    if (token === "-e" || token === "--referer") {
+      replaceSingletonHeader(headers, { name: "Referer", value: readRequiredValue(tokens, index, token), behavior: "set" });
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--referer=")) {
+      replaceSingletonHeader(headers, { name: "Referer", value: token.slice("--referer=".length), behavior: "set" });
       continue;
     }
 
-    if (token === "-k" || token === "--insecure") {
-      insecure = true;
-      continue;
-    }
-
-    if (token === "--compressed") {
-      compressed = true;
-      continue;
-    }
-
-    if (token === "-I" || token === "--head") {
-      headOnly = true;
-      method = method || "HEAD";
-      continue;
-    }
+    if (token === "-L" || token === "--location") { followRedirects = true; continue; }
+    if (token === "-k" || token === "--insecure") { insecure = true; continue; }
+    if (token === "--compressed") { compressed = true; continue; }
+    if (token === "-I" || token === "--head") { headOnly = true; continue; }
 
     if (token === "-o" || token === "--output") {
       outputFile = readRequiredValue(tokens, index, token);
       index += 1;
       continue;
     }
+    if (token.startsWith("--output=")) { outputFile = token.slice("--output=".length); continue; }
 
-    if (token.startsWith("--output=")) {
-      outputFile = token.slice("--output=".length);
-      continue;
-    }
-
-    if (token === "--connect-timeout" || token === "-m" || token === "--max-time") {
-      timeout = readRequiredValue(tokens, index, token);
+    if (token === "--connect-timeout") {
+      connectTimeout = readRequiredValue(tokens, index, token);
       index += 1;
       continue;
     }
+    if (token.startsWith("--connect-timeout=")) { connectTimeout = token.slice("--connect-timeout=".length); continue; }
+    if (token === "-m" || token === "--max-time") {
+      maxTime = readRequiredValue(tokens, index, token);
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--max-time=")) { maxTime = token.slice("--max-time=".length); continue; }
 
-    if (token.startsWith("--connect-timeout=")) {
-      timeout = token.slice("--connect-timeout=".length);
+    if (/^https?:\/\//i.test(token)) {
+      setUrl(token);
       continue;
     }
 
-    if (token.startsWith("http://") || token.startsWith("https://")) {
-      url = token;
-      continue;
+    if (token.startsWith("-")) {
+      throw new Error(`Unsupported cURL option: ${token}. The parser stops instead of guessing its request semantics.`);
     }
+
+    throw new Error(`Unexpected cURL argument: ${token}`);
   }
 
-  if (!url) {
-    const possibleUrl = tokens.find(
-      (token) => token.startsWith("http://") || token.startsWith("https://")
-    );
+  if (!url) throw new Error("Could not find an HTTP or HTTPS URL in the cURL command.");
+  if (dataParts.length > 0 && formParts.length > 0) throw new Error("curl data options and --form are different body modes and should not be combined here.");
+  if (headOnly && (dataParts.length > 0 || formParts.length > 0)) throw new Error("--head cannot be combined with request body options in this parser.");
 
-    if (possibleUrl) {
-      url = possibleUrl;
-    }
+  let bodyKind: ParsedCurlCommand["bodyKind"] = "none";
+  let body = "";
+  if (formParts.length > 0) {
+    bodyKind = "multipart-form";
+    body = formParts.join("\n");
+  } else if (dataParts.length > 0) {
+    bodyKind = jsonMode ? "json" : "data";
+    body = dataParts.join("&");
   }
 
-  if (!url) {
-    throw new Error("Could not find a URL in the cURL command.");
+  if (jsonMode) {
+    addHeaderIfMissing(headers, "Content-Type", "application/json");
+    addHeaderIfMissing(headers, "Accept", "application/json");
+  } else if (dataParts.length > 0) {
+    addHeaderIfMissing(headers, "Content-Type", "application/x-www-form-urlencoded");
   }
 
-  const hasBody = bodyParts.length > 0;
-  const finalMethod = method || (hasBody ? "POST" : "GET");
-  const body = formatBody(bodyParts.join("&"), options.prettyPrintBody);
+  if (useGet && dataParts.length > 0) {
+    url = appendQueryString(url, body);
+    body = "";
+    bodyKind = "none";
+  }
+
+  const finalMethod = method || (headOnly ? "HEAD" : useGet ? "GET" : body || formParts.length > 0 ? "POST" : "GET");
   const urlDetails = parseUrlDetails(url, options.decodeQueryParams);
 
-  if (
-    hasBody &&
-    !headers.some((header) => header.name.toLowerCase() === "content-type")
-  ) {
-    headers.push({
-      name: "Content-Type",
-      value: guessContentType(body),
-    });
-  }
-
   return {
-    method: finalMethod.toUpperCase(),
+    method: finalMethod,
     url,
     urlPath: urlDetails.path,
     queryParams: urlDetails.queryParams,
-    headers: dedupeHeaders(headers),
-    cookies: dedupePairs(cookies),
+    headers,
+    cookies,
     body,
+    bodyPreview: bodyKind === "json" && options.prettyPrintBody ? prettyJson(body) : body,
+    bodyKind,
+    formParts,
     userAgent,
     username,
     password,
+    usernameOnly,
     followRedirects,
     insecure,
     compressed,
     headOnly,
     outputFile,
-    timeout,
-    rawTokens: tokens,
+    connectTimeout,
+    maxTime,
+    shellExpansionPossible: tokenized.shellExpansionPossible,
   };
 }
 
 function cleanCurlLineContinuations(input: string) {
-  return input
-    .replace(/\\\r?\n/g, " ")
-    .replace(/\r\n/g, "\n")
-    .trim();
+  return input.replace(/\\\r?\n/g, " ").replace(/\r\n/g, "\n").trim();
 }
 
 function tokenizeShellCommand(input: string) {
   const tokens: string[] = [];
   let current = "";
   let quote: "'" | '"' | null = null;
-  let escaped = false;
+  let shellExpansionPossible = false;
 
   for (let index = 0; index < input.length; index += 1) {
     const char = input[index];
 
-    if (escaped) {
-      current += char;
-      escaped = false;
+    if (quote === "'") {
+      if (char === "'") quote = null;
+      else current += char;
       continue;
     }
 
-    if (char === "\\") {
-      escaped = true;
-      continue;
-    }
-
-    if (quote) {
-      if (char === quote) {
-        quote = null;
+    if (quote === '"') {
+      if (char === '"') { quote = null; continue; }
+      if (char === "\\") {
+        const next = input[index + 1];
+        if (next === '"' || next === "\\" || next === "$" || next === "`" || next === "\n") {
+          if (next !== "\n") current += next;
+          index += 1;
+          continue;
+        }
+        current += "\\";
         continue;
       }
-
+      if (char === "$" || char === "`") shellExpansionPossible = true;
       current += char;
       continue;
     }
 
-    if (char === "'" || char === '"') {
-      quote = char;
+    if (char === "'") { quote = "'"; continue; }
+    if (char === '"') { quote = '"'; continue; }
+    if (char === "\\") {
+      if (index + 1 >= input.length) { current += "\\"; continue; }
+      current += input[index + 1];
+      index += 1;
       continue;
     }
-
+    if (char === "$" || char === "`" || char === "*" || char === "?") shellExpansionPossible = true;
     if (/\s/.test(char)) {
-      if (current) {
-        tokens.push(current);
-        current = "";
-      }
-
+      if (current) { tokens.push(current); current = ""; }
       continue;
     }
-
     current += char;
   }
 
-  if (escaped) {
-    current += "\\";
-  }
-
-  if (quote) {
-    throw new Error("The cURL command has an unclosed quote.");
-  }
-
-  if (current) {
-    tokens.push(current);
-  }
-
-  return tokens;
+  if (quote) throw new Error("The cURL command has an unclosed quote.");
+  if (current) tokens.push(current);
+  return { tokens, shellExpansionPossible };
 }
 
 function readRequiredValue(tokens: string[], index: number, flag: string) {
   const value = tokens[index + 1];
-
-  if (!value || value.startsWith("-")) {
-    throw new Error(`${flag} needs a value.`);
-  }
-
+  if (value === undefined) throw new Error(`${flag} needs a value.`);
   return value;
 }
 
-function parseHeaderValue(value: string): ParsedHeader {
-  const colonIndex = value.indexOf(":");
-
-  if (colonIndex === -1) {
-    throw new Error(`Header is missing a colon: ${value}`);
+function validateMethodToken(value: string) {
+  if (!value || !/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(value)) {
+    throw new Error("The custom HTTP method contains characters that are not valid in an HTTP token.");
   }
-
-  const name = value.slice(0, colonIndex).trim();
-  const headerValue = value.slice(colonIndex + 1).trim();
-
-  if (!name) {
-    throw new Error("Header name cannot be empty.");
-  }
-
-  return {
-    name,
-    value: headerValue,
-  };
 }
 
-function isBodyFlag(token: string) {
-  return [
-    "-d",
-    "--data",
-    "--data-raw",
-    "--data-binary",
-    "--data-urlencode",
-    "--form",
-    "-F",
-  ].includes(token);
+function parseHeaderValue(value: string): ParsedHeader {
+  if (/\r|\n/.test(value)) throw new Error("Header values cannot contain CR or LF characters.");
+  if (value.startsWith("@")) throw new Error("Header files are not supported because their contents are not present in the command text.");
+
+  const colonIndex = value.indexOf(":");
+  if (colonIndex >= 0) {
+    const name = value.slice(0, colonIndex);
+    const headerValue = value.slice(colonIndex + 1).trim();
+    validateHeaderName(name);
+    return { name, value: headerValue, behavior: headerValue ? "set" : "remove" };
+  }
+
+  if (value.endsWith(";")) {
+    const name = value.slice(0, -1);
+    validateHeaderName(name);
+    return { name, value: "", behavior: "empty" };
+  }
+
+  throw new Error(`Header must use name:value, name: to suppress an internal header, or name; to send an empty value: ${value}`);
+}
+
+function validateHeaderName(name: string) {
+  if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name)) throw new Error(`Invalid HTTP header name: ${name || "(empty)"}`);
+}
+
+function normalizedBodyFlag(token: string) {
+  if (token === "-d") return "-d";
+  if (["--data", "--data-raw", "--data-binary", "--data-urlencode"].includes(token)) return token;
+  return "";
+}
+
+function readAttachedBodyFlag(token: string): { flag: string; value: string } | null {
+  if (token.startsWith("--data=")) return { flag: "--data", value: token.slice(7) };
+  if (token.startsWith("--data-raw=")) return { flag: "--data-raw", value: token.slice(11) };
+  if (token.startsWith("--data-binary=")) return { flag: "--data-binary", value: token.slice(14) };
+  if (token.startsWith("--data-urlencode=")) return { flag: "--data-urlencode", value: token.slice(17) };
+  if (token.startsWith("-d") && token.length > 2) return { flag: "-d", value: token.slice(2) };
+  return null;
+}
+
+function encodeCurlDataUrlencode(value: string) {
+  if (value.startsWith("@") || (/^[^=]+@/.test(value) && !value.includes("="))) {
+    throw new Error("File-backed --data-urlencode values are not supported because the file contents are unavailable.");
+  }
+  if (value.startsWith("=")) return encodeURIComponent(value.slice(1));
+  const equalsIndex = value.indexOf("=");
+  if (equalsIndex >= 0) {
+    const name = value.slice(0, equalsIndex);
+    return `${name}=${encodeURIComponent(value.slice(equalsIndex + 1))}`;
+  }
+  return encodeURIComponent(value);
+}
+
+function splitCurlUser(value: string) {
+  const colonIndex = value.indexOf(":");
+  if (colonIndex === -1) return { username: value, password: "", usernameOnly: true };
+  return { username: value.slice(0, colonIndex), password: value.slice(colonIndex + 1), usernameOnly: false };
 }
 
 function parseCookieString(value: string): ParsedPair[] {
-  return value
-    .split(";")
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => {
-      const equalsIndex = part.indexOf("=");
-
-      if (equalsIndex === -1) {
-        return {
-          key: part,
-          value: "",
-        };
-      }
-
-      return {
-        key: part.slice(0, equalsIndex).trim(),
-        value: part.slice(equalsIndex + 1).trim(),
-      };
-    });
+  return value.split(";").map((part) => part.trim()).filter(Boolean).map((part) => {
+    const equalsIndex = part.indexOf("=");
+    return equalsIndex === -1
+      ? { key: part, value: "" }
+      : { key: part.slice(0, equalsIndex).trim(), value: part.slice(equalsIndex + 1).trim() };
+  });
 }
 
 function parseUrlDetails(url: string, decodeQueryParams: boolean) {
   const parsedUrl = new URL(url);
-  const queryParams: ParsedPair[] = [];
-
-  parsedUrl.searchParams.forEach((value, key) => {
-    queryParams.push({
-      key: decodeQueryParams ? safeDecode(key) : key,
-      value: decodeQueryParams ? safeDecode(value) : value,
-    });
-  });
-
-  return {
-    path: `${parsedUrl.pathname}${parsedUrl.search}`,
-    queryParams,
-  };
+  const rawQuery = parsedUrl.search.startsWith("?") ? parsedUrl.search.slice(1) : "";
+  const queryParams = rawQuery ? rawQuery.split("&").map((part) => {
+    const equalsIndex = part.indexOf("=");
+    const rawKey = equalsIndex === -1 ? part : part.slice(0, equalsIndex);
+    const rawValue = equalsIndex === -1 ? "" : part.slice(equalsIndex + 1);
+    return {
+      key: decodeQueryParams ? safePercentDecode(rawKey) : rawKey,
+      value: decodeQueryParams ? safePercentDecode(rawValue) : rawValue,
+    };
+  }) : [];
+  return { path: `${parsedUrl.pathname}${parsedUrl.search}`, queryParams };
 }
 
-function formatBody(body: string, prettyPrintBody: boolean) {
-  if (!body) {
-    return "";
-  }
-
-  if (!prettyPrintBody) {
-    return body;
-  }
-
-  const trimmed = body.trim();
-
-  if (
-    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
-    (trimmed.startsWith("[") && trimmed.endsWith("]"))
-  ) {
-    try {
-      return JSON.stringify(JSON.parse(trimmed), null, 2);
-    } catch {
-      return body;
-    }
-  }
-
-  return body;
+function appendQueryString(url: string, query: string) {
+  if (!query) return url;
+  const hashIndex = url.indexOf("#");
+  const beforeHash = hashIndex === -1 ? url : url.slice(0, hashIndex);
+  const hash = hashIndex === -1 ? "" : url.slice(hashIndex);
+  return `${beforeHash}${beforeHash.includes("?") ? "&" : "?"}${query}${hash}`;
 }
 
-function guessContentType(body: string) {
-  const trimmed = body.trim();
-
-  if (
-    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
-    (trimmed.startsWith("[") && trimmed.endsWith("]"))
-  ) {
-    return "application/json";
-  }
-
-  if (trimmed.includes("=") && trimmed.includes("&")) {
-    return "application/x-www-form-urlencoded";
-  }
-
-  return "text/plain";
+function prettyJson(body: string) {
+  try { return JSON.stringify(JSON.parse(body), null, 2); } catch { return body; }
 }
 
-function dedupeHeaders(headers: ParsedHeader[]) {
-  const seen = new Set<string>();
-  const result: ParsedHeader[] = [];
-
-  headers.forEach((header) => {
-    const key = `${header.name.toLowerCase()}:${header.value}`;
-
-    if (!seen.has(key)) {
-      result.push(header);
-      seen.add(key);
-    }
-  });
-
-  return result;
+function addHeaderIfMissing(headers: ParsedHeader[], name: string, value: string) {
+  if (!headers.some((header) => header.name.toLowerCase() === name.toLowerCase())) {
+    headers.push({ name, value, behavior: "set" });
+  }
 }
 
-function dedupePairs(pairs: ParsedPair[]) {
-  const seen = new Set<string>();
-  const result: ParsedPair[] = [];
-
-  pairs.forEach((pair) => {
-    const key = `${pair.key}:${pair.value}`;
-
-    if (!seen.has(key)) {
-      result.push(pair);
-      seen.add(key);
-    }
-  });
-
-  return result;
+function replaceSingletonHeader(headers: ParsedHeader[], nextHeader: ParsedHeader) {
+  const normalized = nextHeader.name.toLowerCase();
+  for (let index = headers.length - 1; index >= 0; index -= 1) {
+    if (headers[index].name.toLowerCase() === normalized) headers.splice(index, 1);
+  }
+  headers.push(nextHeader);
 }
 
 function formatParsedCurl(
   parsed: ParsedCurlCommand,
-  options: {
-    outputFormat: OutputFormat;
-    hideSensitiveValues: boolean;
-  }
+  options: { outputFormat: OutputFormat; hideSensitiveValues: boolean }
 ) {
+  const visibleUrl = options.hideSensitiveValues ? redactUrl(parsed.url) : parsed.url;
+  const visibleQuery = parsed.queryParams.map((pair) => ({
+    ...pair,
+    value: options.hideSensitiveValues && isSensitiveName(pair.key) ? "[hidden]" : pair.value,
+  }));
+  const visibleHeaders = parsed.headers.map((header) => ({
+    ...header,
+    value: options.hideSensitiveValues && isSensitiveHeader(header.name) ? "[hidden]" : header.value,
+  }));
+  const visibleCookies = parsed.cookies.map((cookie) => ({
+    ...cookie,
+    value: options.hideSensitiveValues ? "[hidden]" : cookie.value,
+  }));
+
   if (options.outputFormat === "json") {
-    return JSON.stringify(
-      {
-        ...parsed,
-        headers: parsed.headers.map((header) => ({
-          ...header,
-          value:
-            options.hideSensitiveValues && isSensitiveHeader(header.name)
-              ? "[hidden]"
-              : header.value,
-        })),
-        cookies: parsed.cookies.map((cookie) => ({
-          ...cookie,
-          value: options.hideSensitiveValues ? "[hidden]" : cookie.value,
-        })),
-        password:
-          options.hideSensitiveValues && parsed.password
-            ? "[hidden]"
-            : parsed.password,
-      },
-      null,
-      2
-    );
+    return JSON.stringify({
+      method: parsed.method,
+      url: visibleUrl,
+      path: parsed.urlPath,
+      queryParams: visibleQuery,
+      headers: visibleHeaders,
+      cookies: visibleCookies,
+      body: parsed.body,
+      bodyKind: parsed.bodyKind,
+      formParts: parsed.formParts,
+      username: parsed.username,
+      password: options.hideSensitiveValues && parsed.password ? "[hidden]" : parsed.password,
+      followRedirects: parsed.followRedirects,
+      insecure: parsed.insecure,
+      compressed: parsed.compressed,
+      headOnly: parsed.headOnly,
+      outputFile: parsed.outputFile,
+      connectTimeout: parsed.connectTimeout,
+      maxTime: parsed.maxTime,
+    }, null, 2);
   }
 
-  if (options.outputFormat === "http") {
-    return toRawHTTPRequest(parsed, options.hideSensitiveValues);
-  }
+  if (options.outputFormat === "http") return toRawHTTPRequest(parsed, options.hideSensitiveValues);
 
   return [
     `Method: ${parsed.method}`,
-    `URL: ${parsed.url}`,
+    `URL: ${visibleUrl}`,
     `Path: ${parsed.urlPath}`,
     `Headers: ${parsed.headers.length}`,
     `Query parameters: ${parsed.queryParams.length}`,
     `Cookies: ${parsed.cookies.length}`,
+    `Body mode: ${parsed.bodyKind}`,
     `Body size: ${parsed.body.length.toLocaleString()} characters`,
     `Follow redirects: ${parsed.followRedirects ? "yes" : "no"}`,
     `Insecure TLS: ${parsed.insecure ? "yes" : "no"}`,
-    parsed.timeout ? `Timeout: ${parsed.timeout}` : "",
+    parsed.connectTimeout ? `Connect timeout: ${parsed.connectTimeout}` : "",
+    parsed.maxTime ? `Maximum transfer time: ${parsed.maxTime}` : "",
     parsed.outputFile ? `Output file: ${parsed.outputFile}` : "",
+    parsed.username ? `curl --user name: ${parsed.username}` : "",
     "",
     "Headers:",
-    ...parsed.headers.map(
-      (header) =>
-        `${header.name}: ${
-          options.hideSensitiveValues && isSensitiveHeader(header.name)
-            ? "[hidden]"
-            : header.value
-        }`
-    ),
-    parsed.queryParams.length > 0 ? "" : "",
-    parsed.queryParams.length > 0 ? "Query Parameters:" : "",
-    ...parsed.queryParams.map((param) => `${param.key}=${param.value}`),
-    parsed.body ? "" : "",
-    parsed.body ? "Body:" : "",
+    ...visibleHeaders.map((header) => formatHeaderForSummary(header)),
+    visibleQuery.length ? "\nQuery Parameters:" : "",
+    ...visibleQuery.map((param) => `${param.key}=${param.value}`),
+    parsed.body ? "\nBody:" : "",
     parsed.body || "",
-  ]
-    .filter((line) => line !== undefined && line !== "")
-    .join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 function toRawHTTPRequest(parsed: ParsedCurlCommand, hideSensitiveValues: boolean) {
+  if (parsed.bodyKind === "multipart-form") {
+    throw new Error("Raw HTTP output is unavailable for --form because curl generates the multipart boundary and encoded MIME body at runtime.");
+  }
   const url = new URL(parsed.url);
   const requestLine = `${parsed.method} ${url.pathname}${url.search} HTTP/1.1`;
-  const hostHeader = `Host: ${url.host}`;
-  const headers = parsed.headers.map((header) => {
-    const value =
-      hideSensitiveValues && isSensitiveHeader(header.name)
-        ? "[hidden]"
-        : header.value;
+  const hostHeaders = parsed.headers.filter((header) => header.name.toLowerCase() === "host");
+  if (hostHeaders.length > 1) {
+    throw new Error("Raw HTTP output stops when multiple custom Host directives are present because curl's internal-header replacement cannot be reconstructed safely from a simplified request preview.");
+  }
+  const hostHeader = hostHeaders[0];
+  const visibleHeaders = parsed.headers
+    .filter((header) => header.name.toLowerCase() !== "host" && header.behavior !== "remove")
+    .map((header) => {
+      const value = hideSensitiveValues && isSensitiveHeader(header.name) && header.behavior === "set" ? "[hidden]" : header.value;
+      return `${header.name}:${header.behavior === "empty" ? "" : ` ${value}`}`;
+    });
+  const hostLine = !hostHeader
+    ? [`Host: ${url.host}`]
+    : hostHeader.behavior === "remove"
+      ? []
+      : hostHeader.behavior === "empty"
+        ? ["Host:"]
+        : [`Host: ${hostHeader.value}`];
+  return [requestLine, ...hostLine, ...visibleHeaders, ...(parsed.body ? ["", parsed.body] : [""])].join("\r\n");
+}
 
-    return `${header.name}: ${value}`;
-  });
-
-  return [
-    requestLine,
-    hostHeader,
-    ...headers,
-    parsed.body ? "" : "",
-    parsed.body || "",
-  ].join("\n");
+function formatHeaderForSummary(header: ParsedHeader) {
+  if (header.behavior === "remove") return `${header.name}: [suppressed by curl]`;
+  if (header.behavior === "empty") return `${header.name}: [empty value]`;
+  return `${header.name}: ${header.value}`;
 }
 
 function getCurlWarnings(parsed: ParsedCurlCommand): CurlWarning[] {
   const warnings: CurlWarning[] = [];
-
-  if (parsed.headers.some((header) => isSensitiveHeader(header.name))) {
-    warnings.push({
-      title: "Sensitive values found",
-      message:
-        "This command includes headers or cookies that may contain tokens, sessions, API keys, or passwords. Hide or replace them before sharing.",
-    });
+  if (parsed.headers.some((header) => isSensitiveHeader(header.name) && header.behavior === "set") || parsed.cookies.length || parsed.password) {
+    warnings.push({ title: "Credentials or session data found", message: "Masking can hide recognized headers, cookies, query keys, and --user passwords in copied output. Arbitrary body text is not inspected for secrets." });
   }
-
-  if (parsed.insecure) {
-    warnings.push({
-      title: "Insecure TLS flag used",
-      message:
-        "The command uses -k or --insecure, which skips TLS certificate verification.",
-    });
+  if (parsed.username) {
+    warnings.push({ title: "--user is not an Authorization header", message: parsed.usernameOnly ? "Only a username was supplied. curl can prompt for the password when it runs, so no password can be reconstructed here." : "curl uses --user as authentication credentials. The actual Authorization exchange depends on the selected authentication method and server behavior, so no Basic header is fabricated." });
   }
-
-  if (parsed.method === "GET" && parsed.body) {
-    warnings.push({
-      title: "GET request has a body",
-      message:
-        "GET requests with bodies can behave differently across clients, servers, and proxies.",
-    });
+  if (parsed.headers.some((header) => header.behavior !== "set")) {
+    warnings.push({ title: "Custom header suppression is significant", message: `With -H, "Name:" suppresses curl\'s internal header while "Name;" forces an empty header value. Those are kept distinct instead of being treated as the same header.` });
   }
-
-  if (!parsed.headers.some((header) => header.name.toLowerCase() === "accept")) {
-    warnings.push({
-      title: "No Accept header found",
-      message:
-        "Some APIs behave differently when an Accept header is missing.",
-    });
-  }
-
+  if (parsed.insecure) warnings.push({ title: "TLS verification disabled", message: "-k / --insecure tells curl not to verify the peer certificate. That weakens identity checks and should not be copied into production requests without a specific reason." });
+  if (parsed.method.toUpperCase() === "GET" && parsed.body) warnings.push({ title: "GET request carries a body", message: "HTTP does not assign generally applicable semantics to content in a GET request, and some implementations reject or ignore it." });
+  if (parsed.bodyKind === "multipart-form") warnings.push({ title: "Multipart bytes are runtime-generated", message: "The listed form expressions describe curl input. The exact Content-Type boundary and MIME body do not exist until curl builds the transfer." });
+  if (parsed.shellExpansionPossible) warnings.push({ title: "Shell expansion may change the command", message: "Variables, command substitution, globbing, and shell-specific escaping are not executed here. Parse the fully expanded command when exact request text matters." });
   return warnings;
 }
 
 function isSensitiveHeader(name: string) {
   const normalized = name.toLowerCase();
-
-  return (
-    normalized === "authorization" ||
-    normalized === "cookie" ||
-    normalized === "set-cookie" ||
-    normalized.includes("token") ||
-    normalized.includes("secret") ||
-    normalized.includes("api-key") ||
-    normalized.includes("apikey") ||
-    normalized.includes("x-api-key")
-  );
+  return normalized === "authorization" || normalized === "cookie" || normalized === "proxy-authorization" || isSensitiveName(normalized);
 }
 
-function safeDecode(value: string) {
+function isSensitiveName(name: string) {
+  return /(?:^|[-_.])(token|secret|api[-_]?key|key|password|passwd|session|credential|auth)(?:$|[-_.])/i.test(name) || /authorization/i.test(name);
+}
+
+function redactUrl(value: string) {
   try {
-    return decodeURIComponent(value.replace(/\+/g, " "));
+    const url = new URL(value);
+    if (url.username) url.username = "hidden";
+    if (url.password) url.password = "hidden";
+    const keys = Array.from(url.searchParams.keys());
+    keys.forEach((key) => {
+      if (isSensitiveName(key)) url.searchParams.set(key, "[hidden]");
+    });
+    return url.toString();
   } catch {
     return value;
   }
 }
+
+function safePercentDecode(value: string) {
+  try { return decodeURIComponent(value); } catch { return value; }
+}
+
