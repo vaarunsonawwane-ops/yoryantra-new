@@ -1,46 +1,35 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "CURL to Fetch Converter | Convert cURL to JavaScript Fetch | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "CURL to Fetch Converter | cURL Request to JavaScript Fetch | Yoryantra",
   description:
-    "Convert cURL commands to JavaScript fetch code. Parse headers, request methods, body data, and API request values directly in your browser.",
-
+    "Convert common HTTP cURL requests into browser fetch() code while surfacing headers, body modes, and curl options that Fetch cannot reproduce directly.",
   keywords: [
     "curl to fetch converter",
     "convert curl to fetch",
     "curl to javascript fetch",
-    "curl command converter",
-    "api request converter",
-    "curl to fetch online",
-    "fetch api generator",
-    "developer tools",
+    "curl request parser",
+    "fetch request generator",
+    "curl headers to fetch",
+    "curl data to fetch body",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/curl-to-fetch-converter",
   },
-
   openGraph: {
-    title: "CURL to Fetch Converter | Convert cURL to JavaScript Fetch | Yoryantra",
-
+    title: "CURL to Fetch Converter | cURL Request to JavaScript Fetch | Yoryantra",
     description:
-      "Convert cURL commands to JavaScript fetch code. Parse headers, request methods, body data, and API request values directly in your browser.",
-
+      "Translate HTTP cURL requests into browser fetch() code and see where browser request rules differ from curl.",
     url: "https://yoryantra.com/tools/curl-to-fetch-converter",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "CURL to Fetch Converter | Convert cURL to JavaScript Fetch | Yoryantra",
-
+    title: "CURL to Fetch Converter | Yoryantra",
     description:
-      "Convert cURL commands to JavaScript fetch code. Parse headers, request methods, body data, and API request values directly in your browser.",
+      "Translate HTTP cURL requests into browser fetch() code and flag options Fetch cannot reproduce.",
   },
 };
 

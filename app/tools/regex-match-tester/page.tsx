@@ -2,37 +2,34 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Regex Match Tester | Test Regular Expressions Online | Yoryantra",
+  title: "Regex Match Tester | JavaScript Flags, Groups and Replacements | Yoryantra",
   description:
-    "Test regular expressions against sample text, preview matches, inspect capture groups, toggle regex flags, and copy match results directly in your browser.",
+    "Run JavaScript regular expressions against sample text with selectable flags, capture groups, match indexes, zero-length handling, and replacement previews.",
   keywords: [
-    "Regex match tester",
-    "regular expression tester",
-    "regex tester online",
-    "test regex pattern",
+    "regex match tester",
+    "javascript regex tester",
     "regex capture groups",
-    "JavaScript regex tester",
-    "regex match tool",
-    "developer tools",
-    "text tools",
-    "debugging tools",
+    "regex named groups",
+    "regex replacement preview",
+    "regex flags tester",
+    "regular expression debugging",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/regex-match-tester",
   },
   openGraph: {
-    title: "Regex Match Tester | Test Regular Expressions Online | Yoryantra",
+    title: "Regex Match Tester | JavaScript Flags, Groups and Replacements | Yoryantra",
     description:
-      "Test regular expressions against sample text, preview matches, inspect capture groups, toggle regex flags, and copy match results directly in your browser.",
+      "Test JavaScript regex behavior with explicit flags, match indexes, capture groups, and replacement semantics.",
     url: "https://yoryantra.com/tools/regex-match-tester",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Regex Match Tester | Test Regular Expressions Online | Yoryantra",
+    title: "Regex Match Tester | Yoryantra",
     description:
-      "Test regular expressions against sample text, preview matches, inspect capture groups, toggle regex flags, and copy match results directly in your browser.",
+      "Run JavaScript regex patterns with selected flags, capture groups, match indexes, and replacement semantics.",
   },
 };
 

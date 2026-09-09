@@ -569,7 +569,7 @@ export const tools = [
 {
   title: "Unix Timestamp Generator",
   description:
-    "Generate Unix timestamps, convert dates to epoch time, and convert timestamps back to readable dates.",
+    "Generate Unix seconds or milliseconds from dates, then convert timestamps back using an explicitly selected unit.",
   href: "/tools/unix-timestamp-generator",
   category: "Developer Tools",
 },
@@ -577,7 +577,7 @@ export const tools = [
 {
   title: "CURL to Fetch Converter",
   description:
-    "Convert cURL commands to JavaScript fetch code for API requests, headers, methods, and body data.",
+    "Convert cURL requests into browser fetch() code and flag headers or options Fetch cannot reproduce.",
   href: "/tools/curl-to-fetch-converter",
   category: "Developer Tools",
 },
@@ -819,7 +819,7 @@ export const tools = [
 {
   title: "Regex Match Tester",
   description:
-    "Test regular expressions, inspect matches and capture groups, and preview replacements.",
+    "Run JavaScript regex patterns with selected flags, capture groups, UTF-16 indexes, and replacement behavior.",
   href: "/tools/regex-match-tester",
   category: "Developer Tools",
 },
