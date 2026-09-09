@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -11,6 +11,21 @@ type DateInterpretation = "local" | "utc";
 type CopyState = "idle" | "copied" | "failed";
 
 const MAX_DATE_MS = 8_640_000_000_000_000;
+
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 export default function ToolClient() {
   const [mode, setMode] = useState<Mode>("date-to-timestamp");
@@ -134,40 +149,26 @@ export default function ToolClient() {
       title="Unix Timestamp Generator"
       description="Generate Unix seconds or milliseconds from dates and convert explicit epoch units back to readable time."
     >
-      <div>
+      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">Choose a conversion direction</h3>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <button
-            type="button"
-            aria-pressed={mode === "date-to-timestamp"}
+        <div
+          className="mt-4 grid gap-4 sm:grid-cols-2"
+          role="group"
+          aria-label="Timestamp conversion direction"
+        >
+          <ConversionModeButton
+            active={mode === "date-to-timestamp"}
+            title="Date to Timestamp"
+            description="Interpret a wall-clock date as browser local time or UTC, then produce epoch seconds and milliseconds."
             onClick={() => chooseMode("date-to-timestamp")}
-            className={`self-start rounded-2xl border p-5 text-left transition focus:outline-none focus:ring-2 focus:ring-[var(--green)] focus:ring-offset-2 ${
-              mode === "date-to-timestamp"
-                ? "border-[var(--green)] bg-[var(--light-bg)] ring-1 ring-[var(--green)]"
-                : "border-gray-200 bg-white hover:border-gray-300"
-            }`}
-          >
-            <span className="block font-semibold text-gray-900">Date to Timestamp</span>
-            <span className="mt-2 block text-sm leading-relaxed text-gray-600">
-              Interpret a wall-clock date as browser local time or UTC, then produce epoch seconds and milliseconds.
-            </span>
-          </button>
+          />
 
-          <button
-            type="button"
-            aria-pressed={mode === "timestamp-to-date"}
+          <ConversionModeButton
+            active={mode === "timestamp-to-date"}
+            title="Timestamp to Date"
+            description="Choose seconds or milliseconds explicitly, then view the same instant in ISO, UTC, and browser-local form."
             onClick={() => chooseMode("timestamp-to-date")}
-            className={`self-start rounded-2xl border p-5 text-left transition focus:outline-none focus:ring-2 focus:ring-[var(--green)] focus:ring-offset-2 ${
-              mode === "timestamp-to-date"
-                ? "border-[var(--green)] bg-[var(--light-bg)] ring-1 ring-[var(--green)]"
-                : "border-gray-200 bg-white hover:border-gray-300"
-            }`}
-          >
-            <span className="block font-semibold text-gray-900">Timestamp to Date</span>
-            <span className="mt-2 block text-sm leading-relaxed text-gray-600">
-              Choose seconds or milliseconds explicitly, then view the same instant in ISO, UTC, and browser-local form.
-            </span>
-          </button>
+          />
         </div>
       </div>
 
@@ -177,30 +178,20 @@ export default function ToolClient() {
             <div>
               <span className="block mb-2 text-sm font-medium text-gray-700">Date and Time</span>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="unix-date" className="mb-1.5 block text-xs font-medium text-gray-600">
-                    Date (YYYY-MM-DD)
-                  </label>
-                  <input
-                    id="unix-date"
-                    type="text"
-                    value={dateInput}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                      setDateInput(event.target.value);
-                      setOutput("");
-                      setError("");
-                      setCopyState("idle");
-                    }}
-                    placeholder="2026-09-09"
-                    autoComplete="off"
-                    spellCheck={false}
-                    className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-                  />
-                </div>
+                <DatePickerField
+                  label="Date"
+                  value={dateInput}
+                  onChange={(value) => {
+                    setDateInput(value);
+                    setOutput("");
+                    setError("");
+                    setCopyState("idle");
+                  }}
+                />
 
                 <div>
-                  <label htmlFor="unix-time" className="mb-1.5 block text-xs font-medium text-gray-600">
-                    Time (HH:MM:SS.SSS)
+                  <label htmlFor="unix-time" className="mb-2 block text-sm font-medium text-gray-700">
+                    Time
                   </label>
                   <input
                     id="unix-time"
@@ -212,10 +203,10 @@ export default function ToolClient() {
                       setError("");
                       setCopyState("idle");
                     }}
-                    placeholder="18:30:00.000"
+                    placeholder="HH:MM:SS.SSS"
                     autoComplete="off"
                     spellCheck={false}
-                    className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                    className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
                   />
                 </div>
               </div>
@@ -238,7 +229,7 @@ export default function ToolClient() {
           </div>
 
           <p className="mt-3 text-sm leading-relaxed text-gray-500">
-            Enter a four-digit year and 24-hour time. Seconds and milliseconds are optional; the date and time carry no timezone or UTC offset.
+            Choose the calendar date and enter 24-hour time. Seconds and milliseconds are optional; the date and time carry no timezone or UTC offset.
           </p>
         </div>
       ) : (
@@ -394,6 +385,389 @@ export default function ToolClient() {
       </section>
     </ToolShell>
   );
+}
+
+
+function ConversionModeButton({
+  active,
+  title,
+  description,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`self-start rounded-xl border border-gray-200 bg-white p-4 text-left transition ${
+        active
+          ? "shadow-sm ring-2 ring-[var(--green)]"
+          : "hover:border-[var(--green)]"
+      }`}
+    >
+      <span className="block text-sm font-semibold text-gray-900">{title}</span>
+      <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+        {description}
+      </span>
+    </button>
+  );
+}
+
+function DatePickerField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const selectedDate = parsePickerDate(value);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [openAbove, setOpenAbove] = useState(false);
+  const [pickerMode, setPickerMode] = useState<"days" | "months" | "years">("days");
+  const [viewDate, setViewDate] = useState<Date>(() => selectedDate || new Date());
+
+  const calendarDays = useMemo(() => buildCalendarDays(viewDate), [viewDate]);
+  const yearOptions = useMemo(() => buildYearOptions(viewDate), [viewDate]);
+  const displayValue = selectedDate ? formatDisplayDate(selectedDate) : "";
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target;
+
+      if (target instanceof Node && wrapperRef.current && !wrapperRef.current.contains(target)) {
+        setOpen(false);
+        setPickerMode("days");
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (selectedDate) {
+      setViewDate(selectedDate);
+    }
+  }, [value]);
+
+  const openPicker = () => {
+    if (!open && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      const estimatedPickerHeight = 380;
+      const bottomSpace = window.innerHeight - rect.bottom;
+      const topSpace = rect.top;
+
+      setOpenAbove(bottomSpace < estimatedPickerHeight && topSpace > bottomSpace);
+    }
+
+    setOpen((current) => !current);
+    setPickerMode("days");
+  };
+
+  const moveMonth = (offset: number) => {
+    setViewDate((current) => {
+      const absoluteMonth = current.getFullYear() * 12 + current.getMonth() + offset;
+      const nextYear = Math.floor(absoluteMonth / 12);
+      const nextMonth = ((absoluteMonth % 12) + 12) % 12;
+
+      if (nextYear < 0 || nextYear > 9999) return current;
+      return makeCalendarDate(nextYear, nextMonth, 1);
+    });
+    setPickerMode("days");
+  };
+
+  const selectMonth = (monthIndex: number) => {
+    setViewDate((current) => makeCalendarDate(current.getFullYear(), monthIndex, 1));
+    setPickerMode("days");
+  };
+
+  const selectYear = (year: number) => {
+    setViewDate((current) => makeCalendarDate(year, current.getMonth(), 1));
+    setPickerMode("months");
+  };
+
+  const selectDate = (date: Date) => {
+    onChange(formatDateInputValue(date));
+    setViewDate(date);
+    setOpen(false);
+    setPickerMode("days");
+  };
+
+  const clearDate = () => {
+    onChange("");
+    setOpen(false);
+    setPickerMode("days");
+  };
+
+  const selectToday = () => {
+    selectDate(new Date());
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <label className="block mb-2 text-sm font-medium text-gray-700">
+        {label}
+      </label>
+
+      <button
+        type="button"
+        onClick={openPicker}
+        aria-expanded={open}
+        className="flex min-h-[54px] w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-4 py-3 text-left text-sm font-mono outline-none transition hover:border-gray-300 focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+      >
+        <span className={displayValue ? "text-gray-900" : "text-gray-400"}>
+          {displayValue || "dd-mm-yyyy"}
+        </span>
+
+        <span className="text-[var(--light-gold)]" aria-hidden="true">
+          ▪
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className={`absolute left-0 z-30 w-[300px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl ${
+            openAbove ? "bottom-full mb-2" : "top-full mt-2"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => moveMonth(-1)}
+              className="px-1 py-1 text-xl leading-none text-[var(--light-gold)] transition hover:opacity-75"
+              aria-label="Previous month"
+            >
+              ←
+            </button>
+
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPickerMode((current) => current === "months" ? "days" : "months")}
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                  pickerMode === "months"
+                    ? "bg-[var(--light-gold)]/15 text-[var(--light-gold)]"
+                    : "text-gray-900 hover:bg-[var(--light-gold)]/10"
+                }`}
+              >
+                {monthNames[viewDate.getMonth()]}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPickerMode((current) => current === "years" ? "days" : "years")}
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                  pickerMode === "years"
+                    ? "bg-[var(--light-gold)]/15 text-[var(--light-gold)]"
+                    : "text-gray-900 hover:bg-[var(--light-gold)]/10"
+                }`}
+              >
+                {formatPickerYear(viewDate.getFullYear())}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => moveMonth(1)}
+              className="px-1 py-1 text-xl leading-none text-[var(--light-gold)] transition hover:opacity-75"
+              aria-label="Next month"
+            >
+              →
+            </button>
+          </div>
+
+          {pickerMode === "months" && (
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {monthNames.map((month, index) => {
+                const isSelected = index === viewDate.getMonth();
+
+                return (
+                  <button
+                    key={month}
+                    type="button"
+                    onClick={() => selectMonth(index)}
+                    className={`rounded-lg px-2 py-2 text-sm transition ${
+                      isSelected
+                        ? "bg-[var(--light-gold)] font-semibold text-white shadow-sm"
+                        : "text-gray-800 hover:bg-[var(--light-gold)]/10"
+                    }`}
+                  >
+                    {month.slice(0, 3)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {pickerMode === "years" && (
+            <div className="mt-4 grid max-h-[260px] grid-cols-4 gap-2 overflow-y-auto pr-1">
+              {yearOptions.map((year) => {
+                const isSelected = year === viewDate.getFullYear();
+
+                return (
+                  <button
+                    key={year}
+                    type="button"
+                    onClick={() => selectYear(year)}
+                    className={`rounded-lg px-2 py-2 text-sm transition ${
+                      isSelected
+                        ? "bg-[var(--light-gold)] font-semibold text-white shadow-sm"
+                        : "text-gray-800 hover:bg-[var(--light-gold)]/10"
+                    }`}
+                  >
+                    {formatPickerYear(year)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {pickerMode === "days" && (
+            <>
+              <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500">
+                {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((day) => (
+                  <div key={day} className="py-1">
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-1 grid grid-cols-7 gap-1">
+                {calendarDays.map((day) => {
+                  const isSelected = selectedDate ? isSameDate(day.date, selectedDate) : false;
+                  const isToday = isSameDate(day.date, new Date());
+
+                  return (
+                    <button
+                      key={day.key}
+                      type="button"
+                      onClick={() => selectDate(day.date)}
+                      className={`h-9 rounded-lg text-sm transition ${
+                        isSelected
+                          ? "bg-[var(--light-gold)] font-semibold text-white shadow-sm"
+                          : day.inCurrentMonth
+                            ? "text-gray-800 hover:bg-[var(--light-gold)]/10 hover:text-gray-900"
+                            : "text-gray-400 hover:bg-gray-50"
+                      } ${isToday && !isSelected ? "ring-1 ring-[var(--light-gold)]" : ""}`}
+                    >
+                      {day.date.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+            <button
+              type="button"
+              onClick={clearDate}
+              className="text-sm font-semibold text-gray-900 transition hover:text-[var(--light-gold)]"
+            >
+              Clear
+            </button>
+
+            <button
+              type="button"
+              onClick={selectToday}
+              className="text-sm font-semibold text-gray-900 transition hover:text-[var(--light-gold)]"
+            >
+              Today
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function parsePickerDate(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = makeCalendarDate(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function makeCalendarDate(year: number, monthIndex: number, day: number): Date {
+  const date = new Date(0);
+  date.setHours(12, 0, 0, 0);
+  date.setFullYear(year, monthIndex, day);
+  return date;
+}
+
+function formatDateInputValue(date: Date): string {
+  const year = formatPickerYear(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDisplayDate(date: Date): string {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}-${month}-${formatPickerYear(date.getFullYear())}`;
+}
+
+function formatPickerYear(year: number): string {
+  return String(year).padStart(4, "0");
+}
+
+function isSameDate(first: Date, second: Date): boolean {
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  );
+}
+
+function buildYearOptions(viewDate: Date): number[] {
+  const selectedYear = viewDate.getFullYear();
+  const start = Math.max(0, selectedYear - 12);
+  const end = Math.min(9999, selectedYear + 12);
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+}
+
+function buildCalendarDays(viewDate: Date) {
+  const firstDay = makeCalendarDate(viewDate.getFullYear(), viewDate.getMonth(), 1);
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const start = makeCalendarDate(firstDay.getFullYear(), firstDay.getMonth(), 1 - startOffset);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = makeCalendarDate(start.getFullYear(), start.getMonth(), start.getDate() + index);
+    return {
+      date,
+      key: formatDateInputValue(date),
+      inCurrentMonth: date.getMonth() === viewDate.getMonth() && date.getFullYear() === viewDate.getFullYear(),
+    };
+  });
 }
 
 function parseDateTimeInput(value: string, interpretation: DateInterpretation): Date {
