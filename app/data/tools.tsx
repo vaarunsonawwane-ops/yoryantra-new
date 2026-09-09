@@ -827,7 +827,7 @@ export const tools = [
 {
   title: "HTTP Request Parser",
   description:
-    "Parse raw HTTP requests, inspect headers, query parameters, cookies, and request bodies.",
+    "Break raw HTTP requests into request line, headers, query data, cookies, body, and framing details.",
   href: "/tools/http-request-parser",
   category: "Developer Tools",
 },
@@ -836,7 +836,7 @@ export const tools = [
 {
   title: "SQL Beautifier / Minifier",
   description:
-    "Beautify, format, minify, and clean SQL queries directly in your browser.",
+    "Beautify or minify SQL while preserving quoted text, comments, dollar-quoted strings, and comparison operators.",
   href: "/tools/sql-beautifier-minifier",
   category: "Developer Tools",
 },
@@ -845,7 +845,7 @@ export const tools = [
 {
   title: "cURL Command Parser",
   description:
-    "Parse cURL commands into method, URL, headers, cookies, body, and request details.",
+    "Parse cURL commands into method, URL, headers, authentication, cookies, and request body without losing duplicate headers.",
   href: "/tools/curl-command-parser",
   category: "Developer Tools",
 },

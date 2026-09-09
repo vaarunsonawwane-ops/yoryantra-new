@@ -15,6 +15,7 @@ const MAX_DATE_MS = 8_640_000_000_000_000;
 export default function ToolClient() {
   const [mode, setMode] = useState<Mode>("date-to-timestamp");
   const [dateInput, setDateInput] = useState("");
+  const [timeInput, setTimeInput] = useState("");
   const [dateInterpretation, setDateInterpretation] =
     useState<DateInterpretation>("local");
   const [timestampInput, setTimestampInput] = useState("");
@@ -32,12 +33,15 @@ export default function ToolClient() {
 
   const useCurrentTime = () => {
     const now = new Date();
-    setMode("date-to-timestamp");
-    setDateInput(
+    const value =
       dateInterpretation === "utc"
         ? toUtcDatetimeLocalValue(now)
-        : toLocalDatetimeValue(now)
-    );
+        : toLocalDatetimeValue(now);
+    const [datePart, timePart] = value.split("T");
+
+    setMode("date-to-timestamp");
+    setDateInput(datePart);
+    setTimeInput(timePart);
     setOutput("");
     setError("");
     setCopyState("idle");
@@ -48,18 +52,19 @@ export default function ToolClient() {
 
     try {
       if (mode === "date-to-timestamp") {
-        if (!dateInput.trim()) {
-          throw new Error("Enter a date and time before generating a timestamp.");
+        if (!dateInput.trim() || !timeInput.trim()) {
+          throw new Error("Enter both the date and time before generating a timestamp.");
         }
 
-        const date = parseDateTimeInput(dateInput, dateInterpretation);
+        const wallClockInput = `${dateInput.trim()}T${timeInput.trim()}`;
+        const date = parseDateTimeInput(wallClockInput, dateInterpretation);
         const milliseconds = date.getTime();
         const seconds = formatUnixSeconds(milliseconds);
         const browserZone = getBrowserTimeZone();
 
         setOutput(
           [
-            `Input: ${dateInput}`,
+            `Input: ${dateInput.trim()} ${timeInput.trim()}`,
             `Interpreted as: ${
               dateInterpretation === "utc"
                 ? "UTC"
@@ -115,6 +120,7 @@ export default function ToolClient() {
 
   const resetAll = () => {
     setDateInput("");
+    setTimeInput("");
     setTimestampInput("");
     setTimestampUnit("seconds");
     setDateInterpretation("local");
@@ -169,19 +175,50 @@ export default function ToolClient() {
         <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">Date and Time</label>
-              <input
-                type="datetime-local"
-                step="0.001"
-                value={dateInput}
-                onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                  setDateInput(event.target.value);
-                  setOutput("");
-                  setError("");
-                  setCopyState("idle");
-                }}
-                className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-              />
+              <span className="block mb-2 text-sm font-medium text-gray-700">Date and Time</span>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="unix-date" className="mb-1.5 block text-xs font-medium text-gray-600">
+                    Date (YYYY-MM-DD)
+                  </label>
+                  <input
+                    id="unix-date"
+                    type="text"
+                    value={dateInput}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      setDateInput(event.target.value);
+                      setOutput("");
+                      setError("");
+                      setCopyState("idle");
+                    }}
+                    placeholder="2026-09-09"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="unix-time" className="mb-1.5 block text-xs font-medium text-gray-600">
+                    Time (HH:MM:SS.SSS)
+                  </label>
+                  <input
+                    id="unix-time"
+                    type="text"
+                    value={timeInput}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      setTimeInput(event.target.value);
+                      setOutput("");
+                      setError("");
+                      setCopyState("idle");
+                    }}
+                    placeholder="18:30:00.000"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="w-full rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                  />
+                </div>
+              </div>
             </div>
 
             <YoryantraSelect
@@ -201,7 +238,7 @@ export default function ToolClient() {
           </div>
 
           <p className="mt-3 text-sm leading-relaxed text-gray-500">
-            A datetime-local field contains no timezone or UTC offset. Choose the interpretation deliberately before generating the timestamp.
+            Enter a four-digit year and 24-hour time. Seconds and milliseconds are optional; the date and time carry no timezone or UTC offset.
           </p>
         </div>
       ) : (
@@ -295,9 +332,9 @@ export default function ToolClient() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
-            <h2 className="font-semibold text-amber-950">Local date input has a timezone boundary</h2>
+            <h2 className="font-semibold text-amber-950">Local wall-clock input has a timezone boundary</h2>
             <p className="mt-2 text-sm leading-relaxed text-amber-900">
-              The HTML datetime-local value carries no timezone. Browser Local
+              A wall-clock date-time value carries no timezone. Browser Local
               Time uses the machine's current timezone rules. During daylight
               saving transitions, some wall times do not exist and some occur
               twice; JavaScript chooses an offset for ambiguous repeated times.
@@ -362,7 +399,7 @@ export default function ToolClient() {
 function parseDateTimeInput(value: string, interpretation: DateInterpretation): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/.exec(value);
   if (!match) {
-    throw new Error("Enter a complete date and time in the datetime field.");
+    throw new Error("Enter the date as YYYY-MM-DD and time as HH:MM, optionally adding seconds and milliseconds.");
   }
 
   const year = Number(match[1]);
