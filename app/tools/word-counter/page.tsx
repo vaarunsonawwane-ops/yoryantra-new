@@ -1,46 +1,33 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "Word Counter Online Free | Yoryantra",
-
+  title: "Word Counter with Unicode Text Statistics | Yoryantra",
   description:
-    "Count words, characters, sentences, and estimated reading time instantly with this free online Word Counter. Fast and clean writing utility for content, SEO, and productivity workflows.",
-
+    "Count locale-aware words, grapheme characters, sentences, characters without whitespace, and estimated reading time in the browser.",
   keywords: [
     "word counter",
     "character counter",
-    "online word counter",
-    "text statistics tool",
-    "reading time calculator",
-    "seo writing tools",
-    "count words online",
-    "writing productivity tools",
+    "Unicode character counter",
+    "sentence counter",
+    "reading time estimate",
+    "Intl Segmenter word count",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/word-counter",
   },
-
   openGraph: {
-    title: "Word Counter Online Free | Yoryantra",
-
+    title: "Word Counter with Unicode Text Statistics | Yoryantra",
     description:
-      "Free online Word Counter to count words, characters, and reading time instantly.",
-
+      "Count locale-aware words, visible characters, sentences, and estimated reading time with browser text segmentation.",
     url: "https://yoryantra.com/tools/word-counter",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Word Counter Online Free | Yoryantra",
-
+    title: "Word Counter with Unicode Text Statistics | Yoryantra",
     description:
-      "Count words, characters, and reading time instantly with this clean online utility.",
+      "Count words, grapheme characters, sentences, and estimated reading time with locale-aware browser segmentation.",
   },
 };
 

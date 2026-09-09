@@ -1,46 +1,33 @@
 import ToolClient from "./ToolClient";
 
 export const metadata = {
-  title: "Regex Tester Online Free | Yoryantra",
-
+  title: "Regex Tester for JavaScript Patterns | Yoryantra",
   description:
-    "Test and validate regular expressions instantly with this free online Regex Tester. Live regex matching, pattern testing, and quick debugging for developers and text workflows.",
-
+    "Test JavaScript regular expressions against sample text with selectable flags, match positions, capture groups, and highlighted results.",
   keywords: [
     "regex tester",
+    "JavaScript regex tester",
     "regular expression tester",
-    "regex checker",
-    "regex validator",
-    "test regex online",
-    "regex pattern matcher",
-    "regex debug tool",
-    "developer utilities",
+    "regex flags",
+    "regex capture groups",
+    "regex match positions",
   ],
-
   alternates: {
     canonical: "https://yoryantra.com/tools/regex-tester",
   },
-
   openGraph: {
-    title: "Regex Tester Online Free | Yoryantra",
-
+    title: "Regex Tester for JavaScript Patterns | Yoryantra",
     description:
-      "Free online Regex Tester for live regular expression matching and debugging.",
-
+      "Test JavaScript regular expressions with selectable flags, capture groups, match indexes, and highlighted text.",
     url: "https://yoryantra.com/tools/regex-tester",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Regex Tester Online Free | Yoryantra",
-
+    title: "Regex Tester for JavaScript Patterns | Yoryantra",
     description:
-      "Quickly test and debug regular expressions with this free online regex utility.",
+      "Test JavaScript regex patterns and inspect flags, capture groups, match indexes, and highlighted results.",
   },
 };
 

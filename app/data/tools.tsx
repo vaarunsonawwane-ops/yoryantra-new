@@ -36,14 +36,14 @@ export const tools = [
 
   {
     title: "Regex Tester",
-    description: "Test and debug regular expressions online.",
+    description: "Test JavaScript regex patterns with selectable flags, capture groups, match indexes, and highlighted results.",
     href: "/tools/regex-tester",
 	category: "Developer Tools",
   },
 
   {
     title: "Timestamp Converter",
-    description: "Convert Unix timestamps into readable dates.",
+    description: "Convert Unix seconds or milliseconds into UTC, ISO 8601, and browser-local time without guessing units.",
     href: "/tools/timestamp-converter",
 	category: "Developer Tools",
   },
@@ -64,7 +64,7 @@ export const tools = [
 
   {
     title: "Word Counter",
-    description: "Count words, characters, sentences, and reading time.",
+    description: "Count words, grapheme clusters, sentences, and reading time using locale-sensitive browser text segmentation.",
     href: "/tools/word-counter",
 	category: "Developer Tools",
   },
