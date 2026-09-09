@@ -80,31 +80,37 @@ export default function ToolClient() {
       return;
     }
 
-    const next = buildResult({
-      token,
-      endpointUrl,
-      requestBody,
-      outputMode,
-      tokenType,
-      headerCase,
-      redactionMode,
-      requestMethod,
-      trimToken,
-      removeExistingBearerPrefix,
-      includeAcceptHeader,
-      includeContentTypeHeader,
-      includeRequestBody,
-      redactTokenInOutput,
-      warnWhitespace,
-      warnBearerPrefix,
-      warnJwtShape,
-      warnSensitiveSharing,
-    });
+    try {
+      const next = buildResult({
+        token,
+        endpointUrl,
+        requestBody,
+        outputMode,
+        tokenType,
+        headerCase,
+        redactionMode,
+        requestMethod,
+        trimToken,
+        removeExistingBearerPrefix,
+        includeAcceptHeader,
+        includeContentTypeHeader,
+        includeRequestBody,
+        redactTokenInOutput,
+        warnWhitespace,
+        warnBearerPrefix,
+        warnJwtShape,
+        warnSensitiveSharing,
+      });
 
-    setResult(next);
-    setOutput(next.output);
-    setError("");
-    setCopied(false);
+      setResult(next);
+      setOutput(next.output);
+      setError("");
+      setCopied(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to build the Authorization header.");
+      setResult(null);
+      setOutput("");
+    }
   };
 
   const copyOutput = async () => {
@@ -163,10 +169,10 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Bearer Token Header Generator"
-      description="Generate Bearer token Authorization headers, cURL commands, fetch snippets, HTTP request examples, and safe redacted reports locally in your browser."
+      description="Format Bearer Authorization headers and request snippets without treating the token as verified."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="self-start rounded-2xl border border-gray-200 bg-white p-5">
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-900">Token or Token Placeholder</label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
@@ -213,7 +219,7 @@ export default function ToolClient() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="self-start rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">Header Settings</h3>
 
           <div className="mt-4 space-y-4">
@@ -313,7 +319,7 @@ export default function ToolClient() {
           <Toggle checked={warnSensitiveSharing} onChange={setWarnSensitiveSharing} label="Warn about sharing real tokens" />
         </div>
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          This tool only formats pasted text locally. It does not verify tokens, call APIs, decode secrets, or send token values anywhere.
+          Formatting happens in the browser. No API request is sent, and token validity, expiry, scope, or authorization is not verified.
         </p>
       </div>
 
@@ -321,21 +327,21 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={generateHeader}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="min-h-[44px] whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Generate Header
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
         >
           Reset
         </button>
@@ -355,7 +361,7 @@ export default function ToolClient() {
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
@@ -380,10 +386,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((note) => (
-              <div key={`${note.title}-${note.message}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{note.message}</p>
-              </div>
+              <IssueCard key={`${note.title}-${note.message}`} issue={note} />
             ))}
           </div>
         </div>
@@ -421,12 +424,15 @@ export default function ToolClient() {
             Many APIs use Bearer tokens in the HTTP Authorization header. The final header usually looks like <code className="rounded bg-gray-100 px-1 py-0.5">Authorization: Bearer YOUR_TOKEN</code>. It is simple, but small formatting mistakes can cause authentication failures.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool helps format Bearer token headers and request snippets for documentation, API testing, and debugging. It can trim accidental whitespace, remove duplicate Authorization or Bearer prefixes, warn about plain HTTP endpoints, redact token values, and generate cURL, fetch, raw HTTP, JSON, or Markdown output.
+            <a href="https://www.rfc-editor.org/rfc/rfc6750#section-2.1" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 6750 section 2.1</a> defines the Bearer scheme for the HTTP Authorization header. Its credential syntax does not permit embedded whitespace, and bearer credentials need protection from disclosure in storage and transport.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The formatter rebuilds the header from the credential you enter, can remove a pasted Authorization or Bearer prefix, and can redact the credential before producing cURL, fetch, raw HTTP, JSON, or Markdown output. It never establishes whether the credential is accepted by an API.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This Bearer Token Header Generator Helps</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Where Bearer Header Formatting Goes Wrong</h2>
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <p>Creating Authorization headers for API examples, documentation, issue reports, or test notes.</p>
             <p className="mt-2">Generating cURL or fetch snippets with a Bearer token placeholder instead of typing headers manually.</p>
@@ -436,7 +442,7 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the Bearer Token Header Generator</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Building the Header and Request Snippets</h2>
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Paste a token or token placeholder into the input box.</li>
             <li>Choose the output format: header, cURL, fetch, raw HTTP, JSON, Markdown, or checklist.</li>
@@ -465,16 +471,16 @@ curl -X GET "https://api.example.com/v1/profile" \\
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Bearer Header Questions</h2>
           <div className="mt-5 space-y-6">
-            <Faq title="What does this Bearer token header generator do?">
-              It formats a pasted token into an Authorization header and can generate cURL, fetch, raw HTTP, JSON, Markdown, or checklist output.
+            <Faq title="What output can I build from a Bearer credential?">
+              You can build the Authorization header itself or place it into cURL, fetch, raw HTTP, JSON, Markdown, or checklist output.
             </Faq>
             <Faq title="Does this verify whether my token is valid?">
               No. It only formats and inspects text locally. It does not call APIs or verify token signatures, expiry, permissions, or scopes.
             </Faq>
             <Faq title="Should I paste real tokens into browser tools?">
-              Only use tools you trust and avoid sharing real tokens. This tool runs locally in your browser, but placeholders are safer for examples.
+              Only use browser tools you trust and avoid sharing real credentials. Formatting stays local to this page, while placeholders remain safer for examples.
             </Faq>
             <Faq title="Why remove an existing Bearer prefix?">
               If you paste “Bearer abc123” or “Authorization: Bearer abc123” and the generator adds another prefix, the result can become invalid. Removing the existing prefix prevents duplicate Authorization text.
@@ -490,7 +496,9 @@ curl -X GET "https://api.example.com/v1/profile" \\
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/bearer-token-header-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/bearer-token-header-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -518,6 +526,19 @@ function buildResult(options: {
   warnSensitiveSharing: boolean;
 }): Result {
   const preparedToken = prepareToken(options.token, options);
+
+  if (!preparedToken.cleanedToken) {
+    throw new Error("The token is empty after removing the pasted Authorization or Bearer prefix.");
+  }
+
+  if (/[\u0000-\u001F\u007F]/.test(preparedToken.cleanedToken)) {
+    throw new Error("Bearer credentials cannot contain control characters or line breaks. Remove them before generating a header.");
+  }
+
+  if (["curl", "fetch", "http"].includes(options.outputMode) && options.endpointUrl.trim()) {
+    validateEndpointUrl(options.endpointUrl);
+  }
+
   const tokenInfo = inspectToken(preparedToken.cleanedToken, options.redactionMode, options.token);
   const tokenForOutput = options.redactTokenInOutput ? tokenInfo.redactedToken : preparedToken.cleanedToken;
   const authValue = `${labelForToken(options.tokenType)} ${tokenForOutput}`;
@@ -558,14 +579,22 @@ function prepareToken(token: string, options: { trimToken: boolean; removeExisti
 
 function inspectToken(token: string, redactionMode: RedactionMode, originalToken: string): TokenInfo {
   const parts = token.split(".");
-  const looksJwt = parts.length === 3 && parts.every(Boolean);
+  const jwsLike = parts.length === 3 && Boolean(parts[0]) && Boolean(parts[1]);
+  const jweLike = parts.length === 5 && parts.every(Boolean);
+  const looksJwt = jwsLike || jweLike;
   const hasWhitespace = /\s/.test(token);
   const hasControlCharacters = /[\u0000-\u001F\u007F]/.test(token);
   const hasBearerPrefix = /^(authorization\s*:\s*)?bearer\s+/i.test(originalToken.trim());
 
   return {
     tokenLength: token.length,
-    tokenShape: looksJwt ? "JWT-like token" : token.length > 40 ? "long opaque token" : "short token / placeholder",
+    tokenShape: jweLike
+      ? "compact JWE-like token"
+      : jwsLike
+        ? "compact JWS/JWT-like token"
+        : token.length > 40
+          ? "long opaque token"
+          : "short token / placeholder",
     looksJwt,
     jwtParts: parts.length,
     hasWhitespace,
@@ -630,11 +659,12 @@ function buildIssues(options: {
     });
   }
 
-  if (tokenInfo.hasControlCharacters) {
+
+  if (!tokenInfo.hasWhitespace && !isBearerCredentialShape(preparedToken.cleanedToken)) {
     issues.push({
       severity: "warning",
-      title: "Control characters detected",
-      message: "The token contains control characters or line breaks. Clean the value before using it in an Authorization header.",
+      title: "Credential contains characters outside RFC 6750 syntax",
+      message: "Bearer credentials use letters, digits, -, ., _, ~, +, /, with optional trailing = padding. A resource server may reject other characters.",
     });
   }
 
@@ -658,7 +688,7 @@ function buildIssues(options: {
     issues.push({
       severity: "warning",
       title: "Token does not look like a JWT",
-      message: "JWTs usually have three dot-separated parts. This token may be opaque or incomplete.",
+      message: "Compact signed JWT/JWS values normally have three parts, while compact JWE values have five. This credential does not match either shape.",
     });
   }
 
@@ -670,19 +700,28 @@ function buildIssues(options: {
     });
   }
 
-  if ((options.requestMethod === "GET" || options.requestMethod === "DELETE") && options.includeRequestBody) {
+  if (options.requestMethod === "GET" && options.includeRequestBody) {
+    issues.push({
+      severity: "warning",
+      title: "GET body is not emitted in fetch output",
+      message: "Fetch does not allow a request body with GET. cURL or raw HTTP output may still show the body you entered, but GET content has no generally defined semantics.",
+    });
+  } else if (options.requestMethod === "DELETE" && options.includeRequestBody) {
     issues.push({
       severity: "info",
-      title: "Request body with method",
-      message: `${options.requestMethod} requests usually do not need a body. Check the API documentation before sending one.`,
+      title: "DELETE request body needs API-specific semantics",
+      message: "A DELETE request can carry content, but its meaning is defined by the target API rather than by a general HTTP rule.",
     });
   }
 
   if (options.warnSensitiveSharing && !options.redactTokenInOutput) {
+    const looksPlaceholder = /^(?:YOUR[_ -]?TOKEN|TOKEN|BEARER[_ -]?TOKEN|REDACTED[_ -]?TOKEN)$/i.test(preparedToken.cleanedToken);
     issues.push({
-      severity: "high",
-      title: "Token is visible in output",
-      message: "Real tokens should not be shared in screenshots, public issues, or chat. Enable redaction before sharing.",
+      severity: looksPlaceholder ? "info" : "high",
+      title: looksPlaceholder ? "Placeholder remains visible" : "Credential is visible in output",
+      message: looksPlaceholder
+        ? "The output contains a placeholder rather than an obvious live credential. Replace it carefully in private development environments."
+        : "Treat the credential as sensitive. Enable redaction before sharing screenshots, public issues, logs, or chat messages.",
     });
   }
 
@@ -690,7 +729,7 @@ function buildIssues(options: {
     issues.push({
       severity: "info",
       title: "Short token value",
-      message: "This looks like a placeholder or very short token. That is fine for documentation examples.",
+      message: "The credential looks like a placeholder or unusually short value, which may be intentional in documentation examples.",
     });
   }
 
@@ -791,7 +830,7 @@ function buildFetch(url: string, method: RequestMethod, headers: Array<{ name: s
     `  headers: ${JSON.stringify(headerObject, null, 2).replace(/\n/g, "\n  ")},`,
   ];
 
-  if (body.trim()) {
+  if (body.trim() && method !== "GET") {
     lines.push(`  body: ${JSON.stringify(body)},`);
   }
 
@@ -802,7 +841,8 @@ function buildFetch(url: string, method: RequestMethod, headers: Array<{ name: s
 function buildHttpRequest(url: string, method: RequestMethod, headers: Array<{ name: string; value: string }>, body: string) {
   const endpoint = url.trim() || "https://api.example.com/v1/resource";
   const path = safePath(endpoint);
-  const lines = [`${method} ${path} HTTP/1.1`];
+  const host = safeHost(endpoint);
+  const lines = [`${method} ${path} HTTP/1.1`, `Host: ${host}`];
 
   headers.forEach((header) => lines.push(`${header.name}: ${header.value}`));
 
@@ -820,6 +860,29 @@ function safePath(url: string) {
   } catch {
     return url.startsWith("/") ? url : "/";
   }
+}
+
+function safeHost(url: string) {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "api.example.com";
+  }
+}
+
+function validateEndpointUrl(value: string) {
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      throw new Error();
+    }
+  } catch {
+    throw new Error("Enter an absolute http:// or https:// endpoint URL for request snippets.");
+  }
+}
+
+function isBearerCredentialShape(value: string) {
+  return /^[A-Za-z0-9._~+\/-]+={0,}$/.test(value);
 }
 
 function shellQuote(value: string) {
@@ -846,6 +909,21 @@ function getNotes(result: Result): Issue[] {
   }
 
   return notes;
+}
+
+function IssueCard({ issue }: { issue: Issue }) {
+  const tone = issue.severity === "high"
+    ? "border-red-200 bg-red-50 text-red-800"
+    : issue.severity === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : "border-gray-200 bg-gray-50 text-gray-700";
+
+  return (
+    <div className={`self-start rounded-xl border p-4 ${tone}`}>
+      <p className="text-sm font-semibold">{issue.title}</p>
+      <p className="mt-1 text-sm leading-6">{issue.message}</p>
+    </div>
+  );
 }
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {

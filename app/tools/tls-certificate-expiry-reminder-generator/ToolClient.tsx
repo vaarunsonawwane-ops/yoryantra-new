@@ -173,10 +173,10 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="TLS Certificate Expiry Reminder Generator"
-      description="Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans for domains, environments, issuers, and certificate owners."
+      description="Plan certificate renewal dates and checks from a known TLS certificate expiry date."
     >
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="h-full rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="self-start rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">
             Certificate Details
           </h3>
@@ -223,7 +223,7 @@ export default function ToolClient() {
           </div>
         </div>
 
-        <div className="h-full rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="self-start rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">
             Renewal Context
           </h3>
@@ -302,24 +302,24 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          This tool does not scan live certificates or renew anything. Enter the expiry date from your certificate dashboard, hosting provider, browser certificate view, OpenSSL output, or certificate monitoring system.
+          Enter the expiry date from a certificate dashboard, browser certificate view, OpenSSL output, or monitoring system. No live certificate is scanned and no renewal action is performed.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generateReminder} className="yoryantra-btn">
+        <button onClick={generateReminder} className="yoryantra-btn min-h-[44px] whitespace-nowrap">
           Generate Reminder Plan
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-[44px] whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -378,33 +378,25 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Certificate reminder findings
-          </h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-900">Certificate reminder findings</h3>
+          {result.issues.map((issue, index) => (
+            <IssueCard key={`${issue.title}-${index}`} issue={issue} />
+          ))}
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">
+        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">
             Renewal guidance
           </h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -416,7 +408,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -427,8 +419,8 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This generator does not renew certificates or verify live certificate status. Use it as a planning helper with your actual certificate monitoring and renewal workflow.
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+        The entered date is used for day-level planning only. It does not prove the certificate currently served by a host, its chain, hostname coverage, revocation state, or exact notAfter timestamp.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
@@ -442,13 +434,13 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This TLS Certificate Expiry Reminder Generator creates reminder dates, renewal checklists, calendar notes, and action plans from a domain, expiry date, owner, environment, issuer, and renewal method. It is a planning helper, not a live certificate scanner.
+            Reminder dates are calculated from the date you enter, then combined with renewal ownership, environment, and verification checks. For X.509 certificates, <a href="https://www.rfc-editor.org/rfc/rfc5280#section-4.1.2.5" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 5280 section 4.1.2.5</a> defines the certificate validity interval using notBefore and notAfter; the certificate is valid through the stated notAfter instant, subject to the rest of path validation.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Using the TLS Certificate Expiry Reminder Generator
+            From Expiry Date to Renewal Plan
           </h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
@@ -506,20 +498,20 @@ Post-renewal: verify browser, chain, CDN, load balancer, and monitoring checks`}
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Certificate Renewal Questions
           </h2>
 
           <div className="mt-5 space-y-6">
-            <Faq title="What does a TLS certificate expiry reminder generator do?">
-              It creates reminder dates and renewal checklist notes based on a certificate expiry date.
+            <Faq title="What does the entered expiry date control?">
+              It anchors the reminder schedule and planning notes. It is not fetched from the live certificate and does not verify the certificate currently served.
             </Faq>
 
-            <Faq title="Does this tool scan my live certificate?">
+            <Faq title="Does the page scan my live certificate?">
               No. It uses the expiry date you enter and generates reminders locally in your browser. Use your hosting provider, certificate manager, browser certificate view, OpenSSL, or monitoring tool to confirm the live expiry date.
             </Faq>
 
             <Faq title="How early should I renew a TLS certificate?">
-              Many teams start checking 30 to 60 days before expiry, with stronger alerts in the final two weeks.
+              The right window depends on your renewal process and certificate source. Production services often benefit from an early reminder such as 30 or 60 days, followed by tighter checks closer to expiry.
             </Faq>
 
             <Faq title="Do automatic renewals still need reminders?">
@@ -537,10 +529,27 @@ Post-renewal: verify browser, chain, CDN, load balancer, and monitoring checks`}
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/tls-certificate-expiry-reminder-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/tls-certificate-expiry-reminder-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function IssueCard({ issue }: { issue: Issue }) {
+  const tone = issue.severity === "high"
+    ? "border-red-200 bg-red-50 text-red-800"
+    : issue.severity === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : "border-gray-200 bg-gray-50 text-gray-700";
+
+  return (
+    <div className={`self-start rounded-xl border p-4 ${tone}`}>
+      <p className="text-sm font-semibold">{issue.title}</p>
+      <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
+    </div>
   );
 }
 
@@ -1022,18 +1031,21 @@ function differenceInDays(start: Date, end: Date) {
 }
 
 function parseAlertDays(value: string) {
-  const numbers = value
+  const parts = value
     .split(/[,\n]/)
-    .map((item) => Number(item.trim()))
-    .filter((item) => Number.isFinite(item) && item >= 0 && item <= 398);
+    .map((item) => item.trim())
+    .filter(Boolean);
 
-  const unique = Array.from(new Set(numbers));
-
-  if (unique.length === 0) {
+  if (parts.length === 0) {
     throw new Error("Enter at least one reminder day, such as 30 or 7.");
   }
 
-  return unique.sort((a, b) => b - a);
+  const numbers = parts.map((item) => Number(item));
+  if (numbers.some((item) => !Number.isInteger(item) || item < 0 || item > 3650)) {
+    throw new Error("Reminder days must be whole numbers from 0 to 3650.");
+  }
+
+  return Array.from(new Set(numbers)).sort((a, b) => b - a);
 }
 
 function buildReminders(options: {
@@ -1107,7 +1119,7 @@ function buildChecklist(options: {
   }
 
   if (options.includePostRenewalChecks) {
-    checklist.push("After renewal, verify browser lock icon, hostname match, certificate chain, SAN names, issuer, expiry date, and HTTPS redirect behavior.");
+    checklist.push("After renewal, verify browser certificate details, hostname match, certificate chain, SAN names, issuer, expiry date, and HTTPS redirect behavior.");
   }
 
   if (options.includeMonitoringChecks) {
@@ -1132,6 +1144,12 @@ function buildIssues(options: {
   warnShortWindow: boolean;
 }) {
   const issues: Issue[] = [];
+
+  issues.push({
+    severity: "info",
+    title: "Date-level planning",
+    message: "The schedule uses the entered calendar date, not the certificate's exact notAfter time or the certificate currently served by the endpoint.",
+  });
 
   if (options.urgency === "expired") {
     issues.push({
@@ -1173,7 +1191,7 @@ function buildIssues(options: {
     issues.push({
       severity: "info",
       title: "Add earlier production reminders",
-      message: "Production certificates are safer with reminders at least 30 to 60 days before expiry.",
+      message: "For production services, an earlier reminder such as 30 or 60 days can leave more time for validation, deployment, and rollback work.",
     });
   }
 
@@ -1190,14 +1208,6 @@ function buildIssues(options: {
       severity: "warning",
       title: "Expiry-day reminder included",
       message: "A reminder on the expiry day is a last safety net, not a renewal plan. Keep earlier reminders too.",
-    });
-  }
-
-  if (issues.length === 0) {
-    issues.push({
-      severity: "info",
-      title: "Reminder plan looks healthy",
-      message: "The expiry date and reminder schedule leave enough room for normal renewal work.",
     });
   }
 

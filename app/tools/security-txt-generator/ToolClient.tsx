@@ -34,14 +34,14 @@ export default function ToolClient() {
   const [acknowledgmentsUrl, setAcknowledgmentsUrl] = useState("");
   const [hiringUrl, setHiringUrl] = useState("");
   const [preferredLanguages, setPreferredLanguages] = useState("en");
-  const [expiryPreset, setExpiryPreset] = useState<ExpiryPreset>("365");
+  const [expiryPreset, setExpiryPreset] = useState<ExpiryPreset>("180");
   const [customExpiry, setCustomExpiry] = useState("");
   const [contactType, setContactType] = useState<ContactType>("email");
   const [outputMode, setOutputMode] = useState<OutputMode>("securityTxt");
   const [includeCanonical, setIncludeCanonical] = useState(true);
   const [includePolicy, setIncludePolicy] = useState(true);
   const [includePreferredLanguages, setIncludePreferredLanguages] = useState(true);
-  const [includeCommentHeader, setIncludeCommentHeader] = useState(true);
+  const [includeCommentHeader, setIncludeCommentHeader] = useState(false);
   const [warnMissingPolicy, setWarnMissingPolicy] = useState(true);
   const [result, setResult] = useState<Result | null>(null);
   const [output, setOutput] = useState("");
@@ -131,14 +131,14 @@ export default function ToolClient() {
     setAcknowledgmentsUrl("https://example.com/security/thanks");
     setHiringUrl("");
     setPreferredLanguages("en, hi");
-    setExpiryPreset("365");
+    setExpiryPreset("180");
     setCustomExpiry("");
     setContactType("both");
     setOutputMode("securityTxt");
     setIncludeCanonical(true);
     setIncludePolicy(true);
     setIncludePreferredLanguages(true);
-    setIncludeCommentHeader(true);
+    setIncludeCommentHeader(false);
     setWarnMissingPolicy(true);
     clearResult();
   };
@@ -152,14 +152,14 @@ export default function ToolClient() {
     setAcknowledgmentsUrl("");
     setHiringUrl("");
     setPreferredLanguages("en");
-    setExpiryPreset("365");
+    setExpiryPreset("180");
     setCustomExpiry("");
     setContactType("email");
     setOutputMode("securityTxt");
     setIncludeCanonical(true);
     setIncludePolicy(true);
     setIncludePreferredLanguages(true);
-    setIncludeCommentHeader(true);
+    setIncludeCommentHeader(false);
     setWarnMissingPolicy(true);
     clearResult();
   };
@@ -167,10 +167,10 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Security.txt Generator"
-      description="Generate a security.txt file for vulnerability disclosure. Create Contact, Expires, Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring fields."
+      description="Build RFC 9116 security.txt content with required contacts, expiry, and optional disclosure fields."
     >
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="self-start rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">
             Website and Contact
           </h3>
@@ -226,7 +226,7 @@ export default function ToolClient() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="self-start rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">
             Disclosure Details
           </h3>
@@ -290,7 +290,7 @@ export default function ToolClient() {
               { label: "30 days", value: "30" },
               { label: "90 days", value: "90" },
               { label: "180 days", value: "180" },
-              { label: "365 days", value: "365" },
+              { label: "365 days (review RFC guidance)", value: "365" },
               { label: "Custom ISO date", value: "custom" },
             ]}
           />
@@ -326,13 +326,19 @@ export default function ToolClient() {
             }}
             options={[
               { label: "security.txt", value: "securityTxt" },
-              { label: "Signed template", value: "signedTemplate" },
+              { label: "OpenPGP signing input", value: "signedTemplate" },
               { label: "JSON", value: "json" },
               { label: "Markdown notes", value: "markdown" },
               { label: "Nginx location", value: "nginx" },
               { label: "Apache rewrite note", value: "apache" },
             ]}
           />
+
+          {outputMode === "signedTemplate" && (
+            <div className="md:col-span-2 self-start rounded-xl border border-gray-200 bg-white p-4 text-sm leading-relaxed text-gray-600">
+              Signing input returns the exact unsigned security.txt content. Create the RFC 9116-recommended OpenPGP cleartext signature with your own signing key and trusted OpenPGP software.
+            </div>
+          )}
 
           <div className="md:col-span-2 space-y-3">
             <CheckboxRow checked={includeCanonical} label="Include Canonical field" onChange={(checked) => { setIncludeCanonical(checked); clearResult(); }} />
@@ -349,19 +355,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generateSecurityTxt} className="yoryantra-btn">
+        <button onClick={generateSecurityTxt} className="yoryantra-btn min-h-[44px] whitespace-nowrap">
           Generate Security.txt
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn min-h-[44px] whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -375,36 +381,30 @@ export default function ToolClient() {
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Fields" value={result.fieldCount.toLocaleString()} />
-          <SummaryCard label="Required" value={result.requiredFieldCount.toLocaleString()} />
+          <SummaryCard label="Contact + Expires lines" value={result.requiredFieldCount.toLocaleString()} />
           <SummaryCard label="Expires" value={result.expiryDate} />
           <SummaryCard label="Findings" value={result.issues.length.toLocaleString()} />
         </div>
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Security.txt findings</h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-900">Security.txt findings</h3>
+          {result.issues.map((issue, index) => (
+            <IssueCard key={`${issue.title}-${index}`} issue={issue} />
+          ))}
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Publishing guidance</h3>
+        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Publishing guidance</h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -416,7 +416,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -427,7 +427,7 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
         Security.txt helps researchers contact you, but it is not a security control by itself. Make sure the contact inbox or form is monitored.
       </div>
 
@@ -440,12 +440,12 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Security.txt Generator creates a clean file for <span className="font-mono">/.well-known/security.txt</span> with common fields such as Contact, Expires, Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring.
+            The generated file follows the field model in <a href="https://www.rfc-editor.org/rfc/rfc9116" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 9116</a>: at least one Contact field, exactly one Expires field, and optional fields such as Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Security.txt Generator</h2>
+          <h2 className="text-xl font-semibold text-gray-900">From Domain to the Well-Known File</h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Enter your domain or website URL.</li>
@@ -496,7 +496,7 @@ Preferred-Languages: en`}
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Security.txt Questions</h2>
 
           <div className="mt-5 space-y-6">
             <Faq title="What is security.txt?">
@@ -526,7 +526,9 @@ Preferred-Languages: en`}
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/security-txt-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/security-txt-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -546,6 +548,21 @@ function InputField({ label, value, onChange, placeholder }: { label: string; va
         placeholder={placeholder}
         className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
       />
+    </div>
+  );
+}
+
+function IssueCard({ issue }: { issue: Issue }) {
+  const tone = issue.severity === "high"
+    ? "border-red-200 bg-red-50 text-red-800"
+    : issue.severity === "warning"
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : "border-gray-200 bg-gray-50 text-gray-700";
+
+  return (
+    <div className={`self-start rounded-xl border p-4 ${tone}`}>
+      <p className="text-sm font-semibold">{issue.title}</p>
+      <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
     </div>
   );
 }
@@ -758,6 +775,7 @@ function buildIssues(options: {
     });
   }
 
+
   for (const [label, value] of [
     ["Acknowledgments", options.acknowledgmentsUrl],
     ["Hiring", options.hiringUrl],
@@ -771,11 +789,11 @@ function buildIssues(options: {
     }
   }
 
-  if (options.preferredLanguages && !/^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})?(,\s*[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})?)*$/.test(options.preferredLanguages)) {
+  if (options.preferredLanguages && !/^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*(?:,\s*[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*)*$/.test(options.preferredLanguages)) {
     issues.push({
       severity: "warning",
-      title: "Preferred languages should use language tags",
-      message: "Use RFC 5646-style language tags such as en, hi, en-US, or en, es, fr.",
+      title: "Preferred-Languages needs language tags",
+      message: "Enter comma-separated language tags such as en, hi, en-US, or zh-Hant-TW. This is a structural check, not a complete RFC 5646 registry validation.",
     });
   }
 
@@ -837,8 +855,8 @@ function getExpiryDate(preset: ExpiryPreset, customExpiry: string) {
       return `${trimmed}T00:00:00Z`;
     }
 
-    if (!Number.isFinite(Date.parse(trimmed))) {
-      throw new Error("Please enter a valid RFC3339 expiry date, for example 2027-06-01T00:00:00Z.");
+    if (!isRfc3339DateTime(trimmed)) {
+      throw new Error("Please enter a valid RFC3339 expiry date-time, for example 2027-06-01T00:00:00Z.");
     }
 
     return trimmed;
@@ -851,15 +869,34 @@ function getExpiryDate(preset: ExpiryPreset, customExpiry: string) {
   return date.toISOString().replace(".000Z", "Z");
 }
 
+function isRfc3339DateTime(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i);
+  if (!match || !Number.isFinite(Date.parse(value))) return false;
+
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+
+  if (month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59) return false;
+  const maxDay = new Date(Date.UTC(Number(match[1]), month, 0)).getUTCDate();
+  return day >= 1 && day <= maxDay;
+}
+
 function normalizeSiteUrl(value: string) {
   const trimmed = value.trim();
-  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const hasScheme = /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(trimmed);
+  const withProtocol = hasScheme ? trimmed : `https://${trimmed}`;
 
   try {
     const url = new URL(withProtocol);
-    return `${url.protocol}//${url.hostname}${url.port ? `:${url.port}` : ""}`.replace(/\/$/, "");
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      throw new Error();
+    }
+    return `https://${url.hostname}${url.port ? `:${url.port}` : ""}`;
   } catch {
-    throw new Error("Please enter a valid domain or website URL.");
+    throw new Error("Please enter a valid website domain or http:// or https:// URL.");
   }
 }
 
@@ -876,7 +913,14 @@ function normalizeAbsoluteUrl(value: string, siteUrl: string) {
 }
 
 function normalizeSecurityTxtUri(value: string, siteUrl: string) {
-  if (/^(dns|openpgp4fpr):/i.test(value)) {
+  if (/^openpgp4fpr:/i.test(value)) {
+    if (!/^openpgp4fpr:[A-Fa-f0-9]{40}$/.test(value)) {
+      throw new Error("openpgp4fpr must contain a 40-hex-digit OpenPGP version 4 fingerprint.");
+    }
+    return value;
+  }
+
+  if (/^dns:/i.test(value)) {
     return value;
   }
 
@@ -892,7 +936,7 @@ function normalizePreferredLanguages(value: string) {
 }
 
 function encodeMailtoAddress(value: string) {
-  return value.trim().replace(/\s+/g, "");
+  return value.trim();
 }
 
 function isHttpWebUrl(value: string) {
@@ -925,17 +969,7 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
   }
 
   if (mode === "signedTemplate") {
-    return [
-      "-----BEGIN PGP SIGNED MESSAGE-----",
-      "Hash: SHA256",
-      "",
-      result.securityTxt.trim(),
-      "-----BEGIN PGP SIGNATURE-----",
-      "",
-      "[Add detached or cleartext signature here if your process requires signed security.txt]",
-      "-----END PGP SIGNATURE-----",
-      "",
-    ].join("\n");
+    return result.securityTxt;
   }
 
   if (mode === "nginx") {

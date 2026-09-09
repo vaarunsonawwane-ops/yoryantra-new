@@ -1273,7 +1273,7 @@ export const tools = [
 {
   title: "Security.txt Generator",
   description:
-    "Generate /.well-known/security.txt content with Contact, Expires, Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring fields.",
+    "Build RFC 9116 security.txt content with required Contact and Expires fields plus optional Policy, Encryption, and Acknowledgments entries.",
   href: "/tools/security-txt-generator",
   category: "Security Tools",
 },
@@ -1281,7 +1281,7 @@ export const tools = [
 {
   title: "TLS Certificate Expiry Reminder Generator",
   description:
-    "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans for domains and teams.",
+    "Plan renewal from a known TLS certificate expiry date with reminder dates, checklists, and calendar notes.",
   href: "/tools/tls-certificate-expiry-reminder-generator",
   category: "Security Tools",
 },
@@ -1507,7 +1507,7 @@ export const tools = [
 
 {
   title: "Bearer Token Header Generator",
-  description: "Generate Bearer token Authorization headers and safe API request snippets.",
+  description: "Format Bearer Authorization headers and request snippets with optional redaction, without verifying token validity or authorization.",
   href: "/tools/bearer-token-header-generator",
   category: "Security Tools",
 },

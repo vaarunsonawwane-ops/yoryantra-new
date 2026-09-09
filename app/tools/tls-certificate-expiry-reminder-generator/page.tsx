@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "TLS Certificate Expiry Reminder Generator | SSL Renewal Checklist | Yoryantra",
+  title: "TLS Certificate Expiry Reminder Generator | Renewal Planning | Yoryantra",
   description:
-    "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans from a known expiry date.",
+    "Plan TLS certificate renewal from a known expiry date with reminder dates, ownership notes, validation checks, and calendar-ready output.",
   keywords: [
     "TLS Certificate Expiry Reminder Generator",
     "SSL certificate expiry reminder",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/tls-certificate-expiry-reminder-generator",
   },
   openGraph: {
-    title: "TLS Certificate Expiry Reminder Generator | SSL Renewal Checklist | Yoryantra",
+    title: "TLS Certificate Expiry Reminder Generator | Renewal Planning | Yoryantra",
     description:
-      "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans from a known expiry date.",
+      "Plan TLS certificate renewal from a known expiry date with reminder dates, ownership notes, validation checks, and calendar-ready output.",
     url: "https://yoryantra.com/tools/tls-certificate-expiry-reminder-generator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "TLS Certificate Expiry Reminder Generator | SSL Renewal Checklist | Yoryantra",
+    title: "TLS Certificate Expiry Reminder Generator | Renewal Planning | Yoryantra",
     description:
-      "Generate TLS certificate expiry reminders, SSL renewal checklists, calendar notes, and renewal action plans from a known expiry date.",
+      "Plan TLS certificate renewal from a known expiry date with reminder dates, ownership notes, validation checks, and calendar-ready output.",
   },
 };
 
