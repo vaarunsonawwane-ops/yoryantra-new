@@ -4,18 +4,15 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "JavaScript Fetch to cURL Converter | Yoryantra",
   description:
-    "Convert common JavaScript fetch() calls into reviewable cURL commands with method, URL, headers, body handling, and masked sensitive values.",
+    "Convert supported literal fetch() requests into POSIX-shell cURL commands with safe quoting, redirect handling, and optional secret masking.",
   keywords: [
-    "Fetch to cURL converter",
-    "convert fetch to curl",
+    "fetch to curl converter",
     "JavaScript fetch to curl",
-    "fetch request to curl",
-    "fetch converter",
-    "curl generator",
-    "API debugging tool",
-    "HTTP tools",
-    "developer tools",
-    "JavaScript tools",
+    "fetch request curl",
+    "RequestInit to curl",
+    "curl command generator",
+    "API request debugging",
+    "HTTP developer tools",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/fetch-to-curl-converter",
@@ -23,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "JavaScript Fetch to cURL Converter | Yoryantra",
     description:
-      "Convert common JavaScript fetch() calls into reviewable cURL commands with method, URL, headers, body handling, and masked sensitive values.",
+      "Convert supported literal fetch() requests into POSIX-shell cURL commands with safe quoting and explicit browser-to-terminal boundaries.",
     url: "https://yoryantra.com/tools/fetch-to-curl-converter",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "JavaScript Fetch to cURL Converter | Yoryantra",
     description:
-      "Convert common JavaScript fetch() calls into reviewable cURL commands with method, URL, headers, body handling, and masked sensitive values.",
+      "Convert supported literal fetch() requests into POSIX-shell cURL commands without executing the source.",
   },
 };
 

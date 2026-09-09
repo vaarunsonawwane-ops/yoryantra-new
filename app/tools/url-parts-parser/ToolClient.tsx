@@ -6,11 +6,13 @@ import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "json" | "query";
-type DecodeMode = "decoded" | "raw";
+type DecodeMode = "decoded" | "serialized";
+type NoteTone = "warning" | "info";
 
 type QueryParam = {
   key: string;
   value: string;
+  raw: string;
 };
 
 type URLPart = {
@@ -19,7 +21,6 @@ type URLPart = {
 };
 
 type ParsedURL = {
-  input: string;
   href: string;
   protocol: string;
   username: string;
@@ -36,11 +37,13 @@ type ParsedURL = {
   queryParamCount: number;
   isAbsolute: boolean;
   hasCredentials: boolean;
+  sourceWasRelative: boolean;
 };
 
 type URLNote = {
   title: string;
   message: string;
+  tone: NoteTone;
 };
 
 const sampleUrl =
@@ -48,7 +51,7 @@ const sampleUrl =
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
-  const [baseUrl, setBaseUrl] = useState("https://example.com");
+  const [baseUrl, setBaseUrl] = useState("https://example.com/app/");
   const [outputMode, setOutputMode] = useState<OutputMode>("summary");
   const [decodeMode, setDecodeMode] = useState<DecodeMode>("decoded");
   const [allowRelativeUrls, setAllowRelativeUrls] = useState(true);
@@ -58,22 +61,16 @@ export default function ToolClient() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const notes = useMemo(
-    () => (parsedUrl ? getURLNotes(parsedUrl) : []),
-    [parsedUrl]
-  );
+  const notes = useMemo(() => (parsedUrl ? getURLNotes(parsedUrl) : []), [parsedUrl]);
 
   const urlParts = useMemo(() => {
-    if (!parsedUrl) {
-      return [];
-    }
-
+    if (!parsedUrl) return [];
     return getURLParts(parsedUrl, hideCredentials);
   }, [parsedUrl, hideCredentials]);
 
   const parseUrl = () => {
     if (!input.trim()) {
-      setError("Please enter a URL to parse.");
+      setError("Enter a URL or relative reference first.");
       setParsedUrl(null);
       setOutput("");
       setCopied(false);
@@ -86,10 +83,10 @@ export default function ToolClient() {
         decodeMode,
         allowRelativeUrls,
       });
-
       const nextOutput = formatParsedURL(nextParsed, {
         outputMode,
         hideCredentials,
+        decodeMode,
       });
 
       setParsedUrl(nextParsed);
@@ -105,21 +102,21 @@ export default function ToolClient() {
   };
 
   const copyOutput = async () => {
-    if (!output) {
-      return;
-    }
-
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-
-    window.setTimeout(() => {
+    if (!output) return;
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setError("");
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
       setCopied(false);
-    }, 1400);
+      setError("Copy failed. Select the parsed output and copy it manually.");
+    }
   };
 
   const loadExample = () => {
     setInput(sampleUrl);
-    setBaseUrl("https://example.com");
+    setBaseUrl("https://example.com/app/");
     setOutputMode("summary");
     setDecodeMode("decoded");
     setAllowRelativeUrls(true);
@@ -132,7 +129,7 @@ export default function ToolClient() {
 
   const resetAll = () => {
     setInput("");
-    setBaseUrl("https://example.com");
+    setBaseUrl("https://example.com/app/");
     setOutputMode("summary");
     setDecodeMode("decoded");
     setAllowRelativeUrls(true);
@@ -146,13 +143,10 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="URL Parts Parser"
-      description="Parse URLs into protocol, hostname, port, path, query parameters, hash, origin, and readable URL parts directly in your browser."
+      description="Separate absolute or relative URLs into serialized components while preserving duplicate query parameters and credential boundaries."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          URL Input
-        </label>
-
+        <label className="mb-2 block text-sm font-medium text-gray-700">URL or Relative Reference</label>
         <textarea
           value={input}
           onChange={(event) => {
@@ -163,19 +157,15 @@ export default function ToolClient() {
             setCopied(false);
           }}
           placeholder={sampleUrl}
-          className="w-full min-h-[180px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          className="min-h-[160px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Paste a full URL, API endpoint, redirect URL, tracking URL, or relative
-          URL path to break it into readable parts.
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          Browser URL parsing can normalize the serialized result. The source is not fetched or contacted.
         </p>
       </div>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Parser Options
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900">Parsing Options</h3>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <YoryantraSelect
@@ -188,23 +178,14 @@ export default function ToolClient() {
               setCopied(false);
             }}
             options={[
-              {
-                label: "Summary",
-                value: "summary",
-              },
-              {
-                label: "JSON",
-                value: "json",
-              },
-              {
-                label: "Query params",
-                value: "query",
-              },
+              { label: "Summary", value: "summary" },
+              { label: "JSON", value: "json" },
+              { label: "Query parameters", value: "query" },
             ]}
           />
 
           <YoryantraSelect
-            label="Query Values"
+            label="Query & Path Segment Values"
             value={decodeMode}
             onChange={(value) => {
               setDecodeMode(value as DecodeMode);
@@ -214,22 +195,14 @@ export default function ToolClient() {
               setCopied(false);
             }}
             options={[
-              {
-                label: "Decoded",
-                value: "decoded",
-              },
-              {
-                label: "Raw",
-                value: "raw",
-              },
+              { label: "Decoded", value: "decoded" },
+              { label: "Serialized", value: "serialized" },
             ]}
           />
-
-
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex cursor-pointer gap-3 self-start rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={allowRelativeUrls}
@@ -240,57 +213,63 @@ export default function ToolClient() {
                 setError("");
                 setCopied(false);
               }}
-              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
-
             <span>
-              <span className="block text-sm font-medium text-gray-900">
-                Allow relative URLs
-              </span>
-
+              <span className="block text-sm font-medium text-gray-900">Resolve relative references</span>
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Parse paths like /api/users by using the base URL above.
+                Use the base URL below for paths such as <span className="font-mono">../users?page=1</span> or <span className="font-mono">//cdn.example.com/a.js</span>.
               </span>
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex cursor-pointer gap-3 self-start rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={hideCredentials}
               onChange={(event) => {
                 setHideCredentials(event.target.checked);
                 setOutput("");
+                setError("");
                 setCopied(false);
               }}
-              className="mt-1 h-4 w-4 accent-[var(--light-gold)]"
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
-
             <span>
-              <span className="block text-sm font-medium text-gray-900">
-                Hide URL credentials
-              </span>
-
+              <span className="block text-sm font-medium text-gray-900">Hide URL userinfo credentials</span>
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Hide username and password values in copied output.
+                Remove username and password from copied full-URL and JSON output. Query-string secrets are not automatically removed.
               </span>
             </span>
           </label>
         </div>
+
+        {allowRelativeUrls && (
+          <div className="mt-4 max-w-2xl">
+            <label className="mb-2 block text-sm font-medium text-gray-700">Base URL for Relative References</label>
+            <input
+              value={baseUrl}
+              onChange={(event) => {
+                setBaseUrl(event.target.value);
+                setParsedUrl(null);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              placeholder="https://example.com/app/"
+              className="w-full rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            />
+            <p className="mt-2 text-sm leading-relaxed text-gray-500">
+              Must itself be an absolute URL. Relative resolution follows browser URL rules, including dot-segment removal.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={parseUrl} className="yoryantra-btn">
-          Parse URL
-        </button>
-
-        <button onClick={loadExample} className="yoryantra-btn-outline">
-          Load Example
-        </button>
-
-        <button onClick={resetAll} className="yoryantra-btn-outline">
-          Reset
-        </button>
+        <button onClick={parseUrl} className="yoryantra-btn whitespace-nowrap">Parse URL</button>
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">Load Example</button>
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">Reset</button>
       </div>
 
       {error && (
@@ -300,37 +279,23 @@ export default function ToolClient() {
       )}
 
       {parsedUrl && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Protocol" value={parsedUrl.protocol || "none"} />
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryCard label="Scheme" value={parsedUrl.protocol || "none"} />
           <SummaryCard label="Host" value={parsedUrl.host || "none"} />
-          <SummaryCard
-            label="Query Params"
-            value={parsedUrl.queryParamCount.toLocaleString()}
-          />
-          <SummaryCard
-            label="Path Segments"
-            value={parsedUrl.pathSegments.length.toLocaleString()}
-          />
+          <SummaryCard label="Query Params" value={parsedUrl.queryParamCount.toLocaleString()} />
+          <SummaryCard label="Path Segments" value={parsedUrl.pathSegments.length.toLocaleString()} />
         </div>
       )}
 
       {parsedUrl && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">
-            URL Parts
-          </h3>
-
-          <p className="mt-2 text-sm text-gray-500">
-            The URL split into the parts browsers and servers use.
+          <h3 className="text-lg font-semibold text-gray-900">Serialized URL Parts</h3>
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+            These values come from the browser URL serializer. Decoding affects the query table and individual path-segment display, not the serialized pathname itself.
           </p>
-
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {urlParts.map((part) => (
-              <DetailCard
-                key={part.label}
-                label={part.label}
-                value={part.value || "(empty)"}
-              />
+              <DetailCard key={part.label} label={part.label} value={part.value} />
             ))}
           </div>
         </div>
@@ -339,38 +304,27 @@ export default function ToolClient() {
       {parsedUrl && parsedUrl.queryParams.length > 0 && (
         <ParsedTable
           title="Query Parameters"
-          description="Query string values found after the ? character."
+          description={
+            decodeMode === "decoded"
+              ? "Decoded form-style names and values. A plus sign in the serialized query is interpreted as a space."
+              : "Serialized query pairs preserved as they appeared after browser URL parsing."
+          }
           columns={["Name", "Value"]}
-          rows={parsedUrl.queryParams.map((param) => [
-            param.key,
-            param.value,
-          ])}
+          rows={parsedUrl.queryParams.map((param) => [param.key, param.value])}
         />
       )}
 
       {parsedUrl && parsedUrl.pathSegments.length > 0 && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Path Segments
-          </h3>
-
-          <p className="mt-2 text-sm text-gray-500">
-            Path segments split by slash characters.
+          <h3 className="text-lg font-semibold text-gray-900">Path Segments</h3>
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+            Segments are split before optional percent-decoding, so an encoded slash inside one segment does not silently become a new path boundary.
           </p>
-
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {parsedUrl.pathSegments.map((segment, index) => (
-              <div
-                key={`${segment}-${index}`}
-                className="rounded-xl border border-gray-200 bg-gray-50 p-4"
-              >
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Segment {index + 1}
-                </div>
-
-                <div className="mt-1 break-words font-mono text-sm text-gray-900">
-                  {segment}
-                </div>
+              <div key={`${segment}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Segment {index + 1}</div>
+                <div className="mt-1 break-words font-mono text-sm text-gray-900">{segment}</div>
               </div>
             ))}
           </div>
@@ -378,199 +332,88 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            URL notes
-          </h3>
-
-          <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {note.title}
-                </p>
-
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {note.message}
-                </p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 space-y-3">
+          {notes.map((note) => (
+            <div
+              key={`${note.tone}-${note.title}`}
+              className={
+                note.tone === "warning"
+                  ? "self-start rounded-xl border border-amber-200 bg-amber-50 p-4"
+                  : "self-start rounded-xl border border-gray-200 bg-gray-50 p-4"
+              }
+            >
+              <p className={note.tone === "warning" ? "text-sm font-semibold text-amber-900" : "text-sm font-semibold text-gray-900"}>{note.title}</p>
+              <p className={note.tone === "warning" ? "mt-1 text-sm leading-relaxed text-amber-800" : "mt-1 text-sm leading-relaxed text-gray-600"}>{note.message}</p>
+            </div>
+          ))}
         </div>
       )}
 
       <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Parsed Output
-          </h3>
-
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">Parsed Output</h3>
           {output && (
-            <button
-              onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
-            >
+            <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
         </div>
-
-        <pre className="yoryantra-output overflow-auto text-sm min-h-[280px] whitespace-pre-wrap break-words">
+        <pre className="yoryantra-output min-h-[240px] overflow-auto whitespace-pre-wrap break-words text-sm">
           {output || "Parsed URL output will appear here."}
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        URL parsing happens directly in your browser. The URLs you enter are not
-        uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+        URL parsing stays in your browser. No DNS lookup, HTTP request, redirect follow, or server validation is performed.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Breaking a URL Into Readable Parts
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            URLs can contain many pieces: protocol, hostname, port, path, query
-            parameters, hash fragments, and sometimes credentials. When you are
-            debugging redirects, API calls, tracking links, or encoded query
-            values, it helps to see each part clearly.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This URL Parts Parser splits a URL into readable fields so you can
-            check what the browser will send and what the server will receive. It
-            is useful for API debugging, link checks, redirect reviews, and
-            query parameter cleanup.
+          <h2 className="text-2xl font-semibold text-gray-900">Browser URL parsing is more than splitting on punctuation</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A browser URL parser resolves relative references, normalizes special-scheme URLs, handles IPv6 brackets, separates userinfo from the host, removes dot segments during resolution, and serializes the result back into a canonical form. Reading those components through the platform URL API avoids many mistakes that come from a single regular expression.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Parsing a URL for Debugging
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a URL or relative path into the input box.</li>
-            <li>Choose decoded or raw query value output.</li>
-            <li>Use a base URL if you are parsing a relative path.</li>
-            <li>Review the protocol, host, path, query parameters, and hash.</li>
-            <li>Copy the parsed summary, JSON, or query parameter output.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">Relative references only make sense with a base</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A reference such as <span className="font-mono">../users?id=7</span> does not identify one absolute URL on its own. The selected base supplies the scheme, authority, and path context needed for resolution. Network-path references beginning with <span className="font-mono">//</span> inherit the base scheme but provide their own authority.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common URL Parser Use Cases
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Checking query parameters in API URLs.</li>
-            <li>Reading long tracking links without manually splitting them.</li>
-            <li>Debugging redirect URLs and hash fragments.</li>
-            <li>Checking whether a port, protocol, or hostname is correct.</li>
-            <li>Inspecting relative paths before using them in code.</li>
-            <li>Copying query parameters into notes, tickets, or API tests.</li>
-          </ul>
+          <h2 className="text-xl font-semibold text-gray-900">Serialized and decoded values answer different questions</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The serialized pathname remains percent-encoded so the displayed component does not invent new separators. Individual path segments can be decoded separately. Query decoding follows URLSearchParams form rules, where percent escapes are decoded and <span className="font-mono">+</span> represents a space. Serialized query mode keeps the browser-serialized pair text instead.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Duplicate query names are not collapsed. Each occurrence stays visible because APIs often assign meaning to repeated fields and their order.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example URL Parts
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Fragments, credentials, and secret-looking query data</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            A <span className="font-mono">#fragment</span> is a separate URI component used by the client; it is not part of the HTTP request target sent to an origin server. Username/password userinfo is shown separately and can be removed from copied full-URL output. That setting does not claim to find every secret hidden in query parameters, so token-like query names are surfaced as a caution instead of silently rewritten.
+          </p>
+        </div>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`URL:
-https://api.example.com:8443/v1/users?role=admin&active=true#details
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Standards behind the component model</h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Browser parsing and serialization follow the{" "}
+            <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer">WHATWG URL Standard</a>.
+            The broader scheme, authority, path, query, fragment, and relative-reference model is described in{" "}
+            <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc3986.html" target="_blank" rel="noreferrer">RFC 3986</a>.
+          </p>
+        </div>
 
-Parts:
-Protocol: https:
-Host: api.example.com:8443
-Path: /v1/users
-Query: role=admin&active=true
-Hash: #details`}
-            </pre>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/url-parts-parser" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Credentials Inside URLs
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Some URLs contain username and password values before the hostname.
-            That is uncommon in normal web links and can be risky to share. This
-            tool hides URL credentials by default in copied output.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            If a URL contains real credentials, tokens, session IDs, or private
-            customer data, replace those values before sharing the URL with
-            anyone else.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a URL parts parser do?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It breaks a URL into pieces such as protocol, hostname, port,
-                path, query parameters, and hash fragment.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this parse query parameters?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Query parameters are shown in a table and can also be copied
-                as query-only output.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this parse relative URLs?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Enable relative URL parsing and set a base URL to parse
-                paths like /api/users?page=1.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are my URLs uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. URL parsing happens directly in your browser, and your URLs
-                are not uploaded to a server.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/url-parts-parser" />
         </div>
       </section>
     </ToolShell>
@@ -580,13 +423,8 @@ Hash: #details`}
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {label}
-      </div>
-
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">
-        {value}
-      </div>
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
     </div>
   );
 }
@@ -594,13 +432,8 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 function DetailCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {label}
-      </div>
-
-      <div className="mt-1 break-words font-mono text-sm text-gray-900">
-        {value}
-      </div>
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="mt-1 break-words font-mono text-sm text-gray-900">{value || "(none)"}</div>
     </div>
   );
 }
@@ -619,32 +452,22 @@ function ParsedTable({
   return (
     <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
       <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-
-      <p className="mt-2 text-sm text-gray-500">{description}</p>
-
+      <p className="mt-2 text-sm leading-relaxed text-gray-500">{description}</p>
       <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
         <table className="w-full min-w-[620px] text-left text-sm">
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               {columns.map((column) => (
-                <th key={column} className="px-4 py-3 font-semibold">
-                  {column}
-                </th>
+                <th key={column} className="px-4 py-3 font-semibold">{column}</th>
               ))}
             </tr>
           </thead>
-
           <tbody className="divide-y divide-gray-100">
             {rows.map((row, rowIndex) => (
               <tr key={`${title}-${rowIndex}`}>
                 {row.map((cell, cellIndex) => (
-                  <td
-                    key={`${title}-${rowIndex}-${cellIndex}`}
-                    className="px-4 py-3 font-mono text-xs text-gray-700"
-                  >
-                    <span className="block max-w-[520px] break-words">
-                      {cell}
-                    </span>
+                  <td key={`${title}-${rowIndex}-${cellIndex}`} className="px-4 py-3 font-mono text-xs text-gray-700">
+                    <span className="block max-w-[520px] break-words">{cell}</span>
                   </td>
                 ))}
               </tr>
@@ -665,66 +488,35 @@ function parseURL(
   }
 ): ParsedURL {
   const trimmed = input.trim();
-  const isAbsolute = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed);
+  const hasScheme = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(trimmed);
+  const sourceWasRelative = !hasScheme;
 
-  if (!isAbsolute && !options.allowRelativeUrls) {
-    throw new Error("This is not an absolute URL. Enable relative URL parsing or add a protocol.");
+  if (sourceWasRelative && !options.allowRelativeUrls) {
+    throw new Error("This is a relative URL reference. Enable relative resolution or provide an absolute URL with a scheme.");
   }
 
   let parsed: URL;
-
   try {
-    parsed = isAbsolute
-      ? new URL(trimmed)
-      : new URL(trimmed, options.baseUrl || "https://example.com");
+    if (sourceWasRelative) {
+      const base = parseAbsoluteBase(options.baseUrl);
+      parsed = new URL(trimmed, base);
+    } else {
+      parsed = new URL(trimmed);
+    }
   } catch {
-    throw new Error("This URL could not be parsed. Check the protocol, slashes, and special characters.");
+    throw new Error("The URL could not be parsed. Check the scheme, host syntax, brackets, percent escapes, and relative base URL.");
   }
 
   const pathSegments = parsed.pathname
     .split("/")
-    .map((segment) =>
-      options.decodeMode === "decoded" ? safeDecode(segment) : segment
-    )
-    .filter(Boolean);
+    .filter((segment) => segment !== "")
+    .map((segment) => options.decodeMode === "decoded" ? safePercentDecode(segment) : segment);
 
-  const queryParams: QueryParam[] = [];
-
-  if (options.decodeMode === "raw") {
-    const rawSearch = parsed.search.startsWith("?")
-      ? parsed.search.slice(1)
-      : parsed.search;
-
-    rawSearch
-      .split("&")
-      .filter(Boolean)
-      .forEach((part) => {
-        const equalsIndex = part.indexOf("=");
-
-        if (equalsIndex === -1) {
-          queryParams.push({
-            key: part,
-            value: "",
-          });
-          return;
-        }
-
-        queryParams.push({
-          key: part.slice(0, equalsIndex),
-          value: part.slice(equalsIndex + 1),
-        });
-      });
-  } else {
-    parsed.searchParams.forEach((value, key) => {
-      queryParams.push({
-        key,
-        value,
-      });
-    });
-  }
+  const queryParams = options.decodeMode === "decoded"
+    ? getDecodedQueryParams(parsed)
+    : getSerializedQueryParams(parsed.search);
 
   return {
-    input: trimmed,
     href: parsed.href,
     protocol: parsed.protocol,
     username: parsed.username,
@@ -733,64 +525,68 @@ function parseURL(
     hostname: parsed.hostname,
     port: parsed.port,
     origin: parsed.origin,
-    pathname:
-      options.decodeMode === "decoded" ? safeDecode(parsed.pathname) : parsed.pathname,
+    pathname: parsed.pathname,
     pathSegments,
     search: parsed.search,
     hash: parsed.hash,
     queryParams,
     queryParamCount: queryParams.length,
-    isAbsolute,
+    isAbsolute: hasScheme,
     hasCredentials: Boolean(parsed.username || parsed.password),
+    sourceWasRelative,
   };
+}
+
+function parseAbsoluteBase(baseUrl: string) {
+  const trimmed = baseUrl.trim();
+  if (!trimmed) throw new Error("Enter an absolute base URL before resolving a relative reference.");
+  if (!/^[A-Za-z][A-Za-z0-9+.-]*:/.test(trimmed)) throw new Error("The base URL must include an absolute scheme such as https://.");
+  const base = new URL(trimmed);
+  return base.href;
+}
+
+function getDecodedQueryParams(parsed: URL): QueryParam[] {
+  const rawPairs = getRawQueryPairs(parsed.search);
+  const params: QueryParam[] = [];
+  let index = 0;
+  parsed.searchParams.forEach((value, key) => {
+    params.push({ key, value, raw: rawPairs[index] || "" });
+    index += 1;
+  });
+  return params;
+}
+
+function getSerializedQueryParams(search: string): QueryParam[] {
+  return getRawQueryPairs(search).map((raw) => {
+    const equalsIndex = raw.indexOf("=");
+    if (equalsIndex === -1) return { key: raw, value: "", raw };
+    return {
+      key: raw.slice(0, equalsIndex),
+      value: raw.slice(equalsIndex + 1),
+      raw,
+    };
+  });
+}
+
+function getRawQueryPairs(search: string) {
+  const rawSearch = search.startsWith("?") ? search.slice(1) : search;
+  if (!rawSearch) return [];
+  return rawSearch.split("&").filter((part) => part !== "");
 }
 
 function getURLParts(parsed: ParsedURL, hideCredentials: boolean): URLPart[] {
   return [
-    {
-      label: "Full URL",
-      value: sanitizeHref(parsed, hideCredentials),
-    },
-    {
-      label: "Protocol",
-      value: parsed.protocol,
-    },
-    {
-      label: "Origin",
-      value: parsed.origin,
-    },
-    {
-      label: "Host",
-      value: parsed.host,
-    },
-    {
-      label: "Hostname",
-      value: parsed.hostname,
-    },
-    {
-      label: "Port",
-      value: parsed.port,
-    },
-    {
-      label: "Path",
-      value: parsed.pathname,
-    },
-    {
-      label: "Query String",
-      value: parsed.search,
-    },
-    {
-      label: "Hash",
-      value: parsed.hash,
-    },
-    {
-      label: "Username",
-      value: hideCredentials && parsed.username ? "[hidden]" : parsed.username,
-    },
-    {
-      label: "Password",
-      value: hideCredentials && parsed.password ? "[hidden]" : parsed.password,
-    },
+    { label: "Full URL", value: sanitizeHref(parsed, hideCredentials) },
+    { label: "Scheme", value: parsed.protocol },
+    { label: "Origin", value: parsed.origin },
+    { label: "Host", value: parsed.host },
+    { label: "Hostname", value: parsed.hostname },
+    { label: "Port", value: parsed.port },
+    { label: "Serialized Path", value: parsed.pathname },
+    { label: "Query String", value: parsed.search },
+    { label: "Fragment", value: parsed.hash },
+    { label: "Username", value: hideCredentials && parsed.username ? "[hidden]" : parsed.username },
+    { label: "Password", value: hideCredentials && parsed.password ? "[hidden]" : parsed.password },
   ];
 }
 
@@ -799,17 +595,29 @@ function formatParsedURL(
   options: {
     outputMode: OutputMode;
     hideCredentials: boolean;
+    decodeMode: DecodeMode;
   }
 ) {
+  const safeHref = sanitizeHref(parsed, options.hideCredentials);
+
   if (options.outputMode === "json") {
     return JSON.stringify(
       {
-        ...parsed,
-        href: sanitizeHref(parsed, options.hideCredentials),
-        username:
-          options.hideCredentials && parsed.username ? "[hidden]" : parsed.username,
-        password:
-          options.hideCredentials && parsed.password ? "[hidden]" : parsed.password,
+        href: safeHref,
+        protocol: parsed.protocol,
+        username: options.hideCredentials && parsed.username ? "[hidden]" : parsed.username,
+        password: options.hideCredentials && parsed.password ? "[hidden]" : parsed.password,
+        host: parsed.host,
+        hostname: parsed.hostname,
+        port: parsed.port,
+        origin: parsed.origin,
+        pathname: parsed.pathname,
+        pathSegments: parsed.pathSegments,
+        search: parsed.search,
+        hash: parsed.hash,
+        queryParams: parsed.queryParams.map(({ key, value }) => ({ key, value })),
+        queryParamCount: parsed.queryParamCount,
+        sourceWasRelative: parsed.sourceWasRelative,
       },
       null,
       2
@@ -818,35 +626,37 @@ function formatParsedURL(
 
   if (options.outputMode === "query") {
     return parsed.queryParams
-      .map((param) => `${param.key}=${param.value}`)
+      .map((param) =>
+        options.decodeMode === "serialized" ? param.raw : `${param.key} = ${param.value}`
+      )
       .join("\n");
   }
 
   return [
-    `Full URL: ${sanitizeHref(parsed, options.hideCredentials)}`,
-    `Protocol: ${parsed.protocol}`,
-    `Origin: ${parsed.origin}`,
-    `Host: ${parsed.host}`,
-    `Hostname: ${parsed.hostname}`,
+    `Full URL: ${safeHref}`,
+    `Scheme: ${parsed.protocol || "(none)"}`,
+    `Origin: ${parsed.origin || "(none)"}`,
+    `Host: ${parsed.host || "(none)"}`,
+    `Hostname: ${parsed.hostname || "(none)"}`,
     `Port: ${parsed.port || "(none)"}`,
-    `Path: ${parsed.pathname || "/"}`,
+    `Serialized path: ${parsed.pathname || "(empty)"}`,
     `Query string: ${parsed.search || "(none)"}`,
-    `Hash: ${parsed.hash || "(none)"}`,
+    `Fragment: ${parsed.hash || "(none)"}`,
     `Query parameters: ${parsed.queryParamCount}`,
     `Path segments: ${parsed.pathSegments.length}`,
-    parsed.hasCredentials ? `Credentials: ${options.hideCredentials ? "[hidden]" : "present"}` : "Credentials: none",
+    `Source: ${parsed.sourceWasRelative ? "relative reference resolved against base" : "absolute URL"}`,
+    parsed.hasCredentials
+      ? `URL credentials: ${options.hideCredentials ? "[hidden]" : "present"}`
+      : "URL credentials: none",
   ].join("\n");
 }
 
 function sanitizeHref(parsed: ParsedURL, hideCredentials: boolean) {
-  if (!hideCredentials || !parsed.hasCredentials) {
-    return parsed.href;
-  }
-
+  if (!hideCredentials || !parsed.hasCredentials) return parsed.href;
   try {
     const clone = new URL(parsed.href);
-    clone.username = parsed.username ? "hidden" : "";
-    clone.password = parsed.password ? "hidden" : "";
+    clone.username = "";
+    clone.password = "";
     return clone.href;
   } catch {
     return parsed.href;
@@ -856,50 +666,63 @@ function sanitizeHref(parsed: ParsedURL, hideCredentials: boolean) {
 function getURLNotes(parsed: ParsedURL): URLNote[] {
   const notes: URLNote[] = [];
 
-  if (!parsed.isAbsolute) {
+  if (parsed.sourceWasRelative) {
     notes.push({
-      title: "Relative URL parsed",
-      message:
-        "This input was parsed as a relative URL using the base URL from the options.",
+      tone: "info",
+      title: "Relative reference resolved",
+      message: "The displayed full URL is the browser-resolved result, not the original relative text by itself.",
     });
   }
 
   if (parsed.hasCredentials) {
     notes.push({
-      title: "Credentials found in URL",
-      message:
-        "The URL contains username or password values. Avoid sharing real credentials in URLs.",
+      tone: "warning",
+      title: "Username or password is embedded in the URL",
+      message: "Userinfo credentials can leak through logs, screenshots, browser history, and copied links. Keep credential hiding enabled before sharing output.",
     });
   }
 
-  if (parsed.queryParamCount > 10) {
+  if (parsed.queryParams.some((param) => isSensitiveQueryKey(param.key))) {
     notes.push({
-      title: "Many query parameters",
-      message:
-        "This URL has many query parameters. Check tracking values, duplicate keys, and unnecessary fields.",
+      tone: "warning",
+      title: "Secret-looking query names found",
+      message: "A query parameter name resembles a token, API key, password, session, or authentication field. Query values are not automatically masked by the URL-credential setting.",
     });
   }
 
-  if (parsed.href.length > 2000) {
+  if (parsed.hash) {
     notes.push({
-      title: "Long URL",
-      message:
-        "This URL is long. Some tools, browsers, and servers may have URL length limits.",
+      tone: "info",
+      title: "Fragment is separate from the network request target",
+      message: "The #fragment is a client-side URI component. It is displayed here but is not sent as part of an HTTP request target to the origin server.",
     });
   }
 
   if (parsed.protocol && !["http:", "https:"].includes(parsed.protocol)) {
     notes.push({
-      title: "Non-HTTP protocol",
-      message:
-        "This URL does not use http or https. That may be fine, but check the protocol for your use case.",
+      tone: "info",
+      title: "Non-HTTP URL scheme",
+      message: `The browser URL parser recognizes ${parsed.protocol}, but host, origin, path, and request behavior depend on that scheme and may differ from HTTP URLs.`,
     });
   }
 
   return notes;
 }
 
-function safeDecode(value: string) {
+function safePercentDecode(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function isSensitiveQueryKey(name: string) {
+  const decoded = safeFormDecode(name);
+  return /(?:^|[-_.])(token|access_token|refresh_token|api[-_]?key|apikey|secret|password|passwd|session|sessionid|auth)(?:$|[-_.])/i.test(decoded);
+}
+
+function safeFormDecode(value: string) {
   try {
     return decodeURIComponent(value.replace(/\+/g, " "));
   } catch {

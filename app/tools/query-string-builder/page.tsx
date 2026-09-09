@@ -2,37 +2,34 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Query String Builder | Build URL Query Parameters Online | Yoryantra",
+  title: "Query String Builder | URL Parameters | Yoryantra",
   description:
-    "Build URL query strings from key-value parameters, encode values, preview the final URL, and copy clean API query strings directly in your browser.",
+    "Build query strings from key-value rows with controlled percent encoding, repeated keys, optional array conventions, and full URL output.",
   keywords: [
     "query string builder",
-    "URL query string builder",
+    "URL query parameters",
     "query parameter builder",
-    "build query params",
-    "URL parameter builder",
+    "percent encode query string",
+    "repeated query parameters",
     "API query builder",
-    "query string generator",
-    "URL tools",
-    "API debugging tools",
-    "developer tools",
+    "URL parameter tools",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/query-string-builder",
   },
   openGraph: {
-    title: "Query String Builder | Build URL Query Parameters Online | Yoryantra",
+    title: "Query String Builder | URL Parameters | Yoryantra",
     description:
-      "Build URL query strings from key-value parameters, encode values, preview the final URL, and copy clean API query strings directly in your browser.",
+      "Build query strings with explicit encoding, duplicate-key preservation, array conventions, and full URL assembly.",
     url: "https://yoryantra.com/tools/query-string-builder",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Query String Builder | Build URL Query Parameters Online | Yoryantra",
+    title: "Query String Builder | URL Parameters | Yoryantra",
     description:
-      "Build URL query strings from key-value parameters, encode values, preview the final URL, and copy clean API query strings directly in your browser.",
+      "Build query strings with controlled encoding, repeated keys, and optional array conventions.",
   },
 };
 

@@ -853,7 +853,7 @@ export const tools = [
 {
   title: "Fetch to cURL Converter",
   description:
-    "Convert JavaScript fetch requests into cURL commands with method, headers, and body.",
+    "Convert supported literal fetch() requests into POSIX-shell cURL commands with safe quoting and optional secret masking.",
   href: "/tools/fetch-to-curl-converter",
   category: "Developer Tools",
 },
@@ -862,7 +862,7 @@ export const tools = [
 {
   title: "Query String Builder",
   description:
-    "Build URL query strings from key-value parameters, encode values, and preview final URLs.",
+    "Build query strings with duplicate keys, controlled percent encoding, and repeated, bracket, or comma array formats.",
   href: "/tools/query-string-builder",
   category: "Developer Tools",
 },
@@ -870,7 +870,7 @@ export const tools = [
 {
   title: "URL Parts Parser",
   description:
-    "Parse URLs into protocol, hostname, path, query parameters, hash, and readable URL parts.",
+    "Resolve and parse absolute or relative URLs while preserving duplicate parameters and masking embedded credentials.",
   href: "/tools/url-parts-parser",
   category: "Developer Tools",
 },
