@@ -2,37 +2,35 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "API Error Response Formatter | Format API Error JSON Online | Yoryantra",
+  title: "API Error Response Formatter | JSON & HTTP Errors | Yoryantra",
   description:
-    "Format API error responses, extract error codes, messages, validation errors, traces, and useful debugging details directly in your browser.",
+    "Parse JSON API errors or raw HTTP responses, extract status and validation details, recognize RFC 9457 Problem Details, and mask trace IDs before sharing.",
   keywords: [
     "API error response formatter",
-    "API error formatter",
-    "format API error JSON",
-    "JSON error response formatter",
     "API error parser",
-    "validation error formatter",
-    "HTTP error response formatter",
-    "API debugging tools",
-    "developer tools",
-    "JSON tools",
+    "HTTP error response parser",
+    "JSON error formatter",
+    "RFC 9457 problem details",
+    "validation error parser",
+    "trace ID formatter",
+    "request ID parser",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/api-error-response-formatter",
   },
   openGraph: {
-    title: "API Error Response Formatter | Format API Error JSON Online | Yoryantra",
+    title: "API Error Response Formatter | JSON & HTTP Errors | Yoryantra",
     description:
-      "Format API error responses, extract error codes, messages, validation errors, traces, and useful debugging details directly in your browser.",
+      "Parse JSON API errors or raw HTTP responses, recognize common error shapes, and prepare clearer debugging output.",
     url: "https://yoryantra.com/tools/api-error-response-formatter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "API Error Response Formatter | Format API Error JSON Online | Yoryantra",
+    title: "API Error Response Formatter | JSON & HTTP Errors | Yoryantra",
     description:
-      "Format API error responses, extract error codes, messages, validation errors, traces, and useful debugging details directly in your browser.",
+      "Parse JSON and raw HTTP API errors into readable status, validation, trace, and Problem Details fields.",
   },
 };
 

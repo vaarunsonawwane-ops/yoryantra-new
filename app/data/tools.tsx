@@ -878,7 +878,7 @@ export const tools = [
 {
   title: "Request Header Builder",
   description:
-    "Build HTTP request headers, add common API headers, and copy clean header output.",
+    "Build HTTP request headers with field-name validation, duplicate preservation, Basic auth encoding, secret masking, and cURL or Fetch output.",
   href: "/tools/request-header-builder",
   category: "Developer Tools",
 },
@@ -886,7 +886,7 @@ export const tools = [
 {
   title: "API Error Response Formatter",
   description:
-    "Format API error responses, extract error codes, messages, validation errors, and trace details.",
+    "Separate HTTP status, app codes, validation details, trace IDs, and RFC 9457 fields from API error responses.",
   href: "/tools/api-error-response-formatter",
   category: "Developer Tools",
 },
@@ -1189,7 +1189,7 @@ export const tools = [
 {
   title: "Regex Replace Tester",
   description:
-    "Test regex find and replace patterns with capture groups, named groups, changed lines, match positions, and before-after output.",
+    "Preview JavaScript regex replacements with numbered or named captures, replacement tokens, match positions, and changed lines.",
   href: "/tools/regex-replace-tester",
   category: "Developer Tools",
 },

@@ -20,24 +20,30 @@ type ValidationIssue = {
 
 type ParsedAPIError = {
   statusCode: string;
+  bodyStatusCode: string;
   statusText: string;
   errorCode: string;
+  problemType: string;
   message: string;
   details: string;
   requestId: string;
   traceId: string;
   path: string;
+  instance: string;
   timestamp: string;
   method: string;
   rawBody: string;
   formattedJson: string;
   cleanJson: string;
+  compactCleanJson: boolean;
+  jsonValue: unknown;
   validationIssues: ValidationIssue[];
   headers: ParsedField[];
   detectedShape: string;
 };
 
 type ErrorNote = {
+  severity: "info" | "warning";
   title: string;
   message: string;
 };
@@ -165,7 +171,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="API Error Response Formatter"
-      description="Format API error responses, extract error codes, messages, validation errors, traces, and useful debugging details directly in your browser."
+      description="Parse JSON API errors or raw HTTP responses into readable fields, validation details, and shareable summaries."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -198,7 +204,7 @@ export default function ToolClient() {
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <YoryantraSelect
-            label="Input"
+            label="Input Type"
             value={inputMode}
             onChange={(value) => {
               setInputMode(value as InputMode);
@@ -220,7 +226,7 @@ export default function ToolClient() {
           />
 
           <YoryantraSelect
-            label="Output"
+            label="Output Type"
             value={outputMode}
             onChange={(value) => {
               setOutputMode(value as OutputMode);
@@ -238,7 +244,7 @@ export default function ToolClient() {
                 value: "summary",
               },
               {
-                label: "Clean JSON",
+                label: "JSON body",
                 value: "cleanJson",
               },
             ]}
@@ -248,7 +254,7 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex self-start cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={hideTraceValues}
@@ -262,17 +268,17 @@ export default function ToolClient() {
 
             <span>
               <span className="block text-sm font-medium text-gray-900">
-                Hide trace values
+                Mask trace identifiers
               </span>
 
               <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-                Hide request IDs, trace IDs, and correlation IDs in copied
-                output.
+                Replace request, trace, and correlation ID fields in generated
+                output. Other secrets are not automatically removed.
               </span>
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex self-start cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={compactCleanJson}
@@ -300,15 +306,15 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={formatErrorResponse} className="yoryantra-btn">
+        <button onClick={formatErrorResponse} className="yoryantra-btn whitespace-nowrap">
           Format API Error
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -385,24 +391,34 @@ export default function ToolClient() {
         />
       )}
 
-      {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Error response notes
-          </h3>
-
+      {notes.some((note) => note.severity === "warning") && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="text-sm font-semibold text-amber-900">Response cautions</h3>
           <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {note.title}
-                </p>
+            {notes
+              .filter((note) => note.severity === "warning")
+              .map((note) => (
+                <div key={note.title}>
+                  <p className="text-sm font-semibold text-amber-900">{note.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-amber-800">{note.message}</p>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {note.message}
-                </p>
-              </div>
-            ))}
+      {notes.some((note) => note.severity === "info") && (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Response observations</h3>
+          <div className="mt-3 space-y-3">
+            {notes
+              .filter((note) => note.severity === "info")
+              .map((note) => (
+                <div key={note.title}>
+                  <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-700">{note.message}</p>
+                </div>
+              ))}
           </div>
         </div>
       )}
@@ -418,7 +434,7 @@ export default function ToolClient() {
           </p>
 
           <pre className="mt-4 yoryantra-output overflow-auto text-sm min-h-[240px] whitespace-pre-wrap break-words">
-            {parsedError.formattedJson}
+            {formatJsonForDisplay(parsedError.jsonValue, hideTraceValues)}
           </pre>
         </div>
       )}
@@ -432,7 +448,7 @@ export default function ToolClient() {
           {output && (
             <button
               onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
+              className="yoryantra-btn-outline text-sm whitespace-nowrap"
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -444,174 +460,91 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        API error formatting happens directly in your browser. Your response
-        body, headers, trace IDs, and error details are not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Parsing happens in this browser session. The page does not send the pasted response to an API,
+        but copied logs can still contain credentials, personal data, internal URLs, or other sensitive values.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Formatting API Error Responses for Debugging
+            Read the Error Shape Before Chasing the Stack Trace
           </h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            API error responses often contain useful information, but it is not
-            always easy to read when it is copied from logs, browser DevTools,
-            backend traces, or API clients. The status code, error code, message,
-            validation fields, request ID, and trace ID can be buried inside a
-            large JSON object.
+            APIs do not share one universal error schema. Some return a flat object with <code>message</code> and <code>code</code>;
+            others nest an <code>error</code> object or attach field-level validation arrays. The formatter looks for those common
+            shapes and labels what it finds, but the extraction is heuristic rather than schema validation.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This API Error Response Formatter pulls out the important parts and
-            formats the response into a cleaner view. It helps when you are
-            debugging failed API calls, preparing support notes, or sharing an
-            error response with another developer.
+            A field called <code>code</code> is not automatically treated as an HTTP status. HTTP status extraction accepts only
+            numeric 100–599 values from status-oriented fields, which avoids turning application codes such as
+            <code>VALIDATION_FAILED</code> into a fake HTTP status.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Reading an API Error Without Searching Through JSON
+            Raw HTTP Response or JSON Body?
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a raw HTTP error response or JSON error body.</li>
-            <li>Choose whether the input includes headers or only JSON.</li>
-            <li>Hide trace values if you plan to copy or share the output.</li>
-            <li>Review the status, error code, message, and validation issues.</li>
-            <li>Copy the formatted report, summary, or clean JSON output.</li>
-          </ol>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Raw HTTP mode expects a status line, header lines, a blank line, then a JSON body. JSON mode expects only the body.
+            Header names and values are shown separately so transport metadata is not confused with fields inside the JSON.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The raw parser is intentionally a textual debugging parser, not a packet decoder. It does not decode chunked
+            transfer coding, decompress content encodings, follow redirects, or reconstruct binary bodies.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Common API Error Formatter Use Cases
+            RFC 9457 Problem Details
           </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            When an object contains the standard Problem Details members such as <code>type</code>, <code>title</code>,
+            <code>status</code>, <code>detail</code>, and <code>instance</code>, the formatter identifies that shape separately.
+            RFC 9457 defines <code>application/problem+json</code> for interoperable HTTP API errors and allows extension members
+            for application-specific information.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            See the <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc9457" target="_blank" rel="noreferrer">RFC 9457 specification</a>
+            for the Problem Details model and <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noreferrer">RFC 9110</a>
+            for HTTP status and field semantics.
+          </p>
+        </div>
 
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Validation Arrays and Trace Identifiers
+          </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Validation details are discovered from familiar keys such as <code>errors</code>, <code>details</code>,
+            <code>violations</code>, and <code>validationErrors</code>. A custom API can use completely different names, so a
+            zero count means “not recognized by these heuristics,” not “the response contains no validation information.”
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Request IDs, trace IDs, and correlation IDs can be masked in generated output. That masking is deliberately narrow:
+            it does not promise to detect access tokens, cookies, email addresses, database values, or secrets hidden under custom keys.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Before Sharing an Error Response
+          </h2>
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Formatting messy JSON error bodies from API responses.</li>
-            <li>Reading validation errors field by field.</li>
-            <li>Finding error codes, trace IDs, and request IDs quickly.</li>
-            <li>Cleaning API error examples before adding them to tickets.</li>
-            <li>Checking whether a response is a 400, 401, 403, 404, 422, or 500 error.</li>
-            <li>Preparing safer output before sharing logs or debugging notes.</li>
+            <li>Keep the HTTP status and application error code; they answer different questions.</li>
+            <li>Preserve a trace ID when the recipient needs to correlate the failure with backend logs.</li>
+            <li>Remove credentials, cookies, personal data, private URLs, and production identifiers before posting publicly.</li>
+            <li>Do not treat a formatted response as proof of the root cause; server logs and API documentation still decide semantics.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example API Error Response
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`{
-  "error": {
-    "code": "VALIDATION_FAILED",
-    "message": "The request body has validation errors.",
-    "details": [
-      {
-        "field": "email",
-        "message": "Email is required"
-      }
-    ]
-  },
-  "traceId": "trace_abc123"
-}`}
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/api-error-response-formatter" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Trace IDs, Request IDs, and Shared Error Logs
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Trace IDs and request IDs are useful because they help connect an API
-            error to backend logs. They are often safe to share inside a team,
-            but you may still want to hide them before posting output publicly or
-            sending it outside your project.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            If the response contains user data, tokens, private URLs, or
-            production details, replace those values with safe examples before
-            sharing the formatted output.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does an API error response formatter do?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It formats an API error response and extracts useful fields such
-                as status code, error code, message, validation errors, request
-                ID, and trace ID.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this format validation errors?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. It looks for common validation error arrays and shows them
-                as field, message, and code rows when possible.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this send the error response anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. The response is formatted directly in your browser.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this read raw HTTP error responses?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. It can read a raw HTTP response with a status line, headers,
-                and JSON body.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my API error data uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Formatting happens directly in your browser, and your error
-                response is not uploaded to a server.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/api-error-response-formatter" />
         </div>
       </section>
     </ToolShell>
@@ -704,11 +637,15 @@ function parseAPIErrorResponse(
     compactCleanJson: boolean;
   }
 ): ParsedAPIError {
-  const normalized = input.replace(/\r\n/g, "\n").trim();
+  if (input.length > 2000000) {
+    throw new Error("Input is limited to 2,000,000 UTF-16 code units to keep browser parsing manageable.");
+  }
+
+  const normalized = input.replace(/\r\n?/g, "\n").replace(/^\s+/, "");
   let statusCode = "";
   let statusText = "";
   let headers: ParsedField[] = [];
-  let body = normalized;
+  let body = normalized.trim();
 
   if (options.inputMode === "http" || normalized.startsWith("HTTP/")) {
     const parsedHTTP = splitHTTPResponse(normalized);
@@ -716,6 +653,10 @@ function parseAPIErrorResponse(
     statusText = parsedHTTP.statusText;
     headers = parsedHTTP.headers;
     body = parsedHTTP.body;
+  }
+
+  if (!body.trim()) {
+    throw new Error("The response does not contain a JSON body.");
   }
 
   let parsedJson: unknown;
@@ -726,36 +667,43 @@ function parseAPIErrorResponse(
     throw new Error("The response body is not valid JSON.");
   }
 
+  const bodyStatusCode = findStatusCode(parsedJson);
   const formattedJson = JSON.stringify(parsedJson, null, 2);
   const cleanJson = JSON.stringify(parsedJson, null, options.compactCleanJson ? 0 : 2);
   const validationIssues = findValidationIssues(parsedJson);
   const detectedShape = detectShape(parsedJson);
+  const instance = findPreferredStringValue(parsedJson, ["instance"]);
 
   return {
-    statusCode: statusCode || findStringValue(parsedJson, ["status", "statusCode", "code"]),
-    statusText: statusText || findStringValue(parsedJson, ["statusText", "reason", "title"]),
+    statusCode: statusCode || bodyStatusCode,
+    bodyStatusCode,
+    statusText,
     errorCode: findErrorCode(parsedJson),
+    problemType: findProblemType(parsedJson),
     message: findMessage(parsedJson),
     details: findDetails(parsedJson),
-    requestId: findStringValue(parsedJson, [
+    requestId: findPreferredStringValue(parsedJson, [
       "requestId",
       "request_id",
       "x-request-id",
       "correlationId",
       "correlation_id",
     ]),
-    traceId: findStringValue(parsedJson, [
+    traceId: findPreferredStringValue(parsedJson, [
       "traceId",
       "trace_id",
       "trace",
       "traceID",
     ]),
-    path: findStringValue(parsedJson, ["path", "url", "endpoint", "instance"]),
-    timestamp: findStringValue(parsedJson, ["timestamp", "time", "date"]),
-    method: findStringValue(parsedJson, ["method", "httpMethod"]),
+    path: findPreferredStringValue(parsedJson, ["path", "url", "endpoint"]) || instance,
+    instance,
+    timestamp: findPreferredStringValue(parsedJson, ["timestamp", "time", "date"]),
+    method: findPreferredStringValue(parsedJson, ["method", "httpMethod"]),
     rawBody: body,
     formattedJson,
     cleanJson,
+    compactCleanJson: options.compactCleanJson,
+    jsonValue: parsedJson,
     validationIssues,
     headers,
     detectedShape,
@@ -763,49 +711,89 @@ function parseAPIErrorResponse(
 }
 
 function splitHTTPResponse(input: string) {
-  const [headPart, ...bodyParts] = input.split(/\n\n/);
-  const body = bodyParts.join("\n\n").trim();
-  const headLines = headPart.split("\n").filter(Boolean);
-  const statusLine = headLines[0] || "";
-  const match = statusLine.match(/^HTTP\/\d(?:\.\d)?\s+(\d{3})(?:\s+(.*))?$/);
+  const separatorIndex = input.indexOf("\n\n");
 
-  if (!match) {
-    throw new Error("Raw HTTP response should start with a status line like HTTP/1.1 400 Bad Request.");
+  if (separatorIndex === -1) {
+    throw new Error("Raw HTTP input needs a blank line between the headers and JSON body.");
   }
 
-  const headers = headLines.slice(1).map((line) => {
-    const colonIndex = line.indexOf(":");
+  const headPart = input.slice(0, separatorIndex);
+  const body = input.slice(separatorIndex + 2).trim();
+  const headLines = headPart.split("\n");
+  const statusLine = headLines[0] || "";
+  const match = statusLine.match(/^HTTP\/(?:1\.0|1\.1|2(?:\.0)?|3(?:\.0)?)\s+(\d{3})(?:\s+(.*))?$/i);
 
-    if (colonIndex === -1) {
-      return {
-        label: line.trim(),
-        value: "",
-      };
+  if (!match) {
+    throw new Error("Raw HTTP response should start with a status line such as HTTP/1.1 400 Bad Request.");
+  }
+
+  const headers: ParsedField[] = [];
+
+  for (const line of headLines.slice(1)) {
+    if (!line) {
+      continue;
     }
 
-    return {
-      label: line.slice(0, colonIndex).trim(),
-      value: line.slice(colonIndex + 1).trim(),
-    };
-  });
+    if (/^[ \t]/.test(line)) {
+      throw new Error("Folded HTTP header lines are not supported. Paste each header on one line.");
+    }
+
+    const colonIndex = line.indexOf(":");
+
+    if (colonIndex <= 0) {
+      throw new Error(`Malformed HTTP header line: ${line}`);
+    }
+
+    const label = line.slice(0, colonIndex).trim();
+    const value = line.slice(colonIndex + 1).trim();
+
+    if (!isHttpFieldName(label)) {
+      throw new Error(`Invalid HTTP header name: ${label}`);
+    }
+
+    headers.push({ label, value });
+  }
 
   return {
     statusCode: match[1],
-    statusText: match[2] || "",
+    statusText: (match[2] || "").trim(),
     headers,
     body,
   };
 }
 
-function findErrorCode(value: unknown): string {
-  const direct = findStringValue(value, [
-    "errorCode",
-    "error_code",
-    "code",
-    "type",
-  ]);
+function findStatusCode(value: unknown): string {
+  let candidate = findOwnStringValue(value, ["status", "statusCode", "httpStatus", "http_status"]);
 
-  if (direct && !/^\d+$/.test(direct)) {
+  if (!candidate && isRecord(value) && isRecord(value.error)) {
+    candidate = findOwnStringValue(value.error, ["status", "statusCode", "httpStatus", "http_status"]);
+  }
+
+  if (!/^\d{3}$/.test(candidate)) {
+    return "";
+  }
+
+  const status = Number(candidate);
+  return status >= 100 && status <= 599 ? candidate : "";
+}
+
+function findProblemType(value: unknown): string {
+  if (!isRecord(value)) {
+    return "";
+  }
+
+  const type = value.type;
+  return typeof type === "string" ? type : "";
+}
+
+function isHttpFieldName(value: string) {
+  return /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(value);
+}
+
+function findErrorCode(value: unknown): string {
+  const direct = findOwnStringValue(value, ["errorCode", "error_code", "code"]);
+
+  if (direct && !/^\d{3}$/.test(direct)) {
     return direct;
   }
 
@@ -813,7 +801,7 @@ function findErrorCode(value: unknown): string {
     const error = value.error;
 
     if (isRecord(error)) {
-      return findStringValue(error, ["code", "errorCode", "error_code", "type"]);
+      return findOwnStringValue(error, ["code", "errorCode", "error_code"]);
     }
 
     if (typeof error === "string") {
@@ -821,18 +809,11 @@ function findErrorCode(value: unknown): string {
     }
   }
 
-  return direct;
+  return "";
 }
 
 function findMessage(value: unknown): string {
-  const direct = findStringValue(value, [
-    "message",
-    "errorMessage",
-    "error_message",
-    "detail",
-    "title",
-    "description",
-  ]);
+  const direct = findOwnStringValue(value, ["message", "detail", "title", "errorMessage", "error_message"]);
 
   if (direct) {
     return direct;
@@ -842,14 +823,10 @@ function findMessage(value: unknown): string {
     const error = value.error;
 
     if (isRecord(error)) {
-      return findStringValue(error, [
-        "message",
-        "errorMessage",
-        "error_message",
-        "detail",
-        "title",
-        "description",
-      ]);
+      const nested = findOwnStringValue(error, ["message", "detail", "title", "errorMessage", "error_message"]);
+      if (nested) {
+        return nested;
+      }
     }
 
     if (typeof error === "string") {
@@ -857,24 +834,27 @@ function findMessage(value: unknown): string {
     }
   }
 
-  return "";
+  return findStringValue(value, ["message", "detail", "title", "errorMessage", "error_message"]);
 }
 
 function findDetails(value: unknown): string {
-  const detail = findStringValue(value, ["details", "detail", "description"]);
+  const direct = findOwnStringValue(value, ["detail", "details", "description"]);
 
-  if (detail) {
-    return detail;
+  if (direct) {
+    return direct;
   }
 
   if (isRecord(value) && isRecord(value.error)) {
-    return findStringValue(value.error, ["details", "detail", "description"]);
+    const nested = findOwnStringValue(value.error, ["detail", "details", "description"]);
+    if (nested) {
+      return nested;
+    }
   }
 
   return "";
 }
 
-function findStringValue(value: unknown, keys: string[]): string {
+function findOwnStringValue(value: unknown, keys: string[]): string {
   if (!isRecord(value)) {
     return "";
   }
@@ -882,15 +862,35 @@ function findStringValue(value: unknown, keys: string[]): string {
   const lowerKeys = keys.map((key) => key.toLowerCase());
 
   for (const [key, item] of Object.entries(value)) {
-    if (lowerKeys.includes(key.toLowerCase())) {
-      if (typeof item === "string" || typeof item === "number") {
-        return String(item);
-      }
-
-      if (Array.isArray(item)) {
-        return `${item.length} item${item.length === 1 ? "" : "s"}`;
-      }
+    if (!lowerKeys.includes(key.toLowerCase())) {
+      continue;
     }
+
+    if (typeof item === "string" || typeof item === "number") {
+      return String(item);
+    }
+
+    if (Array.isArray(item)) {
+      return `${item.length} item${item.length === 1 ? "" : "s"}`;
+    }
+  }
+
+  return "";
+}
+
+function findPreferredStringValue(value: unknown, keys: string[]): string {
+  const direct = findOwnStringValue(value, keys);
+  return direct || findStringValue(value, keys);
+}
+
+function findStringValue(value: unknown, keys: string[]): string {
+  if (!isRecord(value)) {
+    return "";
+  }
+
+  const own = findOwnStringValue(value, keys);
+  if (own) {
+    return own;
   }
 
   for (const item of Object.values(value)) {
@@ -979,11 +979,18 @@ function findArrays(value: unknown, keys: string[]): unknown[][] {
 
 function detectShape(value: unknown) {
   if (!isRecord(value)) {
-    return "JSON error";
+    return "JSON value";
+  }
+
+  if (
+    ("title" in value && "detail" in value) ||
+    (("type" in value || "instance" in value) && ("title" in value || "detail" in value || "status" in value))
+  ) {
+    return "RFC 9457 problem details";
   }
 
   if ("error" in value && isRecord(value.error)) {
-    return "nested error";
+    return "nested error object";
   }
 
   if ("errors" in value && Array.isArray(value.errors)) {
@@ -991,14 +998,10 @@ function detectShape(value: unknown) {
   }
 
   if ("message" in value && ("code" in value || "status" in value)) {
-    return "flat error";
+    return "flat error object";
   }
 
-  if ("title" in value && "detail" in value) {
-    return "problem details";
-  }
-
-  return "JSON error";
+  return "JSON object";
 }
 
 function buildOutput(
@@ -1009,7 +1012,10 @@ function buildOutput(
   }
 ) {
   if (options.outputMode === "cleanJson") {
-    return parsed.cleanJson;
+    const jsonValue = options.hideTraceValues
+      ? maskTraceIdentifiers(parsed.jsonValue)
+      : parsed.jsonValue;
+    return JSON.stringify(jsonValue, null, parsed.compactCleanJson ? 0 : 2);
   }
 
   const requestId =
@@ -1085,6 +1091,10 @@ function getKeyFields(
       value: parsed.details,
     },
     {
+      label: "Problem Type",
+      value: parsed.problemType,
+    },
+    {
       label: "Path",
       value: parsed.path,
     },
@@ -1108,8 +1118,25 @@ function getErrorNotes(parsed: ParsedAPIError): ErrorNote[] {
 
   const statusNumber = Number(parsed.statusCode);
 
+  if (parsed.bodyStatusCode && parsed.statusCode && parsed.bodyStatusCode !== parsed.statusCode) {
+    notes.push({
+      severity: "warning",
+      title: "HTTP status and body status differ",
+      message: `The status line says ${parsed.statusCode}, while the JSON body says ${parsed.bodyStatusCode}. Check which value your API contract treats as authoritative.`,
+    });
+  }
+
+  if (parsed.detectedShape === "RFC 9457 problem details") {
+    notes.push({
+      severity: "info",
+      title: "Problem Details shape detected",
+      message: "The body resembles RFC 9457 Problem Details. Its type, title, status, detail, instance, and extension members still need to be interpreted using the API's documentation.",
+    });
+  }
+
   if (statusNumber === 401) {
     notes.push({
+      severity: "info",
       title: "Authentication error",
       message:
         "401 usually means the request is missing valid authentication or the token is expired.",
@@ -1118,6 +1145,7 @@ function getErrorNotes(parsed: ParsedAPIError): ErrorNote[] {
 
   if (statusNumber === 403) {
     notes.push({
+      severity: "info",
       title: "Permission error",
       message:
         "403 usually means the request was understood, but the caller is not allowed to perform the action.",
@@ -1126,6 +1154,7 @@ function getErrorNotes(parsed: ParsedAPIError): ErrorNote[] {
 
   if (statusNumber === 404) {
     notes.push({
+      severity: "info",
       title: "Not found",
       message:
         "404 usually means the path, resource ID, or route does not exist.",
@@ -1134,6 +1163,7 @@ function getErrorNotes(parsed: ParsedAPIError): ErrorNote[] {
 
   if (statusNumber === 422 || parsed.validationIssues.length > 0) {
     notes.push({
+      severity: "info",
       title: "Validation issue",
       message:
         "This response looks like a validation error. Check required fields, data types, and field names.",
@@ -1142,6 +1172,7 @@ function getErrorNotes(parsed: ParsedAPIError): ErrorNote[] {
 
   if (statusNumber >= 500) {
     notes.push({
+      severity: "info",
       title: "Server-side error",
       message:
         "5xx errors usually need backend logs or service health checks to understand the failure.",
@@ -1150,6 +1181,7 @@ function getErrorNotes(parsed: ParsedAPIError): ErrorNote[] {
 
   if (parsed.requestId || parsed.traceId) {
     notes.push({
+      severity: "info",
       title: "Trace value found",
       message:
         "Request IDs and trace IDs are useful for finding the same error in backend logs.",
@@ -1157,6 +1189,41 @@ function getErrorNotes(parsed: ParsedAPIError): ErrorNote[] {
   }
 
   return notes;
+}
+
+function maskTraceIdentifiers(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(maskTraceIdentifiers);
+  }
+
+  if (!isRecord(value)) {
+    return value;
+  }
+
+  const traceKeys = new Set([
+    "requestid",
+    "request_id",
+    "x-request-id",
+    "traceid",
+    "trace_id",
+    "trace",
+    "correlationid",
+    "correlation_id",
+  ]);
+
+  const masked: Record<string, unknown> = {};
+
+  Object.entries(value).forEach(([key, item]) => {
+    masked[key] = traceKeys.has(key.toLowerCase())
+      ? "[hidden]"
+      : maskTraceIdentifiers(item);
+  });
+
+  return masked;
+}
+
+function formatJsonForDisplay(value: unknown, hideTraceValues: boolean) {
+  return JSON.stringify(hideTraceValues ? maskTraceIdentifiers(value) : value, null, 2);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

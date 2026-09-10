@@ -2,37 +2,34 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Regex Replace Tester | Test Regex Find and Replace Online | Yoryantra",
+  title: "Regex Replace Tester | JavaScript Replacement Preview | Yoryantra",
   description:
-    "Test regex find and replace patterns directly in your browser. Preview replacements, capture groups, named groups, changed lines, match positions, flags, and before-after output.",
+    "Preview JavaScript regex replacements with numbered and named capture groups, replacement tokens, match positions, changed lines, and literal replacement mode.",
   keywords: [
-    "Regex Replace Tester",
-    "regex replace online",
-    "regular expression replace tester",
-    "regex substitution tester",
-    "test regex replacement",
-    "regex capture group replace",
-    "regex named group replace",
-    "developer tools",
-    "regex tools",
-    "online regex replace",
+    "regex replace tester",
+    "JavaScript regex replace",
+    "regex replacement preview",
+    "named capture group replacement",
+    "regex replacement tokens",
+    "regular expression substitution",
+    "regex changed lines",
   ],
   alternates: {
     canonical: "https://yoryantra.com/tools/regex-replace-tester",
   },
   openGraph: {
-    title: "Regex Replace Tester | Test Regex Find and Replace Online | Yoryantra",
+    title: "Regex Replace Tester | JavaScript Replacement Preview | Yoryantra",
     description:
-      "Test regex find and replace patterns directly in your browser. Preview replacements, capture groups, named groups, changed lines, match positions, flags, and before-after output.",
+      "Preview JavaScript regex replacement behavior, capture references, changed lines, and final output before applying an edit.",
     url: "https://yoryantra.com/tools/regex-replace-tester",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Regex Replace Tester | Test Regex Find and Replace Online | Yoryantra",
+    title: "Regex Replace Tester | JavaScript Replacement Preview | Yoryantra",
     description:
-      "Test regex find and replace patterns directly in your browser. Preview replacements, capture groups, named groups, changed lines, match positions, flags, and before-after output.",
+      "Test JavaScript replacement strings, capture groups, match positions, and before-after output in the browser.",
   },
 };
 

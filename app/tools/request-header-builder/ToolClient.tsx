@@ -14,7 +14,8 @@ type HeaderRow = {
   enabled: boolean;
 };
 
-type HeaderNote = {
+type HeaderProblem = {
+  severity: "error" | "warning";
   title: string;
   message: string;
 };
@@ -65,7 +66,12 @@ export default function ToolClient() {
     const manualHeaders = headers
       .filter((header) => header.enabled)
       .filter((header) => header.name.trim())
-      .filter((header) => !(skipEmptyHeaders && !header.value.trim()));
+      .filter((header) => !(skipEmptyHeaders && !header.value.trim()))
+      .map((header) => ({
+        ...header,
+        name: header.name.trim(),
+        value: header.value.trim(),
+      }));
 
     const authHeader = buildAuthHeader({
       authType,
@@ -74,11 +80,10 @@ export default function ToolClient() {
     });
 
     const merged = authHeader ? [authHeader, ...manualHeaders] : manualHeaders;
-    const deduped = dedupeHeaders(merged);
 
     return sortHeaders
-      ? [...deduped].sort((a, b) => a.name.localeCompare(b.name))
-      : deduped;
+      ? [...merged].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+      : merged;
   }, [
     headers,
     authType,
@@ -88,25 +93,35 @@ export default function ToolClient() {
     sortHeaders,
   ]);
 
-  const output = useMemo(
+  const problems = useMemo(
     () =>
-      buildOutput({
-        headers: activeHeaders,
+      getHeaderProblems({
+        sourceHeaders: headers,
+        activeHeaders,
+        authType,
+        authValue,
+        apiKeyHeaderName,
         outputMode,
         curlUrl,
         hideSensitiveValues,
       }),
-    [activeHeaders, outputMode, curlUrl, hideSensitiveValues]
+    [headers, activeHeaders, authType, authValue, apiKeyHeaderName, outputMode, curlUrl, hideSensitiveValues]
   );
 
-  const notes = useMemo(
+  const blockingProblems = problems.filter((problem) => problem.severity === "error");
+  const warnings = problems.filter((problem) => problem.severity === "warning");
+
+  const output = useMemo(
     () =>
-      getHeaderNotes({
-        headers: activeHeaders,
-        authType,
-        curlUrl,
-      }),
-    [activeHeaders, authType, curlUrl]
+      blockingProblems.length > 0
+        ? ""
+        : buildOutput({
+            headers: activeHeaders,
+            outputMode,
+            curlUrl,
+            hideSensitiveValues,
+          }),
+    [activeHeaders, outputMode, curlUrl, hideSensitiveValues, blockingProblems.length]
   );
 
   const addHeader = () => {
@@ -239,7 +254,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Request Header Builder"
-      description="Build HTTP request headers, add common API headers, format header blocks, and copy clean header output directly in your browser."
+      description="Build request header blocks, cURL flags, JSON pairs, or Fetch headers without silently dropping duplicate fields."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -253,7 +268,7 @@ export default function ToolClient() {
             </p>
           </div>
 
-          <button onClick={addHeader} className="yoryantra-btn-outline">
+          <button onClick={addHeader} className="yoryantra-btn-outline whitespace-nowrap">
             Add Header
           </button>
         </div>
@@ -297,7 +312,7 @@ export default function ToolClient() {
 
               <button
                 onClick={() => removeHeader(header.id)}
-                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                className="whitespace-nowrap rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
               >
                 Remove
               </button>
@@ -320,7 +335,7 @@ export default function ToolClient() {
             <button
               key={header.name}
               onClick={() => addCommonHeader(header.name, header.value)}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-[var(--green)] hover:text-[var(--green)]"
+              className="whitespace-nowrap rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-[var(--green)] hover:text-[var(--green)]"
             >
               {header.name}
             </button>
@@ -333,7 +348,13 @@ export default function ToolClient() {
           Auth Header
         </h3>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className={`mt-4 grid gap-4 ${
+          authType === "apiKey"
+            ? "md:grid-cols-3"
+            : authType === "none"
+            ? "md:max-w-sm"
+            : "md:grid-cols-2"
+        }`}>
           <YoryantraSelect
             label="Auth Type"
             value={authType}
@@ -382,7 +403,7 @@ export default function ToolClient() {
           {authType !== "none" && (
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Auth Value
+                {authType === "basic" ? "Credentials" : authType === "bearer" ? "Token" : "API Key"}
               </label>
 
               <input
@@ -400,6 +421,12 @@ export default function ToolClient() {
                 }
                 className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
               />
+
+              {authType === "basic" && (
+                <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                  Enter <code>username:password</code>. The builder Base64-encodes the exact UTF-8 bytes and keeps the <code>Basic</code> scheme visible.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -424,7 +451,7 @@ export default function ToolClient() {
                 value: "headerBlock",
               },
               {
-                label: "JSON object",
+                label: "JSON header pairs",
                 value: "json",
               },
               {
@@ -438,7 +465,7 @@ export default function ToolClient() {
             ]}
           />
 
-          {(outputMode === "curl" || outputMode === "fetch") && (
+          {outputMode === "curl" && (
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700">
                 Request URL
@@ -458,7 +485,7 @@ export default function ToolClient() {
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex self-start cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={hideSensitiveValues}
@@ -481,7 +508,7 @@ export default function ToolClient() {
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex self-start cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={skipEmptyHeaders}
@@ -503,7 +530,7 @@ export default function ToolClient() {
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex self-start cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
             <input
               type="checkbox"
               checked={sortHeaders}
@@ -528,15 +555,15 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -546,27 +573,33 @@ export default function ToolClient() {
           label="Active Headers"
           value={activeHeaders.length.toLocaleString()}
         />
-        <SummaryCard label="Output Type" value={outputMode} />
-        <SummaryCard label="Auth" value={authType} />
+        <SummaryCard label="Output Type" value={getOutputModeLabel(outputMode)} />
+        <SummaryCard label="Auth" value={getAuthTypeLabel(authType)} />
         <SummaryCard label="Length" value={output.length.toLocaleString()} />
       </div>
 
-      {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Header notes
-          </h3>
-
+      {blockingProblems.length > 0 && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+          <h3 className="text-sm font-semibold text-red-900">Fix these header problems</h3>
           <div className="mt-3 space-y-3">
-            {notes.map((note) => (
-              <div key={note.title}>
-                <p className="text-sm font-semibold text-amber-900">
-                  {note.title}
-                </p>
+            {blockingProblems.map((problem, index) => (
+              <div key={`${problem.title}-${index}`}>
+                <p className="text-sm font-semibold text-red-900">{problem.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-red-700">{problem.message}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  {note.message}
-                </p>
+      {warnings.length > 0 && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="text-sm font-semibold text-amber-900">Header cautions</h3>
+          <div className="mt-3 space-y-3">
+            {warnings.map((problem, index) => (
+              <div key={`${problem.title}-${index}`}>
+                <p className="text-sm font-semibold text-amber-900">{problem.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-amber-800">{problem.message}</p>
               </div>
             ))}
           </div>
@@ -582,7 +615,7 @@ export default function ToolClient() {
           {output && (
             <button
               onClick={copyOutput}
-              className="yoryantra-btn-outline text-sm"
+              className="yoryantra-btn-outline text-sm whitespace-nowrap"
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -594,164 +627,72 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Header building happens directly in your browser. The headers you enter
-        are not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Header generation runs in this browser session. The page does not send entered header values to an API.
+        Masking is a sharing aid, not a guarantee that every custom secret name will be recognized.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Building HTTP Request Headers for API Testing
+            Build Fields Without Losing Their HTTP Meaning
           </h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Request headers tell an API what kind of response you want, how the
-            request body is formatted, how authentication should work, and how a
-            client identifies itself. They are easy to mistype when you are
-            building requests by hand.
+            HTTP field names are case-insensitive tokens, but field values are defined by each header’s specification.
+            Duplicate field names are therefore preserved instead of being silently collapsed: some fields allow repeated or list-like values, while others have stricter semantics.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Request Header Builder helps you create clean header blocks for
-            API testing, cURL commands, fetch snippets, support notes, and
-            documentation. Add common headers, choose an auth header, hide
-            sensitive values, and copy the output in the format you need.
+            RFC 9110 defines the common field-name syntax and HTTP field model. The builder blocks invalid field names and line-breaking characters before producing output.
+            See <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noreferrer">RFC 9110, Section 5</a> for the HTTP field rules.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Creating Headers Without Rewriting the Same Lines
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Add header names and values in the rows above.</li>
-            <li>Use common header buttons for Accept, Content-Type, and more.</li>
-            <li>Add Bearer, Basic, or API key auth when needed.</li>
-            <li>Choose header block, JSON, cURL, or fetch output.</li>
-            <li>Copy the output and review sensitive values before sharing.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Common Request Header Builder Use Cases
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Output Formats Preserve Different Things</h2>
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Building headers for API debugging and endpoint testing.</li>
-            <li>Preparing Authorization and Content-Type headers quickly.</li>
-            <li>Creating cURL header flags from normal key-value rows.</li>
-            <li>Writing fetch headers for JavaScript examples.</li>
-            <li>Replacing real API keys and tokens before sharing snippets.</li>
-            <li>Documenting request headers in support notes or API docs.</li>
+            <li><strong>Header block:</strong> keeps each field line in order.</li>
+            <li><strong>JSON header pairs:</strong> uses an array of name/value pairs so duplicate names are not lost.</li>
+            <li><strong>cURL headers:</strong> uses POSIX-shell-safe single quoting for the URL and each <code>-H</code> argument.</li>
+            <li><strong>Fetch headers:</strong> emits a header-pair array, but browsers can still block or control particular request headers.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Headers
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Accept: application/json
-Content-Type: application/json
-Authorization: Bearer YOUR_TOKEN
-X-Request-ID: req_12345`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Be Careful With Auth and Cookie Headers
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Authorization Needs More Than Formatting</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Headers often contain tokens, API keys, cookies, session IDs, and
-            other values that should not be shared publicly. The tool hides
-            sensitive-looking values by default in copied output.
+            Bearer tokens are copied with the <code>Bearer</code> scheme. Basic credentials are entered as <code>username:password</code> and Base64-encoded; Base64 is reversible and provides no confidentiality.
+            Send credentials only over HTTPS and follow the server’s authentication requirements.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Before pasting headers into a ticket, chat message, or documentation,
-            replace real secrets with safe placeholder values.
+            RFC 7617 defines HTTP Basic authentication, including charset considerations for non-ASCII credentials.
+            See the <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc7617" target="_blank" rel="noreferrer">RFC 7617 specification</a>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a request header builder?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It helps you create HTTP request headers from key-value rows and
-                copy them as a header block, JSON object, cURL flags, or fetch
-                headers.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can I build Authorization headers?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. You can create Bearer token, Basic auth, or API key headers
-                from the auth section.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this generate cURL headers?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Choose cURL headers output to get -H lines that can be used
-                in a cURL command.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why are some values hidden?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Authorization, Cookie, API key, and token-like headers can
-                contain secrets. They are hidden by default so copied output is
-                safer to share.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are my headers uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Header building happens directly in your browser, and your
-                header values are not uploaded to a server.
-              </p>
-            </div>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Browser Fetch Has Its Own Boundary</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A syntactically valid HTTP header is not automatically writable from browser JavaScript. Fetch maintains a forbidden or browser-controlled request-header set for security and protocol reasons.
+            The builder flags names such as <code>Cookie</code>, <code>Host</code>, <code>Content-Length</code>, and <code>Sec-*</code> when Fetch output is selected.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://fetch.spec.whatwg.org/#forbidden-request-header" target="_blank" rel="noreferrer">WHATWG Fetch specification</a> is the authoritative reference for that browser boundary.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Before Sharing a Header Set</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Authorization values, cookies, API keys, session identifiers, and custom secret headers can grant access to real systems.
+            Keep masking enabled for examples, then inspect the final output because no name-based detector can recognize every organization-specific secret.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/request-header-builder" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/request-header-builder" />
+          </div>
         </div>
       </section>
     </ToolShell>
@@ -781,32 +722,44 @@ function buildAuthHeader({
   authValue: string;
   apiKeyHeaderName: string;
 }): HeaderRow | null {
-  if (authType === "none" || !authValue.trim()) {
+  if (authType === "none") {
     return null;
   }
 
   if (authType === "bearer") {
+    const token = authValue.trim();
+    if (!token) {
+      return null;
+    }
     return {
       id: -1,
       name: "Authorization",
-      value: `Bearer ${authValue.trim()}`,
+      value: `Bearer ${token}`,
       enabled: true,
     };
   }
 
   if (authType === "basic") {
+    if (!authValue) {
+      return null;
+    }
     return {
       id: -2,
       name: "Authorization",
-      value: `Basic ${authValue.trim()}`,
+      value: `Basic ${encodeUtf8Base64(authValue)}`,
       enabled: true,
     };
+  }
+
+  const apiKeyValue = authValue.trim();
+  if (!apiKeyValue) {
+    return null;
   }
 
   return {
     id: -3,
     name: apiKeyHeaderName.trim() || "X-API-Key",
-    value: authValue.trim(),
+    value: apiKeyValue,
     enabled: true,
   };
 }
@@ -830,40 +783,27 @@ function buildOutput({
     ...header,
     value:
       hideSensitiveValues && isSensitiveHeader(header.name)
-        ? getSafePlaceholder(header.name)
+        ? getSafePlaceholder(header.name, header.value)
         : header.value,
   }));
+  const pairs = sanitizedHeaders.map((header) => [header.name, header.value]);
 
   if (outputMode === "json") {
-    return JSON.stringify(
-      sanitizedHeaders.reduce<Record<string, string>>((acc, header) => {
-        acc[header.name] = header.value;
-        return acc;
-      }, {}),
-      null,
-      2
-    );
+    return JSON.stringify(pairs, null, 2);
   }
 
   if (outputMode === "curl") {
     const url = curlUrl.trim() || "https://api.example.com/resource";
     return [
-      `curl "${url}"`,
+      `curl ${quotePosixShell(url)}`,
       ...sanitizedHeaders.map(
-        (header) => `  -H "${escapeForDoubleQuotes(`${header.name}: ${header.value}`)}"`
+        (header) => `  -H ${quotePosixShell(`${header.name}: ${header.value}`)}`
       ),
     ].join(" \\\n");
   }
 
   if (outputMode === "fetch") {
-    return `headers: ${JSON.stringify(
-      sanitizedHeaders.reduce<Record<string, string>>((acc, header) => {
-        acc[header.name] = header.value;
-        return acc;
-      }, {}),
-      null,
-      2
-    )}`;
+    return `headers: ${JSON.stringify(pairs, null, 2)}`;
   }
 
   return sanitizedHeaders
@@ -871,90 +811,198 @@ function buildOutput({
     .join("\n");
 }
 
-function dedupeHeaders(headers: HeaderRow[]) {
-  const seen = new Set<string>();
-  const result: HeaderRow[] = [];
+function getHeaderProblems({
+  sourceHeaders,
+  activeHeaders,
+  authType,
+  authValue,
+  apiKeyHeaderName,
+  outputMode,
+  curlUrl,
+  hideSensitiveValues,
+}: {
+  sourceHeaders: HeaderRow[];
+  activeHeaders: HeaderRow[];
+  authType: AuthType;
+  authValue: string;
+  apiKeyHeaderName: string;
+  outputMode: OutputMode;
+  curlUrl: string;
+  hideSensitiveValues: boolean;
+}): HeaderProblem[] {
+  const problems: HeaderProblem[] = [];
+  const enabledRows = sourceHeaders.filter((header) => header.enabled && header.name.trim());
 
-  headers.forEach((header) => {
-    const normalized = header.name.trim().toLowerCase();
-
-    if (!normalized) {
-      return;
+  enabledRows.forEach((header, index) => {
+    const name = header.name.trim();
+    if (!isHttpFieldName(name)) {
+      problems.push({
+        severity: "error",
+        title: `Invalid header name in row ${index + 1}`,
+        message: `“${name}” is not a valid HTTP field-name token. Remove spaces, colons, and other disallowed characters.`,
+      });
     }
 
-    if (!seen.has(normalized)) {
-      result.push({
-        ...header,
-        name: header.name.trim(),
-        value: header.value.trim(),
+    if (/[\r\n\0]/.test(header.value)) {
+      problems.push({
+        severity: "error",
+        title: `Unsafe header value in row ${index + 1}`,
+        message: "Header values cannot contain carriage returns, line feeds, or NUL characters in this builder.",
       });
-      seen.add(normalized);
     }
   });
 
-  return result;
+  if (authValue && /[\r\n\0]/.test(authValue)) {
+    problems.push({
+      severity: "error",
+      title: "Auth value contains control characters",
+      message: "Authorization and API key values cannot contain carriage returns, line feeds, or NUL characters in this builder.",
+    });
+  }
+
+  if (authType === "bearer" && authValue.trim() && /\s/.test(authValue.trim())) {
+    problems.push({
+      severity: "error",
+      title: "Bearer token contains whitespace",
+      message: "Bearer token credentials cannot contain spaces or line breaks. Paste only the token value, without the Bearer prefix.",
+    });
+  }
+
+  if (authType === "apiKey" && authValue.trim() && !isHttpFieldName(apiKeyHeaderName.trim())) {
+    problems.push({
+      severity: "error",
+      title: "Invalid API key header name",
+      message: "The API key header name must use valid HTTP field-name characters.",
+    });
+  }
+
+  if (authType === "basic" && authValue && !authValue.includes(":")) {
+    problems.push({
+      severity: "error",
+      title: "Basic credentials need a colon",
+      message: "Enter Basic credentials as username:password so the credential pair can be encoded correctly.",
+    });
+  }
+
+  const autoAuthName = authType === "bearer" || authType === "basic"
+    ? "authorization"
+    : authType === "apiKey" && authValue
+      ? apiKeyHeaderName.trim().toLowerCase()
+      : "";
+
+  if (autoAuthName && enabledRows.some((header) => header.name.trim().toLowerCase() === autoAuthName)) {
+    problems.push({
+      severity: "error",
+      title: "Auth header is defined twice",
+      message: "Remove the matching manual header or set Auth Type to None. The builder will not guess which credential should win.",
+    });
+  }
+
+  const counts = new Map<string, number>();
+  activeHeaders.forEach((header) => {
+    const name = header.name.toLowerCase();
+    counts.set(name, (counts.get(name) || 0) + 1);
+  });
+  const duplicateNames = [...counts.entries()].filter(([, count]) => count > 1).map(([name]) => name);
+
+  if (duplicateNames.length > 0) {
+    problems.push({
+      severity: "warning",
+      title: "Duplicate field names preserved",
+      message: `Repeated fields (${duplicateNames.join(", ")}) are kept as separate lines/pairs. Confirm that each field's specification allows that form.`,
+    });
+  }
+
+  if (activeHeaders.some((header) => isSensitiveHeader(header.name))) {
+    problems.push({
+      severity: "warning",
+      title: "Credential-like headers present",
+      message: hideSensitiveValues
+        ? "Sensitive-looking values will be replaced with placeholders in generated output. Review custom header names before sharing."
+        : "Sensitive-looking values are currently included in generated output. Avoid copying real credentials into tickets, chat, or public documentation.",
+    });
+  }
+
+  if (authType === "basic" && authValue) {
+    problems.push({
+      severity: "warning",
+      title: "Basic authentication is reversible",
+      message: "Base64 is an encoding, not encryption. Use HTTPS, and check the server's charset expectations for non-ASCII credentials.",
+    });
+  }
+
+  if (outputMode === "fetch") {
+    const blocked = activeHeaders
+      .map((header) => header.name)
+      .filter(isBrowserControlledRequestHeader);
+
+    if (blocked.length > 0) {
+      problems.push({
+        severity: "warning",
+        title: "Browser-controlled Fetch headers",
+        message: `Browser Fetch may reject or control: ${Array.from(new Set(blocked)).join(", ")}. A valid HTTP field is not necessarily writable from browser JavaScript.`,
+      });
+    }
+
+    if (activeHeaders.some((header) => header.name.toLowerCase() === "user-agent")) {
+      problems.push({
+        severity: "warning",
+        title: "User-Agent can be browser-controlled",
+        message: "User-Agent is no longer on the Fetch forbidden-name list, but browsers can still manage or alter it. Do not assume a custom value will be sent unchanged.",
+      });
+    }
+  }
+
+  if (outputMode === "curl" && curlUrl.trim()) {
+    try {
+      const parsed = new URL(curlUrl.trim());
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        problems.push({
+          severity: "error",
+          title: "Unsupported request URL scheme",
+          message: "For this HTTP header builder, the cURL request URL must use http:// or https://.",
+        });
+      }
+
+      if (
+        parsed.protocol === "http:" &&
+        !hideSensitiveValues &&
+        activeHeaders.some((header) => isSensitiveHeader(header.name))
+      ) {
+        problems.push({
+          severity: "warning",
+          title: "Credentials over plain HTTP",
+          message: "The cURL URL uses HTTP while credential-like values are unmasked. Use HTTPS for real authentication data.",
+        });
+      }
+    } catch {
+      problems.push({
+        severity: "error",
+        title: "Invalid cURL request URL",
+        message: "Enter an absolute http:// or https:// URL, or leave the field blank to keep the example URL.",
+      });
+    }
+  }
+
+  return problems;
 }
 
-function getHeaderNotes({
-  headers,
-  authType,
-  curlUrl,
-}: {
-  headers: HeaderRow[];
-  authType: AuthType;
-  curlUrl: string;
-}): HeaderNote[] {
-  const notes: HeaderNote[] = [];
+function getOutputModeLabel(mode: OutputMode) {
+  if (mode === "headerBlock") return "Header block";
+  if (mode === "json") return "JSON pairs";
+  if (mode === "curl") return "cURL headers";
+  return "Fetch headers";
+}
 
-  if (headers.some((header) => isSensitiveHeader(header.name))) {
-    notes.push({
-      title: "Sensitive headers found",
-      message:
-        "Some headers may contain tokens, cookies, API keys, or session values. Keep placeholders if you plan to share the output.",
-    });
-  }
+function getAuthTypeLabel(type: AuthType) {
+  if (type === "none") return "None";
+  if (type === "bearer") return "Bearer";
+  if (type === "basic") return "Basic";
+  return "API key";
+}
 
-  const hasContentType = headers.some(
-    (header) => header.name.toLowerCase() === "content-type"
-  );
-
-  if (!hasContentType) {
-    notes.push({
-      title: "No Content-Type header",
-      message:
-        "If your request has a body, add a Content-Type header so the server knows how to read it.",
-    });
-  }
-
-  const hasAccept = headers.some(
-    (header) => header.name.toLowerCase() === "accept"
-  );
-
-  if (!hasAccept) {
-    notes.push({
-      title: "No Accept header",
-      message:
-        "Some APIs respond differently when an Accept header is missing.",
-    });
-  }
-
-  if (authType === "basic") {
-    notes.push({
-      title: "Basic auth value",
-      message:
-        "Basic auth normally uses a base64 encoded username:password value. Check what your API expects before using it.",
-    });
-  }
-
-  if (curlUrl && !/^https?:\/\//i.test(curlUrl.trim())) {
-    notes.push({
-      title: "Request URL has no protocol",
-      message:
-        "The request URL does not start with http:// or https://. That may be fine for a relative URL, but check it before running the cURL output.",
-    });
-  }
-
-  return notes;
+function isHttpFieldName(value: string) {
+  return /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(value);
 }
 
 function isSensitiveHeader(name: string) {
@@ -972,11 +1020,17 @@ function isSensitiveHeader(name: string) {
   );
 }
 
-function getSafePlaceholder(headerName: string) {
+function getSafePlaceholder(headerName: string, currentValue: string) {
   const normalized = headerName.toLowerCase();
 
   if (normalized === "authorization") {
-    return "Bearer YOUR_TOKEN";
+    if (/^basic\s/i.test(currentValue)) {
+      return "Basic BASE64_CREDENTIALS";
+    }
+    if (/^bearer\s/i.test(currentValue)) {
+      return "Bearer YOUR_TOKEN";
+    }
+    return "YOUR_AUTHORIZATION_VALUE";
   }
 
   if (normalized === "cookie") {
@@ -990,6 +1044,45 @@ function getSafePlaceholder(headerName: string) {
   return "YOUR_VALUE";
 }
 
-function escapeForDoubleQuotes(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+function isBrowserControlledRequestHeader(name: string) {
+  const normalized = name.toLowerCase();
+  const exact = new Set([
+    "accept-charset",
+    "accept-encoding",
+    "access-control-request-headers",
+    "access-control-request-method",
+    "connection",
+    "content-length",
+    "cookie",
+    "cookie2",
+    "date",
+    "dnt",
+    "expect",
+    "host",
+    "keep-alive",
+    "origin",
+    "permissions-policy",
+    "referer",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+    "via",
+  ]);
+
+  return exact.has(normalized) || normalized.startsWith("proxy-") || normalized.startsWith("sec-");
 }
+
+function encodeUtf8Base64(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
+}
+
+function quotePosixShell(value: string) {
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
+}
+

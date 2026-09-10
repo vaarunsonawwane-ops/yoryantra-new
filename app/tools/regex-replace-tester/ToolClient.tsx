@@ -16,8 +16,8 @@ type MatchRow = {
   start: number;
   end: number;
   line: number;
-  groups: string[];
-  namedGroups: Record<string, string>;
+  groups: Array<string | null>;
+  namedGroups: Record<string, string | null>;
 };
 
 type LineChange = {
@@ -28,7 +28,7 @@ type LineChange = {
 };
 
 type Issue = {
-  severity: "info" | "warning" | "high";
+  severity: "info" | "warning";
   title: string;
   message: string;
 };
@@ -40,6 +40,7 @@ type Result = {
   issues: Issue[];
   output: string;
   matchCount: number;
+  matchCountCapped: boolean;
   changedLines: number;
   inputLength: number;
   outputLength: number;
@@ -54,26 +55,25 @@ user-1024
 user-2048`;
 
 const samplePattern = String.raw`(?<name>[a-z]+)@(?<domain>[a-z0-9.-]+\.[a-z]{2,})`;
-const sampleReplacement = String.raw`\${name} [at] \${domain}`;
+const sampleReplacement = String.raw`$<name> [at] $<domain>`;
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
   const [pattern, setPattern] = useState("");
   const [replacement, setReplacement] = useState("");
-  const [flags, setFlags] = useState("gi");
+  const [flags, setFlags] = useState("i");
   const [outputMode, setOutputMode] = useState<OutputMode>("preview");
   const [replacementMode, setReplacementMode] = useState<ReplacementMode>("javascript");
   const [lineMode, setLineMode] = useState<LineMode>("all");
   const [replaceAll, setReplaceAll] = useState(true);
   const [showPositions, setShowPositions] = useState(true);
   const [showGroups, setShowGroups] = useState(true);
-  const [escapeReplacementText, setEscapeReplacementText] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const notes = useMemo(() => (result ? getNotes(result, flags) : []), [result, flags]);
+  const notes = useMemo(() => (result ? getNotes(result) : []), [result]);
 
   const clearResult = () => {
     setResult(null);
@@ -108,7 +108,6 @@ export default function ToolClient() {
         replaceAll,
         showPositions,
         showGroups,
-        escapeReplacementText,
       });
 
       setResult(next);
@@ -133,14 +132,13 @@ export default function ToolClient() {
     setInput(sampleInput);
     setPattern(samplePattern);
     setReplacement(sampleReplacement);
-    setFlags("gi");
+    setFlags("i");
     setOutputMode("preview");
     setReplacementMode("javascript");
     setLineMode("all");
     setReplaceAll(true);
     setShowPositions(true);
     setShowGroups(true);
-    setEscapeReplacementText(false);
     setResult(null);
     setOutput("");
     setError("");
@@ -151,14 +149,13 @@ export default function ToolClient() {
     setInput("");
     setPattern("");
     setReplacement("");
-    setFlags("gi");
+    setFlags("i");
     setOutputMode("preview");
     setReplacementMode("javascript");
     setLineMode("all");
     setReplaceAll(true);
     setShowPositions(true);
     setShowGroups(true);
-    setEscapeReplacementText(false);
     setResult(null);
     setOutput("");
     setError("");
@@ -168,7 +165,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Regex Replace Tester"
-      description="Test regex find and replace patterns directly in your browser. Preview replacements, capture groups, named groups, changed lines, match positions, flags, and before-after output."
+      description="Preview JavaScript regex replacements with capture groups, replacement tokens, match positions, and changed-line output."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -216,12 +213,13 @@ export default function ToolClient() {
               setFlags(event.target.value);
               clearResult();
             }}
-            placeholder="gi"
+            placeholder="i"
             className="w-full max-w-[180px] rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
 
           <p className="mt-2 text-sm text-gray-500">
-            Use JavaScript flags such as g, i, m, s, u, or y.
+            Enter JavaScript flags other than <code>g</code>. The “Replace all matches” option controls global replacement.
+            Runtime-supported flags such as <code>d</code>, <code>i</code>, <code>m</code>, <code>s</code>, <code>u</code>, <code>v</code>, and <code>y</code> are accepted.
           </p>
         </div>
 
@@ -241,7 +239,7 @@ export default function ToolClient() {
           />
 
           <p className="mt-2 text-sm text-gray-500">
-            In JavaScript mode, use $1, $2, $&amp;, $`, $&apos;, or ${"{name}"} for named groups.
+            In JavaScript mode, use $1, $2, $&amp;, $`, $&apos;, or $&lt;name&gt; for named groups.
           </p>
         </div>
       </div>
@@ -249,7 +247,7 @@ export default function ToolClient() {
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">Options</h3>
 
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
+        <div className="mt-4 grid items-start gap-4 md:grid-cols-3">
           <YoryantraSelect
             label="Output"
             value={outputMode}
@@ -292,7 +290,7 @@ export default function ToolClient() {
             ]}
           />
 
-          <div className="md:col-span-2 space-y-3">
+          <div className="md:col-span-3 space-y-3">
             <CheckboxRow
               checked={replaceAll}
               label="Replace all matches"
@@ -304,7 +302,7 @@ export default function ToolClient() {
 
             <CheckboxRow
               checked={showPositions}
-              label="Show match positions"
+              label="Show positions in match details"
               onChange={(checked) => {
                 setShowPositions(checked);
                 clearResult();
@@ -313,21 +311,13 @@ export default function ToolClient() {
 
             <CheckboxRow
               checked={showGroups}
-              label="Show capture groups"
+              label="Show groups in match details"
               onChange={(checked) => {
                 setShowGroups(checked);
                 clearResult();
               }}
             />
 
-            <CheckboxRow
-              checked={escapeReplacementText}
-              label="Escape replacement text literally"
-              onChange={(checked) => {
-                setEscapeReplacementText(checked);
-                clearResult();
-              }}
-            />
           </div>
         </div>
 
@@ -338,19 +328,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={testReplacement} className="yoryantra-btn">
+        <button onClick={testReplacement} className="yoryantra-btn whitespace-nowrap">
           Test Replacement
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -363,7 +353,10 @@ export default function ToolClient() {
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Matches" value={result.matchCount.toLocaleString()} />
+          <SummaryCard
+            label="Matches"
+            value={result.matchCountCapped ? `${result.matchCount.toLocaleString()}+` : result.matchCount.toLocaleString()}
+          />
           <SummaryCard label="Changed Lines" value={result.changedLines.toLocaleString()} />
           <SummaryCard label="Input Length" value={result.inputLength.toLocaleString()} />
           <SummaryCard label="Output Length" value={result.outputLength.toLocaleString()} />
@@ -387,9 +380,9 @@ export default function ToolClient() {
                   <th className="px-4 py-3 font-semibold">#</th>
                   <th className="px-4 py-3 font-semibold">Match</th>
                   <th className="px-4 py-3 font-semibold">Replacement</th>
-                  <th className="px-4 py-3 font-semibold">Line</th>
-                  <th className="px-4 py-3 font-semibold">Position</th>
-                  <th className="px-4 py-3 font-semibold">Groups</th>
+                  {showPositions && <th className="px-4 py-3 font-semibold">Line</th>}
+                  {showPositions && <th className="px-4 py-3 font-semibold">Position</th>}
+                  {showGroups && <th className="px-4 py-3 font-semibold">Groups</th>}
                 </tr>
               </thead>
 
@@ -403,9 +396,15 @@ export default function ToolClient() {
                     <td className="px-4 py-3 font-mono text-xs text-gray-800">
                       <span className="block max-w-[260px] break-words">{match.replacement}</span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{match.line}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{match.start}-{match.end}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{formatGroups(match)}</td>
+                    {showPositions && (
+                      <td className="px-4 py-3 font-mono text-xs text-gray-700">{match.line}</td>
+                    )}
+                    {showPositions && (
+                      <td className="px-4 py-3 font-mono text-xs text-gray-700">{match.start}-{match.end}</td>
+                    )}
+                    {showGroups && (
+                      <td className="px-4 py-3 font-mono text-xs text-gray-700">{formatGroups(match)}</td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -414,36 +413,54 @@ export default function ToolClient() {
 
           {result.matches.length > 100 && (
             <p className="mt-3 text-sm text-gray-500">
-              Showing the first 100 matches. Copy the output for the full result.
+              Showing the first 100 collected matches in the table.
+              {result.matchCountCapped ? " Match-detail collection is capped at 10,000; the replacement result can contain more replacements." : " Copy a text output mode when you need more detail."}
             </p>
           )}
         </div>
       )}
 
-      {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Regex findings</h3>
-
+      {result && result.issues.some((issue) => issue.severity === "warning") && (
+        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="text-sm font-semibold text-amber-900">Replacement cautions</h3>
           <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
-            ))}
+            {result.issues
+              .filter((issue) => issue.severity === "warning")
+              .map((issue, index) => (
+                <div key={`${issue.title}-${index}`}>
+                  <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {result && result.issues.some((issue) => issue.severity === "info") && (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Replacement observations</h3>
+          <div className="mt-3 space-y-3">
+            {result.issues
+              .filter((issue) => issue.severity === "info")
+              .map((issue, index) => (
+                <div key={`${issue.title}-${index}`}>
+                  <p className="text-sm font-semibold text-gray-900">{issue.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-700">{issue.message}</p>
+                </div>
+              ))}
           </div>
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Regex replace guidance</h3>
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Regex replace guidance</h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-700">{note.message}</p>
               </div>
             ))}
           </div>
@@ -455,7 +472,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm whitespace-nowrap">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -466,122 +483,75 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Regex replacement testing happens directly in your browser. Your input text and patterns are not uploaded to a server.
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        Matching and replacement run in this browser session. The page does not send your input text or pattern to an API.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Testing Regex Find and Replace Before Running It
+            Test the Replacement Semantics, Not Just the Match
           </h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Regex replacement is powerful, but a small pattern or replacement mistake can change more text than expected. Testing the pattern, replacement string, capture groups, and output first makes bulk edits safer.
+            A pattern can match exactly what you expect and still produce the wrong edit because JavaScript replacement strings have their own syntax.
+            Numbered captures, named captures, the complete match, and the text before or after a match can all be inserted by special dollar tokens.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Regex Replace Tester lets you preview before-and-after text, inspect matches, check capture groups, review named groups, and copy the final replacement result without running it in your editor or script first.
+            Literal mode avoids those substitutions and inserts the replacement text as written. That distinction matters when the replacement itself contains dollar signs.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Regex Replace Tester</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste the text you want to search and replace.</li>
-            <li>Enter a JavaScript-style regex pattern and flags.</li>
-            <li>Enter the replacement text, including capture references if needed.</li>
-            <li>Choose preview, result-only, match details, JSON, or Markdown output.</li>
-            <li>Review changed lines and copy the final replacement output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common Regex Replace Use Cases</h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Testing capture group replacements such as $1, $2, and ${"{name}"}.</li>
-            <li>Renaming text patterns across logs, CSV exports, or code snippets.</li>
-            <li>Previewing changed lines before applying replacements in an editor.</li>
-            <li>Checking whether a global replacement matches too much text.</li>
-            <li>Debugging named groups and replacement tokens.</li>
-            <li>Creating before-and-after examples for documentation or scripts.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Regex Replacement</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Pattern:     (?<name>[a-z]+)@(?<domain>[a-z0-9.-]+\\.[a-z]{2,})
-Replacement: \${name} [at] \${domain}
-
-john@example.com -> john [at] example.com`}
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900">JavaScript Replacement Tokens</h2>
+          <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
+            <table className="w-full min-w-[620px] text-left text-sm">
+              <thead className="bg-gray-50 text-gray-700">
+                <tr><th className="px-4 py-3 font-semibold">Token</th><th className="px-4 py-3 font-semibold">Meaning</th></tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-gray-700">
+                <tr><td className="px-4 py-3 font-mono">$$</td><td className="px-4 py-3">A literal dollar sign</td></tr>
+                <tr><td className="px-4 py-3 font-mono">$&amp;</td><td className="px-4 py-3">The complete match</td></tr>
+                <tr><td className="px-4 py-3 font-mono">$1 … $99</td><td className="px-4 py-3">Numbered capturing groups when they exist</td></tr>
+                <tr><td className="px-4 py-3 font-mono">$&lt;name&gt;</td><td className="px-4 py-3">A named capturing group</td></tr>
+                <tr><td className="px-4 py-3 font-mono">$` / $&apos;</td><td className="px-4 py-3">Text before / after the current match</td></tr>
+              </tbody>
+            </table>
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Replacement Tokens Can Change the Result</h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            JavaScript replacement strings support special tokens such as $1 for the first capture group, $&amp; for the full match, and ${"{name}"} for a named capture group. This is useful, but it also means dollar signs in replacement text may need attention.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use literal replacement mode or escape replacement text when you want the replacement string to be inserted exactly as typed.
+            These are the replacement-string rules used by JavaScript <code>String.prototype.replace()</code>.
+            The <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace" target="_blank" rel="noreferrer">MDN replacement reference</a>
+            gives compact examples, while the <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://tc39.es/ecma262/multipage/text-processing.html#sec-regexp.prototype-%40%40replace" target="_blank" rel="noreferrer">ECMAScript specification</a> defines the normative behavior.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Flags and Replace-All Behavior</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The “Replace all matches” option owns the <code>g</code> flag so the UI cannot silently disagree with the requested replacement scope.
+            Other flags are passed to the browser’s RegExp engine and rejected if that runtime does not support them or if they conflict.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Match positions are JavaScript string indexes, which are UTF-16 code-unit offsets rather than Unicode code-point counts.
+            With Unicode-aware matching, zero-length matches are advanced by a full Unicode code point to avoid splitting surrogate pairs.
+          </p>
+        </div>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">What does a Regex Replace Tester do?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It lets you test a regex pattern and replacement string, then preview the replaced output before applying it elsewhere.
-              </p>
-            </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Performance and Safety Boundaries</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Regular expressions execute in the browser’s JavaScript engine. Certain patterns can take a very long time because of backtracking, even when the input is not huge.
+            A preview cannot prove that a pattern is safe for arbitrary production data. Test representative input and keep backups before bulk replacement.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The table intentionally caps rendered rows while copied output can still contain the full replacement result. Very large input is flagged because rendering and regex execution can become expensive.
+          </p>
+        </div>
 
-            <div>
-              <h3 className="font-semibold text-gray-900">Is this different from a Regex Tester?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. A regex tester focuses on matching. This tool focuses on replacement output, changed lines, and replacement tokens.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Does it support named capture groups?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. JavaScript-style named groups can be referenced in the replacement string with ${"{name}"}.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Why does replace all depend on the g flag?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                In JavaScript regex, global replacement uses the g flag. The tool can add it for replace-all preview when needed.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">Is my text uploaded anywhere?</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Regex replacement testing happens directly in your browser.
-              </p>
-            </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/regex-replace-tester" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/regex-replace-tester" />
         </div>
       </section>
     </ToolShell>
@@ -635,25 +605,35 @@ function runRegexReplace(
     replaceAll: boolean;
     showPositions: boolean;
     showGroups: boolean;
-    escapeReplacementText: boolean;
   }
 ): Result {
+  if (input.length > 500000) {
+    throw new Error("Input is limited to 500,000 UTF-16 code units to keep the browser preview manageable.");
+  }
+
+  if (options.pattern.length > 5000) {
+    throw new Error("Regex pattern is limited to 5,000 characters.");
+  }
+
   const cleanFlags = normalizeFlags(options.flags, options.replaceAll);
   const regex = new RegExp(options.pattern, cleanFlags);
-  const matchRegex = new RegExp(options.pattern, cleanFlags.includes("g") ? cleanFlags : `${cleanFlags}g`);
-  const matches = collectMatches(input, matchRegex, options.replacement, options.replacementMode === "literal" || options.escapeReplacementText);
-  const replacementValue = options.replacementMode === "literal" || options.escapeReplacementText
+  const matchRegex = new RegExp(options.pattern, cleanFlags);
+  const literalReplacement = options.replacementMode === "literal";
+  const collected = collectMatches(input, matchRegex, options.replacement, literalReplacement, options.replaceAll);
+  const matches = collected.rows;
+  const replacementValue = literalReplacement
     ? options.replacement.replace(/\$/g, "$$$$")
     : options.replacement;
   const replacedText = input.replace(regex, replacementValue);
   const lineChanges = getLineChanges(input, replacedText);
-  const issues = getIssues(input, matches, cleanFlags, options);
+  const issues = getIssues(input, matches, options, collected.truncated);
   const base = {
     replacedText,
     matches,
     lineChanges,
     issues,
     matchCount: matches.length,
+    matchCountCapped: collected.truncated,
     changedLines: lineChanges.filter((line) => line.changed).length,
     inputLength: input.length,
     outputLength: replacedText.length,
@@ -667,26 +647,53 @@ function runRegexReplace(
 }
 
 function normalizeFlags(flags: string, replaceAll: boolean) {
-  const allowed = new Set(["g", "i", "m", "s", "u", "y"]);
-  const clean = Array.from(new Set(flags.split("").filter((flag) => allowed.has(flag))));
+  const raw = flags.trim();
 
-  if (replaceAll && !clean.includes("g")) {
-    clean.push("g");
+  if (/\s/.test(raw)) {
+    throw new Error("Regex flags cannot contain spaces.");
   }
 
-  if (!replaceAll) {
-    return clean.filter((flag) => flag !== "g").join("");
+  const seen = new Set<string>();
+  for (const flag of raw) {
+    if (seen.has(flag)) {
+      throw new Error(`Duplicate regex flag: ${flag}`);
+    }
+    seen.add(flag);
   }
 
-  return clean.join("");
+  if (seen.has("g")) {
+    throw new Error("Use the “Replace all matches” option instead of typing the g flag.");
+  }
+
+  const normalized = `${raw}${replaceAll ? "g" : ""}`;
+
+  try {
+    // Let the current JavaScript runtime decide which flags and combinations it supports.
+    new RegExp("", normalized);
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : "Invalid JavaScript regex flags.");
+  }
+
+  return normalized;
 }
 
-function collectMatches(input: string, regex: RegExp, replacement: string, literalReplacement: boolean) {
+function collectMatches(
+  input: string,
+  regex: RegExp,
+  replacement: string,
+  literalReplacement: boolean,
+  replaceAll: boolean
+) {
   const rows: MatchRow[] = [];
   let match: RegExpExecArray | null;
-  let safety = 0;
+  let truncated = false;
 
   while ((match = regex.exec(input)) !== null) {
+    if (rows.length >= 10000) {
+      truncated = true;
+      break;
+    }
+
     const start = match.index;
     const end = start + match[0].length;
 
@@ -697,47 +704,141 @@ function collectMatches(input: string, regex: RegExp, replacement: string, liter
       start,
       end,
       line: getLineNumber(input, start),
-      groups: match.slice(1).map((group) => group ?? ""),
-      namedGroups: match.groups ? { ...match.groups } : {},
+      groups: match.slice(1).map((group) => group ?? null),
+      namedGroups: normalizeNamedGroups(match.groups),
     });
 
-    if (match[0] === "") {
-      regex.lastIndex += 1;
-    }
-
-    safety += 1;
-
-    if (safety > 10000) {
+    if (!replaceAll) {
       break;
     }
+
+    if (match[0] === "") {
+      regex.lastIndex = advanceStringIndex(input, regex.lastIndex, regex.unicode || hasUnicodeSetsFlag(regex.flags));
+    }
+
   }
 
-  return rows;
+  return { rows, truncated };
 }
 
-function previewReplacement(match: RegExpExecArray, input: string, replacement: string, literal: boolean) {
+function normalizeNamedGroups(groups: Record<string, string | undefined> | undefined) {
+  const normalized: Record<string, string | null> = {};
+
+  if (!groups) {
+    return normalized;
+  }
+
+  Object.entries(groups).forEach(([key, value]) => {
+    normalized[key] = value ?? null;
+  });
+
+  return normalized;
+}
+
+function previewReplacement(
+  match: RegExpExecArray,
+  input: string,
+  replacement: string,
+  literal: boolean
+) {
   if (literal) {
     return replacement;
   }
 
-  return replacement.replace(/\$\$|\$&|\$`|\$'|\$(\d{1,2})|\$<([A-Za-z][A-Za-z0-9_]*)>|\$\{([A-Za-z][A-Za-z0-9_]*)}/g, (token, numberGroup, angleName, braceName) => {
-    if (token === "$$") return "$";
-    if (token === "$&") return match[0];
-    if (token === "$`") return input.slice(0, match.index);
-    if (token === "$'") return input.slice(match.index + match[0].length);
+  let result = "";
 
-    if (numberGroup) {
-      return match[Number(numberGroup)] ?? "";
+  for (let index = 0; index < replacement.length; index += 1) {
+    const char = replacement[index];
+    if (char !== "$" || index + 1 >= replacement.length) {
+      result += char;
+      continue;
     }
 
-    const groupName = angleName || braceName;
+    const next = replacement[index + 1];
 
-    if (groupName && match.groups) {
-      return match.groups[groupName] ?? "";
+    if (next === "$") {
+      result += "$";
+      index += 1;
+      continue;
+    }
+    if (next === "&") {
+      result += match[0];
+      index += 1;
+      continue;
+    }
+    if (next === "`") {
+      result += input.slice(0, match.index);
+      index += 1;
+      continue;
+    }
+    if (next === "'") {
+      result += input.slice(match.index + match[0].length);
+      index += 1;
+      continue;
     }
 
-    return token;
-  });
+    if (next === "<") {
+      const close = replacement.indexOf(">", index + 2);
+      if (close !== -1 && match.groups) {
+        const name = replacement.slice(index + 2, close);
+        result += match.groups[name] ?? "";
+        index = close;
+        continue;
+      }
+    }
+
+    if (next === "0") {
+      const secondChar = replacement[index + 2];
+      if (secondChar && /[1-9]/.test(secondChar)) {
+        const capture = Number(secondChar);
+        if (capture < match.length) {
+          result += match[capture] ?? "";
+          index += 2;
+          continue;
+        }
+      }
+    }
+
+    if (/\d/.test(next) && next !== "0") {
+      const first = Number(next);
+      const secondChar = replacement[index + 2];
+      const twoDigit = secondChar && /\d/.test(secondChar) ? Number(next + secondChar) : 0;
+
+      if (twoDigit > 0 && twoDigit < match.length) {
+        result += match[twoDigit] ?? "";
+        index += 2;
+        continue;
+      }
+
+      if (first < match.length) {
+        result += match[first] ?? "";
+        index += 1;
+        continue;
+      }
+    }
+
+    result += "$";
+  }
+
+  return result;
+}
+
+function advanceStringIndex(input: string, index: number, unicode: boolean) {
+  if (!unicode || index + 1 >= input.length) {
+    return index + 1;
+  }
+
+  const first = input.charCodeAt(index);
+  if (first < 0xd800 || first > 0xdbff) {
+    return index + 1;
+  }
+
+  const second = input.charCodeAt(index + 1);
+  return second >= 0xdc00 && second <= 0xdfff ? index + 2 : index + 1;
+}
+
+function hasUnicodeSetsFlag(flags: string) {
+  return flags.includes("v");
 }
 
 function getLineChanges(before: string, after: string) {
@@ -768,12 +869,13 @@ function getLineNumber(input: string, index: number) {
 function getIssues(
   input: string,
   matches: MatchRow[],
-  flags: string,
   options: {
     replaceAll: boolean;
     replacement: string;
     replacementMode: ReplacementMode;
-  }
+    pattern: string;
+  },
+  matchCountCapped: boolean
 ) {
   const issues: Issue[] = [];
 
@@ -793,6 +895,14 @@ function getIssues(
     });
   }
 
+  if (matchCountCapped) {
+    issues.push({
+      severity: "warning",
+      title: "Match detail limit reached",
+      message: "Match-detail collection stops at 10,000 rows. The replacement itself still uses JavaScript's full replace operation, so the result can contain more replacements than the collected count.",
+    });
+  }
+
   if (matches.length > 500) {
     issues.push({
       severity: "info",
@@ -801,23 +911,24 @@ function getIssues(
     });
   }
 
-  if (options.replaceAll && !flags.includes("g")) {
-    issues.push({
-      severity: "info",
-      title: "Global flag needed",
-      message: "JavaScript replace-all behavior uses the g flag.",
-    });
-  }
 
   if (
     options.replacementMode === "javascript" &&
-    /\$\d|\$<|\$\{/.test(options.replacement) &&
+    /\$\d|\$</.test(options.replacement) &&
     matches.every((match) => match.groups.length === 0 && Object.keys(match.namedGroups).length === 0)
   ) {
     issues.push({
       severity: "info",
       title: "Replacement references groups",
       message: "The replacement text references groups, but the pattern did not capture any groups.",
+    });
+  }
+
+  if (looksBacktrackingProne(options.pattern)) {
+    issues.push({
+      severity: "warning",
+      title: "Backtracking risk",
+      message: "The pattern contains a nested quantified group that can become expensive on some inputs. Test representative data before using it for bulk replacement.",
     });
   }
 
@@ -830,6 +941,10 @@ function getIssues(
   }
 
   return issues;
+}
+
+function looksBacktrackingProne(pattern: string) {
+  return /\((?:[^()\\]|\\.)*[+*](?:[^()\\]|\\.)*\)[+*{]/.test(pattern);
 }
 
 function formatOutput(
@@ -846,16 +961,47 @@ function formatOutput(
   }
 
   if (options.outputMode === "json") {
-    return JSON.stringify(result, null, 2);
+    return JSON.stringify(
+      {
+        ...result,
+        matches: result.matches.map((match) => ({
+          number: match.number,
+          match: match.match,
+          replacement: match.replacement,
+          ...(options.showPositions ? { start: match.start, end: match.end, line: match.line } : {}),
+          ...(options.showGroups ? { groups: match.groups, namedGroups: match.namedGroups } : {}),
+        })),
+      },
+      null,
+      2
+    );
   }
 
   if (options.outputMode === "markdown") {
+    const headers = ["#", "Match", "Replacement"];
+    if (options.showPositions) headers.push("Line", "Position");
+    if (options.showGroups) headers.push("Groups");
+
+    const divider = headers.map(() => "---");
+    const rows = result.matches.map((match) => {
+      const cells = [
+        String(match.number),
+        escapeMarkdown(match.match),
+        escapeMarkdown(match.replacement),
+      ];
+      if (options.showPositions) {
+        cells.push(String(match.line), `${match.start}-${match.end}`);
+      }
+      if (options.showGroups) {
+        cells.push(escapeMarkdown(formatGroups(match)));
+      }
+      return `| ${cells.join(" | ")} |`;
+    });
+
     return [
-      "| # | Match | Replacement | Line | Position |",
-      "| --- | --- | --- | --- | --- |",
-      ...result.matches.map((match) =>
-        `| ${match.number} | ${escapeMarkdown(match.match)} | ${escapeMarkdown(match.replacement)} | ${match.line} | ${match.start}-${match.end} |`
-      ),
+      `| ${headers.join(" | ")} |`,
+      `| ${divider.join(" | ")} |`,
+      ...rows,
     ].join("\n");
   }
 
@@ -879,8 +1025,8 @@ function formatOutput(
         }
 
         if (options.showGroups) {
-          lines.push(`Groups: ${match.groups.length ? match.groups.map((group, index) => `$${index + 1}=${group}`).join(", ") : "none"}`);
-          lines.push(`Named groups: ${Object.keys(match.namedGroups).length ? JSON.stringify(match.namedGroups) : "none"}`);
+          lines.push(`Groups: ${match.groups.length ? match.groups.map((group, index) => `$${index + 1}=${group ?? "(unmatched)"}`).join(", ") : "none"}`);
+          lines.push(`Named groups: ${Object.keys(match.namedGroups).length ? Object.entries(match.namedGroups).map(([key, value]) => `${key}=${value ?? "(unmatched)"}`).join(", ") : "none"}`);
         }
 
         return lines.join("\n");
@@ -898,7 +1044,7 @@ function formatOutput(
   return [
     "Regex Replace Preview",
     "---------------------",
-    `Matches: ${result.matchCount}`,
+    `Matches: ${result.matchCount}${result.matchCountCapped ? "+" : ""}`,
     `Changed lines: ${result.changedLines}`,
     `Input length: ${result.inputLength}`,
     `Output length: ${result.outputLength}`,
@@ -913,10 +1059,10 @@ function formatOutput(
 
 function formatGroups(match: MatchRow) {
   const numbered = match.groups.length
-    ? match.groups.map((group, index) => `$${index + 1}=${group}`).join(", ")
+    ? match.groups.map((group, index) => `$${index + 1}=${group ?? "(unmatched)"}`).join(", ")
     : "";
   const named = Object.keys(match.namedGroups).length
-    ? Object.entries(match.namedGroups).map(([key, value]) => `${key}=${value}`).join(", ")
+    ? Object.entries(match.namedGroups).map(([key, value]) => `${key}=${value ?? "(unmatched)"}`).join(", ")
     : "";
 
   return [numbered, named].filter(Boolean).join("; ") || "-";
@@ -926,7 +1072,7 @@ function escapeMarkdown(value: string) {
   return value.replace(/\|/g, "\\|").replace(/\n/g, "\\n");
 }
 
-function getNotes(result: Result, flags: string) {
+function getNotes(result: Result) {
   const notes: { title: string; message: string }[] = [];
 
   if (result.matchCount > 0) {
@@ -936,12 +1082,6 @@ function getNotes(result: Result, flags: string) {
     });
   }
 
-  if (!flags.includes("g") && result.matchCount > 1) {
-    notes.push({
-      title: "Multiple possible matches",
-      message: "The pattern can match more than once. Use replace all when you want every match replaced.",
-    });
-  }
 
   if (result.changedLines === 0 && result.matchCount > 0) {
     notes.push({
