@@ -46,7 +46,7 @@ type Result = {
   outputLength: number;
 };
 
-const sampleInput = `Contact: john@example.com
+const sampleInput = `Contact: varoun@example.com
 Contact: sneha@example.in
 Support: help@yoryantra.com
 
