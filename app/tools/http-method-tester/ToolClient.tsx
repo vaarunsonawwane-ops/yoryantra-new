@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -9,7 +9,6 @@ type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTION
 type OutputMode = "summary" | "curl" | "fetch" | "markdown" | "json" | "checklist";
 type BodyMode = "none" | "json" | "form" | "text";
 type AuthMode = "none" | "bearer" | "basic" | "apiKey";
-type SafetyLevel = "reference" | "safeExample" | "destructiveReview";
 
 type Issue = {
   severity: "info" | "warning" | "high";
@@ -48,12 +47,10 @@ export default function ToolClient() {
   const [outputMode, setOutputMode] = useState<OutputMode>("summary");
   const [bodyMode, setBodyMode] = useState<BodyMode>("none");
   const [authMode, setAuthMode] = useState<AuthMode>("none");
-  const [safetyLevel, setSafetyLevel] = useState<SafetyLevel>("safeExample");
   const [requestBody, setRequestBody] = useState("");
   const [customHeaders, setCustomHeaders] = useState("");
   const [includeContentType, setIncludeContentType] = useState(true);
   const [includeAcceptHeader, setIncludeAcceptHeader] = useState(true);
-  const [includeAuthPlaceholder, setIncludeAuthPlaceholder] = useState(false);
   const [includeRequestBody, setIncludeRequestBody] = useState(true);
   const [prettyPrintBody, setPrettyPrintBody] = useState(true);
   const [warnDestructiveMethods, setWarnDestructiveMethods] = useState(true);
@@ -76,7 +73,47 @@ export default function ToolClient() {
 
   const processMethod = () => {
     if (!url.trim()) {
-      setError("Please enter an endpoint URL or path to build the method check.");
+      setError("Enter an endpoint URL or path before building the method review.");
+      setResult(null);
+      setOutput("");
+      return;
+    }
+
+    const headerError = validateHeaderInput(customHeaders);
+    if (headerError) {
+      setError(headerError);
+      setResult(null);
+      setOutput("");
+      return;
+    }
+
+    if (bodyMode === "json" && includeRequestBody && requestBody.trim()) {
+      try {
+        JSON.parse(requestBody);
+      } catch {
+        setError("The body is marked as JSON but is not valid JSON. Correct it or choose another body type.");
+        setResult(null);
+        setOutput("");
+        return;
+      }
+    }
+
+    if (
+      method === "OPTIONS" &&
+      includeRequestBody &&
+      bodyMode !== "none" &&
+      requestBody.trim() &&
+      !includeContentType &&
+      !parseHeaders(customHeaders).some((header) => header.name.toLowerCase() === "content-type")
+    ) {
+      setError("OPTIONS request content needs a valid Content-Type header. Enable Content-Type or provide one in Custom Headers.");
+      setResult(null);
+      setOutput("");
+      return;
+    }
+
+    if (outputMode === "fetch" && includeRequestBody && requestBody.trim() && (method === "GET" || method === "HEAD")) {
+      setError(`The Fetch API does not allow a request body with ${method}. Remove the body or choose another output.`);
       setResult(null);
       setOutput("");
       return;
@@ -88,12 +125,10 @@ export default function ToolClient() {
       outputMode,
       bodyMode,
       authMode,
-      safetyLevel,
       requestBody,
       customHeaders,
       includeContentType,
       includeAcceptHeader,
-      includeAuthPlaceholder,
       includeRequestBody,
       prettyPrintBody,
       warnDestructiveMethods,
@@ -129,12 +164,10 @@ export default function ToolClient() {
     setOutputMode("curl");
     setBodyMode("json");
     setAuthMode("bearer");
-    setSafetyLevel("safeExample");
     setRequestBody(sampleBody);
     setCustomHeaders("X-Request-ID: example-request-id");
     setIncludeContentType(true);
     setIncludeAcceptHeader(true);
-    setIncludeAuthPlaceholder(true);
     setIncludeRequestBody(true);
     setPrettyPrintBody(true);
     setWarnDestructiveMethods(true);
@@ -150,12 +183,10 @@ export default function ToolClient() {
     setOutputMode("summary");
     setBodyMode("none");
     setAuthMode("none");
-    setSafetyLevel("safeExample");
     setRequestBody("");
     setCustomHeaders("");
     setIncludeContentType(true);
     setIncludeAcceptHeader(true);
-    setIncludeAuthPlaceholder(false);
     setIncludeRequestBody(true);
     setPrettyPrintBody(true);
     setWarnDestructiveMethods(true);
@@ -168,14 +199,14 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HTTP Method Tester"
-      description="Check HTTP method behavior, review REST usage, and generate safe cURL or fetch examples for GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS without sending requests."
+      description="Compare HTTP method semantics and build request examples without sending anything to an endpoint."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-900">Endpoint URL or Path</label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Enter an API endpoint, route, or example URL. This tool builds examples and checks method behavior locally; it does not send the request.
+              Enter an API endpoint, route, or example URL. The review stays in your browser and does not send a request.
             </p>
           </div>
 
@@ -228,19 +259,19 @@ export default function ToolClient() {
               onChange={(value) => {
                 const next = value as HttpMethod;
                 setMethod(next);
-                if ((next === "GET" || next === "HEAD" || next === "OPTIONS") && bodyMode !== "none") {
+                if ((next === "GET" || next === "HEAD") && bodyMode !== "none") {
                   setBodyMode("none");
                 }
                 clearResult();
               }}
               options={[
                 { label: "GET - read a resource", value: "GET" },
-                { label: "POST - create or submit", value: "POST" },
+                { label: "POST - resource-specific processing", value: "POST" },
                 { label: "PUT - replace a resource", value: "PUT" },
-                { label: "PATCH - partially update", value: "PATCH" },
-                { label: "DELETE - remove a resource", value: "DELETE" },
+                { label: "PATCH - apply a patch document", value: "PATCH" },
+                { label: "DELETE - remove target association", value: "DELETE" },
                 { label: "HEAD - headers only", value: "HEAD" },
-                { label: "OPTIONS - allowed methods", value: "OPTIONS" },
+                { label: "OPTIONS - communication options", value: "OPTIONS" },
               ]}
             />
 
@@ -290,20 +321,6 @@ export default function ToolClient() {
                 { label: "API key header placeholder", value: "apiKey" },
               ]}
             />
-
-            <YoryantraSelect
-              label="Safety Review"
-              value={safetyLevel}
-              onChange={(value) => {
-                setSafetyLevel(value as SafetyLevel);
-                clearResult();
-              }}
-              options={[
-                { label: "Reference only", value: "reference" },
-                { label: "Safe example review", value: "safeExample" },
-                { label: "Destructive method review", value: "destructiveReview" },
-              ]}
-            />
           </div>
         </div>
       </div>
@@ -313,16 +330,15 @@ export default function ToolClient() {
         <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
           <Toggle checked={includeContentType} onChange={setIncludeContentType} label="Include Content-Type header when body is used" />
           <Toggle checked={includeAcceptHeader} onChange={setIncludeAcceptHeader} label="Include Accept: application/json" />
-          <Toggle checked={includeAuthPlaceholder} onChange={setIncludeAuthPlaceholder} label="Include auth placeholder header" />
           <Toggle checked={includeRequestBody} onChange={setIncludeRequestBody} label="Include request body in generated snippets" />
           <Toggle checked={prettyPrintBody} onChange={setPrettyPrintBody} label="Pretty print JSON body when possible" />
-          <Toggle checked={warnDestructiveMethods} onChange={setWarnDestructiveMethods} label="Warn about destructive methods" />
+          <Toggle checked={warnDestructiveMethods} onChange={setWarnDestructiveMethods} label="Warn about state-changing methods" />
           <Toggle checked={warnBodyMismatch} onChange={setWarnBodyMismatch} label="Warn when method and body do not match" />
           <Toggle checked={warnCachingBehavior} onChange={setWarnCachingBehavior} label="Warn about caching and idempotency behavior" />
           <Toggle checked={warnCorsPreflight} onChange={setWarnCorsPreflight} label="Warn when request may trigger CORS preflight" />
         </div>
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          These options keep request examples safe and readable while helping you review method intent, headers, body usage, CORS, and idempotency.
+          Keep only the headers and checks that belong in the example you are preparing. Warnings describe protocol-level concerns; the endpoint contract still decides what the server accepts.
         </p>
       </div>
 
@@ -330,21 +346,21 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={processMethod}
-          className="rounded-xl bg-[var(--green)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="min-h-[44px] whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Check HTTP Method
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="rounded-xl border border-[var(--green)] px-5 py-3 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-2.5 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
         >
           Reset
         </button>
@@ -364,7 +380,7 @@ export default function ToolClient() {
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
@@ -377,7 +393,7 @@ export default function ToolClient() {
 
           <div className="space-y-4">
             <StatCard label="Method" value={result.method} />
-            <StatCard label="Body allowed" value={result.bodyAllowed ? "usually yes" : "usually no"} />
+            <StatCard label="Request content" value={result.bodyAllowed ? "defined / common" : "unusual / contract-dependent"} />
             <StatCard label="Purpose" value={result.methodPurpose} />
             <StatCard label="Output size" value={`${result.outputLength.toLocaleString()} chars`} />
           </div>
@@ -389,9 +405,9 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((note) => (
-              <div key={`${note.title}-${note.message}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div key={`${note.title}-${note.message}`} className={issueCardClass(note.severity)}>
                 <p className="text-sm font-semibold text-gray-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{note.message}</p>
+                <p className="mt-1 text-sm leading-6 text-gray-700">{note.message}</p>
               </div>
             ))}
           </div>
@@ -425,81 +441,81 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Checking HTTP Method Choices Before Building Requests</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Method semantics matter more than CRUD labels</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            HTTP methods describe the intent of a request. GET is usually for reading, POST is often for creating or submitting, PUT replaces, PATCH updates part of a resource, and DELETE removes. Choosing the wrong method can lead to confusing API behavior, caching problems, or unsafe examples.
+            GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS are protocol methods, not a fixed CRUD vocabulary. An API can give a POST endpoint resource-specific processing semantics without creating anything, and DELETE expresses removal of the target resource association rather than promising that every underlying record or file is physically erased. Treat the API contract as authoritative when it narrows or extends the general HTTP meaning.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This tool helps review method intent and generate safe request examples. It does not call the endpoint, so you can use it while writing documentation, debugging API clients, or preparing examples without accidentally sending a request.
+            RFC 9110 defines GET, HEAD, and OPTIONS as safe methods. PUT and DELETE are not safe, but they are idempotent by definition: repeating the same intended request should have the same intended effect as sending it once. POST is not inherently idempotent, and RFC 5789 makes the same point for PATCH, although an API can design a particular POST or PATCH operation to be idempotent.
+          </p>
+          <p className="mt-3 text-sm text-gray-500">
+            Standards: <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc9110.html#section-9" target="_blank" rel="noreferrer">RFC 9110, HTTP methods</a> and <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc5789.html" target="_blank" rel="noreferrer">RFC 5789, PATCH</a>.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">When This HTTP Method Tester Helps</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Checking whether an API example should use GET, POST, PUT, PATCH, DELETE, HEAD, or OPTIONS.</p>
-            <p className="mt-2">Generating cURL or fetch snippets for docs, test notes, code examples, or issue reports.</p>
-            <p className="mt-2">Reviewing whether a request body, Content-Type header, or auth placeholder belongs in the example.</p>
-            <p className="mt-2">Spotting risky method choices before writing scripts that could modify or delete resources.</p>
+        <div className="grid gap-5 lg:grid-cols-2 items-start">
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">Request content is not simply allowed or forbidden</h2>
+            <p className="mt-3 text-gray-600 leading-relaxed">
+              POST and PUT define clear semantics for request content, and PATCH carries a patch document whose media type tells the server how to apply the change. GET, HEAD, and DELETE are different: RFC 9110 says request content has no generally defined semantics for them and clients should not generate it unless the origin server has explicitly indicated support. OPTIONS can contain content, but HTTP itself assigns no meaning to it and requires a valid Content-Type when it is present.
+            </p>
+            <p className="mt-3 text-sm text-gray-500">
+              A warning here means “unusual or contract-dependent,” not “HTTP syntax makes this impossible.”
+            </p>
+          </div>
+
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">Retry decisions belong to idempotency</h2>
+            <p className="mt-3 text-gray-600 leading-relaxed">
+              A network timeout creates an awkward question: did the server apply the request before the connection failed? Idempotent methods give clients more room to retry automatically because repeating the same intended operation should not multiply its intended effect. That does not make PUT or DELETE harmless, and it does not mean every library should blindly retry them. Preconditions such as If-Match can matter when concurrent updates are possible.
+            </p>
+            <p className="mt-3 text-sm text-gray-500">
+              PATCH deserves extra care when the patch depends on a known base version; RFC 5789 specifically discusses conditional requests for collision-sensitive patch formats.
+            </p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">How to Use the HTTP Method Tester</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter an endpoint URL or API path.</li>
-            <li>Select the HTTP method and choose whether the request should include a body.</li>
-            <li>Add optional headers, auth placeholders, and request body text.</li>
-            <li>Choose a summary, cURL command, fetch snippet, Markdown report, JSON report, or checklist output.</li>
-            <li>Review warnings about destructive methods, body mismatch, caching, and CORS behavior before copying.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">Caching rules differ by method</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            GET and HEAD have normal cache semantics. POST responses can be cached only under specific conditions, including explicit freshness information and a matching Content-Location. PUT and DELETE responses are not cacheable under RFC 9110, and successful requests can invalidate stored responses for the target URI. OPTIONS responses are also not cacheable. PATCH has its own narrower cache rules in RFC 5789.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The generated summary is a protocol reference, not a prediction of what a particular CDN, framework, reverse proxy, or application cache will do. Cache-Control, validators, authorization, intermediary configuration, and application behavior still decide what happens in a real deployment.
+          </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Generated cURL Request</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{`curl -X PATCH "https://api.example.com/v1/tools/123" \\
-  -H "Accept: application/json" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_TOKEN" \\
-  --data '{"title":"JSON Formatter"}'`}</pre>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] items-start">
+          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">Generated commands are examples, not live verification</h2>
+            <p className="mt-3 text-gray-700 leading-relaxed">
+              Nothing entered here is sent to the endpoint. That protects you from accidentally executing a destructive example, but it also means the page cannot confirm whether a route exists, which methods the server actually allows, whether credentials work, whether a request will pass CORS, or what status code and response body will come back. Run copied commands only against an environment where the operation is safe.
+            </p>
+          </div>
+
+          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">Browser CORS warnings describe request shape only</h2>
+            <p className="mt-3 text-gray-600 leading-relaxed">
+              Frontend requests can require a CORS preflight when the method is not CORS-safelisted or when headers and Content-Type fall outside the safelisted request-header rules. Authorization and application/json commonly lead to preflight. The warning is intentionally conservative because the browser also considers header values and the server&apos;s CORS response.
+            </p>
+            <p className="mt-3 text-sm text-gray-500">
+              Reference: <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://fetch.spec.whatwg.org/#cors-protocol" target="_blank" rel="noreferrer">WHATWG Fetch CORS protocol</a>.
+            </p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">This Tool Does Not Send HTTP Requests</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Read the generated fetch snippet before using it</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The tool is intentionally local-only. It builds request examples and method reviews, but it does not contact endpoints, bypass CORS, verify authentication, or test live server responses. Use it to prepare request examples before running them in your API client, terminal, or test environment.
+            The fetch output builds the request only. It does not assume that every response contains JSON, because HEAD responses have no response content and successful APIs can return text, binary data, 204 No Content, or another media type. Response parsing belongs to the caller after checking status and Content-Type. Custom headers are treated as example input; verify required names, values, authentication schemes, and content types against the API documentation before running the request.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="Does this HTTP method tester send the request?">
-              No. It only builds and reviews request examples locally in your browser. It does not contact the endpoint.
-            </Faq>
-            <Faq title="Which HTTP method should I use to read data?">
-              GET is normally used for reading resources. HEAD can be used when you only need response headers.
-            </Faq>
-            <Faq title="What is the difference between PUT and PATCH?">
-              PUT usually replaces the target resource, while PATCH usually updates only part of it. The exact behavior still depends on the API.
-            </Faq>
-            <Faq title="Why does the tool warn about DELETE or PATCH?">
-              Those methods can modify or remove data. The warning is a reminder to review examples carefully before running generated commands.
-            </Faq>
-            <Faq title="Is anything uploaded while using this tool?">
-              No. Endpoint text, headers, and request bodies stay in your browser.
-            </Faq>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/http-method-tester" />
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/http-method-tester" />
         </div>
       </section>
     </ToolShell>
@@ -512,12 +528,10 @@ function buildResult(options: {
   outputMode: OutputMode;
   bodyMode: BodyMode;
   authMode: AuthMode;
-  safetyLevel: SafetyLevel;
   requestBody: string;
   customHeaders: string;
   includeContentType: boolean;
   includeAcceptHeader: boolean;
-  includeAuthPlaceholder: boolean;
   includeRequestBody: boolean;
   prettyPrintBody: boolean;
   warnDestructiveMethods: boolean;
@@ -548,46 +562,46 @@ function buildResult(options: {
 function getMethodInfo(method: HttpMethod) {
   const map = {
     GET: {
-      purpose: "read",
+      purpose: "retrieve a representation",
       bodyAllowed: false,
-      cacheNote: "GET responses may be cached depending on headers.",
-      idempotencyNote: "GET should be safe and idempotent.",
+      cacheNote: "GET responses are cacheable unless cache controls say otherwise.",
+      idempotencyNote: "GET is safe and idempotent.",
     },
     POST: {
-      purpose: "create / submit",
+      purpose: "resource-specific processing",
       bodyAllowed: true,
-      cacheNote: "POST is usually not cached unless explicitly configured.",
-      idempotencyNote: "POST is usually not idempotent.",
+      cacheNote: "POST responses are cacheable only under specific explicit conditions.",
+      idempotencyNote: "POST is not inherently idempotent.",
     },
     PUT: {
-      purpose: "replace",
+      purpose: "replace target resource state",
       bodyAllowed: true,
-      cacheNote: "PUT responses are usually not cached by default.",
-      idempotencyNote: "PUT is generally idempotent when replacing the same resource.",
+      cacheNote: "PUT responses are not cacheable and can invalidate stored responses for the target URI.",
+      idempotencyNote: "PUT is idempotent, but not safe.",
     },
     PATCH: {
-      purpose: "partial update",
+      purpose: "apply a patch document",
       bodyAllowed: true,
-      cacheNote: "PATCH responses are usually not cached by default.",
-      idempotencyNote: "PATCH may or may not be idempotent depending on the patch operation.",
+      cacheNote: "PATCH has narrow cacheability rules defined by RFC 5789.",
+      idempotencyNote: "PATCH is not inherently idempotent; a specific patch operation can be designed to be idempotent.",
     },
     DELETE: {
-      purpose: "delete",
+      purpose: "remove the target resource association",
       bodyAllowed: false,
-      cacheNote: "DELETE responses are usually not cached.",
-      idempotencyNote: "DELETE is often treated as idempotent, but side effects depend on the API.",
+      cacheNote: "DELETE responses are not cacheable and can invalidate stored responses for the target URI.",
+      idempotencyNote: "DELETE is idempotent, but not safe.",
     },
     HEAD: {
-      purpose: "headers only",
+      purpose: "retrieve response metadata without response content",
       bodyAllowed: false,
-      cacheNote: "HEAD can be cached similarly to GET metadata.",
-      idempotencyNote: "HEAD should be safe and idempotent.",
+      cacheNote: "HEAD responses are cacheable and can affect cached GET metadata.",
+      idempotencyNote: "HEAD is safe and idempotent.",
     },
     OPTIONS: {
-      purpose: "method discovery / preflight",
+      purpose: "describe communication options",
       bodyAllowed: false,
-      cacheNote: "OPTIONS may be cached for CORS preflight according to server headers.",
-      idempotencyNote: "OPTIONS should be safe and idempotent.",
+      cacheNote: "OPTIONS responses are not cacheable.",
+      idempotencyNote: "OPTIONS is safe and idempotent.",
     },
   } satisfies Record<HttpMethod, { purpose: string; bodyAllowed: boolean; cacheNote: string; idempotencyNote: string }>;
 
@@ -600,29 +614,20 @@ function buildHeaders(options: {
   authMode: AuthMode;
   includeContentType: boolean;
   includeAcceptHeader: boolean;
-  includeAuthPlaceholder: boolean;
 }) {
-  const headers: HeaderRow[] = [];
+  const headers = parseHeaders(options.customHeaders);
+  const hasHeader = (name: string) => headers.some((header) => header.name.toLowerCase() === name.toLowerCase());
+  const addDefault = (name: string, value: string) => {
+    if (!hasHeader(name)) headers.push({ name, value });
+  };
 
-  if (options.includeAcceptHeader) {
-    headers.push({ name: "Accept", value: "application/json" });
-  }
-
+  if (options.includeAcceptHeader) addDefault("Accept", "application/json");
   if (options.includeContentType && options.bodyMode !== "none") {
-    headers.push({ name: "Content-Type", value: contentTypeFor(options.bodyMode) });
+    addDefault("Content-Type", contentTypeFor(options.bodyMode));
   }
-
-  if (options.includeAuthPlaceholder && options.authMode !== "none") {
-    if (options.authMode === "bearer") headers.push({ name: "Authorization", value: "Bearer YOUR_TOKEN" });
-    if (options.authMode === "basic") headers.push({ name: "Authorization", value: "Basic BASE64_USERNAME_PASSWORD" });
-    if (options.authMode === "apiKey") headers.push({ name: "X-API-Key", value: "YOUR_API_KEY" });
-  }
-
-  parseHeaders(options.customHeaders).forEach((header) => {
-    if (!headers.some((existing) => existing.name.toLowerCase() === header.name.toLowerCase())) {
-      headers.push(header);
-    }
-  });
+  if (options.authMode === "bearer") addDefault("Authorization", "Bearer YOUR_TOKEN");
+  if (options.authMode === "basic") addDefault("Authorization", "Basic BASE64_USERNAME_PASSWORD");
+  if (options.authMode === "apiKey") addDefault("X-API-Key", "YOUR_API_KEY");
 
   return headers;
 }
@@ -641,6 +646,28 @@ function parseHeaders(input: string): HeaderRow[] {
       };
     })
     .filter((header): header is HeaderRow => Boolean(header?.name));
+}
+
+function validateHeaderInput(input: string) {
+  const token = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
+  const lines = input.split(/\r?\n/);
+  const seen = new Set<string>();
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    if (!line) continue;
+    const colon = line.indexOf(":");
+    if (colon <= 0) return `Custom header line ${index + 1} needs a field name followed by a colon.`;
+    const name = line.slice(0, colon).trim();
+    const value = line.slice(colon + 1);
+    if (!token.test(name)) return `Custom header line ${index + 1} contains an invalid HTTP field name.`;
+    const lowerName = name.toLowerCase();
+    if (seen.has(lowerName)) return `Custom header ${name} appears more than once. Keep one value so generated cURL and fetch examples stay consistent.`;
+    seen.add(lowerName);
+    if (/[^\t\x20-\x7E\x80-\xFF]/.test(value)) return `Custom header line ${index + 1} contains a control character that should not appear in a generated field value.`;
+  }
+
+  return "";
 }
 
 function contentTypeFor(bodyMode: BodyMode) {
@@ -673,7 +700,6 @@ function buildIssues(options: {
   method: HttpMethod;
   bodyMode: BodyMode;
   requestBody: string;
-  safetyLevel: SafetyLevel;
   warnDestructiveMethods: boolean;
   warnBodyMismatch: boolean;
   warnCachingBehavior: boolean;
@@ -681,7 +707,7 @@ function buildIssues(options: {
 }, methodInfo: ReturnType<typeof getMethodInfo>, headers: HeaderRow[], body: string): Issue[] {
   const issues: Issue[] = [];
 
-  if (options.warnDestructiveMethods && ["DELETE", "PATCH", "PUT"].includes(options.method)) {
+  if (options.warnDestructiveMethods && ["POST", "PUT", "PATCH", "DELETE"].includes(options.method)) {
     issues.push({
       severity: options.method === "DELETE" ? "high" : "warning",
       title: "Method can change resources",
@@ -693,7 +719,7 @@ function buildIssues(options: {
     issues.push({
       severity: "warning",
       title: "Body is unusual for this method",
-      message: `${options.method} requests usually do not include a body. Some servers ignore it or reject it.`,
+      message: `${options.method} request content has no generally defined semantics here. Use it only when the endpoint explicitly documents support.`,
     });
   }
 
@@ -703,6 +729,17 @@ function buildIssues(options: {
       title: "No request body selected",
       message: `${options.method} often includes a request body. Confirm whether this endpoint expects one.`,
     });
+  }
+
+  if (options.method === "PATCH" && options.bodyMode === "json") {
+    const contentType = headers.find((header) => header.name.toLowerCase() === "content-type")?.value.toLowerCase() ?? "";
+    if (contentType === "application/json") {
+      issues.push({
+        severity: "info",
+        title: "Check the patch media type",
+        message: "PATCH formats define their own media types. An endpoint using JSON Patch or JSON Merge Patch can require a more specific Content-Type than application/json.",
+      });
+    }
   }
 
   if (options.warnCachingBehavior) {
@@ -721,14 +758,6 @@ function buildIssues(options: {
     });
   }
 
-  if (options.safetyLevel === "destructiveReview" && options.method === "DELETE") {
-    issues.push({
-      severity: "high",
-      title: "Destructive review selected",
-      message: "DELETE examples should be tested only against safe environments or disposable resources.",
-    });
-  }
-
   return issues;
 }
 
@@ -737,8 +766,9 @@ function mayTriggerPreflight(method: HttpMethod, headers: HeaderRow[], body: str
   const simpleHeaders = new Set(["accept", "accept-language", "content-language", "content-type"]);
   const hasNonSimpleHeader = headers.some((header) => !simpleHeaders.has(header.name.toLowerCase()));
   const contentType = headers.find((header) => header.name.toLowerCase() === "content-type")?.value.toLowerCase() ?? "";
+  const contentTypeEssence = contentType.split(";", 1)[0].trim();
   const simpleContentTypes = ["application/x-www-form-urlencoded", "multipart/form-data", "text/plain", ""];
-  return hasNonSimpleHeader || (Boolean(body) && !simpleContentTypes.includes(contentType));
+  return hasNonSimpleHeader || (Boolean(body) && !simpleContentTypes.includes(contentTypeEssence));
 }
 
 function formatOutput(options: {
@@ -776,7 +806,7 @@ function formatOutput(options: {
       "",
       `Endpoint: \`${options.url}\``,
       `Purpose: ${methodInfo.purpose}`,
-      `Body usually allowed: ${methodInfo.bodyAllowed ? "yes" : "no"}`,
+      `Request content: ${methodInfo.bodyAllowed ? "defined / common" : "unusual / contract-dependent"}`,
       "",
       "## Headers",
       "",
@@ -802,7 +832,7 @@ function formatOutput(options: {
       `- [x] Method selected: ${options.method}`,
       `- [x] Endpoint reviewed: ${options.url}`,
       `- [${headers.length ? "x" : " "}] Headers reviewed.`,
-      `- [${methodInfo.bodyAllowed || !body ? "x" : " "}] Body usage matches typical method behavior.`,
+      `- [${methodInfo.bodyAllowed || !body ? "x" : " "}] Request content matches the method's general HTTP semantics.`,
       `- [${issues.every((issue) => issue.severity !== "high") ? "x" : " "}] No high-severity method warnings.`,
     ];
 
@@ -818,7 +848,7 @@ function formatOutput(options: {
     `HTTP method: ${options.method}`,
     `Endpoint: ${options.url}`,
     `Purpose: ${methodInfo.purpose}`,
-    `Body usually allowed: ${methodInfo.bodyAllowed ? "yes" : "no"}`,
+    `Request content: ${methodInfo.bodyAllowed ? "defined / common" : "unusual / contract-dependent"}`,
     `Caching: ${methodInfo.cacheNote}`,
     `Idempotency: ${methodInfo.idempotencyNote}`,
     "",
@@ -831,7 +861,8 @@ function formatOutput(options: {
 }
 
 function buildCurl(url: string, method: HttpMethod, headers: HeaderRow[], body: string) {
-  const parts = [`curl -X ${method} ${shellQuote(url)}`];
+  const command = method === "HEAD" && !body ? `curl --head ${shellQuote(url)}` : `curl -X ${method} ${shellQuote(url)}`;
+  const parts = [command];
   headers.forEach((header) => {
     parts.push(`  -H ${shellQuote(`${header.name}: ${header.value}`)}`);
   });
@@ -857,7 +888,15 @@ function buildFetch(url: string, method: HttpMethod, headers: HeaderRow[], body:
     lines.push(`  body: ${JSON.stringify(body)},`);
   }
 
-  lines.push("});", "", "const data = await response.json();");
+  lines.push(
+    "});",
+    "",
+    "if (!response.ok) {",
+    "  throw new Error(`HTTP ${response.status}`);",
+    "}",
+    "",
+    "// Parse the response according to its status and Content-Type.",
+  );
   return lines.join("\n");
 }
 
@@ -901,20 +940,18 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
   );
 }
 
+
+function issueCardClass(severity: Issue["severity"]) {
+  if (severity === "high") return "rounded-xl border border-red-200 bg-red-50 p-4";
+  if (severity === "warning") return "rounded-xl border border-amber-200 bg-amber-50 p-4";
+  return "rounded-xl border border-gray-200 bg-gray-50 p-4";
+}
+
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5">
       <p className="text-sm text-gray-500">{label}</p>
       <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
-    </div>
-  );
-}
-
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
     </div>
   );
 }
