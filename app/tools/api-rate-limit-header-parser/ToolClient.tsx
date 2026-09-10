@@ -923,7 +923,7 @@ function buildIssues(params: {
     const remainingPercent = (params.remaining / params.limit) * 100;
     if (remainingPercent <= 5) {
       issues.push({
-        severity: params.remaining === 0 ? "high" : "warning",
+        severity: "warning",
         title: params.remaining === 0 ? "No advertised quota remains" : "Very little advertised quota remains",
         message: "The derived remaining quota is at or below 5% of the matched limit. Slow request scheduling before relying on another call.",
       });
