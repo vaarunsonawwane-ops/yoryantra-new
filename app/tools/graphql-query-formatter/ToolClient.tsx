@@ -428,54 +428,70 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Whitespace is cheap; token boundaries are not</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Formatting GraphQL safely starts at lexical boundaries</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            GraphQL permits whitespace, line terminators, commas, comments, and a Unicode BOM between lexical tokens. A formatter can reshape those separators, but it must not rewrite characters that belong inside a string, block string, name, number, or other token. The language rules are defined in the <a className="font-medium text-gray-900 underline underline-offset-4" href="https://spec.graphql.org/September2025/" target="_blank" rel="noreferrer">GraphQL specification</a>.
+            GraphQL allows whitespace, line terminators, commas, comments, and a Unicode BOM as ignored tokens between lexical tokens. That gives a formatter room to change layout, but not permission to rewrite characters that belong inside a string, block string, name, number, or other token.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Quoted strings and block strings are therefore kept opaque while surrounding layout changes. The delimiter review is only a paste-damage check; balanced braces and parentheses do not prove that a document is valid GraphQL.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Comments make minification less obvious</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A GraphQL comment begins with <code>#</code> and ends at a line terminator. Keeping the comment while deleting that terminator can turn the following source text into part of the comment, so preserved comments keep their boundary. Braces and parentheses inside comments are ignored by the structural review.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            When “Remove comments” is selected, comment text is dropped but a safe separator remains where needed so adjacent tokens are not accidentally joined.
+            The formatting path here keeps quoted strings and block strings opaque while it changes surrounding layout. The delimiter check is intentionally narrower than a GraphQL parser: balanced braces can catch a damaged paste, but balanced braces alone do not make a document valid GraphQL.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Formatting a document and constructing one request are different jobs</h2>
+          <h2 className="text-xl font-semibold text-gray-900">A preserved comment needs its line ending</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            One GraphQL document can contain several operations plus reusable fragments. Formatting the whole document is fine; executing one operation is more specific. When multiple operations are present, a request needs an <code>operationName</code> so the server knows which operation to run.
+            GraphQL comments begin with <code>#</code> and continue only to the next line terminator. Removing that terminator while keeping the comment would turn following GraphQL source into comment text. When comments are retained, the formatter and minifier therefore keep the comment boundary intact and ignore braces or parentheses that appear inside the comment itself.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Variables travel separately from the GraphQL source and are represented as JSON in the common HTTP request format. A referenced variable can still be absent from the variables object when it is nullable or has a default, so a missing key is context for review rather than an automatic syntax failure.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            For transport, POST sends the request payload in JSON. GET places <code>query</code>, <code>operationName</code>, and <code>variables</code> in the URL query component and must not be used to execute a mutation. Those examples follow the current <a className="font-medium text-gray-900 underline underline-offset-4" href="https://graphql.github.io/graphql-over-http/draft/" target="_blank" rel="noreferrer">GraphQL-over-HTTP draft</a>, which is transport guidance rather than part of the core language specification.
+            When “Remove comments” is selected, comment text is dropped while a separating line break is retained so neighboring tokens are not accidentally joined.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">A clean document can still fail against the real schema</h2>
+          <h2 className="text-xl font-semibold text-gray-900">One document can carry several operations</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Field existence, argument types, fragment type conditions, directive placement, variable compatibility, authorization, resolver behavior, query cost, and execution errors all require information this page does not have. Operation and fragment lists are text-level inspection aids, not a substitute for parsing and schema validation in the environment that will execute the request.
+            A GraphQL document may contain multiple query, mutation, or subscription operations alongside reusable fragments. Formatting all of them is fine. Building one executable HTTP request is different: when more than one operation is present, the request needs an <code>operationName</code> that selects the operation the server should execute.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Very large documents also have practical limits outside the formatter: GET URLs can exceed intermediary limits, servers can enforce document-size or depth limits, and persisted-query systems may not accept arbitrary source at all. Formatting changes readability; it does not negotiate those server policies.
+            The operation and fragment lists shown above are text-level inspection aids. They are useful for reviewing a copied document, but they do not replace parsing and validation against the schema that will execute it.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Variables are JSON; the GraphQL document is not</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Variables travel separately from the GraphQL source and, in the common JSON request format, must be represented by a JSON object. A variable referenced in the document can legitimately be absent from that object when the variable is nullable or has a default, so a missing key is reported as context rather than a syntax error.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">GET is not a smaller version of POST</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The current GraphQL-over-HTTP draft requires POST support and places GET request parameters in the URL query component. A mutation must not be executed with GET. The cURL output follows those rules: POST uses a JSON body, while GET serializes <code>query</code>, <code>operationName</code>, and <code>variables</code> into the URL when present.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Long GraphQL documents can also make GET URLs impractical or exceed intermediary limits. Server documentation still matters because the GraphQL-over-HTTP transport document linked below is a draft and implementations can have additional constraints.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Formatting stops before schema validation and execution</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Field existence, argument types, fragment type conditions, directive placement, variable compatibility, authorization, resolver behavior, query cost, and execution errors all require knowledge this page does not have. A cleanly formatted document can still be invalid for a particular schema.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The <a className="font-medium text-gray-900 underline underline-offset-4" href="https://spec.graphql.org/September2025/" target="_blank" rel="noreferrer">GraphQL specification</a> defines the language, document model, validation, and execution rules. HTTP request examples follow the current <a className="font-medium text-gray-900 underline underline-offset-4" href="https://graphql.github.io/graphql-over-http/draft/" target="_blank" rel="noreferrer">GraphQL-over-HTTP draft</a> rather than treating transport behavior as part of the core language specification.
           </p>
         </div>
 

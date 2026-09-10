@@ -384,22 +384,22 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">The filename is a suggestion to the recipient</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">A download filename is advice, not a path to trust</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            <code>Content-Disposition</code> can suggest whether a representation is handled inline or offered as a download, and a <code>filename</code> parameter can suggest the name shown to the user. Neither value grants permission to write to a path or proves that the extension is safe for the received bytes.
+            <code>Content-Disposition</code> carries response metadata about how a recipient should handle the payload. A <code>filename</code> parameter can suggest the name shown in a save dialog, but it is not permission to write to that path or to trust the supplied extension.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Receiving software should discard directory components, avoid special filesystem names, and treat the supplied name as advisory. Those recipient-side safety points come directly from <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc6266" target="_blank" rel="noreferrer">RFC 6266</a> rather than from filename cosmetics.
+            Receiving software should discard directory components and treat the name as advisory. RFC 6266 specifically calls out path segments, confusing characters, special filesystem names, and unsafe extensions as recipient-side concerns.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Use <code>filename*</code> when the real name needs UTF-8</h2>
+          <h2 className="text-xl font-semibold text-gray-900"><code>filename</code> and <code>filename*</code> solve different compatibility problems</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A quoted <code>filename</code> works best as a conservative ASCII fallback. <code>filename*</code> uses the extended parameter syntax defined by <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc8187" target="_blank" rel="noreferrer">RFC 8187</a>, so a UTF-8 name can be represented without placing arbitrary Unicode directly in the legacy quoted parameter.
+            The quoted <code>filename</code> parameter is the conservative fallback. <code>filename*</code> uses the extended parameter syntax now defined by RFC 8187, so a UTF-8 filename can be represented without pretending that arbitrary Unicode belongs inside a legacy quoted value.
           </p>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
@@ -409,39 +409,47 @@ export default function ToolClient() {
           </div>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Sending both parameters gives older recipients a readable fallback while newer ones can prefer the UTF-8 value. Extended values use percent encoding, so a space becomes <code>%20</code>; form-style <code>+</code> encoding does not belong here.
+            When both parameters are present, modern recipients can prefer <code>filename*</code> while older ones still have the ASCII fallback. Spaces in the extended value are percent-encoded as <code>%20</code>; this is an HTTP parameter encoding, not form-style query encoding.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Inline and attachment change presentation, not content safety</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Attachment and inline change handling, not trust</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            <code>attachment</code> asks the recipient to present a save flow instead of normal inline processing. <code>inline</code> leaves normal handling in place. Browser preview still depends on the actual media type, the bytes in the response, browser capabilities, and surrounding response headers.
+            <code>attachment</code> asks the recipient to save the representation instead of processing it normally. <code>inline</code> leaves normal handling in place and is most useful when a filename is also supplied. Browser preview still depends on the actual response media type and browser capabilities.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A valid disposition value does not make user-supplied HTML, SVG, scripts, or other active content trustworthy. Authorization, content validation, an accurate <code>Content-Type</code>, and an appropriate serving policy still belong to the application.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Keep untrusted names out of raw header syntax</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Filenames arriving from forms, databases, object stores, or external APIs may contain path separators, control characters, or line breaks. Carriage return and line feed characters must never be allowed to cross from filename data into response-header syntax.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            With sanitization enabled, the generator replaces unsafe separators and control characters before building the field. With sanitization disabled, control characters are rejected instead of being emitted. That boundary is intentional: “raw” output should not mean “permit header injection.”
+            Neither disposition value makes active or user-supplied content safe. A server still has to choose an appropriate <code>Content-Type</code>, apply its own authorization and content-safety policy, and avoid serving risky content inline merely because the header syntax is valid.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">The server snippets stop at setting headers</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Raw line breaks do not belong in a response header value</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Express, Next.js, and Nginx examples only show the response-header portion. They do not open or stream a file, authorize the request, verify the media type, choose cache policy, or confirm that the generated filename matches the stored object. Keep those decisions in the surrounding server code.
+            A filename copied from a form, database, or external API should never be concatenated into an HTTP field without validation. Carriage returns, line feeds, and other control characters cross the boundary from filename data into header syntax and can create response-splitting problems in poorly protected code.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            With sanitization enabled, this page removes or replaces control characters and path separators before building the field. With sanitization disabled, control characters are rejected instead of being emitted.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Server snippets are only the header-setting part</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The Express, Next.js, and Nginx outputs are fragments for setting response metadata. They do not open a file, authorize a download, stream a body, verify that the chosen media type matches the bytes, or decide whether the response should be cached. Those decisions belong in the surrounding application or server configuration.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">References for HTTP filename handling</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc6266" target="_blank" rel="noreferrer">RFC 6266</a> defines <code>Content-Disposition</code> for HTTP responses, including disposition types, filename handling, interoperability advice, and security considerations. <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc8187" target="_blank" rel="noreferrer">RFC 8187</a> defines the extended UTF-8 parameter encoding used by <code>filename*</code>.
           </p>
         </div>
 

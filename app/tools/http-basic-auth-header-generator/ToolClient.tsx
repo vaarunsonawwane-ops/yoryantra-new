@@ -349,50 +349,70 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Basic auth depends on the exact credential bytes</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Basic authentication starts with exact credential bytes</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Basic authentication starts with a <code>user-id:password</code> character sequence, converts that sequence to bytes, Base64-encodes the bytes, and places the result after <code>Basic</code> in the <code>Authorization</code> field. Base64 is only a representation step; it is not encryption.
+            HTTP Basic authentication builds a <code>user-id:password</code> character sequence, converts that sequence to bytes, Base64-encodes the bytes, and places the result after <code>Basic</code> in the <code>Authorization</code> field. The Base64 step is representation, not encryption.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The first colon is structural. Under <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc7617" target="_blank" rel="noreferrer">RFC 7617</a>, a user-id containing a colon is invalid, while the password may contain colons because everything after the first separator belongs to the password. Control characters are forbidden in both parts and are rejected here.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Non-ASCII credentials need an encoding decision</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Historical Basic authentication does not define one universal default encoding for every non-ASCII credential. A server can advertise <code>charset="UTF-8"</code> in its challenge; with that choice, credential text is normalized to NFC and encoded as UTF-8 before Base64 encoding.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            “Legacy byte mapping” is available only for systems that map U+0000 through U+00FF directly to single bytes. It should be chosen because the target server expects that behavior, not because it produces a shorter or more familiar-looking token.
+            That byte conversion matters as soon as credentials contain anything outside US-ASCII. Two clients that choose different character encodings can produce different header values from text that looks identical on screen.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Treat the generated header like the password itself</h2>
+          <h2 className="text-xl font-semibold text-gray-900">The first colon has protocol meaning</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Anyone who obtains a Basic header can Base64-decode the credential string. TLS provides the confidentiality Basic authentication does not provide on its own, so an <code>http://</code> endpoint is a real security warning rather than a formatting preference.
+            RFC 7617 uses the first <code>:</code> to separate the user-id from the password. A user-id containing a colon is therefore invalid and is rejected here. The password may contain colons because everything after the first separator belongs to the password.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Keep generated credentials out of source control, logs, screenshots, analytics events, support tickets, shell history where possible, and examples that may later be shared. Browser-local generation reduces unnecessary transmission by this page, but copying the result still creates another place where the secret can leak.
+            The same RFC forbids control characters in both parts. They are rejected instead of being encoded into a header that a server may interpret unpredictably.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Request snippets cannot prove the server will accept them</h2>
+          <h2 className="text-xl font-semibold text-gray-900">UTF-8 is not the universal legacy default</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            cURL, Fetch, Axios, and JSON outputs only construct request material. The target still has to support Basic authentication for the relevant protection space, and a cross-origin browser request may require a successful CORS preflight before the request can be sent with <code>Authorization</code>.
+            RFC 7617 leaves the historical default character encoding undefined as long as it remains compatible with US-ASCII. A server can advertise <code>charset="UTF-8"</code> in its Basic challenge; when that signal is used, credential text is normalized to NFC and encoded as UTF-8.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Optional JSON <code>Accept</code> and <code>Content-Type</code> fields are convenience headers for the generated snippets. They do not add a JSON body. Keep <code>Content-Type: application/json</code> only when the request actually carries JSON, and do not mistake a syntactically correct header for successful authentication or authorization.
+            “UTF-8 (NFC)” on this page makes that byte choice explicit. “Legacy byte mapping” exists for older systems that map U+0000 through U+00FF directly to single bytes; it should not be read as a claim about what an unknown server expects.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">TLS is what protects Basic credentials in transit</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Anyone who obtains a Basic header can Base64-decode the credential string. RFC 7617 does not consider the scheme secure without an external secure transport such as TLS. An <code>http://</code> endpoint is therefore a meaningful warning, not a cosmetic URL preference.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A generated <code>Authorization</code> value should be handled like the password itself: keep it out of source control, logs, screenshots, support tickets, analytics events, and copied examples that may be shared later.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">A correct header can still fail at the browser boundary</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The Fetch and Axios snippets only construct the request. Cross-origin browser requests may still require a successful CORS preflight, and the target server must actually accept Basic authentication for that protection space. A syntactically correct header cannot prove either condition.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The optional JSON <code>Accept</code> and <code>Content-Type</code> fields are convenience headers for request snippets. They do not add a JSON body, and <code>Content-Type: application/json</code> should only be kept when the request really sends JSON.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Protocol reference</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc7617" target="_blank" rel="noreferrer">RFC 7617</a> defines the Basic authentication scheme, credential construction, the user-id colon restriction, control-character rules, charset behavior, and security considerations.
           </p>
         </div>
 
