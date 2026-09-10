@@ -1,49 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Slug Generator Online Free | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Slug Generator | Unicode and ASCII URL Slugs",
   description:
-    "Generate clean SEO-friendly URL slugs instantly with this free online Slug Generator. Convert text into readable, optimized, and web-safe URL structures quickly.",
-
-  keywords: [
-    "slug generator",
-    "seo slug generator",
-    "url slug generator",
-    "slugify text",
-    "generate slug online",
-    "seo url creator",
-    "clean url generator",
-    "developer utilities",
-  ],
-
+    "Turn titles into lowercase hyphenated slugs, keep readable Unicode or choose ASCII-only output, and inspect the percent-encoded URL path segment.",
   alternates: {
     canonical: "https://yoryantra.com/tools/slug-generator",
   },
-
   openGraph: {
-    title: "Slug Generator Online Free | Yoryantra",
-
+    title: "Slug Generator | Yoryantra",
     description:
-      "Generate SEO-friendly URL slugs instantly with this free online slug generator.",
-
+      "Build lowercase hyphenated URL slugs with Unicode-preserving or ASCII-only output.",
     url: "https://yoryantra.com/tools/slug-generator",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "Slug Generator Online Free | Yoryantra",
-
+    card: "summary",
+    title: "Slug Generator | Yoryantra",
     description:
-      "Convert text into clean and SEO-friendly URL slugs instantly.",
+      "Create readable URL slugs and compare Unicode text with its encoded path form.",
   },
 };
 
-export default function Page() {
+export default function SlugGeneratorPage() {
   return <ToolClient />;
 }

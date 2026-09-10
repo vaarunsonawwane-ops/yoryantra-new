@@ -1,49 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "Text Case Converter Online Free | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Text Case Converter | Upper, Lower, Title and Sentence Case",
   description:
-    "Convert text to uppercase, lowercase, title case, and sentence case instantly with this free online Text Case Converter. Clean and fast text formatting utility for writing and productivity workflows.",
-
-  keywords: [
-    "text case converter",
-    "uppercase converter",
-    "lowercase converter",
-    "title case converter",
-    "sentence case converter",
-    "change text case",
-    "text formatter",
-    "online text tools",
-  ],
-
+    "Convert text to uppercase, lowercase, simple title case, or sentence case while preserving punctuation and line breaks and using Unicode-aware case mappings.",
   alternates: {
     canonical: "https://yoryantra.com/tools/text-case-converter",
   },
-
   openGraph: {
-    title: "Text Case Converter Online Free | Yoryantra",
-
+    title: "Text Case Converter | Yoryantra",
     description:
-      "Convert text instantly between uppercase, lowercase, title case, and sentence case.",
-
+      "Change text between uppercase, lowercase, simple title case, and sentence case with Unicode-aware casing.",
     url: "https://yoryantra.com/tools/text-case-converter",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "Text Case Converter Online Free | Yoryantra",
-
+    card: "summary",
+    title: "Text Case Converter | Yoryantra",
     description:
-      "Free online Text Case Converter for formatting and transforming text instantly.",
+      "Transform capitalization while preserving the text structure and understanding the limits of automatic casing.",
   },
 };
 
-export default function Page() {
+export default function TextCaseConverterPage() {
   return <ToolClient />;
 }

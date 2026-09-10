@@ -1,47 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title: "QR Code Generator Online Free | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "QR Code Generator | Error Correction and PNG Download",
   description:
-    "Generate QR codes instantly from text, URLs, and other content with this free online QR Code Generator.",
-
-  keywords: [
-    "qr code generator",
-    "free qr code generator",
-    "url to qr code",
-    "generate qr code",
-    "online qr generator",
-    "developer utilities",
-  ],
-
+    "Create QR codes from text or URLs, choose image size and error correction, preview the symbol, and download a PNG without sending the content to a QR service.",
   alternates: {
     canonical: "https://yoryantra.com/tools/qr-code-generator",
   },
-
   openGraph: {
-    title: "QR Code Generator Online Free | Yoryantra",
-
+    title: "QR Code Generator | Yoryantra",
     description:
-      "Generate QR codes instantly from text, URLs, and more with this free online QR Code Generator.",
-
+      "Encode text or URLs as downloadable QR images with selectable size and error correction.",
     url: "https://yoryantra.com/tools/qr-code-generator",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title: "QR Code Generator Online Free | Yoryantra",
-
+    card: "summary",
+    title: "QR Code Generator | Yoryantra",
     description:
-      "Generate QR codes instantly with this free online QR Code Generator.",
+      "Create a QR image locally, choose its error-correction level, and download the PNG.",
   },
 };
 
-export default function Page() {
+export default function QrCodeGeneratorPage() {
   return <ToolClient />;
 }

@@ -50,14 +50,14 @@ export const tools = [
 
   {
     title: "Slug Generator",
-    description: "Generate clean SEO-friendly URL slugs instantly.",
+    description: "Build lowercase hyphenated URL slugs with Unicode-preserving or ASCII-only output.",
     href: "/tools/slug-generator",
 	category: "Encoding Tools",
   },
 
   {
     title: "Text Case Converter",
-    description: "Convert text into uppercase, lowercase, and title case.",
+    description: "Change text between uppercase, lowercase, simple title case, and sentence case with Unicode-aware casing.",
     href: "/tools/text-case-converter",
 	category: "Encoding Tools",
   },
@@ -99,7 +99,7 @@ export const tools = [
   
   {
   title: "QR Code Generator",
-  description: "Generate QR codes instantly from text, URLs, and more.",
+  description: "Encode text or URLs as downloadable QR images with selectable size and error correction.",
   href: "/tools/qr-code-generator",
   category: "Encoding Tools",
   },
