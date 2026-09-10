@@ -226,7 +226,7 @@ export default function ToolClient() {
                   clearResult();
                 }}
                 placeholder={sampleVariables}
-                className="w-full min-h-[260px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--light-gold)]"
+                className="w-full min-h-[260px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
               />
 
               <p className="mt-2 text-sm text-gray-500">
@@ -536,7 +536,7 @@ function InputField({ label, value, onChange, placeholder }: { label: string; va
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--light-gold)]"
+        className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
       />
     </div>
   );
