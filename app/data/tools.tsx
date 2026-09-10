@@ -1315,7 +1315,7 @@ export const tools = [
 {
   title: "Content-Disposition Header Generator",
   description:
-    "Generate Content-Disposition headers for attachment or inline file responses with safe filenames, UTF-8 filename*, and server snippets.",
+    "Build download or inline headers with ASCII fallback and RFC 8187 UTF-8 filenames.",
   href: "/tools/content-disposition-header-generator",
   category: "Developer Tools",
 },

@@ -262,7 +262,7 @@ export default function ToolClient() {
                 { label: "Headers block", value: "headersBlock" },
                 { label: "Node / Express", value: "express" },
                 { label: "Next.js route handler", value: "nextjs" },
-                { label: "Nginx add_header", value: "nginx" },
+                { label: "Nginx directives", value: "nginx" },
                 { label: "JSON", value: "json" },
                 { label: "Markdown notes", value: "markdown" },
               ]}
@@ -326,7 +326,7 @@ export default function ToolClient() {
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Disposition" value={dispositionType} />
           <SummaryCard label="Preview Mode" value={result.previewMode} />
-          <SummaryCard label="ASCII Filename" value={result.asciiFilename} />
+          <SummaryCard label="ASCII Fallback" value={result.asciiFilename} />
           <SummaryCard label="Findings" value={result.issues.length.toLocaleString()} />
         </div>
       )}
@@ -340,7 +340,9 @@ export default function ToolClient() {
             {includeContentType && result.contentTypeLine && (
               <InfoRow label="Content-Type" value={activeContentType} />
             )}
-            <InfoRow label="Encoded filename*" value={result.encodedFilename || "not used"} />
+            {(filenameMode === "both" || filenameMode === "utf8Only") && includeUtf8Filename && (
+              <InfoRow label="Encoded filename*" value={result.encodedFilename || "not used"} />
+            )}
           </div>
         </div>
       )}
@@ -382,98 +384,69 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Generating Safe File Download Headers</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">The filename is a suggestion to the recipient</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Content-Disposition tells browsers whether a response should be downloaded as a file or displayed inline. It also controls the filename suggested to the user when saving a file.
+            <code>Content-Disposition</code> can suggest whether a representation is handled inline or offered as a download, and a <code>filename</code> parameter can suggest the name shown to the user. Neither value grants permission to write to a path or proves that the extension is safe for the received bytes.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A reliable response usually pairs a conservative <code>filename</code> fallback with a UTF-8 <code>filename*</code> value when the intended name contains non-ASCII characters. RFC 6266 defines Content-Disposition for HTTP, while RFC 8187 defines the extended parameter encoding used by <code>filename*</code>.
+            Receiving software should discard directory components, avoid special filesystem names, and treat the supplied name as advisory. Those recipient-side safety points come directly from <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc6266" target="_blank" rel="noreferrer">RFC 6266</a> rather than from filename cosmetics.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Choose the response behavior first</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Use <code>filename*</code> when the real name needs UTF-8</h2>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter the filename you want users to see.</li>
-            <li>Choose attachment for downloads or inline for browser previews.</li>
-            <li>Select a content type and filename format.</li>
-            <li>Review the generated header and warnings.</li>
-            <li>Copy the header, headers block, or server snippet.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Attachment vs Inline</h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>attachment</strong> asks the browser to download the response as a file.</li>
-            <li><strong>inline</strong> allows the browser to preview the file when it supports that media type.</li>
-            <li><strong>filename</strong> is the simpler ASCII filename fallback.</li>
-            <li><strong>filename*</strong> is useful for UTF-8 names with spaces or non-English characters.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Content-Disposition Header</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A quoted <code>filename</code> works best as a conservative ASCII fallback. <code>filename*</code> uses the extended parameter syntax defined by <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc8187" target="_blank" rel="noreferrer">RFC 8187</a>, so a UTF-8 name can be represented without placing arbitrary Unicode directly in the legacy quoted parameter.
+          </p>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <pre className="whitespace-pre-wrap break-words">
-{`Content-Disposition: attachment; filename="invoice-june-2026.pdf"; filename*=UTF-8''invoice-june-2026.pdf
-Content-Type: application/pdf`}
+{`Content-Disposition: attachment; filename="report-euro.pdf"; filename*=UTF-8''report-%E2%82%AC.pdf`}
             </pre>
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Filenames Should Be Treated Carefully</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Filenames can contain spaces, quotes, path separators, Unicode characters, or unsafe characters. For API responses, it is safer to sanitize filenames and provide a simple fallback filename.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Never place untrusted user input into a response header without validation. A filename received from a user or database is only a suggested download name; the receiving side should still discard directory components and treat the name as advisory.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            For the wire format, see <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc6266" target="_blank" rel="noreferrer">RFC 6266</a>. Extended UTF-8 parameters are defined by <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc8187" target="_blank" rel="noreferrer">RFC 8187</a>, which replaced RFC 5987.
+            Sending both parameters gives older recipients a readable fallback while newer ones can prefer the UTF-8 value. Extended values use percent encoding, so a space becomes <code>%20</code>; form-style <code>+</code> encoding does not belong here.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Inline and attachment change presentation, not content safety</h2>
 
-          <div className="mt-5 space-y-6">
-            <Faq title="What does a Content-Disposition header do?">
-              It tells the browser whether to download a response as a file or display it inline, and it can suggest a filename.
-            </Faq>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            <code>attachment</code> asks the recipient to present a save flow instead of normal inline processing. <code>inline</code> leaves normal handling in place. Browser preview still depends on the actual media type, the bytes in the response, browser capabilities, and surrounding response headers.
+          </p>
 
-            <Faq title="Should I use attachment or inline?">
-              Use attachment for forced downloads. Use inline when browser preview is desired, such as PDFs or images.
-            </Faq>
-
-            <Faq title="What is filename*?">
-              filename* allows UTF-8 encoded filenames and is useful for names with spaces or non-English characters.
-            </Faq>
-
-            <Faq title="Should I include Content-Type too?">
-              Yes. Content-Type helps the browser understand the file type and decide whether it can preview it safely.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I generate headers?">
-              No. The header is generated directly in your browser.
-            </Faq>
-          </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A valid disposition value does not make user-supplied HTML, SVG, scripts, or other active content trustworthy. Authorization, content validation, an accurate <code>Content-Type</code>, and an appropriate serving policy still belong to the application.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Keep untrusted names out of raw header syntax</h2>
 
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Filenames arriving from forms, databases, object stores, or external APIs may contain path separators, control characters, or line breaks. Carriage return and line feed characters must never be allowed to cross from filename data into response-header syntax.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            With sanitization enabled, the generator replaces unsafe separators and control characters before building the field. With sanitization disabled, control characters are rejected instead of being emitted. That boundary is intentional: “raw” output should not mean “permit header injection.”
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">The server snippets stop at setting headers</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Express, Next.js, and Nginx examples only show the response-header portion. They do not open or stream a file, authorize the request, verify the media type, choose cache policy, or confirm that the generated filename matches the stored object. Keep those decisions in the surrounding server code.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
             <YoryantraRelatedTools currentHref="/tools/content-disposition-header-generator" />
           </div>
@@ -551,14 +524,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}
 
 function buildContentDisposition(options: {
   filename: string;
@@ -580,8 +545,10 @@ function buildContentDisposition(options: {
   }
   const sanitizedFilename = options.sanitizeFilename ? sanitizeForHeader(originalFilename) : originalFilename;
   const asciiFallback = buildAsciiFallback(options.fallbackFilename.trim() || sanitizedFilename);
-  const encodedFilename = encodeRfc5987Value(sanitizedFilename);
-  const contentType = options.contentTypePreset === "custom" ? validateContentType(options.customContentType) : contentTypes[options.contentTypePreset];
+  const encodedFilename = encodeRfc8187Value(sanitizedFilename);
+  const contentType = options.includeContentType
+    ? (options.contentTypePreset === "custom" ? validateContentType(options.customContentType) : contentTypes[options.contentTypePreset])
+    : "";
   const parts: string[] = [options.dispositionType];
 
   if ((options.filenameMode === "both" || options.filenameMode === "asciiOnly") && options.includeAsciiFallback) {
@@ -644,7 +611,7 @@ function buildAsciiFallback(value: string) {
   return fallback || "download";
 }
 
-function encodeRfc5987Value(value: string) {
+function encodeRfc8187Value(value: string) {
   return encodeURIComponent(value)
     .replace(/['()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
     .replace(/\*/g, "%2A");

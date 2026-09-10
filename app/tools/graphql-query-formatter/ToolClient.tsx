@@ -428,101 +428,59 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Formatting GraphQL Queries for Easier API Debugging</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Whitespace is cheap; token boundaries are not</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            GraphQL requests can become hard to read when copied from logs, browser DevTools, API clients, or minified production traffic. Formatting the query makes fields, nested selections, variables, fragments, and operation names easier to review.
+            GraphQL permits whitespace, line terminators, commas, comments, and a Unicode BOM between lexical tokens. A formatter can reshape those separators, but it must not rewrite characters that belong inside a string, block string, name, number, or other token. The language rules are defined in the <a className="font-medium text-gray-900 underline underline-offset-4" href="https://spec.graphql.org/September2025/" target="_blank" rel="noreferrer">GraphQL specification</a>.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            GraphQL treats comments, whitespace, line terminators, commas, and a Unicode BOM as ignored tokens outside strings. Formatting can safely change those separators, but quoted strings and block strings must keep their lexical content intact.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">What changes, and what must stay untouched</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a GraphQL query, mutation, subscription, or fragment.</li>
-            <li>Optionally paste Variables JSON and an endpoint URL.</li>
-            <li>Choose formatted, minified, summary, JSON payload, cURL, or variables output.</li>
-            <li>Review operation names, fragments, variables, and warnings.</li>
-            <li>Copy the output for testing, documentation, or debugging.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common GraphQL Formatting Tasks</h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Beautify a minified GraphQL query from logs.</li>
-            <li>Minify a query before embedding it in a request payload.</li>
-            <li>Extract operation names from a copied GraphQL document.</li>
-            <li>Check whether variables used in the query are documented in Variables JSON.</li>
-            <li>Create a cURL request for quick API testing.</li>
-            <li>Review fragments before sharing a query with another developer.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example GraphQL Query</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`query GetUser($id: ID!) {
-  user(id: $id) {
-    id
-    name
-    email
-  }
-}`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Formatting Is Not Schema Validation</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A formatter can make a query easier to read, but it cannot know whether fields, arguments, enum values, or variable types are valid unless it has your GraphQL schema.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Use the formatted document for readability, then validate it with the schema that will execute it. The <a className="font-medium text-gray-900 underline underline-offset-4" href="https://spec.graphql.org/September2025/" target="_blank" rel="noreferrer">GraphQL specification</a> defines the language and validation rules. HTTP request examples are based on the current <a className="font-medium text-gray-900 underline underline-offset-4" href="https://graphql.github.io/graphql-over-http/draft/" target="_blank" rel="noreferrer">GraphQL over HTTP draft</a>; that transport specification is still a draft and may change.
+            Quoted strings and block strings are therefore kept opaque while surrounding layout changes. The delimiter review is only a paste-damage check; balanced braces and parentheses do not prove that a document is valid GraphQL.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Comments make minification less obvious</h2>
 
-          <div className="mt-5 space-y-6">
-            <Faq title="What does a GraphQL Query Formatter do?">
-              It formats and minifies GraphQL queries and extracts useful details such as operations, fragments, and variables.
-            </Faq>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A GraphQL comment begins with <code>#</code> and ends at a line terminator. Keeping the comment while deleting that terminator can turn the following source text into part of the comment, so preserved comments keep their boundary. Braces and parentheses inside comments are ignored by the structural review.
+          </p>
 
-            <Faq title="Does this validate my GraphQL schema?">
-              No. It formats and inspects query text but does not validate fields or types against a schema.
-            </Faq>
-
-            <Faq title="Can it format GraphQL variables?">
-              Yes. Paste Variables JSON and choose the formatted variables output or JSON request payload.
-            </Faq>
-
-            <Faq title="Can it generate a cURL request?">
-              Yes. Add a GraphQL endpoint and choose cURL output.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I format GraphQL?">
-              No. Formatting runs directly in your browser.
-            </Faq>
-          </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            When “Remove comments” is selected, comment text is dropped but a safe separator remains where needed so adjacent tokens are not accidentally joined.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Formatting a document and constructing one request are different jobs</h2>
 
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            One GraphQL document can contain several operations plus reusable fragments. Formatting the whole document is fine; executing one operation is more specific. When multiple operations are present, a request needs an <code>operationName</code> so the server knows which operation to run.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Variables travel separately from the GraphQL source and are represented as JSON in the common HTTP request format. A referenced variable can still be absent from the variables object when it is nullable or has a default, so a missing key is context for review rather than an automatic syntax failure.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            For transport, POST sends the request payload in JSON. GET places <code>query</code>, <code>operationName</code>, and <code>variables</code> in the URL query component and must not be used to execute a mutation. Those examples follow the current <a className="font-medium text-gray-900 underline underline-offset-4" href="https://graphql.github.io/graphql-over-http/draft/" target="_blank" rel="noreferrer">GraphQL-over-HTTP draft</a>, which is transport guidance rather than part of the core language specification.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">A clean document can still fail against the real schema</h2>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Field existence, argument types, fragment type conditions, directive placement, variable compatibility, authorization, resolver behavior, query cost, and execution errors all require information this page does not have. Operation and fragment lists are text-level inspection aids, not a substitute for parsing and schema validation in the environment that will execute the request.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Very large documents also have practical limits outside the formatter: GET URLs can exceed intermediary limits, servers can enforce document-size or depth limits, and persisted-query systems may not accept arbitrary source at all. Formatting changes readability; it does not negotiate those server policies.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
             <YoryantraRelatedTools currentHref="/tools/graphql-query-formatter" />
           </div>
@@ -602,14 +560,6 @@ function InfoTableRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}
 
 function buildGraphqlOutput(options: {
   query: string;
@@ -704,12 +654,24 @@ function formatGraphql(value: string, indentSize: number) {
   let indent = 0;
   let inString = false;
   let inBlockString = false;
+  let inComment = false;
 
   for (let index = 0; index < minified.length; index += 1) {
     const char = minified[index];
     const nextThree = minified.slice(index, index + 3);
 
-    if (nextThree === "\"\"\"" && !inString && !isEscaped(value, index)) {
+    if (inComment) {
+      output += char;
+      if (char === "\n" || char === "\r") {
+        inComment = false;
+        if (minified[index + 1] && minified[index + 1] !== "}") {
+          output += indentUnit.repeat(indent);
+        }
+      }
+      continue;
+    }
+
+    if (nextThree === "\"\"\"" && !inString && !isEscaped(minified, index)) {
       inBlockString = !inBlockString;
       output += nextThree;
       index += 2;
@@ -723,6 +685,12 @@ function formatGraphql(value: string, indentSize: number) {
     }
 
     if (inString || inBlockString) {
+      output += char;
+      continue;
+    }
+
+    if (char === "#") {
+      inComment = true;
       output += char;
       continue;
     }
@@ -751,7 +719,7 @@ function formatGraphql(value: string, indentSize: number) {
   }
 
   return output
-    .split("\n")
+    .split(/\r?\n/)
     .map((line) => line.replace(/[\s]+$/g, ""))
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
@@ -892,21 +860,64 @@ function maskGraphqlNonCode(value: string) {
 function extractOperations(value: string): OperationInfo[] {
   const source = maskGraphqlNonCode(value);
   const operations: OperationInfo[] = [];
-  const regex = /\b(query|mutation|subscription)\s*([A-Za-z_][A-Za-z0-9_]*)?/g;
-  let match: RegExpExecArray | null;
+  let braceDepth = 0;
+  let parenDepth = 0;
+  let bracketDepth = 0;
+  let headerKind: "operation" | "fragment" | null = null;
 
-  while ((match = regex.exec(source)) !== null) {
-    operations.push({
-      type: match[1] as OperationInfo["type"],
-      name: match[2] || "anonymous",
-    });
-  }
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
 
-  if (operations.length === 0 && source.trim().startsWith("{")) {
-    operations.push({
-      type: "anonymous",
-      name: "anonymous",
-    });
+    if (char === "(" && braceDepth === 0) { parenDepth += 1; continue; }
+    if (char === ")" && braceDepth === 0) { parenDepth = Math.max(0, parenDepth - 1); continue; }
+    if (char === "[" && braceDepth === 0) { bracketDepth += 1; continue; }
+    if (char === "]" && braceDepth === 0) { bracketDepth = Math.max(0, bracketDepth - 1); continue; }
+
+    if (char === "{" && parenDepth === 0 && bracketDepth === 0) {
+      if (braceDepth === 0) {
+        if (headerKind === null) {
+          operations.push({ type: "anonymous", name: "anonymous" });
+        }
+        headerKind = null;
+      }
+      braceDepth += 1;
+      continue;
+    }
+
+    if (char === "}" && parenDepth === 0 && bracketDepth === 0) {
+      braceDepth = Math.max(0, braceDepth - 1);
+      continue;
+    }
+
+    if (braceDepth !== 0 || parenDepth !== 0 || bracketDepth !== 0 || !/[A-Za-z_]/.test(char)) {
+      continue;
+    }
+
+    let end = index + 1;
+    while (end < source.length && /[A-Za-z0-9_]/.test(source[end])) end += 1;
+    const token = source.slice(index, end);
+
+    if (token === "fragment") {
+      headerKind = "fragment";
+      index = end - 1;
+      continue;
+    }
+
+    if (token === "query" || token === "mutation" || token === "subscription") {
+      let cursor = end;
+      while (cursor < source.length && /[\s,]/.test(source[cursor])) cursor += 1;
+      const nameMatch = source.slice(cursor).match(/^([A-Za-z_][A-Za-z0-9_]*)/);
+
+      operations.push({
+        type: token,
+        name: nameMatch?.[1] || "anonymous",
+      });
+      headerKind = "operation";
+      index = end - 1;
+      continue;
+    }
+
+    index = end - 1;
   }
 
   return operations;
@@ -1043,12 +1054,26 @@ function formatOutput(
 
   const requestedOperationName = options.operationName.trim();
   const namedOperations = result.operations.filter((operation) => operation.name !== "anonymous");
-  if (requestedOperationName && !namedOperations.some((operation) => operation.name === requestedOperationName)) {
+  const requestedOperation = requestedOperationName
+    ? namedOperations.find((operation) => operation.name === requestedOperationName)
+    : null;
+
+  if (requestedOperationName && !requestedOperation) {
     throw new Error(`Operation Name "${requestedOperationName}" was not found in the document.`);
   }
-  if ((options.outputMode === "jsonPayload" || options.outputMode === "curl") && result.operations.length > 1 && options.includeOperationName && !requestedOperationName) {
+
+  const isExecutableOutput = options.outputMode === "jsonPayload" || options.outputMode === "curl";
+  if (isExecutableOutput && result.operations.length === 0) {
+    throw new Error("No executable GraphQL operation was found. A fragment-only document can be formatted, but it cannot be sent by itself.");
+  }
+  if (isExecutableOutput && result.operations.length > 1 && !requestedOperationName) {
     throw new Error("This document contains multiple operations. Enter the Operation Name to build an executable request.");
   }
+  if (isExecutableOutput && result.operations.length > 1 && !options.includeOperationName) {
+    throw new Error("Enable Include operationName to build a request from a document that contains multiple operations.");
+  }
+
+  const selectedOperation = requestedOperation || (result.operations.length === 1 ? result.operations[0] : null);
   const operationName = requestedOperationName || getPrimaryOperationName(result.operations);
   const payload = buildPayload({
     query: result.minified,
@@ -1064,22 +1089,23 @@ function formatOutput(
 
   if (options.outputMode === "curl") {
     const endpoint = options.endpoint.trim() || "https://api.example.com/graphql";
+    const acceptHeader = "Accept: application/graphql-response+json, application/json;q=0.9";
     if (options.requestMethod === "GET") {
-      if (result.operations.some((operation) => operation.type === "mutation")) {
-        throw new Error("GraphQL over HTTP GET must not execute mutations. Choose POST for this document.");
+      if (selectedOperation?.type === "mutation") {
+        throw new Error("GraphQL over HTTP GET must not execute mutations. Choose POST for the selected operation.");
       }
       const params = new URLSearchParams();
       params.set("query", result.minified);
       if (payload.operationName) params.set("operationName", String(payload.operationName));
       if (payload.variables) params.set("variables", JSON.stringify(payload.variables));
-      const separator = endpoint.includes("?") ? "&" : "?";
-      return `curl -X GET "${endpoint}${separator}${params.toString()}" -H "Accept: application/graphql-response+json, application/json;q=0.9"`;
+      const requestUrl = appendQueryBeforeFragment(endpoint, params.toString());
+      return `curl -X GET ${quotePosixShell(requestUrl)} -H ${quotePosixShell(acceptHeader)}`;
     }
     return [
-      `curl -X POST "${endpoint}" \\`,
-      `  -H "Content-Type: application/json" \\`,
-      `  -H "Accept: application/graphql-response+json, application/json;q=0.9" \\`,
-      `  -d '${JSON.stringify(payload).replace(/'/g, "'\"'\"'")}'`,
+      `curl -X POST ${quotePosixShell(endpoint)} \\`,
+      `  -H ${quotePosixShell("Content-Type: application/json")} \\`,
+      `  -H ${quotePosixShell(acceptHeader)} \\`,
+      `  -d ${quotePosixShell(JSON.stringify(payload))}`,
     ].join("\n");
   }
 
@@ -1094,6 +1120,20 @@ function formatOutput(
     "Findings:",
     ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
   ].join("\n");
+}
+
+function appendQueryBeforeFragment(endpoint: string, query: string) {
+  const hashIndex = endpoint.indexOf("#");
+  const base = hashIndex >= 0 ? endpoint.slice(0, hashIndex) : endpoint;
+  const fragment = hashIndex >= 0 ? endpoint.slice(hashIndex) : "";
+  const separator = base.includes("?")
+    ? (base.endsWith("?") || base.endsWith("&") ? "" : "&")
+    : "?";
+  return `${base}${separator}${query}${fragment}`;
+}
+
+function quotePosixShell(value: string) {
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
 }
 
 function buildPayload(params: {

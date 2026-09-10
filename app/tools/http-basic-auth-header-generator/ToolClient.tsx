@@ -257,7 +257,7 @@ export default function ToolClient() {
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <CheckboxRow checked={includeAcceptJson} label="Include Accept: application/json in snippets" onChange={(checked) => { setIncludeAcceptJson(checked); clearResult(); }} />
-          <CheckboxRow checked={includeContentTypeJson} label="Include Content-Type: application/json in snippets" onChange={(checked) => { setIncludeContentTypeJson(checked); clearResult(); }} />
+          <CheckboxRow checked={includeContentTypeJson} label="Include Content-Type: application/json when sending JSON" onChange={(checked) => { setIncludeContentTypeJson(checked); clearResult(); }} />
           <CheckboxRow checked={warnRealSecrets} label="Show secret handling warning" onChange={(checked) => { setWarnRealSecrets(checked); clearResult(); }} />
           <CheckboxRow checked={warnEmptyPassword} label="Warn when password is empty" onChange={(checked) => { setWarnEmptyPassword(checked); clearResult(); }} />
         </div>
@@ -349,90 +349,55 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Generating HTTP Basic Authorization Headers</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Basic auth depends on the exact credential bytes</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            HTTP Basic authentication sends a username and password as a Base64 encoded value inside the Authorization header. It is commonly used for quick API testing, internal tools, staging endpoints, legacy APIs, and simple protected resources.
+            Basic authentication starts with a <code>user-id:password</code> character sequence, converts that sequence to bytes, Base64-encodes the bytes, and places the result after <code>Basic</code> in the <code>Authorization</code> field. Base64 is only a representation step; it is not encryption.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            RFC 7617 defines the credential string as <code>user-id:password</code>, converted to bytes and then Base64 encoded. The colon is structural: a user-id containing <code>:</code> is invalid, while a password may contain colons.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Build the exact credential bytes you intend to send</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter a username and password.</li>
-            <li>Choose an output format such as plain header, cURL, Fetch, Axios, or JSON.</li>
-            <li>Optionally add an endpoint URL and request method for request snippets.</li>
-            <li>Review warnings about empty passwords, colons, and secret handling.</li>
-            <li>Copy the generated output into your API client or test request.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Basic Auth Header Format</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Authorization: Basic base64(username:password)`}
-            </pre>
-          </div>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The encoded part is not encryption. It is only a Base64 representation of the credential string.
+            The first colon is structural. Under <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc7617" target="_blank" rel="noreferrer">RFC 7617</a>, a user-id containing a colon is invalid, while the password may contain colons because everything after the first separator belongs to the password. Control characters are forbidden in both parts and are rejected here.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Basic Auth Should Use HTTPS</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Non-ASCII credentials need an encoding decision</h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Because Basic Auth credentials can be decoded, Basic Auth should only be sent over HTTPS. Avoid logging generated headers, sharing screenshots with real credentials, or committing generated headers to code.
+            Historical Basic authentication does not define one universal default encoding for every non-ASCII credential. A server can advertise <code>charset="UTF-8"</code> in its challenge; with that choice, credential text is normalized to NFC and encoded as UTF-8 before Base64 encoding.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Character encoding also matters. RFC 7617 leaves the legacy default encoding undefined beyond ASCII compatibility; a server can advertise <code>charset="UTF-8"</code> in its challenge. When UTF-8 is selected here, the credential text is normalized to NFC before encoding, matching the RFC guidance.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Read the normative details in <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc7617" target="_blank" rel="noreferrer">RFC 7617</a>.
+            “Legacy byte mapping” is available only for systems that map U+0000 through U+00FF directly to single bytes. It should be chosen because the target server expects that behavior, not because it produces a shorter or more familiar-looking token.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Treat the generated header like the password itself</h2>
 
-          <div className="mt-5 space-y-6">
-            <Faq title="What does a Basic Auth header generator do?">
-              It creates an Authorization header by joining username and password with a colon and Base64 encoding the result.
-            </Faq>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Anyone who obtains a Basic header can Base64-decode the credential string. TLS provides the confidentiality Basic authentication does not provide on its own, so an <code>http://</code> endpoint is a real security warning rather than a formatting preference.
+          </p>
 
-            <Faq title="Is Basic Auth secure?">
-              Basic Auth should only be used over HTTPS. The header value is Base64 encoded, not encrypted by itself.
-            </Faq>
-
-            <Faq title="Can I use this for cURL testing?">
-              Yes. Choose cURL output to generate a ready-to-copy test command.
-            </Faq>
-
-            <Faq title="Should I paste real passwords here?">
-              Avoid using real production passwords unless necessary. The tool runs locally, but careful secret handling is still a safer habit.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I generate the header?">
-              No. The header is generated directly in your browser.
-            </Faq>
-          </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Keep generated credentials out of source control, logs, screenshots, analytics events, support tickets, shell history where possible, and examples that may later be shared. Browser-local generation reduces unnecessary transmission by this page, but copying the result still creates another place where the secret can leak.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Request snippets cannot prove the server will accept them</h2>
 
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            cURL, Fetch, Axios, and JSON outputs only construct request material. The target still has to support Basic authentication for the relevant protection space, and a cross-origin browser request may require a successful CORS preflight before the request can be sent with <code>Authorization</code>.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Optional JSON <code>Accept</code> and <code>Content-Type</code> fields are convenience headers for the generated snippets. They do not add a JSON body. Keep <code>Content-Type: application/json</code> only when the request actually carries JSON, and do not mistake a syntactically correct header for successful authentication or authorization.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
             <YoryantraRelatedTools currentHref="/tools/http-basic-auth-header-generator" />
           </div>
@@ -523,14 +488,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}
 
 function buildBasicAuth(options: {
   username: string;
@@ -553,7 +510,7 @@ function buildBasicAuth(options: {
   const rawCredentials = `${normalizedUsername}:${normalizedPassword}`;
   const encodedCredentials = encodeBasicAuth(rawCredentials, options.charsetMode);
   const authorizationHeader = `Authorization: Basic ${encodedCredentials}`;
-  const issues = buildIssues(normalizedUsername, normalizedPassword, options);
+  const issues = buildIssues(normalizedUsername, normalizedPassword, options.endpoint, options);
   const base = {
     authorizationHeader,
     encodedCredentials,
@@ -604,7 +561,7 @@ function maskValue(value: string, mode: MaskMode) {
   return "•".repeat(Math.min(value.length, 12));
 }
 
-function buildIssues(username: string, password: string, options: {
+function buildIssues(username: string, password: string, endpoint: string, options: {
   warnRealSecrets: boolean;
   warnEmptyPassword: boolean;
 }) {
@@ -615,6 +572,14 @@ function buildIssues(username: string, password: string, options: {
       severity: "info",
       title: "Basic Auth is not encryption",
       message: "The credential string is Base64 encoded. Send it only over HTTPS and avoid sharing real generated headers.",
+    });
+  }
+
+  if (/^http:\/\//i.test(endpoint.trim())) {
+    issues.push({
+      severity: "warning",
+      title: "HTTP endpoint exposes reusable credentials",
+      message: "Basic authentication should be sent over HTTPS so TLS protects the Authorization header in transit.",
     });
   }
 
