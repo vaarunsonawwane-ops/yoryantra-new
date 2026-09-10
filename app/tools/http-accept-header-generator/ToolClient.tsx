@@ -96,7 +96,7 @@ export default function ToolClient() {
   const [language, setLanguage] = useState("");
   const [encoding, setEncoding] = useState("");
   const [endpoint, setEndpoint] = useState("");
-  const [charset, setCharset] = useState<Charset>("utf-8");
+  const [charset, setCharset] = useState<Charset>("none");
   const [encodingMode, setEncodingMode] = useState<EncodingMode>("modern");
   const [outputMode, setOutputMode] = useState<OutputMode>("headers");
   const [includeAccept, setIncludeAccept] = useState(true);
@@ -121,7 +121,15 @@ export default function ToolClient() {
   };
 
   const applyPreset = (nextPreset: Preset) => {
+    const values = presetValues[nextPreset];
     setPreset(nextPreset);
+    if (nextPreset !== "custom") {
+      setAccept(values.accept);
+      setContentType(values.contentType);
+      setLanguage(values.language);
+      setEncoding(values.encoding);
+      setEncodingMode(values.encoding ? "modern" : "none");
+    }
     clearResult();
   };
 
@@ -135,27 +143,33 @@ export default function ToolClient() {
       return;
     }
 
-    const next = buildHeaders({
-      accept: accept.trim() || fallbackValues.accept,
-      contentType: contentType.trim() || fallbackValues.contentType,
-      language: language.trim() || fallbackValues.language,
-      encoding: encoding.trim() || fallbackValues.encoding,
-      endpoint,
-      charset,
-      outputMode,
-      includeAccept,
-      includeContentType,
-      includeLanguage,
-      includeEncoding,
-      warnWildcard,
-      warnContentTypeOnGet,
-      requestMethod,
-    });
+    try {
+      const next = buildHeaders({
+        accept: accept.trim() || fallbackValues.accept,
+        contentType: contentType.trim() || fallbackValues.contentType,
+        language: language.trim() || fallbackValues.language,
+        encoding: encoding.trim() || fallbackValues.encoding,
+        endpoint,
+        charset,
+        outputMode,
+        includeAccept,
+        includeContentType,
+        includeLanguage,
+        includeEncoding,
+        warnWildcard,
+        warnContentTypeOnGet,
+        requestMethod,
+      });
 
-    setResult(next);
-    setOutput(next.output);
-    setError("");
-    setCopied(false);
+      setResult(next);
+      setOutput(next.output);
+      setError("");
+      setCopied(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to build these request headers.");
+      setResult(null);
+      setOutput("");
+    }
   };
 
   const copyOutput = async () => {
@@ -177,7 +191,7 @@ export default function ToolClient() {
     setEncoding(presetValues.jsonApi.encoding);
     setEndpoint("https://api.example.com/items");
     setRequestMethod("GET");
-    setCharset("utf-8");
+    setCharset("none");
     setEncodingMode("modern");
     setOutputMode("headers");
     setIncludeAccept(true);
@@ -197,7 +211,7 @@ export default function ToolClient() {
     setEncoding("");
     setEndpoint("");
     setRequestMethod("GET");
-    setCharset("utf-8");
+    setCharset("none");
     setEncodingMode("modern");
     setOutputMode("headers");
     setIncludeAccept(true);
@@ -224,7 +238,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HTTP Accept Header Generator"
-      description="Generate HTTP Accept, Accept-Language, Accept-Encoding, and Content-Type headers for API requests, browser testing, JSON APIs, XML APIs, file downloads, and content negotiation debugging."
+      description="Build request negotiation headers with explicit media types, language ranges, encodings, and body type."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <h3 className="text-lg font-semibold text-gray-900">Request Profile</h3>
@@ -354,9 +368,9 @@ export default function ToolClient() {
               clearResult();
             }}
             options={[
-              { label: "UTF-8", value: "utf-8" },
-              { label: "No charset", value: "none" },
-              { label: "ISO-8859-1", value: "iso-8859-1" },
+              { label: "No charset parameter", value: "none" },
+              { label: "UTF-8 when supported", value: "utf-8" },
+              { label: "ISO-8859-1 when supported", value: "iso-8859-1" },
             ]}
           />
 
@@ -388,19 +402,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generateHeaders} className="yoryantra-btn">
+        <button onClick={generateHeaders} className="yoryantra-btn whitespace-nowrap">
           Generate Headers
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -453,29 +467,21 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Header findings</h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {result.issues.map((issue, index) => (
+            <IssueCard key={`${issue.title}-${index}`} issue={issue} />
+          ))}
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Content negotiation guidance</h3>
-
+        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Negotiation notes</h3>
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -487,7 +493,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -500,98 +506,60 @@ export default function ToolClient() {
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Building HTTP Accept Headers for API Testing</h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Accept and Content-Type answer different questions</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Accept headers help clients tell servers which response formats they prefer. For APIs, this often means JSON, XML, GraphQL JSON, file downloads, language preferences, and compression support.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This HTTP Accept Header Generator creates clean request headers and ready-to-copy examples for cURL, Fetch, Axios, JSON, and plain header formats.
+            Accept describes which response media types the client is willing to receive. Content-Type describes the media type of the
+            representation carried in the request body. Sending both can be correct, but one does not imply the other.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the HTTP Accept Header Generator</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose a preset such as JSON API, browser HTML, XML API, GraphQL, or file download.</li>
-            <li>Edit Accept, Content-Type, Accept-Language, or Accept-Encoding values if needed.</li>
-            <li>Choose the request method and output format.</li>
-            <li>Review warnings about wildcards or unnecessary headers.</li>
-            <li>Copy the headers or generated request snippet.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common Accept Header Examples</h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>application/json</strong> for most JSON APIs.</li>
-            <li><strong>text/html</strong> for browser-style HTML requests.</li>
-            <li><strong>application/xml</strong> or <strong>text/xml</strong> for XML APIs.</li>
-            <li><strong>application/octet-stream</strong> for binary downloads.</li>
-            <li><strong>application/graphql-response+json</strong> for GraphQL responses.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Generated Headers</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Accept: application/json
-Content-Type: application/json; charset=utf-8
-Accept-Language: en-US,en;q=0.9
-Accept-Encoding: gzip, br`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Accept and Content-Type Are Different</h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Quality values express preference, not percentages</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Accept describes what response formats the client can receive. Content-Type describes the format of the request body being sent. A GET request often needs Accept but may not need Content-Type because it usually has no body.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            When debugging API issues, check both headers carefully. A wrong Accept value can trigger an unexpected response format, while a wrong Content-Type can make the server reject or misread the request body.
+            Accept, Accept-Language, and Accept-Encoding can attach q values from 0 to 1. Higher values are preferred; q=0 means
+            the value is not acceptable. Basic q-value syntax is checked before output is generated.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-
-          <div className="mt-5 space-y-6">
-            <Faq title="What does an HTTP Accept Header Generator do?">
-              It creates request headers that tell a server which response format, language, and encoding the client prefers.
-            </Faq>
-
-            <Faq title="What is the difference between Accept and Content-Type?">
-              Accept describes the response format the client wants. Content-Type describes the request body format the client is sending.
-            </Faq>
-
-            <Faq title="Should GET requests include Content-Type?">
-              Usually not unless the request has a body or an API specifically requires it.
-            </Faq>
-
-            <Faq title="What does q=0.9 mean in an Accept header?">
-              It is a quality value that tells the server relative preference when multiple formats or languages are acceptable.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I generate headers?">
-              No. The generator runs directly in your browser.
-            </Faq>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Browser Fetch cannot set every request header</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Browsers control Accept-Encoding themselves. Fetch output therefore leaves that field out instead of showing JavaScript
+            that a browser cannot reproduce faithfully.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Charset parameters belong to the media type definition</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A charset parameter is not universally valid for every media type. The optional charset choice is applied only to text/*
+            and XML media types here. application/json does not define a charset parameter.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/http-accept-header-generator" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Header values must stay on one field line</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            CR, LF, NUL, and other unsafe control characters are rejected. cURL output uses POSIX single-quote escaping so shell
+            metacharacters inside values are not silently reinterpreted.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">References behind the syntax</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Content negotiation and Content-Type semantics are defined in{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc9110.html#section-12.5" target="_blank" rel="noreferrer">RFC 9110</a>.
+            Language matching builds on{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc4647.html" target="_blank" rel="noreferrer">RFC 4647</a>,
+            and browser-controlled headers are defined by the{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://fetch.spec.whatwg.org/#forbidden-request-header" target="_blank" rel="noreferrer">WHATWG Fetch Standard</a>.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/http-accept-header-generator" /></div>
         </div>
       </section>
     </ToolShell>
@@ -636,6 +604,28 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function IssueCard({ issue }: { issue: Issue }) {
+  const classes =
+    issue.severity === "high"
+      ? "border-red-200 bg-red-50 text-red-800"
+      : issue.severity === "warning"
+        ? "border-amber-200 bg-amber-50 text-amber-800"
+        : "border-gray-200 bg-gray-50 text-gray-600";
+  const heading =
+    issue.severity === "high"
+      ? "text-red-900"
+      : issue.severity === "warning"
+        ? "text-amber-900"
+        : "text-gray-900";
+
+  return (
+    <div className={`self-start rounded-xl border p-4 ${classes}`}>
+      <p className={`text-sm font-semibold ${heading}`}>{issue.title}</p>
+      <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
+    </div>
+  );
+}
+
 function Faq({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
@@ -661,35 +651,31 @@ function buildHeaders(options: {
   warnContentTypeOnGet: boolean;
   requestMethod: string;
 }): Result {
-  const contentTypeValue = applyCharset(options.contentType.trim(), options.charset);
-  const headers: HeaderRow[] = [
-    {
-      name: "Accept",
-      value: options.accept.trim(),
-      enabled: options.includeAccept,
-      note: "Preferred response media type.",
-    },
-    {
-      name: "Content-Type",
-      value: contentTypeValue,
-      enabled: options.includeContentType && Boolean(contentTypeValue),
-      note: "Request body media type.",
-    },
-    {
-      name: "Accept-Language",
-      value: options.language.trim(),
-      enabled: options.includeLanguage && Boolean(options.language.trim()),
-      note: "Preferred response language.",
-    },
-    {
-      name: "Accept-Encoding",
-      value: options.encoding.trim(),
-      enabled: options.includeEncoding && Boolean(options.encoding.trim()),
-      note: "Compression formats the client can accept.",
-    },
+  const rawValues: Array<[string, string]> = [
+    ["Accept", options.accept],
+    ["Content-Type", options.contentType],
+    ["Accept-Language", options.language],
+    ["Accept-Encoding", options.encoding],
   ];
+  rawValues.forEach(([name, value]) => validateFieldValue(name, value));
+
+  if (options.includeAccept && options.accept.trim()) validateAccept(options.accept);
+  if (options.includeLanguage && options.language.trim()) validateWeightedTokenList("Accept-Language", options.language, "language");
+  if (options.includeEncoding && options.encoding.trim()) validateWeightedTokenList("Accept-Encoding", options.encoding, "encoding");
+  if (options.includeContentType && options.contentType.trim()) validateContentType(options.contentType);
+
+  const charsetApplied = supportsCharset(options.contentType.trim()) && options.charset !== "none";
+  const contentTypeValue = charsetApplied ? applyCharset(options.contentType.trim(), options.charset) : options.contentType.trim();
+
+  const headers: HeaderRow[] = [
+    { name: "Accept", value: options.accept.trim(), enabled: options.includeAccept && Boolean(options.accept.trim()), note: "Preferred response media types." },
+    { name: "Content-Type", value: contentTypeValue, enabled: options.includeContentType && Boolean(contentTypeValue), note: "Media type of the request body." },
+    { name: "Accept-Language", value: options.language.trim(), enabled: options.includeLanguage && Boolean(options.language.trim()), note: "Preferred response languages." },
+    { name: "Accept-Encoding", value: options.encoding.trim(), enabled: options.includeEncoding && Boolean(options.encoding.trim()), note: "Response content codings the client accepts." },
+  ];
+
   const enabledHeaders = headers.filter((header) => header.enabled);
-  const issues = buildIssues(enabledHeaders, options);
+  const issues = buildIssues(enabledHeaders, { ...options, charsetApplied });
   const base = {
     headers: enabledHeaders,
     issues,
@@ -697,16 +683,78 @@ function buildHeaders(options: {
     contentNegotiationMode: detectMode(enabledHeaders),
   };
   const output = formatOutput(base, options);
+  return { ...base, output };
+}
 
-  return {
-    ...base,
-    output,
-  };
+function validateFieldValue(name: string, value: string) {
+  if (/[\r\n\0]/.test(value) || /[\u0001-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value)) {
+    throw new Error(`${name} contains a control character that is not safe in an HTTP field value.`);
+  }
+}
+
+function splitCommaAware(value: string) {
+  const parts: string[] = [];
+  let current = "";
+  let quoted = false;
+  let escaped = false;
+  for (const ch of value) {
+    if (escaped) { current += ch; escaped = false; continue; }
+    if (quoted && ch === "\\") { current += ch; escaped = true; continue; }
+    if (ch === '"') { quoted = !quoted; current += ch; continue; }
+    if (!quoted && ch === ",") { parts.push(current.trim()); current = ""; continue; }
+    current += ch;
+  }
+  if (quoted) throw new Error("A quoted header parameter is not closed.");
+  parts.push(current.trim());
+  return parts.filter(Boolean);
+}
+
+function parseQValue(part: string, fieldName: string) {
+  const qParams = part.match(/(?:^|;)\s*q\s*=/ig) || [];
+  if (qParams.length > 1) throw new Error(`${fieldName} contains more than one q parameter in one item.`);
+  if (qParams.length === 0) return;
+
+  const match = part.match(/(?:^|;)\s*q\s*=\s*([^;\s]+)\s*(?:;|$)/i);
+  if (!match || !/^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(match[1])) {
+    throw new Error(`${fieldName} contains an invalid q value. Use 0 to 1 with at most three decimal places.`);
+  }
+}
+
+function validateAccept(value: string) {
+  for (const item of splitCommaAware(value)) {
+    parseQValue(item, "Accept");
+    const media = item.split(";")[0].trim();
+    if (!/^(?:\*\/\*|[!#$%&'*+\-.^_`|~0-9A-Za-z]+\/(?:\*|[!#$%&'*+\-.^_`|~0-9A-Za-z]+))$/.test(media)) {
+      throw new Error(`Accept contains an invalid media range: ${media || "(empty)"}.`);
+    }
+  }
+}
+
+function validateWeightedTokenList(fieldName: string, value: string, kind: "language" | "encoding") {
+  for (const item of splitCommaAware(value)) {
+    parseQValue(item, fieldName);
+    const token = item.split(";")[0].trim();
+    const valid = kind === "language"
+      ? token === "*" || /^[A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*$/.test(token)
+      : token === "*" || /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(token);
+    if (!valid) throw new Error(`${fieldName} contains an invalid ${kind === "language" ? "language range" : "content-coding"}: ${token || "(empty)"}.`);
+  }
+}
+
+function validateContentType(value: string) {
+  const media = value.split(";")[0].trim();
+  if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+\/[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(media)) {
+    throw new Error("Content-Type must start with a valid type/subtype media type.");
+  }
+}
+
+function supportsCharset(contentType: string) {
+  const media = contentType.split(";")[0].trim().toLowerCase();
+  return media.startsWith("text/") || media === "application/xml" || media.endsWith("+xml");
 }
 
 function applyCharset(contentType: string, charset: Charset) {
-  if (!contentType || charset === "none") return contentType;
-  if (/;\s*charset=/i.test(contentType)) return contentType;
+  if (!contentType || charset === "none" || /;\s*charset=/i.test(contentType)) return contentType;
   return `${contentType}; charset=${charset}`;
 }
 
@@ -716,61 +764,91 @@ function buildIssues(headers: HeaderRow[], options: {
   requestMethod: string;
   accept: string;
   contentType: string;
+  outputMode: OutputMode;
+  includeContentType: boolean;
+  includeEncoding: boolean;
+  charset: Charset;
+  charsetApplied: boolean;
 }) {
   const issues: Issue[] = [];
   const accept = options.accept.toLowerCase();
-  const contentType = options.contentType.toLowerCase();
 
-  if (options.warnWildcard && (accept === "*/*" || accept.includes("*/*;q=1"))) {
+  if (options.warnWildcard && splitCommaAware(accept).some((part) => part.split(";")[0].trim() === "*/*")) {
     issues.push({
       severity: "info",
-      title: "Very broad Accept header",
-      message: "A broad wildcard Accept value is flexible, but it can hide content negotiation mistakes during API testing.",
+      title: "Accept includes a broad wildcard",
+      message: "*/* allows any response media type. That can be intentional, but it gives the server less specific preference information.",
     });
   }
 
-  if (options.warnContentTypeOnGet && options.requestMethod === "GET" && contentType.trim()) {
+  if (options.warnContentTypeOnGet && options.requestMethod === "GET" && options.includeContentType && options.contentType.trim()) {
     issues.push({
       severity: "info",
-      title: "Content-Type on GET request",
-      message: "GET requests usually do not need Content-Type unless the API expects a request body.",
+      title: "Content-Type is present on a GET request",
+      message: "Content-Type describes a request body. Keep it only when this GET request actually carries a representation that the server expects.",
     });
   }
 
-  if (contentType.includes("application/json") && !accept.includes("application/json") && accept.trim()) {
+  if (options.charset !== "none" && options.contentType.trim() && !options.charsetApplied) {
+    issues.push({
+      severity: "info",
+      title: "Charset was not appended",
+      message: "The selected media type does not use the charset option in this generator. Media-type parameters are defined by each media type, not by HTTP globally.",
+    });
+  }
+
+  if (options.outputMode === "fetch" && options.includeEncoding && headers.some((header) => header.name === "Accept-Encoding")) {
     issues.push({
       severity: "warning",
-      title: "JSON body without JSON response preference",
-      message: "Content-Type is JSON, but Accept does not clearly request JSON.",
+      title: "Browser Fetch controls Accept-Encoding",
+      message: "Accept-Encoding is omitted from the Fetch snippet because browsers treat it as a forbidden request header and negotiate compression themselves.",
     });
   }
 
   if (headers.length === 0) {
     issues.push({
       severity: "warning",
-      title: "No headers enabled",
-      message: "Enable at least one header to generate useful output.",
+      title: "No headers are enabled",
+      message: "Enable at least one field before generating output.",
     });
   }
 
   if (issues.length === 0) {
     issues.push({
       severity: "info",
-      title: "Headers generated",
-      message: "The selected headers look reasonable for the chosen request profile.",
+      title: "Header syntax is ready to copy",
+      message: "The enabled values passed structural checks. Server support and negotiation results still depend on the target endpoint.",
     });
   }
-
   return issues;
 }
 
 function detectMode(headers: HeaderRow[]) {
   const names = headers.map((header) => header.name);
-
-  if (names.includes("Accept") && names.includes("Content-Type")) return "request and response";
+  if (names.includes("Accept") && names.includes("Content-Type")) return "response preference + request body";
   if (names.includes("Accept")) return "response negotiation";
-  if (names.includes("Content-Type")) return "request body only";
-  return "custom";
+  if (names.includes("Content-Type")) return "request body metadata";
+  return "custom request fields";
+}
+
+function headersToObject(headers: HeaderRow[]) {
+  const object: Record<string, string> = {};
+  headers.forEach((header) => { object[header.name] = header.value; });
+  return object;
+}
+
+function shellQuote(value: string) {
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
+}
+
+function escapeJs(value: string) {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, "\\\"")
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 function formatOutput(result: Omit<Result, "output">, options: {
@@ -779,24 +857,22 @@ function formatOutput(result: Omit<Result, "output">, options: {
   requestMethod: string;
 }) {
   const endpoint = options.endpoint.trim() || "https://api.example.com/items";
-  const headerObject = Object.fromEntries(result.headers.map((header) => [header.name, header.value]));
   const headerLines = result.headers.map((header) => `${header.name}: ${header.value}`);
+  const browserHeaders = result.headers.filter((header) => header.name.toLowerCase() !== "accept-encoding");
 
-  if (options.outputMode === "json") {
-    return JSON.stringify(headerObject, null, 2);
-  }
+  if (options.outputMode === "json") return JSON.stringify(headersToObject(result.headers), null, 2);
 
   if (options.outputMode === "curl") {
-    const headers = result.headers.map((header) => `  -H "${header.name}: ${header.value}"`).join(" \\\n");
-    return [`curl -X ${options.requestMethod} "${endpoint}"`, headers].filter(Boolean).join(" \\\n");
+    const headerArgs = result.headers.map((header) => `  -H ${shellQuote(`${header.name}: ${header.value}`)}`).join(" \\\n");
+    return [`curl -X ${options.requestMethod} ${shellQuote(endpoint)}`, headerArgs].filter(Boolean).join(" \\\n");
   }
 
   if (options.outputMode === "fetch") {
     return [
-      `fetch("${endpoint}", {`,
+      `fetch("${escapeJs(endpoint)}", {`,
       `  method: "${options.requestMethod}",`,
       "  headers: {",
-      ...result.headers.map((header) => `    "${header.name}": "${escapeJs(header.value)}",`),
+      ...browserHeaders.map((header) => `    "${header.name}": "${escapeJs(header.value)}",`),
       "  },",
       "});",
     ].join("\n");
@@ -806,7 +882,7 @@ function formatOutput(result: Omit<Result, "output">, options: {
     return [
       "axios({",
       `  method: "${options.requestMethod.toLowerCase()}",`,
-      `  url: "${endpoint}",`,
+      `  url: "${escapeJs(endpoint)}",`,
       "  headers: {",
       ...result.headers.map((header) => `    "${header.name}": "${escapeJs(header.value)}",`),
       "  },",
@@ -828,9 +904,6 @@ function formatOutput(result: Omit<Result, "output">, options: {
   return headerLines.join("\n");
 }
 
-function escapeJs(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
-}
 function escapeMarkdown(value: string) {
   return value.replace(/\|/g, "\\|").replace(/\n/g, "\\n");
 }
@@ -840,22 +913,20 @@ function getNotes(result: Result) {
 
   if (result.headers.some((header) => header.name === "Content-Type")) {
     notes.push({
-      title: "Content-Type describes the request body",
-      message: "Use Content-Type when you send a body, such as JSON, XML, or form data.",
+      title: "Content-Type belongs to the request representation",
+      message: "A server can choose a different response type; request Content-Type does not constrain the response.",
     });
   }
-
   if (result.headers.some((header) => header.name === "Accept")) {
     notes.push({
-      title: "Accept describes the response you prefer",
-      message: "Use Accept to request JSON, XML, HTML, files, or another response media type.",
+      title: "Accept is a preference signal",
+      message: "Negotiation behavior is endpoint-specific; a server that cannot provide an acceptable representation can respond with 406.",
     });
   }
-
   notes.push({
-    title: "Server behavior can still vary",
-    message: "Some APIs ignore Accept headers or require provider-specific headers. Check the API documentation when testing.",
+    title: "Presets are starting points",
+    message: "Media types, language ranges, and compression support should match the real endpoint and client rather than a generic profile.",
   });
-
   return notes;
 }
+

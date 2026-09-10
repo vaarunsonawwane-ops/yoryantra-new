@@ -2,18 +2,18 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "API Rate Limit Header Parser | Parse RateLimit and X-RateLimit Headers | Yoryantra",
+  title: "API Rate Limit Header Parser | Yoryantra",
   description:
-    "Parse API rate limit headers from pasted HTTP responses. Understand RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, X-RateLimit headers, Retry-After, reset time, quota usage, and retry guidance.",
+    "Interpret RateLimit, RateLimit-Policy, Retry-After, legacy RateLimit-* and provider-specific X-RateLimit fields without guessing ambiguous reset timing.",
   keywords: [
     "API Rate Limit Header Parser",
     "RateLimit header parser",
-    "X-RateLimit header parser",
+    "RateLimit-Policy parser",
+    "X-RateLimit parser",
     "Retry-After parser",
-    "API rate limit checker",
-    "HTTP rate limit headers",
-    "RateLimit-Reset converter",
-    "API debugging tools",
+    "rate limit reset semantics",
+    "HTTP 429 headers",
+    "API throttling headers",
     "developer tools",
     "HTTP headers tools",
   ],
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/api-rate-limit-header-parser",
   },
   openGraph: {
-    title: "API Rate Limit Header Parser | Parse RateLimit and X-RateLimit Headers | Yoryantra",
+    title: "API Rate Limit Header Parser | Yoryantra",
     description:
-      "Parse API rate limit headers from pasted HTTP responses. Understand RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, X-RateLimit headers, Retry-After, reset time, quota usage, and retry guidance.",
+      "Interpret RateLimit, RateLimit-Policy, Retry-After, legacy RateLimit-* and provider-specific X-RateLimit fields without guessing ambiguous reset timing.",
     url: "https://yoryantra.com/tools/api-rate-limit-header-parser",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "API Rate Limit Header Parser | Parse RateLimit and X-RateLimit Headers | Yoryantra",
+    title: "API Rate Limit Header Parser | Yoryantra",
     description:
-      "Parse API rate limit headers from pasted HTTP responses. Understand RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, X-RateLimit headers, Retry-After, reset time, quota usage, and retry guidance.",
+      "Interpret RateLimit, RateLimit-Policy, Retry-After, legacy RateLimit-* and provider-specific X-RateLimit fields without guessing ambiguous reset timing.",
   },
 };
 

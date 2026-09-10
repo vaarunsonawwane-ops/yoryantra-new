@@ -1290,7 +1290,7 @@ export const tools = [
 {
   title: "HTTP Cache Header Analyzer",
   description:
-    "Analyze Cache-Control, ETag, Expires, Last-Modified, Vary, Age, CDN cache status, browser TTL, and revalidation behavior.",
+    "Read Cache-Control, validators, Vary, Age, and Cache-Status while separating storage, freshness, and revalidation behavior.",
   href: "/tools/http-cache-header-analyzer",
   category: "Developer Tools",
 },
@@ -1299,7 +1299,7 @@ export const tools = [
 {
   title: "API Rate Limit Header Parser",
   description:
-    "Parse RateLimit, X-RateLimit, Retry-After, reset time, remaining quota, usage percentage, and API throttling headers.",
+    "Interpret RateLimit draft fields, Retry-After, and provider-specific X-RateLimit quotas without guessing ambiguous reset timing.",
   href: "/tools/api-rate-limit-header-parser",
   category: "Developer Tools",
 },
@@ -1307,7 +1307,7 @@ export const tools = [
 {
   title: "HTTP Accept Header Generator",
   description:
-    "Generate Accept, Content-Type, Accept-Language, and Accept-Encoding headers for API testing and content negotiation debugging.",
+    "Build Accept, Content-Type, Accept-Language, and Accept-Encoding headers with q-value checks and browser Fetch restrictions.",
   href: "/tools/http-accept-header-generator",
   category: "Developer Tools",
 },

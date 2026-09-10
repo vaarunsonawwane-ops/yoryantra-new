@@ -6,7 +6,7 @@ import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type OutputMode = "summary" | "report" | "json" | "markdown" | "csv";
-type HeaderStyle = "auto" | "standard" | "xRateLimit" | "github" | "mixed";
+type HeaderStyle = "auto" | "ietfDraft" | "legacySplit" | "xRateLimit" | "github" | "mixed";
 type ResetMode = "auto" | "seconds" | "unix" | "iso";
 type CheckingStyle = "balanced" | "strict" | "relaxed";
 
@@ -18,17 +18,17 @@ type Issue = {
 
 type ParsedHeaders = {
   statusCode: number | null;
-  rateLimitLimit: string;
-  rateLimitRemaining: string;
-  rateLimitReset: string;
+  rateLimit: string;
   rateLimitPolicy: string;
+  legacyRateLimitLimit: string;
+  legacyRateLimitRemaining: string;
+  legacyRateLimitReset: string;
   retryAfter: string;
   xRateLimitLimit: string;
   xRateLimitRemaining: string;
   xRateLimitReset: string;
   xRateLimitUsed: string;
   xRateLimitResource: string;
-  githubRateLimitReset: string;
 };
 
 type RateLimitResult = {
@@ -36,28 +36,23 @@ type RateLimitResult = {
   issues: Issue[];
   output: string;
   detectedStyle: string;
+  policyName: string;
   limit: number | null;
   remaining: number | null;
   used: number | null;
   usagePercent: number | null;
+  effectiveWindowSeconds: number | null;
   resetTime: string;
   retryAfterTime: string;
   waitSeconds: number | null;
   status: "healthy" | "watch" | "limited" | "unknown";
 };
 
-const sampleHeaders = `HTTP/2 200
-content-type: application/json
-ratelimit-limit: 5000
-ratelimit-remaining: 124
-ratelimit-reset: 1717336200
-ratelimit-policy: 5000;w=3600
-retry-after: 120
-x-ratelimit-limit: 5000
-x-ratelimit-remaining: 124
-x-ratelimit-used: 4876
-x-ratelimit-reset: 1717336200
-x-ratelimit-resource: core`;
+const sampleHeaders = `HTTP/2 429
+content-type: application/problem+json
+ratelimit-policy: "core";q=5000;w=3600
+ratelimit: "core";r=0;t=120
+retry-after: 120`;
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -155,7 +150,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="API Rate Limit Header Parser"
-      description="Parse API rate limit headers from pasted HTTP responses. Understand RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, X-RateLimit headers, Retry-After, reset time, quota usage, and retry guidance."
+      description="Interpret current and provider-specific rate-limit headers without guessing ambiguous reset semantics."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">API Response Headers</label>
@@ -186,15 +181,16 @@ export default function ToolClient() {
             }}
             options={[
               { label: "Auto-detect", value: "auto" },
-              { label: "Standard RateLimit headers", value: "standard" },
-              { label: "X-RateLimit headers", value: "xRateLimit" },
-              { label: "GitHub-style headers", value: "github" },
-              { label: "Mixed headers", value: "mixed" },
+              { label: "IETF draft RateLimit", value: "ietfDraft" },
+              { label: "Legacy RateLimit-* fields", value: "legacySplit" },
+              { label: "X-RateLimit fields", value: "xRateLimit" },
+              { label: "GitHub-style X-RateLimit", value: "github" },
+              { label: "Mixed fields", value: "mixed" },
             ]}
           />
 
           <YoryantraSelect
-            label="Reset Format"
+            label="Legacy Reset Format"
             value={resetMode}
             onChange={(value) => {
               setResetMode(value as ResetMode);
@@ -204,7 +200,7 @@ export default function ToolClient() {
               { label: "Auto-detect", value: "auto" },
               { label: "Seconds from now", value: "seconds" },
               { label: "Unix timestamp", value: "unix" },
-              { label: "ISO date/time", value: "iso" },
+              { label: "HTTP / ISO date-time", value: "iso" },
             ]}
           />
 
@@ -248,15 +244,15 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Use this to understand API throttling, retry timing, quota usage, gateway limits, and rate limit reset windows.
+          The reset-format choice applies only to legacy or provider-specific reset values. Current draft RateLimit t values are seconds.
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={parseHeaders} className="yoryantra-btn">Parse Rate Limit Headers</button>
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>{copied ? "Copied" : "Copy Output"}</button>
-        <button onClick={loadExample} className="yoryantra-btn-outline">Load Example</button>
-        <button onClick={resetAll} className="yoryantra-btn-outline">Reset</button>
+        <button onClick={parseHeaders} className="yoryantra-btn whitespace-nowrap">Parse Rate Limit Headers</button>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>{copied ? "Copied" : "Copy Output"}</button>
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">Load Example</button>
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">Reset</button>
       </div>
 
       {error && (
@@ -301,27 +297,21 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Rate limit findings</h3>
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {result.issues.map((issue, index) => (
+            <IssueCard key={`${issue.title}-${index}`} issue={issue} />
+          ))}
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">API retry guidance</h3>
+        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Retry and quota notes</h3>
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -331,7 +321,7 @@ export default function ToolClient() {
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
-          {output && <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">{copied ? "Copied" : "Copy"}</button>}
+          {output && <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">{copied ? "Copied" : "Copy"}</button>}
         </div>
 
         <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
@@ -339,92 +329,91 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
         Rate limit header formats vary across APIs and gateways. Always check the provider documentation for exact semantics before building retry logic.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Understanding API Rate Limit Headers</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Rate-limit headers are not one universal format</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            APIs often return rate limit headers so clients know how many requests are allowed, how much quota remains, when the window resets, and when to retry after throttling.
+            APIs expose quota information in several incompatible ways. The current IETF HTTPAPI work is centered on
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">RateLimit</code> and
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">RateLimit-Policy</code> structured fields,
+            while many deployed APIs still use older RateLimit-* or X-RateLimit conventions.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This API Rate Limit Header Parser converts pasted response headers into a readable summary with limit, remaining quota, usage percentage, reset time, Retry-After behavior, and practical warnings.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the API Rate Limit Header Parser</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Copy response headers from curl, DevTools, Postman, or API logs.</li>
-            <li>Paste the headers into the parser.</li>
-            <li>Choose the header style and reset time format if auto-detect is not enough.</li>
-            <li>Review quota usage, reset time, retry timing, and warnings.</li>
-            <li>Copy the summary, report, JSON, Markdown, or CSV output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common Rate Limit Headers</h2>
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>RateLimit-Limit</strong> shows the request limit for the current window.</li>
-            <li><strong>RateLimit-Remaining</strong> shows how many requests are left.</li>
-            <li><strong>RateLimit-Reset</strong> shows when the quota resets.</li>
-            <li><strong>Retry-After</strong> tells clients how long to wait before retrying.</li>
-            <li><strong>X-RateLimit-Limit</strong>, <strong>X-RateLimit-Remaining</strong>, and <strong>X-RateLimit-Reset</strong> are common legacy or provider-specific versions.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Rate Limit Headers</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`RateLimit-Limit: 5000
-RateLimit-Remaining: 124
-RateLimit-Reset: 1717336200
-Retry-After: 120`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Retry Logic Should Be Conservative</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            When remaining quota is low or Retry-After is present, clients should slow down instead of retrying aggressively. Backoff, jitter, queueing, and respecting provider reset windows help prevent repeated throttling.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            For user-facing apps, graceful error messages and background retry queues are usually better than making users wait on repeated failed requests.
+            That difference matters most for time values. In the current draft, the <code className="rounded bg-gray-100 px-1 py-0.5 text-sm">t</code>
+            parameter is an effective window in seconds. X-RateLimit-Reset has no single cross-provider meaning, so the parser
+            will not silently guess a provider-specific reset format when it is ambiguous.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">What the parser derives</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Current draft fields can expose a policy identifier, allocated quota, available quota, and effective window.
+            Older split fields can expose limit and remaining values directly. Retry-After is handled separately because it
+            can be either delay-seconds or an HTTP date and takes precedence over quota-window hints when a server asks the client to wait.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Provider-specific reset values need an explicit choice</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Some X-RateLimit APIs use Unix seconds, others use a delay, and some publish a date-time. Auto mode recognizes
+            GitHub-style epoch resets when the resource field identifies that convention; otherwise an ambiguous numeric reset
+            stays unresolved until you choose its format.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">A remaining value is a hint, not a promise</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A positive remaining quota does not guarantee that the next request will succeed. Servers can apply several limits,
+            change capacity dynamically, or throttle for reasons not represented by these fields. Treat the numbers as input to
+            conservative scheduling rather than permission to consume the quota as fast as possible.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Sensitive response metadata</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Parsing happens in the browser, but pasted header dumps can still contain request identifiers, account-specific quota
+            names, cookies, authorization data, or internal gateway metadata. Remove unrelated secrets before sharing copied output.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Standards and live specification status</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Retry-After semantics come from{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after" target="_blank" rel="noreferrer">RFC 9110</a>,
+            and HTTP 429 is defined by{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc6585.html#section-4" target="_blank" rel="noreferrer">RFC 6585</a>.
+            The newer RateLimit / RateLimit-Policy design is still an active IETF Internet-Draft, not a published RFC, so its syntax can change before standardization.{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/" target="_blank" rel="noreferrer">Follow the current HTTPAPI draft</a>.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Questions that affect retry code</h2>
           <div className="mt-5 space-y-6">
-            <Faq title="What does an API Rate Limit Header Parser do?">
-              It reads pasted API response headers and explains quota limits, remaining requests, reset time, retry timing, and throttling signals.
+            <Faq title="Why is my X-RateLimit-Reset value not converted automatically?">
+              Because that field is provider-specific. A numeric value can mean epoch seconds or a delay, so guessing can produce a dangerously wrong retry time.
             </Faq>
-            <Faq title="Does this tool call my API?">
-              No. It only analyzes the headers you paste into the browser.
+            <Faq title="Should Retry-After override a RateLimit window?">
+              When both are present, follow Retry-After for the requested wait. Quota fields can still help shape the request rate after that delay.
             </Faq>
-            <Faq title="What does Retry-After mean?">
-              Retry-After tells the client how long to wait before trying again. It can be seconds or an HTTP date depending on the API.
-            </Faq>
-            <Faq title="Why do some APIs use X-RateLimit headers?">
-              X-RateLimit headers are older or provider-specific conventions. Many APIs still use them alongside or instead of standard RateLimit headers.
-            </Faq>
-            <Faq title="Is anything uploaded when I parse headers?">
-              No. The parsing runs directly in your browser.
+            <Faq title="Does a parsed quota prove how the server will throttle me?">
+              No. The server remains authoritative, and multiple or dynamic quota policies can affect later requests.
             </Faq>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
-
-          <YoryantraRelatedTools currentHref="/tools/api-rate-limit-header-parser" />
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/api-rate-limit-header-parser" /></div>
         </div>
       </section>
     </ToolShell>
@@ -445,6 +434,28 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
+    </div>
+  );
+}
+
+function IssueCard({ issue }: { issue: Issue }) {
+  const classes =
+    issue.severity === "high"
+      ? "border-red-200 bg-red-50 text-red-800"
+      : issue.severity === "warning"
+        ? "border-amber-200 bg-amber-50 text-amber-800"
+        : "border-gray-200 bg-gray-50 text-gray-600";
+  const heading =
+    issue.severity === "high"
+      ? "text-red-900"
+      : issue.severity === "warning"
+        ? "text-amber-900"
+        : "text-gray-900";
+
+  return (
+    <div className={`self-start rounded-xl border p-4 ${classes}`}>
+      <p className={`text-sm font-semibold ${heading}`}>{issue.title}</p>
+      <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
     </div>
   );
 }
@@ -471,158 +482,375 @@ function analyzeRateLimitHeaders(options: {
   showLocalTime: boolean;
 }): RateLimitResult {
   const headers = parseHeaderText(options.input);
-  const detectedStyle = detectStyle(headers, options.headerStyle);
-  const limit = firstNumber(headers.rateLimitLimit, headers.xRateLimitLimit);
-  const remaining = firstNumber(headers.rateLimitRemaining, headers.xRateLimitRemaining);
-  const used = firstNumber(headers.xRateLimitUsed);
-  const resetRaw = firstValue(headers.rateLimitReset, headers.xRateLimitReset, headers.githubRateLimitReset);
-  const resetDate = parseResetValue(resetRaw, options.resetMode);
-  const retryAfterDate = parseRetryAfter(headers.retryAfter);
+  const detectedStyle = detectStyle(headers);
+  const selectedStyle = options.headerStyle === "auto" || options.headerStyle === "mixed"
+    ? preferredStyle(headers)
+    : options.headerStyle;
+
+  const serviceItems = parseStructuredRateLimitList(headers.rateLimit);
+  const policyItems = parseStructuredRateLimitList(headers.rateLimitPolicy);
+  const currentRateLimitInvalid = Boolean(
+    headers.rateLimit && (serviceItems.length === 0 || serviceItems.some((item) => structuredIntegerParam(item, "r") === null)),
+  );
+  const currentPolicyInvalid = Boolean(
+    headers.rateLimitPolicy && (policyItems.length === 0 || policyItems.some((item) => structuredIntegerParam(item, "q") === null)),
+  );
+  const service = currentRateLimitInvalid ? null : serviceItems[0] || null;
+  const validPolicies = currentPolicyInvalid ? [] : policyItems;
+  const matchingPolicy = service
+    ? validPolicies.find((item) => item.id === service.id) || null
+    : validPolicies[0] || null;
+
+  let policyName = "";
+  let limit: number | null = null;
+  let remaining: number | null = null;
+  let used: number | null = null;
+  let effectiveWindowSeconds: number | null = null;
+  let resetDate: Date | null = null;
+  let resetAmbiguous = false;
+
+  if (selectedStyle === "ietfDraft") {
+    policyName = service?.id || matchingPolicy?.id || "";
+    limit = structuredIntegerParam(matchingPolicy, "q");
+    remaining = structuredIntegerParam(service, "r");
+    effectiveWindowSeconds = structuredIntegerParam(service, "t");
+    if (effectiveWindowSeconds !== null) {
+      resetDate = new Date(Date.now() + effectiveWindowSeconds * 1000);
+    }
+  } else if (selectedStyle === "legacySplit") {
+    limit = strictNonNegativeInteger(headers.legacyRateLimitLimit);
+    remaining = strictNonNegativeInteger(headers.legacyRateLimitRemaining);
+    const reset = parseLegacyReset(headers.legacyRateLimitReset, options.resetMode, "legacySplit");
+    resetDate = reset.date;
+    effectiveWindowSeconds = reset.delaySeconds;
+    resetAmbiguous = reset.ambiguous;
+  } else {
+    limit = strictNonNegativeInteger(headers.xRateLimitLimit);
+    remaining = strictNonNegativeInteger(headers.xRateLimitRemaining);
+    used = strictNonNegativeInteger(headers.xRateLimitUsed);
+    const styleForReset = selectedStyle === "github" ? "github" : "xRateLimit";
+    const reset = parseLegacyReset(headers.xRateLimitReset, options.resetMode, styleForReset);
+    resetDate = reset.date;
+    effectiveWindowSeconds = reset.delaySeconds;
+    resetAmbiguous = reset.ambiguous;
+  }
+
+  if (used === null && limit !== null && remaining !== null && remaining <= limit) {
+    used = limit - remaining;
+  }
+
+  const retry = parseRetryAfter(headers.retryAfter);
   const usagePercent = calculateUsagePercent(limit, remaining, used);
-  const waitSeconds = retryAfterDate ? Math.max(0, Math.ceil((retryAfterDate.getTime() - Date.now()) / 1000)) : null;
+  const waitSeconds = retry.date
+    ? Math.max(0, Math.ceil((retry.date.getTime() - Date.now()) / 1000))
+    : null;
+
   const issues = buildIssues({
     headers,
     limit,
     remaining,
-    used,
     usagePercent,
+    effectiveWindowSeconds,
+    retryAfterDate: retry.date,
+    retryAfterInvalid: retry.invalid,
     resetDate,
-    retryAfterDate,
+    resetAmbiguous,
     detectedStyle,
+    selectedStyle,
+    currentRateLimitInvalid,
+    currentPolicyInvalid,
+    serviceItemCount: serviceItems.length,
+    policyMatchMissing: Boolean(service && validPolicies.length > 0 && !matchingPolicy),
     options,
   });
+
   const status = getStatus(headers.statusCode, remaining, usagePercent, waitSeconds);
   const base = {
     headers,
     issues,
     detectedStyle,
+    policyName,
     limit,
     remaining,
     used,
     usagePercent,
+    effectiveWindowSeconds,
     resetTime: formatDateValue(resetDate, options.showLocalTime),
-    retryAfterTime: formatDateValue(retryAfterDate, options.showLocalTime),
+    retryAfterTime: formatDateValue(retry.date, options.showLocalTime),
     waitSeconds,
     status,
   };
   const output = formatOutput(base, options.outputMode);
 
-  return {
-    ...base,
-    output,
-  };
+  return { ...base, output };
+}
+
+type StructuredItem = {
+  id: string;
+  params: Record<string, number | string>;
+};
+
+function structuredIntegerParam(item: StructuredItem | null, name: string): number | null {
+  const value = item?.params[name];
+  return typeof value === "number" ? value : null;
 }
 
 function parseHeaderText(input: string): ParsedHeaders {
   const headers: ParsedHeaders = {
     statusCode: null,
-    rateLimitLimit: "",
-    rateLimitRemaining: "",
-    rateLimitReset: "",
+    rateLimit: "",
     rateLimitPolicy: "",
+    legacyRateLimitLimit: "",
+    legacyRateLimitRemaining: "",
+    legacyRateLimitReset: "",
     retryAfter: "",
     xRateLimitLimit: "",
     xRateLimitRemaining: "",
     xRateLimitReset: "",
     xRateLimitUsed: "",
     xRateLimitResource: "",
-    githubRateLimitReset: "",
   };
 
   input.split(/\r?\n/).forEach((line) => {
-    const statusMatch = line.match(/^HTTP\/\S+\s+(\d{3})/i);
+    const statusMatch = line.match(/^\s*HTTP\/\S+\s+(\d{3})(?:\s|$)/i);
     if (statusMatch) {
       headers.statusCode = Number(statusMatch[1]);
       return;
     }
 
-    const match = line.match(/^\s*([^:]+)\s*:\s*(.+)\s*$/);
+    const match = line.match(/^\s*([^:\s][^:]*)\s*:\s*(.*)$/);
     if (!match) return;
 
     const name = match[1].trim().toLowerCase();
     const value = match[2].trim();
 
-    if (name === "ratelimit-limit") headers.rateLimitLimit = value;
-    else if (name === "ratelimit-remaining") headers.rateLimitRemaining = value;
-    else if (name === "ratelimit-reset") headers.rateLimitReset = value;
-    else if (name === "ratelimit-policy") headers.rateLimitPolicy = value;
+    if (name === "ratelimit") headers.rateLimit = combineListField(headers.rateLimit, value);
+    else if (name === "ratelimit-policy") headers.rateLimitPolicy = combineListField(headers.rateLimitPolicy, value);
+    else if (name === "ratelimit-limit") headers.legacyRateLimitLimit = value;
+    else if (name === "ratelimit-remaining") headers.legacyRateLimitRemaining = value;
+    else if (name === "ratelimit-reset") headers.legacyRateLimitReset = value;
     else if (name === "retry-after") headers.retryAfter = value;
     else if (name === "x-ratelimit-limit") headers.xRateLimitLimit = value;
     else if (name === "x-ratelimit-remaining") headers.xRateLimitRemaining = value;
     else if (name === "x-ratelimit-reset") headers.xRateLimitReset = value;
     else if (name === "x-ratelimit-used") headers.xRateLimitUsed = value;
     else if (name === "x-ratelimit-resource") headers.xRateLimitResource = value;
-    else if (name === "x-github-ratelimit-reset") headers.githubRateLimitReset = value;
   });
 
   return headers;
 }
 
-function detectStyle(headers: ParsedHeaders, selected: HeaderStyle) {
-  if (selected !== "auto") return selected;
-  const hasStandard = Boolean(headers.rateLimitLimit || headers.rateLimitRemaining || headers.rateLimitReset || headers.rateLimitPolicy);
-  const hasX = Boolean(headers.xRateLimitLimit || headers.xRateLimitRemaining || headers.xRateLimitReset || headers.xRateLimitUsed);
-  const hasGithub = Boolean(headers.xRateLimitResource || headers.githubRateLimitReset);
-
-  if ((hasStandard && hasX) || (hasGithub && hasStandard)) return "mixed";
-  if (hasGithub) return "github";
-  if (hasStandard) return "standard";
-  if (hasX) return "xRateLimit";
-  return "unknown";
+function combineListField(existing: string, next: string) {
+  return existing && next ? `${existing}, ${next}` : existing || next;
 }
 
-function firstValue(...values: string[]) {
-  return values.find((value) => value.trim()) || "";
-}
-
-function firstNumber(...values: string[]) {
-  for (const value of values) {
-    const parsed = Number(value.trim().split(",")[0]);
-    if (Number.isFinite(parsed)) return parsed;
+function detectStyle(headers: ParsedHeaders): string {
+  const families: string[] = [];
+  if (headers.rateLimit) families.push("IETF draft RateLimit");
+  if (headers.legacyRateLimitLimit || headers.legacyRateLimitRemaining || headers.legacyRateLimitReset) {
+    families.push("legacy RateLimit-*");
+  }
+  if (headers.xRateLimitLimit || headers.xRateLimitRemaining || headers.xRateLimitReset || headers.xRateLimitUsed) {
+    families.push(headers.xRateLimitResource ? "GitHub-style X-RateLimit" : "X-RateLimit");
   }
 
-  return null;
+  if (families.length > 1) return `mixed (${families.join(" + ")})`;
+  return families[0] || (headers.retryAfter ? "Retry-After only" : "unknown");
 }
 
-function parseResetValue(value: string, mode: ResetMode) {
-  if (!value.trim()) return null;
-  const trimmed = value.trim();
-  const numberValue = Number(trimmed);
+function preferredStyle(headers: ParsedHeaders): Exclude<HeaderStyle, "auto" | "mixed"> {
+  if (headers.rateLimit) return "ietfDraft";
+  if (headers.legacyRateLimitLimit || headers.legacyRateLimitRemaining || headers.legacyRateLimitReset) return "legacySplit";
+  if (headers.xRateLimitResource) return "github";
+  return "xRateLimit";
+}
 
-  if (mode === "iso") {
-    const date = new Date(trimmed);
-    return Number.isFinite(date.getTime()) ? date : null;
-  }
+function splitOutsideQuotes(value: string, delimiter: "," | ";") {
+  const parts: string[] = [];
+  let current = "";
+  let quoted = false;
+  let escaped = false;
 
-  if (mode === "seconds" && Number.isFinite(numberValue)) return new Date(Date.now() + numberValue * 1000);
-  if (mode === "unix" && Number.isFinite(numberValue)) return new Date(numberValue * 1000);
-
-  if (mode === "auto") {
-    const isoDate = new Date(trimmed);
-    if (!/^\d+$/.test(trimmed) && Number.isFinite(isoDate.getTime())) return isoDate;
-    if (Number.isFinite(numberValue)) {
-      if (numberValue > 1000000000) return new Date(numberValue * 1000);
-      return new Date(Date.now() + numberValue * 1000);
+  for (const char of value) {
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
     }
+    if (quoted && char === "\\") {
+      current += char;
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      quoted = !quoted;
+      current += char;
+      continue;
+    }
+    if (!quoted && char === delimiter) {
+      parts.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
   }
 
-  return null;
+  if (quoted) return [];
+  parts.push(current.trim());
+  return parts.filter(Boolean);
 }
 
-function parseRetryAfter(value: string) {
-  if (!value.trim()) return null;
-  const seconds = Number(value.trim());
+function unquoteStructuredString(value: string) {
+  if (!/^"(?:[^"\\]|\\.)*"$/.test(value)) return null;
+  return value.slice(1, -1).replace(/\\(["\\])/g, "$1");
+}
 
-  if (Number.isFinite(seconds)) return new Date(Date.now() + seconds * 1000);
+function parseStructuredRateLimitList(value: string): StructuredItem[] {
+  if (!value.trim()) return [];
+  const members = splitOutsideQuotes(value, ",");
+  if (members.length === 0) return [];
 
-  const date = new Date(value.trim());
+  const parsed: StructuredItem[] = [];
+
+  for (const member of members) {
+    const segments = splitOutsideQuotes(member, ";");
+    if (segments.length === 0) return [];
+    const id = unquoteStructuredString(segments[0]);
+    if (id === null) return [];
+
+    const params: Record<string, number | string> = {};
+    let valid = true;
+
+    for (const rawParam of segments.slice(1)) {
+      const eq = rawParam.indexOf("=");
+      if (eq <= 0) {
+        valid = false;
+        break;
+      }
+      const name = rawParam.slice(0, eq).trim().toLowerCase();
+      const rawValue = rawParam.slice(eq + 1).trim();
+      if (!/^[a-z*][a-z0-9_.*-]*$/.test(name)) {
+        valid = false;
+        break;
+      }
+
+      if (/^-?\d+$/.test(rawValue)) {
+        const numeric = Number(rawValue);
+        if (!Number.isSafeInteger(numeric)) {
+          valid = false;
+          break;
+        }
+        params[name] = numeric;
+      } else {
+        const quotedValue = unquoteStructuredString(rawValue);
+        if (quotedValue !== null) params[name] = quotedValue;
+        else if (/^[A-Za-z*][A-Za-z0-9_.*:/-]*$/.test(rawValue)) params[name] = rawValue;
+        else if (/^:[A-Za-z0-9+/=]*:$/.test(rawValue)) params[name] = rawValue;
+        else {
+          valid = false;
+          break;
+        }
+      }
+    }
+
+    if (!valid) return [];
+
+    for (const key of ["q", "r", "t", "w"]) {
+      const numeric = params[key];
+      if (numeric !== undefined && (typeof numeric !== "number" || numeric < 0)) return [];
+    }
+    if (typeof params.w === "number" && params.w === 0) return [];
+
+    parsed.push({ id, params });
+  }
+
+  return parsed;
+}
+
+function strictNonNegativeInteger(value: string) {
+  const trimmed = value.trim().split(",")[0]?.trim() || "";
+  if (!/^\d+$/.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function parseLegacyReset(
+  value: string,
+  mode: ResetMode,
+  source: "legacySplit" | "xRateLimit" | "github",
+): { date: Date | null; delaySeconds: number | null; ambiguous: boolean } {
+  const trimmed = value.trim();
+  if (!trimmed) return { date: null, delaySeconds: null, ambiguous: false };
+
+  const numeric = strictNonNegativeInteger(trimmed);
+  if (mode === "seconds") {
+    return numeric === null
+      ? { date: null, delaySeconds: null, ambiguous: false }
+      : { date: new Date(Date.now() + numeric * 1000), delaySeconds: numeric, ambiguous: false };
+  }
+  if (mode === "unix") {
+    return numeric === null
+      ? { date: null, delaySeconds: null, ambiguous: false }
+      : { date: safeDate(numeric * 1000), delaySeconds: null, ambiguous: false };
+  }
+  if (mode === "iso") {
+    const date = parseHttpOrIsoDate(trimmed);
+    return { date, delaySeconds: null, ambiguous: false };
+  }
+
+  if (source === "legacySplit" && numeric !== null) {
+    return { date: new Date(Date.now() + numeric * 1000), delaySeconds: numeric, ambiguous: false };
+  }
+  if (source === "github" && numeric !== null) {
+    return { date: safeDate(numeric * 1000), delaySeconds: null, ambiguous: false };
+  }
+
+  return { date: null, delaySeconds: null, ambiguous: Boolean(trimmed) };
+}
+
+function safeDate(milliseconds: number) {
+  const date = new Date(milliseconds);
   return Number.isFinite(date.getTime()) ? date : null;
+}
+
+function parseHttpOrIsoDate(value: string) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+function parseRetryAfter(value: string): { date: Date | null; invalid: boolean } {
+  const trimmed = value.trim();
+  if (!trimmed) return { date: null, invalid: false };
+
+  if (/^\d+$/.test(trimmed)) {
+    const seconds = Number(trimmed);
+    if (!Number.isSafeInteger(seconds)) return { date: null, invalid: true };
+    return { date: new Date(Date.now() + seconds * 1000), invalid: false };
+  }
+
+  const day = "(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)";
+  const weekday = "(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)";
+  const month = "(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)";
+  const imfFixdate = new RegExp(`^${day}, \\d{2} ${month} \\d{4} \\d{2}:\\d{2}:\\d{2} GMT$`);
+  const rfc850Date = new RegExp(`^${weekday}, \\d{2}-${month}-\\d{2} \\d{2}:\\d{2}:\\d{2} GMT$`);
+  const asctimeDate = new RegExp(`^${day} ${month} [ \\d]\\d \\d{2}:\\d{2}:\\d{2} \\d{4}$`);
+  if (!imfFixdate.test(trimmed) && !rfc850Date.test(trimmed) && !asctimeDate.test(trimmed)) {
+    return { date: null, invalid: true };
+  }
+
+  const milliseconds = Date.parse(trimmed);
+  const date = Number.isFinite(milliseconds) ? new Date(milliseconds) : null;
+  return { date, invalid: !date };
 }
 
 function calculateUsagePercent(limit: number | null, remaining: number | null, used: number | null) {
   if (limit === null || limit <= 0) return null;
-  if (remaining !== null) return Math.max(0, Math.min(100, Math.round(((limit - remaining) / limit) * 100)));
-  if (used !== null) return Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
+  if (remaining !== null && remaining <= limit) {
+    return Math.max(0, Math.min(100, Math.round(((limit - remaining) / limit) * 100)));
+  }
+  if (used !== null && used <= limit) {
+    return Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
+  }
   return null;
 }
 
@@ -630,11 +858,18 @@ function buildIssues(params: {
   headers: ParsedHeaders;
   limit: number | null;
   remaining: number | null;
-  used: number | null;
   usagePercent: number | null;
-  resetDate: Date | null;
+  effectiveWindowSeconds: number | null;
   retryAfterDate: Date | null;
+  retryAfterInvalid: boolean;
+  resetDate: Date | null;
+  resetAmbiguous: boolean;
   detectedStyle: string;
+  selectedStyle: Exclude<HeaderStyle, "auto" | "mixed">;
+  currentRateLimitInvalid: boolean;
+  currentPolicyInvalid: boolean;
+  serviceItemCount: number;
+  policyMatchMissing: boolean;
   options: {
     checkingStyle: CheckingStyle;
     warnLowRemaining: boolean;
@@ -648,82 +883,148 @@ function buildIssues(params: {
   if (params.headers.statusCode === 429) {
     issues.push({
       severity: "high",
-      title: "HTTP 429 rate limited",
-      message: "The response status indicates the client has been rate limited.",
+      title: "HTTP 429 indicates throttling",
+      message: "The server returned Too Many Requests. Retry timing still depends on Retry-After and the provider's quota policy.",
     });
   }
 
-  if (params.options.warnLowRemaining && params.limit !== null && params.remaining !== null) {
-    const remainingPercent = params.limit > 0 ? (params.remaining / params.limit) * 100 : 0;
+  if (params.currentRateLimitInvalid) {
+    issues.push({
+      severity: "warning",
+      title: "RateLimit field could not be parsed",
+      message: "The current IETF draft uses Structured Field list syntax such as \"default\";r=50;t=30.",
+    });
+  }
+  if (params.currentPolicyInvalid) {
+    issues.push({
+      severity: "warning",
+      title: "RateLimit-Policy field could not be parsed",
+      message: "The current draft expects a quoted policy identifier and a non-negative q parameter, with optional w and other parameters.",
+    });
+  }
 
+  if (!params.currentRateLimitInvalid && params.serviceItemCount > 1) {
+    issues.push({
+      severity: "info",
+      title: "Several service limits are advertised",
+      message: "The summary follows the first RateLimit service item. List order is not a priority ranking, so inspect every advertised policy before scheduling requests.",
+    });
+  }
+
+  if (params.policyMatchMissing) {
+    issues.push({
+      severity: "info",
+      title: "No matching RateLimit-Policy item",
+      message: "The current service item has no policy with the same identifier, so the parser does not borrow a quota value from an unrelated policy.",
+    });
+  }
+
+  if (params.options.warnLowRemaining && params.limit !== null && params.remaining !== null && params.limit > 0) {
+    const remainingPercent = (params.remaining / params.limit) * 100;
     if (remainingPercent <= 5) {
       issues.push({
-        severity: "high",
-        title: "Very low remaining quota",
-        message: "Less than or equal to 5% of the quota remains in this window.",
+        severity: params.remaining === 0 ? "high" : "warning",
+        title: params.remaining === 0 ? "No advertised quota remains" : "Very little advertised quota remains",
+        message: "The derived remaining quota is at or below 5% of the matched limit. Slow request scheduling before relying on another call.",
       });
-    } else if (remainingPercent <= 15) {
+    } else if (remainingPercent <= 15 && params.options.checkingStyle !== "relaxed") {
       issues.push({
-        severity: params.options.checkingStyle === "relaxed" ? "info" : "warning",
-        title: "Low remaining quota",
-        message: "The API quota is getting low for the current window.",
+        severity: "warning",
+        title: "Advertised quota is getting low",
+        message: "The remaining value is below 15% of the matched limit. This threshold is a local diagnostic heuristic, not a protocol rule.",
       });
     }
   }
 
   if (params.options.warnRetryAfter && params.retryAfterDate) {
     issues.push({
-      severity: params.headers.statusCode === 429 ? "high" : "warning",
-      title: "Retry-After present",
-      message: "The server is asking the client to wait before retrying. Respect this value in retry logic.",
+      severity: "warning",
+      title: "Retry-After asks the client to wait",
+      message: "Respect Retry-After before retrying. If a RateLimit effective window is also present, Retry-After is the stronger wait signal.",
+    });
+  }
+  if (params.retryAfterInvalid) {
+    issues.push({
+      severity: "warning",
+      title: "Retry-After is malformed",
+      message: "Retry-After must be non-negative delay-seconds or an HTTP date.",
     });
   }
 
-  if (params.options.warnMissingReset && !params.resetDate && (params.limit !== null || params.remaining !== null)) {
+  if (params.resetAmbiguous) {
     issues.push({
-      severity: "info",
-      title: "Reset time missing or unclear",
-      message: "A limit or remaining value was found, but reset timing could not be parsed.",
+      severity: "warning",
+      title: "Provider reset value is ambiguous",
+      message: "The X-RateLimit reset field has no universal time format. Choose seconds, Unix timestamp, or date-time instead of relying on a guess.",
     });
   }
 
-  if (params.options.warnMixedHeaders && params.detectedStyle === "mixed") {
+  if (params.options.warnMissingReset && !params.resetDate && params.effectiveWindowSeconds === null && (params.limit !== null || params.remaining !== null) && !params.resetAmbiguous) {
     issues.push({
       severity: "info",
-      title: "Mixed rate limit header styles",
-      message: "Both standard and X-RateLimit-style headers appear to be present. Confirm which one your API documentation treats as authoritative.",
+      title: "No reset or effective-window time is available",
+      message: "Quota values were found, but the selected header family does not provide a usable timing value.",
+    });
+  }
+
+  if (params.options.warnMixedHeaders && params.detectedStyle.startsWith("mixed")) {
+    issues.push({
+      severity: "info",
+      title: "Several rate-limit conventions are present",
+      message: "The parser prefers the current RateLimit field in auto mode. Confirm the authoritative family in the API provider's documentation.",
+    });
+  }
+
+  if (params.headers.rateLimit) {
+    issues.push({
+      severity: "info",
+      title: "RateLimit syntax is still an Internet-Draft",
+      message: "The newer RateLimit and RateLimit-Policy field design is active IETF work in progress, not a published RFC.",
+    });
+  }
+
+  if (params.remaining !== null && params.remaining > 0) {
+    issues.push({
+      severity: "info",
+      title: "Remaining quota does not guarantee another success",
+      message: "Servers can apply other limits or change capacity between requests, so a positive value is only a scheduling signal.",
     });
   }
 
   if (params.limit === null && params.remaining === null && !params.headers.retryAfter) {
     issues.push({
       severity: "warning",
-      title: "No rate limit values found",
-      message: "No recognizable rate limit headers were found in the pasted response.",
+      title: "No recognizable quota values found",
+      message: "No current RateLimit, legacy RateLimit-*, X-RateLimit, or Retry-After value could be interpreted.",
     });
   }
 
   if (issues.length === 0) {
     issues.push({
       severity: "info",
-      title: "Rate limit headers parsed",
-      message: "No urgent rate limit warning was found from the pasted headers.",
+      title: "Header values parsed",
+      message: "No immediate throttling signal was derived from the selected header family.",
     });
   }
 
   return issues;
 }
 
-function getStatus(statusCode: number | null, remaining: number | null, usagePercent: number | null, waitSeconds: number | null): RateLimitResult["status"] {
-  if (statusCode === 429 || (waitSeconds !== null && waitSeconds > 0 && remaining === 0)) return "limited";
-  if (remaining !== null && remaining <= 0) return "limited";
+function getStatus(
+  statusCode: number | null,
+  remaining: number | null,
+  usagePercent: number | null,
+  waitSeconds: number | null,
+): RateLimitResult["status"] {
+  if (statusCode === 429 || remaining === 0) return "limited";
+  if (waitSeconds !== null && waitSeconds > 0) return "watch";
   if (usagePercent !== null && usagePercent >= 85) return "watch";
   if (remaining !== null || usagePercent !== null) return "healthy";
   return "unknown";
 }
 
 function formatDateValue(date: Date | null, local: boolean) {
-  if (!date) return "not found";
+  if (!date) return "not resolved";
   return local ? date.toLocaleString() : date.toISOString();
 }
 
@@ -733,19 +1034,22 @@ function formatNullable(value: number | null) {
 
 function resultRows(result: Omit<RateLimitResult, "output">) {
   return [
-    { name: "Detected style", value: result.detectedStyle },
+    { name: "Detected fields", value: result.detectedStyle },
     { name: "HTTP status", value: result.headers.statusCode === null ? "not found" : String(result.headers.statusCode) },
-    { name: "Limit", value: formatNullable(result.limit) },
+    { name: "Policy", value: result.policyName || "not resolved" },
+    { name: "Limit / quota", value: formatNullable(result.limit) },
     { name: "Remaining", value: formatNullable(result.remaining) },
     { name: "Used", value: formatNullable(result.used) },
     { name: "Usage percent", value: result.usagePercent === null ? "unknown" : `${result.usagePercent}%` },
-    { name: "Reset time", value: result.resetTime },
-    { name: "Retry after time", value: result.retryAfterTime },
+    { name: "Effective window", value: result.effectiveWindowSeconds === null ? "not resolved" : `${result.effectiveWindowSeconds} seconds` },
+    { name: "Window / reset time", value: result.resetTime },
+    { name: "Retry-After time", value: result.retryAfterTime },
     { name: "Wait seconds", value: result.waitSeconds === null ? "unknown" : String(result.waitSeconds) },
-    { name: "RateLimit-Limit", value: result.headers.rateLimitLimit },
-    { name: "RateLimit-Remaining", value: result.headers.rateLimitRemaining },
-    { name: "RateLimit-Reset", value: result.headers.rateLimitReset },
+    { name: "RateLimit", value: result.headers.rateLimit },
     { name: "RateLimit-Policy", value: result.headers.rateLimitPolicy },
+    { name: "RateLimit-Limit (legacy)", value: result.headers.legacyRateLimitLimit },
+    { name: "RateLimit-Remaining (legacy)", value: result.headers.legacyRateLimitRemaining },
+    { name: "RateLimit-Reset (legacy)", value: result.headers.legacyRateLimitReset },
     { name: "Retry-After", value: result.headers.retryAfter },
     { name: "X-RateLimit-Limit", value: result.headers.xRateLimitLimit },
     { name: "X-RateLimit-Remaining", value: result.headers.xRateLimitRemaining },
@@ -762,9 +1066,8 @@ function formatOutput(result: Omit<RateLimitResult, "output">, mode: OutputMode)
     const rows = [
       ["field", "value"],
       ...resultRows(result).map((row) => [row.name, row.value]),
-      ["issues", result.issues.map((issue) => `${issue.severity}: ${issue.title}`).join("; ")],
+      ["findings", result.issues.map((issue) => `${issue.severity}: ${issue.title}`).join("; ")],
     ];
-
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
 
@@ -779,41 +1082,30 @@ function formatOutput(result: Omit<RateLimitResult, "output">, mode: OutputMode)
     ].join("\n");
   }
 
-  if (mode === "report") {
-    return [
-      "API Rate Limit Header Report",
-      "----------------------------",
-      `Status: ${result.status}`,
-      `Detected style: ${result.detectedStyle}`,
-      `Limit: ${formatNullable(result.limit)}`,
-      `Remaining: ${formatNullable(result.remaining)}`,
-      `Used: ${formatNullable(result.used)}`,
-      `Usage: ${result.usagePercent === null ? "unknown" : `${result.usagePercent}%`}`,
-      `Reset time: ${result.resetTime}`,
-      `Retry after: ${result.retryAfterTime}`,
-      `Wait seconds: ${result.waitSeconds === null ? "unknown" : result.waitSeconds}`,
-      "",
-      "Findings:",
-      ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
-    ].join("\n");
-  }
-
-  return [
-    "API Rate Limit Header Summary",
-    "-----------------------------",
+  const lines = [
+    mode === "report" ? "API Rate Limit Header Report" : "API Rate Limit Header Summary",
+    mode === "report" ? "----------------------------" : "-----------------------------",
     `Status: ${result.status}`,
-    `Detected style: ${result.detectedStyle}`,
-    `Limit: ${formatNullable(result.limit)}`,
+    `Detected fields: ${result.detectedStyle}`,
+    `Policy: ${result.policyName || "not resolved"}`,
+    `Limit / quota: ${formatNullable(result.limit)}`,
     `Remaining: ${formatNullable(result.remaining)}`,
     `Used: ${formatNullable(result.used)}`,
     `Usage: ${result.usagePercent === null ? "unknown" : `${result.usagePercent}%`}`,
-    `Reset time: ${result.resetTime}`,
-    `Retry after: ${result.retryAfterTime}`,
+    `Effective window: ${result.effectiveWindowSeconds === null ? "not resolved" : `${result.effectiveWindowSeconds} seconds`}`,
+    `Window / reset time: ${result.resetTime}`,
+    `Retry-After: ${result.retryAfterTime}`,
     `Wait seconds: ${result.waitSeconds === null ? "unknown" : result.waitSeconds}`,
     "",
     "Findings:",
     ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
-  ].join("\n");
+  ];
+
+  if (mode === "report") {
+    lines.push("", "Raw recognized fields:", ...resultRows(result).slice(11).map((row) => `- ${row.name}: ${row.value || "not found"}`));
+  }
+
+  return lines.join("\n");
 }
 
 function csvEscape(value: string) {
@@ -830,22 +1122,21 @@ function getNotes(result: RateLimitResult) {
 
   if (result.status === "limited") {
     notes.push({
-      title: "Respect Retry-After and reset windows",
-      message: "Avoid immediate repeated retries. Use backoff, jitter, and queueing to prevent more throttling.",
+      title: "Back off instead of retrying in a tight loop",
+      message: "Respect Retry-After when present, then use jitter and bounded backoff so many clients do not resume at the same instant.",
     });
-  }
-
-  if (result.status === "watch") {
+  } else if (result.status === "watch") {
     notes.push({
-      title: "Slow down before hitting the limit",
-      message: "Remaining quota is getting low. Reduce request frequency or spread work across the next reset window.",
+      title: "Shape requests before the quota reaches zero",
+      message: "Queue or spread work when the advertised quota is low instead of waiting for a hard throttle response.",
     });
   }
 
   notes.push({
-    title: "Check provider documentation",
-    message: "Rate limit header names and reset semantics vary across APIs. Treat this output as a debugging aid, not a replacement for API docs.",
+    title: "Provider documentation stays authoritative",
+    message: "Legacy and X-RateLimit field names have provider-specific meanings. Confirm units, reset semantics, and quota scope before coding retry behavior.",
   });
 
   return notes;
 }
+

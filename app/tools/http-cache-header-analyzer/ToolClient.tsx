@@ -16,6 +16,8 @@ type Issue = {
 };
 
 type HeaderMap = {
+  statusCode: number | null;
+  date: string;
   cacheControl: string;
   etag: string;
   expires: string;
@@ -23,6 +25,8 @@ type HeaderMap = {
   vary: string;
   age: string;
   pragma: string;
+  cacheStatus: string;
+  cdnCacheControl: string;
   cdnCacheStatus: string;
   cfCacheStatus: string;
   xCache: string;
@@ -41,6 +45,8 @@ type DirectiveMap = {
   noCache: boolean;
   mustRevalidate: boolean;
   immutable: boolean;
+  duplicateDirectives: string[];
+  invalidDeltaSeconds: string[];
 };
 
 type Result = {
@@ -48,22 +54,22 @@ type Result = {
   directives: DirectiveMap;
   issues: Issue[];
   output: string;
-  score: number;
-  grade: "excellent" | "good" | "review" | "risky";
-  cacheable: boolean;
+  storagePolicy: string;
   browserTtl: string;
   sharedTtl: string;
+  freshnessSource: string;
   revalidation: string;
 };
 
 const sampleHeaders = `HTTP/2 200
+date: Tue, 02 Jun 2026 08:30:00 GMT
 content-type: text/html; charset=utf-8
 cache-control: public, max-age=3600, stale-while-revalidate=86400
 etag: "a1b2c3d4"
-last-modified: Tue, 02 Jun 2026 08:30:00 GMT
+last-modified: Tue, 02 Jun 2026 08:20:00 GMT
 vary: Accept-Encoding
 age: 120
-cf-cache-status: HIT`;
+cache-status: "ExampleCDN"; hit; ttl=3480`;
 
 export default function ToolClient() {
   const [input, setInput] = useState("");
@@ -157,7 +163,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="HTTP Cache Header Analyzer"
-      description="Analyze HTTP cache headers from pasted responses. Check Cache-Control, ETag, Expires, Last-Modified, Vary, Age, CDN cache status, browser caching, and revalidation behavior."
+      description="Interpret HTTP freshness, storage, revalidation, Vary, Age, validators, and cache-status signals from response headers."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -245,19 +251,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={analyzeHeaders} className="yoryantra-btn">
+        <button onClick={analyzeHeaders} className="yoryantra-btn whitespace-nowrap">
           Analyze Cache Headers
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -270,10 +276,10 @@ export default function ToolClient() {
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Grade" value={result.grade} />
-          <SummaryCard label="Score" value={`${result.score}/100`} />
-          <SummaryCard label="Browser TTL" value={result.browserTtl} />
-          <SummaryCard label="Shared TTL" value={result.sharedTtl} />
+          <SummaryCard label="Storage" value={result.storagePolicy} />
+          <SummaryCard label="Browser freshness" value={result.browserTtl} />
+          <SummaryCard label="Shared freshness" value={result.sharedTtl} />
+          <SummaryCard label="Revalidation" value={result.revalidation} />
         </div>
       )}
 
@@ -310,29 +316,21 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Cache findings</h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
+          {result.issues.map((issue, index) => (
+            <IssueCard key={`${issue.title}-${index}`} issue={issue} />
+          ))}
         </div>
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Cache debugging guidance</h3>
-
+        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Cache interpretation notes</h3>
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -344,7 +342,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -355,104 +353,69 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This tool analyzes pasted headers only. Real cache behavior can also depend on browser state, CDN rules, service workers, cookies, authorization headers, and server configuration.
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+        Header analysis cannot prove whether a particular request will be stored or reused. Method, status code, request Authorization,
+        cache configuration, cookies, service workers, and CDN rules can change the result.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Debugging HTTP Cache Headers Without Guesswork</h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Storage and freshness are separate cache decisions</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Caching issues are often hard to see from the page alone. A stale page, repeated API request, missed CDN hit, or broken revalidation flow usually comes down to the response headers.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            This HTTP Cache Header Analyzer reads pasted headers and explains how Cache-Control, ETag, Expires, Last-Modified, Vary, Age, and CDN cache status may affect browser and shared cache behavior.
+            Cache-Control: no-store forbids storage. no-cache is different: a response can be stored, but it must be successfully
+            validated before reuse. private limits storage to private caches, while shared caches such as CDNs follow their own additional rules.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the HTTP Cache Header Analyzer</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Copy response headers from browser DevTools, curl, an API client, or a CDN log.</li>
-            <li>Paste the headers into the analyzer.</li>
-            <li>Choose the resource type, such as HTML, API, static asset, or image.</li>
-            <li>Review TTL, cacheability, revalidation, CDN status, and warnings.</li>
-            <li>Copy the summary, report, JSON, Markdown, or CSV output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Common Cache Header Problems</h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li><strong>no-store</strong> prevents browser and shared caching entirely.</li>
-            <li>HTML pages with very long max-age can serve stale content after deploys.</li>
-            <li>Missing ETag or Last-Modified can make revalidation less efficient.</li>
-            <li><strong>Vary: *</strong> makes caching difficult or impossible for many caches.</li>
-            <li>Conflicting Expires and Cache-Control headers can confuse debugging.</li>
-            <li>CDN cache status headers may show MISS, BYPASS, EXPIRED, STALE, or HIT behavior.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Cache-Control Header</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Cache-Control: public, max-age=3600, stale-while-revalidate=86400
-ETag: "a1b2c3d4"
-Vary: Accept-Encoding`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Different Resources Need Different Cache Rules</h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Freshness precedence matters</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A fingerprinted JavaScript file can often be cached for a long time. An HTML document usually needs shorter caching or revalidation. API responses depend on whether they are public, personalized, authenticated, or frequently updated.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Always review caching based on the resource type and user impact instead of applying one rule to every response.
+            For a private cache, max-age takes precedence over Expires. For a shared cache, s-maxage takes precedence over max-age,
+            which in turn takes precedence over Expires. An Expires value is most meaningful when a valid Date header is available to establish its lifetime.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
-
-          <div className="mt-5 space-y-6">
-            <Faq title="What does an HTTP Cache Header Analyzer do?">
-              It reads pasted response headers and explains browser cache, CDN cache, TTL, revalidation, and risky cache patterns.
-            </Faq>
-
-            <Faq title="Does this tool fetch a live URL?">
-              No. It only analyzes the headers you paste into the browser.
-            </Faq>
-
-            <Faq title="What is the difference between max-age and s-maxage?">
-              max-age controls browser and cache freshness, while s-maxage applies to shared caches such as CDNs and proxies.
-            </Faq>
-
-            <Faq title="Should HTML pages be cached?">
-              They can be cached carefully, but long HTML cache times can cause stale content after deploys.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I analyze headers?">
-              No. The analysis runs directly in your browser.
-            </Faq>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Duplicate freshness directives are not harmless</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Repeating max-age or s-maxage makes the freshness lifetime unreliable. The analyzer keeps duplicate Cache-Control field
+            lines visible, flags the repeated directive, and does not present the duplicated freshness value as a reliable lifetime.
+          </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Validators do not create freshness</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            ETag and Last-Modified support conditional requests and revalidation. They do not by themselves say how long a response is fresh.
+            Age tells how long a response has been resident since generation or validation; it is not a TTL.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/http-cache-header-analyzer" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Cache-Status and CDN headers need context</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Cache-Status has a standardized syntax, while CF-Cache-Status, X-Cache, CDN-Cache-Status, and Surrogate-Control are implementation-specific.
+            A MISS or BYPASS is not automatically an error; it has to be interpreted against the resource and the CDN configuration.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Standards behind the analysis</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Core HTTP caching rules come from{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc9111.html" target="_blank" rel="noreferrer">RFC 9111</a>.
+            Cache-Status is defined by{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc9211.html" target="_blank" rel="noreferrer">RFC 9211</a>,
+            stale-while-revalidate and stale-if-error by{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc5861.html" target="_blank" rel="noreferrer">RFC 5861</a>,
+            and immutable by{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc8246.html" target="_blank" rel="noreferrer">RFC 8246</a>.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/http-cache-header-analyzer" /></div>
         </div>
       </section>
     </ToolShell>
@@ -482,6 +445,28 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function IssueCard({ issue }: { issue: Issue }) {
+  const classes =
+    issue.severity === "high"
+      ? "border-red-200 bg-red-50 text-red-800"
+      : issue.severity === "warning"
+        ? "border-amber-200 bg-amber-50 text-amber-800"
+        : "border-gray-200 bg-gray-50 text-gray-600";
+  const heading =
+    issue.severity === "high"
+      ? "text-red-900"
+      : issue.severity === "warning"
+        ? "text-amber-900"
+        : "text-gray-900";
+
+  return (
+    <div className={`self-start rounded-xl border p-4 ${classes}`}>
+      <p className={`text-sm font-semibold ${heading}`}>{issue.title}</p>
+      <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
+    </div>
+  );
+}
+
 function Faq({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
@@ -504,34 +489,57 @@ function analyzeCacheHeaders(options: {
 }): Result {
   const headers = parseHeaders(options.input);
   const directives = parseCacheControl(headers.cacheControl);
-  const issues = buildIssues(headers, directives, options);
-  const cacheable = !directives.noStore && (directives.maxAge !== null || directives.sMaxage !== null || Boolean(headers.expires));
-  const browserTtl = describeTtl(directives.maxAge);
-  const sharedTtl = describeTtl(directives.sMaxage ?? directives.maxAge);
+  const expiration = expiresLifetimeSeconds(headers);
+  const maxAgeUnreliable = directives.duplicateDirectives.includes("max-age") || directives.invalidDeltaSeconds.includes("max-age");
+  const sMaxageUnreliable = directives.duplicateDirectives.includes("s-maxage") || directives.invalidDeltaSeconds.includes("s-maxage");
+
+  const browserFreshness = maxAgeUnreliable ? null : directives.maxAge ?? expiration.seconds;
+  const browserSource = maxAgeUnreliable
+    ? "unreliable max-age; duplicate or invalid value present"
+    : directives.maxAge !== null ? "max-age" : expiration.source;
+
+  const sharedFreshness = sMaxageUnreliable
+    ? null
+    : directives.sMaxage !== null
+      ? directives.sMaxage
+      : maxAgeUnreliable
+        ? null
+        : directives.maxAge ?? expiration.seconds;
+  const sharedSource = sMaxageUnreliable
+    ? "unreliable s-maxage; duplicate or invalid value present"
+    : directives.sMaxage !== null
+      ? "s-maxage"
+      : maxAgeUnreliable
+        ? "unreliable max-age; duplicate or invalid value present"
+        : directives.maxAge !== null ? "max-age" : expiration.source;
+
+  const browserTtl = describeFreshness(browserFreshness, browserSource);
+  const sharedTtl = describeFreshness(sharedFreshness, sharedSource);
+  const freshnessSource = directives.sMaxage !== null || sMaxageUnreliable
+    ? `${sharedSource} for shared caches; ${browserSource} for private caches`
+    : browserSource;
+  const storagePolicy = describeStoragePolicy(directives);
   const revalidation = describeRevalidation(headers, directives);
-  const score = calculateScore(issues, directives, options.checkingStyle);
-  const grade = getGrade(score, issues);
+  const issues = buildIssues(headers, directives, options, expiration);
+
   const base = {
     headers,
     directives,
     issues,
-    score,
-    grade,
-    cacheable,
+    storagePolicy,
     browserTtl,
     sharedTtl,
+    freshnessSource,
     revalidation,
   };
   const output = formatOutput(base, options.outputMode);
-
-  return {
-    ...base,
-    output,
-  };
+  return { ...base, output };
 }
 
 function parseHeaders(input: string): HeaderMap {
   const headers: HeaderMap = {
+    statusCode: null,
+    date: "",
     cacheControl: "",
     etag: "",
     expires: "",
@@ -539,6 +547,8 @@ function parseHeaders(input: string): HeaderMap {
     vary: "",
     age: "",
     pragma: "",
+    cacheStatus: "",
+    cdnCacheControl: "",
     cdnCacheStatus: "",
     cfCacheStatus: "",
     xCache: "",
@@ -547,19 +557,27 @@ function parseHeaders(input: string): HeaderMap {
   };
 
   input.split(/\r?\n/).forEach((line) => {
-    const match = line.match(/^\s*([^:]+)\s*:\s*(.+)\s*$/);
-    if (!match) return;
+    const status = line.match(/^\s*HTTP\/\S+\s+(\d{3})(?:\s|$)/i);
+    if (status) {
+      headers.statusCode = Number(status[1]);
+      return;
+    }
 
+    const match = line.match(/^\s*([^:\s][^:]*)\s*:\s*(.*)$/);
+    if (!match) return;
     const name = match[1].trim().toLowerCase();
     const value = match[2].trim();
 
-    if (name === "cache-control") headers.cacheControl = value;
+    if (name === "date") headers.date = value;
+    else if (name === "cache-control") headers.cacheControl = combineHeader(headers.cacheControl, value);
     else if (name === "etag") headers.etag = value;
     else if (name === "expires") headers.expires = value;
     else if (name === "last-modified") headers.lastModified = value;
-    else if (name === "vary") headers.vary = value;
+    else if (name === "vary") headers.vary = combineHeader(headers.vary, value);
     else if (name === "age") headers.age = value;
     else if (name === "pragma") headers.pragma = value;
+    else if (name === "cache-status") headers.cacheStatus = combineHeader(headers.cacheStatus, value);
+    else if (name === "cdn-cache-control") headers.cdnCacheControl = combineHeader(headers.cdnCacheControl, value);
     else if (name === "cdn-cache-status") headers.cdnCacheStatus = value;
     else if (name === "cf-cache-status") headers.cfCacheStatus = value;
     else if (name === "x-cache") headers.xCache = value;
@@ -568,6 +586,34 @@ function parseHeaders(input: string): HeaderMap {
   });
 
   return headers;
+}
+
+function combineHeader(existing: string, next: string) {
+  return existing && next ? `${existing}, ${next}` : existing || next;
+}
+
+function splitCommaAware(value: string) {
+  const parts: string[] = [];
+  let current = "";
+  let quoted = false;
+  let escaped = false;
+  for (const ch of value) {
+    if (escaped) { current += ch; escaped = false; continue; }
+    if (quoted && ch === "\\") { current += ch; escaped = true; continue; }
+    if (ch === '"') { quoted = !quoted; current += ch; continue; }
+    if (!quoted && ch === ",") { parts.push(current.trim()); current = ""; continue; }
+    current += ch;
+  }
+  parts.push(current.trim());
+  return parts.filter(Boolean);
+}
+
+function parseDeltaSeconds(rawValue: string | undefined) {
+  if (rawValue === undefined) return null;
+  const value = rawValue.trim().replace(/^"|"$/g, "");
+  if (!/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
 function parseCacheControl(value: string): DirectiveMap {
@@ -582,188 +628,259 @@ function parseCacheControl(value: string): DirectiveMap {
     noCache: false,
     mustRevalidate: false,
     immutable: false,
+    duplicateDirectives: [],
+    invalidDeltaSeconds: [],
   };
 
-  value.split(",").map((item) => item.trim()).filter(Boolean).forEach((part) => {
-    const [rawKey, rawValue] = part.split("=");
+  const seen: Record<string, number> = {};
+  for (const part of splitCommaAware(value)) {
+    const eq = part.indexOf("=");
+    const rawKey = (eq >= 0 ? part.slice(0, eq) : part).trim();
+    const rawValue = eq >= 0 ? part.slice(eq + 1).trim() : undefined;
     const key = rawKey.toLowerCase();
-    const numberValue = rawValue ? Number(rawValue.replace(/^"|"$/g, "")) : null;
+    seen[key] = (seen[key] || 0) + 1;
+    if (seen[key] === 2) directives.duplicateDirectives.push(key);
 
-    if (key === "max-age" && Number.isFinite(numberValue)) directives.maxAge = numberValue;
-    else if (key === "s-maxage" && Number.isFinite(numberValue)) directives.sMaxage = numberValue;
-    else if (key === "stale-while-revalidate" && Number.isFinite(numberValue)) directives.staleWhileRevalidate = numberValue;
-    else if (key === "stale-if-error" && Number.isFinite(numberValue)) directives.staleIfError = numberValue;
-    else if (key === "public") directives.public = true;
+    if (["max-age", "s-maxage", "stale-while-revalidate", "stale-if-error"].includes(key)) {
+      const numeric = parseDeltaSeconds(rawValue);
+      if (numeric === null) {
+        directives.invalidDeltaSeconds.push(key);
+        continue;
+      }
+      if (key === "max-age") directives.maxAge = numeric;
+      else if (key === "s-maxage") directives.sMaxage = numeric;
+      else if (key === "stale-while-revalidate") directives.staleWhileRevalidate = numeric;
+      else directives.staleIfError = numeric;
+      continue;
+    }
+
+    if (key === "public") directives.public = true;
     else if (key === "private") directives.private = true;
     else if (key === "no-store") directives.noStore = true;
     else if (key === "no-cache") directives.noCache = true;
     else if (key === "must-revalidate") directives.mustRevalidate = true;
     else if (key === "immutable") directives.immutable = true;
-  });
+  }
 
   return directives;
 }
 
-function buildIssues(headers: HeaderMap, directives: DirectiveMap, options: {
-  resourceType: ResourceType;
-  checkingStyle: CheckingStyle;
-  warnNoStore: boolean;
-  warnMissingValidators: boolean;
-  warnLongHtmlCache: boolean;
-  warnVaryStar: boolean;
-  warnOldExpires: boolean;
-}) {
+function expiresLifetimeSeconds(headers: HeaderMap): { seconds: number | null; source: string } {
+  if (!headers.expires) return { seconds: null, source: "no explicit freshness lifetime" };
+  const expires = Date.parse(headers.expires);
+  if (!Number.isFinite(expires)) return { seconds: null, source: "invalid Expires" };
+  if (!headers.date) return { seconds: null, source: "Expires present; Date needed for exact lifetime" };
+  const date = Date.parse(headers.date);
+  if (!Number.isFinite(date)) return { seconds: null, source: "invalid Date" };
+  return { seconds: Math.max(0, Math.floor((expires - date) / 1000)), source: "Expires relative to Date" };
+}
+
+function buildIssues(
+  headers: HeaderMap,
+  directives: DirectiveMap,
+  options: {
+    resourceType: ResourceType;
+    checkingStyle: CheckingStyle;
+    warnNoStore: boolean;
+    warnMissingValidators: boolean;
+    warnLongHtmlCache: boolean;
+    warnVaryStar: boolean;
+    warnOldExpires: boolean;
+  },
+  expiration: { seconds: number | null; source: string },
+) {
   const issues: Issue[] = [];
 
   if (!headers.cacheControl && !headers.expires) {
     issues.push({
+      severity: "info",
+      title: "No explicit freshness lifetime",
+      message: "The response may still be cacheable under HTTP rules, including heuristic freshness. Header-only analysis cannot infer every cache decision.",
+    });
+  }
+
+  if (directives.duplicateDirectives.length > 0) {
+    issues.push({
       severity: "warning",
-      title: "No explicit freshness header",
-      message: "No Cache-Control or Expires header was found. Browser and CDN behavior may depend on heuristics.",
+      title: "Duplicate Cache-Control directives",
+      message: `Repeated ${directives.duplicateDirectives.join(", ")} directives can make freshness handling invalid or implementation-dependent. Remove the duplicate values.`,
+    });
+  }
+
+  if (directives.invalidDeltaSeconds.length > 0) {
+    issues.push({
+      severity: "warning",
+      title: "Invalid delta-seconds value",
+      message: `${directives.invalidDeltaSeconds.join(", ")} must use non-negative integer seconds.`,
     });
   }
 
   if (options.warnNoStore && directives.noStore && ["staticAsset", "image", "download"].includes(options.resourceType)) {
     issues.push({
       severity: "warning",
-      title: "no-store on cacheable-looking resource",
-      message: "no-store prevents caching. This may be wasteful for static assets, images, or downloads.",
+      title: "no-store blocks storage",
+      message: "That can be intentional for sensitive content, but it also prevents reuse of this static-looking resource by compliant caches.",
+    });
+  }
+
+  if (directives.noCache) {
+    issues.push({
+      severity: "info",
+      title: "no-cache still allows storage",
+      message: "A stored response must be successfully validated before reuse; no-cache does not mean the same thing as no-store.",
+    });
+  }
+
+  if (directives.private) {
+    issues.push({
+      severity: "info",
+      title: "private restricts shared-cache storage",
+      message: "Private caches can still store the response unless another directive prevents storage.",
     });
   }
 
   if (options.warnMissingValidators && !headers.etag && !headers.lastModified && !directives.noStore) {
     issues.push({
       severity: "info",
-      title: "No validator header found",
-      message: "ETag or Last-Modified helps clients revalidate cached responses efficiently.",
+      title: "No ETag or Last-Modified validator",
+      message: "Fresh responses can still be cached, but conditional revalidation has no validator from these two common mechanisms.",
     });
   }
 
-  if (options.warnLongHtmlCache && ["html", "api"].includes(options.resourceType)) {
-    const ttl = directives.maxAge ?? directives.sMaxage;
-
-    if (ttl !== null && ttl > 3600) {
-      issues.push({
-        severity: options.checkingStyle === "relaxed" ? "info" : "warning",
-        title: "Long cache time for HTML or API response",
-        message: "Long freshness times can serve stale HTML or API data after deployments or content changes.",
-      });
-    }
+  if (options.warnLongHtmlCache && ["html", "api"].includes(options.resourceType) && directives.maxAge !== null && directives.maxAge > 3600) {
+    issues.push({
+      severity: options.checkingStyle === "relaxed" ? "info" : "warning",
+      title: "Long private-cache freshness for HTML or API data",
+      message: "The one-hour threshold is a local diagnostic heuristic, not an HTTP rule. Confirm that deployments or data changes cannot make the response unexpectedly stale.",
+    });
   }
 
   if (options.resourceType === "staticAsset" && directives.maxAge !== null && directives.maxAge < 86400 && !directives.noStore) {
     issues.push({
       severity: "info",
-      title: "Short TTL for static asset",
-      message: "Fingerprint-named static assets can often use a longer max-age with immutable.",
+      title: "Short freshness lifetime for a static asset",
+      message: "Fingerprint-named immutable assets often tolerate longer caching, but the correct lifetime depends on the deployment strategy.",
     });
   }
 
-  if (options.warnVaryStar && headers.vary.trim() === "*") {
+  if (options.warnVaryStar && splitCommaAware(headers.vary).some((value) => value === "*")) {
     issues.push({
       severity: "warning",
-      title: "Vary star found",
-      message: "Vary: * can prevent effective caching because every request may be considered unique.",
+      title: "Vary: * prevents normal reuse",
+      message: "A stored response with Vary: * never matches a later request, so it cannot be reused without forwarding the request to the origin.",
     });
   }
 
-  if (headers.vary.toLowerCase().includes("cookie") || headers.vary.toLowerCase().includes("authorization")) {
+  if (headers.vary.toLowerCase().split(",").map((v) => v.trim()).some((v) => v === "cookie" || v === "authorization")) {
     issues.push({
       severity: "info",
-      title: "Vary includes user-specific headers",
-      message: "Varying by Cookie or Authorization can reduce shared cache effectiveness and should be intentional.",
+      title: "Vary keys can create user-specific variants",
+      message: "Cookie or Authorization in Vary can sharply reduce reuse. Whether that is correct depends on how the representation varies.",
     });
   }
 
-  if (options.warnOldExpires && headers.expires && headers.cacheControl) {
-    const expiresTime = Date.parse(headers.expires);
+  if (options.warnOldExpires && headers.expires && headers.cacheControl && (directives.maxAge !== null || directives.sMaxage !== null)) {
+    issues.push({
+      severity: "info",
+      title: "Cache-Control freshness overrides Expires",
+      message: "Expires remains visible for debugging, but max-age or s-maxage takes precedence for the applicable cache.",
+    });
+  }
 
-    if (Number.isFinite(expiresTime) && expiresTime < Date.now() && !directives.noStore && !directives.noCache) {
-      issues.push({
-        severity: "info",
-        title: "Expires is already in the past",
-        message: "Cache-Control usually takes priority, but a past Expires header can make debugging harder.",
-      });
-    }
+  if (headers.expires && expiration.source.startsWith("invalid")) {
+    issues.push({
+      severity: "warning",
+      title: "Expires or Date cannot be parsed",
+      message: "An HTTP-date is needed to derive an Expires freshness lifetime reliably.",
+    });
   }
 
   if (directives.public && directives.private) {
     issues.push({
       severity: "warning",
-      title: "Conflicting public and private directives",
-      message: "Cache-Control contains both public and private. Use one clear cache intent.",
+      title: "public and private appear together",
+      message: "Those directives communicate conflicting shared-cache intent. Confirm which storage policy the response is meant to express.",
     });
   }
 
   if (directives.immutable && (directives.maxAge === null || directives.maxAge < 86400)) {
     issues.push({
       severity: "info",
-      title: "immutable with short or missing max-age",
-      message: "immutable is most useful with long-lived fingerprinted assets.",
+      title: "immutable has little time to matter",
+      message: "immutable is most meaningful when a representation is versioned and has a substantial freshness lifetime.",
     });
   }
 
-  if (headers.cfCacheStatus && /BYPASS|DYNAMIC|MISS/i.test(headers.cfCacheStatus)) {
+  if (headers.age) {
+    const age = parseDeltaSeconds(headers.age);
+    if (age === null) {
+      issues.push({
+        severity: "warning",
+        title: "Age is not a valid non-negative integer",
+        message: "RFC 9111 defines Age as delta-seconds. Invalid values should not be treated as trustworthy cache age.",
+      });
+    }
+  }
+
+  if (headers.pragma.toLowerCase().includes("no-cache")) {
     issues.push({
       severity: "info",
-      title: "Cloudflare cache is not a HIT",
-      message: `CF-Cache-Status is ${headers.cfCacheStatus}. Review CDN rules if you expected this response to be cached.`,
+      title: "Pragma is legacy request compatibility, not modern response cache control",
+      message: "Do not treat Pragma: no-cache in a response as a replacement for Cache-Control directives.",
     });
   }
 
   if (issues.length === 0) {
     issues.push({
       severity: "info",
-      title: "No obvious cache issue found",
-      message: "The pasted cache headers look reasonable for the selected checks.",
+      title: "No contradiction found in the pasted cache fields",
+      message: "The headers still need request and cache context before storage or reuse can be predicted with certainty.",
     });
   }
 
   return issues;
 }
 
-function describeTtl(value: number | null) {
-  if (value === null) return "not set";
-  if (value === 0) return "0 seconds";
-  if (value < 60) return `${value} seconds`;
-  if (value < 3600) return `${Math.round(value / 60)} minutes`;
-  if (value < 86400) return `${Math.round(value / 3600)} hours`;
-  return `${Math.round(value / 86400)} days`;
+function describeStoragePolicy(directives: DirectiveMap) {
+  if (directives.noStore) return "do not store";
+  if (directives.private) return "private caches only";
+  return "not prohibited by Cache-Control";
+}
+
+function describeFreshness(value: number | null, source: string) {
+  if (value === null) return source;
+  if (value === 0) return `0 seconds (${source})`;
+  if (value < 60) return `${value} ${value === 1 ? "second" : "seconds"} (${source})`;
+  if (value < 3600) {
+    const minutes = Math.round(value / 60);
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} (${source})`;
+  }
+  if (value < 86400) {
+    const hours = Math.round(value / 3600);
+    return `${hours} ${hours === 1 ? "hour" : "hours"} (${source})`;
+  }
+  const days = Math.round(value / 86400);
+  return `${days} ${days === 1 ? "day" : "days"} (${source})`;
 }
 
 function describeRevalidation(headers: HeaderMap, directives: DirectiveMap) {
-  if (directives.noStore) return "disabled by no-store";
-  if (directives.noCache) return "requires revalidation before reuse";
-  if (headers.etag && headers.lastModified) return "ETag and Last-Modified available";
-  if (headers.etag) return "ETag available";
-  if (headers.lastModified) return "Last-Modified available";
-  return "no validator found";
-}
-
-function calculateScore(issues: Issue[], directives: DirectiveMap, checkingStyle: CheckingStyle) {
-  let score = 100;
-
-  if (directives.maxAge !== null || directives.sMaxage !== null) score += 4;
-  if (directives.staleWhileRevalidate !== null) score += 3;
-
-  issues.forEach((issue) => {
-    if (issue.severity === "high") score -= 30;
-    else if (issue.severity === "warning") score -= checkingStyle === "strict" ? 16 : 12;
-    else if (issue.title !== "No obvious cache issue found") score -= 4;
-  });
-
-  return Math.max(0, Math.min(100, score));
-}
-
-function getGrade(score: number, issues: Issue[]): Result["grade"] {
-  if (issues.some((issue) => issue.severity === "high") || score < 50) return "risky";
-  if (score < 75) return "review";
-  if (score < 90) return "good";
-  return "excellent";
+  if (directives.noStore) return "not applicable: storage prohibited";
+  const validator = headers.etag && headers.lastModified
+    ? "ETag + Last-Modified"
+    : headers.etag
+      ? "ETag"
+      : headers.lastModified
+        ? "Last-Modified"
+        : "no ETag/Last-Modified";
+  if (directives.noCache) return `required before reuse; ${validator}`;
+  if (directives.mustRevalidate) return `required once stale; ${validator}`;
+  return validator;
 }
 
 function headerRows(headers: HeaderMap) {
   return [
+    { name: "HTTP status", value: headers.statusCode === null ? "" : String(headers.statusCode) },
+    { name: "Date", value: headers.date },
     { name: "Cache-Control", value: headers.cacheControl },
     { name: "ETag", value: headers.etag },
     { name: "Expires", value: headers.expires },
@@ -771,6 +888,8 @@ function headerRows(headers: HeaderMap) {
     { name: "Vary", value: headers.vary },
     { name: "Age", value: headers.age },
     { name: "Pragma", value: headers.pragma },
+    { name: "Cache-Status", value: headers.cacheStatus },
+    { name: "CDN-Cache-Control", value: headers.cdnCacheControl },
     { name: "CDN-Cache-Status", value: headers.cdnCacheStatus },
     { name: "CF-Cache-Status", value: headers.cfCacheStatus },
     { name: "X-Cache", value: headers.xCache },
@@ -780,22 +899,19 @@ function headerRows(headers: HeaderMap) {
 }
 
 function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
-  if (mode === "json") {
-    return JSON.stringify(result, null, 2);
-  }
+  if (mode === "json") return JSON.stringify(result, null, 2);
 
   if (mode === "csv") {
     const rows = [
       ["header", "value"],
       ...headerRows(result.headers).map((row) => [row.name, row.value]),
-      ["grade", result.grade],
-      ["score", String(result.score)],
-      ["browserTtl", result.browserTtl],
-      ["sharedTtl", result.sharedTtl],
+      ["storagePolicy", result.storagePolicy],
+      ["browserFreshness", result.browserTtl],
+      ["sharedFreshness", result.sharedTtl],
+      ["freshnessSource", result.freshnessSource],
       ["revalidation", result.revalidation],
-      ["issues", result.issues.map((issue) => `${issue.severity}: ${issue.title}`).join("; ")],
+      ["findings", result.issues.map((issue) => `${issue.severity}: ${issue.title}`).join("; ")],
     ];
-
     return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   }
 
@@ -805,58 +921,36 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode) {
       "| --- | --- |",
       ...headerRows(result.headers).map((row) => `| ${row.name} | ${escapeMarkdown(row.value || "-")} |`),
       "",
-      `Grade: **${result.grade}**`,
-      `Score: **${result.score}/100**`,
-      `Browser TTL: **${result.browserTtl}**`,
-      `Shared TTL: **${result.sharedTtl}**`,
+      `Storage: **${result.storagePolicy}**`,
+      `Browser freshness: **${result.browserTtl}**`,
+      `Shared freshness: **${result.sharedTtl}**`,
+      `Revalidation: **${result.revalidation}**`,
+      "",
+      "## Findings",
+      ...result.issues.map((issue) => `- **${issue.title}:** ${issue.message}`),
     ].join("\n");
   }
 
-  if (mode === "report") {
-    return [
-      "HTTP Cache Header Report",
-      "------------------------",
-      `Grade: ${result.grade}`,
-      `Score: ${result.score}/100`,
-      `Cacheable: ${result.cacheable ? "yes" : "no"}`,
-      `Browser TTL: ${result.browserTtl}`,
-      `Shared TTL: ${result.sharedTtl}`,
-      `Revalidation: ${result.revalidation}`,
-      "",
-      "Headers:",
-      ...headerRows(result.headers).map((row) => `- ${row.name}: ${row.value || "not found"}`),
-      "",
-      "Findings:",
-      ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
-    ].join("\n");
-  }
-
-  return [
-    "HTTP Cache Header Summary",
-    "-------------------------",
-    `Grade: ${result.grade}`,
-    `Score: ${result.score}/100`,
-    `Cacheable: ${result.cacheable ? "yes" : "no"}`,
-    `Browser TTL: ${result.browserTtl}`,
-    `Shared TTL: ${result.sharedTtl}`,
+  const lines = [
+    mode === "report" ? "HTTP Cache Header Report" : "HTTP Cache Header Summary",
+    mode === "report" ? "------------------------" : "-------------------------",
+    `Storage: ${result.storagePolicy}`,
+    `Browser freshness: ${result.browserTtl}`,
+    `Shared freshness: ${result.sharedTtl}`,
+    `Freshness source: ${result.freshnessSource}`,
     `Revalidation: ${result.revalidation}`,
-    `Cache-Control: ${result.headers.cacheControl || "not found"}`,
-    `ETag: ${result.headers.etag || "not found"}`,
-    `Expires: ${result.headers.expires || "not found"}`,
-    `Last-Modified: ${result.headers.lastModified || "not found"}`,
-    `Vary: ${result.headers.vary || "not found"}`,
-    `CDN status: ${result.headers.cfCacheStatus || result.headers.cdnCacheStatus || result.headers.xCache || "not found"}`,
+    "",
+    "Headers:",
+    ...headerRows(result.headers).map((row) => `- ${row.name}: ${row.value || "not found"}`),
     "",
     "Findings:",
     ...result.issues.map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.message}`),
-  ].join("\n");
+  ];
+  return lines.join("\n");
 }
 
 function csvEscape(value: string) {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-
+  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
   return value;
 }
 
@@ -867,24 +961,25 @@ function escapeMarkdown(value: string) {
 function getNotes(result: Result, resourceType: ResourceType) {
   const notes: { title: string; message: string }[] = [];
 
-  if (result.headers.cfCacheStatus || result.headers.cdnCacheStatus || result.headers.xCache) {
+  if (result.headers.cacheStatus || result.headers.cfCacheStatus || result.headers.cdnCacheStatus || result.headers.xCache) {
     notes.push({
-      title: "CDN status needs context",
-      message: "A MISS or BYPASS may be expected for dynamic content, but unexpected for static assets or cacheable public pages.",
+      title: "A cache status describes one request",
+      message: "A HIT, MISS, BYPASS, or similar value does not by itself define the response's future cacheability or freshness.",
     });
   }
 
   if (resourceType === "staticAsset") {
     notes.push({
-      title: "Static assets can often cache longer",
-      message: "Fingerprint-named assets usually work well with long max-age and immutable.",
+      title: "Versioned assets can usually tolerate longer freshness",
+      message: "That assumes filenames or URLs change when the content changes; otherwise a long max-age can preserve stale bytes.",
     });
   }
 
   notes.push({
-    title: "Test real behavior too",
-    message: "Browser DevTools, curl, CDN dashboards, and repeat requests can confirm whether the cache headers behave as expected.",
+    title: "Repeat-request testing completes the picture",
+    message: "Compare Age, validators, Cache-Status/CDN fields, and network behavior across repeated requests before concluding that a cache rule works.",
   });
 
   return notes;
 }
+
