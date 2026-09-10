@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "HTTP Basic Auth Header Generator | Authorization Basic Header Builder | Yoryantra",
+  title: "HTTP Basic Auth Header Generator | Yoryantra",
   description:
-    "Generate HTTP Basic Authorization headers from username and password values. Create Basic Auth headers, cURL examples, Fetch snippets, Axios snippets, and JSON header objects in your browser.",
+    "Create RFC 7617 Basic Authorization headers and cURL, Fetch, Axios or JSON snippets with UTF-8 and legacy byte encoding guidance.",
   keywords: [
     "HTTP Basic Auth Header Generator",
     "Basic Auth header generator",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/http-basic-auth-header-generator",
   },
   openGraph: {
-    title: "HTTP Basic Auth Header Generator | Authorization Basic Header Builder | Yoryantra",
+    title: "HTTP Basic Auth Header Generator | Yoryantra",
     description:
-      "Generate HTTP Basic Authorization headers from username and password values. Create Basic Auth headers, cURL examples, Fetch snippets, Axios snippets, and JSON header objects in your browser.",
+    "Create RFC 7617 Basic Authorization headers and cURL, Fetch, Axios or JSON snippets with UTF-8 and legacy byte encoding guidance.",
     url: "https://yoryantra.com/tools/http-basic-auth-header-generator",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "HTTP Basic Auth Header Generator | Authorization Basic Header Builder | Yoryantra",
+    title: "HTTP Basic Auth Header Generator | Yoryantra",
     description:
-      "Generate HTTP Basic Authorization headers from username and password values. Create Basic Auth headers, cURL examples, Fetch snippets, Axios snippets, and JSON header objects in your browser.",
+    "Create RFC 7617 Basic Authorization headers and cURL, Fetch, Axios or JSON snippets with UTF-8 and legacy byte encoding guidance.",
   },
 };
 

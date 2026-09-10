@@ -59,6 +59,7 @@ export default function ToolClient() {
   const [query, setQuery] = useState("");
   const [variablesJson, setVariablesJson] = useState("");
   const [endpoint, setEndpoint] = useState("");
+  const [operationName, setOperationName] = useState("");
   const [outputMode, setOutputMode] = useState<OutputMode>("formatted");
   const [indentSize, setIndentSize] = useState<IndentSize>("2");
   const [requestMethod, setRequestMethod] = useState<RequestMethod>("POST");
@@ -95,6 +96,7 @@ export default function ToolClient() {
         query,
         variablesJson,
         endpoint,
+        operationName,
         outputMode,
         indentSize,
         requestMethod,
@@ -132,6 +134,7 @@ export default function ToolClient() {
     setQuery(sampleQuery);
     setVariablesJson(sampleVariables);
     setEndpoint("https://api.example.com/graphql");
+    setOperationName("GetUserProfile");
     setOutputMode("formatted");
     setIndentSize("2");
     setRequestMethod("POST");
@@ -148,6 +151,7 @@ export default function ToolClient() {
     setQuery("");
     setVariablesJson("");
     setEndpoint("");
+    setOperationName("");
     setOutputMode("formatted");
     setIndentSize("2");
     setRequestMethod("POST");
@@ -163,7 +167,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="GraphQL Query Formatter"
-      description="Format, minify, and inspect GraphQL queries, mutations, subscriptions, fragments, variables, operation names, and request payloads directly in your browser."
+      description="Reformat GraphQL source, preserve lexical meaning, inspect operations and variables, and build JSON or cURL requests."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -222,7 +226,7 @@ export default function ToolClient() {
                   clearResult();
                 }}
                 placeholder={sampleVariables}
-                className="w-full min-h-[260px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                className="w-full min-h-[260px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--light-gold)]"
               />
 
               <p className="mt-2 text-sm text-gray-500">
@@ -244,6 +248,21 @@ export default function ToolClient() {
               <p className="mt-2 text-sm text-gray-500">
                 Used only for cURL output. The placeholder is not sent unless you generate a cURL example without an endpoint.
               </p>
+
+              <div className="mt-4">
+                <InputField
+                  label="Operation Name"
+                  value={operationName}
+                  onChange={(value) => {
+                    setOperationName(value);
+                    clearResult();
+                  }}
+                  placeholder="GetUserProfile"
+                />
+                <p className="mt-2 text-sm text-gray-500">
+                  Needed to build an executable request when the document contains more than one operation.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -312,19 +331,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={formatQuery} className="yoryantra-btn">
+        <button onClick={formatQuery} className="yoryantra-btn whitespace-nowrap">
           Format GraphQL
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -369,29 +388,18 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">GraphQL findings</h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+<IssuePanel title="GraphQL findings" issues={result.issues} />
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">GraphQL debugging guidance</h3>
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">GraphQL debugging guidance</h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -403,7 +411,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -414,8 +422,8 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        This tool formats and inspects GraphQL text locally. It does not validate against a schema or send requests to your endpoint.
+      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+        Formatting and inspection stay in the browser. Schema validation and network execution are deliberately outside this page.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
@@ -427,12 +435,12 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This GraphQL Query Formatter formats and minifies queries, extracts operations and variables, formats variables JSON, and generates request payloads or cURL commands for debugging.
+            GraphQL treats comments, whitespace, line terminators, commas, and a Unicode BOM as ignored tokens outside strings. Formatting can safely change those separators, but quoted strings and block strings must keep their lexical content intact.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the GraphQL Query Formatter</h2>
+          <h2 className="text-xl font-semibold text-gray-900">What changes, and what must stay untouched</h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Paste a GraphQL query, mutation, subscription, or fragment.</li>
@@ -480,7 +488,7 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Use this tool for readability and request debugging, then use your GraphQL server, schema tooling, or API client for schema-level validation.
+            Use the formatted document for readability, then validate it with the schema that will execute it. The <a className="font-medium text-gray-900 underline underline-offset-4" href="https://spec.graphql.org/September2025/" target="_blank" rel="noreferrer">GraphQL specification</a> defines the language and validation rules. HTTP request examples are based on the current <a className="font-medium text-gray-900 underline underline-offset-4" href="https://graphql.github.io/graphql-over-http/draft/" target="_blank" rel="noreferrer">GraphQL over HTTP draft</a>; that transport specification is still a draft and may change.
           </p>
         </div>
 
@@ -515,10 +523,33 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/graphql-query-formatter" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/graphql-query-formatter" />
+          </div>
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function IssuePanel({ title, issues }: { title: string; issues: Issue[] }) {
+  return (
+    <div className="mt-6 space-y-3">
+      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+      {issues.map((issue, index) => {
+        const classes = issue.severity === "high"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : issue.severity === "warning"
+            ? "border-amber-200 bg-amber-50 text-amber-800"
+            : "border-gray-200 bg-gray-50 text-gray-600";
+        return (
+          <div key={`${issue.title}-${index}`} className={`self-start rounded-xl border p-4 ${classes}`}>
+            <p className="text-sm font-semibold text-gray-900">{issue.title}</p>
+            <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -531,7 +562,7 @@ function InputField({ label, value, onChange, placeholder }: { label: string; va
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--light-gold)]"
       />
     </div>
   );
@@ -584,6 +615,7 @@ function buildGraphqlOutput(options: {
   query: string;
   variablesJson: string;
   endpoint: string;
+  operationName: string;
   outputMode: OutputMode;
   indentSize: IndentSize;
   requestMethod: RequestMethod;
@@ -594,6 +626,7 @@ function buildGraphqlOutput(options: {
   warnMissingVariables: boolean;
   warnMultipleOperations: boolean;
 }): GraphqlResult {
+  assertBalancedGraphql(options.query);
   const cleanedQuery = options.removeComments ? stripGraphqlComments(options.query) : options.query;
   const formatted = formatGraphql(cleanedQuery, Number(options.indentSize));
   const minified = minifyGraphql(cleanedQuery);
@@ -637,14 +670,14 @@ function stripGraphqlComments(value: string) {
     const char = value[index];
     const nextThree = value.slice(index, index + 3);
 
-    if (nextThree === "\"\"\"" && !inString) {
+    if (nextThree === "\"\"\"" && !inString && !isEscaped(value, index)) {
       inBlockString = !inBlockString;
       output += nextThree;
       index += 2;
       continue;
     }
 
-    if (char === "\"" && value[index - 1] !== "\\" && !inBlockString) {
+    if (char === "\"" && !isEscaped(value, index) && !inBlockString) {
       inString = !inString;
       output += char;
       continue;
@@ -676,14 +709,14 @@ function formatGraphql(value: string, indentSize: number) {
     const char = minified[index];
     const nextThree = minified.slice(index, index + 3);
 
-    if (nextThree === "\"\"\"" && !inString) {
+    if (nextThree === "\"\"\"" && !inString && !isEscaped(value, index)) {
       inBlockString = !inBlockString;
       output += nextThree;
       index += 2;
       continue;
     }
 
-    if (char === "\"" && minified[index - 1] !== "\\" && !inBlockString) {
+    if (char === "\"" && !isEscaped(minified, index) && !inBlockString) {
       inString = !inString;
       output += char;
       continue;
@@ -695,23 +728,23 @@ function formatGraphql(value: string, indentSize: number) {
     }
 
     if (char === "{") {
-      output = output.trimEnd() + " {\n";
+      output = output.replace(/[\s]+$/g, "") + " {\n";
       indent += 1;
       output += indentUnit.repeat(indent);
     } else if (char === "}") {
       indent = Math.max(0, indent - 1);
-      output = output.trimEnd() + "\n" + indentUnit.repeat(indent) + "}";
+      output = output.replace(/[\s]+$/g, "") + "\n" + indentUnit.repeat(indent) + "}";
       if (minified[index + 1] && minified[index + 1] !== "}") {
         output += "\n" + indentUnit.repeat(indent);
       }
     } else if (char === "(") {
       output += "(";
     } else if (char === ")") {
-      output = output.trimEnd() + ")";
+      output = output.replace(/[\s]+$/g, "") + ")";
     } else if (char === ",") {
-      output = output.trimEnd() + ", ";
+      output = output.replace(/[\s]+$/g, "") + ", ";
     } else if (char === ":") {
-      output = output.trimEnd() + ": ";
+      output = output.replace(/[\s]+$/g, "") + ": ";
     } else {
       output += char;
     }
@@ -719,7 +752,7 @@ function formatGraphql(value: string, indentSize: number) {
 
   return output
     .split("\n")
-    .map((line) => line.trimEnd())
+    .map((line) => line.replace(/[\s]+$/g, ""))
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -729,13 +762,20 @@ function minifyGraphql(value: string) {
   let output = "";
   let inString = false;
   let inBlockString = false;
+  let inComment = false;
   let pendingSpace = false;
 
   for (let index = 0; index < value.length; index += 1) {
     const char = value[index];
     const nextThree = value.slice(index, index + 3);
 
-    if (nextThree === "\"\"\"" && !inString) {
+    if (inComment) {
+      output += char;
+      if (char === "\n" || char === "\r") inComment = false;
+      continue;
+    }
+
+    if (nextThree === "\"\"\"" && !inString && !isEscaped(value, index)) {
       inBlockString = !inBlockString;
       output += nextThree;
       index += 2;
@@ -743,7 +783,7 @@ function minifyGraphql(value: string) {
       continue;
     }
 
-    if (char === "\"" && value[index - 1] !== "\\" && !inBlockString) {
+    if (char === "\"" && !inBlockString && !isEscaped(value, index)) {
       inString = !inString;
       output += char;
       pendingSpace = false;
@@ -755,13 +795,21 @@ function minifyGraphql(value: string) {
       continue;
     }
 
+    if (char === "#") {
+      if (pendingSpace && output && !output.endsWith("\n")) output += " ";
+      output += char;
+      pendingSpace = false;
+      inComment = true;
+      continue;
+    }
+
     if (/\s/.test(char)) {
       pendingSpace = true;
       continue;
     }
 
     if ("{}():![]=,@".includes(char)) {
-      output = output.trimEnd();
+      output = output.replace(/[\s]+$/g, "");
       output += char;
       pendingSpace = false;
       continue;
@@ -778,19 +826,83 @@ function minifyGraphql(value: string) {
   return output.trim();
 }
 
+function isEscaped(value: string, index: number) {
+  let slashes = 0;
+  for (let cursor = index - 1; cursor >= 0 && value[cursor] === "\\"; cursor -= 1) slashes += 1;
+  return slashes % 2 === 1;
+}
+
+function assertBalancedGraphql(value: string) {
+  const stack: string[] = [];
+  const matching: Record<string, string> = { "}": "{", ")": "(", "]": "[" };
+  let inString = false;
+  let inBlockString = false;
+  let inComment = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    const nextThree = value.slice(index, index + 3);
+
+    if (inComment) {
+      if (char === "\n" || char === "\r") inComment = false;
+      continue;
+    }
+    if (nextThree === "\"\"\"" && !inString && !isEscaped(value, index)) {
+      inBlockString = !inBlockString; index += 2; continue;
+    }
+    if (char === "\"" && !inBlockString && !isEscaped(value, index)) {
+      inString = !inString; continue;
+    }
+    if (inString || inBlockString) continue;
+    if (char === "#") { inComment = true; continue; }
+    if ("{([".includes(char)) stack.push(char);
+    if ("})]".includes(char)) {
+      if (stack.pop() !== matching[char]) throw new Error(`Unbalanced GraphQL delimiter near ${char}.`);
+    }
+  }
+  if (inString || inBlockString) throw new Error("GraphQL input contains an unterminated string.");
+  if (stack.length > 0) throw new Error(`GraphQL input is missing a closing delimiter for ${stack[stack.length - 1]}.`);
+}
+
+function maskGraphqlNonCode(value: string) {
+  let output = "";
+  let inString = false;
+  let inBlockString = false;
+  let inComment = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    const nextThree = value.slice(index, index + 3);
+    if (inComment) {
+      output += char === "\n" || char === "\r" ? char : " ";
+      if (char === "\n" || char === "\r") inComment = false;
+      continue;
+    }
+    if (nextThree === "\"\"\"" && !inString && !isEscaped(value, index)) {
+      inBlockString = !inBlockString; output += "   "; index += 2; continue;
+    }
+    if (char === "\"" && !inBlockString && !isEscaped(value, index)) {
+      inString = !inString; output += " "; continue;
+    }
+    if (!inString && !inBlockString && char === "#") { inComment = true; output += " "; continue; }
+    output += inString || inBlockString ? (char === "\n" || char === "\r" ? char : " ") : char;
+  }
+  return output;
+}
+
 function extractOperations(value: string): OperationInfo[] {
+  const source = maskGraphqlNonCode(value);
   const operations: OperationInfo[] = [];
   const regex = /\b(query|mutation|subscription)\s*([A-Za-z_][A-Za-z0-9_]*)?/g;
   let match: RegExpExecArray | null;
 
-  while ((match = regex.exec(value)) !== null) {
+  while ((match = regex.exec(source)) !== null) {
     operations.push({
       type: match[1] as OperationInfo["type"],
       name: match[2] || "anonymous",
     });
   }
 
-  if (operations.length === 0 && value.trim().startsWith("{")) {
+  if (operations.length === 0 && source.trim().startsWith("{")) {
     operations.push({
       type: "anonymous",
       name: "anonymous",
@@ -801,11 +913,12 @@ function extractOperations(value: string): OperationInfo[] {
 }
 
 function extractFragments(value: string) {
+  const source = maskGraphqlNonCode(value);
   const fragments: string[] = [];
   const regex = /\bfragment\s+([A-Za-z_][A-Za-z0-9_]*)\s+on\s+[A-Za-z_][A-Za-z0-9_]*/g;
   let match: RegExpExecArray | null;
 
-  while ((match = regex.exec(value)) !== null) {
+  while ((match = regex.exec(source)) !== null) {
     fragments.push(match[1]);
   }
 
@@ -813,11 +926,12 @@ function extractFragments(value: string) {
 }
 
 function extractVariables(value: string) {
+  const source = maskGraphqlNonCode(value);
   const variables: string[] = [];
   const regex = /\$([A-Za-z_][A-Za-z0-9_]*)/g;
   let match: RegExpExecArray | null;
 
-  while ((match = regex.exec(value)) !== null) {
+  while ((match = regex.exec(source)) !== null) {
     variables.push(match[1]);
   }
 
@@ -828,8 +942,13 @@ function parseVariablesJson(value: string) {
   if (!value.trim()) return null;
 
   try {
-    return JSON.parse(value) as Record<string, unknown>;
-  } catch {
+    const parsed = JSON.parse(value) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Variables JSON must be a JSON object because GraphQL variables are sent as a map.");
+    }
+    return parsed as Record<string, unknown>;
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("Variables JSON must")) throw err;
     throw new Error("Variables JSON is not valid JSON.");
   }
 }
@@ -880,9 +999,9 @@ function buildIssues(params: {
 
     if (missing.length > 0) {
       issues.push({
-        severity: "warning",
-        title: "Variables not found in Variables JSON",
-        message: `Missing variable values: ${missing.join(", ")}.`,
+        severity: "info",
+        title: "Variable names absent from Variables JSON",
+        message: `Not supplied here: ${missing.join(", ")}. That can still be valid for nullable variables or variables with defaults.`,
       });
     }
   }
@@ -903,6 +1022,7 @@ function formatOutput(
   options: {
     outputMode: OutputMode;
     endpoint: string;
+    operationName: string;
     requestMethod: RequestMethod;
     includeVariables: boolean;
     includeOperationName: boolean;
@@ -921,7 +1041,15 @@ function formatOutput(
     return parsedVariables ? JSON.stringify(parsedVariables, null, 2) : "No valid Variables JSON provided.";
   }
 
-  const operationName = getPrimaryOperationName(result.operations);
+  const requestedOperationName = options.operationName.trim();
+  const namedOperations = result.operations.filter((operation) => operation.name !== "anonymous");
+  if (requestedOperationName && !namedOperations.some((operation) => operation.name === requestedOperationName)) {
+    throw new Error(`Operation Name "${requestedOperationName}" was not found in the document.`);
+  }
+  if ((options.outputMode === "jsonPayload" || options.outputMode === "curl") && result.operations.length > 1 && options.includeOperationName && !requestedOperationName) {
+    throw new Error("This document contains multiple operations. Enter the Operation Name to build an executable request.");
+  }
+  const operationName = requestedOperationName || getPrimaryOperationName(result.operations);
   const payload = buildPayload({
     query: result.minified,
     operationName,
@@ -936,10 +1064,22 @@ function formatOutput(
 
   if (options.outputMode === "curl") {
     const endpoint = options.endpoint.trim() || "https://api.example.com/graphql";
+    if (options.requestMethod === "GET") {
+      if (result.operations.some((operation) => operation.type === "mutation")) {
+        throw new Error("GraphQL over HTTP GET must not execute mutations. Choose POST for this document.");
+      }
+      const params = new URLSearchParams();
+      params.set("query", result.minified);
+      if (payload.operationName) params.set("operationName", String(payload.operationName));
+      if (payload.variables) params.set("variables", JSON.stringify(payload.variables));
+      const separator = endpoint.includes("?") ? "&" : "?";
+      return `curl -X GET "${endpoint}${separator}${params.toString()}" -H "Accept: application/graphql-response+json, application/json;q=0.9"`;
+    }
     return [
-      `curl -X ${options.requestMethod} "${endpoint}" \\`,
+      `curl -X POST "${endpoint}" \\`,
       `  -H "Content-Type: application/json" \\`,
-      `  -d '${JSON.stringify(payload)}'`,
+      `  -H "Accept: application/graphql-response+json, application/json;q=0.9" \\`,
+      `  -d '${JSON.stringify(payload).replace(/'/g, "'\"'\"'")}'`,
     ].join("\n");
   }
 
@@ -979,8 +1119,9 @@ function buildPayload(params: {
 }
 
 function getPrimaryOperationName(operations: OperationInfo[]) {
-  const named = operations.find((operation) => operation.name !== "anonymous");
-  return named?.name || "";
+  if (operations.length !== 1) return "";
+  const named = operations[0];
+  return named.name !== "anonymous" ? named.name : "";
 }
 
 function formatOperationList(operations: OperationInfo[]) {

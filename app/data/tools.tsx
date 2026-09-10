@@ -1290,7 +1290,7 @@ export const tools = [
 {
   title: "HTTP Cache Header Analyzer",
   description:
-    "Read Cache-Control, validators, Vary, Age, and Cache-Status while separating storage, freshness, and revalidation behavior.",
+    "Build download or inline headers with ASCII fallback and RFC 8187 UTF-8 filenames.",
   href: "/tools/http-cache-header-analyzer",
   category: "Developer Tools",
 },
@@ -1323,7 +1323,7 @@ export const tools = [
 {
   title: "GraphQL Query Formatter",
   description:
-    "Format, minify, and inspect GraphQL queries, mutations, subscriptions, fragments, variables, and request payloads.",
+    "Reformat GraphQL documents while preserving strings, comments, operations, variables, and request semantics.",
   href: "/tools/graphql-query-formatter",
   category: "Developer Tools",
 },
@@ -1331,7 +1331,7 @@ export const tools = [
 {
   title: "HTTP Basic Auth Header Generator",
   description:
-    "Generate Authorization: Basic headers from username and password values with cURL, Fetch, Axios, JSON, and plain header outputs.",
+    "Encode user-id and password bytes into RFC 7617 Basic Authorization headers and request snippets.",
   href: "/tools/http-basic-auth-header-generator",
   category: "Developer Tools",
 },

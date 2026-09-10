@@ -83,7 +83,8 @@ export default function ToolClient() {
       return;
     }
 
-    const next = buildContentDisposition({
+    try {
+      const next = buildContentDisposition({
       filename,
       fallbackFilename,
       dispositionType,
@@ -98,10 +99,15 @@ export default function ToolClient() {
       warnInlineRisk,
     });
 
-    setResult(next);
-    setOutput(next.output);
-    setError("");
-    setCopied(false);
+      setResult(next);
+      setOutput(next.output);
+      setError("");
+      setCopied(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to generate this header safely.");
+      setResult(null);
+      setOutput("");
+    }
   };
 
   const copyOutput = async () => {
@@ -152,7 +158,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Content-Disposition Header Generator"
-      description="Generate Content-Disposition headers for file downloads and inline previews. Build attachment and inline headers with safe filenames, UTF-8 filename*, ASCII fallback, and server snippets."
+      description="Build attachment or inline Content-Disposition values with an ASCII fallback, UTF-8 filename*, and response snippets."
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -293,19 +299,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generateHeader} className="yoryantra-btn">
+        <button onClick={generateHeader} className="yoryantra-btn whitespace-nowrap">
           Generate Header
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -340,29 +346,18 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Header findings</h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <IssuePanel title="Header findings" issues={result.issues} />
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Download header guidance</h3>
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Download header guidance</h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -374,7 +369,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -394,12 +389,12 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Content-Disposition Header Generator builds safe attachment and inline headers with ASCII fallback filenames, UTF-8 filename* support, and practical server snippets.
+            A reliable response usually pairs a conservative <code>filename</code> fallback with a UTF-8 <code>filename*</code> value when the intended name contains non-ASCII characters. RFC 6266 defines Content-Disposition for HTTP, while RFC 8187 defines the extended parameter encoding used by <code>filename*</code>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Content-Disposition Header Generator</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Choose the response behavior first</h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Enter the filename you want users to see.</li>
@@ -440,7 +435,11 @@ Content-Type: application/pdf`}
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Never place untrusted user input into response headers without validation and escaping.
+            Never place untrusted user input into a response header without validation. A filename received from a user or database is only a suggested download name; the receiving side should still discard directory components and treat the name as advisory.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            For the wire format, see <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc6266" target="_blank" rel="noreferrer">RFC 6266</a>. Extended UTF-8 parameters are defined by <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc8187" target="_blank" rel="noreferrer">RFC 8187</a>, which replaced RFC 5987.
           </p>
         </div>
 
@@ -475,10 +474,33 @@ Content-Type: application/pdf`}
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/content-disposition-header-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/content-disposition-header-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function IssuePanel({ title, issues }: { title: string; issues: Issue[] }) {
+  return (
+    <div className="mt-6 space-y-3">
+      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+      {issues.map((issue, index) => {
+        const classes = issue.severity === "high"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : issue.severity === "warning"
+            ? "border-amber-200 bg-amber-50 text-amber-800"
+            : "border-gray-200 bg-gray-50 text-gray-600";
+        return (
+          <div key={`${issue.title}-${index}`} className={`self-start rounded-xl border p-4 ${classes}`}>
+            <p className="text-sm font-semibold text-gray-900">{issue.title}</p>
+            <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -491,7 +513,7 @@ function InputField({ label, value, onChange, placeholder }: { label: string; va
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--light-gold)]"
       />
     </div>
   );
@@ -553,10 +575,13 @@ function buildContentDisposition(options: {
   warnInlineRisk: boolean;
 }): Result {
   const originalFilename = options.filename.trim();
+  if (!options.sanitizeFilename && /[\r\n\u0000-\u001F\u007F]/.test(originalFilename)) {
+    throw new Error("Filename contains control characters. Enable sanitization or remove them before generating a header.");
+  }
   const sanitizedFilename = options.sanitizeFilename ? sanitizeForHeader(originalFilename) : originalFilename;
   const asciiFallback = buildAsciiFallback(options.fallbackFilename.trim() || sanitizedFilename);
   const encodedFilename = encodeRfc5987Value(sanitizedFilename);
-  const contentType = options.contentTypePreset === "custom" ? options.customContentType.trim() : contentTypes[options.contentTypePreset];
+  const contentType = options.contentTypePreset === "custom" ? validateContentType(options.customContentType) : contentTypes[options.contentTypePreset];
   const parts: string[] = [options.dispositionType];
 
   if ((options.filenameMode === "both" || options.filenameMode === "asciiOnly") && options.includeAsciiFallback) {
@@ -587,7 +612,7 @@ function buildContentDisposition(options: {
     issues,
     previewMode: options.dispositionType === "inline" ? "browser may preview" : "download suggested",
   };
-  const output = formatOutput(base, options.outputMode, contentType);
+  const output = formatOutput(base, options.outputMode, contentType, options.includeContentType);
 
   return {
     ...base,
@@ -627,6 +652,18 @@ function encodeRfc5987Value(value: string) {
 
 function escapeQuotedHeader(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+}
+
+function validateContentType(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/[\r\n\u0000-\u001F\u007F]/.test(trimmed)) {
+    throw new Error("Custom Content-Type cannot contain control characters or line breaks.");
+  }
+  if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+\/[!#$%&'*+.^_`|~0-9A-Za-z-]+(?:\s*;\s*[!#$%&'*+.^_`|~0-9A-Za-z-]+=(?:[!#$%&'*+.^_`|~0-9A-Za-z-]+|"[^"\r\n]*"))*$/.test(trimmed)) {
+    throw new Error("Custom Content-Type must be a valid media type, for example application/example+json.");
+  }
+  return trimmed;
 }
 
 function buildIssues(params: {
@@ -695,11 +732,13 @@ function buildIssues(params: {
   return issues;
 }
 
-function formatOutput(result: Omit<Result, "output">, mode: OutputMode, contentType: string) {
+function formatOutput(result: Omit<Result, "output">, mode: OutputMode, contentType: string, includeContentType: boolean) {
+  const emittedContentType = includeContentType ? contentType : "";
+
   if (mode === "json") {
     return JSON.stringify({
       contentDisposition: result.headerValue,
-      contentType,
+      contentType: emittedContentType,
       asciiFilename: result.asciiFilename,
       encodedFilename: result.encodedFilename,
       issues: result.issues,
@@ -713,7 +752,7 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode, contentT
   if (mode === "express") {
     return [
       `res.setHeader("Content-Disposition", "${escapeJs(result.headerValue)}");`,
-      contentType ? `res.setHeader("Content-Type", "${escapeJs(contentType)}");` : "",
+      emittedContentType ? `res.setHeader("Content-Type", "${escapeJs(emittedContentType)}");` : "",
       "res.send(fileBuffer);",
     ].filter(Boolean).join("\n");
   }
@@ -723,7 +762,7 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode, contentT
       "return new Response(fileBuffer, {",
       "  headers: {",
       `    "Content-Disposition": "${escapeJs(result.headerValue)}",`,
-      contentType ? `    "Content-Type": "${escapeJs(contentType)}",` : "",
+      emittedContentType ? `    "Content-Type": "${escapeJs(emittedContentType)}",` : "",
       "  },",
       "});",
     ].filter(Boolean).join("\n");
@@ -732,7 +771,7 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode, contentT
   if (mode === "nginx") {
     return [
       `add_header Content-Disposition '${result.headerValue.replace(/'/g, "\\'")}';`,
-      contentType ? `types { ${contentType} ${extensionFromFilename(result.asciiFilename)}; }` : "",
+      emittedContentType ? `types { ${emittedContentType} ${extensionFromFilename(result.asciiFilename)}; }` : "",
     ].filter(Boolean).join("\n");
   }
 
@@ -741,7 +780,7 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode, contentT
       "| Field | Value |",
       "| --- | --- |",
       `| Content-Disposition | ${escapeMarkdown(result.headerValue)} |`,
-      `| Content-Type | ${escapeMarkdown(contentType || "not set")} |`,
+      `| Content-Type | ${escapeMarkdown(emittedContentType || "not set")} |`,
       `| ASCII filename | ${escapeMarkdown(result.asciiFilename)} |`,
       `| filename* | ${escapeMarkdown(result.encodedFilename)} |`,
       "",

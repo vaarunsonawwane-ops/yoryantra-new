@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "GraphQL Query Formatter | Format, Minify and Inspect GraphQL Online | Yoryantra",
+  title: "GraphQL Query Formatter & Minifier | Yoryantra",
   description:
-    "Format, minify, and inspect GraphQL queries, mutations, subscriptions, fragments, variables, operation names, and request payloads directly in your browser.",
+    "Format and minify GraphQL source, inspect operations, fragments and variables, and build JSON or cURL requests without sending the document.",
   keywords: [
     "GraphQL Query Formatter",
     "GraphQL formatter",
@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/graphql-query-formatter",
   },
   openGraph: {
-    title: "GraphQL Query Formatter | Format, Minify and Inspect GraphQL Online | Yoryantra",
+    title: "GraphQL Query Formatter & Minifier | Yoryantra",
     description:
-      "Format, minify, and inspect GraphQL queries, mutations, subscriptions, fragments, variables, operation names, and request payloads directly in your browser.",
+    "Format and minify GraphQL source, inspect operations, fragments and variables, and build JSON or cURL requests without sending the document.",
     url: "https://yoryantra.com/tools/graphql-query-formatter",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "GraphQL Query Formatter | Format, Minify and Inspect GraphQL Online | Yoryantra",
+    title: "GraphQL Query Formatter & Minifier | Yoryantra",
     description:
-      "Format, minify, and inspect GraphQL queries, mutations, subscriptions, fragments, variables, operation names, and request payloads directly in your browser.",
+    "Format and minify GraphQL source, inspect operations, fragments and variables, and build JSON or cURL requests without sending the document.",
   },
 };
 

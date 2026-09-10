@@ -38,7 +38,6 @@ export default function ToolClient() {
   const [includeContentTypeJson, setIncludeContentTypeJson] = useState(false);
   const [warnRealSecrets, setWarnRealSecrets] = useState(true);
   const [warnEmptyPassword, setWarnEmptyPassword] = useState(true);
-  const [warnColonUsername, setWarnColonUsername] = useState(true);
   const [result, setResult] = useState<Result | null>(null);
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
@@ -74,7 +73,6 @@ export default function ToolClient() {
         includeContentTypeJson,
         warnRealSecrets,
         warnEmptyPassword,
-        warnColonUsername,
       });
 
       setResult(next);
@@ -111,7 +109,6 @@ export default function ToolClient() {
     setIncludeContentTypeJson(false);
     setWarnRealSecrets(true);
     setWarnEmptyPassword(true);
-    setWarnColonUsername(true);
     clearResult();
   };
 
@@ -127,14 +124,13 @@ export default function ToolClient() {
     setIncludeContentTypeJson(false);
     setWarnRealSecrets(true);
     setWarnEmptyPassword(true);
-    setWarnColonUsername(true);
     clearResult();
   };
 
   return (
     <ToolShell
       title="HTTP Basic Auth Header Generator"
-      description="Generate HTTP Basic Authorization headers from username and password values. Create Basic Auth headers, cURL examples, Fetch snippets, Axios snippets, and JSON header objects in your browser."
+      description="Encode a username and password into an RFC 7617 Basic Authorization header and request snippets."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -210,8 +206,8 @@ export default function ToolClient() {
                 clearResult();
               }}
               options={[
-                { label: "UTF-8", value: "utf8" },
-                { label: "Latin-1 style", value: "latin1" },
+                { label: "UTF-8 (NFC)", value: "utf8" },
+                { label: "Legacy byte mapping", value: "latin1" },
               ]}
             />
 
@@ -251,7 +247,7 @@ export default function ToolClient() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-sm leading-relaxed text-amber-800">
+      <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-800">
         <span className="font-semibold text-amber-900">Safety note:</span>{" "}
         Basic Auth is Base64 encoded, not encrypted by itself. Avoid using real production passwords unless you need to.
       </div>
@@ -264,7 +260,6 @@ export default function ToolClient() {
           <CheckboxRow checked={includeContentTypeJson} label="Include Content-Type: application/json in snippets" onChange={(checked) => { setIncludeContentTypeJson(checked); clearResult(); }} />
           <CheckboxRow checked={warnRealSecrets} label="Show secret handling warning" onChange={(checked) => { setWarnRealSecrets(checked); clearResult(); }} />
           <CheckboxRow checked={warnEmptyPassword} label="Warn when password is empty" onChange={(checked) => { setWarnEmptyPassword(checked); clearResult(); }} />
-          <CheckboxRow checked={warnColonUsername} label="Warn when username contains colon" onChange={(checked) => { setWarnColonUsername(checked); clearResult(); }} />
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
@@ -273,19 +268,19 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={generateHeader} className="yoryantra-btn">
+        <button onClick={generateHeader} className="yoryantra-btn whitespace-nowrap">
           Generate Basic Auth Header
         </button>
 
-        <button onClick={copyOutput} className="yoryantra-btn" disabled={!output}>
+        <button onClick={copyOutput} className="yoryantra-btn whitespace-nowrap" disabled={!output}>
           {copied ? "Copied" : "Copy Output"}
         </button>
 
-        <button onClick={loadExample} className="yoryantra-btn-outline">
+        <button onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">
           Load Example
         </button>
 
-        <button onClick={resetAll} className="yoryantra-btn-outline">
+        <button onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">
           Reset
         </button>
       </div>
@@ -318,29 +313,18 @@ export default function ToolClient() {
       )}
 
       {result && result.issues.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Basic Auth findings</h3>
-
-          <div className="mt-3 space-y-3">
-            {result.issues.map((issue, index) => (
-              <div key={`${issue.title}-${index}`}>
-                <p className="text-sm font-semibold text-amber-900">{issue.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{issue.message}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+<IssuePanel title="Basic Auth findings" issues={result.issues} />
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h3 className="text-sm font-semibold text-blue-900">Authorization header guidance</h3>
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Authorization header guidance</h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-blue-900">{note.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">{note.message}</p>
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
               </div>
             ))}
           </div>
@@ -352,7 +336,7 @@ export default function ToolClient() {
           <h3 className="text-lg font-semibold text-gray-900">Output</h3>
 
           {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+            <button onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap text-sm">
               {copied ? "Copied" : "Copy"}
             </button>
           )}
@@ -372,12 +356,12 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This HTTP Basic Auth Header Generator creates the Authorization header and request snippets for cURL, Fetch, Axios, JSON, and plain header output directly in your browser.
+            RFC 7617 defines the credential string as <code>user-id:password</code>, converted to bytes and then Base64 encoded. The colon is structural: a user-id containing <code>:</code> is invalid, while a password may contain colons.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Using the Basic Auth Header Generator</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Build the exact credential bytes you intend to send</h2>
 
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Enter a username and password.</li>
@@ -410,7 +394,11 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            For production APIs, token-based authentication or short-lived credentials may be safer depending on the system.
+            Character encoding also matters. RFC 7617 leaves the legacy default encoding undefined beyond ASCII compatibility; a server can advertise <code>charset="UTF-8"</code> in its challenge. When UTF-8 is selected here, the credential text is normalized to NFC before encoding, matching the RFC guidance.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Read the normative details in <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc7617" target="_blank" rel="noreferrer">RFC 7617</a>.
           </p>
         </div>
 
@@ -445,10 +433,33 @@ export default function ToolClient() {
             Related Tools
           </h2>
 
-          <YoryantraRelatedTools currentHref="/tools/http-basic-auth-header-generator" />
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/http-basic-auth-header-generator" />
+          </div>
         </div>
       </section>
     </ToolShell>
+  );
+}
+
+function IssuePanel({ title, issues }: { title: string; issues: Issue[] }) {
+  return (
+    <div className="mt-6 space-y-3">
+      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+      {issues.map((issue, index) => {
+        const classes = issue.severity === "high"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : issue.severity === "warning"
+            ? "border-amber-200 bg-amber-50 text-amber-800"
+            : "border-gray-200 bg-gray-50 text-gray-600";
+        return (
+          <div key={`${issue.title}-${index}`} className={`self-start rounded-xl border p-4 ${classes}`}>
+            <p className="text-sm font-semibold text-gray-900">{issue.title}</p>
+            <p className="mt-1 text-sm leading-relaxed">{issue.message}</p>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -474,7 +485,7 @@ function InputField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+        className="min-h-[54px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--light-gold)]"
       />
     </div>
   );
@@ -533,20 +544,22 @@ function buildBasicAuth(options: {
   includeContentTypeJson: boolean;
   warnRealSecrets: boolean;
   warnEmptyPassword: boolean;
-  warnColonUsername: boolean;
 }): Result {
-  const username = options.username.trim();
+  const username = options.username;
   const password = options.password;
-  const rawCredentials = `${username}:${password}`;
+  validateBasicCredentials(username, password);
+  const normalizedUsername = options.charsetMode === "utf8" ? username.normalize("NFC") : username;
+  const normalizedPassword = options.charsetMode === "utf8" ? password.normalize("NFC") : password;
+  const rawCredentials = `${normalizedUsername}:${normalizedPassword}`;
   const encodedCredentials = encodeBasicAuth(rawCredentials, options.charsetMode);
   const authorizationHeader = `Authorization: Basic ${encodedCredentials}`;
-  const issues = buildIssues(username, password, options);
+  const issues = buildIssues(normalizedUsername, normalizedPassword, options);
   const base = {
     authorizationHeader,
     encodedCredentials,
-    rawCredentialsPreview: `${username}:${password ? maskValue(password, options.maskMode) : ""}`,
-    usernameLength: username.length,
-    passwordLength: password.length,
+    rawCredentialsPreview: `${normalizedUsername}:${normalizedPassword ? maskValue(normalizedPassword, options.maskMode) : ""}`,
+    usernameLength: normalizedUsername.length,
+    passwordLength: normalizedPassword.length,
     issues,
     authScheme: "Basic",
   };
@@ -560,6 +573,9 @@ function buildBasicAuth(options: {
 
 function encodeBasicAuth(value: string, charsetMode: CharsetMode) {
   if (charsetMode === "latin1") {
+    if (Array.from(value).some((char) => char.codePointAt(0)! > 0xFF)) {
+      throw new Error("Legacy byte mapping only supports characters from U+0000 through U+00FF. Choose UTF-8 for other characters.");
+    }
     return btoa(value);
   }
 
@@ -573,6 +589,15 @@ function encodeBasicAuth(value: string, charsetMode: CharsetMode) {
   return btoa(binary);
 }
 
+function validateBasicCredentials(username: string, password: string) {
+  if (username.includes(":")) {
+    throw new Error("Username cannot contain a colon. RFC 7617 uses the first colon to separate the user-id from the password.");
+  }
+  if (/[\u0000-\u001F\u007F]/.test(username) || /[\u0000-\u001F\u007F]/.test(password)) {
+    throw new Error("Username and password cannot contain control characters under RFC 7617.");
+  }
+}
+
 function maskValue(value: string, mode: MaskMode) {
   if (mode === "visible") return value;
   if (!value) return "";
@@ -582,7 +607,6 @@ function maskValue(value: string, mode: MaskMode) {
 function buildIssues(username: string, password: string, options: {
   warnRealSecrets: boolean;
   warnEmptyPassword: boolean;
-  warnColonUsername: boolean;
 }) {
   const issues: Issue[] = [];
 
@@ -602,13 +626,6 @@ function buildIssues(username: string, password: string, options: {
     });
   }
 
-  if (options.warnColonUsername && username.includes(":")) {
-    issues.push({
-      severity: "warning",
-      title: "Username contains colon",
-      message: "Basic Auth separates username and password with a colon. A colon in the username can be ambiguous.",
-    });
-  }
 
   if (issues.length === 0) {
     issues.push({
@@ -637,10 +654,11 @@ function formatOutput(result: Omit<Result, "output">, options: {
   }
 
   if (options.outputMode === "json") {
-    const headerObject = Object.fromEntries(allHeaders.map((line) => {
+    const headerObject: Record<string, string> = {};
+    allHeaders.forEach((line) => {
       const separatorIndex = line.indexOf(":");
-      return [line.slice(0, separatorIndex), line.slice(separatorIndex + 1).trim()];
-    }));
+      headerObject[line.slice(0, separatorIndex)] = line.slice(separatorIndex + 1).trim();
+    });
 
     return JSON.stringify(headerObject, null, 2);
   }
@@ -714,11 +732,11 @@ function buildExtraHeaders(includeAcceptJson: boolean, includeContentTypeJson: b
 }
 
 function escapeJs(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
 }
 
 function escapeShellDouble(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/\$/g, "\\$").replace(/`/g, "\\`").replace(/\r/g, "\\r").replace(/\n/g, "\\n");
 }
 
 function escapeMarkdown(value: string) {
