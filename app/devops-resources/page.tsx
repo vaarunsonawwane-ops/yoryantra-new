@@ -109,7 +109,7 @@ export default function Page() {
             {layers.map((layer) => (
               <div key={layer.number} className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-6">
                 <div className="flex items-start gap-4">
-                  <span className="pt-1 text-xs font-semibold tracking-wider text-[var(--green)]">{layer.number}</span>
+                  <span className="pt-1 text-xs font-semibold tracking-wider text-gray-900">{layer.number}</span>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{layer.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-gray-600">{layer.text}</p>

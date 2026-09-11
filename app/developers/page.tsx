@@ -130,10 +130,10 @@ export default function Page() {
               A useful debugging order
             </h2>
             <ol className="mt-5 space-y-3 text-sm leading-6 text-gray-600">
-              <li><strong className="text-[var(--green)]">1.</strong> Confirm the raw input you actually have.</li>
-              <li><strong className="text-[var(--green)]">2.</strong> Parse or normalize only what is necessary.</li>
-              <li><strong className="text-[var(--green)]">3.</strong> Compare the result with the protocol or API contract.</li>
-              <li><strong className="text-[var(--green)]">4.</strong> Reproduce the behavior in the real client, server, or browser.</li>
+              <li><strong className="text-gray-900">1.</strong> Confirm the raw input you actually have.</li>
+              <li><strong className="text-gray-900">2.</strong> Parse or normalize only what is necessary.</li>
+              <li><strong className="text-gray-900">3.</strong> Compare the result with the protocol or API contract.</li>
+              <li><strong className="text-gray-900">4.</strong> Reproduce the behavior in the real client, server, or browser.</li>
             </ol>
           </div>
         </section>

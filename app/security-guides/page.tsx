@@ -90,10 +90,10 @@ export default function Page() {
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-7 md:p-9">
             <h2 className="text-2xl font-semibold text-gray-900">A JWT Acceptance Chain</h2>
             <ol className="mt-5 space-y-4 leading-7 text-gray-600">
-              <li><span className="font-semibold text-[var(--green)]">1.</span> <strong className="text-gray-900">Parse:</strong> Is the compact token structurally readable?</li>
-              <li><span className="font-semibold text-[var(--green)]">2.</span> <strong className="text-gray-900">Verify:</strong> Does the signature match the expected algorithm and key material?</li>
-              <li><span className="font-semibold text-[var(--green)]">3.</span> <strong className="text-gray-900">Validate claims:</strong> Are issuer, audience, expiry, not-before time, and other required claims acceptable?</li>
-              <li><span className="font-semibold text-[var(--green)]">4.</span> <strong className="text-gray-900">Apply application policy:</strong> Does this token authorize this action in this system?</li>
+              <li><span className="font-semibold text-gray-900">1.</span> <strong className="text-gray-900">Parse:</strong> Is the compact token structurally readable?</li>
+              <li><span className="font-semibold text-gray-900">2.</span> <strong className="text-gray-900">Verify:</strong> Does the signature match the expected algorithm and key material?</li>
+              <li><span className="font-semibold text-gray-900">3.</span> <strong className="text-gray-900">Validate claims:</strong> Are issuer, audience, expiry, not-before time, and other required claims acceptable?</li>
+              <li><span className="font-semibold text-gray-900">4.</span> <strong className="text-gray-900">Apply application policy:</strong> Does this token authorize this action in this system?</li>
             </ol>
             <p className="mt-5 text-sm leading-6 text-gray-600">
               Stopping at step one is why a decoded JWT should never be described

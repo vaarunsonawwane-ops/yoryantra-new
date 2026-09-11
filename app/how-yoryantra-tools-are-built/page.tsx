@@ -65,7 +65,7 @@ export const metadata = {
 export default function HowYoryantraToolsAreBuiltPage() {
   return (
     <main className="min-h-screen bg-white">
-      <section className="mx-auto max-w-5xl px-6 py-16">
+      <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-10 flex items-center text-sm text-gray-500">
           <Link href="/" className="transition-colors duration-200 hover:!text-[var(--light-gold)]">Home</Link>
           <span className="mx-2">/</span>
@@ -127,7 +127,7 @@ export default function HowYoryantraToolsAreBuiltPage() {
           <div className="mt-8 grid gap-x-12 gap-y-7 md:grid-cols-2">
             {reviewSteps.map((step) => (
               <div key={step.number} className="flex items-start gap-4">
-                <span className="min-w-8 pt-0.5 text-xs font-semibold tracking-wider text-[var(--green)]">{step.number}</span>
+                <span className="min-w-8 pt-0.5 text-xs font-semibold tracking-wider text-gray-900">{step.number}</span>
                 <div>
                   <h3 className="font-semibold text-gray-900">{step.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-gray-600">{step.description}</p>

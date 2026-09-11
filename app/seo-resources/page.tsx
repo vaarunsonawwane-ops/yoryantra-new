@@ -107,7 +107,7 @@ export default function Page() {
             <ol className="mt-6 space-y-4">
               {debugOrder.map((item, index) => (
                 <li key={item} className="flex gap-4 leading-7 text-gray-600">
-                  <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--green)]">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-gray-900">{String(index + 1).padStart(2, "0")}</span>
                   <span>{item}</span>
                 </li>
               ))}
