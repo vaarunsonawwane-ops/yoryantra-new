@@ -352,28 +352,28 @@ export default function ToolClient() {
         <button
           type="button"
           onClick={translateToMorse}
-          className="min-h-[44px] whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          className="yoryantra-btn min-h-[44px] whitespace-nowrap"
         >
           Text to Morse
         </button>
         <button
           type="button"
           onClick={translateToText}
-          className="min-h-[44px] whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-2.5 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
+          className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap"
         >
           Morse to Text
         </button>
         <button
           type="button"
           onClick={loadExample}
-          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap"
         >
           Load Example
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap"
         >
           Reset
         </button>
@@ -402,7 +402,7 @@ export default function ToolClient() {
             type="button"
             onClick={copyOutput}
             disabled={!output}
-            className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             {copied ? "Copied" : "Copy Output"}
           </button>
