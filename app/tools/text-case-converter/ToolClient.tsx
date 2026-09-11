@@ -191,14 +191,32 @@ export default function ToolClient() {
         </pre>
       </div>
 
-      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
+      <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Case conversion is Unicode text processing, not visual styling</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">What each conversion actually changes</h2>
+          <dl className="mt-5 divide-y divide-gray-200 overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="p-5">
+              <dt className="font-semibold text-gray-900">UPPERCASE and lowercase</dt>
+              <dd className="mt-2 text-sm leading-relaxed text-gray-600">These use JavaScript&apos;s default Unicode case mappings on the underlying string. They are mechanical transformations, not CSS styling, and a mapping can change the number of code points.</dd>
+            </div>
+            <div className="p-5">
+              <dt className="font-semibold text-gray-900">Simple Title Case</dt>
+              <dd className="mt-2 text-sm leading-relaxed text-gray-600">Each whitespace-separated token is lowercased and then its first letter is uppercased. It does not implement AP, Chicago, MLA, or another publication style, and it does not preserve acronyms automatically.</dd>
+            </div>
+            <div className="p-5">
+              <dt className="font-semibold text-gray-900">Sentence case</dt>
+              <dd className="mt-2 text-sm leading-relaxed text-gray-600">The text is lowercased first, then the next letter is capitalized at the start, after a line break, or after <code className="rounded bg-gray-100 px-1 py-0.5">.</code>, <code className="rounded bg-gray-100 px-1 py-0.5">!</code>, or <code className="rounded bg-gray-100 px-1 py-0.5">?</code>. Abbreviations and quoted punctuation can make those guessed boundaries wrong.</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-gray-900">Case mapping rewrites text, and language can affect the result</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Uppercase and lowercase conversion use JavaScript&apos;s Unicode-aware string mappings. That is different from CSS such as <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">text-transform</code>, which changes presentation without rewriting the underlying string. Here the copied output is genuinely different text.
+            A CSS rule such as <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">text-transform</code> changes how text is displayed; these buttons create a new string that will be copied and stored as the converted value. Unicode mappings are not always one code point in and one code point out. German <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">ß</code>, for example, can expand when uppercased, so character counts, byte lengths, fixed-width fields, and database limits should be checked after conversion rather than assumed to stay constant.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Unicode case mappings are not always one character in and one character out. A familiar example is German <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">ß</code>, whose uppercase mapping can expand to multiple code points. That is why transformed text should not be assumed to preserve byte length, character count, database limits, or fixed-width identifiers.
+            The uppercase and lowercase buttons are locale-insensitive. Natural-language casing can differ by locale; Turkish dotted and dotless I are the familiar example. JavaScript exposes locale-sensitive methods separately, but this page does not ask which locale you are writing for. Names, acronyms, product spelling, scientific notation, code, and editorial title style therefore still need human judgement.
           </p>
           <p className="mt-3 text-sm text-gray-500">
             References: {" "}
@@ -212,39 +230,14 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 items-start">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">“Title case” is a house style, not one universal algorithm</h2>
-            <p className="mt-3 text-sm leading-relaxed text-gray-700">
-              The Title Case button uses a deliberately simple rule: lowercase each whitespace-separated token, then uppercase its first letter. It does not implement AP, Chicago, MLA, or another editorial style guide, so it will not know which short words to leave lowercase, how a publication treats hyphenated compounds, or whether an acronym should stay uppercase.
-            </p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">Sentence case can only infer boundaries</h2>
-            <p className="mt-3 text-sm leading-relaxed text-gray-700">
-              Sentence case lowercases the text, then capitalizes the next letter at the start, after a line break, or after <code className="rounded bg-white px-1 py-0.5">.</code>, <code className="rounded bg-white px-1 py-0.5">!</code>, and <code className="rounded bg-white px-1 py-0.5">?</code>. Abbreviations, initials, ellipses, quoted text, and language-specific punctuation can make those boundaries ambiguous, so prose still needs a human review.
-            </p>
-          </div>
-        </div>
-
-        <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-lg font-semibold text-gray-900">Do not use display casing as identifier normalization</h2>
+        <div className="mt-10 self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-lg font-semibold text-gray-900">Do not use display-case conversion to normalize identifiers</h2>
           <p className="mt-3 text-sm leading-relaxed text-gray-700">
-            Converting text to lowercase is not the same as Unicode case folding, canonical normalization, username comparison, or locale-aware collation. Security-sensitive identifiers, login names, file names, database keys, and duplicate detection need rules designed for that system rather than copied display text from a case converter.
+            Lowercasing visible text is not the same as Unicode case folding, canonical normalization, locale-aware comparison, or an application&apos;s username policy. Login names, security-sensitive identifiers, file names, database keys, and duplicate detection need comparison rules designed for that system. A copied lowercase result can look consistent while still being the wrong normalization strategy.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Locale can change what “correct” casing means</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            The standard uppercase and lowercase buttons use locale-insensitive Unicode mappings. Natural-language casing can differ by locale; Turkish dotted and dotless I are the classic example. JavaScript provides locale-sensitive methods separately, but this page does not ask for a locale, so it intentionally avoids pretending that one default transformation is linguistically correct for every language.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            That boundary matters most for publication-quality text. Uppercase and lowercase are dependable mechanical transformations; simple title and sentence case are editing aids. Preserve names, acronyms, product spelling, scientific notation, code, and intentional capitalization when those details carry meaning.
-          </p>
-        </div>
-
-        <div>
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
             <YoryantraRelatedTools currentHref="/tools/text-case-converter" />

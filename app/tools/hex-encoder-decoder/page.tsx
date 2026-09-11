@@ -1,55 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title:
-    "Hex Encoder Decoder – Convert Text to Hex & Hex to Text | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Hex Encoder Decoder | UTF-8 Text and Hex Bytes",
   description:
-    "Encode text to hexadecimal and decode hex to readable text for debugging, APIs, logs, binary data inspection, and encoding workflows.",
-
-  keywords: [
-    "hex encoder decoder",
-    "hex decoder",
-    "hex encoder",
-    "text to hex",
-    "hex to text",
-    "hex converter",
-    "hexadecimal decoder",
-    "hexadecimal encoder",
-    "ascii to hex",
-    "decode hex string",
-    "encoding tools",
-  ],
-
+    "Encode UTF-8 text as hexadecimal bytes or decode common hex notation back to text with strict invalid-UTF-8 detection and byte-level guidance.",
   alternates: {
     canonical: "https://yoryantra.com/tools/hex-encoder-decoder",
   },
-
   openGraph: {
-    title:
-      "Hex Encoder Decoder – Convert Text to Hex & Hex to Text | Yoryantra",
-
+    title: "Hex Encoder Decoder | Yoryantra",
     description:
-      "Encode text to hexadecimal and decode hex values back into readable text for debugging, APIs, logs, and encoding workflows.",
-
+      "Move between UTF-8 text and hexadecimal byte notation without silently replacing invalid UTF-8.",
     url: "https://yoryantra.com/tools/hex-encoder-decoder",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title:
-      "Hex Encoder Decoder – Convert Text to Hex & Hex to Text | Yoryantra",
-
+    card: "summary",
+    title: "Hex Encoder Decoder | Yoryantra",
     description:
-      "Free Hex Encoder Decoder for text, APIs, logs, binary data inspection, and development debugging.",
+      "Encode text to UTF-8 hex bytes and decode common hex forms back to valid UTF-8 text.",
   },
 };
 
-export default function Page() {
+export default function HexEncoderDecoderPage() {
   return <ToolClient />;
 }

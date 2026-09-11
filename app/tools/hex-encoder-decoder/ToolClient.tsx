@@ -4,332 +4,356 @@ import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
+type Operation = "encode" | "decode";
+
+type HexResult = {
+  operation: Operation;
+  byteCount: number;
+  textCodePoints: number;
+};
+
+type ParsedHex =
+  | { ok: true; bytes: Uint8Array }
+  | { ok: false; error: string };
+
+function bytesToSpacedHex(bytes: Uint8Array) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" ");
+}
+
+function parseHexBytes(raw: string): ParsedHex {
+  const input = raw.trim();
+
+  if (!input) {
+    return { ok: false, error: "Enter hexadecimal bytes to decode." };
+  }
+
+  let compact = "";
+
+  if (/^(?:\\x[0-9a-fA-F]{2}(?:\s*)?)+$/.test(input)) {
+    compact = input.replace(/\\x/gi, "").replace(/\s+/g, "");
+  } else if (/^(?:0x[0-9a-fA-F]{2}(?:[\s:-]+|$))+$/.test(input)) {
+    compact = input.replace(/0x/gi, "").replace(/[\s:-]+/g, "");
+  } else if (/^0x[0-9a-fA-F]+$/i.test(input)) {
+    compact = input.slice(2);
+  } else {
+    if (/[^0-9a-fA-F\s:-]/.test(input)) {
+      return {
+        ok: false,
+        error:
+          "Hex input may contain 0-9, A-F, spaces, colons, or hyphens. 0xHH and \\xHH byte notation are also accepted.",
+      };
+    }
+
+    compact = input.replace(/[\s:-]+/g, "");
+  }
+
+  if (!compact) {
+    return { ok: false, error: "Enter at least one hexadecimal byte." };
+  }
+
+  if (compact.length % 2 !== 0) {
+    return {
+      ok: false,
+      error: "Hex input needs two hexadecimal digits per byte; the current value has an odd digit count.",
+    };
+  }
+
+  const values = compact.match(/.{2}/g);
+  if (!values) {
+    return { ok: false, error: "No complete hexadecimal bytes were found." };
+  }
+
+  return {
+    ok: true,
+    bytes: new Uint8Array(values.map((value) => Number.parseInt(value, 16))),
+  };
+}
+
 export default function ToolClient() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [result, setResult] = useState<HexResult | null>(null);
+
+  const clearResult = () => {
+    setOutput("");
+    setError("");
+    setCopied(false);
+    setResult(null);
+  };
 
   const encodeHex = () => {
-    if (!input.trim()) {
-      setError("Please enter text to encode.");
+    if (input.length === 0) {
+      setError("Enter text to encode as UTF-8 bytes.");
       setOutput("");
+      setResult(null);
       return;
     }
 
-    try {
-      const encoded = Array.from(new TextEncoder().encode(input))
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join(" ");
+    const bytes = new TextEncoder().encode(input);
+    const encoded = bytesToSpacedHex(bytes);
 
-      setOutput(encoded);
-      setError("");
-    } catch {
-      setError("Unable to encode this text.");
-      setOutput("");
-    }
+    setOutput(encoded);
+    setError("");
+    setCopied(false);
+    setResult({
+      operation: "encode",
+      byteCount: bytes.length,
+      textCodePoints: Array.from(input).length,
+    });
   };
 
   const decodeHex = () => {
-    const cleaned = input
-      .trim()
-      .replace(/^0x/i, "")
-      .replace(/\s+/g, "")
-      .replace(/:/g, "")
-      .replace(/-/g, "");
+    const parsed = parseHexBytes(input);
 
-    if (!cleaned) {
-      setError("Please enter hex values to decode.");
+    if (!parsed.ok) {
+      setError(parsed.error);
       setOutput("");
-      return;
-    }
-
-    if (!/^[0-9a-fA-F]+$/.test(cleaned)) {
-      setError("Hex input can only contain characters 0-9 and A-F.");
-      setOutput("");
-      return;
-    }
-
-    if (cleaned.length % 2 !== 0) {
-      setError("Hex input must contain an even number of characters.");
-      setOutput("");
+      setResult(null);
       return;
     }
 
     try {
-      const bytes = new Uint8Array(
-        cleaned.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []
-      );
-
-      const decoded = new TextDecoder().decode(bytes);
-
+      const decoded = new TextDecoder("utf-8", { fatal: true }).decode(parsed.bytes);
       setOutput(decoded);
       setError("");
+      setCopied(false);
+      setResult({
+        operation: "decode",
+        byteCount: parsed.bytes.length,
+        textCodePoints: Array.from(decoded).length,
+      });
     } catch {
-      setError("Unable to decode this hex value.");
+      setError(
+        "The hexadecimal bytes are valid, but they are not a valid UTF-8 text sequence. Hex can represent arbitrary binary data; this decoder intentionally returns text only for valid UTF-8.",
+      );
       setOutput("");
+      setResult(null);
     }
   };
 
   const copyOutput = async () => {
-    if (!output) return;
-    await navigator.clipboard.writeText(output);
+    if (!result) return;
+
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+    } catch {
+      setError("Clipboard access was blocked. Select and copy the output manually.");
+    }
+  };
+
+  const loadExample = () => {
+    setInput("59 6f 72 79 61 6e 74 72 61 20 e2 9c 93");
+    clearResult();
   };
 
   const resetAll = () => {
     setInput("");
-    setOutput("");
-    setError("");
-  };
-
-  const loadExample = () => {
-    setInput("59 6f 72 79 61 6e 74 72 61");
-    setOutput("");
-    setError("");
+    clearResult();
   };
 
   return (
     <ToolShell
       title="Hex Encoder Decoder"
-      description="Encode text to hexadecimal and decode hex values back into readable text for debugging, APIs, logs, and encoding workflows."
+      description="Encode UTF-8 text as hexadecimal bytes and decode valid UTF-8 hex without silent replacement."
     >
-      {/* INPUT */}
       <div>
         <label className="mb-2 block text-sm font-medium text-gray-700">
-          Input Text or Hex
+          Text or Hexadecimal Bytes
         </label>
-
         <textarea
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(event) => {
+            setInput(event.target.value);
+            clearResult();
+          }}
           rows={7}
-          placeholder="Example: 59 6f 72 79 61 6e 74 72 61"
-          className="w-full rounded-xl border border-gray-300 p-4 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          placeholder="Example: 59 6f 72 79 61 6e 74 72 61 20 e2 9c 93"
+          className="w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
+        <p className="mt-2 text-sm leading-6 text-gray-500">
+          Decode accepts compact hex, spaced bytes, colon or hyphen separators, a single 0x prefix,
+          repeated 0xHH bytes, and \\xHH byte notation.
+        </p>
       </div>
 
-      {/* ACTIONS */}
       <div className="mt-5 flex flex-wrap gap-3">
         <button
+          type="button"
           onClick={decodeHex}
-          className="yoryantra-btn"
+          className="min-h-[44px] whitespace-nowrap rounded-xl bg-[var(--green)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Decode Hex
         </button>
-
         <button
+          type="button"
           onClick={encodeHex}
-          className="yoryantra-btn-outline"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-[var(--green)] px-5 py-2.5 text-sm font-semibold text-[var(--green)] transition hover:bg-green-50"
         >
           Encode to Hex
         </button>
-
         <button
-          onClick={copyOutput}
-          disabled={!output}
-          className="yoryantra-btn-outline"
-        >
-          Copy Output
-        </button>
-
-        <button
+          type="button"
           onClick={loadExample}
-          className="yoryantra-btn-outline"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
         >
           Load Example
         </button>
-
         <button
+          type="button"
           onClick={resetAll}
-          className="yoryantra-btn-outline"
+          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
         >
           Reset
         </button>
       </div>
 
-      {/* ERROR */}
-      {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      {error ? (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700">
           {error}
         </div>
-      )}
+      ) : null}
 
-	{/* OUTPUT */}
-	<div className="mt-8">
-	  <div className="flex items-center justify-between mb-3">
-		<h3 className="text-lg font-semibold text-gray-900">
-		  Output
-		</h3>
+      <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Output</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {result
+                ? `${result.byteCount.toLocaleString()} byte${result.byteCount === 1 ? "" : "s"} · ${result.operation === "encode" ? "UTF-8 → hex" : "hex → UTF-8"}`
+                : "Encoded hex or decoded UTF-8 text will appear below."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={copyOutput}
+            disabled={!result}
+            className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {copied ? "Copied" : "Copy Output"}
+          </button>
+        </div>
 
-		{output && (
-		  <button
-			onClick={() =>
-			  navigator.clipboard.writeText(
-				output
-			  )
-			}
-			className="yoryantra-btn-outline text-sm"
-		  >
-			Copy
-		  </button>
-		)}
-	  </div>
+        <pre className="mt-4 min-h-[180px] overflow-auto rounded-xl bg-gray-950 p-4 text-sm leading-6 text-gray-100 whitespace-pre-wrap break-words">
+          {result ? output || "(empty UTF-8 string)" : "Encoded or decoded output will appear here."}
+        </pre>
 
-	  <pre className="yoryantra-output overflow-auto text-sm min-h-[220px] whitespace-pre-wrap break-words">
-		{output ||
-		  "Encoded or decoded hex output will appear here."}
-	  </pre>
-	</div>
+        {result ? (
+          <p className="mt-3 text-xs leading-5 text-gray-500">
+            Text side: {result.textCodePoints.toLocaleString()} Unicode code point{result.textCodePoints === 1 ? "" : "s"}.
+            Byte count can differ from code-point count, and user-perceived characters can contain multiple code points.
+          </p>
+        ) : null}
+      </div>
 
-      {/* SEO CONTENT */}
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Reading Hex Values in Logs, Payloads, and Debug Output
+            Hex is a notation for bytes; readable text still needs an encoding
           </h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Hexadecimal values appear in logs, buffers, hashes, copied byte
-            output, debugging tools, and low-level data formats. Hex keeps byte
-            values compact and precise, but it is not always easy to understand
-            without converting it back to readable text.
+            One hexadecimal digit represents four bits, so two hex digits describe one byte from
+            00 through ff. That byte does not inherently mean a letter. The meaning appears only
+            when software interprets the byte sequence using an encoding. Encoding and decoding here both use UTF-8: text is first encoded to UTF-8 bytes, and decoded hex must form a valid
+            UTF-8 byte sequence before it is shown as text.
           </p>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Hex Encoder Decoder helps you move between normal text and
-            hexadecimal values when inspecting data, testing examples, or
-            cleaning up copied debug output.
+            That distinction matters when you inspect network payloads, log dumps, file signatures,
+            database blobs, or debugger memory. Hex can faithfully represent arbitrary bytes, while
+            only some byte sequences are text. A PNG header, compressed buffer, encrypted payload,
+            or random binary value should not be expected to decode into meaningful UTF-8.
           </p>
         </div>
 
-        <div>
+        <div className="mt-10">
           <h2 className="text-xl font-semibold text-gray-900">
-            How to Use the Hex Encoder Decoder
+            Watch the bytes grow beyond ASCII
           </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste readable text or hex values into the input box.</li>
-            <li>Use <strong>Decode Hex</strong> when hex should become readable text.</li>
-            <li>Use <strong>Encode to Hex</strong> when text should become byte-style hex output.</li>
-            <li>Copy the result for logs, scripts, API debugging, documentation, or test data.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Hex Formats This Tool Accepts
-          </h2>
-
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Hex is often copied from different tools in different formats. The
-            decoder accepts common pasted forms and cleans separators before
-            converting the value.
+            ASCII characters occupy one byte in UTF-8, while other code points use multi-byte
+            sequences. Reading the groups as bytes makes the difference visible:
           </p>
-
-          <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                <strong>48 65 6c 6c 6f</strong> → Hello
-              </li>
-
-              <li>
-                <strong>48:65:6c:6c:6f</strong> → Hello
-              </li>
-
-              <li>
-                <strong>48-65-6c-6c-6f</strong> → Hello
-              </li>
-
-              <li>
-                <strong>596f7279616e747261</strong> → Yoryantra
-              </li>
-            </ul>
-          </div>
+          <pre className="mt-5 overflow-x-auto rounded-xl bg-gray-950 p-5 text-sm leading-7 text-gray-100">{`A      U+0041   → 41
+é      U+00E9   → c3 a9
+✓      U+2713   → e2 9c 93
+😀     U+1F600  → f0 9f 98 80`}</pre>
+          <p className="mt-4 text-sm leading-6 text-gray-500">
+            The spaces in encoded output are presentation separators only. Removing them leaves the
+            same byte sequence: <code className="rounded bg-gray-100 px-1.5 py-0.5">c3a9</code> and
+            <code className="ml-1 rounded bg-gray-100 px-1.5 py-0.5">c3 a9</code> describe the same two bytes.
+          </p>
         </div>
 
-        <div>
+        <div className="mt-10 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            Where Hex Conversion Helps
+            Valid hex and valid UTF-8 are two separate checks
           </h2>
-
-          <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
-            <ul className="space-y-3">
-              <li>
-                Decoding byte values copied from logs, buffers, or debugging output.
-              </li>
-
-              <li>
-                Checking whether encoded payload fragments contain readable text.
-              </li>
-
-              <li>
-                Converting short examples into hex for testing or documentation.
-              </li>
-
-              <li>
-                Cleaning pasted hex values that include spaces, dashes, or colons.
-              </li>
-            </ul>
-          </div>
+          <p className="mt-3 text-sm leading-6 text-gray-700">
+            <code className="rounded bg-white px-1.5 py-0.5">ff</code> is perfectly valid hexadecimal,
+            but a lone ff byte is not valid UTF-8 text. A replacement-mode decoder could silently
+            show U+FFFD instead, hiding the fact that the original bytes did not decode cleanly.
+            Decoding uses the browser&apos;s UTF-8 <code className="rounded bg-white px-1.5 py-0.5">TextDecoder</code>
+            in fatal mode so malformed UTF-8 becomes an explicit error rather than altered output.
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            Encoding behavior: {" "}
+            <a
+              href="https://encoding.spec.whatwg.org/#interface-textdecoder"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              WHATWG Encoding Standard — TextDecoder
+            </a>
+            .
+          </p>
         </div>
 
-        <div>
+        <div className="mt-10">
           <h2 className="text-xl font-semibold text-gray-900">
-            Frequently Asked Questions
+            Two strings can look identical and still produce different hex
           </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is hex encoding?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Hex encoding represents bytes using base-16 values. A single
-                byte is commonly written as two hex characters, such as 48 for
-                the letter H.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this decode spaced or separated hex?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The decoder accepts plain hex, spaced hex, colon-separated
-                hex, and dash-separated hex.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why does the input need an even number of characters?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Hex text is decoded in byte pairs. Each byte needs two hex
-                characters, so an odd-length value is incomplete.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this upload my text?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Encoding and decoding happen directly in your browser.
-              </p>
-            </div>
-          </div>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Unicode allows some visible text to be represented by more than one sequence of code
+            points. For example, composed <strong>é</strong> (U+00E9) becomes
+            <code className="mx-1 rounded bg-gray-100 px-1.5 py-0.5">c3 a9</code> in UTF-8, while
+            <strong>e</strong> followed by COMBINING ACUTE ACCENT (U+0065 U+0301) becomes
+            <code className="mx-1 rounded bg-gray-100 px-1.5 py-0.5">65 cc 81</code>. They can render the
+            same, but byte comparisons, signatures, hashes, cache keys, and protocol fields can see
+            different data.
+          </p>
+          <p className="mt-4 text-sm text-gray-500">
+            The encoder does not normalize your text before converting it. When a system requires a
+            normalization form, apply that rule explicitly and consistently. See {" "}
+            <a
+              href="https://www.unicode.org/reports/tr15/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--green)] underline underline-offset-4"
+            >
+              Unicode Standard Annex #15 — Normalization Forms
+            </a>
+            .
+          </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Related Tools
-          </h2>
+        <div className="mt-10 self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-lg font-semibold text-gray-900">Hex is not encryption or redaction</h2>
+          <p className="mt-2 text-sm leading-6 text-gray-700">
+            Hex only changes how bytes are written. Anyone can reverse it without a key. Converting
+            an API token, password, session value, or private payload to hex does not protect the
+            underlying data, and decoding an unfamiliar dump may reveal sensitive text. Treat the
+            output with the same confidentiality as the original bytes.
+          </p>
+        </div>
 
-          <YoryantraRelatedTools currentHref="/tools/hex-encoder-decoder" />
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <div className="mt-4">
+            <YoryantraRelatedTools currentHref="/tools/hex-encoder-decoder" />
+          </div>
         </div>
       </section>
     </ToolShell>

@@ -1,55 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title:
-    "CSV Escape Formatter – Escape CSV Values Safely | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "CSV Escape Formatter | Quote and Escape CSV Fields",
   description:
-    "Escape and format CSV values for spreadsheets, exports, logs, data cleanup, and API workflows with this free CSV Escape Formatter.",
-
-  keywords: [
-    "csv escape formatter",
-    "csv escaper",
-    "escape csv values",
-    "csv formatter",
-    "csv quote formatter",
-    "csv value escaper",
-    "csv text formatter",
-    "csv data cleanup",
-    "spreadsheet csv formatter",
-    "encoding tools",
-    "developer tools",
-  ],
-
+    "Quote CSV fields containing commas, quotation marks, line breaks, or boundary whitespace, with single-field and line-by-line modes and formula-risk guidance.",
   alternates: {
     canonical: "https://yoryantra.com/tools/csv-escape-formatter",
   },
-
   openGraph: {
-    title:
-      "CSV Escape Formatter – Escape CSV Values Safely | Yoryantra",
-
+    title: "CSV Escape Formatter | Yoryantra",
     description:
-      "Escape and format CSV values for spreadsheets, exports, logs, data cleanup, and API workflows.",
-
+      "Escape individual CSV fields with RFC-style quoting and clear boundaries around spreadsheet formula risks.",
     url: "https://yoryantra.com/tools/csv-escape-formatter",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title:
-      "CSV Escape Formatter – Escape CSV Values Safely | Yoryantra",
-
+    card: "summary",
+    title: "CSV Escape Formatter | Yoryantra",
     description:
-      "Free CSV Escape Formatter for spreadsheets, exports, logs, data cleanup, and API workflows.",
+      "Quote CSV fields correctly while preserving commas, quotation marks, line breaks, and surrounding spaces.",
   },
 };
 
-export default function Page() {
+export default function CsvEscapeFormatterPage() {
   return <ToolClient />;
 }

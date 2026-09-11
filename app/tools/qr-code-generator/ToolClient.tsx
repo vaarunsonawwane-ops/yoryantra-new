@@ -213,66 +213,75 @@ export default function ToolClient() {
         Generation happens in this browser. The text you enter is passed to the QR encoder on the page; Yoryantra does not send it to an endpoint for QR generation.
       </div>
 
-      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
+      <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">A QR code stores data; it does not make that data trustworthy</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">The symbol is only as dependable as the payload behind it</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A generated symbol represents the string you entered. If that string is a URL, the QR code does not verify the domain, check whether the page is safe, keep the destination alive, or add analytics by itself. A static QR code also cannot change its destination later unless the encoded URL points to a redirect you control.
+            A QR code carries the exact string that was encoded. When that string is a URL, the symbol does not verify the domain, judge whether the page is safe, keep the destination available, or make a temporary link permanent. A static symbol also cannot be edited after printing; only a redirect or another destination you control can change what happens after somebody scans it.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            That distinction matters when codes are printed. A short, durable URL under your control is usually easier to maintain than a long campaign URL tied to a temporary service. Test the final encoded destination as a user would see it, including redirects and mobile behavior.
+            For long-lived print, encode an address you expect to keep under your control and test the full journey after scanning. Redirects, login requirements, mobile layout, expired campaign parameters, and certificate problems belong to the destination, not to the QR symbol.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Error correction spends capacity to survive damage</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            QR Code has four error-correction levels: L, M, Q, and H. Higher levels add more redundant codewords, which can make a symbol recoverable when part of it is dirty or damaged, but the extra redundancy leaves less room for payload data and can make the symbol denser. DENSO WAVE describes M as the common general-purpose level, while Q or H may suit harsher physical conditions.
-          </p>
-          <p className="mt-3 text-sm text-gray-500">
-            References: {" "}
-            <a className="text-[var(--green)] underline underline-offset-2" href="https://www.qrcode.com/en/about/error_correction.html" target="_blank" rel="noreferrer">
-              DENSO WAVE error correction guidance
+        <div className="mt-10 overflow-hidden rounded-xl border border-gray-200">
+          <div className="border-b border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-xl font-semibold text-gray-900">Choosing L, M, Q, or H trades payload room for recovery</h2>
+            <p className="mt-3 text-sm leading-relaxed text-gray-600">
+              Higher error correction adds redundant codewords. That can help a scanner recover data when part of a symbol is damaged, but it can also increase symbol density for the same payload. The percentages below describe approximate codeword restoration capability; they are not permission to cover the same percentage of the visible image with a logo or crop.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="bg-white text-gray-900">
+                <tr className="border-b border-gray-200">
+                  <th className="px-5 py-3 font-semibold">Level</th>
+                  <th className="px-5 py-3 font-semibold">Approx. restoration</th>
+                  <th className="px-5 py-3 font-semibold">What changes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 text-gray-600">
+                <tr><td className="px-5 py-3 font-medium text-gray-900">L</td><td className="px-5 py-3">7% of codewords</td><td className="px-5 py-3">Lowest redundancy and the most payload capacity.</td></tr>
+                <tr><td className="px-5 py-3 font-medium text-gray-900">M</td><td className="px-5 py-3">15% of codewords</td><td className="px-5 py-3">A common general-purpose balance.</td></tr>
+                <tr><td className="px-5 py-3 font-medium text-gray-900">Q</td><td className="px-5 py-3">25% of codewords</td><td className="px-5 py-3">More redundancy for harsher physical conditions.</td></tr>
+                <tr><td className="px-5 py-3 font-medium text-gray-900">H</td><td className="px-5 py-3">30% of codewords</td><td className="px-5 py-3">Highest redundancy and the largest capacity trade-off.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="border-t border-gray-200 px-5 py-4 text-xs leading-relaxed text-gray-500">
+            Source: {" "}
+            <a className="text-[var(--green)] underline underline-offset-2" href="https://www.qrcode.com/en/about/standards.html" target="_blank" rel="noreferrer">
+              DENSO WAVE QR Code outline specification
             </a>{" "}
-            and {" "}
-            <a className="text-[var(--green)] underline underline-offset-2" href="https://www.iso.org/standard/83389.html" target="_blank" rel="noreferrer">
-              ISO/IEC 18004:2024
+            (QR Code is standardized in ISO/IEC 18004).
+          </p>
+        </div>
+
+        <div className="mt-10 self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-lg font-semibold text-gray-900">Keep the four-module quiet zone clear</h2>
+          <p className="mt-3 text-sm leading-relaxed text-gray-700">
+            QR Code requires a clear margin four modules wide on every side. The generated PNG includes that margin. Cropping it away, placing graphics into it, or letting a busy background run through it can make scanning less reliable even though the encoded data itself is valid.
+          </p>
+          <p className="mt-3 text-xs text-gray-600">
+            Reference: {" "}
+            <a className="text-[var(--green)] underline underline-offset-2" href="https://www.qrcode.com/en/howto/code.html" target="_blank" rel="noreferrer">
+              DENSO WAVE guidance on QR Code area and margin
             </a>.
           </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 items-start">
-          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">Protect the quiet zone when printing</h2>
-            <p className="mt-3 text-sm leading-relaxed text-gray-700">
-              Cropping tightly around the black modules can make scanning less reliable. QR Code guidance calls for a clear four-module margin on every side. The generated PNG keeps that margin, so avoid trimming it away in a design editor.
-            </p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">Pixels are not the same as printable size</h2>
-            <p className="mt-3 text-sm leading-relaxed text-gray-700">
-              The PNG size controls raster resolution, not a guaranteed physical scan distance. Printing dimensions, module size, contrast, surface, camera quality, lighting, and payload density all affect real scanning. Test the finished artwork at its real size before a large print run.
-            </p>
-            <p className="mt-3 text-xs text-gray-500">
-              Reference: {" "}
-              <a className="text-[var(--green)] underline underline-offset-2" href="https://www.qrcode.com/en/howto/code.html" target="_blank" rel="noreferrer">
-                DENSO WAVE quiet-zone and symbol-area guidance
-              </a>.
-            </p>
-          </div>
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-gray-900">Before a QR code goes into a poster, label, or document</h2>
+          <ol className="mt-5 space-y-4 text-gray-600 leading-relaxed">
+            <li><strong className="text-gray-900">1. Scan the exported PNG, not only the preview.</strong> Test the actual asset after it has gone through the design or document workflow that will be published.</li>
+            <li><strong className="text-gray-900">2. Test at the final physical size.</strong> Pixel dimensions describe the raster file, not a guaranteed scan distance. Module size, print resolution, camera quality, lighting, surface, and payload density all matter.</li>
+            <li><strong className="text-gray-900">3. Confirm the decoded value character for character.</strong> This matters for URLs with query strings, tokens, Unicode text, phone numbers, or other payloads where a small difference changes meaning.</li>
+            <li><strong className="text-gray-900">4. Keep contrast and surrounding space simple.</strong> Decorative colors, transparency, logos, gradients, or textured backgrounds can reduce readability. Error correction is recovery capability, not a guarantee that every visual customization will scan.</li>
+            <li><strong className="text-gray-900">5. Re-test destinations that must live for months or years.</strong> A perfectly readable QR code can still lead to a retired route, expired redirect, broken certificate, or page that no longer works well on mobile.</li>
+          </ol>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">What to check before a QR code leaves the screen</h2>
-          <ul className="mt-4 space-y-3 text-gray-600 leading-relaxed">
-            <li><strong className="text-gray-900">Scan the actual output:</strong> confirm that at least two different camera/scanner apps decode the intended text or URL.</li>
-            <li><strong className="text-gray-900">Keep strong contrast:</strong> decorative colors, transparency, logos, or busy backgrounds can reduce readability even when the underlying data is valid.</li>
-            <li><strong className="text-gray-900">Use the shortest stable payload that fits the job:</strong> more data generally produces a denser symbol and smaller modules at the same printed dimensions.</li>
-            <li><strong className="text-gray-900">Treat destinations separately:</strong> HTTPS, redirects, authentication, tracking parameters, and landing-page safety belong to the URL or service being encoded, not to the QR symbol itself.</li>
-          </ul>
-        </div>
-
-        <div>
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
             <YoryantraRelatedTools currentHref="/tools/qr-code-generator" />

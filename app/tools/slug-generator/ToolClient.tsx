@@ -182,14 +182,14 @@ export default function ToolClient() {
         </div>
       </div>
 
-      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
+      <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">A slug is a URL decision, not an SEO score</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">A slug becomes part of an address people and crawlers may keep</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A slug is usually the readable path segment that identifies a page, such as <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">/docs/http-caching</code>. Lowercase words and hyphen separators make that segment easier to read and keep route naming consistent, but there is no special ranking bonus simply because a string was produced by a slug generator.
+            Lowercase words and hyphen separators can make a path easier to read, but a generated slug is not an SEO score and it does not decide whether a page should rank. Google recommends descriptive URLs, words in the audience&apos;s language, and hyphens between words. Those are naming principles, not a reason to stuff keywords into a path or rewrite a stable URL only to make it look cleaner.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Google recommends simple, descriptive URLs, words in the audience&apos;s language, and hyphens between words. That is a useful naming rule, not a reason to stuff keywords into a path or rewrite a clear existing URL just to make it shorter.
+            The safest time to choose a slug is before publication. Once bookmarks, internal links, backlinks, analytics, caches, and search indexes know an address, the slug is part of the page&apos;s public identity.
           </p>
           <p className="mt-3 text-sm text-gray-500">
             Reference: {" "}
@@ -199,45 +199,59 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 items-start">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">Unicode keeps the language; ASCII simplifies transport</h2>
-            <p className="mt-3 text-sm leading-relaxed text-gray-700">
-              Unicode mode keeps letters such as é, ü, Ελληνικά, हिन्दी, or 日本語 instead of deleting them. ASCII mode is intentionally lossy: it removes combining marks when a decomposition exists and then discards anything outside a–z and 0–9. It is useful only when your routing or publishing system requires ASCII paths.
-            </p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">Readable text and URL serialization are separate steps</h2>
-            <p className="mt-3 text-sm leading-relaxed text-gray-700">
-              A Unicode slug can be readable in an editor while appearing percent-encoded in an actual URL. The encoded preview shows the UTF-8 path-segment representation produced by <code className="rounded bg-white px-1 py-0.5">encodeURIComponent()</code>; your framework or URL builder may serialize the surrounding path for you.
-            </p>
-            <p className="mt-3 text-xs text-gray-500">
-              Reference: {" "}
-              <a className="text-[var(--green)] underline underline-offset-2" href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer">
-                WHATWG URL Standard
-              </a>.
-            </p>
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-gray-900">The two character modes make different compromises</h2>
+          <p className="mt-3 text-gray-600 leading-relaxed">
+            Unicode mode keeps letters and numbers from the original language after normalization and lowercasing. ASCII mode is deliberately lossy: it removes combining marks when decomposition provides them, then keeps only <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">a-z</code> and <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">0-9</code>. It is not a general transliteration engine.
+          </p>
+          <div className="mt-5 divide-y divide-gray-200 overflow-hidden rounded-xl border border-gray-200 bg-white text-sm">
+            <div className="p-5">
+              <p className="font-semibold text-gray-900">Café APIs</p>
+              <p className="mt-2 text-gray-600"><span className="font-medium text-gray-900">Unicode:</span> <code>café-apis</code> · <span className="font-medium text-gray-900">ASCII:</span> <code>cafe-apis</code></p>
+            </div>
+            <div className="p-5">
+              <p className="font-semibold text-gray-900">日本語 API</p>
+              <p className="mt-2 text-gray-600"><span className="font-medium text-gray-900">Unicode:</span> <code>日本語-api</code> · <span className="font-medium text-gray-900">ASCII:</span> <code>api</code></p>
+              <p className="mt-2 text-gray-500">The Japanese text disappears in ASCII mode because this page does not transliterate it into Latin characters.</p>
+            </div>
+            <div className="p-5">
+              <p className="font-semibold text-gray-900">C++ &amp; C#</p>
+              <p className="mt-2 text-gray-600">Both modes produce <code>c-c</code> because punctuation is treated as a separator. Technical names where symbols carry meaning need a manual decision.</p>
+            </div>
           </div>
         </div>
 
-        <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-lg font-semibold text-gray-900">Changing a live slug changes the URL</h2>
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-gray-900">Readable Unicode and a serialized URL are two views of the same path</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A slug such as <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">café-apis</code> can stay readable in an editor while its non-ASCII bytes appear percent-encoded when serialized into a URL. The encoded preview uses <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">encodeURIComponent()</code>, which UTF-8 percent-encodes characters that need escaping in a URL component. A framework may perform its own URL serialization, so avoid encoding the same path segment twice.
+          </p>
+          <p className="mt-3 text-sm text-gray-500">
+            Reference: {" "}
+            <a className="text-[var(--green)] underline underline-offset-2" href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer">
+              WHATWG URL Standard
+            </a>.
+          </p>
+        </div>
+
+        <div className="mt-10 self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-lg font-semibold text-gray-900">Treat a published slug change as a URL migration</h2>
           <p className="mt-3 text-sm leading-relaxed text-gray-700">
-            Renaming an existing slug can break bookmarks, internal links, inbound links, cached URLs, and indexed addresses. If a published route must change, update internal references and configure the appropriate redirect rather than treating slug generation as a harmless text cleanup step.
+            Renaming a live slug can break bookmarks, inbound links, cached addresses, and references inside your own site. When a published route must move, update internal links and configure the redirect that matches the migration rather than treating regeneration as harmless text cleanup.
           </p>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">The generator cannot decide route policy for your application</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A valid-looking slug can still be unusable in a real app. Your CMS or router may reserve names such as <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">admin</code>, require unique slugs, enforce a maximum length, scope uniqueness by parent route, or attach an ID when two titles normalize to the same value. Those rules belong in the application that owns the URLs.
-          </p>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Punctuation removal can also merge meaning. Apostrophes are dropped so <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">developer&apos;s guide</code> becomes <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">developers-guide</code>; symbols such as <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">+</code> or <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">&amp;</code> become separators rather than words. Review technical names, trademarks, and titles where those characters carry meaning.
-          </p>
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-gray-900">Your CMS or router still owns the rules this page cannot know</h2>
+          <ul className="mt-5 space-y-3 text-gray-600 leading-relaxed">
+            <li><strong className="text-gray-900">Uniqueness:</strong> two different titles can collapse to the same slug, so collision handling belongs in the application or database.</li>
+            <li><strong className="text-gray-900">Reserved names:</strong> routes such as <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">admin</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-sm text-gray-800">api</code>, or framework-specific paths may be unavailable even when the string looks valid.</li>
+            <li><strong className="text-gray-900">Length and hierarchy:</strong> a CMS may cap segment length, scope uniqueness under a parent, append an ID, or derive the final route from more than the title.</li>
+            <li><strong className="text-gray-900">Meaningful punctuation:</strong> apostrophes are removed and other punctuation becomes separators here. Product names, programming languages, model numbers, and trademarks may need an intentional override.</li>
+          </ul>
         </div>
 
-        <div>
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
             <YoryantraRelatedTools currentHref="/tools/slug-generator" />

@@ -464,7 +464,7 @@ export const tools = [
   {
   title: "Hex Encoder Decoder",
   description:
-    "Encode text to hexadecimal and decode hex values back into readable text for debugging and encoding workflows.",
+    "Encode UTF-8 text as hexadecimal bytes and decode valid UTF-8 hex without silent replacement.",
   href: "/tools/hex-encoder-decoder",
   category: "Encoding Tools",
   },
@@ -488,7 +488,7 @@ export const tools = [
   {
   title: "CSV Escape Formatter",
   description:
-    "Escape and format CSV values for spreadsheets, exports, logs, data cleanup, and API workflows.",
+    "Quote CSV fields, double embedded quotation marks, and preserve commas, line breaks, and boundary whitespace.",
   href: "/tools/csv-escape-formatter",
   category: "Encoding Tools",
   },
@@ -496,7 +496,7 @@ export const tools = [
   {
   title: "Morse Code Translator",
   description:
-    "Translate text to Morse code and decode Morse code back into readable text for messages, learning, and encoded text checks.",
+    "Translate between text and International Morse notation with explicit spacing and optional software extensions.",
   href: "/tools/morse-code-translator",
   category: "Encoding Tools",
   },

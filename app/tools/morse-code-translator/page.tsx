@@ -1,54 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title:
-    "Morse Code Translator – Convert Text to Morse & Morse to Text | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "Morse Code Translator | Text and International Morse",
   description:
-    "Translate text to Morse code and decode Morse code back into readable text for messages, learning, encoded text checks, and simple communication workflows.",
-
-  keywords: [
-    "morse code translator",
-    "morse code decoder",
-    "morse code encoder",
-    "text to morse code",
-    "morse code to text",
-    "morse translator",
-    "decode morse code",
-    "encode morse code",
-    "morse code converter",
-    "encoding tools",
-  ],
-
+    "Translate text to International Morse notation or decode dots and dashes, with ITU character boundaries, spacing guidance, and optional software extensions.",
   alternates: {
     canonical: "https://yoryantra.com/tools/morse-code-translator",
   },
-
   openGraph: {
-    title:
-      "Morse Code Translator – Convert Text to Morse & Morse to Text | Yoryantra",
-
+    title: "Morse Code Translator | Yoryantra",
     description:
-      "Translate text to Morse code and decode Morse code back into readable text for messages, learning, and encoded text checks.",
-
+      "Translate International Morse letters, digits, and supported symbols between text and dot-dash notation.",
     url: "https://yoryantra.com/tools/morse-code-translator",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title:
-      "Morse Code Translator – Convert Text to Morse & Morse to Text | Yoryantra",
-
+    card: "summary",
+    title: "Morse Code Translator | Yoryantra",
     description:
-      "Free Morse Code Translator for converting text to Morse and Morse code back to readable text.",
+      "Translate text and International Morse notation with explicit spacing and extension boundaries.",
   },
 };
 
-export default function Page() {
+export default function MorseCodeTranslatorPage() {
   return <ToolClient />;
 }
