@@ -136,7 +136,7 @@ export const tools = [
   title: "YAML Formatter",
   description: "Reformat YAML while retaining comments, anchors, aliases, directives, tags, and document boundaries where possible.",
   href: "/tools/yaml-formatter",
-  category: "DevOps Tools",
+  category: "JSON & Data Tools",
   },
   
   {
