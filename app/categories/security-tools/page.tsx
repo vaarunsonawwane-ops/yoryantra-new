@@ -1,60 +1,43 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
-import InfoCard from "@/app/components/InfoCard";
 import SectionCard from "@/app/components/SectionCard";
 import SectionMiniCard from "@/app/components/SectionMiniCard";
 
-const securityTools = tools.filter(
-  (tool) => tool.category === "Security Tools"
+const securityTools = tools.filter((tool) => tool.category === "Security Tools");
+
+const representativeHrefs = new Set<string>([
+  "/tools/jwt-signature-verifier",
+  "/tools/cookie-security-checker",
+  "/tools/csp-analyzer",
+  "/tools/jwt-secret-strength-checker",
+  "/tools/pem-certificate-viewer",
+  "/tools/security-txt-generator",
+]);
+
+const representativeTools = securityTools.filter((tool) =>
+  representativeHrefs.has(tool.href)
 );
 
-const featuredTools = securityTools.slice(0, 6);
-
 export const metadata = {
-  title: "Security Tools for Tokens, Headers, Hashes, and API Workflows | Yoryantra",
-
+  title: "Security Tools for JWTs, Hashes, Headers, and Keys | Yoryantra",
   description:
-    "Use practical security tools for JWTs, HMAC signatures, SHA hashes, bcrypt, RSA keys, PEM files, CSP headers, API keys, CORS, and token workflows.",
-
-  keywords: [
-    "security tools",
-    "online security tools",
-    "developer security tools",
-    "jwt decoder",
-    "hmac generator",
-    "sha256 generator",
-    "bcrypt generator",
-    "rsa key generator",
-    "pem formatter",
-    "csp generator",
-    "api key generator",
-    "random token generator",
-  ],
-
+    "Inspect JWTs, hashes, HMACs, passwords, browser security headers, cookies, CSP, keys, certificates, tokens, and security.txt with explicit trust boundaries.",
   alternates: {
     canonical: "https://yoryantra.com/categories/security-tools",
   },
-
   openGraph: {
-    title: "Security Tools for Tokens, Headers, Hashes, and API Workflows | Yoryantra",
-
+    title: "Security Tools for JWTs, Hashes, Headers, and Keys | Yoryantra",
     description:
-      "Practical security utilities for JWTs, HMAC signatures, hashes, bcrypt, RSA keys, PEM files, CSP headers, API keys, CORS, and tokens.",
-
+      "Security utilities that distinguish decoding from verification, representation from secrecy, and configuration checks from security assurance.",
     url: "https://yoryantra.com/categories/security-tools",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Security Tools for Tokens, Headers, Hashes, and API Workflows | Yoryantra",
-
+    title: "Security Tools for JWTs, Hashes, Headers, and Keys | Yoryantra",
     description:
-      "Security tools for tokens, headers, hashes, signatures, keys, CORS, and secure API development workflows.",
+      "Inspect tokens, hashes, secrets, headers, cookies, CSP, certificates, and related security configuration without overstating what a browser check proves.",
   },
 };
 
@@ -62,115 +45,89 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
-	  
-{/* BREADCRUMB */}
-<div className="mb-8 flex items-center text-sm text-gray-500">
+        <div className="mb-8 flex items-center text-sm text-gray-500">
+          <Link href="/" className="hover:!text-[var(--light-gold)] transition-colors duration-200">Home</Link>
+          <span className="mx-2">/</span>
+          <Link href="/categories" className="hover:!text-[var(--light-gold)] transition-colors duration-200">Categories</Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900">Security Tools</span>
+        </div>
 
-  <Link
-    href="/"
-    className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-  >
-    Home
-  </Link>
-
-  <span className="mx-2">/</span>
-
-  <Link
-    href="/categories"
-    className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-  >
-    Categories
-  </Link>
-
-  <span className="mx-2">/</span>
-
-  <span className="text-gray-900">
-    Security Tools
-  </span>
-
-</div>
-	  
-        {/* HERO */}
-        <div className="max-w-3xl">
+        <div className="max-w-4xl">
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            Security Tools for Tokens, Hashes, Keys, and API Workflows
+            Security Tools That Keep Inspection Separate from Trust
           </h1>
-
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Use practical security tools to decode JWTs, generate HMAC
-            signatures, create SHA256 hashes, format PEM keys, generate RSA key
-            pairs, build CSP headers, and prepare secure API values during
-            development.
+            Security data is easy to overread. A JWT can be decoded without being
+            authentic, a strong-looking hash may reveal nothing about how a password
+            was stored, and the presence of a response header does not prove the
+            surrounding application is secure. These tools are designed around those
+            distinctions rather than a single pass/fail security score.
           </p>
         </div>
 
-		{/* INTRO */}
-		<div className="mt-12 grid gap-6 md:grid-cols-3">
-		<InfoCard
-		  title="Useful for Authentication, Tokens, and Verification"
-		  description="JWTs, API secrets, hashes, signatures, and encrypted values often appear during authentication and backend workflows. These tools help inspect, generate, and verify them quickly."
-		/>
+        <SectionCard>
+          <h2 className="text-2xl font-semibold text-gray-900">Start with the Claim You Need to Establish</h2>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">“What does this token contain?”</strong>{" "}
+                Decode JWT structure or claims. That reveals data, not whether the issuer, signature, audience, time window, or application policy should trust it.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">“Does this MAC or signature match?”</strong>{" "}
+                Verification needs the exact algorithm, key material, and signed bytes. A cryptographic match still does not replace issuer or authorization checks.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">“Is this secret suitable?”</strong>{" "}
+                Length, randomness, algorithm requirements, reuse, storage, rotation, and exposure all matter. A local strength check can only inspect the value you provide.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">“Is this browser policy configured sensibly?”</strong>{" "}
+                CSP, HSTS, cookie attributes, referrer policy, and Permissions Policy can be checked for obvious issues, but application security extends far beyond headers.
+              </p>
+            </SectionMiniCard>
+          </div>
+        </SectionCard>
 
-		<InfoCard
-		  title="Built for Everyday Security-Related Checks"
-		  description="Whether you are validating a token, checking a signature, generating a hash, or testing secure values during development, these utilities reduce repetitive debugging effort."
-		/>
-
-		<InfoCard
-		  title="Fast Local Checks Without Extra Setup"
-		  description="Most tools work directly in your browser so you can inspect sensitive values, compare outputs, and run quick security-related checks without extra software."
-		/>
-		</div>
-
-        {/* FEATURED TOOLS */}
         <section className="mt-16">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Popular Security Tools
-            </h2>
-
+            <h2 className="text-2xl font-semibold text-gray-900">Representative Security Questions</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with frequently used tools for JWT debugging, API signing,
-              password hashing, and secure backend development workflows.
+              These selections cover signature verification, cookies, CSP, signing
+              secrets, certificate inspection, and vulnerability-contact metadata.
             </p>
           </div>
-
           <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {featuredTools.map((tool) => (
+            {representativeTools.map((tool) => (
               <Link
                 key={tool.href}
                 href={tool.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {tool.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {tool.description}
-                </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Open tool →
-                </span>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">{tool.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">{tool.description}</p>
+                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">Open tool →</span>
               </Link>
             ))}
           </div>
         </section>
 
-        {/* ALL TOOLS */}
         <section className="mt-16">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              All Security Tools
-            </h2>
-
+            <h2 className="text-2xl font-semibold text-gray-900">All Security Tools</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Browse the complete security utility set for tokens, signatures,
-              hashes, keys, headers, and authentication-related debugging.
+              Browse all 32 tools for JWTs, hashes, HMACs, bcrypt, random secrets,
+              RSA keys, PEM and certificates, CSP, CORS, cookies, HSTS, Permissions
+              Policy, SRI, Referrer Policy, security.txt, and TLS-expiry planning.
             </p>
           </div>
-
           <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {securityTools.map((tool) => (
               <Link
@@ -178,181 +135,76 @@ export default function Page() {
                 href={tool.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {tool.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {tool.description}
-                </p>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">{tool.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">{tool.description}</p>
               </Link>
             ))}
           </div>
         </section>
 
-		{/* USE CASES */}
-		<SectionCard>
-		  <h2 className="text-2xl font-semibold text-gray-900">
-			Everyday Security Tasks These Tools Make Easier
-		  </h2>
+        <section className="mt-16 max-w-4xl">
+          <h2 className="text-2xl font-semibold text-gray-900">Hashing, HMAC, Password Hashing, and Encryption Are Not Interchangeable</h2>
+          <div className="mt-5 space-y-5 text-gray-600 leading-relaxed">
+            <p>
+              A general cryptographic hash produces a digest from input bytes and does
+              not use a secret key. HMAC combines a cryptographic hash with a shared
+              secret to authenticate a message. Password hashing such as bcrypt is
+              deliberately designed to make password guessing more expensive and uses
+              salts and a work factor. None of those operations is reversible encryption.
+            </p>
+            <p>
+              The category also contains encoding helpers because security formats use
+              encodings internally, but representation should not be mistaken for
+              protection. Base64URL makes bytes safe for compact text formats; it does
+              not hide them from someone who can read the token.
+            </p>
+          </div>
+        </section>
 
-		  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
-			Authentication, tokens, hashes, API secrets, certificates, and security
-			headers often create small debugging moments during development. These
-			tools help inspect, generate, validate, and troubleshoot common
-			security-related values without unnecessary setup.
-		  </p>
-
-		  <div className="mt-8 grid gap-4 md:grid-cols-2">
-			{[
-			  "Inspect JWT tokens when authentication suddenly stops working.",
-			  "Generate HMAC signatures while testing APIs or webhook integrations.",
-			  "Create SHA256 hashes for verification, comparison, or debugging.",
-			  "Generate bcrypt hashes during password or login-related testing.",
-			  "Format PEM certificates and keys before configuration or deployment.",
-			  "Create RSA key pairs for signing, encryption, or verification workflows.",
-			  "Generate random tokens and API keys during development or testing.",
-			  "Build Content Security Policy rules to reduce common frontend risks.",
-			].map((item) => (
-			  <SectionMiniCard key={item}>
-				<p className="text-sm leading-relaxed text-gray-700">
-				  {item}
-				</p>
-			  </SectionMiniCard>
-			))}
-		  </div>
-		</SectionCard>
-
-        {/* WHY MATTERS */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Why Security Utilities Matter for Developers
-          </h2>
-
+        <SectionCard>
+          <h2 className="text-2xl font-semibold text-gray-900">Handling Secret Material in Browser Tools</h2>
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              Security-related work often includes checking tokens, hashes, 
-			  headers, signatures, certificates, or encoded values.
+              Local browser processing reduces the need to send pasted values to a
+              Yoryantra application server, but “local” does not make sensitive data
+              risk-free. Clipboard history, browser extensions, screenshots, crash
+              reports, screen sharing, and the device itself remain possible exposure paths.
             </p>
-
             <p>
-              Small mistakes can create access issues, failed verification, 
-			  or authentication errors. Security tools help make quick checks 
-			  easier while testing or preparing secure values.
+              Use test keys or disposable examples when the real secret is not required.
+              If production credentials, private keys, signing secrets, or bearer tokens
+              are exposed outside their intended environment, treat rotation and incident
+              handling as operational security decisions rather than formatting problems.
             </p>
           </div>
-        </section>
+        </SectionCard>
 
-        {/* FAQ */}
         <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-6 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What are online security tools used for?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Security tools help developers inspect tokens, generate hashes,
-                create signatures, format keys, build security headers, and test
-                authentication-related workflows.
-              </p>
+          <h2 className="text-2xl font-semibold text-gray-900">References for the Security Boundaries Used Here</h2>
+          <div className="mt-6 grid gap-5 lg:grid-cols-3">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <a href="https://www.rfc-editor.org/rfc/rfc7519" target="_blank" rel="noreferrer" className="font-semibold text-[var(--green)] underline underline-offset-4">RFC 7519 — JWT</a>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">Defines JWT claims and compact token structure; signature and encryption mechanisms are supplied by the JOSE specifications it references.</p>
             </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are these tools useful for API security?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. These utilities are useful for JWT inspection, HMAC
-                signatures, API keys, webhook verification, Base64URL handling,
-                and secure backend testing.
-              </p>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <a href="https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html" target="_blank" rel="noreferrer" className="font-semibold text-[var(--green)] underline underline-offset-4">OWASP HTTP Security Response Headers Cheat Sheet</a>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">Provides deployment context for CSP, HSTS, framing, MIME sniffing, referrer, permissions, and cross-origin response policies.</p>
             </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can I use these tools for password-related testing?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Tools such as bcrypt Generator, SHA256 Generator, Random
-                Token Generator, and API Key Generator can help with development
-                and testing workflows.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are private keys and tokens uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Most Yoryantra tools run locally inside your browser. Sensitive
-                values are not uploaded unless a specific tool clearly requires
-                an external URL check.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Do these tools replace professional security testing?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. These tools are useful for development, debugging, and quick
-                checks. Production security still needs proper reviews,
-                monitoring, access control, and secure infrastructure practices.
-              </p>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <a href="https://www.rfc-editor.org/rfc/rfc9116" target="_blank" rel="noreferrer" className="font-semibold text-[var(--green)] underline underline-offset-4">RFC 9116 — security.txt</a>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">Defines the security.txt format for publishing vulnerability-reporting contact and policy information.</p>
             </div>
           </div>
         </section>
 
-        {/* RELATED CATEGORIES */}
         <section className="mt-16 border-t border-gray-200 pt-10">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Related Tool Categories
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Related Tool Categories</h2>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/categories/developer-tools"
-              className="yoryantra-btn-outline"
-            >
-              Developer Utilities
-            </Link>
-
-            <Link
-              href="/categories/json-tools"
-              className="yoryantra-btn-outline"
-            >
-              JSON & Data Tools
-            </Link>
-
-            <Link
-              href="/categories/devops-tools"
-              className="yoryantra-btn-outline"
-            >
-              DevOps Tools
-            </Link>
-
-            <Link
-              href="/categories/encoding-tools"
-              className="yoryantra-btn-outline"
-            >
-              Encoding Tools
-            </Link>
-
-            <Link
-              href="/categories/seo-tools"
-              className="yoryantra-btn-outline"
-            >
-              SEO Tools
-            </Link>
+            <Link href="/categories/developer-tools" className="yoryantra-btn-outline">Developer Tools</Link>
+            <Link href="/categories/encoding-tools" className="yoryantra-btn-outline">Encoding Tools</Link>
+            <Link href="/categories/devops-tools" className="yoryantra-btn-outline">DevOps Tools</Link>
+            <Link href="/categories/json-tools" className="yoryantra-btn-outline">JSON & Data Tools</Link>
+            <Link href="/categories/seo-tools" className="yoryantra-btn-outline">SEO Tools</Link>
           </div>
         </section>
       </section>

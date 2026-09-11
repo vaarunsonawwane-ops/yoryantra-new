@@ -2,56 +2,29 @@ import Link from "next/link";
 import { tools } from "@/app/data/tools";
 import InfoCard from "@/app/components/InfoCard";
 import SectionCard from "@/app/components/SectionCard";
-import SectionMiniCard from "@/app/components/SectionMiniCard";
 
-const devopsTools = tools.filter(
-  (tool) => tool.category === "DevOps Tools"
-);
-
-const featuredTools = devopsTools.slice(0, 6);
+const devopsTools = tools.filter((tool) => tool.category === "DevOps Tools");
 
 export const metadata = {
-  title: "DevOps Tools for YAML, Docker, Kubernetes, and Config Checks | Yoryantra",
-
+  title: "DevOps Tools for Docker, Kubernetes, DNS, and Config | Yoryantra",
   description:
-    "Use practical DevOps tools for Docker Compose checks, Kubernetes YAML, .env parsing, YAML validation, cron schedules, and infrastructure configuration workflows.",
-
-  keywords: [
-    "devops tools",
-    "online devops tools",
-    "docker compose validator",
-    "kubernetes yaml validator",
-    "yaml formatter",
-    "env file parser",
-    "cron expression generator",
-    "configuration tools",
-    "infrastructure tools",
-  ],
-
+    "Review Docker Compose, Kubernetes, cron, DNS, CIDR, environment variables, GitHub Actions, Nginx, and deployment configuration before runtime.",
   alternates: {
     canonical: "https://yoryantra.com/categories/devops-tools",
   },
-
   openGraph: {
-    title: "DevOps Tools for YAML, Docker, Kubernetes, and Config Checks | Yoryantra",
-
+    title: "DevOps Tools for Docker, Kubernetes, DNS, and Config | Yoryantra",
     description:
-      "Practical DevOps utilities for Docker, Kubernetes, YAML, .env files, cron schedules, and infrastructure configuration checks.",
-
+      "Static configuration checks for Docker, Kubernetes, cron, DNS, CIDR, environment files, GitHub Actions, and Nginx.",
     url: "https://yoryantra.com/categories/devops-tools",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "DevOps Tools for YAML, Docker, Kubernetes, and Config Checks | Yoryantra",
-
+    title: "DevOps Tools for Docker, Kubernetes, DNS, and Config | Yoryantra",
     description:
-      "DevOps tools for YAML, Docker, Kubernetes, .env files, cron schedules, and configuration workflows.",
+      "Inspect deployment configuration before runtime across Docker, Kubernetes, cron, DNS, networking, CI, and Nginx.",
   },
 };
 
@@ -59,114 +32,51 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
-	  
-{/* BREADCRUMB */}
-<div className="mb-8 flex items-center text-sm text-gray-500">
+        <div className="mb-8 flex items-center text-sm text-gray-500">
+          <Link href="/" className="hover:!text-[var(--light-gold)] transition-colors duration-200">Home</Link>
+          <span className="mx-2">/</span>
+          <Link href="/categories" className="hover:!text-[var(--light-gold)] transition-colors duration-200">Categories</Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900">DevOps Tools</span>
+        </div>
 
-  <Link
-    href="/"
-    className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-  >
-    Home
-  </Link>
-
-  <span className="mx-2">/</span>
-
-  <Link
-    href="/categories"
-    className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-  >
-    Categories
-  </Link>
-
-  <span className="mx-2">/</span>
-
-  <span className="text-gray-900">
-    DevOps Tools
-  </span>
-
-</div>
-	  
-        {/* HERO */}
-        <div className="max-w-3xl">
+        <div className="max-w-4xl">
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            DevOps Tools for Containers, YAML, and Configuration Workflows
+            DevOps Tools for Configuration You Can Inspect Before Runtime
           </h1>
-
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Use practical DevOps utilities to validate Docker Compose files,
-            check Kubernetes YAML, parse .env files, format configuration data,
-            and build cron expressions for scheduled jobs.
+            Infrastructure configuration has a useful pre-runtime layer. Docker
+            Compose files, Kubernetes manifests, GitHub Actions workflows,
+            environment assignments, Nginx rules, cron expressions, DNS answers,
+            and CIDR ranges can all reveal problems before a deployment or incident
+            turns them into runtime symptoms.
           </p>
         </div>
 
-		{/* INTRO */}
-		<div className="mt-12 grid gap-6 md:grid-cols-3">
-		<InfoCard
-		  title="Catch Configuration Problems Before Deployment"
-		  description="Small mistakes inside YAML, Docker Compose files, manifests, environment variables, or infrastructure settings can create frustrating deployment issues later."
-		/>
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <InfoCard
+            title="Parsing comes before platform validation"
+            description="A file must first be syntactically readable, but valid YAML alone says nothing about Kubernetes schemas, Compose semantics, or policy enforcement."
+          />
+          <InfoCard
+            title="Declared state is not observed state"
+            description="A manifest can describe ports, images, requests, limits, or dependencies without proving that a cluster, runner, resolver, or host will make them work."
+          />
+          <InfoCard
+            title="Precedence changes outcomes"
+            description="Environment interpolation, DNS caches, Nginx matching, cron fields, image tags, and configuration defaults can all make apparently similar inputs behave differently."
+          />
+        </div>
 
-		<InfoCard
-		  title="Built for Fast Infrastructure Checks"
-		  description="Instead of digging through logs or switching between tools, quickly validate, inspect, and troubleshoot common DevOps-related formats and configurations."
-		/>
-
-		<InfoCard
-		  title="Useful During Setup, Debugging, and Releases"
-		  description="Whether you are configuring containers, APIs, CI/CD workflows, infrastructure, or deployments, these tools help reduce avoidable mistakes before production."
-		/>
-		</div>
-
-        {/* FEATURED TOOLS */}
         <section className="mt-16">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Popular DevOps Tools
-            </h2>
-
+            <h2 className="text-2xl font-semibold text-gray-900">All DevOps Tools</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with common utilities for container configuration, YAML
-              validation, environment variables, and automation schedules.
+              The 32 tools cover Docker Compose, Dockerfiles, Kubernetes, environment
+              variables, YAML validation and conversion, cron, DNS, CIDR, GitHub
+              Actions, and Nginx configuration.
             </p>
           </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {featuredTools.map((tool) => (
-              <Link
-                key={tool.href}
-                href={tool.href}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {tool.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {tool.description}
-                </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Open tool →
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* ALL TOOLS */}
-        <section className="mt-16">
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              All DevOps Tools
-            </h2>
-
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              Browse utilities for infrastructure configuration, containers,
-              YAML formatting, environment variables, and scheduled jobs.
-            </p>
-          </div>
-
           <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {devopsTools.map((tool) => (
               <Link
@@ -174,166 +84,112 @@ export default function Page() {
                 href={tool.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {tool.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {tool.description}
-                </p>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">{tool.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">{tool.description}</p>
               </Link>
             ))}
           </div>
         </section>
 
-		{/* USE CASES */}
-		<SectionCard>
-		  <h2 className="text-2xl font-semibold text-gray-900">
-			Everyday Infrastructure Tasks These Tools Help Simplify
-		  </h2>
-
-		  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
-			A lot of deployment issues begin with small configuration mistakes —
-			invalid YAML, incorrect environment variables, broken manifests, or tiny
-			formatting problems that are easy to miss. These tools are designed for the
-			quick checks teams often do before shipping changes.
-		  </p>
-
-		  <div className="mt-8 grid gap-4 md:grid-cols-2">
-			{[
-			  "Review Docker Compose files before containers fail to start.",
-			  "Validate Kubernetes manifests during setup or troubleshooting.",
-			  "Check environment variables when configuration feels off.",
-			  "Clean or format YAML before deployment and infrastructure changes.",
-			  "Move between JSON and YAML formats during integrations or setup.",
-			  "Generate cron expressions for scheduled jobs and automation.",
-			  "Inspect service and infrastructure configuration more quickly.",
-			  "Catch small deployment mistakes before they become production issues.",
-			].map((item) => (
-			  <SectionMiniCard key={item}>
-				<p className="text-sm leading-relaxed text-gray-700">
-				  {item}
-				</p>
-			  </SectionMiniCard>
-			))}
-		  </div>
-		</SectionCard>
-
-        {/* WHY MATTERS */}
-        <section className="mt-16">
+        <SectionCard>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Why DevOps Utilities Matter
+            A Configuration Travels Through More Than One Layer
           </h2>
+          <div className="mt-6 space-y-6 text-gray-600 leading-relaxed">
+            <div>
+              <h3 className="font-semibold text-gray-900">1. Text and syntax</h3>
+              <p className="mt-2">
+                YAML, dotenv assignments, cron fields, CIDR notation, and Nginx snippets
+                must first be parseable. Syntax checks are useful because later tools
+                cannot reason reliably about malformed input.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">2. Configuration semantics</h3>
+              <p className="mt-2">
+                Once parsed, relationships start to matter: a Service port must map to
+                something meaningful, resource requests and limits can conflict, Compose
+                mounts can target the same path, and environment values can resolve from
+                several sources.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">3. Runtime and policy</h3>
+              <p className="mt-2">
+                The final outcome belongs to the live platform. Kubernetes admission,
+                CRDs, scheduler capacity, registry access, secrets, storage classes,
+                repository permissions, runner state, Docker host settings, and network
+                policy are not visible in a pasted configuration alone.
+              </p>
+            </div>
+          </div>
+        </SectionCard>
 
-          <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
+        <section className="mt-16 max-w-4xl">
+          <h2 className="text-2xl font-semibold text-gray-900">
+            What These Checks Can Narrow Down Before You Touch Production
+          </h2>
+          <div className="mt-5 space-y-5 text-gray-600 leading-relaxed">
             <p>
-              DevOps work often includes checking configuration files, environment values, 
-			  schedules, services, deployment settings, or infrastructure-related information.
+              Docker-related tools can expose port collisions, risky host mounts,
+              dependency relationships, Dockerfile instruction concerns, and Compose
+              interpolation problems. Kubernetes tools can inventory resources, trace
+              images, map Service ports, summarize manifests, and review declared CPU
+              or memory constraints.
             </p>
-
             <p>
-              Small mistakes in configuration can create errors or slow things down. 
-			  DevOps tools help make quick checks easier during setup, testing, or deployment.
+              DNS and networking tools answer a different class of question. Resolver
+              comparisons show what selected public resolvers currently return; CIDR
+              calculators explain address boundaries mathematically. Neither proves the
+              path a specific client, corporate resolver, or network appliance will take.
+            </p>
+            <p>
+              YAML formatting itself is intentionally not in this category. The standalone
+              YAML Formatter belongs to JSON & Data Tools because reformatting data is a
+              representation task. YAML validation and YAML/JSON conversion remain here
+              where they support deployment-oriented workflows.
             </p>
           </div>
         </section>
 
-        {/* FAQ */}
         <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-6 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What are DevOps tools used for?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                DevOps tools help with configuration, deployment preparation,
-                container workflows, infrastructure files, automation, and
-                environment management.
+          <h2 className="text-2xl font-semibold text-gray-900">Primary Platform References</h2>
+          <div className="mt-6 grid gap-5 lg:grid-cols-3">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <a href="https://docs.docker.com/reference/compose-file/" target="_blank" rel="noreferrer" className="font-semibold text-[var(--green)] underline underline-offset-4">
+                Docker Compose file reference
+              </a>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                Defines the Compose model behind services, volumes, networks, ports, environment values, and dependencies.
               </p>
             </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are these tools useful for Docker and Kubernetes?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. This category includes Docker Compose validation,
-                Kubernetes YAML checks, YAML formatting, and environment file
-                parsing.
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <a href="https://kubernetes.io/docs/reference/kubernetes-api/" target="_blank" rel="noreferrer" className="font-semibold text-[var(--green)] underline underline-offset-4">
+                Kubernetes API reference
+              </a>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                Documents built-in resource fields and semantics that static manifest checks need to interpret carefully.
               </p>
             </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Do these tools require installation?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. These tools are designed to work directly inside your
-                browser for quick checks.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are configuration values uploaded?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Most Yoryantra utilities process inputs locally inside your
-                browser unless a tool clearly needs an external URL check.
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <a href="https://docs.github.com/en/actions/reference/workflows-and-actions" target="_blank" rel="noreferrer" className="font-semibold text-[var(--green)] underline underline-offset-4">
+                GitHub Actions reference
+              </a>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                Covers workflow triggers, jobs, permissions, expressions, matrices, and action behavior used by CI checks.
               </p>
             </div>
           </div>
         </section>
 
-        {/* RELATED CATEGORIES */}
         <section className="mt-16 border-t border-gray-200 pt-10">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Related Tool Categories
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Related Tool Categories</h2>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/categories/developer-tools"
-              className="yoryantra-btn-outline"
-            >
-              Developer Utilities
-            </Link>
-
-            <Link
-              href="/categories/json-tools"
-              className="yoryantra-btn-outline"
-            >
-              JSON & Data Tools
-            </Link>
-
-            <Link
-              href="/categories/security-tools"
-              className="yoryantra-btn-outline"
-            >
-              Security Tools
-            </Link>
-
-            <Link
-              href="/categories/encoding-tools"
-              className="yoryantra-btn-outline"
-            >
-              Encoding Tools
-            </Link>
-
-            <Link
-              href="/categories/seo-tools"
-              className="yoryantra-btn-outline"
-            >
-              SEO Tools
-            </Link>
+            <Link href="/categories/json-tools" className="yoryantra-btn-outline">JSON & Data Tools</Link>
+            <Link href="/categories/developer-tools" className="yoryantra-btn-outline">Developer Tools</Link>
+            <Link href="/categories/security-tools" className="yoryantra-btn-outline">Security Tools</Link>
+            <Link href="/categories/encoding-tools" className="yoryantra-btn-outline">Encoding Tools</Link>
+            <Link href="/categories/seo-tools" className="yoryantra-btn-outline">SEO Tools</Link>
           </div>
         </section>
       </section>

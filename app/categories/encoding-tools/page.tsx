@@ -1,58 +1,43 @@
 import Link from "next/link";
 import { tools } from "@/app/data/tools";
-import InfoCard from "@/app/components/InfoCard";
 import SectionCard from "@/app/components/SectionCard";
 import SectionMiniCard from "@/app/components/SectionMiniCard";
 
-const encodingTools = tools.filter(
-  (tool) => tool.category === "Encoding Tools"
+const encodingTools = tools.filter((tool) => tool.category === "Encoding Tools");
+
+const representativeHrefs = new Set<string>([
+  "/tools/base64-encoder-decoder",
+  "/tools/url-encoder-decoder",
+  "/tools/unicode-escape-sequence-converter",
+  "/tools/html-escape-unescape",
+  "/tools/punycode-converter",
+  "/tools/mime-encoded-word-decoder",
+]);
+
+const representativeTools = encodingTools.filter((tool) =>
+  representativeHrefs.has(tool.href)
 );
 
-const featuredTools = encodingTools.slice(0, 6);
-
 export const metadata = {
-  title: "Encoding Tools for Base64, URLs, HTML, Unicode, and Text | Yoryantra",
-
+  title: "Encoding Tools for Base64, URLs, Unicode, and Text | Yoryantra",
   description:
-    "Use practical encoding tools for Base64, Base64URL, URL encoding, HTML entities, Unicode escapes, JSON strings, slugs, and text conversion workflows.",
-
-  keywords: [
-    "encoding tools",
-    "online encoding tools",
-    "base64 encoder",
-    "base64 decoder",
-    "base64url encoder",
-    "url encoder decoder",
-    "html encoder decoder",
-    "json escape unescape",
-    "text converter",
-    "slug generator",
-  ],
-
+    "Encode, decode, escape, and inspect Base64, Base32, Base58, hex, percent encoding, Unicode escapes, HTML or XML entities, MIME text, Punycode, and related representations.",
   alternates: {
     canonical: "https://yoryantra.com/categories/encoding-tools",
   },
-
   openGraph: {
-    title: "Encoding Tools for Base64, URLs, HTML, Unicode, and Text | Yoryantra",
-
+    title: "Encoding Tools for Base64, URLs, Unicode, and Text | Yoryantra",
     description:
-      "Practical encoding utilities for Base64, Base64URL, URLs, HTML entities, Unicode escapes, JSON strings, slugs, and text conversion.",
-
+      "Work with byte encodings, URL components, Unicode escapes, markup entities, MIME text, Punycode, and other text representations.",
     url: "https://yoryantra.com/categories/encoding-tools",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Encoding Tools for Base64, URLs, HTML, Unicode, and Text | Yoryantra",
-
+    title: "Encoding Tools for Base64, URLs, Unicode, and Text | Yoryantra",
     description:
-      "Encoding tools for Base64, URLs, HTML entities, Unicode escapes, JSON strings, slugs, and text conversion workflows.",
+      "Inspect and convert byte, URL, Unicode, markup, MIME, and identifier representations with their context kept explicit.",
   },
 };
 
@@ -60,114 +45,101 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
-	  
-{/* BREADCRUMB */}
-		<div className="mb-8 flex items-center text-sm text-gray-500">
+        <div className="mb-8 flex items-center text-sm text-gray-500">
+          <Link href="/" className="hover:!text-[var(--light-gold)] transition-colors duration-200">Home</Link>
+          <span className="mx-2">/</span>
+          <Link href="/categories" className="hover:!text-[var(--light-gold)] transition-colors duration-200">Categories</Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900">Encoding Tools</span>
+        </div>
 
-		  <Link
-			href="/"
-			className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-		  >
-			Home
-		  </Link>
-
-		  <span className="mx-2">/</span>
-
-		  <Link
-		   href="/categories"
-		   className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-		  >
-		   Categories
-		   </Link>
-
-		  <span className="mx-2">/</span>
-
-		  <span className="text-gray-900">
-		  Encoding Tools
-		  </span>
-
-		</div>
-	  
-        {/* HERO */}
-        <div className="max-w-3xl">
+        <div className="max-w-4xl">
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            Encoding Tools for URLs, Base64, HTML, and Structured Text
+            Encoding Tools for Bytes, URLs, Unicode, and Markup
           </h1>
-
           <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Use practical encoding utilities to convert Base64 strings, encode
-            URLs, handle HTML entities, escape JSON text, generate slugs, and
-            prepare text values for development and SEO workflows.
+            Encoding changes how information is represented. The difficult part is
+            rarely pressing “encode” or “decode”; it is knowing whether the input is
+            text or bytes, which alphabet or escaping rules apply, and what the
+            surrounding format will do with reserved characters.
           </p>
         </div>
 
-		{/* INTRO */}
-		<div className="mt-12 grid gap-6 md:grid-cols-3">
-		<InfoCard
-		  title="Made for Everyday Web and API Work"
-		  description="URLs, Base64 values, HTML entities, encoded strings, and request payloads appear constantly in frontend, backend, and API workflows. These tools make them easier to inspect and transform."
-		/>
+        <section className="mt-14">
+          <h2 className="text-2xl font-semibold text-gray-900">Choose the Layer Before the Codec</h2>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">Bytes → restricted text:</strong>{" "}
+                Base64, Base32, Base58, hex, and octal represent byte sequences with different alphabets and canonical rules.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">Text → escaped syntax:</strong>{" "}
+                Unicode escapes, JavaScript-style escapes, HTML or XML entities, and shell quoting protect text inside another grammar.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">URL components:</strong>{" "}
+                complete URLs, path segments, query values, and form data do not apply percent encoding or plus-sign handling identically.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">Email transport:</strong>{" "}
+                MIME encoded-words belong in headers, while quoted-printable and Base64 transfer encodings describe message-body bytes.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">International identifiers:</strong>{" "}
+                Punycode represents internationalized domain labels in an ASCII-compatible form; it is not a general-purpose text encoder.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">Not a secrecy layer:</strong>{" "}
+                Base64, hex, entities, escapes, QR data, and similar transformations are reversible representations, not encryption.
+              </p>
+            </SectionMiniCard>
+          </div>
+        </section>
 
-		<InfoCard
-		  title="Useful When Data Looks Broken or Unreadable"
-		  description="Sometimes values arrive encoded, escaped, or difficult to interpret. Quickly decode, clean, convert, or re-encode data without opening extra software or writing helper scripts."
-		/>
-
-		<InfoCard
-		  title="Fast Utilities for Debugging and Data Handling"
-		  description="Whether you are testing APIs, debugging URLs, handling JWT-related formats, or cleaning browser-safe values, these tools are designed for quick everyday use."
-		/>
-		</div>
-
-        {/* FEATURED TOOLS */}
         <section className="mt-16">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Popular Encoding Tools
-            </h2>
-
+            <h2 className="text-2xl font-semibold text-gray-900">Representative Encoding Boundaries</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with common utilities for Base64, URLs, HTML entities,
-              JSON-safe strings, and text transformation tasks.
+              These tools were selected to span byte encoding, URL components,
+              Unicode escapes, markup entities, internationalized domain names, and
+              MIME header text.
             </p>
           </div>
-
           <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {featuredTools.map((tool) => (
+            {representativeTools.map((tool) => (
               <Link
                 key={tool.href}
                 href={tool.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {tool.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {tool.description}
-                </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Open tool →
-                </span>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">{tool.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">{tool.description}</p>
+                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">Open tool →</span>
               </Link>
             ))}
           </div>
         </section>
 
-        {/* ALL TOOLS */}
         <section className="mt-16">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              All Encoding Tools
-            </h2>
-
+            <h2 className="text-2xl font-semibold text-gray-900">All Encoding Tools</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Browse utilities for encoding, decoding, escaping, slug creation,
-              QR code generation, and safe text transformation.
+              Browse all 32 tools for Base64 and Base64URL, Base32, Base58, hex and
+              octal bytes, percent encoding, Unicode escapes, HTML or XML entities,
+              MIME text, Punycode, PEM text, QR data, and related transformations.
             </p>
           </div>
-
           <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {encodingTools.map((tool) => (
               <Link
@@ -175,167 +147,61 @@ export default function Page() {
                 href={tool.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900 transition-colors duration-200 group-hover:text-[var(--light-gold)]">
-                  {tool.title}
-                </h3>
-
-                <p className="mt-4 text-sm leading-relaxed text-gray-600">
-                  {tool.description}
-                </p>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">{tool.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">{tool.description}</p>
               </Link>
             ))}
           </div>
         </section>
 
-		{/* USE CASES */}
-		<SectionCard>
-		  <h2 className="text-2xl font-semibold text-gray-900">
-			Everyday Situations Where Encoding Tools Save Time
-		  </h2>
-
-		  <p className="mt-4 max-w-3xl text-gray-600 leading-relaxed">
-			Encoded values show up everywhere — URLs, APIs, authentication flows,
-			browser debugging, tracking links, escaped text, and structured payloads.
-			These tools help make unreadable or messy values easier to work with during
-			everyday development and troubleshooting.
-		  </p>
-
-		  <div className="mt-8 grid gap-4 md:grid-cols-2">
-			{[
-			  "Decode Base64 values when logs or payloads are hard to understand.",
-			  "Work with Base64URL strings used in JWTs and authentication flows.",
-			  "Encode URLs safely before sharing links or building requests.",
-			  "Escape HTML entities before rendering user-generated content.",
-			  "Prepare JSON-safe values for logs, scripts, or API payloads.",
-			  "Generate cleaner URL slugs for pages, blogs, and landing pages.",
-			  "Convert text formatting when content needs quick cleanup.",
-			  "Create QR codes for links, campaigns, forms, or shared resources.",
-			].map((item) => (
-			  <SectionMiniCard key={item}>
-				<p className="text-sm leading-relaxed text-gray-700">
-				  {item}
-				</p>
-			  </SectionMiniCard>
-			))}
-		  </div>
-		</SectionCard>
-
-        {/* WHY MATTERS */}
-        <section className="mt-16">
+        <SectionCard>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Why Encoding Tools Matter
+            Decodable, Valid, and Canonical Are Three Different Claims
           </h2>
+          <div className="mt-5 space-y-5 text-gray-600 leading-relaxed">
+            <p>
+              A permissive decoder may accept text that a standards-oriented encoder
+              should never produce. Base64 padding rules vary by profile, Base64URL
+              uses a different alphabet, percent escapes can be malformed, and Unicode
+              escapes can encode unmatched surrogate code units. Successfully producing
+              bytes does not prove the spelling was canonical for the intended format.
+            </p>
+            <p>
+              The next boundary is text decoding. Arbitrary bytes are not automatically
+              valid UTF-8, and silently replacing invalid byte sequences can hide data
+              loss. Several Yoryantra tools therefore expose byte-oriented output,
+              code-point information, or validation notes instead of forcing every
+              decoded value into readable text.
+            </p>
+          </div>
+        </SectionCard>
 
+        <section className="mt-16 max-w-4xl">
+          <h2 className="text-2xl font-semibold text-gray-900">Standards Behind the Representations</h2>
           <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
             <p>
-              Sometimes text needs to be encoded, decoded, escaped, or 
-			  converted before it works properly in URLs, APIs, HTML, scripts, logs, 
-			  or authentication systems.
+              <a href="https://www.rfc-editor.org/rfc/rfc4648" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">RFC 4648</a>{" "}
+              defines Base16, Base32, Base64, and the URL-safe Base64 alphabet, including canonical encoding concerns such as pad bits.
             </p>
-
             <p>
-              Small encoding mistakes can change values, break links, or create wrong results. 
-			  Encoding tools help make these quick checks easier.
+              The <a href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">WHATWG URL Standard</a>{" "}
+              documents browser URL parsing, percent-encoding sets, query serialization, and form-related URL behavior.
+            </p>
+            <p>
+              <a href="https://www.rfc-editor.org/rfc/rfc2045" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">RFC 2045</a>{" "}
+              defines MIME transfer encodings such as quoted-printable and Base64 for message bodies.
             </p>
           </div>
         </section>
 
-        {/* FAQ */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-6 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What are encoding tools used for?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Encoding tools help convert text, URLs, HTML entities, Base64
-                strings, and JSON-safe values into formats that work correctly
-                across web systems.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are these tools useful for API debugging?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Encoding and decoding are common while working with API
-                payloads, JWT values, query strings, logs, and structured data.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is the difference between Base64 and Base64URL?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Base64URL is a URL-safe version of Base64 commonly used in JWTs
-                and web authentication workflows.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Do these tools upload my data?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Most Yoryantra tools process data locally inside your browser,
-                so your encoded strings and text values are not uploaded unless
-                a specific tool clearly needs an external URL check.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* RELATED CATEGORIES */}
         <section className="mt-16 border-t border-gray-200 pt-10">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Related Tool Categories
-          </h2>
-
+          <h2 className="text-2xl font-semibold text-gray-900">Related Tool Categories</h2>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/categories/developer-tools"
-              className="yoryantra-btn-outline"
-            >
-              Developer Utilities
-            </Link>
-
-            <Link
-              href="/categories/json-tools"
-              className="yoryantra-btn-outline"
-            >
-              JSON & Data Tools
-            </Link>
-
-            <Link
-              href="/categories/security-tools"
-              className="yoryantra-btn-outline"
-            >
-              Security Tools
-            </Link>
-
-            <Link
-              href="/categories/devops-tools"
-              className="yoryantra-btn-outline"
-            >
-              DevOps Tools
-            </Link>
-
-            <Link
-              href="/categories/seo-tools"
-              className="yoryantra-btn-outline"
-            >
-              SEO Tools
-            </Link>
+            <Link href="/categories/json-tools" className="yoryantra-btn-outline">JSON & Data Tools</Link>
+            <Link href="/categories/developer-tools" className="yoryantra-btn-outline">Developer Tools</Link>
+            <Link href="/categories/security-tools" className="yoryantra-btn-outline">Security Tools</Link>
+            <Link href="/categories/devops-tools" className="yoryantra-btn-outline">DevOps Tools</Link>
+            <Link href="/categories/seo-tools" className="yoryantra-btn-outline">SEO Tools</Link>
           </div>
         </section>
       </section>

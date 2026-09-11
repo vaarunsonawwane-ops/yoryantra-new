@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { tools } from "@/app/data/tools";
-import InfoCard from "@/app/components/InfoCard";
 import SectionCard from "@/app/components/SectionCard";
 import SectionMiniCard from "@/app/components/SectionMiniCard";
 
@@ -8,106 +6,67 @@ const categories = [
   {
     title: "SEO Tools",
     description:
-      "Metadata, indexing, redirects, hreflang, sitemaps, and technical SEO utilities.",
+      "Work with crawl directives, metadata, canonicals, hreflang, sitemaps, redirects, indexability, and search previews.",
     href: "/categories/seo-tools",
-    tools: [
-      "Meta Tag Generator",
-      "Hreflang Tag Generator",
-      "robots.txt Generator",
-    ],
+    examples: ["Meta Tag Generator", "Hreflang Validator", "Indexability Checker"],
   },
-
   {
     title: "Security Tools",
     description:
-      "JWTs, hashes, tokens, API signing, CSP headers, and authentication checks.",
+      "Inspect JWTs, hashes, browser security headers, cookies, keys, CSP policies, and authentication-related values.",
     href: "/categories/security-tools",
-    tools: [
-      "JWT Decoder",
-      "SHA256 Generator",
-      "RSA Key Generator",
-    ],
+    examples: ["JWT Signature Verifier", "CSP Analyzer", "Cookie Security Checker"],
   },
-
   {
     title: "JSON & Data Tools",
     description:
-      "JSON formatting, validation, conversion, schema checks, and structured data utilities.",
+      "Format, validate, compare, transform, and inspect JSON, CSV, XML, YAML, SQL, schemas, and related data structures.",
     href: "/categories/json-tools",
-    tools: [
-      "JSON Formatter",
-      "JSON Validator",
-      "JSON Diff Checker",
-    ],
+    examples: ["JSON Formatter", "JSON Schema Validator", "JSON Patch Generator"],
   },
-
   {
     title: "DevOps Tools",
     description:
-      "Docker, Kubernetes, YAML, cron expressions, and infrastructure tasks.",
+      "Review Docker, Kubernetes, cron, DNS, CIDR, environment files, GitHub Actions, Nginx, and deployment configuration.",
     href: "/categories/devops-tools",
-    tools: [
-      "Docker Compose Validator",
-      "Kubernetes YAML Validator",
-      ".env File Parser",
-    ],
+    examples: ["Docker Compose Validator", "Kubernetes YAML Validator", "GitHub Actions YAML Validator"],
   },
-
   {
     title: "Encoding Tools",
     description:
-      "Base64, URL encoding, HTML entities, JSON escaping, and text transformation.",
+      "Move between text and byte representations such as Base64, Base58, hex, percent encoding, Unicode escapes, and entities.",
     href: "/categories/encoding-tools",
-    tools: [
-      "Base64 Encoder Decoder",
-      "URL Encoder Decoder",
-      "HTML Encoder Decoder",
-    ],
+    examples: ["Base64 Encoder Decoder", "Percent Encoding Analyzer", "Unicode Escape Sequence Converter"],
   },
-
   {
-    title: "Developer Utilities",
+    title: "Developer Tools",
     description:
-      "Regex testing, timestamps, debugging, UUIDs, and development tasks.",
+      "Handle HTTP text, regex, URLs, timestamps, UUIDs, cURL and Fetch translation, headers, and everyday debugging tasks.",
     href: "/categories/developer-tools",
-    tools: [
-      "Regex Tester",
-      "UUID Generator",
-      "Timestamp Converter",
-    ],
+    examples: ["HTTP Request Parser", "Regex Tester", "Fetch to cURL Converter"],
   },
 ];
 
 export const metadata = {
   title: "Browse Tools by Category | Yoryantra",
-
   description:
-    "Browse Yoryantra tools by development, DevOps, security, SEO, JSON, and encoding category.",
-
+    "Browse Yoryantra by development, DevOps, security, SEO, JSON and data, or encoding workflow.",
   alternates: {
     canonical: "https://yoryantra.com/categories",
   },
-
   openGraph: {
     title: "Tool Categories | Yoryantra",
-
     description:
-      "Find focused tools for development, DevOps, security, SEO, JSON, and encoding tasks.",
-
+      "Choose tools by the kind of problem you are solving: development, DevOps, security, SEO, data, or encoding.",
     url: "https://yoryantra.com/categories",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
     title: "Tool Categories | Yoryantra",
-
     description:
-      "Browse development, DevOps, security, SEO, JSON, and encoding tool categories.",
+      "Browse Yoryantra by development, DevOps, security, SEO, JSON and data, or encoding workflow.",
   },
 };
 
@@ -115,21 +74,20 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
-
-        {/* HERO */}
         <div className="max-w-4xl">
           <h1 className="text-4xl font-semibold tracking-tight text-gray-950 md:text-6xl md:leading-tight">
-            Browse Tools by What You Need to Do
+            Browse Tools by the Problem You Are Solving
           </h1>
 
           <p className="mt-6 text-lg leading-relaxed text-gray-600">
-            Find focused tools for development, DevOps, security, SEO, JSON,
-            and encoding without searching through one long list.
+            Yoryantra groups 192 tools into six practical areas. The categories
+            follow the main question each tool answers, because the same format can
+            play very different roles in development, deployment, security, search,
+            or data work.
           </p>
         </div>
 
-        {/* CATEGORY GRID */}
-        <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (
             <Link
               key={category.href}
@@ -144,6 +102,10 @@ export default function Page() {
                 {category.description}
               </p>
 
+              <p className="mt-5 text-xs leading-relaxed text-gray-500">
+                Examples: {category.examples.join(", ")}
+              </p>
+
               <span className="mt-6 inline-flex text-sm font-semibold text-[var(--light-gold)]">
                 Explore category →
               </span>
@@ -151,83 +113,62 @@ export default function Page() {
           ))}
         </div>
 
-		{/* WHY CATEGORIES */}
-		<SectionCard>
-		  <h2 className="text-2xl font-semibold text-gray-900">
-			Why Yoryantra Groups Tools by Category
-		  </h2>
-
-		  <div className="mt-5 space-y-5 text-gray-600 leading-relaxed">
-			<p>
-			  Different tasks often need different kinds of tools. A developer
-			  debugging an API, an SEO checking redirects, and someone validating
-			  configuration files should not have to search through the same
-			  unstructured list.
-			</p>
-
-			<p>
-			  Categories keep related tools together, making it easier to compare
-			  similar options and move between connected tasks such as formatting,
-			  validation, conversion, inspection, and generation.
-			</p>
-
-			<p>
-			  The categories are designed around practical workflows rather than
-			  random utility collections, so you can reach the right tool faster
-			  and understand where it fits in your work.
-			</p>
-		  </div>
-		</SectionCard>
-
-        {/* RELATED */}
-        <section className="mt-16 border-t border-gray-200 pt-10">
+        <SectionCard>
           <h2 className="text-2xl font-semibold text-gray-900">
-            Popular Tool Areas
+            When Two Categories Seem to Overlap
           </h2>
 
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/categories/seo-tools"
-              className="yoryantra-btn-outline"
-            >
-              SEO Tools
-            </Link>
+          <p className="mt-4 max-w-4xl text-gray-600 leading-relaxed">
+            Category boundaries are based on purpose rather than file extension.
+            That matters when one technology appears in several workflows.
+          </p>
 
-            <Link
-              href="/categories/security-tools"
-              className="yoryantra-btn-outline"
-            >
-              Security Tools
-            </Link>
-
-            <Link
-              href="/categories/json-tools"
-              className="yoryantra-btn-outline"
-            >
-              JSON & Data Tools
-            </Link>
-
-            <Link
-              href="/categories/devops-tools"
-              className="yoryantra-btn-outline"
-            >
-              DevOps Tools
-            </Link>
-
-            <Link
-              href="/categories/encoding-tools"
-              className="yoryantra-btn-outline"
-            >
-              Encoding Tools
-            </Link>
-
-            <Link
-              href="/categories/developer-tools"
-              className="yoryantra-btn-outline"
-            >
-              Developer Utilities
-            </Link>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">Encoding vs security:</strong>{" "}
+                Base64 and percent encoding change representation. JWT verification,
+                HMACs, password hashing, and security-policy checks answer trust or
+                protection questions.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">JSON & Data vs DevOps:</strong>{" "}
+                formatting YAML is a data-shaping task; validating a Kubernetes
+                manifest or resolving Compose environment variables is deployment
+                configuration work.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">Developer vs SEO:</strong>{" "}
+                parsing an HTTP response is a general implementation task, while
+                interpreting canonical, robots, hreflang, sitemap, or indexability
+                signals belongs to search diagnostics.
+              </p>
+            </SectionMiniCard>
+            <SectionMiniCard>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <strong className="text-gray-900">Formatting vs validation:</strong>{" "}
+                making text easier to read does not prove that it satisfies a schema,
+                protocol, runtime, or application requirement.
+              </p>
+            </SectionMiniCard>
           </div>
+        </SectionCard>
+
+        <section className="mt-16 max-w-4xl border-t border-gray-200 pt-10">
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Category Pages Explain the Boundaries; Tool Pages Handle the Exact Case
+          </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A category page helps you choose the right kind of operation and understand
+            where static browser checks stop. Each individual tool then documents its
+            own input rules, behavior, limitations, edge cases, and relevant standards.
+            That separation keeps navigation useful without reducing technical topics to
+            one generic explanation.
+          </p>
         </section>
       </section>
     </main>

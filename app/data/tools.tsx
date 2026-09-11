@@ -22,7 +22,7 @@ export const tools = [
 
   {
     title: "URL Encoder Decoder",
-    description: "Encode and decode URLs for safe web usage.",
+    description: "Percent-encode URL components, full URLs, or form values and decode percent escapes back to text.",
     href: "/tools/url-encoder-decoder",
 	category: "Encoding Tools",
   },
@@ -92,7 +92,7 @@ export const tools = [
   
   {
   title: "HTML Encoder Decoder",
-  description: "Encode and decode HTML entities instantly.",
+  description: "Escape ampersands, angle brackets, quotes, and apostrophes as HTML entities, then reverse those mappings.",
   href: "/tools/html-encoder-decoder",
   category: "Encoding Tools",
   },
@@ -127,7 +127,7 @@ export const tools = [
   
   {
   title: "XML Formatter",
-  description: "Format and beautify XML instantly.",
+  description: "Validate XML syntax, then indent tag boundaries for a more readable source view.",
   href: "/tools/xml-formatter",
   category: "JSON & Data Tools",
   },
@@ -148,14 +148,14 @@ export const tools = [
   
   {
   title: "Robots.txt Generator",
-  description: "Generate robots.txt files for websites instantly.",
+  description: "Assemble User-agent, Allow, Disallow, and Sitemap directives into a copy-ready robots.txt file.",
   href: "/tools/robots-txt-generator",
   category: "SEO Tools",
   },
   
   {
   title: "Sitemap Generator",
-  description: "Generate XML sitemaps for websites instantly.",
+  description: "Wrap line-separated URLs in a basic XML sitemap urlset document for search-engine discovery.",
   href: "/tools/sitemap-generator",
   category: "SEO Tools",
   },
@@ -219,14 +219,14 @@ export const tools = [
 
   {
   title: "JSON Validator",
-  description: "Validate JSON syntax and find errors instantly.",
+  description: "Parse JSON syntax, surface native parsing errors, and show a formatted representation of valid input.",
   href: "/tools/json-validator",
   category: "JSON & Data Tools",
   },
 
   {
   title: "JSON Escape Unescape",
-  description: "Escape and unescape JSON strings instantly.",
+  description: "Serialize text as a JSON string literal or parse a supplied JSON string value.",
   href: "/tools/json-escape-unescape",
   category: "JSON & Data Tools",
   },
@@ -254,63 +254,63 @@ export const tools = [
 
   {
   title: "JSON Diff Checker",
-  description: "Compare two JSON objects and find differences instantly.",
+  description: "Compare two parsed JSON values and report line-level differences after normalized formatting.",
   href: "/tools/json-diff-checker",
   category: "JSON & Data Tools"
   },
 
   {
   title: "YAML to JSON Converter",
-  description: "Convert YAML to JSON instantly.",
+  description: "Parse YAML and serialize the resulting data structure as formatted JSON.",
   href: "/tools/yaml-to-json-converter",
   category: "DevOps Tools",
   },
 
   {
   title: "JSON to YAML Converter",
-  description: "Convert JSON to YAML instantly.",
+  description: "Parse valid JSON and serialize its data structure as readable YAML.",
   href: "/tools/json-to-yaml-converter",
   category: "DevOps Tools",
   },
 
   {
   title: "XML to JSON Converter",
-  description: "Convert XML to JSON instantly.",
+  description: "Parse XML into JSON while surfacing invalid markup before conversion.",
   href: "/tools/xml-to-json-converter",
   category: "JSON & Data Tools"
   },
 
   {
   title: "Robots.txt Tester",
-  description: "Test robots.txt rules against URLs and user agents instantly.",
+  description: "Evaluate robots.txt Allow and Disallow rules for a chosen crawler and URL path.",
   href: "/tools/robots-txt-tester",
   category: "SEO Tools"
   },
 
   {
   title: "Canonical URL Checker",
-  description: "Check and validate canonical URLs instantly.",
+  description: "Normalize a page URL and canonical URL, then report whether their serialized forms match.",
   href: "/tools/canonical-url-checker",
   category: "SEO Tools"
   },
 
   {
   title: "HTTP Headers Parser",
-  description: "Parse and format HTTP headers instantly.",
+  description: "Parse raw HTTP header lines into structured names and values for inspection.",
   href: "/tools/http-headers-parser",
   category: "SEO Tools"
   },
 
   {
   title: "Redirect Checker",
-  description: "Check URL redirects and HTTP redirect status instantly.",
+  description: "Trace redirect hops from pasted HTTP response headers and surface Location targets, status codes, loops, and limits.",
   href: "/tools/redirect-checker",
   category: "SEO Tools"
   },
 
   {
   title: "UTM Builder",
-  description: "Generate UTM tracking URLs instantly.",
+  description: "Append source, medium, campaign, term, and content UTM parameters to a validated destination URL.",
   href: "/tools/utm-builder",
   category: "SEO Tools"
   },
@@ -338,7 +338,7 @@ export const tools = [
 
   {
   title: "JSON Schema Validator",
-  description: "Validate JSON data against a JSON schema instantly.",
+  description: "Validate JSON data against a supplied schema and surface failed constraints or required fields.",
   href: "/tools/json-schema-validator",
   category: "JSON & Data Tools"
   },
@@ -352,63 +352,63 @@ export const tools = [
 
   {
   title: "User Agent Parser",
-  description: "Parse browser and device user agents instantly.",
+  description: "Identify browser, operating system, and device hints from a pasted user-agent string.",
   href: "/tools/user-agent-parser",
   category: "SEO Tools"
   },
 
   {
   title: "Docker Compose Validator",
-  description: "Validate Docker Compose YAML files instantly.",
+  description: "Parse Compose YAML and flag structural or configuration problems before deployment.",
   href: "/tools/docker-compose-validator",
   category: "DevOps Tools"
   },
 
   {
   title: "Kubernetes YAML Validator",
-  description: "Validate Kubernetes YAML manifests instantly.",
+  description: "Parse Kubernetes manifests and flag YAML or resource-structure problems before applying them.",
   href: "/tools/kubernetes-yaml-validator",
   category: "DevOps Tools"
   },
 
   {
   title: ".env File Parser",
-  description: "Parse and format .env files instantly.",
+  description: "Parse dotenv assignments into structured keys and values for inspection or JSON output.",
   href: "/tools/env-file-parser",
   category: "DevOps Tools"
   },
 
   {
   title: "Cookie Parser",
-  description: "Parse HTTP cookies into readable key-value pairs instantly.",
+  description: "Split Cookie header text into name-value pairs and percent-decode each parsed value.",
   href: "/tools/cookie-parser",
   category: "Developer Tools"
   },
 
   {
   title: "URL Query Params Parser",
-  description: "Parse URL query parameters instantly.",
+  description: "Parse a full URL or query string into decoded parameter key-value output.",
   href: "/tools/url-query-params-parser",
   category: "SEO Tools"
   },
 
   {
   title: "MIME Type Finder",
-  description: "Find MIME types by file extension instantly.",
+  description: "Match known file extensions to MIME media types and show the associated content type.",
   href: "/tools/mime-type-finder",
   category: "Developer Tools"
   },
 
   {
   title: "IP Address Inspector",
-  description: "Inspect IPv4 and IPv6 address format instantly.",
+  description: "Inspect IPv4 or IPv6 syntax and report the address form without performing network lookups.",
   href: "/tools/ip-address-inspector",
   category: "Developer Tools"
   },
 
   {
   title: "HTTP Status Code Explorer",
-  description: "Search and understand HTTP status codes instantly.",
+  description: "Look up supported HTTP status codes and read their name and short meaning.",
   href: "/tools/http-status-code-explorer",
   category: "SEO Tools"
   },
@@ -529,7 +529,7 @@ export const tools = [
 {
   title: "YAML Validator",
   description:
-    "Validate YAML syntax, check formatting errors, and find indentation issues instantly.",
+    "Parse YAML syntax and surface indentation or structure errors without rewriting the document.",
   href: "/tools/yaml-validator",
   category: "DevOps Tools",
 },
@@ -537,7 +537,7 @@ export const tools = [
 {
   title: "Cron Expression Parser",
   description:
-    "Parse cron expressions instantly and understand cron schedules in simple human-readable format.",
+    "Interpret five-field cron expressions and explain the minute, hour, day, month, and weekday schedule.",
   href: "/tools/cron-expression-parser",
   category: "DevOps Tools",
 },
@@ -1290,7 +1290,7 @@ export const tools = [
 {
   title: "HTTP Cache Header Analyzer",
   description:
-    "Build download or inline headers with ASCII fallback and RFC 8187 UTF-8 filenames.",
+    "Interpret Cache-Control, ETag, Expires, Last-Modified, Vary, Age, TTL, and revalidation signals from response headers.",
   href: "/tools/http-cache-header-analyzer",
   category: "Developer Tools",
 },
