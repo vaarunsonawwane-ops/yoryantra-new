@@ -1,128 +1,65 @@
 import Link from "next/link";
 
-const featuredCategories = [
+const signalCards = [
   {
-    title: "SEO Tools",
-    description:
-      "Metadata, hreflang, robots.txt, sitemap, redirect, and canonical workflows.",
-    href: "/categories/seo-tools",
+    title: "robots.txt",
+    does: "Controls crawler access to URL paths for matching user-agents.",
+    not: "It is not a reliable way to remove an already known URL from search results, and blocked crawling can prevent a crawler from seeing page-level noindex directives.",
+    href: "/tools/robots-txt-tester",
+    label: "Robots.txt Tester",
   },
   {
-    title: "Developer Tools",
-    description:
-      "Developer tools for inspecting responses, URLs, markup, and page behaviour.",
-    href: "/categories/developer-tools",
+    title: "XML sitemap",
+    does: "Provides a discovery list and optional URL metadata to search engines.",
+    not: "Submission does not guarantee crawling, indexing, canonical selection, or ranking.",
+    href: "/tools/sitemap-validator",
+    label: "Sitemap Validator",
   },
   {
-    title: "JSON & Data Tools",
-    description:
-      "Structured data and JSON tools for markup, feeds, APIs, and data checks.",
-    href: "/categories/json-tools",
+    title: "Canonical URL",
+    does: "Expresses a preferred representative URL for duplicate or very similar content.",
+    not: "It is a signal, not a command; search engines can select another canonical when signals disagree.",
+    href: "/tools/canonical-url-checker",
+    label: "Canonical URL Checker",
   },
   {
-    title: "Encoding Tools",
-    description:
-      "URL encoding, HTML escaping, slugs, and web-safe text workflows.",
-    href: "/categories/encoding-tools",
+    title: "hreflang",
+    does: "Connects language or regional alternatives so search engines can serve a suitable version.",
+    not: "It does not replace canonicalization, translation quality, or correct indexability of the alternate URLs.",
+    href: "/tools/hreflang-validator",
+    label: "Hreflang Validator",
   },
 ];
 
-const popularSeoTools = [
-  {
-    title: "Meta Tag Generator",
-    description:
-      "Create title, description, robots, canonical, and social metadata.",
-    href: "/tools/meta-tag-generator",
-  },
-  {
-    title: "Open Graph Generator",
-    description:
-      "Create Open Graph tags for social titles, descriptions, images, and URLs.",
-    href: "/tools/open-graph-generator",
-  },
-  {
-    title: "Hreflang Tag Generator",
-    description:
-      "Create hreflang tags for language and regional page variants.",
-    href: "/tools/hreflang-tag-generator",
-  },
-  {
-    title: "robots.txt Generator",
-    description:
-      "Create user-agent, allow, disallow, and sitemap rules for crawlers.",
-    href: "/tools/robots-txt-generator",
-  },
-  {
-    title: "Sitemap Generator",
-    description:
-      "Generate XML sitemap structure from canonical URL lists.",
-    href: "/tools/sitemap-generator",
-  },
-  {
-    title: "Canonical URL Checker",
-    description:
-      "Review canonical URL formatting and common consistency problems.",
-    href: "/tools/canonical-url-checker",
-  },
-  {
-    title: "Redirect Checker",
-    description:
-      "Inspect redirect status codes, chains, loops, and final destinations.",
-    href: "/tools/redirect-checker",
-  },
-  {
-    title: "UTM Builder",
-    description:
-      "Create consistent UTM campaign URLs for analytics and reporting.",
-    href: "/tools/utm-builder",
-  },
+const debugOrder = [
+  "Confirm the URL returns the intended HTTP status and redirect behavior.",
+  "Check whether robots.txt permits the crawler to fetch the page.",
+  "Inspect robots meta and X-Robots-Tag directives for indexing restrictions.",
+  "Compare the declared canonical with redirects, internal links, and sitemap URLs.",
+  "For international pages, verify hreflang relationships and self-references.",
+  "Use Search Console to see what Google actually crawled, indexed, or selected as canonical.",
 ];
 
 export const metadata = {
-  title: "Technical SEO Workflows and Tool Selection | Yoryantra",
-
+  title: "Technical SEO Resources for Crawling, Indexing, Canonicals, and Hreflang | Yoryantra",
   description:
-    "Follow practical technical SEO workflows for metadata, robots.txt, sitemaps, hreflang, redirects, canonical URLs, Open Graph, and campaign tracking.",
-
-  keywords: [
-    "technical SEO workflows",
-    "SEO tool selection",
-    "technical SEO tools",
-    "technical seo tools",
-    "meta tag generator",
-    "hreflang generator",
-    "robots.txt generator",
-    "sitemap generator",
-    "canonical url checker",
-    "redirect checker",
-    "open graph generator",
-    "utm builder",
-  ],
-
+    "Debug technical SEO signals in order across HTTP status, robots.txt, noindex, canonicals, sitemaps, hreflang, metadata, and Search Console verification.",
   alternates: {
     canonical: "https://yoryantra.com/seo-resources",
   },
-
   openGraph: {
-    title: "Technical SEO Workflows and Tool Selection | Yoryantra",
-
+    title: "Technical SEO Resources | Yoryantra",
     description:
-      "Practical technical SEO workflows and tools for metadata, redirects, hreflang, robots.txt, sitemaps, canonical URLs, and campaign tracking.",
-
+      "Understand what robots.txt, sitemaps, canonicals, hreflang, redirects, and metadata can signal—and what they cannot guarantee.",
     url: "https://yoryantra.com/seo-resources",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Technical SEO Workflows and Tool Selection | Yoryantra",
-
+    title: "Technical SEO Resources | Yoryantra",
     description:
-      "Choose the right technical SEO tool for metadata, crawling, redirects, canonicals, hreflang, and campaign tracking.",
+      "Treat crawling, indexing, canonicalization, international targeting, and search presentation as separate technical questions.",
   },
 };
 
@@ -130,297 +67,123 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
-        {/* BREADCRUMB */}
         <div className="mb-8 flex items-center text-sm text-gray-500">
-          <Link
-            href="/"
-            className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-          >
-            Home
-          </Link>
-
+          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--light-gold)]">Home</Link>
           <span className="mx-2">/</span>
-
-          <span className="text-gray-900">
-            SEO Resources
-          </span>
+          <span className="text-gray-900">SEO Resources</span>
         </div>
 
-        {/* HERO */}
-        <div className="max-w-3xl">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            Technical SEO Workflows for Metadata, Crawling, and URLs
+        <div className="max-w-4xl">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
+            Technical SEO Is a Chain of Signals, Not a Single Score
           </h1>
-
-          <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Prepare metadata, review crawler instructions, test redirects, and check
-            canonical and hreflang signals before publishing or updating pages.
+          <p className="mt-6 text-lg leading-8 text-gray-600">
+            A page can be crawlable but not indexable, indexable but not chosen
+            as canonical, canonicalized correctly but missing hreflang, or fully
+            indexable while its title is rewritten in search results. Debugging
+            becomes easier when crawling, indexing, canonicalization,
+            international targeting, and presentation are treated as separate
+            questions.
           </p>
         </div>
 
-        {/* INTRO */}
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h2 className="text-base font-semibold leading-snug text-gray-900">
-              Prepare Metadata and Social Tags
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Create page metadata and Open Graph tags, then review how the final HTML
-              presents them.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h2 className="text-base font-semibold leading-snug text-gray-900">
-              Check Crawling and Indexing Signals
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Review robots.txt, sitemaps, hreflang, and page directives that guide search
-              engine discovery.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h2 className="text-base font-semibold leading-snug text-gray-900">
-              Review URLs, Redirects, and Canonicals
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Check redirect paths, preferred URLs, campaign parameters, and signals that
-              should stay consistent.
-            </p>
-          </div>
-        </div>
-
-
-        {/* FEATURED CATEGORIES */}
         <section className="mt-16">
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Related Categories for Technical SEO Work
-            </h2>
-
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              Use these categories when the task extends beyond one SEO check
-              into structured data, URL handling, encoding, or development work.
-            </p>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {featuredCategories.map((category) => (
-              <Link
-                key={category.href}
-                href={category.href}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {category.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {category.description}
-                </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Explore category →
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* POPULAR TOOLS */}
-        <section className="mt-16">
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Common SEO Tools and When to Use Them
-            </h2>
-
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with these tools for metadata, social previews,
-              international targeting, crawler instructions, redirects,
-              canonicals, and campaign links.
-            </p>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {popularSeoTools.map((tool) => (
-              <Link
-                key={tool.href}
-                href={tool.href}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {tool.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {tool.description}
-                </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Open tool →
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* WORKFLOWS */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Practical Technical SEO Workflows
-          </h2>
-
-          <div className="mt-7 grid gap-x-12 gap-y-6 md:grid-cols-2">
-            {[
-              "Create and review page titles and descriptions before publishing.",
-              "Generate Open Graph tags, then inspect the final HTML and preview.",
-              "Prepare hreflang tags and verify language, region, and return links.",
-              "Check redirect status codes, chains, loops, and final destinations.",
-              "Create robots.txt rules only after deciding which paths should be crawlable.",
-              "Review canonical URLs together with redirects, internal links, and sitemaps.",
-              "Generate sitemap entries from canonical, accessible URLs.",
-              "Build UTM links for analytics without mixing them into canonical strategy.",
-            ].map((item, index) => (
-              <div key={item} className="flex items-start gap-4">
-                <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-
-                <p className="text-sm leading-6 text-gray-700">
-                  {item}
-                </p>
+          <h2 className="text-2xl font-semibold text-gray-900">What Common SEO Signals Actually Do</h2>
+          <div className="mt-7 grid gap-5 md:grid-cols-2">
+            {signalCards.map((signal) => (
+              <div key={signal.title} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900">{signal.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Useful for:</strong> {signal.does}</p>
+                <p className="mt-2 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Does not guarantee:</strong> {signal.not}</p>
+                <Link href={signal.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">{signal.label} →</Link>
               </div>
             ))}
           </div>
         </section>
 
-        {/* WHY MATTERS */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            How to Interpret Technical SEO Checks
-          </h2>
+        <section className="mt-18 grid gap-7 lg:grid-cols-[1fr_0.9fr]">
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900">Debug Indexability in a Useful Order</h2>
+            <ol className="mt-6 space-y-4">
+              {debugOrder.map((item, index) => (
+                <li key={item} className="flex gap-4 leading-7 text-gray-600">
+                  <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">{String(index + 1).padStart(2, "0")}</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
 
-          <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
-            <p>
-              Technical SEO signals work together. Metadata, crawl rules,
-              canonicals, redirects, hreflang, sitemaps, internal links, and
-              live response behaviour should point search engines toward the
-              same preferred version of a page.
-            </p>
-
-            <p>
-              These tools help catch implementation problems before
-              publishing or during debugging. Always confirm the result in the
-              live page source, server response, and Search Console data rather
-              than assuming a generated file or tag guarantees indexing.
+          <div className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-7">
+            <h2 className="text-xl font-semibold text-gray-900">Useful diagnostic tools</h2>
+            <div className="mt-5 flex flex-col gap-3 text-sm font-semibold">
+              <Link href="/tools/indexability-checker" className="text-[var(--light-gold)] hover:underline">Indexability Checker →</Link>
+              <Link href="/tools/meta-robots-tag-generator" className="text-[var(--light-gold)] hover:underline">Meta Robots Tag Generator →</Link>
+              <Link href="/tools/redirect-checker" className="text-[var(--light-gold)] hover:underline">Redirect Checker →</Link>
+              <Link href="/tools/sitemap-url-extractor" className="text-[var(--light-gold)] hover:underline">Sitemap URL Extractor →</Link>
+              <Link href="/tools/crawl-budget-url-cleaner" className="text-[var(--light-gold)] hover:underline">Crawl Budget URL Cleaner →</Link>
+            </div>
+            <p className="mt-5 text-sm leading-6 text-gray-600">
+              The Redirect Checker analyzes response information you provide; it
+              does not silently fetch and follow a live URL. Use live HTTP data
+              when the problem depends on actual server behavior.
             </p>
           </div>
         </section>
 
-        {/* FAQ */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-6 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                How should I choose between similar SEO tools?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Start with the exact task: generate, preview, validate,
-                inspect, or test. Similar SEO tools are separated because those
-                operations answer different implementation questions.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does a technically valid page automatically rank?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Technical SEO helps search engines access and understand
-                a page, but rankings also depend on relevance, usefulness,
-                competition, links, trust, and the overall search result.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does submitting a sitemap guarantee indexing?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. A sitemap helps discovery and provides URL information.
-                Search engines still decide when to crawl and whether a page
-                should be indexed.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can search engines rewrite titles and descriptions?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Search engines may display different text when another
-                title or passage better matches the query, page, or available
-                search-result space.
-              </p>
-            </div>
+        <section className="mt-18 rounded-2xl border border-gray-200 bg-white p-7 md:p-9">
+          <h2 className="text-2xl font-semibold text-gray-900">A Search Preview Is Still a Preview</h2>
+          <div className="mt-5 space-y-4 leading-8 text-gray-600">
+            <p>
+              Title and description tools can measure source text, estimated
+              width, duplicate wording, and likely truncation. They cannot
+              guarantee the exact title link or snippet a search engine will
+              display for every query. Search systems may choose different text
+              from the page when it better represents the result.
+            </p>
+            <p>
+              Treat preview tools as editing aids. Check the live HTML, make the
+              page title and main heading descriptive, keep the visible content
+              consistent with the metadata, and evaluate actual search behavior
+              in Search Console after the page has been crawled.
+            </p>
           </div>
-        </section>
-
-        {/* RELATED */}
-        <section className="mt-16 border-t border-gray-200 pt-10">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Continue Exploring Yoryantra
-          </h2>
-
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/categories/seo-tools"
-              className="yoryantra-btn-outline"
-            >
-              SEO Tools
-            </Link>
-
-            <Link
-              href="/developers"
-              className="yoryantra-btn-outline"
-            >
-              For Developers
-            </Link>
-
-            <Link
-              href="/categories/developer-tools"
-              className="yoryantra-btn-outline"
-            >
-              Developer Tools
-            </Link>
-
-            <Link
-              href="/categories/json-tools"
-              className="yoryantra-btn-outline"
-            >
-              JSON & Data Tools
-            </Link>
-
-            <Link
-              href="/categories/encoding-tools"
-              className="yoryantra-btn-outline"
-            >
-              Encoding Tools
-            </Link>
+            <Link href="/tools/title-tag-length-checker" className="yoryantra-btn-outline">Title Tag Length Checker</Link>
+            <Link href="/tools/meta-description-length-checker" className="yoryantra-btn-outline">Meta Description Length Checker</Link>
+            <Link href="/tools/serp-snippet-preview-tool" className="yoryantra-btn-outline">SERP Snippet Preview</Link>
+            <Link href="/tools/open-graph-preview-checker" className="yoryantra-btn-outline">Open Graph Preview Checker</Link>
           </div>
         </section>
+
+        <section className="mt-18 max-w-5xl">
+          <h2 className="text-2xl font-semibold text-gray-900">Consistency Matters More Than One Perfect Tag</h2>
+          <p className="mt-5 leading-8 text-gray-600">
+            Redirects, canonicals, internal links, sitemap URLs, hreflang
+            alternates, robots directives, and actual HTTP responses should tell
+            a coherent story about which URLs are accessible and preferred.
+            Conflicting signals are more useful to investigate than chasing a
+            single “SEO score.” Technical correctness also does not guarantee
+            ranking; the page still needs useful content that satisfies the
+            person who searched for it.
+          </p>
+        </section>
+
+        <section className="mt-18 border-t border-gray-200 pt-10">
+          <h2 className="text-xl font-semibold text-gray-900">Google Search Central references</h2>
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
+            <a href="https://developers.google.com/search/docs/crawling-indexing/robots/intro" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">robots.txt introduction ↗</a>
+            <a href="https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Sitemaps overview ↗</a>
+            <a href="https://developers.google.com/search/docs/crawling-indexing/canonicalization" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Canonicalization ↗</a>
+            <a href="https://developers.google.com/search/docs/specialty/international/localized-versions" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Localized versions and hreflang ↗</a>
+          </div>
+        </section>
+
+        <div className="mt-12 flex flex-wrap gap-3">
+          <Link href="/categories/seo-tools" className="yoryantra-btn-outline">Browse SEO Tools</Link>
+          <Link href="/developers" className="yoryantra-btn-outline">Developer Workflows</Link>
+          <Link href="/resources" className="yoryantra-btn-outline">All Resource Guides</Link>
+        </div>
       </section>
     </main>
   );

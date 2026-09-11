@@ -1,127 +1,81 @@
 import Link from "next/link";
 
-const featuredCategories = [
+const layers = [
   {
-    title: "DevOps Tools",
-    description:
-      "Docker, Kubernetes, YAML, environment files, cron, and deployment workflows.",
-    href: "/categories/devops-tools",
+    number: "01",
+    title: "Syntax",
+    text: "Can the text be parsed as YAML, dotenv, a cron expression, or another expected format? Syntax is the first gate, not the final verdict.",
   },
   {
-    title: "Developer Tools",
-    description:
-      "Developer tools for debugging, timestamps, UUIDs, APIs, and daily checks.",
-    href: "/categories/developer-tools",
+    number: "02",
+    title: "Platform structure",
+    text: "Are the fields, resource kinds, ports, dependencies, runners, or directives meaningful for Docker, Kubernetes, GitHub Actions, or Nginx?",
   },
   {
-    title: "JSON & Data Tools",
-    description:
-      "JSON, YAML, schema, validation, and structured-data workflows.",
-    href: "/categories/json-tools",
+    number: "03",
+    title: "Resolution and precedence",
+    text: "Which environment source wins? What does interpolation produce? Which image tag, namespace, service target, or variable value is actually selected?",
   },
   {
-    title: "Security Tools",
-    description:
-      "Security tools for tokens, hashes, keys, headers, and authentication checks.",
-    href: "/categories/security-tools",
+    number: "04",
+    title: "Runtime behavior",
+    text: "Can the image pull, the service start, the DNS name resolve, the workload schedule, and the application stay healthy in the real environment?",
   },
 ];
 
-const popularDevopsTools = [
+const workflowCards = [
   {
-    title: "Docker Compose Validator",
-    description:
-      "Check Docker Compose syntax and common structure issues before running a stack.",
-    href: "/tools/docker-compose-validator",
+    title: "Docker Compose",
+    text: "Review services, ports, volumes, dependencies, and environment resolution before the stack is started.",
+    links: [
+      { label: "Compose Validator", href: "/tools/docker-compose-validator" },
+      { label: "Ports Checker", href: "/tools/docker-compose-ports-checker" },
+      { label: "Volume Checker", href: "/tools/docker-compose-volume-checker" },
+      { label: "Environment Resolver", href: "/tools/docker-compose-environment-variable-resolver" },
+    ],
   },
   {
-    title: "Kubernetes YAML Validator",
-    description:
-      "Check Kubernetes manifest syntax and common configuration problems.",
-    href: "/tools/kubernetes-yaml-validator",
+    title: "Kubernetes manifests",
+    text: "Separate manifest parsing from workload relationships, image choices, service routing, and resource requests or limits.",
+    links: [
+      { label: "YAML Validator", href: "/tools/kubernetes-yaml-validator" },
+      { label: "Resource Summarizer", href: "/tools/kubernetes-yaml-resource-summarizer" },
+      { label: "Service Port Mapper", href: "/tools/kubernetes-service-port-mapper" },
+      { label: "Requests & Limits Checker", href: "/tools/kubernetes-resource-requests-limits-checker" },
+    ],
   },
   {
-    title: ".env File Parser",
-    description:
-      "Parse environment files into readable key-value output.",
-    href: "/tools/env-file-parser",
-  },
-  {
-    title: "YAML Formatter",
-    description:
-      "Format valid YAML for clearer review and debugging.",
-    href: "/tools/yaml-formatter",
-  },
-  {
-    title: "JSON to YAML Converter",
-    description:
-      "Convert JSON to YAML while preserving the underlying data structure.",
-    href: "/tools/json-to-yaml-converter",
-  },
-  {
-    title: "YAML to JSON Converter",
-    description:
-      "Convert YAML to JSON for debugging, scripts, and API workflows.",
-    href: "/tools/yaml-to-json-converter",
-  },
-  {
-    title: "Cron Expression Generator",
-    description:
-      "Build cron expressions for scheduled jobs and automation.",
-    href: "/tools/cron-expression-generator",
-  },
-  {
-    title: "Cron Expression Parser",
-    description:
-      "Interpret cron fields and review the resulting schedule.",
-    href: "/tools/cron-expression-parser",
+    title: "Automation and edge configuration",
+    text: "Check CI matrices, Nginx redirects, cron schedules, DNS answers, and environment differences as their own configuration problems.",
+    links: [
+      { label: "GitHub Actions Validator", href: "/tools/github-actions-yaml-validator" },
+      { label: "Nginx Redirect Tester", href: "/tools/nginx-redirect-rule-tester" },
+      { label: "Cron Expression Validator", href: "/tools/cron-expression-validator" },
+      { label: "Environment Diff Checker", href: "/tools/environment-variable-diff-checker" },
+    ],
   },
 ];
 
 export const metadata = {
-  title: "DevOps Workflows for Docker, Kubernetes, YAML, and Automation | Yoryantra",
-
+  title: "DevOps Configuration Workflows for Docker, Kubernetes, CI, and Nginx | Yoryantra",
   description:
-    "Follow practical DevOps workflows for Docker Compose, Kubernetes YAML, environment files, YAML formatting, cron expressions, and configuration conversion.",
-
-  keywords: [
-    "DevOps workflows",
-    "DevOps tool selection",
-    "docker compose validator",
-    "kubernetes yaml validator",
-    "yaml formatter",
-    "env file parser",
-    "cron expression generator",
-    "cron parser",
-    "json to yaml converter",
-    "infrastructure tools",
-    "configuration tools",
-  ],
-
+    "Review DevOps configuration in layers: syntax, platform structure, variable resolution, and runtime behavior across Docker, Kubernetes, CI, Nginx, cron, and DNS.",
   alternates: {
     canonical: "https://yoryantra.com/devops-resources",
   },
-
   openGraph: {
-    title: "DevOps Workflows for Docker, Kubernetes, YAML, and Automation | Yoryantra",
-
+    title: "DevOps Configuration Workflows | Yoryantra",
     description:
-      "Practical DevOps workflows and tools for Docker Compose, Kubernetes YAML, environment files, YAML formatting, cron expressions, and configuration checks.",
-
+      "Practical guidance for Docker, Kubernetes, CI, Nginx, environment variables, cron, and DNS without confusing static validation with runtime truth.",
     url: "https://yoryantra.com/devops-resources",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "DevOps Workflows for Docker, Kubernetes, YAML, and Automation | Yoryantra",
-
+    title: "DevOps Configuration Workflows | Yoryantra",
     description:
-      "Choose the right DevOps tool for Docker, Kubernetes, YAML, environment files, cron expressions, and deployment checks.",
+      "Read configuration in layers before trusting Docker, Kubernetes, CI, Nginx, cron, or DNS behavior.",
   },
 };
 
@@ -129,297 +83,130 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
-        {/* BREADCRUMB */}
         <div className="mb-8 flex items-center text-sm text-gray-500">
-          <Link
-            href="/"
-            className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-          >
-            Home
-          </Link>
-
+          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--light-gold)]">Home</Link>
           <span className="mx-2">/</span>
-
-          <span className="text-gray-900">
-            DevOps Resources
-          </span>
+          <span className="text-gray-900">DevOps Resources</span>
         </div>
 
-        {/* HERO */}
-        <div className="max-w-3xl">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            DevOps Workflows for Docker, Kubernetes, YAML, and Automation
+        <div className="max-w-4xl">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
+            Valid Configuration Is Not the Same as a Working Deployment
           </h1>
-
-          <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Review Docker, Kubernetes, YAML, environment files, and cron schedules
-            before configuration changes reach deployment.
+          <p className="mt-6 text-lg leading-8 text-gray-600">
+            DevOps files are read by several systems before anything actually
+            runs. YAML can parse while a Compose service is still wrong. A
+            Kubernetes manifest can look reasonable while a Service selects the
+            wrong workload. A CI workflow can be syntactically valid while its
+            permissions, matrix, or secrets fail at runtime. The useful habit is
+            to review configuration in layers.
           </p>
         </div>
 
-        {/* INTRO */}
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h2 className="text-base font-semibold leading-snug text-gray-900">
-              Review Container Configuration
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Check Docker Compose and Kubernetes files for syntax, structure, and common
-              configuration mistakes.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h2 className="text-base font-semibold leading-snug text-gray-900">
-              Check YAML and Environment Files
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Format YAML, parse environment variables, and convert configuration data
-              when another format is needed.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h2 className="text-base font-semibold leading-snug text-gray-900">
-              Understand Schedules and Automation
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Build and read cron expressions before adding recurring jobs to deployment
-              or maintenance workflows.
-            </p>
-          </div>
-        </div>
-
-
-        {/* FEATURED CATEGORIES */}
         <section className="mt-16">
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Related Categories for DevOps Work
-            </h2>
-
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              Use these categories when the task extends beyond one
-              configuration check into data conversion, security, debugging,
-              or deployment preparation.
-            </p>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {featuredCategories.map((category) => (
-              <Link
-                key={category.href}
-                href={category.href}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {category.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {category.description}
-                </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Explore category →
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* POPULAR TOOLS */}
-        <section className="mt-16">
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Common DevOps Tools and When to Use Them
-            </h2>
-
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with these tools for container configuration,
-              Kubernetes manifests, environment files, YAML conversion, and
-              scheduled jobs.
-            </p>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {popularDevopsTools.map((tool) => (
-              <Link
-                key={tool.href}
-                href={tool.href}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {tool.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {tool.description}
-                </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Open tool →
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* WORKFLOWS */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Practical DevOps Workflows
-          </h2>
-
-          <div className="mt-7 grid gap-x-12 gap-y-6 md:grid-cols-2">
-            {[
-              "Validate Docker Compose syntax and structure before running a stack.",
-              "Check Kubernetes YAML structure before applying changes to a cluster.",
-              "Parse environment files and review variable names and values.",
-              "Format YAML before reviewing configuration changes.",
-              "Convert JSON to YAML when a configuration workflow expects YAML.",
-              "Convert YAML to JSON for debugging, scripts, and API workflows.",
-              "Create cron expressions for scheduled jobs and automation.",
-              "Read cron schedules before adding or changing automation tasks.",
-            ].map((item, index) => (
-              <div key={item} className="flex items-start gap-4">
-                <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-
-                <p className="text-sm leading-6 text-gray-700">
-                  {item}
-                </p>
+          <h2 className="text-2xl font-semibold text-gray-900">Four Layers of Configuration Review</h2>
+          <div className="mt-7 grid gap-5 md:grid-cols-2">
+            {layers.map((layer) => (
+              <div key={layer.number} className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+                <div className="flex items-start gap-4">
+                  <span className="pt-1 text-xs font-semibold tracking-wider text-[var(--light-gold)]">{layer.number}</span>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{layer.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-gray-600">{layer.text}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* WHY MATTERS */}
-        <section className="mt-16">
+        <section className="mt-18 rounded-2xl border border-gray-200 bg-white p-7 shadow-sm md:p-9">
           <h2 className="text-2xl font-semibold text-gray-900">
-            How to Interpret DevOps Tool Results
+            Why YAML Validation Comes First, Not Last
           </h2>
-
-          <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
+          <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              DevOps workflows often depend on small configuration files
-              that control containers, services, environments, deployments,
-              scheduled jobs, and infrastructure behaviour.
+              YAML only describes the serialization format. It does not know
+              whether <code>imagePullPolicy</code> is appropriate, whether a
+              Compose volume target is risky, whether a GitHub Actions job has
+              enough permissions, or whether an Nginx rule creates a redirect
+              loop. Platform-aware checks need to happen after parsing.
             </p>
-
             <p>
-              A file can be valid YAML and still be wrong for Docker,
-              Kubernetes, or the target environment. Review references, secrets,
-              ports, volumes, permissions, image tags, schedules, and runtime
-              behaviour before production use.
+              The reverse mistake also matters: platform-specific analysis is
+              unreliable if the underlying document is malformed. When a tool
+              surfaces a YAML or dotenv parsing error, fix that first so later
+              warnings are based on the structure you intended.
             </p>
           </div>
         </section>
 
-        {/* FAQ */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-6 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                How should I choose between similar DevOps tools?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Start with the exact task: format, parse, convert, validate,
-                generate, or interpret. Similar tools are separated because
-                those operations answer different questions.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does valid YAML mean a Docker or Kubernetes file is correct?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Valid YAML only confirms the syntax. The file may still
-                contain unsupported fields, missing resources, incorrect names,
-                unavailable images, or environment-specific problems.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can a cron expression be valid but still run at the wrong time?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Time zones, daylight-saving changes, scheduler
-                differences, and day-of-month or day-of-week behaviour can
-                change when a job actually runs.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Do browser-based checks replace deployment testing?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. They help with focused checks, formatting, and
-                conversions. Production deployments still need staging tests,
-                logs, monitoring, backups, access controls, and rollback plans.
-              </p>
-            </div>
+        <section className="mt-18">
+          <div className="max-w-3xl">
+            <h2 className="text-2xl font-semibold text-gray-900">Work Through the System You Are Configuring</h2>
+            <p className="mt-3 leading-7 text-gray-600">
+              These tool groups follow platform-specific questions rather than
+              treating every configuration file as generic YAML.
+            </p>
+          </div>
+          <div className="mt-7 grid gap-6 lg:grid-cols-3">
+            {workflowCards.map((card) => (
+              <div key={card.title} className="self-start rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900">{card.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-600">{card.text}</p>
+                <div className="mt-5 flex flex-col gap-2">
+                  {card.links.map((link) => (
+                    <Link key={link.href} href={link.href} className="text-sm font-semibold text-[var(--light-gold)] hover:underline">
+                      {link.label} →
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* RELATED */}
-        <section className="mt-16 border-t border-gray-200 pt-10">
+        <section className="mt-18 max-w-5xl">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Continue Exploring Yoryantra
+            Precedence Is Often the Bug
           </h2>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/categories/devops-tools"
-              className="yoryantra-btn-outline"
-            >
-              DevOps Tools
-            </Link>
-
-            <Link
-              href="/developers"
-              className="yoryantra-btn-outline"
-            >
-              For Developers
-            </Link>
-
-            <Link
-              href="/categories/developer-tools"
-              className="yoryantra-btn-outline"
-            >
-              Developer Tools
-            </Link>
-
-            <Link
-              href="/categories/json-tools"
-              className="yoryantra-btn-outline"
-            >
-              JSON & Data Tools
-            </Link>
-
-            <Link
-              href="/categories/security-tools"
-              className="yoryantra-btn-outline"
-            >
-              Security Tools
-            </Link>
+          <div className="mt-5 space-y-4 leading-8 text-gray-600">
+            <p>
+              Environment variables are a good example. A value may exist in a
+              shell, a project <code>.env</code> file, a Compose interpolation
+              source, a service-level <code>environment</code> block, or an
+              injected deployment secret. The file you are looking at may not be
+              the source that wins.
+            </p>
+            <p>
+              Similar precedence problems appear in image tags, namespace
+              defaults, Nginx location matching, DNS caches, and CI matrices.
+              When two environments behave differently, compare resolved values
+              and effective configuration instead of only comparing source files.
+            </p>
           </div>
         </section>
+
+        <section className="mt-18 border-t border-gray-200 pt-10">
+          <h2 className="text-xl font-semibold text-gray-900">Finish With the Platform&apos;s Own Validation</h2>
+          <p className="mt-3 max-w-4xl leading-7 text-gray-600">
+            Browser checks are useful before deployment, but the final authority
+            is the system that will run the configuration. Use the platform&apos;s
+            own validation, dry-run, rendering, or test commands where available.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
+            <a href="https://docs.docker.com/reference/compose-file/" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Docker Compose file reference ↗</a>
+            <a href="https://kubernetes.io/docs/reference/kubernetes-api/" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Kubernetes API reference ↗</a>
+            <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">GitHub Actions workflow syntax ↗</a>
+            <a href="https://nginx.org/en/docs/" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Nginx documentation ↗</a>
+          </div>
+        </section>
+
+        <div className="mt-12 flex flex-wrap gap-3">
+          <Link href="/categories/devops-tools" className="yoryantra-btn-outline">Browse DevOps Tools</Link>
+          <Link href="/json-guides" className="yoryantra-btn-outline">JSON & Data Guides</Link>
+          <Link href="/resources" className="yoryantra-btn-outline">All Resource Guides</Link>
+        </div>
       </section>
     </main>
   );

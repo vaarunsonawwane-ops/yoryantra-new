@@ -1,114 +1,83 @@
 import Link from "next/link";
 
-const resourcePages = [
+const resourceAreas = [
   {
-    title: "Developers",
+    title: "Developer Workflows",
     description:
-      "Developer utilities for debugging, APIs, JSON, JWTs, regex, timestamps, UUIDs, and daily workflows.",
+      "Choose between parsers, formatters, builders, converters, and request-debugging tools without confusing local inspection with live network behavior.",
     href: "/developers",
-  },
-  {
-    title: "SEO Resources",
-    description:
-      "Technical SEO resources for metadata, indexing, hreflang, robots.txt, sitemaps, redirects, and tracking.",
-    href: "/seo-resources",
-  },
-  {
-    title: "Security Guides",
-    description:
-      "Security guides for JWTs, hashes, HMAC signatures, RSA keys, PEM files, CSP headers, and API keys.",
-    href: "/security-guides",
-  },
-  {
-    title: "JSON Guides",
-    description:
-      "JSON guides for formatting, validation, minifying, diff checking, schema validation, and conversion.",
-    href: "/json-guides",
   },
   {
     title: "DevOps Resources",
     description:
-      "DevOps resources for Docker, Kubernetes, YAML, .env files, cron expressions, and deployment workflows.",
+      "Read Docker, Kubernetes, environment, cron, DNS, and CI configuration in layers before relying on runtime behavior.",
     href: "/devops-resources",
   },
   {
     title: "Encoding Guides",
     description:
-      "Encoding guides for Base64, Base64URL, URL encoding, HTML entities, JSON escaping, slugs, and text conversion.",
+      "Understand how bytes, Unicode text, Base64, percent encoding, entities, and URL-safe representations differ by context.",
     href: "/encoding-guides",
+  },
+  {
+    title: "JSON & Data Guides",
+    description:
+      "Separate parsing, schema validation, comparison, querying, and conversion so transformed data keeps the meaning you expect.",
+    href: "/json-guides",
+  },
+  {
+    title: "Security Guides",
+    description:
+      "Distinguish decoding from verification, hashing from authentication, and generated headers from real production security controls.",
+    href: "/security-guides",
+  },
+  {
+    title: "SEO Resources",
+    description:
+      "Debug crawling, indexing, canonicalization, redirects, hreflang, sitemaps, and search snippets as separate signals rather than one score.",
+    href: "/seo-resources",
   },
 ];
 
-const featuredCategories = [
+const decisionPoints = [
   {
-    title: "SEO Tools",
-    description:
-      "Metadata, indexing, redirects, hreflang, sitemaps, and technical SEO utilities.",
-    href: "/categories/seo-tools",
+    title: "Inspect or validate?",
+    text: "Inspection makes structure visible. Validation answers a narrower question against syntax, a schema, or a documented rule set.",
   },
   {
-    title: "Security Tools",
-    description:
-      "JWTs, hashes, tokens, API signing, CSP headers, and authentication workflows.",
-    href: "/categories/security-tools",
+    title: "Encode or secure?",
+    text: "Encoding changes representation so data can travel through another context. It does not add secrecy, authenticity, or trust.",
   },
   {
-    title: "JSON & Data Tools",
-    description:
-      "JSON formatting, validation, conversion, schema checks, and structured data utilities.",
-    href: "/categories/json-tools",
+    title: "Generate or verify?",
+    text: "A generator can produce valid-looking output. Verification checks whether an existing value satisfies a specific rule or cryptographic condition.",
   },
   {
-    title: "DevOps Tools",
-    description:
-      "Docker, Kubernetes, YAML, cron expressions, and infrastructure workflows.",
-    href: "/categories/devops-tools",
+    title: "Static check or live behavior?",
+    text: "Pasted text and local configuration can reveal many mistakes, but live HTTP, DNS, containers, clusters, and browsers still have runtime state.",
   },
 ];
 
 export const metadata = {
-  title: "Developer and SEO Resources | Yoryantra",
-
+  title: "Technical Resources and Workflow Guides | Yoryantra",
   description:
-    "Explore Yoryantra resources for developers, technical SEO, security, JSON, DevOps, encoding, APIs, metadata, structured data, and browser-based utility workflows.",
-
-  keywords: [
-    "developer resources",
-    "seo resources",
-    "security guides",
-    "json guides",
-    "devops resources",
-    "encoding guides",
-    "developer tools",
-    "technical seo tools",
-    "online utilities",
-    "api debugging tools",
-  ],
-
+    "Use Yoryantra workflow guides to choose the right developer, DevOps, encoding, JSON, security, or SEO tool and understand what its result can prove.",
   alternates: {
     canonical: "https://yoryantra.com/resources",
   },
-
   openGraph: {
-    title: "Developer and SEO Resources | Yoryantra",
-
+    title: "Technical Resources and Workflow Guides | Yoryantra",
     description:
-      "Explore Yoryantra resources for developers, SEO, security, JSON, DevOps, encoding, APIs, and browser-based utility workflows.",
-
+      "Practical guidance for choosing and interpreting Yoryantra tools across development, DevOps, encoding, JSON, security, and technical SEO.",
     url: "https://yoryantra.com/resources",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Developer and SEO Resources | Yoryantra",
-
+    title: "Technical Resources and Workflow Guides | Yoryantra",
     description:
-      "Browse developer, SEO, security, JSON, DevOps, and encoding resources on Yoryantra.",
+      "Choose the right technical workflow and understand the limits of each kind of tool before relying on the result.",
   },
 };
 
@@ -116,297 +85,152 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
-        {/* BREADCRUMB */}
         <div className="mb-8 flex items-center text-sm text-gray-500">
           <Link
             href="/"
-            className="hover:!text-[var(--light-gold)] transition-colors duration-200"
+            className="transition-colors duration-200 hover:!text-[var(--light-gold)]"
           >
             Home
           </Link>
-
           <span className="mx-2">/</span>
-
-          <span className="text-gray-900">
-            Resources
-          </span>
+          <span className="text-gray-900">Resources</span>
         </div>
 
-        {/* HERO */}
-        <div className="max-w-3xl">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            Resources for Developers, SEO, Security, JSON, and DevOps Workflows
+        <div className="max-w-4xl">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
+            Start With the Technical Question, Not the Tool Name
           </h1>
-
-          <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Explore Yoryantra resources for practical developer utilities,
-            technical SEO, security workflows, JSON handling, DevOps
-            configuration, encoding tasks, APIs, structured data, and
-            browser-based productivity tools.
+          <p className="mt-6 text-lg leading-8 text-gray-600">
+            Many developer utilities look similar because they accept the same
+            kind of input. The useful distinction is the question they answer:
+            format, parse, validate, convert, inspect, generate, compare, or
+            verify. These resource pages connect Yoryantra&apos;s tools to those
+            questions and explain where a browser result stops being enough.
           </p>
         </div>
 
-        {/* INTRO */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Built Around Practical Workflows
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              These resource pages organize related tools and explanations
-              around real tasks such as debugging APIs, preparing metadata,
-              validating data, checking security values, and reviewing configs.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Helps Search Engines Understand Yoryantra
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Resource hubs connect categories, tools, and guide pages together,
-              creating clearer topical structure across SEO, development,
-              security, JSON, DevOps, and encoding clusters.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Clean Discovery for Users
-            </h2>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Instead of browsing a long list of tools, users can start from a
-              resource area that matches their task and move naturally into the
-              right category or utility page.
-            </p>
-          </div>
-        </div>
-
-        {/* RESOURCE PAGES */}
         <section className="mt-16">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              Resource Hubs
+              Choose a Workflow Area
             </h2>
-
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with a focused resource page for the workflow you are
-              working on. Each page links to useful tools, categories, and
-              related utility areas.
+            <p className="mt-3 leading-7 text-gray-600">
+              Each area is written around a different kind of technical work.
+              The goal is not to repeat the tool list, but to help you choose an
+              operation and interpret its result correctly.
             </p>
           </div>
 
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {resourcePages.map((resource) => (
+          <div className="mt-7 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {resourceAreas.map((area) => (
               <Link
-                key={resource.href}
-                href={resource.href}
+                key={area.href}
+                href={area.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
                 <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {resource.title}
+                  {area.title}
                 </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {resource.description}
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  {area.description}
                 </p>
-
                 <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Open resource →
+                  Read the guide →
                 </span>
               </Link>
             ))}
           </div>
         </section>
 
-        {/* FEATURED CATEGORIES */}
-        <section className="mt-16">
+        <section className="mt-18 rounded-2xl border border-gray-200 bg-gray-50 p-7 md:p-9">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              Related Tool Categories
+              Four Distinctions That Prevent the Wrong Tool Choice
             </h2>
-
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              These category hubs group Yoryantra tools by task type, making it
-              easier to discover utilities for technical SEO, security, data,
-              infrastructure, and development.
+            <p className="mt-3 leading-7 text-gray-600">
+              Tool names often differ by one word, but that word can change the
+              meaning of the result. These distinctions recur across the site.
             </p>
           </div>
 
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {featuredCategories.map((category) => (
-              <Link
-                key={category.href}
-                href={category.href}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {category.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {category.description}
+          <div className="mt-7 grid gap-5 md:grid-cols-2">
+            {decisionPoints.map((point) => (
+              <div key={point.title} className="rounded-xl bg-white p-5">
+                <h3 className="font-semibold text-gray-900">{point.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  {point.text}
                 </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Explore category →
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* USE CASES */}
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Common Workflows Covered
-          </h2>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              "Debugging APIs, tokens, timestamps, and encoded values.",
-              "Preparing technical SEO metadata, redirects, and indexing files.",
-              "Working with JWTs, hashes, signatures, keys, and CSP headers.",
-              "Formatting, validating, comparing, and converting JSON data.",
-              "Reviewing Docker, Kubernetes, YAML, .env, and cron configuration.",
-              "Encoding URLs, HTML entities, Base64 values, JSON strings, and slugs.",
-              "Finding related tools through category hubs and resource pages.",
-              "Improving internal discovery across Yoryantra utility clusters.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700"
-              >
-                {item}
               </div>
             ))}
           </div>
         </section>
 
-        {/* WHY MATTERS */}
-        <section className="mt-16">
+        <section className="mt-18 max-w-4xl">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Why Resource Hubs Matter
+            A Practical Way to Use Yoryantra
           </h2>
-
-          <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
+          <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              A utility website becomes more useful when related tools are
-              connected by real workflows. Resource hubs help users move from a
-              broad task like API debugging or technical SEO into the exact tool
-              they need.
+              First, identify what you are trying to learn or change. If the
+              question is whether text is valid JSON, use a validator. If the
+              question is whether valid JSON matches an API contract, use a
+              schema validator. If the question is what changed between two
+              payloads, use a diff tool. Treating those as interchangeable can
+              produce a technically correct result that answers the wrong
+              question.
             </p>
-
             <p>
-              They also improve Yoryantra’s site structure by connecting guide
-              pages, category hubs, and individual tools together. This creates
-              clearer topical clusters for both users and search engines.
+              Second, check the boundary of the tool. Some utilities operate
+              entirely on text or bytes you provide. Others depend on browser
+              APIs or remote data. A static configuration check cannot prove a
+              deployment will succeed, and a generated SEO tag cannot prove a
+              search engine will index or display it.
+            </p>
+            <p>
+              Finally, take the result back to the system that owns the real
+              decision: your API, runtime, browser, container engine, cluster,
+              DNS provider, application security policy, or search platform.
+              Yoryantra is most useful as a focused inspection and preparation
+              layer, not as a substitute for the environment itself.
             </p>
           </div>
         </section>
 
-        {/* FAQ */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-6 space-y-6">
+        <section className="mt-18 border-t border-gray-200 pt-10">
+          <div className="grid gap-6 md:grid-cols-2">
             <div>
-              <h3 className="font-semibold text-gray-900">
-                What is the Resources page for?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                The Resources page organizes Yoryantra’s major guide and
-                resource areas, including developer utilities, SEO resources,
-                security guides, JSON guides, DevOps resources, and encoding
-                guides.
+              <h2 className="text-xl font-semibold text-gray-900">
+                Want to see the review approach?
+              </h2>
+              <p className="mt-3 leading-7 text-gray-600">
+                The methodology page explains how tools are selected, checked,
+                documented, and kept honest about their limits.
               </p>
+              <Link
+                href="/how-yoryantra-tools-are-built"
+                className="mt-5 inline-flex font-semibold text-[var(--light-gold)]"
+              >
+                How Yoryantra tools are built →
+              </Link>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900">
-                How is this different from the Tools page?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                The Tools page lists individual utilities. The Resources page
-                connects broader workflows and topic areas so users can discover
-                related categories, guides, and tools more easily.
+              <h2 className="text-xl font-semibold text-gray-900">
+                Prefer to browse directly?
+              </h2>
+              <p className="mt-3 leading-7 text-gray-600">
+                Use the category pages when you already know the subject area,
+                or the complete tools page when you know the exact utility.
               </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link href="/categories" className="yoryantra-btn-outline">
+                  Browse categories
+                </Link>
+                <Link href="/tools" className="yoryantra-btn-outline">
+                  Browse all tools
+                </Link>
+              </div>
             </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is this useful for SEO?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Resource hubs strengthen internal linking and help organize
-                topical clusters across Yoryantra, which can support crawl depth,
-                discoverability, and long-term search visibility.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Should every tool category have a resource page?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Not every small category needs one, but major clusters such as
-                SEO, security, JSON, DevOps, encoding, and developer workflows
-                benefit from dedicated resource pages.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* RELATED */}
-        <section className="mt-16 border-t border-gray-200 pt-10">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Explore More
-          </h2>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/tools"
-              className="yoryantra-btn-outline"
-            >
-              All Tools
-            </Link>
-
-            <Link
-              href="/categories"
-              className="yoryantra-btn-outline"
-            >
-              Categories
-            </Link>
-
-            <Link
-              href="/developers"
-              className="yoryantra-btn-outline"
-            >
-              Developers
-            </Link>
-
-            <Link
-              href="/seo-resources"
-              className="yoryantra-btn-outline"
-            >
-              SEO Resources
-            </Link>
-
-            <Link
-              href="/security-guides"
-              className="yoryantra-btn-outline"
-            >
-              Security Guides
-            </Link>
           </div>
         </section>
       </section>

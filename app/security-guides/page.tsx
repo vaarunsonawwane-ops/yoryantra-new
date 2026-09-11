@@ -1,126 +1,65 @@
 import Link from "next/link";
 
-const featuredCategories = [
+const primitives = [
   {
-    title: "Security Tools",
-    description:
-      "JWTs, hashes, HMAC signatures, RSA keys, PEM files, CSP headers, and API keys.",
-    href: "/categories/security-tools",
+    title: "Hash",
+    purpose: "Fingerprint data with a one-way digest.",
+    boundary: "A plain hash does not authenticate who produced the data and is not password storage by itself.",
+    href: "/tools/hash-generator",
+    label: "Hash Generator",
   },
   {
-    title: "Developer Tools",
-    description:
-      "Debugging, tokens, timestamps, UUIDs, regex testing, and daily development tools.",
-    href: "/categories/developer-tools",
+    title: "HMAC",
+    purpose: "Authenticate data with a shared secret and a hash construction.",
+    boundary: "Both sides need the secret; compare the exact byte representation and protocol rules used by the sender.",
+    href: "/tools/hmac-generator",
+    label: "HMAC Generator",
   },
   {
-    title: "Encoding Tools",
-    description:
-      "Base64, Base64URL, URL encoding, HTML entities, and JSON-safe strings.",
-    href: "/categories/encoding-tools",
+    title: "Password hash",
+    purpose: "Derive a deliberately expensive verifier from a password and salt.",
+    boundary: "Password hashing has different goals from fast checksums or request signatures.",
+    href: "/tools/bcrypt-generator",
+    label: "bcrypt Generator",
   },
   {
-    title: "DevOps Tools",
-    description:
-      "Configuration, YAML, containers, environment variables, and deployment checks.",
-    href: "/categories/devops-tools",
+    title: "Asymmetric key pair",
+    purpose: "Separate public and private key material for protocols that use public-key cryptography.",
+    boundary: "Generating a key pair does not choose a safe protocol, certificate policy, storage method, or rotation process for you.",
+    href: "/tools/rsa-key-generator",
+    label: "RSA Key Generator",
   },
 ];
 
-const popularSecurityTools = [
-  {
-    title: "JWT Decoder",
-    description:
-      "Decode JWT headers and payloads for inspection. Decoding does not verify trust.",
-    href: "/tools/jwt-decoder",
-  },
-  {
-    title: "JWT Signature Verifier",
-    description:
-      "Verify supported JWT signatures with the expected secret during testing.",
-    href: "/tools/jwt-signature-verifier",
-  },
-  {
-    title: "HMAC Generator",
-    description:
-      "Generate keyed HMAC values for APIs, webhooks, and integrity checks.",
-    href: "/tools/hmac-generator",
-  },
-  {
-    title: "SHA256 Generator",
-    description:
-      "Generate SHA256 digests for checksums, comparisons, and test workflows.",
-    href: "/tools/sha256-generator",
-  },
-  {
-    title: "RSA Key Generator",
-    description:
-      "Generate RSA public and private keys for development and testing.",
-    href: "/tools/rsa-key-generator",
-  },
-  {
-    title: "PEM Formatter",
-    description:
-      "Normalize PEM block structure and line wrapping without validating trust.",
-    href: "/tools/pem-formatter",
-  },
-  {
-    title: "Random Token Generator",
-    description:
-      "Generate random tokens for APIs, sessions, and development environments.",
-    href: "/tools/random-token-generator",
-  },
-  {
-    title: "CSP Generator",
-    description:
-      "Create a basic CSP header as a starting point for application testing.",
-    href: "/tools/csp-generator",
-  },
+const browserPolicies = [
+  { label: "CSP Analyzer", href: "/tools/csp-analyzer" },
+  { label: "Cookie Security Checker", href: "/tools/cookie-security-checker" },
+  { label: "HSTS Header Generator", href: "/tools/hsts-header-generator" },
+  { label: "Permissions Policy Header Generator", href: "/tools/permissions-policy-header-generator" },
+  { label: "Referrer Policy Generator", href: "/tools/referrer-policy-generator" },
+  { label: "Security.txt Generator", href: "/tools/security-txt-generator" },
 ];
 
 export const metadata = {
-  title: "Security Workflows and Tool Selection for Developers | Yoryantra",
-
+  title: "Security Guides for JWTs, Hashes, HMAC, Keys, and Headers | Yoryantra",
   description:
-    "Follow practical security workflows for JWTs, HMAC signatures, hashes, RSA keys, PEM files, CSP headers, API keys, and authentication debugging.",
-
-  keywords: [
-    "developer security workflows",
-    "security tool selection",
-    "JWT debugging workflow",
-    "hmac signature",
-    "sha256 generator",
-    "rsa key generator",
-    "pem formatter",
-    "csp generator",
-    "browser security tools",
-    "authentication tools",
-  ],
-
+    "Understand security-tool boundaries across JWT verification, hashing, HMAC, password hashing, keys, cookies, CSP, HSTS, and other browser security policies.",
   alternates: {
     canonical: "https://yoryantra.com/security-guides",
   },
-
   openGraph: {
-    title: "Security Workflows and Tool Selection for Developers | Yoryantra",
-
+    title: "Security Guides for Developers | Yoryantra",
     description:
-      "Practical security workflows and tools for JWTs, HMAC signatures, hashes, RSA keys, PEM files, CSP headers, API keys, and authentication debugging.",
-
+      "Practical guidance for tokens, signatures, hashes, secrets, keys, cookies, and security headers without confusing readable output with trusted output.",
     url: "https://yoryantra.com/security-guides",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
-
-    title: "Security Workflows and Tool Selection for Developers | Yoryantra",
-
+    title: "Security Guides for Developers | Yoryantra",
     description:
-      "Choose the right security tool for JWT debugging, hashing, signatures, keys, CSP headers, API keys, and authentication workflows.",
+      "Decode, verify, hash, sign, and inspect with the right security boundary in mind.",
   },
 };
 
@@ -128,302 +67,131 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
-        {/* BREADCRUMB */}
         <div className="mb-8 flex items-center text-sm text-gray-500">
-          <Link
-            href="/"
-            className="hover:!text-[var(--light-gold)] transition-colors duration-200"
-          >
-            Home
-          </Link>
-
+          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--light-gold)]">Home</Link>
           <span className="mx-2">/</span>
-
-          <span className="text-gray-900">
-            Security Guides
-          </span>
+          <span className="text-gray-900">Security Guides</span>
         </div>
 
-        {/* HERO */}
-        <div className="max-w-3xl">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            Security Workflows for Tokens, Hashes, Keys, and APIs
+        <div className="max-w-4xl">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
+            Readable Is Not the Same as Trusted
           </h1>
-
-          <p className="mt-5 text-lg leading-relaxed text-gray-600">
-            Debug tokens, verify signatures, inspect certificates, and review
-            browser security configuration with focused tools for development and
-            testing.
+          <p className="mt-6 text-lg leading-8 text-gray-600">
+            Security values often look like encoded text: JWTs, hashes, keys,
+            certificates, signatures, tokens, and HTTP headers. The dangerous
+            mistake is to treat successful decoding or valid syntax as proof of
+            authenticity, authorization, safety, or production readiness. Use a
+            security tool only after deciding which property you need to check.
           </p>
         </div>
 
-        {/* INTRO */}
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h2 className="text-base font-semibold leading-snug text-gray-900">
-              Debug Tokens and Authentication
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Inspect JWT contents, claims, expiry, and signatures while troubleshooting
-              login, session, and API authentication.
+        <section className="mt-16 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-7 md:p-9">
+            <h2 className="text-2xl font-semibold text-gray-900">A JWT Acceptance Chain</h2>
+            <ol className="mt-5 space-y-4 leading-7 text-gray-600">
+              <li><strong className="text-gray-900">1. Parse:</strong> Is the compact token structurally readable?</li>
+              <li><strong className="text-gray-900">2. Verify:</strong> Does the signature match the expected algorithm and key material?</li>
+              <li><strong className="text-gray-900">3. Validate claims:</strong> Are issuer, audience, expiry, not-before time, and other required claims acceptable?</li>
+              <li><strong className="text-gray-900">4. Apply application policy:</strong> Does this token authorize this action in this system?</li>
+            </ol>
+            <p className="mt-5 text-sm leading-6 text-gray-600">
+              Stopping at step one is why a decoded JWT should never be described
+              as “verified” simply because its header and payload are readable.
             </p>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h2 className="text-base font-semibold leading-snug text-gray-900">
-              Work With Hashes, Keys, and Signatures
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Choose the correct tool for checksums, HMAC verification, password hashing,
-              RSA keys, and PEM files.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h2 className="text-base font-semibold leading-snug text-gray-900">
-              Review Headers and Browser Policies
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Build and inspect CSP and security headers, then test the final
-              configuration in the real application.
-            </p>
-          </div>
-        </div>
-
-
-        {/* FEATURED CATEGORIES */}
-        <section className="mt-16">
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Related Tool Categories for Security Work
-            </h2>
-
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              Use these categories when the task extends beyond one security
-              check into debugging, encoding, deployment configuration, or
-              general development work.
-            </p>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {featuredCategories.map((category) => (
-              <Link
-                key={category.href}
-                href={category.href}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {category.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {category.description}
-                </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Explore category →
-                </span>
-              </Link>
-            ))}
+          <div className="self-start rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+            <h2 className="text-xl font-semibold text-gray-900">Useful JWT tools</h2>
+            <div className="mt-5 flex flex-col gap-3 text-sm font-semibold">
+              <Link href="/tools/jwt-decoder" className="text-[var(--light-gold)] hover:underline">JWT Decoder →</Link>
+              <Link href="/tools/jwt-signature-verifier" className="text-[var(--light-gold)] hover:underline">JWT Signature Verifier →</Link>
+              <Link href="/tools/jwt-expiration-checker" className="text-[var(--light-gold)] hover:underline">JWT Expiration Checker →</Link>
+              <Link href="/tools/jwt-claims-inspector" className="text-[var(--light-gold)] hover:underline">JWT Claims Inspector →</Link>
+              <Link href="/tools/jwt-secret-strength-checker" className="text-[var(--light-gold)] hover:underline">JWT Secret Strength Checker →</Link>
+            </div>
           </div>
         </section>
 
-        {/* POPULAR TOOLS */}
-        <section className="mt-16">
+        <section className="mt-18">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Common Security Tools and When to Use Them
-            </h2>
-
-            <p className="mt-3 text-gray-600 leading-relaxed">
-              Start with these tools for token inspection, keyed signatures,
-              checksums, public-key workflows, PEM formatting, CSP headers, and
-              secure API testing.
+            <h2 className="text-2xl font-semibold text-gray-900">Match the Primitive to the Property You Need</h2>
+            <p className="mt-3 leading-7 text-gray-600">
+              “Security” is not one operation. Integrity, authenticity, password
+              verification, confidentiality, and authorization require different
+              mechanisms.
             </p>
           </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {popularSecurityTools.map((tool) => (
-              <Link
-                key={tool.href}
-                href={tool.href}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
-                  {tool.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  {tool.description}
-                </p>
-
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
-                  Open tool →
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* WORKFLOWS */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Practical Security Workflows
-          </h2>
-
-          <div className="mt-7 grid gap-x-12 gap-y-6 md:grid-cols-2">
-            {[
-              "Decode JWT contents when you need to inspect headers and claims.",
-              "Verify JWT signatures separately when you have the expected secret or public key.",
-              "Generate HMAC signatures for API requests, webhooks, and integrity checks.",
-              "Create SHA256 hashes for checksums and comparison workflows.",
-              "Generate RSA key pairs for development, signing, and verification tests.",
-              "Normalize PEM certificates and keys before parsing or testing them.",
-              "Create random tokens and API keys for local development and test environments.",
-              "Build and review CSP headers before testing them in the real application.",
-            ].map((item, index) => (
-              <div key={item} className="flex items-start gap-4">
-                <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-
-                <p className="text-sm leading-6 text-gray-700">
-                  {item}
-                </p>
+          <div className="mt-7 grid gap-5 md:grid-cols-2">
+            {primitives.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-gray-200 bg-white p-6">
+                <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Use it to:</strong> {item.purpose}</p>
+                <p className="mt-2 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Do not assume:</strong> {item.boundary}</p>
+                <Link href={item.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">{item.label} →</Link>
               </div>
             ))}
           </div>
         </section>
 
-        {/* WHY MATTERS */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            How to Interpret Security Tool Results
-          </h2>
-
-          <div className="mt-5 space-y-4 text-gray-600 leading-relaxed">
+        <section className="mt-18 max-w-5xl">
+          <h2 className="text-2xl font-semibold text-gray-900">Headers Express Policy; Browsers Enforce It</h2>
+          <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              Security work often depends on values that look similar but
-              serve different purposes: tokens, signatures, hashes, keys,
-              certificates, secrets, and HTTP security headers. Confusing one
-              for another can break authentication, webhook validation, or API
-              access.
+              CSP, HSTS, Permissions-Policy, Referrer-Policy, and cookie
+              attributes are configuration inputs to browser behavior. A header
+              generator can help build syntactically plausible policy text, but
+              only a real response in the target application reveals deployment
+              issues such as missing headers, conflicting directives, redirect
+              placement, subdomain effects, or application resources blocked by
+              policy.
             </p>
-
             <p>
-              These tools help inspect structure, formatting, claims, and
-              generated output during development. Always compare the result
-              with the application requirements, relevant standards, and the
-              production environment before relying on it.
+              Prefer report-only or staged testing where the platform supports
+              it, inspect browser developer tools, and keep policy scope as small
+              as the application actually needs.
             </p>
           </div>
-        </section>
-
-        {/* FAQ */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Frequently Asked Questions
-          </h2>
-
-          <div className="mt-6 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                How should I choose between similar security tools?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Start with the exact task: decode, inspect, generate, verify,
-                format, or analyze. Similar tools are separated because those
-                operations answer different questions.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can these tools help with API and webhook debugging?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. JWT decoding, HMAC generation, hashing, API key
-                generation, Base64URL handling, and signature checks are common
-                parts of API and webhook debugging.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does decoding a JWT prove that it is valid?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Decoding only makes the header and payload readable.
-                Trust also depends on signature verification, the expected
-                algorithm, claims, issuer, audience, timing, and application
-                rules.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Do browser-based security tools replace a full security review?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. These tools support focused development checks and
-                debugging. Production security still requires secure
-                architecture, access control, dependency review, monitoring,
-                patching, and operational safeguards.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* RELATED */}
-        <section className="mt-16 border-t border-gray-200 pt-10">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Continue Exploring Yoryantra
-          </h2>
-
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/categories/security-tools"
-              className="yoryantra-btn-outline"
-            >
-              Security Tools
-            </Link>
-
-            <Link
-              href="/developers"
-              className="yoryantra-btn-outline"
-            >
-              For Developers
-            </Link>
-
-            <Link
-              href="/categories/developer-tools"
-              className="yoryantra-btn-outline"
-            >
-              Developer Tools
-            </Link>
-
-            <Link
-              href="/categories/encoding-tools"
-              className="yoryantra-btn-outline"
-            >
-              Encoding Tools
-            </Link>
-
-            <Link
-              href="/categories/devops-tools"
-              className="yoryantra-btn-outline"
-            >
-              DevOps Tools
-            </Link>
+            {browserPolicies.map((tool) => (
+              <Link key={tool.href} href={tool.href} className="yoryantra-btn-outline">{tool.label}</Link>
+            ))}
           </div>
         </section>
+
+        <section className="mt-18 rounded-2xl border border-amber-200 bg-amber-50 p-7 md:p-9">
+          <h2 className="text-xl font-semibold text-gray-900">Handle Secrets as Secrets</h2>
+          <div className="mt-4 space-y-3 leading-7 text-gray-700">
+            <p>
+              Prefer sample, test, or redacted values when the task does not
+              require a real production secret. Private keys, session tokens,
+              signing secrets, passwords, and personal data deserve the same
+              care in a browser tool that they receive in logs, terminals, and
+              support tickets.
+            </p>
+            <p>
+              When a Yoryantra tool runs locally, that reduces one class of data
+              transfer; it does not make the surrounding device, clipboard,
+              browser extensions, screenshots, or operational process trusted.
+            </p>
+          </div>
+        </section>
+
+        <section className="mt-18 border-t border-gray-200 pt-10">
+          <h2 className="text-xl font-semibold text-gray-900">Primary references</h2>
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
+            <a href="https://www.rfc-editor.org/rfc/rfc7519" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">JSON Web Token — RFC 7519 ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc2104" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">HMAC — RFC 2104 ↗</a>
+            <a href="https://www.w3.org/TR/CSP3/" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Content Security Policy Level 3 ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc6797" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">HTTP Strict Transport Security — RFC 6797 ↗</a>
+          </div>
+        </section>
+
+        <div className="mt-12 flex flex-wrap gap-3">
+          <Link href="/categories/security-tools" className="yoryantra-btn-outline">Browse Security Tools</Link>
+          <Link href="/encoding-guides" className="yoryantra-btn-outline">Encoding Guides</Link>
+          <Link href="/resources" className="yoryantra-btn-outline">All Resource Guides</Link>
+        </div>
       </section>
     </main>
   );

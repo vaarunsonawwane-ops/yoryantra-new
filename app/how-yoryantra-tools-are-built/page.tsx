@@ -1,333 +1,241 @@
 import Link from "next/link";
 
-export const metadata = {
-  title: "How Yoryantra Tools Are Built | Yoryantra",
-
-  description:
-    "Learn how Yoryantra selects, builds, tests, reviews, and improves practical browser-based tools.",
-
-  alternates: {
-    canonical: "https://yoryantra.com/how-yoryantra-tools-are-built",
-  },
-
-  openGraph: {
-    title: "How Yoryantra Tools Are Built | Yoryantra",
-
-    description:
-      "A simple explanation of how Yoryantra selects, builds, tests, reviews, and improves practical browser-based tools.",
-
-    url: "https://yoryantra.com/how-yoryantra-tools-are-built",
-
-    siteName: "Yoryantra",
-
-    type: "website",
-  },
-
-  twitter: {
-    card: "summary_large_image",
-
-    title: "How Yoryantra Tools Are Built | Yoryantra",
-
-    description:
-      "See how Yoryantra tools are selected, tested, reviewed, and improved.",
-  },
-};
-
 const reviewSteps = [
   {
     number: "01",
-    title: "Start with a real task",
+    title: "Define one real task",
     description:
-      "A tool should solve a clear problem such as formatting data, validating a file, decoding a value, checking configuration, or preparing information for another system.",
+      "A tool starts with a concrete question: parse this request, validate this manifest, compare these headers, encode these bytes, or inspect this token. The task comes before the interface.",
   },
   {
     number: "02",
-    title: "Keep the workflow focused",
+    title: "Check the governing behavior",
     description:
-      "Each page is built around one main task. Related features are included only when they help complete that task without making the tool confusing.",
+      "When a protocol, format, browser API, or platform has authoritative documentation, the implementation is checked against that source instead of relying on generic descriptions.",
   },
   {
     number: "03",
-    title: "Test normal and incorrect input",
+    title: "Test normal, boundary, and malformed input",
     description:
-      "Tools are checked with common examples, empty input, malformed values, unexpected characters, and other cases that may cause confusing output.",
+      "Common examples are not enough. Review includes empty input, invalid syntax, Unicode or byte boundaries, duplicate fields, unusual sizes, and cases that can produce misleading output.",
   },
   {
     number: "04",
-    title: "Explain what the result means",
+    title: "Separate result from assurance",
     description:
-      "A useful result should be readable and practical. When a tool cannot confirm validity, trust, safety, or production readiness, that limitation should be stated clearly.",
+      "A decoded value is not automatically trusted, a formatted file is not automatically valid, and a static configuration check is not a deployment test. Those boundaries are part of the tool, not an afterthought.",
   },
   {
     number: "05",
-    title: "Review the page as a whole",
+    title: "Review the whole page",
     description:
-      "The tool, examples, instructions, related links, metadata, and explanatory content are reviewed together so the page supports the task instead of only displaying a form.",
+      "Interface behavior, errors, examples, explanatory content, metadata, related tools, mobile layout, and shared card wording are reviewed together so the page supports the actual task.",
   },
   {
     number: "06",
-    title: "Improve older tools when needed",
+    title: "Freeze only after the final diff",
     description:
-      "Existing pages are revisited when wording, usability, technical behaviour, internal links, or supporting guidance can be made clearer.",
+      "A completed tool is compared with the intended scope so unrelated features, copied wording, stale claims, or accidental structural changes are caught before release.",
   },
 ];
+
+export const metadata = {
+  title: "How Yoryantra Tools Are Built and Reviewed | Yoryantra",
+  description:
+    "See how Yoryantra selects tool ideas, checks technical behavior, tests edge cases, writes supporting guidance, handles privacy boundaries, and reviews changes before release.",
+  alternates: {
+    canonical: "https://yoryantra.com/how-yoryantra-tools-are-built",
+  },
+  openGraph: {
+    title: "How Yoryantra Tools Are Built and Reviewed | Yoryantra",
+    description:
+      "A transparent look at Yoryantra's tool-selection, technical review, testing, privacy, writing, and release process.",
+    url: "https://yoryantra.com/how-yoryantra-tools-are-built",
+    siteName: "Yoryantra",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "How Yoryantra Tools Are Built and Reviewed | Yoryantra",
+    description:
+      "How Yoryantra turns a narrow technical task into a tested tool with clear limits and useful supporting guidance.",
+  },
+};
 
 export default function HowYoryantraToolsAreBuiltPage() {
   return (
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-5xl px-6 py-16">
-        {/* BREADCRUMB */}
         <div className="mb-10 flex items-center text-sm text-gray-500">
-          <Link
-            href="/"
-            className="transition-colors duration-200 hover:!text-[var(--light-gold)]"
-          >
-            Home
-          </Link>
-
+          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--light-gold)]">Home</Link>
           <span className="mx-2">/</span>
-
-          <span className="text-gray-900">
-            How Yoryantra Tools Are Built
-          </span>
+          <span className="text-gray-900">How Yoryantra Tools Are Built</span>
         </div>
 
-        {/* HERO */}
         <div className="max-w-4xl">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--light-gold)]">
             Yoryantra methodology
           </p>
-
           <h1 className="mt-5 text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
-            How Yoryantra Tools Are Built
+            How Yoryantra Tools Are Built and Reviewed
           </h1>
-
           <p className="mt-7 max-w-3xl text-lg leading-8 text-gray-600">
-            Yoryantra is built around practical tasks, not random tool counts.
-            The aim is to create focused utilities that are easy to understand,
-            useful in real work, and honest about what they can and cannot confirm.
+            Yoryantra is an independent, creator-built project. The goal is not
+            to collect the largest possible number of utilities. Each page should
+            solve a defined technical task, explain the parts that can be
+            misunderstood, and be honest about what a browser-based result can
+            and cannot establish.
           </p>
-
           <div className="mt-9 flex flex-wrap gap-3">
-            <Link
-              href="/tools"
-              className="yoryantra-btn-outline"
-            >
-              Browse all tools
-            </Link>
-
-            <Link
-              href="/contact"
-              className="yoryantra-btn-outline"
-            >
-              Report a tool issue
-            </Link>
+            <Link href="/tools" className="yoryantra-btn-outline">Browse all tools</Link>
+            <Link href="/about" className="yoryantra-btn-outline">About Yoryantra</Link>
+            <Link href="/contact" className="yoryantra-btn-outline">Report a tool issue</Link>
           </div>
         </div>
 
-        {/* SELECTION */}
         <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            How a Tool Is Chosen
-          </h2>
-
-          <div className="mt-5 space-y-4 text-gray-600 leading-8">
+          <h2 className="text-2xl font-semibold text-gray-900">What Makes a Tool Worth Building</h2>
+          <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              A tool is considered when it solves a clear development, DevOps,
-              security, SEO, JSON, data, or encoding task. The task should be
-              specific enough that someone can understand why the tool exists
-              and when to use it.
+              A candidate tool should remove a small but real piece of friction:
+              repetitive conversion, hard-to-read protocol text, error-prone
+              manual calculation, configuration inspection, or a format rule
+              that is easier to understand when the result is shown directly.
             </p>
-
             <p>
-              Yoryantra avoids adding utilities only to make the collection look
-              larger. A tool should save time, reduce repetitive work, make a
-              technical value easier to inspect, or help someone prepare data
-              before using it elsewhere.
+              Similar-looking tools can still earn separate pages when they
+              answer genuinely different questions. Decoding a JWT is different
+              from verifying its signature. Formatting JSON is different from
+              checking it against a schema. Parsing a request is different from
+              sending one. Those distinctions are part of Yoryantra&apos;s structure.
             </p>
-
             <p>
-              Similar tools may still exist when they answer different questions.
-              For example, decoding, validating, generating, comparing, and
-              converting are separate operations even when they work with the
-              same type of data.
+              A page should not exist only because a keyword or neighboring site
+              has one. If the task cannot be made useful, technically specific,
+              and understandable on its own, adding another page does not improve
+              the project.
             </p>
           </div>
         </section>
 
-        {/* REVIEW STEPS */}
         <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            The Review Process
-          </h2>
-
-          <p className="mt-3 max-w-3xl text-gray-600 leading-8">
-            The process is kept simple, but each step has a purpose.
+          <h2 className="text-2xl font-semibold text-gray-900">The Review Process</h2>
+          <p className="mt-3 max-w-3xl leading-8 text-gray-600">
+            Different tools need different tests and explanations, but these six
+            review questions stay consistent.
           </p>
-
           <div className="mt-8 grid gap-x-12 gap-y-7 md:grid-cols-2">
             {reviewSteps.map((step) => (
-              <div
-                key={step.number}
-                className="flex items-start gap-4"
-              >
-                <span className="min-w-8 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">
-                  {step.number}
-                </span>
-
+              <div key={step.number} className="flex items-start gap-4">
+                <span className="min-w-8 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">{step.number}</span>
                 <div>
-                  <h3 className="font-semibold text-gray-900">
-                    {step.title}
-                  </h3>
-
-                  <p className="mt-2 text-sm leading-6 text-gray-600">
-                    {step.description}
-                  </p>
+                  <h3 className="font-semibold text-gray-900">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-gray-600">{step.description}</p>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* LOCAL PROCESSING */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Local Processing and External Requests
-          </h2>
-
-          <div className="mt-5 space-y-4 text-gray-600 leading-8">
-            <p>
-              Most Yoryantra tools process input directly inside the browser.
-              This is useful for quick checks and helps avoid sending ordinary
-              text, code, or structured data to a separate processing server.
+        <section className="mt-16 grid gap-6 md:grid-cols-2">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-7">
+            <h2 className="text-xl font-semibold text-gray-900">Technical sources are chosen by the task</h2>
+            <p className="mt-4 leading-7 text-gray-600">
+              An HTTP tool may need an RFC. A browser feature may need MDN or a
+              WHATWG/W3C specification. Docker and Kubernetes tools should point
+              back to their platform documentation. SEO guidance should prefer
+              Google Search Central when the claim is specifically about Google
+              Search. References are added when they clarify behavior, not to
+              decorate every page with links.
             </p>
+          </div>
 
-            <p>
-              Some tools may need to inspect an external URL, response, header,
-              redirect, certificate, or other remote resource. In those cases,
-              an internet request is required for the tool to complete its task.
-            </p>
-
-            <p>
-              Sensitive production data should still be handled carefully. Use
-              sample or redacted values when input may contain passwords,
-              private keys, tokens, personal information, or confidential data.
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-7">
+            <h2 className="text-xl font-semibold text-gray-900">Tests follow the risk of the tool</h2>
+            <p className="mt-4 leading-7 text-gray-600">
+              A simple text transform may mainly need exact-input and Unicode
+              cases. A parser needs malformed and ambiguous input. A security or
+              protocol utility needs stricter checks around byte representation,
+              algorithms, trust boundaries, and claims that could otherwise
+              sound stronger than the result really is.
             </p>
           </div>
         </section>
 
-        {/* LIMITATIONS */}
         <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            What Tool Results Can and Cannot Confirm
-          </h2>
-
-          <div className="mt-5 space-y-4 text-gray-600 leading-8">
+          <h2 className="text-2xl font-semibold text-gray-900">Browser-First Processing and Privacy Boundaries</h2>
+          <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              A formatter can improve readability without proving that the data
-              is correct for a specific application. A decoder can make a value
-              readable without proving that it is trustworthy. A generated
-              configuration can be a useful starting point without being ready
-              for production.
+              Where the task can be completed in the browser, Yoryantra prefers
+              local processing. That keeps ordinary pasted text, structured
+              data, and generated values on the device instead of requiring a
+              processing server merely to transform them.
             </p>
-
             <p>
-              Yoryantra aims to make these boundaries clear. Important outputs
-              should be checked against the real application, relevant
-              documentation, standards, provider requirements, or the environment
-              where the result will be used.
+              Some tasks inherently depend on external state. DNS checks, live
+              URL behavior, remote headers, or other network-dependent work may
+              require an external request. A tool should make that boundary
+              visible instead of making a remote check look local.
+            </p>
+            <p>
+              Local processing is not a blanket security guarantee. Real secrets
+              can still be exposed through the device, browser extensions,
+              clipboard history, screenshots, or someone with access to the
+              session. Sample or redacted data is the better choice whenever the
+              task does not require a production credential.
             </p>
           </div>
         </section>
 
-        {/* CONTENT */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            How Supporting Content Is Written
-          </h2>
-
-          <div className="mt-5 space-y-4 text-gray-600 leading-8">
+        <section className="mt-16 rounded-2xl border border-gray-200 bg-white p-7 shadow-sm md:p-9">
+          <h2 className="text-2xl font-semibold text-gray-900">Supporting Content Has to Earn Its Place</h2>
+          <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              Tool pages are written to support the actual task. Explanations,
-              examples, FAQs, and related links should help someone understand
-              the workflow rather than repeat the same generic sections on every
-              page.
+              Yoryantra does not use a fixed recipe such as four FAQs, three use
+              cases, and the same headings on every page. Some tools need a
+              standards note. Some need a worked example, a troubleshooting
+              section, a security warning, or an explanation of a lossy
+              conversion. Some do not need an FAQ at all.
             </p>
-
             <p>
-              The wording is kept direct and practical. Yoryantra avoids
-              unnecessary jargon, exaggerated claims, and content added only to
-              make a page longer.
+              The editorial test is simple: after using the tool, does the page
+              help someone understand the result, avoid a likely mistake, or
+              make a better technical decision? Content that only repeats the
+              title, pads word count, or exists to target a phrase does not meet
+              that test.
             </p>
           </div>
         </section>
 
-        {/* MAINTENANCE */}
         <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Reviewing and Improving Existing Tools
-          </h2>
-
-          <div className="mt-5 space-y-4 text-gray-600 leading-8">
+          <h2 className="text-2xl font-semibold text-gray-900">What a Yoryantra Result Does Not Replace</h2>
+          <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              Yoryantra is improved in small, careful batches. Older tools may be
-              updated when their interface, instructions, examples, related
-              links, or technical behaviour can be made clearer.
+              A formatter does not replace application validation. A static
+              Docker or Kubernetes check does not replace the real runtime. A
+              generated security header does not replace browser testing and a
+              security review. An SEO preview does not predict a search engine&apos;s
+              final indexing or presentation decision.
             </p>
-
             <p>
-              Changes are made with the aim of preserving what already works.
-              A page should not be redesigned or rewritten only for the sake of
-              looking new.
-            </p>
-
-            <p>
-              If a tool produces an incorrect result, has unclear wording, or
-              behaves unexpectedly, it can be reported through the{" "}
-              <Link
-                href="/contact"
-                className="font-semibold text-[var(--light-gold)] hover:underline"
-              >
-                Contact page
-              </Link>
-              .
+              Tools are designed to make one part of the work easier to inspect
+              or prepare. The final decision still belongs to the system that
+              consumes the output and the person responsible for that system.
             </p>
           </div>
         </section>
 
-        {/* CLOSING */}
         <section className="mt-16 border-t border-gray-200 pt-10">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            The Simple Goal
-          </h2>
-
-          <p className="mt-4 max-w-3xl leading-8 text-gray-600">
-            Build useful tools, explain them honestly, keep the experience clean,
-            and respect the time of the person using them.
+          <h2 className="text-xl font-semibold text-gray-900">Corrections are part of the process</h2>
+          <p className="mt-3 leading-7 text-gray-600">
+            If a tool produces a wrong result, overstates what it can verify, or
+            explains a technical rule unclearly, that is a defect worth fixing.
+            Yoryantra revisits existing pages in small batches so working behavior
+            can be preserved while the specific problem is corrected.
           </p>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/about"
-              className="yoryantra-btn-outline"
-            >
-              About Yoryantra
-            </Link>
-
-            <Link
-              href="/categories"
-              className="yoryantra-btn-outline"
-            >
-              Browse categories
-            </Link>
-
-            <Link
-              href="/privacy-policy"
-              className="yoryantra-btn-outline"
-            >
-              Privacy Policy
-            </Link>
-          </div>
+          <Link href="/contact" className="mt-5 inline-flex font-semibold text-[var(--light-gold)]">
+            Report a problem or unclear result →
+          </Link>
         </section>
       </section>
     </main>
