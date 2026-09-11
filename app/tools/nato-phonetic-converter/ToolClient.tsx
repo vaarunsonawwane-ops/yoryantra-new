@@ -4,6 +4,7 @@ import { useMemo, useState, type ChangeEvent } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import { ToolContent } from "@/app/components/ToolContent";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 const natoLetterMap: Record<string, string> = {
   A: "Alfa",
@@ -232,25 +233,18 @@ export default function ToolClient() {
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <label
-            htmlFor="digit-style"
-            className="mb-2 block text-sm font-medium text-gray-700"
-          >
-            Digit Output
-          </label>
-          <select
-            id="digit-style"
+          <YoryantraSelect
+            label="Digit Output"
             value={digitStyle}
-            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-              setDigitStyle(event.target.value as DigitStyle)
-            }
-            className="min-h-[44px] w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-800 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-          >
-            <option value="words">Written words — One, Two, Three</option>
-            <option value="pronunciation">
-              Radiotelephony — WUN, TOO, TREE
-            </option>
-          </select>
+            onChange={(value: string) => setDigitStyle(value as DigitStyle)}
+            options={[
+              { label: "Written words — One, Two, Three", value: "words" },
+              {
+                label: "Radiotelephony — WUN, TOO, TREE",
+                value: "pronunciation",
+              },
+            ]}
+          />
           <p className="mt-2 text-sm leading-relaxed text-gray-500">
             The pronunciation option follows ICAO-style spoken number forms.
           </p>
