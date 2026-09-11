@@ -127,7 +127,7 @@ export default function HowYoryantraToolsAreBuiltPage() {
           <div className="mt-8 grid gap-x-12 gap-y-7 md:grid-cols-2">
             {reviewSteps.map((step) => (
               <div key={step.number} className="flex items-start gap-4">
-                <span className="min-w-8 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">{step.number}</span>
+                <span className="min-w-8 pt-0.5 text-xs font-semibold tracking-wider text-[var(--green)]">{step.number}</span>
                 <div>
                   <h3 className="font-semibold text-gray-900">{step.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-gray-600">{step.description}</p>
@@ -138,7 +138,7 @@ export default function HowYoryantraToolsAreBuiltPage() {
         </section>
 
         <section className="mt-16 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-7">
+          <div className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-7">
             <h2 className="text-xl font-semibold text-gray-900">Technical sources are chosen by the task</h2>
             <p className="mt-4 leading-7 text-gray-600">
               An HTTP tool may need an RFC. A browser feature may need MDN or a
@@ -150,7 +150,7 @@ export default function HowYoryantraToolsAreBuiltPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-7">
+          <div className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-7">
             <h2 className="text-xl font-semibold text-gray-900">Tests follow the risk of the tool</h2>
             <p className="mt-4 leading-7 text-gray-600">
               A simple text transform may mainly need exact-input and Unicode

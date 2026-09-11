@@ -90,10 +90,10 @@ export default function Page() {
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-7 md:p-9">
             <h2 className="text-2xl font-semibold text-gray-900">A JWT Acceptance Chain</h2>
             <ol className="mt-5 space-y-4 leading-7 text-gray-600">
-              <li><strong className="text-gray-900">1. Parse:</strong> Is the compact token structurally readable?</li>
-              <li><strong className="text-gray-900">2. Verify:</strong> Does the signature match the expected algorithm and key material?</li>
-              <li><strong className="text-gray-900">3. Validate claims:</strong> Are issuer, audience, expiry, not-before time, and other required claims acceptable?</li>
-              <li><strong className="text-gray-900">4. Apply application policy:</strong> Does this token authorize this action in this system?</li>
+              <li><span className="font-semibold text-[var(--green)]">1.</span> <strong className="text-gray-900">Parse:</strong> Is the compact token structurally readable?</li>
+              <li><span className="font-semibold text-[var(--green)]">2.</span> <strong className="text-gray-900">Verify:</strong> Does the signature match the expected algorithm and key material?</li>
+              <li><span className="font-semibold text-[var(--green)]">3.</span> <strong className="text-gray-900">Validate claims:</strong> Are issuer, audience, expiry, not-before time, and other required claims acceptable?</li>
+              <li><span className="font-semibold text-[var(--green)]">4.</span> <strong className="text-gray-900">Apply application policy:</strong> Does this token authorize this action in this system?</li>
             </ol>
             <p className="mt-5 text-sm leading-6 text-gray-600">
               Stopping at step one is why a decoded JWT should never be described
@@ -124,7 +124,7 @@ export default function Page() {
           </div>
           <div className="mt-7 grid gap-5 md:grid-cols-2">
             {primitives.map((item) => (
-              <div key={item.title} className="rounded-2xl border border-gray-200 bg-white p-6">
+              <div key={item.title} className="self-start rounded-2xl border border-gray-200 bg-white p-6">
                 <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Use it to:</strong> {item.purpose}</p>
                 <p className="mt-2 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Do not assume:</strong> {item.boundary}</p>
@@ -180,10 +180,10 @@ export default function Page() {
         <section className="mt-18 border-t border-gray-200 pt-10">
           <h2 className="text-xl font-semibold text-gray-900">Primary references</h2>
           <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
-            <a href="https://www.rfc-editor.org/rfc/rfc7519" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">JSON Web Token — RFC 7519 ↗</a>
-            <a href="https://www.rfc-editor.org/rfc/rfc2104" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">HMAC — RFC 2104 ↗</a>
-            <a href="https://www.w3.org/TR/CSP3/" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Content Security Policy Level 3 ↗</a>
-            <a href="https://www.rfc-editor.org/rfc/rfc6797" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">HTTP Strict Transport Security — RFC 6797 ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc7519" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">JSON Web Token — RFC 7519 ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc2104" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">HMAC — RFC 2104 ↗</a>
+            <a href="https://www.w3.org/TR/CSP3/" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">Content Security Policy Level 3 ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc6797" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">HTTP Strict Transport Security — RFC 6797 ↗</a>
           </div>
         </section>
 

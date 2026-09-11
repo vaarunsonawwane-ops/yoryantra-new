@@ -125,15 +125,15 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+          <div className="self-start rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-900">
               A useful debugging order
             </h2>
             <ol className="mt-5 space-y-3 text-sm leading-6 text-gray-600">
-              <li><strong className="text-gray-900">1.</strong> Confirm the raw input you actually have.</li>
-              <li><strong className="text-gray-900">2.</strong> Parse or normalize only what is necessary.</li>
-              <li><strong className="text-gray-900">3.</strong> Compare the result with the protocol or API contract.</li>
-              <li><strong className="text-gray-900">4.</strong> Reproduce the behavior in the real client, server, or browser.</li>
+              <li><strong className="text-[var(--green)]">1.</strong> Confirm the raw input you actually have.</li>
+              <li><strong className="text-[var(--green)]">2.</strong> Parse or normalize only what is necessary.</li>
+              <li><strong className="text-[var(--green)]">3.</strong> Compare the result with the protocol or API contract.</li>
+              <li><strong className="text-[var(--green)]">4.</strong> Reproduce the behavior in the real client, server, or browser.</li>
             </ol>
           </div>
         </section>
@@ -226,9 +226,9 @@ export default function Page() {
             utility summary alone.
           </p>
           <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
-            <a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">HTTP Semantics — RFC 9110 ↗</a>
-            <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">MDN Fetch API ↗</a>
-            <a href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">WHATWG URL Standard ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">HTTP Semantics — RFC 9110 ↗</a>
+            <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">MDN Fetch API ↗</a>
+            <a href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">WHATWG URL Standard ↗</a>
           </div>
         </section>
 

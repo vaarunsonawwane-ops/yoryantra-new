@@ -91,7 +91,7 @@ export default function Page() {
           <h2 className="text-2xl font-semibold text-gray-900">What Common SEO Signals Actually Do</h2>
           <div className="mt-7 grid gap-5 md:grid-cols-2">
             {signalCards.map((signal) => (
-              <div key={signal.title} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div key={signal.title} className="self-start rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-900">{signal.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Useful for:</strong> {signal.does}</p>
                 <p className="mt-2 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Does not guarantee:</strong> {signal.not}</p>
@@ -107,7 +107,7 @@ export default function Page() {
             <ol className="mt-6 space-y-4">
               {debugOrder.map((item, index) => (
                 <li key={item} className="flex gap-4 leading-7 text-gray-600">
-                  <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--light-gold)]">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="min-w-7 pt-0.5 text-xs font-semibold tracking-wider text-[var(--green)]">{String(index + 1).padStart(2, "0")}</span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -172,10 +172,10 @@ export default function Page() {
         <section className="mt-18 border-t border-gray-200 pt-10">
           <h2 className="text-xl font-semibold text-gray-900">Google Search Central references</h2>
           <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
-            <a href="https://developers.google.com/search/docs/crawling-indexing/robots/intro" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">robots.txt introduction ↗</a>
-            <a href="https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Sitemaps overview ↗</a>
-            <a href="https://developers.google.com/search/docs/crawling-indexing/canonicalization" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Canonicalization ↗</a>
-            <a href="https://developers.google.com/search/docs/specialty/international/localized-versions" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Localized versions and hreflang ↗</a>
+            <a href="https://developers.google.com/search/docs/crawling-indexing/robots/intro" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">robots.txt introduction ↗</a>
+            <a href="https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">Sitemaps overview ↗</a>
+            <a href="https://developers.google.com/search/docs/crawling-indexing/canonicalization" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">Canonicalization ↗</a>
+            <a href="https://developers.google.com/search/docs/specialty/international/localized-versions" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">Localized versions and hreflang ↗</a>
           </div>
         </section>
 

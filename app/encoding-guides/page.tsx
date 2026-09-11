@@ -130,7 +130,7 @@ export default function Page() {
         </section>
 
         <section className="mt-18 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-gray-200 bg-white p-7">
+          <div className="self-start rounded-2xl border border-gray-200 bg-white p-7">
             <h2 className="text-xl font-semibold text-gray-900">Base64 vs Base64URL</h2>
             <p className="mt-4 leading-7 text-gray-600">
               Standard Base64 uses <code>+</code> and <code>/</code> in its
@@ -142,7 +142,7 @@ export default function Page() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-7">
+          <div className="self-start rounded-2xl border border-gray-200 bg-white p-7">
             <h2 className="text-xl font-semibold text-gray-900">Canonical Form Matters</h2>
             <p className="mt-4 leading-7 text-gray-600">
               Some decoders accept several spellings of the same value: optional
@@ -179,10 +179,10 @@ export default function Page() {
         <section className="mt-18 border-t border-gray-200 pt-10">
           <h2 className="text-xl font-semibold text-gray-900">Primary references for representation rules</h2>
           <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
-            <a href="https://www.rfc-editor.org/rfc/rfc4648" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Base-N Encodings — RFC 4648 ↗</a>
-            <a href="https://www.rfc-editor.org/rfc/rfc3986" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">URI Generic Syntax — RFC 3986 ↗</a>
-            <a href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">WHATWG URL Standard ↗</a>
-            <a href="https://www.unicode.org/standard/standard.html" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">The Unicode Standard ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc4648" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">Base-N Encodings — RFC 4648 ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc3986" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">URI Generic Syntax — RFC 3986 ↗</a>
+            <a href="https://url.spec.whatwg.org/" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">WHATWG URL Standard ↗</a>
+            <a href="https://www.unicode.org/standard/standard.html" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">The Unicode Standard ↗</a>
           </div>
         </section>
 

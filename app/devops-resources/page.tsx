@@ -107,9 +107,9 @@ export default function Page() {
           <h2 className="text-2xl font-semibold text-gray-900">Four Layers of Configuration Review</h2>
           <div className="mt-7 grid gap-5 md:grid-cols-2">
             {layers.map((layer) => (
-              <div key={layer.number} className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+              <div key={layer.number} className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-6">
                 <div className="flex items-start gap-4">
-                  <span className="pt-1 text-xs font-semibold tracking-wider text-[var(--light-gold)]">{layer.number}</span>
+                  <span className="pt-1 text-xs font-semibold tracking-wider text-[var(--green)]">{layer.number}</span>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{layer.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-gray-600">{layer.text}</p>
@@ -195,10 +195,10 @@ export default function Page() {
             own validation, dry-run, rendering, or test commands where available.
           </p>
           <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
-            <a href="https://docs.docker.com/reference/compose-file/" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Docker Compose file reference ↗</a>
-            <a href="https://kubernetes.io/docs/reference/kubernetes-api/" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Kubernetes API reference ↗</a>
-            <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">GitHub Actions workflow syntax ↗</a>
-            <a href="https://nginx.org/en/docs/" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">Nginx documentation ↗</a>
+            <a href="https://docs.docker.com/reference/compose-file/" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">Docker Compose file reference ↗</a>
+            <a href="https://kubernetes.io/docs/reference/kubernetes-api/" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">Kubernetes API reference ↗</a>
+            <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">GitHub Actions workflow syntax ↗</a>
+            <a href="https://nginx.org/en/docs/" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">Nginx documentation ↗</a>
           </div>
         </section>
 

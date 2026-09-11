@@ -97,7 +97,7 @@ export default function Page() {
           <h2 className="text-2xl font-semibold text-gray-900">Four Different Questions About the Same JSON</h2>
           <div className="mt-7 grid gap-5 md:grid-cols-2">
             {questions.map((question) => (
-              <div key={question.title} className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+              <div key={question.title} className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-6">
                 <h3 className="text-lg font-semibold text-gray-900">{question.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-gray-600">{question.text}</p>
                 <Link href={question.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
@@ -200,11 +200,11 @@ export default function Page() {
         <section className="mt-18 border-t border-gray-200 pt-10">
           <h2 className="text-xl font-semibold text-gray-900">Primary references</h2>
           <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
-            <a href="https://www.rfc-editor.org/rfc/rfc8259" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">JSON — RFC 8259 ↗</a>
-            <a href="https://json-schema.org/draft/2020-12" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">JSON Schema Draft 2020-12 ↗</a>
-            <a href="https://www.rfc-editor.org/rfc/rfc6901" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">JSON Pointer — RFC 6901 ↗</a>
-            <a href="https://www.rfc-editor.org/rfc/rfc6902" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">JSON Patch — RFC 6902 ↗</a>
-            <a href="https://www.rfc-editor.org/rfc/rfc9535" target="_blank" rel="noreferrer" className="text-[var(--light-gold)] hover:underline">JSONPath — RFC 9535 ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc8259" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">JSON — RFC 8259 ↗</a>
+            <a href="https://json-schema.org/draft/2020-12" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">JSON Schema Draft 2020-12 ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc6901" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">JSON Pointer — RFC 6901 ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc6902" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">JSON Patch — RFC 6902 ↗</a>
+            <a href="https://www.rfc-editor.org/rfc/rfc9535" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">JSONPath — RFC 9535 ↗</a>
           </div>
         </section>
 
