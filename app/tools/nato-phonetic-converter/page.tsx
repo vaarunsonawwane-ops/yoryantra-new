@@ -1,54 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title:
-    "NATO Phonetic Alphabet Converter – Text to Phonetic Words | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "NATO Phonetic Alphabet Converter | ICAO Spelling Words",
   description:
-    "Convert text into NATO phonetic alphabet words for clearer spelling, calls, support, radio-style communication, and text encoding workflows.",
-
-  keywords: [
-    "nato phonetic alphabet converter",
-    "phonetic alphabet converter",
-    "text to nato phonetic",
-    "nato alphabet translator",
-    "phonetic spelling converter",
-    "military alphabet converter",
-    "alpha bravo charlie converter",
-    "text to phonetic words",
-    "spelling alphabet converter",
-    "encoding tools",
-  ],
-
+    "Convert A–Z letters to official NATO/ICAO spelling words, choose written or radiotelephony forms for digits, and preserve unsupported Unicode characters.",
   alternates: {
     canonical: "https://yoryantra.com/tools/nato-phonetic-converter",
   },
-
   openGraph: {
-    title:
-      "NATO Phonetic Alphabet Converter – Text to Phonetic Words | Yoryantra",
-
+    title: "NATO Phonetic Alphabet Converter | Yoryantra",
     description:
-      "Convert text into NATO phonetic alphabet words for clearer spelling, calls, support, and communication workflows.",
-
+      "Spell letters with the official Alfa–Zulu code words and choose standard written or radiotelephony digit forms.",
     url: "https://yoryantra.com/tools/nato-phonetic-converter",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title:
-      "NATO Phonetic Alphabet Converter – Text to Phonetic Words | Yoryantra",
-
+    card: "summary",
+    title: "NATO Phonetic Alphabet Converter | Yoryantra",
     description:
-      "Free NATO Phonetic Alphabet Converter for turning text into phonetic spelling words.",
+      "Convert letters to NATO/ICAO code words with optional radiotelephony pronunciations for digits.",
   },
 };
 
-export default function Page() {
+export default function NatoPhoneticConverterPage() {
   return <ToolClient />;
 }

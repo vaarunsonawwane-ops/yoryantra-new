@@ -1,54 +1,29 @@
+import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
-export const metadata = {
-  title:
-    "ROT13 Encoder Decoder – Encode & Decode ROT13 Text | Yoryantra",
-
+export const metadata: Metadata = {
+  title: "ROT13 Encoder Decoder | ASCII Letter Rotation",
   description:
-    "Encode and decode ROT13 text for simple letter substitution, puzzles, examples, lightweight obfuscation, and text transformation workflows.",
-
-  keywords: [
-    "rot13 encoder decoder",
-    "rot13 decoder",
-    "rot13 encoder",
-    "rot13 converter",
-    "rot13 translator",
-    "decode rot13",
-    "encode rot13",
-    "rot13 cipher",
-    "text obfuscation tool",
-    "encoding tools",
-  ],
-
+    "Apply ROT13 to ASCII A–Z and a–z while preserving digits, punctuation, and non-ASCII text, with reversible-mapping and security-boundary guidance.",
   alternates: {
     canonical: "https://yoryantra.com/tools/rot13-encoder-decoder",
   },
-
   openGraph: {
-    title:
-      "ROT13 Encoder Decoder – Encode & Decode ROT13 Text | Yoryantra",
-
+    title: "ROT13 Encoder Decoder | Yoryantra",
     description:
-      "Encode and decode ROT13 text for simple substitution, puzzles, examples, and text transformation workflows.",
-
+      "Rotate ASCII letters by 13 positions while preserving numbers, punctuation, accents, and other Unicode text.",
     url: "https://yoryantra.com/tools/rot13-encoder-decoder",
-
     siteName: "Yoryantra",
-
     type: "website",
   },
-
   twitter: {
-    card: "summary_large_image",
-
-    title:
-      "ROT13 Encoder Decoder – Encode & Decode ROT13 Text | Yoryantra",
-
+    card: "summary",
+    title: "ROT13 Encoder Decoder | Yoryantra",
     description:
-      "Free ROT13 Encoder Decoder for simple letter substitution, puzzles, examples, and text transformation.",
+      "Apply the reversible ROT13 letter mapping without treating it as encryption.",
   },
 };
 
-export default function Page() {
+export default function Rot13EncoderDecoderPage() {
   return <ToolClient />;
 }

@@ -505,7 +505,7 @@ export const tools = [
   {
   title: "NATO Phonetic Alphabet Converter",
   description:
-    "Convert text into NATO phonetic alphabet words for clearer spelling, calls, support, and communication workflows.",
+    "Spell letters with official NATO/ICAO code words and optional radiotelephony digit pronunciations.",
   href: "/tools/nato-phonetic-converter",
   category: "Encoding Tools",
   },
@@ -521,7 +521,7 @@ export const tools = [
   {
   title: "ROT13 Encoder Decoder",
   description:
-    "Encode and decode ROT13 text for simple letter substitution, puzzles, examples, and text transformation workflows.",
+    "Rotate ASCII letters by 13 places while preserving numbers, punctuation, and other Unicode text.",
   href: "/tools/rot13-encoder-decoder",
   category: "Encoding Tools",
   },
