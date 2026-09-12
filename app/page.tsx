@@ -1,20 +1,20 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Yoryantra | Practical Browser Tools for Everyday Technical Work",
+  title: "Yoryantra | Practical Browser Tools for Everyday Work",
 
   description:
-    "Practical browser tools and technical guides for development, DevOps, security, SEO, JSON, data, encoding, and everyday technical work.",
+    "Practical browser tools for development, DevOps, security, SEO, JSON, encoding, and everyday technical work.",
 
   alternates: {
     canonical: "https://yoryantra.com",
   },
 
   openGraph: {
-    title: "Yoryantra | Practical Browser Tools for Everyday Technical Work",
+    title: "Yoryantra | Practical Tools for Everyday Work",
 
     description:
-      "Focused browser tools with clear technical context for development, DevOps, security, SEO, structured data, encoding, and related work.",
+      "Simple browser tools to help you format, convert, check, clean, validate, and prepare things quickly — without unnecessary clutter.",
 
     url: "https://yoryantra.com",
 
@@ -26,10 +26,10 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "Yoryantra | Practical Browser Tools for Everyday Technical Work",
+    title: "Yoryantra | Practical Tools for Everyday Work",
 
     description:
-      "Focused browser tools with clear technical context for development, DevOps, security, SEO, structured data, encoding, and related work.",
+      "Simple browser tools to help you format, convert, check, clean, validate, and prepare things quickly — without unnecessary clutter.",
   },
 };
 
@@ -37,38 +37,38 @@ const categories = [
   {
     title: "Developer Tools",
     description:
-      "Work with HTTP requests and responses, URLs, regex, timestamps, UUIDs, headers, and debugging utilities.",
+      "Work with JSON, regex, UUIDs, timestamps, tokens, API requests, and everyday debugging tasks.",
     href: "/categories/developer-tools",
-  },
-  {
-    title: "DevOps Tools",
-    description:
-      "Check Docker, Kubernetes, GitHub Actions, Nginx, cron, DNS, CIDR, environment files, and deployment configuration.",
-    href: "/categories/devops-tools",
   },
   {
     title: "Encoding Tools",
     description:
-      "Work with Base64, percent encoding, HTML and XML entities, Unicode escapes, Punycode, MIME, and byte-oriented text formats.",
+      "Encode and decode Base64, URLs, HTML entities, JSON strings, slugs, and web text.",
     href: "/categories/encoding-tools",
   },
   {
     title: "JSON & Data Tools",
     description:
-      "Format, validate, compare, query, and transform JSON, CSV, XML, YAML, SQL, schemas, pointers, and patches.",
+      "Format, validate, compare, convert, and inspect structured data used in APIs and applications.",
     href: "/categories/json-tools",
   },
   {
     title: "Security Tools",
     description:
-      "Inspect JWTs and cookies, work with hashes and keys, review security headers, and build browser security policies.",
+      "Inspect tokens, work with hashes and signatures, review headers, and prepare security-related values.",
     href: "/categories/security-tools",
   },
   {
     title: "SEO Tools",
     description:
-      "Review metadata, robots directives, canonicals, hreflang, sitemaps, indexability signals, and search-preview fields.",
+      "Prepare metadata, review redirects and canonicals, check crawl signals, and build campaign URLs.",
     href: "/categories/seo-tools",
+  },
+  {
+    title: "DevOps Tools",
+    description:
+      "Review YAML, Docker, Kubernetes, environment files, cron schedules, and deployment configuration.",
+    href: "/categories/devops-tools",
   },
 ];
 
@@ -76,37 +76,37 @@ const guides = [
   {
     title: "Developer Workflows",
     description:
-      "Choose between parsers, formatters, builders, and testers while keeping local and live behavior distinct.",
+      "Practical notes for APIs, requests, responses, regex, timestamps, UUIDs, and debugging work.",
     href: "/developers",
   },
   {
     title: "DevOps Resources",
     description:
-      "Separate valid syntax from platform configuration, interpolation, deployment checks, and runtime state.",
+      "Guides for Docker, Kubernetes, YAML, environment files, cron, DNS, and deployment checks.",
     href: "/devops-resources",
   },
   {
     title: "Encoding Guides",
     description:
-      "Follow characters, bytes, and encoded forms across Base64, URLs, entities, Unicode, MIME, and IDNs.",
+      "Help with Base64, URLs, HTML entities, Unicode, MIME, Punycode, and encoded text.",
     href: "/encoding-guides",
   },
   {
     title: "JSON & Data Guides",
     description:
-      "Understand parsing, schemas, transformations, pointers, patches, and where conversions can lose information.",
+      "Notes on JSON, schemas, pointers, patches, CSV, XML, YAML, and data conversion.",
     href: "/json-guides",
   },
   {
     title: "Security Guides",
     description:
-      "Distinguish decoding, verification, hashing, HMAC, password hashing, keys, headers, and trust boundaries.",
+      "Guides for JWTs, hashes, HMAC, keys, headers, cookies, and browser security settings.",
     href: "/security-guides",
   },
   {
     title: "SEO Resources",
     description:
-      "Work through crawling, indexing, canonicalization, hreflang, sitemaps, metadata, and search presentation without ranking promises.",
+      "Practical help with metadata, robots directives, canonicals, hreflang, sitemaps, and indexing checks.",
     href: "/seo-resources",
   },
 ];
@@ -114,10 +114,11 @@ const guides = [
 export default function HomePage() {
   return (
     <main className="bg-white text-gray-900">
-      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:pb-20 md:pt-8">
+      {/* HERO — original production copy restored */}
+      <section className="mx-auto max-w-7xl px-6 pt-4 pb-20 md:pt-8 md:pb-24">
         <div className="max-w-4xl">
           <p className="text-sm font-medium text-[var(--light-gold)]">
-            ✦ Tool first. Context when it matters.
+            ✦ Built for you
           </p>
 
           <h1 className="mt-8 text-4xl font-semibold tracking-tight text-gray-950 md:text-5xl md:leading-tight">
@@ -126,16 +127,20 @@ export default function HomePage() {
 
           <div className="mt-8 max-w-4xl space-y-5 text-lg leading-relaxed text-gray-600">
             <p>
-              Small technical tasks should not require a maze of pages. Yoryantra
-              is built for the moment you need to inspect a value, validate input,
-              convert data, check configuration, or prepare something for the next
+              Yoryantra is a growing collection of focused browser tools for
+              development, DevOps, security, SEO, JSON, encoding, and related
+              technical tasks.
+            </p>
+
+            <p>
+              Use them to format data, validate files, inspect values, convert
+              text, check configuration, and prepare information for another
               system.
             </p>
 
             <p>
-              The tool comes first. When a result has limits or needs
-              interpretation, the page explains what it does — and what it does
-              not prove — so you can use the output with the right context.
+              The idea is simple: open the tool, complete the task, understand
+              the result, and continue your work without unnecessary clutter.
             </p>
           </div>
 
@@ -157,17 +162,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-gray-100 bg-gray-50 py-16 md:py-20">
+      {/* CATEGORIES — original production wording restored */}
+      <section className="border-y border-gray-100 bg-gray-50 py-20">
         <div className="mx-auto max-w-7xl px-6">
           <div className="max-w-3xl">
             <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
-              Start with the work in front of you
+              Browse tools by category
             </h2>
 
             <p className="mt-4 leading-relaxed text-gray-600">
-              The categories separate data work, encoding, security,
-              infrastructure, search, and general development so related tools
-              stay in the right technical context.
+              Start with the type of task you need to complete, then move
+              through related tools without searching through one long list.
             </p>
           </div>
 
@@ -186,7 +191,7 @@ export default function HomePage() {
                   {category.description}
                 </p>
 
-                <p className="mt-5 text-sm font-medium text-[var(--green)]">
+                <p className="mt-5 text-sm font-medium text-[var(--light-gold)]">
                   Explore category →
                 </p>
               </Link>
@@ -195,90 +200,48 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-16 md:py-20">
-        <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-          <div className="max-w-3xl">
-            <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
-              A result is useful only when you know what it proves
-            </h2>
+      {/* A LITTLE CONTEXT — useful without turning the homepage into a sales page */}
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <div className="max-w-4xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
+            Some results need a little context
+          </h2>
 
-            <div className="mt-6 space-y-5 leading-relaxed text-gray-600">
-              <p>
-                Many technical tools look similar on the surface but answer
-                different questions. A formatter can make input readable; it
-                does not prove that the input satisfies a schema or that another
-                system will accept it.
-              </p>
+          <div className="mt-6 space-y-5 leading-relaxed text-gray-600">
+            <p>
+              A formatter can make JSON easier to read, but it does not tell you
+              whether the data matches a schema. Decoding a JWT lets you read its
+              contents, but it does not verify the signature or prove who created
+              it.
+            </p>
 
-              <p>
-                The same distinction appears across Yoryantra: decoding a JWT
-                is not signature verification, valid YAML is not proof that a
-                Kubernetes cluster will accept a manifest, and a search preview
-                is not a promise of how a search engine will display a page.
-              </p>
+            <p>
+              The same applies to configuration and SEO checks. A local check can
+              catch useful problems, but the server, browser, cluster, or search
+              engine still decides what happens in the real system.
+            </p>
 
-              <p>
-                Tool pages keep those boundaries visible so the output is easier
-                to use in the real workflow that comes next.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-4">
-            <div className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Format ≠ validate
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                Presentation can change without establishing whether the data
-                meets a schema, protocol, or application rule.
-              </p>
-            </div>
-
-            <div className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Decode ≠ verify
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                Readable token data does not establish signature validity,
-                trusted identity, or authorization.
-              </p>
-            </div>
-
-            <div className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Static check ≠ live behavior
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                Local analysis cannot replace the server, browser, cluster, or
-                runtime that ultimately interprets a configuration or request.
-              </p>
-            </div>
+            <p>
+              Where that difference matters, the tool page explains it instead
+              of treating every result as final proof.
+            </p>
           </div>
         </div>
       </section>
 
-      <section className="border-y border-gray-100 bg-gray-50 py-16 md:py-20">
+      {/* RESOURCES */}
+      <section className="border-y border-gray-100 bg-gray-50 py-20">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div className="max-w-3xl">
-              <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
-                When the task needs more than one tool
-              </h2>
+          <div className="max-w-3xl">
+            <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
+              Guides for related technical work
+            </h2>
 
-              <p className="mt-4 leading-relaxed text-gray-600">
-                The resource pages connect related tools and explain the
-                technical distinctions that affect how their results should be
-                interpreted or combined.
-              </p>
-            </div>
-
-            <Link
-              href="/resources"
-              className="self-start rounded-sm text-sm font-semibold text-[var(--green)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2 md:self-auto"
-            >
-              Browse all resources →
-            </Link>
+            <p className="mt-4 leading-relaxed text-gray-600">
+              Some tasks involve more than one tool. These pages group related
+              tools and explanations so you can follow the work without jumping
+              between unrelated pages.
+            </p>
           </div>
 
           <div className="mt-8 grid gap-x-10 md:grid-cols-2">
@@ -298,48 +261,58 @@ export default function HomePage() {
               </Link>
             ))}
           </div>
+
+          <Link
+            href="/resources"
+            className="mt-8 inline-flex text-sm font-semibold text-[var(--green)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
+          >
+            Browse all resources →
+          </Link>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-16 md:py-20">
+      {/* WHY YORYANTRA — original production wording restored */}
+      <section className="mx-auto max-w-7xl px-6 py-20">
         <div className="max-w-4xl">
           <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
-            Why Yoryantra exists
+            Why Yoryantra Exists
           </h2>
 
-          <div className="mt-6 space-y-5 leading-relaxed text-gray-600">
+          <div className="mt-6 space-y-5 text-gray-600 leading-relaxed">
             <p>
-              Small technical jobs often interrupt larger work: inspecting a
-              response, checking a configuration, converting a value, or
-              understanding why two representations differ. Yoryantra is built
-              for those moments.
+              Yoryantra was created because many utility websites make small
+              technical tasks feel harder than they need to be.
             </p>
 
             <p>
-              It is an independent, creator-built project. Tools are reviewed
-              against the behavior they claim, and supporting content is written
-              around the subject rather than a fixed page formula.
+              Sometimes you only need to format a payload, inspect a token,
+              validate a file, convert a value, or check a configuration before
+              moving back to the main task.
             </p>
 
             <p>
-              The goal is not to collect the largest possible number of
-              utilities. It is to make each page useful enough that you can
-              complete the task, understand the result, and know what still
-              needs to be checked elsewhere.
+              You can also read{" "}
+              <Link
+                href="/how-yoryantra-tools-are-built"
+                className="font-semibold text-[var(--light-gold)] hover:underline"
+              >
+                how Yoryantra tools are selected, tested, and improved
+              </Link>
+              .
             </p>
           </div>
 
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
               href="/how-yoryantra-tools-are-built"
-              className="rounded-xl border border-[var(--green)] bg-white px-5 py-3 text-sm font-medium text-[var(--green)] transition hover:-translate-y-0.5 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
+              className="rounded-xl bg-[var(--green)] px-6 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
             >
               How Tools Are Built
             </Link>
 
             <Link
               href="/about"
-              className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-800 transition hover:-translate-y-0.5 hover:border-[var(--green)] hover:text-[var(--green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
+              className="rounded-xl border border-[var(--green)] bg-white px-6 py-3 text-sm font-medium text-[var(--green)] transition hover:-translate-y-0.5 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
             >
               About Yoryantra
             </Link>
