@@ -1,186 +1,114 @@
 import Link from "next/link";
 
+const linkClass =
+  "text-gray-700 transition-colors duration-200 hover:!text-[var(--light-gold)] focus-visible:outline-none focus-visible:text-[var(--green)]";
+
 export default function Footer() {
   return (
-	<footer className="border-t border-gray-100 bg-white mt-12">
-	  <div className="max-w-7xl mx-auto px-6 py-10">
-
-        {/* TOP SECTION */}
-        <div className="flex flex-col md:flex-row items-start justify-between gap-10">
-
-          {/* BRAND */}
+    <footer className="mt-12 border-t border-gray-100 bg-white">
+      <div className="mx-auto max-w-7xl px-6 py-10">
+        <div className="flex flex-col items-start justify-between gap-10 lg:flex-row">
           <div className="max-w-sm">
-            <h2 className="text-lg font-bold text-gray-900">
-              Yoryantra
-            </h2>
+            <p className="text-lg font-bold text-gray-900">Yoryantra</p>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Practical browser tools for everyday work.
+              Practical browser tools and guides for everyday technical work.
             </p>
           </div>
 
-          {/* LINKS */}
-          <div className="flex flex-wrap gap-10 text-sm">
-
-			{/* RESOURCES */}
-			<div className="flex flex-col gap-2">
-			  <p className="font-semibold text-gray-900">
-				Resources
-			  </p>
-
-			  <Link
-				href="/developers"
-				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			  >
-				Developers
-			  </Link>
-			  
-			  <Link
-			    href="/seo-resources"
-			    className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			  >
-				SEO Resources
-			  </Link>
-			  
-			   <Link
-				href="/security-guides"
-				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			  >
-				Security Guides
-			  </Link>
-			  
-			  <Link
-			   href="/json-guides"
-			   className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			  >
-			   JSON Guides
-			  </Link>
-			  
-
-			  <Link
-				href="/devops-resources"
-				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			  >
-				DevOps Resources
-			  </Link>
-			  
-			  <Link
-				href="/encoding-guides"
-				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			  >
-				Encoding Guides
-			  </Link>			  
-			  
-			  
-			  <Link
-				href="/categories"
-				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			  >
-				Categories
-			  </Link>
-
-			  <Link
-				href="/tools"
-				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			  >
-				Tools
-			  </Link>
-
-			  <Link
-				href="/sitemap"
-				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			  >
-				Sitemap
-			  </Link>
-			</div>
-
-            {/* TOOLS */}
+          <div className="grid w-full gap-10 text-sm sm:grid-cols-2 lg:w-auto lg:grid-cols-4">
             <div className="flex flex-col gap-2">
-              <p className="font-semibold text-gray-900">
-                Tools
-              </p>
+              <p className="font-semibold text-gray-900">Explore</p>
 
-              <Link
-                href="/tools"
-                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-              >
-                All Tools
+              <Link href="/tools" className={linkClass}>
+                Tools
+              </Link>
+
+              <Link href="/categories" className={linkClass}>
+                Categories
+              </Link>
+
+              <Link href="/resources" className={linkClass}>
+                Resources
+              </Link>
+
+              <Link href="/sitemap" className={linkClass}>
+                Sitemap
               </Link>
             </div>
 
-            {/* COMPANY */}
             <div className="flex flex-col gap-2">
-              <p className="font-semibold text-gray-900">
-                Company
-              </p>
+              <p className="font-semibold text-gray-900">Guides</p>
 
-              <Link
-                href="/about"
-                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-              >
+              <Link href="/developers" className={linkClass}>
+                Developer Workflows
+              </Link>
+
+              <Link href="/devops-resources" className={linkClass}>
+                DevOps Resources
+              </Link>
+
+              <Link href="/encoding-guides" className={linkClass}>
+                Encoding Guides
+              </Link>
+
+              <Link href="/json-guides" className={linkClass}>
+                JSON &amp; Data Guides
+              </Link>
+
+              <Link href="/security-guides" className={linkClass}>
+                Security Guides
+              </Link>
+
+              <Link href="/seo-resources" className={linkClass}>
+                SEO Resources
+              </Link>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="font-semibold text-gray-900">Yoryantra</p>
+
+              <Link href="/about" className={linkClass}>
                 About
               </Link>
 
-              <Link
-                href="/contact"
-                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-              >
+              <Link href="/contact" className={linkClass}>
                 Contact
               </Link>
 
               <Link
                 href="/how-yoryantra-tools-are-built"
-                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+                className={linkClass}
               >
                 How Tools Are Built
               </Link>
             </div>
 
-            {/* LEGAL */}
             <div className="flex flex-col gap-2">
-              <p className="font-semibold text-gray-900">
-                Legal
-              </p>
+              <p className="font-semibold text-gray-900">Legal</p>
 
-              <Link
-                href="/privacy-policy"
-                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-              >
+              <Link href="/privacy-policy" className={linkClass}>
                 Privacy Policy
               </Link>
 
-              <Link
-                href="/terms"
-                className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-              >
+              <Link href="/terms" className={linkClass}>
                 Terms
               </Link>
-			  
-			  <Link
-				href="/disclaimer"
-				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
-			  >
-				Disclaimer
-			  </Link> 
-			  
-			   </div>
 
+              <Link href="/disclaimer" className={linkClass}>
+                Disclaimer
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* BOTTOM BAR */}
-        <div className="border-t border-gray-100 mt-8 pt-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 text-sm text-gray-500">
+        <div className="mt-8 flex flex-col items-start justify-between gap-2 border-t border-gray-100 pt-5 text-sm text-gray-500 md:flex-row md:items-center">
+          <p>© {new Date().getFullYear()} Yoryantra. All rights reserved.</p>
 
-          <p>
-            © {new Date().getFullYear()} Yoryantra. All rights reserved.
+          <p className="text-sm font-medium text-[var(--light-gold)]">
+            Built with Gratitude 🙏
           </p>
-
-		  <p className="text-sm font-medium text-[var(--light-gold)]">
-		    Built with Gratitude 🙏
-		  </p>
-
         </div>
-
       </div>
     </footer>
   );

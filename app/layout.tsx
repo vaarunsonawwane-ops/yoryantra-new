@@ -14,10 +14,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL("https://yoryantra.com"),
 
-  title: "YORYANTRA",
+  title: "Yoryantra",
 
   description:
-    "Smart utilities for structured workflows, productivity, and modern work.",
+    "Practical browser tools and technical guides for development, DevOps, security, SEO, JSON, data, encoding, and everyday technical work.",
 
   icons: {
     icon: "/favicon.ico",
@@ -85,7 +85,7 @@ export default function RootLayout({
 
         <Header />
 
-        <main>{children}</main>
+        {children}
 
         <Footer />
       </body>

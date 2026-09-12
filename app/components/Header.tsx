@@ -17,8 +17,8 @@ const navigation = [
     label: "Categories",
   },
   {
-    href: "/developers",
-    label: "Developers",
+    href: "/resources",
+    label: "Resources",
   },
   {
     href: "/about",
@@ -40,10 +40,9 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        {/* LOGO */}
         <Link
           href="/"
-          className="flex shrink-0 items-center"
+          className="flex shrink-0 items-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
           onClick={closeMobileMenu}
         >
           <img
@@ -53,7 +52,6 @@ export default function Header() {
           />
         </Link>
 
-        {/* DESKTOP NAVIGATION */}
         <nav
           aria-label="Main navigation"
           className="hidden items-center gap-8 text-sm font-medium md:flex"
@@ -62,14 +60,13 @@ export default function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className="text-gray-700 transition-colors duration-200 hover:!text-[var(--light-gold)]"
+              className="rounded-sm text-gray-700 transition-colors duration-200 hover:!text-[var(--light-gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        {/* MOBILE MENU BUTTON */}
         <button
           type="button"
           aria-label={
@@ -82,7 +79,7 @@ export default function Header() {
           onClick={() =>
             setIsMobileMenuOpen((currentState) => !currentState)
           }
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-[var(--green)] transition hover:border-[var(--light-gold)] hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--light-gold)] focus-visible:ring-offset-2 md:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-[var(--green)] transition hover:border-[var(--light-gold)] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2 md:hidden"
         >
           {isMobileMenuOpen ? (
             <svg
@@ -116,7 +113,6 @@ export default function Header() {
         </button>
       </div>
 
-      {/* MOBILE NAVIGATION */}
       <nav
         id="yoryantra-mobile-navigation"
         aria-label="Mobile navigation"
@@ -130,7 +126,7 @@ export default function Header() {
               key={item.href}
               href={item.href}
               onClick={closeMobileMenu}
-              className="border-b border-gray-100 py-3 text-sm font-medium text-gray-700 transition-colors duration-200 last:border-b-0 hover:!text-[var(--light-gold)]"
+              className="border-b border-gray-100 py-3 text-sm font-medium text-gray-700 transition-colors duration-200 last:border-b-0 hover:!text-[var(--light-gold)] focus-visible:outline-none focus-visible:text-[var(--green)]"
             >
               {item.label}
             </Link>
