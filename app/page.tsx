@@ -55,7 +55,7 @@ const categories = [
   {
     title: "Security Tools",
     description:
-      "Inspect tokens, work with hashes and signatures, review headers, and prepare security-related values.",
+      "Inspect tokens, work with hashes and signatures, review headers, and check security-related values.",
     href: "/categories/security-tools",
   },
   {
@@ -189,7 +189,7 @@ export default function HomePage() {
                 </p>
 
                 <p className="mt-5 text-sm font-medium text-[var(--light-gold)]">
-                  Explore category →
+                  View tools →
                 </p>
               </Link>
             ))}

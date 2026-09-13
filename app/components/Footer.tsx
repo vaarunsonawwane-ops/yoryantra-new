@@ -89,7 +89,7 @@ export default function Footer() {
 				rel="noopener noreferrer"
 				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
 			  >
-				Beeija — AI, Cloud Cost Calculators
+				Beeija — AI & Cloud Cost Calculators
 			  </a>
 			  
             </div>
