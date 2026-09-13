@@ -11,7 +11,7 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "Yoryantra | Practical Tools for Everyday Work",
+    title: "Yoryantra | Practical Browser Tools for Everyday Work",
 
     description:
       "Practical browser tools and guides for development, DevOps, security, SEO, JSON, encoding, and everyday technical work.",
@@ -26,7 +26,7 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "Yoryantra | Practical Tools for Everyday Work",
+    title: "Yoryantra | Practical Browser Tools for Everyday Work",
 
     description:
       "Practical browser tools and guides for development, DevOps, security, SEO, JSON, encoding, and everyday technical work.",
