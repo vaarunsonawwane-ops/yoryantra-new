@@ -82,6 +82,16 @@ export default function Footer() {
               >
                 How Tools Are Built
               </Link>
+			  
+			  <a
+				href="https://beeija.com"
+				target="_blank"
+				rel="noopener noreferrer"
+				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+			  >
+				Beeija — AI, Cloud Cost Calculators
+			  </a>
+			  
             </div>
 
             <div className="flex flex-col gap-2">

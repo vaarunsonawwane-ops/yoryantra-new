@@ -127,9 +127,7 @@ export default function HomePage() {
 
           <div className="mt-8 max-w-4xl space-y-5 text-lg leading-relaxed text-gray-600">
             <p>
-              Yoryantra is a growing collection of focused browser tools for
-              development, DevOps, security, SEO, JSON, encoding, and related
-              technical tasks.
+              Yoryantra is built around focused browser tools for development, DevOps, security, SEO, JSON, encoding, and related technical tasks.
             </p>
 
             <p>
@@ -171,8 +169,7 @@ export default function HomePage() {
             </h2>
 
             <p className="mt-4 leading-relaxed text-gray-600">
-              Start with the type of task you need to complete, then move
-              through related tools without searching through one long list.
+              Find tools based on what you are looking for — development, encoding, JSON and data, security, SEO, DevOps, and more.
             </p>
           </div>
 
@@ -209,21 +206,20 @@ export default function HomePage() {
 
           <div className="mt-6 space-y-5 leading-relaxed text-gray-600">
             <p>
-              A formatter can make JSON easier to read, but it does not tell you
-              whether the data matches a schema. Decoding a JWT lets you read its
-              contents, but it does not verify the signature or prove who created
-              it.
+              A JSON formatter makes data easier to read, but that does not mean the data is valid.
+              A schema validator checks the structure. In the same way, decoding a JWT lets you
+              read what is inside it, but it does not prove that the signature is valid.
             </p>
 
             <p>
-              The same applies to configuration and SEO checks. A local check can
-              catch useful problems, but the server, browser, cluster, or search
-              engine still decides what happens in the real system.
+              The same is true for configuration and SEO checks. A browser-based check can point
+              out problems, but the live server, browser, cluster, or search engine still decides what
+              actually happens.
             </p>
 
             <p>
-              Where that difference matters, the tool page explains it instead
-              of treating every result as final proof.
+              When that difference matters, I explain it on the tool page so you know what the result
+              means — and what it does not.
             </p>
           </div>
         </div>
@@ -234,13 +230,12 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="max-w-3xl">
             <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
-              Guides for related technical work
+              Guides for work that needs more than one tool
             </h2>
 
             <p className="mt-4 leading-relaxed text-gray-600">
-              Some tasks involve more than one tool. These pages group related
-              tools and explanations so you can follow the work without jumping
-              between unrelated pages.
+              Some technical jobs need more than one tool. These guides bring the related tools
+              and explanations together so you can work through the task in one place.
             </p>
           </div>
 
@@ -280,8 +275,7 @@ export default function HomePage() {
 
           <div className="mt-6 space-y-5 text-gray-600 leading-relaxed">
             <p>
-              Yoryantra was created because many utility websites make small
-              technical tasks feel harder than they need to be.
+              I created Yoryantra because many utility websites make small technical tasks harder than they need to be.
             </p>
 
             <p>
@@ -291,12 +285,12 @@ export default function HomePage() {
             </p>
 
             <p>
-              You can also read{" "}
+              If you want to know how the tools are chosen, tested, and improved, I explain that{" "}
               <Link
                 href="/how-yoryantra-tools-are-built"
                 className="font-semibold text-[var(--light-gold)] hover:underline"
               >
-                how Yoryantra tools are selected, tested, and improved
+                here
               </Link>
               .
             </p>
