@@ -84,10 +84,12 @@ export default function PrivacyPolicyPage() {
                 and ad personalization where permitted.
               </p>
               <p>
-                Your browser and any consent controls shown on the site may let
-                you manage cookies or advertising choices. Where consent is
-                required, advertising or analytics behavior can depend on the
-                choices you make through the available consent mechanism.
+                Third-party vendors, including Google, may use cookies to serve ads based on your
+                prior visits to Yoryantra or other websites. Google’s advertising cookies may allow
+                Google and its partners to show ads based on visits to Yoryantra and other sites on the
+                Internet. You can opt out of personalized advertising through Google Ads Settings.
+				Where consent is required, advertising or analytics behavior may also depend on the
+				choices you make through the consent controls available on the site.
               </p>
             </div>
           </section>
