@@ -1,26 +1,44 @@
+import type { MetadataRoute } from "next";
 import { tools } from "@/app/data/tools";
 
 export const dynamic = "force-static";
 
-export default function sitemap() {
+export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://yoryantra.com";
 
-  const toolPages = tools.map((tool) => ({
-    url: `${baseUrl}${tool.href}`,
-    lastModified: new Date(),
+  const staticPages = [
+    "",
+    "/tools",
+    "/categories",
+    "/categories/developer-tools",
+    "/categories/encoding-tools",
+    "/categories/json-tools",
+    "/categories/security-tools",
+    "/categories/seo-tools",
+    "/categories/devops-tools",
+    "/resources",
+    "/developers",
+    "/devops-resources",
+    "/encoding-guides",
+    "/json-guides",
+    "/security-guides",
+    "/seo-resources",
+    "/how-yoryantra-tools-are-built",
+    "/about",
+    "/contact",
+    "/privacy-policy",
+    "/terms",
+    "/disclaimer",
+    "/sitemap",
+  ];
+
+  const staticEntries: MetadataRoute.Sitemap = staticPages.map((path) => ({
+    url: `${baseUrl}${path}`,
   }));
 
-  return [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-    },
+  const toolEntries: MetadataRoute.Sitemap = tools.map((tool) => ({
+    url: `${baseUrl}${tool.href}`,
+  }));
 
-    {
-      url: `${baseUrl}/tools`,
-      lastModified: new Date(),
-    },
-
-    ...toolPages,
-  ];
+  return [...staticEntries, ...toolEntries];
 }
