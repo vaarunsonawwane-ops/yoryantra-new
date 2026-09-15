@@ -124,38 +124,38 @@ export default function Page() {
           </p>
 
           <div className="mt-8 grid gap-4 md:grid-cols-2">
-            <SectionMiniCard>
+            <div className="rounded-2xl border border-gray-200 bg-[rgba(200,155,60,0.08)] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">Encoding vs security:</strong>{" "}
                 Base64 and percent encoding change representation. JWT verification,
                 HMACs, password hashing, and security-policy checks answer trust or
                 protection questions.
               </p>
-            </SectionMiniCard>
-            <SectionMiniCard>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-[rgba(200,155,60,0.08)] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">JSON & Data vs DevOps:</strong>{" "}
                 formatting YAML is a data-shaping task; validating a Kubernetes
                 manifest or resolving Compose environment variables is deployment
                 configuration work.
               </p>
-            </SectionMiniCard>
-            <SectionMiniCard>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-[rgba(200,155,60,0.08)] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">Developer vs SEO:</strong>{" "}
                 parsing an HTTP response is a general implementation task, while
                 interpreting canonical, robots, hreflang, sitemap, or indexability
                 signals belongs to search diagnostics.
               </p>
-            </SectionMiniCard>
-            <SectionMiniCard>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-[rgba(200,155,60,0.08)] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">Formatting vs validation:</strong>{" "}
                 making text easier to read does not prove that it satisfies a schema,
                 protocol, runtime, or application requirement.
               </p>
-            </SectionMiniCard>
-          </div>
+            </div>
+			</div>
         </SectionCard>
 
         <section className="mt-16 max-w-4xl border-t border-gray-200 pt-10">
