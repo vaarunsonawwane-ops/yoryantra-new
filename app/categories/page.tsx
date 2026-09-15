@@ -132,7 +132,7 @@ export default function Page() {
                 protection questions.
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-bg-[#FAF6EB] p-5">
+            <div className="rounded-2xl border border-gray-200 bg-[#FAF6EB] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">JSON & Data vs DevOps:</strong>{" "}
                 formatting YAML is a data-shaping task; validating a Kubernetes
@@ -140,7 +140,7 @@ export default function Page() {
                 configuration work.
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-bg-[#FAF6EB] p-5">
+            <div className="rounded-2xl border border-gray-200 bg-[#FAF6EB] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">Developer vs SEO:</strong>{" "}
                 parsing an HTTP response is a general implementation task, while
@@ -148,7 +148,7 @@ export default function Page() {
                 signals belongs to search diagnostics.
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-bg-[#FAF6EB] p-5">
+            <div className="rounded-2xl border border-gray-200 bg-[#FAF6EB] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">Formatting vs validation:</strong>{" "}
                 making text easier to read does not prove that it satisfies a schema,
