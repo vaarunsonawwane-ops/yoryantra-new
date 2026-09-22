@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 const XML_NAMESPACE = "http://www.w3.org/XML/1998/namespace";
 
@@ -246,29 +247,21 @@ export default function ToolClient() {
       title="XML Formatter"
       description={'Check XML well-formedness and indent element-oriented XML without blindly inserting whitespace into mixed content or xml:space="preserve" subtrees.'}
     >
-      <div>
-        <label
-          htmlFor="xml-indent"
-          className="mb-2 block text-sm font-medium text-gray-700"
-        >
-          Indentation
-        </label>
-        <select
-          id="xml-indent"
-          value={indentSize}
-          onChange={(event) => {
-            setIndentSize(Number(event.target.value));
-            setOutput("");
-            setError("");
-            setNote("");
-            setCopyStatus("");
-          }}
-          className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm text-gray-800 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-        >
-          <option value={2}>2 spaces</option>
-          <option value={4}>4 spaces</option>
-        </select>
-      </div>
+      <YoryantraSelect
+        label="Indentation"
+        value={String(indentSize)}
+        onChange={(value: string) => {
+          setIndentSize(Number(value));
+          setOutput("");
+          setError("");
+          setNote("");
+          setCopyStatus("");
+        }}
+        options={[
+          { label: "2 spaces", value: "2" },
+          { label: "4 spaces", value: "4" },
+        ]}
+      />
 
       <div className="mt-5">
         <div className="mb-2 flex items-center justify-between gap-4">
