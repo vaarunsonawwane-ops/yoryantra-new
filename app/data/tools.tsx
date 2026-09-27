@@ -91,13 +91,6 @@ export const tools = [
   },
   
   {
-  title: "HTML Encoder Decoder",
-  description: "Escape ampersands, angle brackets, quotes, and apostrophes as HTML entities, then reverse those mappings.",
-  href: "/tools/html-encoder-decoder",
-  category: "Encoding Tools",
-  },
-  
-  {
   title: "QR Code Generator",
   description: "Encode text or URLs as downloadable QR images with selectable size and error correction.",
   href: "/tools/qr-code-generator",
