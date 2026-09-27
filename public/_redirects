@@ -6,3 +6,4 @@
 /tools/security-headers-checker /tools/security-headers-scanner 301
 /tools/random-password-generator /tools/password-generator 301
 /tools/html-encoder-decoder /tools/html-escape-unescape 301
+/tools/redirect-chain-checker /tools/redirect-checker 301

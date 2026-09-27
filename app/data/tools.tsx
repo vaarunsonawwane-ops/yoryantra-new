@@ -429,16 +429,7 @@ export const tools = [
   href: "/tools/security-headers-scanner",
   category: "Security Tools",
   },
-
-  {
-  title: "Redirect Chain Checker",
-  description:
-    "Analyze redirect chains, redirect hops, status codes, loops, and final destination URLs for technical SEO debugging.",
-  href: "/tools/redirect-chain-checker",
-  category: "SEO Tools",
-  },
-
-  {
+{
   title: "DNS Records Checker",
   description:
     "Check DNS records including A, AAAA, CNAME, MX, TXT, NS, SOA, and domain configuration details.",
