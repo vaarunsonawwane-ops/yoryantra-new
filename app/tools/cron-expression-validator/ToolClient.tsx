@@ -683,6 +683,21 @@ function summarizeFrequency(
   const dow =
     fields[4];
 
+  const minuteValue =
+    minute.values.length === 1
+      ? minute.values[0]
+      : null;
+  const hourValue =
+    hour.values.length === 1
+      ? hour.values[0]
+      : null;
+
+  const clock =
+    minuteValue !== null &&
+    hourValue !== null
+      ? `${String(hourValue).padStart(2, "0")}:${String(minuteValue).padStart(2, "0")}`
+      : "";
+
   if (
     minute.values.length ===
       60 &&
@@ -695,38 +710,84 @@ function summarizeFrequency(
     return "Every minute";
   }
 
+  const minuteStep =
+    minute.source.match(
+      /^\*\/(\d+)$/
+    );
+
   if (
-    minute.values.length ===
-      1 &&
+    minuteStep &&
+    hour.source === "*" &&
+    !dom.restricted &&
+    !month.restricted &&
+    !dow.restricted
+  ) {
+    return `Every ${minuteStep[1]} minutes`;
+  }
+
+  if (
+    minuteValue !== null &&
     hour.values.length ===
       24 &&
     !dom.restricted &&
     !month.restricted &&
     !dow.restricted
   ) {
-    return `Hourly at minute ${minute.values[0]}`;
+    return `Hourly at minute ${minuteValue}`;
   }
 
   if (
-    minute.values.length ===
-      1 &&
-    hour.values.length ===
-      1 &&
+    minuteValue !== null &&
+    hourValue !== null &&
     !dom.restricted &&
     !month.restricted &&
     !dow.restricted
   ) {
-    return `Daily at ${String(
-      hour.values[0]
-    ).padStart(
-      2,
-      "0"
-    )}:${String(
-      minute.values[0]
-    ).padStart(
-      2,
-      "0"
-    )}`;
+    return `Daily at ${clock}`;
+  }
+
+  if (
+    minuteValue !== null &&
+    hourValue !== null &&
+    !dom.restricted &&
+    !month.restricted &&
+    dow.restricted
+  ) {
+    const dayNames =
+      dow.displayValues
+        .map((value) => {
+          const match =
+            value.match(
+              /\(([^)]+)\)/
+            );
+
+          return match
+            ? match[1]
+            : value;
+        })
+        .join(", ");
+
+    return `At ${clock} on ${dayNames}`;
+  }
+
+  if (
+    minuteValue !== null &&
+    hourValue !== null &&
+    dom.restricted &&
+    !month.restricted &&
+    !dow.restricted
+  ) {
+    return `At ${clock} on day-of-month ${dom.source}`;
+  }
+
+  if (
+    minuteValue !== null &&
+    hourValue !== null &&
+    dom.restricted &&
+    month.restricted &&
+    !dow.restricted
+  ) {
+    return `At ${clock} on day-of-month ${dom.source} in month rule ${month.source}`;
   }
 
   return "See field selections and scheduler semantics";
@@ -1319,7 +1380,9 @@ export default function ToolClient() {
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
                   Selected values are expanded with the documented portable subset so
-                  range/list/step mistakes are visible.
+                  range/list/step mistakes are visible. The schedule-shape summary is
+                  intentionally concise; these field cards remain the precise view for
+                  complex expressions.
                 </p>
               </div>
 

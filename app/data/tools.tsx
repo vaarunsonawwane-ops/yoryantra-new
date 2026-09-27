@@ -170,7 +170,7 @@ export const tools = [
   
   {
   title: "Cron Expression Generator",
-  description: "Build and validate five-field cron schedules without mixing in Quartz or vendor-specific syntax.",
+  description: "Build portable five-field cron expressions field by field, with presets, validation, and day-rule warnings.",
   href: "/tools/cron-expression-generator",
   category: "DevOps Tools",
   },
@@ -505,14 +505,6 @@ export const tools = [
 },
 
 {
-  title: "Cron Expression Parser",
-  description:
-    "Interpret five-field cron expressions and explain the minute, hour, day, month, and weekday schedule.",
-  href: "/tools/cron-expression-parser",
-  category: "DevOps Tools",
-},
-
-{
   title: "Dockerfile Linter",
   description:
     "Check Dockerfile content for common issues, risky patterns, and basic Dockerfile best practices.",
@@ -658,7 +650,7 @@ export const tools = [
 {
   title: "Cron Expression Validator",
   description:
-    "Validate cron expressions, check cron syntax, preview schedule meaning, and find common cron timing issues.",
+    "Validate and interpret five-field cron syntax, expanded field values, calendar traps, and scheduler boundaries.",
   href: "/tools/cron-expression-validator",
   category: "DevOps Tools",
 },
