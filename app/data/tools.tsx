@@ -555,7 +555,7 @@ export const tools = [
 {
   title: "HTTP Request Formatter",
   description:
-    "Format raw HTTP requests and inspect methods, headers, query parameters, and body data.",
+    "Inspect HTTP/1.x request framing, target forms, headers, body bytes, and protocol warnings.",
   href: "/tools/http-request-formatter",
   category: "Developer Tools",
 },
@@ -652,14 +652,6 @@ export const tools = [
   description:
     "Compare two sets of HTTP headers and find added, removed, changed, or unchanged header values.",
   href: "/tools/http-header-diff-checker",
-  category: "Developer Tools",
-},
-
-{
-  title: "API Request Header Builder",
-  description:
-    "Build API request headers, prepare Authorization, Content-Type, Accept, and custom HTTP header blocks.",
-  href: "/tools/api-request-header-builder",
   category: "Developer Tools",
 },
 
@@ -797,7 +789,7 @@ export const tools = [
 {
   title: "HTTP Request Parser",
   description:
-    "Break raw HTTP requests into request line, headers, query data, cookies, body, and framing details.",
+    "Parse raw HTTP/1.x requests into URLs, headers, query data, cookies, bodies, JSON, or cURL.",
   href: "/tools/http-request-parser",
   category: "Developer Tools",
 },
@@ -848,7 +840,7 @@ export const tools = [
 {
   title: "Request Header Builder",
   description:
-    "Build HTTP request headers with field-name validation, duplicate preservation, Basic auth encoding, secret masking, and cURL or Fetch output.",
+    "Build HTTP request headers with auth helpers, secret masking, Fetch/CORS checks, and cURL or JSON output.",
   href: "/tools/request-header-builder",
   category: "Developer Tools",
 },

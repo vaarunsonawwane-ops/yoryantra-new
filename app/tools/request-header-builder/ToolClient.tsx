@@ -38,10 +38,63 @@ const commonHeaders = [
     value: "no-cache",
   },
   {
+    name: "Idempotency-Key",
+    value: "YOUR_IDEMPOTENCY_KEY",
+  },
+  {
     name: "X-Request-ID",
     value: "req_12345",
   },
 ];
+
+
+const corsSafelistedRequestHeaderNames = new Set([
+  "accept",
+  "accept-language",
+  "content-language",
+  "content-type",
+  "range",
+]);
+
+function hasInvalidHeaderValueControl(value: string) {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (
+      code === 0x7f ||
+      (code < 0x20 && code !== 0x09)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isCorsSafelistedContentType(value: string) {
+  const mediaType = value.split(";")[0].trim().toLowerCase();
+  return (
+    mediaType === "application/x-www-form-urlencoded" ||
+    mediaType === "multipart/form-data" ||
+    mediaType === "text/plain"
+  );
+}
+
+function isDefinitelyCorsUnsafelistedHeader(name: string, value: string) {
+  const lower = name.toLowerCase();
+
+  if (!corsSafelistedRequestHeaderNames.has(lower)) {
+    return true;
+  }
+
+  if (lower === "content-type") {
+    return !isCorsSafelistedContentType(value);
+  }
+
+  if (lower === "range") {
+    return !/^bytes=\d+-\d*$/.test(value.trim());
+  }
+
+  return false;
+}
 
 export default function ToolClient() {
   const [headers, setHeaders] = useState<HeaderRow[]>([
@@ -676,7 +729,10 @@ export default function ToolClient() {
             The builder flags names such as <code>Cookie</code>, <code>Host</code>, <code>Content-Length</code>, and <code>Sec-*</code> when Fetch output is selected.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://fetch.spec.whatwg.org/#forbidden-request-header" target="_blank" rel="noreferrer">WHATWG Fetch specification</a> is the authoritative reference for that browser boundary.
+            A header can also be writable and still make a cross-origin request non-simple. For example, <code>Authorization</code>, custom API-key fields, and <code>Content-Type: application/json</code> are not CORS-safelisted request headers in those forms, so they can contribute to a preflight request. The warning is intentionally a practical hint rather than a complete CORS simulator because the request method, origin, credentials, and additional value restrictions also matter.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://fetch.spec.whatwg.org/#forbidden-request-header" target="_blank" rel="noreferrer">forbidden request-header</a> and <a className="font-medium text-[var(--green)] underline underline-offset-2" href="https://fetch.spec.whatwg.org/#cors-safelisted-request-header" target="_blank" rel="noreferrer">CORS-safelisted request-header</a> sections of the WHATWG Fetch specification are the authoritative references for these browser boundaries.
           </p>
         </div>
 
@@ -843,11 +899,11 @@ function getHeaderProblems({
       });
     }
 
-    if (/[\r\n\0]/.test(header.value)) {
+    if (hasInvalidHeaderValueControl(header.value)) {
       problems.push({
         severity: "error",
         title: `Unsafe header value in row ${index + 1}`,
-        message: "Header values cannot contain carriage returns, line feeds, or NUL characters in this builder.",
+        message: "Header values cannot contain C0 control characters other than horizontal tab, or the DEL character.",
       });
     }
   });
@@ -913,6 +969,22 @@ function getHeaderProblems({
     });
   }
 
+  if (activeHeaders.some((header) => header.name.toLowerCase() === "content-length")) {
+    problems.push({
+      severity: "warning",
+      title: "Content-Length is usually client-calculated",
+      message: "Most HTTP clients calculate Content-Length from the encoded request body. Hard-coding it can make a request invalid when the body changes.",
+    });
+  }
+
+  if (activeHeaders.some((header) => header.name.toLowerCase() === "host")) {
+    problems.push({
+      severity: "warning",
+      title: "Host is normally derived from the request URL",
+      message: "High-level clients usually generate Host (or :authority in HTTP/2 and HTTP/3) from the request target. Override it only when your client or proxy explicitly supports that workflow.",
+    });
+  }
+
   if (activeHeaders.some((header) => isSensitiveHeader(header.name))) {
     problems.push({
       severity: "warning",
@@ -941,6 +1013,18 @@ function getHeaderProblems({
         severity: "warning",
         title: "Browser-controlled Fetch headers",
         message: `Browser Fetch may reject or control: ${Array.from(new Set(blocked)).join(", ")}. A valid HTTP field is not necessarily writable from browser JavaScript.`,
+      });
+    }
+
+    const corsUnsafelisted = activeHeaders
+      .filter((header) => isDefinitelyCorsUnsafelistedHeader(header.name, header.value))
+      .map((header) => header.name);
+
+    if (corsUnsafelisted.length > 0) {
+      problems.push({
+        severity: "warning",
+        title: "Cross-origin Fetch may require a CORS preflight",
+        message: `These generated headers are not CORS-safelisted in this form: ${Array.from(new Set(corsUnsafelisted)).join(", ")}. This is a practical hint, not a full preflight simulator; method, origin, credentials, and additional value restrictions also matter.`,
       });
     }
 
@@ -1010,10 +1094,12 @@ function isSensitiveHeader(name: string) {
 
   return (
     normalized === "authorization" ||
+    normalized === "proxy-authorization" ||
     normalized === "cookie" ||
     normalized === "set-cookie" ||
     normalized.includes("token") ||
     normalized.includes("secret") ||
+    normalized.includes("credential") ||
     normalized.includes("api-key") ||
     normalized.includes("apikey") ||
     normalized.includes("x-api-key")
