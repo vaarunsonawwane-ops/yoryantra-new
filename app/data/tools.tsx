@@ -35,13 +35,6 @@ export const tools = [
   },
 
   {
-    title: "Timestamp Converter",
-    description: "Convert Unix seconds or milliseconds into UTC, ISO 8601, and browser-local time without guessing units.",
-    href: "/tools/timestamp-converter",
-	category: "Developer Tools",
-  },
-
-  {
     title: "Slug Generator",
     description: "Build lowercase hyphenated URL slugs with Unicode-preserving or ASCII-only output.",
     href: "/tools/slug-generator",

@@ -8,3 +8,4 @@
 /tools/html-encoder-decoder /tools/html-escape-unescape 301
 /tools/redirect-chain-checker /tools/redirect-checker 301
 /tools/regex-tester /tools/regex-match-tester 301
+/tools/timestamp-converter /tools/unix-timestamp-generator 301
