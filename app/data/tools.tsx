@@ -433,7 +433,7 @@ export const tools = [
   {
   title: "Unicode Encoder Decoder",
   description:
-    "Encode and decode Unicode escape sequences for JavaScript, JSON, HTML, APIs, and text debugging.",
+    "Inspect text as UTF-16 escapes, U+ code points, UTF-8 bytes, normalization, bidi controls, and surrogate validity.",
   href: "/tools/unicode-encoder-decoder",
   category: "Encoding Tools",
   },
@@ -954,7 +954,7 @@ export const tools = [
 {
   title: "Unicode Escape Sequence Converter",
   description:
-    "Decode or encode Unicode escapes while exposing code points, surrogate pairs, and invalid scalar values.",
+    "Convert JavaScript Unicode escapes and numeric HTML references with text, line, JSON, or code-point output.",
   href: "/tools/unicode-escape-sequence-converter",
   category: "Encoding Tools",
 },

@@ -42,7 +42,7 @@ const encodeExample = "Hello Yoryantra 😀 नमस्ते";
 export default function ToolClient() {
   const [mode, setMode] = useState<Mode>("decode");
   const [input, setInput] = useState("");
-  const [escapeStyle, setEscapeStyle] = useState<EscapeStyle>("javascript");
+  const [escapeStyle, setEscapeStyle] = useState<EscapeStyle>("mixed");
   const [outputMode, setOutputMode] = useState<OutputMode>("text");
   const [uppercaseHex, setUppercaseHex] = useState(true);
   const [escapeAscii, setEscapeAscii] = useState(false);
@@ -107,7 +107,7 @@ export default function ToolClient() {
   const loadDecodeExample = () => {
     setMode("decode");
     setInput(decodeExample);
-    setEscapeStyle("javascript");
+    setEscapeStyle("mixed");
     setOutputMode("text");
     setUppercaseHex(true);
     setEscapeAscii(false);
@@ -137,7 +137,7 @@ export default function ToolClient() {
   const resetAll = () => {
     setMode("decode");
     setInput("");
-    setEscapeStyle("javascript");
+    setEscapeStyle("mixed");
     setOutputMode("text");
     setUppercaseHex(true);
     setEscapeAscii(false);
@@ -163,9 +163,10 @@ export default function ToolClient() {
           <ModeButton
             active={mode === "decode"}
             title="Decode Escapes"
-            description="Turn \\uXXXX, \\u{...}, \\xXX, and HTML entities into readable text."
+            description="Turn \\uXXXX, \\u{...}, \\xXX, and numeric HTML references into readable text."
             onClick={() => {
               setMode("decode");
+              setEscapeStyle("mixed");
               setOutputMode("text");
               setResult(null);
               setOutput("");
@@ -180,6 +181,7 @@ export default function ToolClient() {
             description="Turn readable text into Unicode escape sequences."
             onClick={() => {
               setMode("encode");
+              setEscapeStyle("javascript");
               setOutputMode("text");
               setResult(null);
               setOutput("");
@@ -270,7 +272,7 @@ export default function ToolClient() {
             />
           )}
 
-          {mode !== "encode" && (
+          {mode === "decode" && (
             <YoryantraSelect
               label="Decode Format"
               value={escapeStyle}
@@ -295,7 +297,7 @@ export default function ToolClient() {
                   value: "braced",
                 },
                 {
-                  label: "HTML entities",
+                  label: "Numeric HTML references",
                   value: "htmlDecimal",
                 },
               ]}
@@ -368,24 +370,26 @@ export default function ToolClient() {
             </label>
           )}
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
-            <input
-              type="checkbox"
-              checked={preserveWhitespace}
-              onChange={(event) => {
-                setPreserveWhitespace(event.target.checked);
-                setResult(null);
-                setOutput("");
-                setError("");
-                setCopied(false);
-              }}
-              className="h-4 w-4 accent-[var(--light-gold)]"
-            />
+          {mode === "encode" && (
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+              <input
+                type="checkbox"
+                checked={preserveWhitespace}
+                onChange={(event) => {
+                  setPreserveWhitespace(event.target.checked);
+                  setResult(null);
+                  setOutput("");
+                  setError("");
+                  setCopied(false);
+                }}
+                className="h-4 w-4 accent-[var(--light-gold)]"
+              />
 
-            Preserve whitespace
-          </label>
+              Preserve whitespace
+            </label>
+          )}
 
-          {mode === "decode" && (
+          {mode === "decode" && escapeStyle === "mixed" && (
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
               <input
                 type="checkbox"
@@ -400,7 +404,7 @@ export default function ToolClient() {
                 className="h-4 w-4 accent-[var(--light-gold)]"
               />
 
-              Decode HTML entities too
+              Decode numeric HTML references too
             </label>
           )}
         </div>
@@ -787,6 +791,7 @@ function convertUnicodeEscapes(
 
   if (options.mode === "decode") {
     converted = decodeEscapes(input, {
+      escapeStyle: options.escapeStyle,
       decodeHtmlEntities: options.decodeHtmlEntities,
     });
   }
@@ -835,45 +840,110 @@ function convertUnicodeEscapes(
   };
 }
 
+function decodeUtf16Escapes(input: string) {
+  let output = "";
+  let index = 0;
+
+  while (index < input.length) {
+    const match = input
+      .slice(index)
+      .match(/^\\u([0-9A-Fa-f]{4})/);
+
+    if (!match) {
+      output += input.charAt(index);
+      index += 1;
+      continue;
+    }
+
+    const first = parseInt(match[1], 16);
+    index += 6;
+
+    if (first >= 0xd800 && first <= 0xdbff) {
+      const lowMatch = input
+        .slice(index)
+        .match(/^\\u([0-9A-Fa-f]{4})/);
+
+      if (lowMatch) {
+        const second = parseInt(lowMatch[1], 16);
+
+        if (second >= 0xdc00 && second <= 0xdfff) {
+          const codePoint =
+            0x10000 + ((first - 0xd800) << 10) + (second - 0xdc00);
+          output += String.fromCodePoint(codePoint);
+          index += 6;
+          continue;
+        }
+      }
+
+      output += "\uFFFD";
+      continue;
+    }
+
+    if (first >= 0xdc00 && first <= 0xdfff) {
+      output += "\uFFFD";
+      continue;
+    }
+
+    output += String.fromCharCode(first);
+  }
+
+  return output;
+}
+
+function decodeBracedEscapes(input: string) {
+  return input.replace(
+    /\\u\{([0-9A-Fa-f]{1,6})\}/g,
+    (_match, hex: string) => scalarFromCodePoint(parseInt(hex, 16))
+  );
+}
+
+function decodeHexEscapes(input: string) {
+  return input.replace(
+    /\\x([0-9A-Fa-f]{2})/g,
+    (_match, hex: string) => String.fromCharCode(parseInt(hex, 16))
+  );
+}
+
+function decodeNumericHtmlReferences(input: string) {
+  return input
+    .replace(
+      /&#(\d+);/g,
+      (_match, decimal: string) => scalarFromCodePoint(Number(decimal))
+    )
+    .replace(
+      /&#x([0-9A-Fa-f]+);/g,
+      (_match, hex: string) => scalarFromCodePoint(parseInt(hex, 16))
+    );
+}
+
 function decodeEscapes(
   input: string,
   options: {
+    escapeStyle: EscapeStyle;
     decodeHtmlEntities: boolean;
   }
 ) {
-  let output = input;
+  if (options.escapeStyle === "javascript") {
+    return decodeUtf16Escapes(input);
+  }
 
-  output = output.replace(/\\u\{([0-9A-Fa-f]{1,6})\}/g, (_match, hex: string) => {
-    const codePoint = parseInt(hex, 16);
-    return scalarFromCodePoint(codePoint);
-  });
+  if (options.escapeStyle === "braced") {
+    return decodeBracedEscapes(input);
+  }
 
-  output = output.replace(/\\u([0-9A-Fa-f]{4})(?:\\u([0-9A-Fa-f]{4}))?/g, (match, firstHex: string, secondHex?: string) => {
-    const first = parseInt(firstHex, 16);
-    if (first >= 0xd800 && first <= 0xdbff) {
-      if (!secondHex) {
-        return "\uFFFD";
-      }
-      const second = parseInt(secondHex, 16);
-      if (second < 0xdc00 || second > 0xdfff) {
-        return "\uFFFD" + scalarFromCodePoint(second);
-      }
-      const codePoint = 0x10000 + ((first - 0xd800) << 10) + (second - 0xdc00);
-      return String.fromCodePoint(codePoint);
-    }
-    if (first >= 0xdc00 && first <= 0xdfff) {
-      return "\uFFFD" + (secondHex ? scalarFromCodePoint(parseInt(secondHex, 16)) : "");
-    }
-    return String.fromCharCode(first) + (secondHex ? scalarFromCodePoint(parseInt(secondHex, 16)) : "");
-  });
+  if (
+    options.escapeStyle === "htmlDecimal" ||
+    options.escapeStyle === "htmlHex"
+  ) {
+    return decodeNumericHtmlReferences(input);
+  }
 
-  output = output.replace(/\\x([0-9A-Fa-f]{2})/g, (_match, hex: string) => {
-    return String.fromCharCode(parseInt(hex, 16));
-  });
+  let output = decodeBracedEscapes(input);
+  output = decodeUtf16Escapes(output);
+  output = decodeHexEscapes(output);
 
   if (options.decodeHtmlEntities) {
-    output = output.replace(/&#(\d+);/g, (_match, decimal: string) => scalarFromCodePoint(Number(decimal)));
-    output = output.replace(/&#x([0-9A-Fa-f]+);/g, (_match, hex: string) => scalarFromCodePoint(parseInt(hex, 16)));
+    output = decodeNumericHtmlReferences(output);
   }
 
   return output;
