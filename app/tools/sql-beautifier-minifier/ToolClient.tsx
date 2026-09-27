@@ -813,10 +813,23 @@ function protectSQL(sql: string, removeComments: boolean): ProtectedSQL {
     const next = sql[index + 1];
 
     if (char === "-" && next === "-") {
-      let end = sql.indexOf("\n", index + 2);
-      if (end === -1) end = sql.length;
+      let end = index + 2;
+      while (end < sql.length && sql[end] !== "\n" && sql[end] !== "\r") end += 1;
       const value = sql.slice(index, end);
-      if (removeComments) text += end < sql.length ? "\n" : " "; else protect(value);
+
+      if (removeComments) {
+        if (end < sql.length) protect("\n");
+        else text += " ";
+      } else {
+        protect(value);
+        if (end < sql.length) protect("\n");
+      }
+
+      if (end < sql.length) {
+        if (sql[end] === "\r" && sql[end + 1] === "\n") end += 2;
+        else end += 1;
+      }
+
       index = end;
       continue;
     }
@@ -838,11 +851,24 @@ function protectSQL(sql: string, removeComments: boolean): ProtectedSQL {
       continue;
     }
 
-    if (char === "#" && (index === 0 || sql[index - 1] === "\n")) {
-      let end = sql.indexOf("\n", index + 1);
-      if (end === -1) end = sql.length;
+    if (char === "#" && (index === 0 || sql[index - 1] === "\n" || sql[index - 1] === "\r")) {
+      let end = index + 1;
+      while (end < sql.length && sql[end] !== "\n" && sql[end] !== "\r") end += 1;
       const value = sql.slice(index, end);
-      if (removeComments) text += end < sql.length ? "\n" : " "; else protect(value);
+
+      if (removeComments) {
+        if (end < sql.length) protect("\n");
+        else text += " ";
+      } else {
+        protect(value);
+        if (end < sql.length) protect("\n");
+      }
+
+      if (end < sql.length) {
+        if (sql[end] === "\r" && sql[end + 1] === "\n") end += 2;
+        else end += 1;
+      }
+
       index = end;
       continue;
     }
