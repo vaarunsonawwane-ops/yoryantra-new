@@ -583,7 +583,7 @@ export default function ToolClient() {
       </div>
 
       <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        SQL processing stays in the browser. Formatting does not execute the query, connect to a database, or prove that the output is valid for a particular SQL dialect.
+        Formatting does not execute the query, connect to a database, or prove that the output is valid for a particular SQL dialect.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
