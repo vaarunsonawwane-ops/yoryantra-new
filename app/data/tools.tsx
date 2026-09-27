@@ -35,13 +35,6 @@ export const tools = [
   },
 
   {
-    title: "Regex Tester",
-    description: "Test JavaScript regex patterns with selectable flags, capture groups, match indexes, and highlighted results.",
-    href: "/tools/regex-tester",
-	category: "Developer Tools",
-  },
-
-  {
     title: "Timestamp Converter",
     description: "Convert Unix seconds or milliseconds into UTC, ISO 8601, and browser-local time without guessing units.",
     href: "/tools/timestamp-converter",

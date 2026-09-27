@@ -583,12 +583,12 @@ function findRegexMatches(regex: RegExp, text: string, limit: number): { matches
 
     if (!repeated) break;
 
-    if (matches.length >= limit) {
-      return { matches, truncated: true };
-    }
-
     if (match[0] === "") {
       regex.lastIndex = advanceStringIndex(text, regex.lastIndex, regex.unicode);
+    }
+
+    if (matches.length >= limit) {
+      return { matches, truncated: regex.exec(text) !== null };
     }
   }
 
