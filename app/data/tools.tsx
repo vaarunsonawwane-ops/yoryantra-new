@@ -113,7 +113,7 @@ export const tools = [
   
   {
   title: "Meta Tag Generator",
-  description: "Build escaped search and social metadata while keeping canonical, robots, and preview limits visible.",
+  description: "Generate search, canonical, robots, Open Graph image details, and X card metadata with practical validation.",
   href: "/tools/meta-tag-generator",
   category: "SEO Tools",
   },
@@ -129,13 +129,6 @@ export const tools = [
   title: "Sitemap Generator",
   description: "Wrap line-separated URLs in a basic XML sitemap urlset document for search-engine discovery.",
   href: "/tools/sitemap-generator",
-  category: "SEO Tools",
-  },
-  
-  {
-  title: "Open Graph Generator",
-  description: "Generate Open Graph meta tags for social sharing.",
-  href: "/tools/open-graph-generator",
   category: "SEO Tools",
   },
   

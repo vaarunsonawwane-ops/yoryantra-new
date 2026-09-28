@@ -11,8 +11,6 @@ type RobotsMode =
   | "index-nofollow"
   | "noindex-nofollow";
 
-type OgType = "website" | "article";
-
 type MetaResult = {
   output: string;
   warnings: string[];
@@ -140,15 +138,38 @@ function robotsContent(mode: RobotsMode) {
   return "";
 }
 
+
+function validatePositiveInteger(raw: string, label: string) {
+  const value = raw.trim();
+
+  if (!value) return "";
+
+  if (!/^\d+$/.test(value) || Number(value) <= 0) {
+    throw new Error(`${label} must be a positive whole number.`);
+  }
+
+  return value;
+}
+
+function isLikelyImageMime(value: string) {
+  if (!value) return true;
+
+  return /^image\/[A-Za-z0-9.+-]+$/.test(value);
+}
+
 function buildMarkup(values: {
   title: string;
   description: string;
   url: string;
   image: string;
   imageAlt: string;
+  imageType: string;
+  imageWidth: string;
+  imageHeight: string;
   siteName: string;
+  locale: string;
   robots: string;
-  ogType: OgType;
+  ogType: string;
 }) {
   const lines: string[] = [];
 
@@ -216,12 +237,44 @@ function buildMarkup(values: {
     );
   }
 
+  if (values.locale) {
+    lines.push(
+      `<meta property="og:locale" content="${escapeHtmlAttr(
+        values.locale
+      )}" />`
+    );
+  }
+
   if (values.image) {
     lines.push(
       `<meta property="og:image" content="${escapeHtmlAttr(
         values.image
       )}" />`
     );
+
+    if (values.imageWidth) {
+      lines.push(
+        `<meta property="og:image:width" content="${escapeHtmlAttr(
+          values.imageWidth
+        )}" />`
+      );
+    }
+
+    if (values.imageHeight) {
+      lines.push(
+        `<meta property="og:image:height" content="${escapeHtmlAttr(
+          values.imageHeight
+        )}" />`
+      );
+    }
+
+    if (values.imageType) {
+      lines.push(
+        `<meta property="og:image:type" content="${escapeHtmlAttr(
+          values.imageType
+        )}" />`
+      );
+    }
   }
 
   if (values.image && values.imageAlt) {
@@ -279,11 +332,14 @@ export default function ToolClient() {
   const [url, setUrl] = useState("");
   const [image, setImage] = useState("");
   const [imageAlt, setImageAlt] = useState("");
+  const [imageType, setImageType] = useState("");
+  const [imageWidth, setImageWidth] = useState("");
+  const [imageHeight, setImageHeight] = useState("");
   const [siteName, setSiteName] = useState("");
+  const [locale, setLocale] = useState("");
   const [robotsMode, setRobotsMode] =
     useState<RobotsMode>("omit");
-  const [ogType, setOgType] =
-    useState<OgType>("website");
+  const [ogType, setOgType] = useState("website");
   const [result, setResult] =
     useState<MetaResult | null>(null);
   const [error, setError] = useState("");
@@ -346,6 +402,71 @@ export default function ToolClient() {
         );
       }
 
+      const normalizedImageWidth = validatePositiveInteger(
+        imageWidth,
+        "Open Graph image width"
+      );
+      const normalizedImageHeight = validatePositiveInteger(
+        imageHeight,
+        "Open Graph image height"
+      );
+      const normalizedImageType = imageType.trim();
+      const normalizedLocale = locale.trim();
+      const normalizedOgType = ogType.trim();
+
+      if (!normalizedOgType) {
+        throw new Error("Enter an Open Graph type such as website or article.");
+      }
+
+      if (
+        normalizedLocale &&
+        !/^[A-Za-z]{2,3}_[A-Za-z]{2}$/.test(normalizedLocale)
+      ) {
+        warnings.push(
+          `og:locale "${normalizedLocale}" does not use the Open Graph language_TERRITORY form such as en_US or en_GB.`
+        );
+      }
+
+      if (
+        normalizedImageType &&
+        !isLikelyImageMime(normalizedImageType)
+      ) {
+        warnings.push(
+          `og:image:type "${normalizedImageType}" does not look like an image/* media type.`
+        );
+      }
+
+      if (
+        Boolean(normalizedImageWidth) !== Boolean(normalizedImageHeight)
+      ) {
+        warnings.push(
+          "Only one Open Graph image dimension was supplied. Width and height are more informative together when both values are known."
+        );
+      }
+
+      if (
+        !normalizedImage &&
+        (
+          normalizedImageWidth ||
+          normalizedImageHeight ||
+          normalizedImageType
+        )
+      ) {
+        warnings.push(
+          "Structured Open Graph image details were supplied without a social image URL, so they are omitted from the generated markup."
+        );
+      }
+
+      if (
+        ["website", "article", "book", "profile"].indexOf(normalizedOgType) === -1 &&
+        normalizedOgType.indexOf(".") === -1 &&
+        normalizedOgType.indexOf(":") === -1
+      ) {
+        notes.push(
+          `og:type "${normalizedOgType}" is not one of the common simple Open Graph types and has no visible namespace separator. Confirm the intended object type or namespace.`
+        );
+      }
+
       if (
         normalizedImage &&
         !imageAlt.trim()
@@ -401,6 +522,12 @@ export default function ToolClient() {
         );
       }
 
+      if (description.trim().length > 300) {
+        notes.push(
+          "The description is long. Open Graph does not define one universal display length, but social platforms can truncate preview text."
+        );
+      }
+
       if (
         title.indexOf("\n") !== -1 ||
         title.indexOf("\r") !== -1
@@ -420,9 +547,13 @@ export default function ToolClient() {
         url: normalizedUrl,
         image: normalizedImage,
         imageAlt: imageAlt.trim(),
+        imageType: normalizedImage ? normalizedImageType : "",
+        imageWidth: normalizedImage ? normalizedImageWidth : "",
+        imageHeight: normalizedImage ? normalizedImageHeight : "",
         siteName: siteName.trim(),
+        locale: normalizedLocale,
         robots: robotsContent(robotsMode),
-        ogType,
+        ogType: normalizedOgType,
       });
 
       setResult({
@@ -457,6 +588,10 @@ export default function ToolClient() {
       "Browser address bar and URL components diagram"
     );
     setSiteName("Example Site");
+    setLocale("en_US");
+    setImageType("image/jpeg");
+    setImageWidth("1200");
+    setImageHeight("630");
     setRobotsMode("omit");
     setOgType("article");
     setResult(null);
@@ -487,7 +622,11 @@ export default function ToolClient() {
     setUrl("");
     setImage("");
     setImageAlt("");
+    setImageType("");
+    setImageWidth("");
+    setImageHeight("");
     setSiteName("");
+    setLocale("");
     setRobotsMode("omit");
     setOgType("website");
     clearResult();
@@ -499,7 +638,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Meta Tag Generator"
-      description="Build escaped search and social metadata while keeping canonical, robots, and preview limits visible."
+      description="Build escaped search, canonical, robots, Open Graph, structured social-image, and X card metadata with practical validation."
     >
       <div className="grid gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
@@ -621,28 +760,50 @@ export default function ToolClient() {
           </select>
         </div>
 
-        <div>
-          <label
-            htmlFor="meta-og-type"
-            className="mb-2 block text-sm font-medium text-gray-700"
-          >
-            Open Graph type
-          </label>
-          <select
-            id="meta-og-type"
-            value={ogType}
-            onChange={(event: { target: { value: string } }) => {
-              setOgType(
-                event.target.value as OgType
-              );
-              clearResult();
-            }}
-            className={inputClass}
-          >
-            <option value="website">website</option>
-            <option value="article">article</option>
-          </select>
-        </div>
+        <Field
+          id="meta-og-type"
+          label="Open Graph type"
+          value={ogType}
+          setValue={setOgType}
+          clearResult={clearResult}
+          placeholder="website, article, profile, book…"
+        />
+
+        <Field
+          id="meta-og-locale"
+          label="Open Graph locale (optional)"
+          value={locale}
+          setValue={setLocale}
+          clearResult={clearResult}
+          placeholder="en_US"
+        />
+
+        <Field
+          id="meta-og-image-type"
+          label="Open Graph image MIME type (optional)"
+          value={imageType}
+          setValue={setImageType}
+          clearResult={clearResult}
+          placeholder="image/jpeg"
+        />
+
+        <Field
+          id="meta-og-image-width"
+          label="Open Graph image width (optional)"
+          value={imageWidth}
+          setValue={setImageWidth}
+          clearResult={clearResult}
+          placeholder="1200"
+        />
+
+        <Field
+          id="meta-og-image-height"
+          label="Open Graph image height (optional)"
+          value={imageHeight}
+          setValue={setImageHeight}
+          clearResult={clearResult}
+          placeholder="630"
+        />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
@@ -858,6 +1019,21 @@ export default function ToolClient() {
             >
               robots meta tag reference
             </a>.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Structured Open Graph Image Properties Belong to Their Image
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Open Graph allows repeated images. Width, height, media type, and alt text are structured properties of the
+            <code> og:image</code> immediately before them. This generator emits one image group and keeps its structured
+            properties together. If you later add multiple images manually, keep each image and its related properties together.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Image dimensions and MIME type are declarations, not measurements. The browser tool does not download the image to
+            verify its real pixel size, file type, redirect behavior, TLS setup, or crawler accessibility.
           </p>
         </div>
 
