@@ -12,3 +12,4 @@
 /tools/api-request-header-builder /tools/request-header-builder 301
 /tools/cron-expression-parser /tools/cron-expression-validator 301
 /tools/cidr-calculator /tools/ipv4-subnet-calculator 301
+/tools/api-key-generator /tools/random-token-generator 301
