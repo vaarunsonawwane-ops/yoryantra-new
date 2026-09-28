@@ -14,6 +14,7 @@ type SubnetDetails = {
   prefixLength: number;
   cidr: string;
   networkAddress: string;
+  rangeEndAddress: string;
   broadcastAddress: string;
   firstUsableAddress: string;
   lastUsableAddress: string;
@@ -33,6 +34,7 @@ type SubnetDetails = {
 type SubnetSplit = {
   cidr: string;
   networkAddress: string;
+  rangeEndAddress: string;
   broadcastAddress: string;
   firstUsableAddress: string;
   lastUsableAddress: string;
@@ -349,7 +351,8 @@ export default function ToolClient() {
             <DetailCard label="IP Address" value={details.ipAddress} />
             <DetailCard label="Prefix Length" value={`/${details.prefixLength}`} />
             <DetailCard label="Network Address" value={details.networkAddress} />
-            <DetailCard label="Broadcast Address" value={details.broadcastAddress} />
+            <DetailCard label="Range End" value={details.rangeEndAddress} />
+            <DetailCard label="Directed Broadcast" value={details.broadcastAddress} />
             <DetailCard label="Subnet Mask" value={details.subnetMask} />
             <DetailCard label="Wildcard Mask" value={details.wildcardMask} />
             <DetailCard
@@ -413,7 +416,8 @@ export default function ToolClient() {
                 <tr>
                   <th className="px-4 py-3 font-semibold">CIDR</th>
                   <th className="px-4 py-3 font-semibold">Network</th>
-                  <th className="px-4 py-3 font-semibold">Broadcast</th>
+                  <th className="px-4 py-3 font-semibold">Range End</th>
+                  <th className="px-4 py-3 font-semibold">Directed Broadcast</th>
                   <th className="px-4 py-3 font-semibold">First Usable</th>
                   <th className="px-4 py-3 font-semibold">Last Usable</th>
                   <th className="px-4 py-3 font-semibold">Usable Hosts</th>
@@ -428,6 +432,9 @@ export default function ToolClient() {
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-600">
                       {subnet.networkAddress}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-600">
+                      {subnet.rangeEndAddress}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-600">
                       {subnet.broadcastAddress}
@@ -497,9 +504,9 @@ export default function ToolClient() {
 
           <p className="mt-4 text-gray-600 leading-relaxed">
             This advanced IPv4 Subnet Calculator takes an address with CIDR
-            prefix and calculates the network address, broadcast address, usable
-            host range, subnet mask, wildcard mask, binary notation, and optional
-            subnet splits. It is designed for practical DevOps, networking, and
+            prefix and calculates the network boundary, range end, directed-broadcast
+            semantics, usable host range, subnet mask, wildcard mask, binary notation,
+            and optional subnet splits. It is designed for practical DevOps, networking, and
             security troubleshooting tasks.
           </p>
         </div>
@@ -634,9 +641,12 @@ Usable hosts: 30`}
 
               <p className="mt-2 text-gray-600 leading-relaxed">
                 For prefixes /30 and shorter, this page shows the traditional
-                network-and-broadcast exclusion. A /31 is treated as two usable
-                point-to-point endpoints under RFC 3021, while /32 represents one
-                address rather than a conventional multi-host subnet.
+                network-and-directed-broadcast exclusion. A /31 is treated as two
+                usable point-to-point endpoints under RFC 3021, so the second address
+                is the range end rather than a directed broadcast on that link. A /32
+                represents one address and has no separate directed-broadcast address.
+                Confirm platform-specific reservations and /31 support before turning
+                a generic calculation into a cloud, firewall, DHCP, or LAN assignment.
               </p>
             </div>
 
@@ -751,7 +761,7 @@ function parseIPv4Subnet(input: string): SubnetDetails {
   const maskNumber = prefixToMask(prefixLength);
   const wildcardNumber = (~maskNumber) >>> 0;
   const networkNumber = (ipNumber & maskNumber) >>> 0;
-  const broadcastNumber = (networkNumber | wildcardNumber) >>> 0;
+  const rangeEndNumber = (networkNumber | wildcardNumber) >>> 0;
   const totalAddresses = 2 ** (32 - prefixLength);
   const hasTraditionalUsableRange = prefixLength <= 30;
 
@@ -759,11 +769,17 @@ function parseIPv4Subnet(input: string): SubnetDetails {
     ? networkNumber + 1
     : networkNumber;
   const lastUsableNumber = hasTraditionalUsableRange
-    ? broadcastNumber - 1
-    : broadcastNumber;
+    ? rangeEndNumber - 1
+    : rangeEndNumber;
   const usableAddresses = hasTraditionalUsableRange
     ? Math.max(totalAddresses - 2, 0)
     : totalAddresses;
+  const broadcastAddress =
+    prefixLength <= 30
+      ? numberToIPv4(rangeEndNumber)
+      : prefixLength === 31
+        ? "None on an RFC 3021 point-to-point link"
+        : "Not applicable to a single-address /32 prefix";
 
   return {
     input: normalized,
@@ -771,7 +787,8 @@ function parseIPv4Subnet(input: string): SubnetDetails {
     prefixLength,
     cidr: `${numberToIPv4(networkNumber)}/${prefixLength}`,
     networkAddress: numberToIPv4(networkNumber),
-    broadcastAddress: numberToIPv4(broadcastNumber),
+    rangeEndAddress: numberToIPv4(rangeEndNumber),
+    broadcastAddress,
     firstUsableAddress: numberToIPv4(firstUsableNumber),
     lastUsableAddress: numberToIPv4(lastUsableNumber),
     subnetMask: numberToIPv4(maskNumber),
@@ -784,7 +801,7 @@ function parseIPv4Subnet(input: string): SubnetDetails {
     binaryMask: numberToBinaryIPv4(maskNumber),
     binaryNetwork: numberToBinaryIPv4(networkNumber),
     startNumber: networkNumber,
-    endNumber: broadcastNumber,
+    endNumber: rangeEndNumber,
   };
 }
 
@@ -837,22 +854,29 @@ function calculateSubnetSplits(
 
   for (let index = 0; index < previewCount; index += 1) {
     const networkNumber = details.startNumber + index * subnetSize;
-    const broadcastNumber = networkNumber + subnetSize - 1;
+    const rangeEndNumber = networkNumber + subnetSize - 1;
     const hasTraditionalUsableRange = targetPrefix <= 30;
     const firstUsableNumber = hasTraditionalUsableRange
       ? networkNumber + 1
       : networkNumber;
     const lastUsableNumber = hasTraditionalUsableRange
-      ? broadcastNumber - 1
-      : broadcastNumber;
+      ? rangeEndNumber - 1
+      : rangeEndNumber;
     const usableAddresses = hasTraditionalUsableRange
       ? Math.max(subnetSize - 2, 0)
       : subnetSize;
+    const broadcastAddress =
+      targetPrefix <= 30
+        ? numberToIPv4(rangeEndNumber)
+        : targetPrefix === 31
+          ? "None on an RFC 3021 point-to-point link"
+          : "Not applicable to a single-address /32 prefix";
 
     subnets.push({
       cidr: `${numberToIPv4(networkNumber)}/${targetPrefix}`,
       networkAddress: numberToIPv4(networkNumber),
-      broadcastAddress: numberToIPv4(broadcastNumber),
+      rangeEndAddress: numberToIPv4(rangeEndNumber),
+      broadcastAddress,
       firstUsableAddress: numberToIPv4(firstUsableNumber),
       lastUsableAddress: numberToIPv4(lastUsableNumber),
       totalAddresses: subnetSize,
@@ -879,6 +903,7 @@ function formatSubnetOutput(
         ipAddress: details.ipAddress,
         prefixLength: details.prefixLength,
         networkAddress: details.networkAddress,
+        rangeEndAddress: details.rangeEndAddress,
         broadcastAddress: details.broadcastAddress,
         firstUsableAddress: details.firstUsableAddress,
         lastUsableAddress: details.lastUsableAddress,
@@ -908,7 +933,8 @@ function formatSubnetOutput(
       `IP Address: ${details.ipAddress}`,
       `Prefix Length: /${details.prefixLength}`,
       `Network Address: ${details.networkAddress}`,
-      `Broadcast Address: ${details.broadcastAddress}`,
+      `Range End: ${details.rangeEndAddress}`,
+      `Directed Broadcast: ${details.broadcastAddress}`,
       `Subnet Mask: ${details.subnetMask}`,
       `Wildcard Mask: ${details.wildcardMask}`,
       `First Usable IP: ${details.firstUsableAddress}`,
@@ -924,7 +950,7 @@ function formatSubnetOutput(
       splits.length > 0 ? "Subnet Splits:" : "",
       ...splits.map(
         (subnet) =>
-          `${subnet.cidr} | ${subnet.networkAddress} - ${subnet.broadcastAddress} | usable ${subnet.firstUsableAddress} - ${subnet.lastUsableAddress}`
+          `${subnet.cidr} | range ${subnet.networkAddress} - ${subnet.rangeEndAddress} | directed broadcast ${subnet.broadcastAddress} | usable ${subnet.firstUsableAddress} - ${subnet.lastUsableAddress}`
       ),
     ]
       .filter(Boolean)
@@ -935,7 +961,8 @@ function formatSubnetOutput(
     `IPv4 Subnet Summary`,
     `CIDR block: ${details.cidr}`,
     `Network: ${details.networkAddress}`,
-    `Broadcast: ${details.broadcastAddress}`,
+    `Range end: ${details.rangeEndAddress}`,
+    `Directed broadcast: ${details.broadcastAddress}`,
     `Subnet mask: ${details.subnetMask}`,
     `Wildcard mask: ${details.wildcardMask}`,
     `Usable range: ${details.firstUsableAddress} - ${details.lastUsableAddress}`,

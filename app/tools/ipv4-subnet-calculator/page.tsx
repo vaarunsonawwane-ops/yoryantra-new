@@ -4,7 +4,7 @@ import ToolClient from "./ToolClient";
 export const metadata: Metadata = {
   title: "IPv4 Subnet Calculator | CIDR Ranges and Splits | Yoryantra",
   description:
-    "Calculate IPv4 CIDR boundaries, subnet and wildcard masks, host ranges, binary form, and equal-size subnet splits.",
+    "Calculate IPv4 CIDR boundaries, range ends, directed-broadcast semantics, masks, host ranges, binary form, and equal-size subnet splits.",
   keywords: [
     "IPv4 subnet calculator",
     "advanced subnet calculator",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "IPv4 Subnet Calculator | CIDR Ranges and Splits | Yoryantra",
     description:
-      "Calculate IPv4 CIDR boundaries, subnet and wildcard masks, host ranges, binary form, and equal-size subnet splits.",
+      "Calculate IPv4 CIDR boundaries, range ends, directed-broadcast semantics, masks, host ranges, binary form, and equal-size subnet splits.",
     url: "https://yoryantra.com/tools/ipv4-subnet-calculator",
     siteName: "Yoryantra",
     type: "website",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "IPv4 Subnet Calculator | CIDR Ranges and Splits | Yoryantra",
     description:
-      "Calculate IPv4 CIDR boundaries, subnet and wildcard masks, host ranges, binary form, and equal-size subnet splits.",
+      "Calculate IPv4 CIDR boundaries, range ends, directed-broadcast semantics, masks, host ranges, binary form, and equal-size subnet splits.",
   },
 };
 

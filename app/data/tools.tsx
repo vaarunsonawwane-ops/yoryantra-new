@@ -690,15 +690,6 @@ export const tools = [
   category: "DevOps Tools",
 },
 
-
-{
-  title: "CIDR Calculator",
-  description:
-    "Calculate IPv4 prefix boundaries, subnet and wildcard masks, usable ranges, and /31 or /32 semantics.",
-  href: "/tools/cidr-calculator",
-  category: "DevOps Tools",
-},
-
 {
   title: "JSON Flatten / Unflatten Tool",
   description:
@@ -756,7 +747,7 @@ export const tools = [
 {
   title: "IPv4 Subnet Calculator",
   description:
-    "Calculate CIDR boundaries, masks, host ranges, binary form, and equal-size IPv4 subnet splits.",
+    "Calculate IPv4 CIDR boundaries, range ends, /31 semantics, binary form, and equal-size subnet splits.",
   href: "/tools/ipv4-subnet-calculator",
   category: "DevOps Tools",
 },
