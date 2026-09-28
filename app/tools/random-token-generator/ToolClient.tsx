@@ -377,7 +377,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Random Token Generator"
-      description="Create cryptographically random token strings with unbiased character selection and visible search-space estimates."
+      description="Create cryptographically random token or API-key secret material with selectable alphabets, unbiased character selection, and visible search-space estimates."
     >
       <div className="grid gap-5 md:grid-cols-2">
         <div className="self-start">
@@ -562,6 +562,27 @@ export default function ToolClient() {
             <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
               <h3 className="font-semibold text-gray-900">Stored bearer token</h3>
               <p className="mt-2">Consider whether the server needs the raw token after issuance. For many lookup-style bearer tokens, storing a one-way verifier rather than the raw secret can reduce damage if the credential database leaks.</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">When the token is an API key</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A production API-key system often separates a public identifier or short prefix from the secret portion. The identifier lets the server locate the right credential record without indexing, logging, or exposing the complete secret.
+          </p>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+              <h3 className="font-semibold text-gray-900">Server-side verification</h3>
+              <p className="mt-2">
+                If the server only needs to test whether a presented key matches, a one-way verifier can reduce exposure compared with storing the raw secret. If another system must later receive the original credential, the storage design has different requirements.
+              </p>
+            </div>
+            <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+              <h3 className="font-semibold text-gray-900">Transport and operations</h3>
+              <p className="mt-2">
+                Prefer authorization headers over query-string credentials when the protocol allows it, avoid source control and client bundles, log an identifier instead of the full key, scope permissions, and support independent rotation and revocation.
+              </p>
             </div>
           </div>
         </div>

@@ -152,14 +152,6 @@ export const tools = [
   href: "/tools/bcrypt-generator",
   category: "Security Tools",
 },
-
-  
-  {
-  title: "API Key Generator",
-  description: "Generate strong random API keys and secret tokens for development, testing, and application integrations.",
-  href: "/tools/api-key-generator",
-  category: "Security Tools",
-  },
   
   {
   title: "Cron Expression Generator",
@@ -170,7 +162,7 @@ export const tools = [
 
   {
   title: "Random Token Generator",
-  description: "Generate unbiased random tokens in Base64URL, alphanumeric, hexadecimal, or numeric formats with selectable length.",
+  description: "Generate Base64URL, alphanumeric, hex, or numeric secrets for API, webhook, session, and verification workflows.",
   href: "/tools/random-token-generator",
   category: "Security Tools",
   },
