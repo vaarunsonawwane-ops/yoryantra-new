@@ -5,6 +5,8 @@ import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
+const MAX_TOKEN_CHARS = 100_000;
+
 type OutputMode = "summary" | "report" | "json" | "claims";
 type TimeMode = "local" | "utc";
 type IssueSeverity = "warning" | "info";
@@ -35,6 +37,9 @@ type JWTInspection = {
   secondsUntilExpiry: number | null;
   isExpired: boolean;
   isNotYetValid: boolean;
+  checkedAtSeconds: number;
+  timingHeadline: string;
+  timingLines: string[];
   scopes: string[];
   roles: string[];
   claimRows: ClaimRow[];
@@ -85,8 +90,28 @@ export default function ToolClient() {
   };
 
   const inspectClaims = () => {
-    if (!token.trim()) {
+    const cleanedToken = token.trim();
+
+    if (!cleanedToken) {
       setError("Paste a compact JWT before inspecting its claims.");
+      setInspection(null);
+      setEncrypted(null);
+      setOutput("");
+      setCopied(false);
+      return;
+    }
+
+    if (cleanedToken.length > MAX_TOKEN_CHARS) {
+      setError(`The token is too large for this browser inspector (${MAX_TOKEN_CHARS.toLocaleString()} character limit).`);
+      setInspection(null);
+      setEncrypted(null);
+      setOutput("");
+      setCopied(false);
+      return;
+    }
+
+    if (/\s/.test(cleanedToken)) {
+      setError("Compact JWT serialization must not contain whitespace inside the token.");
       setInspection(null);
       setEncrypted(null);
       setOutput("");
@@ -96,7 +121,7 @@ export default function ToolClient() {
 
     try {
       const tolerance = parseClockTolerance(clockToleranceSeconds);
-      const parts = token.trim().split(".");
+      const parts = cleanedToken.split(".");
 
       if (parts.length === 5) {
         const encryptedResult = inspectEncryptedJwt(parts);
@@ -183,7 +208,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JWT Claims Inspector"
-      description="Read registered and provider-specific JWT claims without confusing decoded data with signature verification."
+      description="Decode JWT structure, inspect registered and provider-specific claims, and compare timing boundaries without implying signature verification."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="mb-2 block text-sm font-medium text-gray-700">Compact JWT</label>
@@ -283,6 +308,41 @@ export default function ToolClient() {
           <SummaryCard label="Signature segment" value={inspection.unsecured ? "empty / alg=none" : inspection.signaturePresent ? "present" : "missing"} />
           <SummaryCard label="Expiration" value={inspection.expiresAt} />
           <SummaryCard label="Not before" value={inspection.notBefore} />
+        </div>
+      )}
+
+      {inspection && (
+        <div className="mt-6 grid items-start gap-4 lg:grid-cols-2">
+          <div className="self-start rounded-2xl border border-gray-200 bg-white p-5">
+            <h3 className="text-lg font-semibold text-gray-900">Decoded protected header</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              This is decoded JOSE header data only. The declared algorithm has not been cryptographically accepted or verified.
+            </p>
+            <pre className="mt-4 max-h-[320px] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-gray-200 bg-gray-50 p-4 font-mono text-xs text-gray-800 [overflow-wrap:anywhere]">
+              {JSON.stringify(inspection.header, null, 2)}
+            </pre>
+          </div>
+
+          <div className="self-start rounded-2xl border border-gray-200 bg-white p-5">
+            <h3 className="text-lg font-semibold text-gray-900">Timing window</h3>
+            <p className="mt-2 text-sm font-semibold leading-relaxed text-gray-900">
+              {inspection.timingHeadline}
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-gray-500">
+              Compared at {new Date(inspection.checkedAtSeconds * 1000).toUTCString()} with {clockToleranceSeconds}s tolerance.
+            </p>
+            {inspection.timingLines.length > 0 ? (
+              <ul className="mt-4 space-y-2 text-sm leading-relaxed text-gray-700">
+                {inspection.timingLines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 text-sm leading-relaxed text-gray-600">
+                No valid exp, nbf, or iat NumericDate values are available for a clock-relative comparison.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -490,6 +550,13 @@ function inspectJwtClaims(
   const claimRows = buildClaimRows(payload, { exp, iat, nbf, timeMode: options.timeMode });
   const isExpired = exp !== null ? exp <= nowSeconds - options.clockToleranceSeconds : false;
   const isNotYetValid = nbf !== null ? nbf > nowSeconds + options.clockToleranceSeconds : false;
+  const timingSummary = buildTimingSummary({
+    exp,
+    nbf,
+    iat,
+    nowSeconds,
+    toleranceSeconds: options.clockToleranceSeconds,
+  });
   const base = {
     header,
     payload,
@@ -503,6 +570,9 @@ function inspectJwtClaims(
     secondsUntilExpiry: exp !== null ? exp - nowSeconds : null,
     isExpired,
     isNotYetValid,
+    checkedAtSeconds: nowSeconds,
+    timingHeadline: timingSummary.headline,
+    timingLines: timingSummary.lines,
     scopes,
     roles,
     claimRows,
@@ -589,6 +659,126 @@ function parseClockTolerance(value: string) {
   const seconds = Number(value);
   if (!Number.isSafeInteger(seconds) || seconds < 0 || seconds > 300) throw new Error("Clock tolerance must be a whole number from 0 to 300 seconds.");
   return seconds;
+}
+
+
+function formatDuration(seconds: number) {
+  const absolute = Math.abs(seconds);
+
+  if (absolute < 1) return `${absolute.toFixed(3)}s`;
+
+  const whole = Math.floor(absolute);
+  const days = Math.floor(whole / 86400);
+  const hours = Math.floor((whole % 86400) / 3600);
+  const minutes = Math.floor((whole % 3600) / 60);
+  const remainingSeconds = whole % 60;
+
+  return [
+    days ? `${days}d` : "",
+    hours ? `${hours}h` : "",
+    minutes ? `${minutes}m` : "",
+    remainingSeconds || (!days && !hours && !minutes) ? `${remainingSeconds}s` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function buildTimingSummary({
+  exp,
+  nbf,
+  iat,
+  nowSeconds,
+  toleranceSeconds,
+}: {
+  exp: number | null;
+  nbf: number | null;
+  iat: number | null;
+  nowSeconds: number;
+  toleranceSeconds: number;
+}) {
+  const lines: string[] = [];
+  const tooEarly = nbf !== null && nowSeconds + toleranceSeconds < nbf;
+  const expired = exp !== null && nowSeconds - toleranceSeconds >= exp;
+
+  if (exp !== null) {
+    const delta = exp - nowSeconds;
+    lines.push(
+      delta > 0
+        ? `exp is ${formatDuration(delta)} ahead of the browser clock.`
+        : delta < 0
+          ? `exp is ${formatDuration(delta)} behind the browser clock.`
+          : "exp matches the browser clock to the current millisecond."
+    );
+  }
+
+  if (nbf !== null) {
+    const delta = nbf - nowSeconds;
+    lines.push(
+      delta > 0
+        ? `nbf is ${formatDuration(delta)} ahead of the browser clock.`
+        : delta < 0
+          ? `nbf is ${formatDuration(delta)} behind the browser clock.`
+          : "nbf matches the browser clock to the current millisecond."
+    );
+  }
+
+  if (iat !== null) {
+    const delta = iat - nowSeconds;
+    lines.push(
+      delta > 0
+        ? `iat is ${formatDuration(delta)} ahead of the browser clock.`
+        : delta < 0
+          ? `iat is ${formatDuration(delta)} behind the browser clock.`
+          : "iat matches the browser clock to the current millisecond."
+    );
+  }
+
+  if (tooEarly && expired) {
+    return {
+      headline: "The browser clock falls outside both declared timing boundaries.",
+      lines,
+    };
+  }
+
+  if (tooEarly) {
+    return {
+      headline: "The nbf boundary has not been reached after applying the selected tolerance.",
+      lines,
+    };
+  }
+
+  if (expired) {
+    return {
+      headline: "The exp boundary has been reached after applying the selected tolerance.",
+      lines,
+    };
+  }
+
+  if (exp === null && nbf === null) {
+    return {
+      headline: "No valid exp or nbf claim is available, so no acceptance window can be inferred.",
+      lines,
+    };
+  }
+
+  if (exp === null) {
+    return {
+      headline: "The nbf boundary has passed, but no valid exp upper boundary is available.",
+      lines,
+    };
+  }
+
+  if (nbf === null) {
+    return {
+      headline: "The exp boundary has not been reached; no valid nbf lower boundary is available.",
+      lines,
+    };
+  }
+
+  return {
+    headline: "The browser clock is inside the declared exp and nbf window.",
+    lines,
+  };
 }
 
 function getClaimIssues({
@@ -747,6 +937,9 @@ function formatOutput(inspection: Omit<JWTInspection, "output">, outputMode: Out
       `Expiration: ${inspection.expiresAt}`,
       `Issued at: ${inspection.issuedAt}`,
       `Not before: ${inspection.notBefore}`,
+      `Timing result: ${inspection.timingHeadline}`,
+      `Checked at: ${new Date(inspection.checkedAtSeconds * 1000).toUTCString()}`,
+      ...inspection.timingLines,
       `Scopes: ${inspection.scopes.length ? inspection.scopes.join(", ") : "(none found)"}`,
       `Role-like values: ${inspection.roles.length ? inspection.roles.join(", ") : "(none found)"}`,
       "",
@@ -763,6 +956,7 @@ function formatOutput(inspection: Omit<JWTInspection, "output">, outputMode: Out
     `Expiration: ${inspection.expiresAt}`,
     `Expired by browser-clock comparison: ${inspection.isExpired ? "yes" : "no"}`,
     `Not yet valid by browser-clock comparison: ${inspection.isNotYetValid ? "yes" : "no"}`,
+    `Timing result: ${inspection.timingHeadline}`,
     `Issuer: ${formatClaimValue(inspection.payload.iss !== undefined ? inspection.payload.iss : "(missing)")}`,
     `Audience: ${formatClaimValue(inspection.payload.aud !== undefined ? inspection.payload.aud : "(missing)")}`,
     `Subject: ${formatClaimValue(inspection.payload.sub !== undefined ? inspection.payload.sub : "(missing)")}`,

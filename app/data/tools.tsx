@@ -14,13 +14,6 @@ export const tools = [
   },
 
   {
-  title: "JWT Decoder",
-  description: "Read protected headers, claims, NumericDate timestamps, and JWE structure without implying token verification.",
-  href: "/tools/jwt-decoder",
-  category: "Security Tools",
-  },
-
-  {
     title: "URL Encoder Decoder",
     description: "Percent-encode URL components, full URLs, or form values and decode percent escapes back to text.",
     href: "/tools/url-encoder-decoder",
@@ -173,13 +166,6 @@ export const tools = [
   description: "Build portable five-field cron expressions field by field, with presets, validation, and day-rule warnings.",
   href: "/tools/cron-expression-generator",
   category: "DevOps Tools",
-  },
-
-  {
-  title: "JWT Expiration Checker",
-  description: "Check exp, nbf, and iat claims against the browser clock without treating timing as JWT verification.",
-  href: "/tools/jwt-expiration-checker",
-  category: "Security Tools",
   },
 
   {
@@ -989,7 +975,7 @@ export const tools = [
 {
   title: "JWT Claims Inspector",
   description:
-    "Decode JWT claims, interpret exp/nbf/iat timing, and read issuer, audience, scope, and role values without signature verification.",
+    "Decode JWT structure and inspect timing, issuer, audience, scopes, roles, and claim-policy warnings.",
   href: "/tools/jwt-claims-inspector",
   category: "Security Tools",
 },
