@@ -607,6 +607,12 @@ function buildResult(options: {
       );
     }
 
+    if (prohibitedGeneratorLabel(label)) {
+      throw new Error(
+        `"${label}" is a historical label that RFC 7468 generators must not emit. Use the standardized label for the actual structure instead.`
+      );
+    }
+
     const decoded = decodeBase64Strict(options.input);
 
     if (decoded.errors.length || !decoded.canonical) {

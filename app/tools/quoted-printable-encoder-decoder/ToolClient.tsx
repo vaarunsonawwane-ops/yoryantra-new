@@ -827,7 +827,18 @@ function appendDecodedQuotedPrintableBytes(
     }
 
     options.warnings.push("A non-ASCII literal character was accepted during lenient decode; canonical Quoted-Printable should escape those bytes.");
-    const rawBytes = encodeToBytes(char, options.charsetMode);
+
+    const codePoint = text.codePointAt(index);
+    const literal =
+      codePoint === undefined
+        ? char
+        : String.fromCodePoint(codePoint);
+
+    if (literal.length === 2) {
+      index += 1;
+    }
+
+    const rawBytes = encodeToBytes(literal, options.charsetMode);
     rawBytes.forEach((byte) => bytes.push(byte));
   }
 }

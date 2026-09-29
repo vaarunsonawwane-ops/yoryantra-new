@@ -695,7 +695,10 @@ function encodeBytes(text: string, charset: CharsetMode) {
       continue;
     }
 
-    if (codePoint <= 0xff && [0x81, 0x8d, 0x8f, 0x90, 0x9d].indexOf(codePoint) === -1) {
+    if (
+      codePoint <= 0x7f ||
+      (codePoint >= 0xa0 && codePoint <= 0xff)
+    ) {
       bytes.push(codePoint);
       continue;
     }
@@ -815,6 +818,40 @@ function encodeHeaderValue(
   const split = splitHeaderName(unfolded);
   const headerName = preserveHeaderName ? split.name : "";
   const body = preserveHeaderName && split.name ? split.body : unfolded;
+
+  if (
+    headerName &&
+    [
+      "FROM",
+      "TO",
+      "CC",
+      "BCC",
+      "SENDER",
+      "REPLY-TO",
+      "RESENT-FROM",
+      "RESENT-TO",
+      "RESENT-CC",
+      "RESENT-BCC",
+      "RESENT-SENDER",
+      "RETURN-PATH",
+      "RECEIVED",
+      "DATE",
+      "RESENT-DATE",
+      "MESSAGE-ID",
+      "RESENT-MESSAGE-ID",
+      "IN-REPLY-TO",
+      "REFERENCES",
+      "KEYWORDS",
+      "CONTENT-TYPE",
+      "CONTENT-DISPOSITION",
+      "CONTENT-TRANSFER-ENCODING",
+      "MIME-VERSION",
+    ].includes(headerName.toUpperCase())
+  ) {
+    throw new Error(
+      `${headerName}: has structured syntax that this whole-value encoder must not replace with one encoded-word sequence. Encode only the display text/phrase with "Preserve header name" off, then place it back into the structured field using an RFC-aware mail library.`
+    );
+  }
 
   if (!body) {
     throw new Error("Enter text to encode.");
@@ -1140,7 +1177,7 @@ export default function ToolClient() {
             clearResult();
           }}
           title="Preserve header name"
-          text="Keep Subject:, From:, Comments:, or another valid field name in output."
+          text="Keep a field name such as Subject: or Comments: in output. Common structured fields are rejected because their full syntax cannot be replaced by encoded-words."
         />
       </div>
 
