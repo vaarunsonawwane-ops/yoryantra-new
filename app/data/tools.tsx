@@ -922,16 +922,6 @@ export const tools = [
   category: "JSON & Data Tools",
 },
 
-
-
-{
-  title: "NDJSON Formatter Validator",
-  description:
-    "Validate line-delimited JSON records, pinpoint failures, and preserve one-record-per-line output.",
-  href: "/tools/ndjson-formatter-validator",
-  category: "JSON & Data Tools",
-},
-
 {
   title: "Cookie Security Checker",
   description:
@@ -1352,7 +1342,7 @@ export const tools = [
 
 {
   title: "JSON Lines to JSON Converter",
-  description: "Move between JSONL records and JSON arrays while surfacing malformed lines and lossy parse risks.",
+  description: "Convert and validate JSON Lines or NDJSON, preserve line errors, enforce object-only records, and emit JSON arrays.",
   href: "/tools/json-lines-to-json-converter",
   category: "JSON & Data Tools",
 },
