@@ -597,7 +597,7 @@ export const tools = [
 {
   title: "Security Header Generator",
   description:
-    "Generate HTTP security headers, review recommended values, and prepare website security header snippets.",
+    "Build a starter security-header bundle across HSTS, CSP, framing, MIME, referrer, permissions, and isolation policies.",
   href: "/tools/security-header-generator",
   category: "Security Tools",
 },
