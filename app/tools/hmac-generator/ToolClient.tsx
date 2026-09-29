@@ -204,8 +204,9 @@ export default function ToolClient() {
           }
         />
         <p className="mt-2 text-xs leading-relaxed text-gray-500">
-          Whitespace, line endings, punctuation, and JSON property order are not
-          normalized. The entered text is encoded as UTF-8 exactly as shown.
+          The browser textarea value is encoded as UTF-8. Spaces, punctuation, and
+          JSON property order are preserved. Browser textarea line breaks are represented as LF,
+          so raw CRLF or binary webhook bodies should be verified with their exact bytes.
         </p>
       </div>
 

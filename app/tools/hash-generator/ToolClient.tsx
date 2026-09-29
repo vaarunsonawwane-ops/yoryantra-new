@@ -13,7 +13,7 @@ type HashResult = {
   bits: number;
   inputBytes: number;
   unicodeCodePoints: number;
-  hasCrLf: boolean;
+  hasLineBreak: boolean;
   differsFromNfc: boolean;
 };
 
@@ -42,12 +42,6 @@ export default function ToolClient() {
   const [copied, setCopied] = useState(false);
 
   const generateHash = async () => {
-    if (!input.length) {
-      setError("Enter text before generating a digest.");
-      setResult(null);
-      return;
-    }
-
     try {
       const data = new TextEncoder().encode(input);
       const hashBuffer = await crypto.subtle.digest(algorithm, data);
@@ -58,7 +52,7 @@ export default function ToolClient() {
         bits: ALGORITHM_BITS[algorithm],
         inputBytes: data.byteLength,
         unicodeCodePoints: countCodePoints(input),
-        hasCrLf: input.includes("\r\n"),
+        hasLineBreak: input.includes("\n"),
         differsFromNfc: input !== input.normalize("NFC"),
       });
       setError("");
@@ -110,8 +104,8 @@ export default function ToolClient() {
           }}
         />
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          Text is encoded as UTF-8 exactly as entered. Whitespace, line endings,
-          case, and Unicode normalization are not changed first.
+          The browser textarea value is encoded as UTF-8. Spaces, case, and Unicode
+          normalization are preserved. Browser textarea line breaks are represented as LF.
         </p>
       </div>
 
@@ -202,8 +196,11 @@ export default function ToolClient() {
               {result.algorithm === "SHA-1" && (
                 <li>SHA-1 is retained for legacy comparison, not new cryptographic security decisions.</li>
               )}
-              {result.hasCrLf && (
-                <li>The input contains CRLF line endings. Changing them to LF changes the digest.</li>
+              {result.inputBytes === 0 && (
+                <li>The input is empty; this is the digest of zero UTF-8 bytes.</li>
+              )}
+              {result.hasLineBreak && (
+                <li>Browser textarea line breaks use LF. A source that uses CRLF will produce a different digest.</li>
               )}
               {result.differsFromNfc && (
                 <li>The text is not NFC-normalized. Visually similar Unicode text can hash to different bytes.</li>

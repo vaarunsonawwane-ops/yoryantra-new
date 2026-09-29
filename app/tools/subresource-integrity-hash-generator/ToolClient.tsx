@@ -72,6 +72,14 @@ export default function ToolClient() {
   };
 
   const generateSri = async () => {
+    if (outputMode === "html" && resourceType === "raw") {
+      setError("Choose Script element or Stylesheet link before generating a complete HTML tag.");
+      setResult(null);
+      setOutput("");
+      setCopied(false);
+      return;
+    }
+
     if (
       outputMode === "html" &&
       resourceType !== "raw" &&
@@ -174,11 +182,11 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Subresource Integrity Hash Generator"
-      description="Hash exact UTF-8 script or stylesheet text for SRI and generate deployable integrity attributes."
+      description="Generate SRI from UTF-8 resource text represented in the browser and produce deployable integrity attributes."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="mb-2 block text-sm font-medium text-gray-700">
-          Exact Resource Text
+          Resource Text (UTF-8)
         </label>
 
         <textarea
@@ -193,7 +201,7 @@ export default function ToolClient() {
         />
 
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          Hashing uses the exact UTF-8 bytes represented by this field. No trimming, Unicode normalization, or line-ending conversion is applied by the page.
+          Hashing uses the UTF-8 bytes represented by this browser textarea. The page does not trim or Unicode-normalize the value, but textarea line breaks are represented as LF. If the deployed file uses CRLF, a BOM, non-UTF-8 bytes, or other byte-level differences, hash the actual file bytes instead.
         </p>
       </div>
 
@@ -242,7 +250,11 @@ export default function ToolClient() {
             label="Resource markup"
             value={resourceType}
             onChange={(value: string) => {
-              setResourceType(value as ResourceType);
+              const nextType = value as ResourceType;
+              setResourceType(nextType);
+              if (nextType === "raw" && outputMode === "html") {
+                setOutputMode("attribute");
+              }
               clearResult();
             }}
             options={[
@@ -261,7 +273,9 @@ export default function ToolClient() {
             }}
             options={[
               { label: "Integrity attribute value", value: "attribute" },
-              { label: "Complete HTML tag", value: "html" },
+              ...(resourceType === "raw"
+                ? []
+                : [{ label: "Complete HTML tag", value: "html" }]),
               { label: "Hash list", value: "hashes" },
               { label: "JSON", value: "json" },
               { label: "Markdown table", value: "markdown" },
@@ -346,7 +360,7 @@ export default function ToolClient() {
       {result && result.hashes.length > 0 && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">
-            Hashes for the exact pasted text
+            Hashes for the browser text value
           </h3>
 
           <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
@@ -724,11 +738,11 @@ function getIssues(
     });
   }
 
-  if (/\r\n|\r/.test(options.content)) {
+  if (options.content.includes("\n")) {
     issues.push({
       severity: "info",
-      title: "Line endings are part of the digest",
-      message: "CRLF and LF represent different byte sequences. The deployed file must use the same line endings as the text hashed here.",
+      title: "Browser textarea line breaks are LF",
+      message: "CRLF and LF are different byte sequences, but the textarea API represents line breaks as LF. Hash the actual deployed file bytes when its line-ending bytes must be preserved.",
     });
   }
 
