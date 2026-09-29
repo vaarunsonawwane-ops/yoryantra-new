@@ -8,7 +8,7 @@ export const tools = [
 
   {
     title: "Base64 Encoder Decoder",
-    description: "Encode UTF-8 text to standard Base64, or inspect decoded bytes as text or hex.",
+    description: "Encode UTF-8 text as standard Base64 or decode validated bytes as UTF-8 text or hex.",
     href: "/tools/base64-encoder-decoder",
 	category: "Encoding Tools",
   },
@@ -861,7 +861,7 @@ export const tools = [
 {
   title: "Base64 Image Encoder Decoder",
   description:
-    "Encode image bytes as Base64 or validate and preview pasted image data URLs.",
+    "Encode image files as Base64 data URLs or validate, preview, and inspect decoded image bytes.",
   href: "/tools/base64-image-encoder-decoder",
   category: "Encoding Tools",
 },
@@ -869,7 +869,7 @@ export const tools = [
 {
   title: "JWT Base64URL Encoder Decoder",
   description:
-    "Decode compact JOSE parts or encode UTF-8 data with strict Base64URL rules.",
+    "Decode JWS/JWE compact segments or encode JSON and text as JOSE-style Base64URL with padding controls.",
   href: "/tools/jwt-base64url-encoder-decoder",
   category: "Encoding Tools",
 },
@@ -996,7 +996,7 @@ export const tools = [
 {
   title: "SERP Snippet Preview Tool",
   description:
-    "Preview likely Google search appearance while reviewing title, description, URL, truncation, and rewrite-related caveats.",
+    "Preview one search-result snippet across desktop or mobile layouts with title, description, URL, and rewrite caveats.",
   href: "/tools/serp-snippet-preview-tool",
   category: "SEO Tools",
 },
@@ -1123,7 +1123,7 @@ export const tools = [
 {
   title: "Title Tag Length Checker",
   description:
-    "Check SEO title tag length, truncation risk, keyword placement, brand placement, duplicate titles, separators, and SERP-style preview.",
+    "Audit title elements in bulk for length, duplicates, boilerplate, branding, phrase use, and HTML issues.",
   href: "/tools/title-tag-length-checker",
   category: "SEO Tools",
 },
@@ -1131,7 +1131,7 @@ export const tools = [
 {
   title: "Meta Description Length Checker",
   description:
-    "Check meta description length, estimated pixel width, truncation risk, keyword use, duplicate text, and desktop or mobile snippet previews.",
+    "Audit meta descriptions in bulk for length, duplicates, generic wording, phrase repetition, and HTML placement.",
   href: "/tools/meta-description-length-checker",
   category: "SEO Tools",
 },
@@ -1304,7 +1304,7 @@ export const tools = [
 {
   title: "URL Safe Base64 Converter",
   description:
-    "Convert between standard Base64 and Base64URL with strict alphabet, padding, pad-bit, and UTF-8 validation.",
+    "Convert, normalize, and inspect Base64URL with canonical pad-bit validation, padding controls, and UTF-8 or Latin-1 views.",
   href: "/tools/url-safe-base64-converter",
   category: "Encoding Tools",
 },

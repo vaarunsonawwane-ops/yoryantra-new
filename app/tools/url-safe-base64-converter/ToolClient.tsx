@@ -73,6 +73,24 @@ export default function ToolClient() {
     [result, actionMode]
   );
 
+  const usesPaddingSetting =
+    actionMode === "textToBase64Url" ||
+    actionMode === "base64ToBase64Url" ||
+    actionMode === "normalize";
+  const usesTextEncoding =
+    actionMode === "textToBase64Url" ||
+    actionMode === "base64UrlToText" ||
+    actionMode === "inspect";
+  const usesOutputLayout =
+    actionMode === "textToBase64Url" ||
+    actionMode === "base64ToBase64Url" ||
+    actionMode === "base64UrlToBase64" ||
+    actionMode === "normalize";
+  const usesEncodedInput = actionMode !== "textToBase64Url";
+  const canPrettyPrintJson =
+    actionMode === "base64UrlToText" ||
+    actionMode === "inspect";
+
   const clearResult = () => {
     setResult(null);
     setOutput("");
@@ -202,45 +220,51 @@ export default function ToolClient() {
               ]}
             />
 
-            <YoryantraSelect
-              label="Padding"
-              value={paddingMode}
-              onChange={(value) => {
-                setPaddingMode(value as PaddingMode);
-                clearResult();
-              }}
-              options={[
-                { label: "Preserve input/default", value: "preserve" },
-                { label: "Remove padding", value: "remove" },
-                { label: "Add canonical padding", value: "add" },
-              ]}
-            />
+            {usesPaddingSetting && (
+              <YoryantraSelect
+                label="Padding"
+                value={paddingMode}
+                onChange={(value) => {
+                  setPaddingMode(value as PaddingMode);
+                  clearResult();
+                }}
+                options={[
+                  { label: "Preserve input/default", value: "preserve" },
+                  { label: "Remove padding", value: "remove" },
+                  { label: "Add canonical padding", value: "add" },
+                ]}
+              />
+            )}
 
-            <YoryantraSelect
-              label="Text encoding"
-              value={textEncoding}
-              onChange={(value) => {
-                setTextEncoding(value as TextEncoding);
-                clearResult();
-              }}
-              options={[
-                { label: "UTF-8", value: "utf8" },
-                { label: "Latin-1 bytes", value: "latin1" },
-              ]}
-            />
+            {usesTextEncoding && (
+              <YoryantraSelect
+                label="Text encoding"
+                value={textEncoding}
+                onChange={(value) => {
+                  setTextEncoding(value as TextEncoding);
+                  clearResult();
+                }}
+                options={[
+                  { label: "UTF-8", value: "utf8" },
+                  { label: "Latin-1 bytes", value: "latin1" },
+                ]}
+              />
+            )}
 
-            <YoryantraSelect
-              label="Output layout"
-              value={outputCase}
-              onChange={(value) => {
-                setOutputCase(value as OutputCase);
-                clearResult();
-              }}
-              options={[
-                { label: "Compact", value: "normal" },
-                { label: "Wrap at 76 characters", value: "lineWrapped" },
-              ]}
-            />
+            {usesOutputLayout && (
+              <YoryantraSelect
+                label="Output layout"
+                value={outputCase}
+                onChange={(value) => {
+                  setOutputCase(value as OutputCase);
+                  clearResult();
+                }}
+                options={[
+                  { label: "Compact", value: "normal" },
+                  { label: "Wrap at 76 characters", value: "lineWrapped" },
+                ]}
+              />
+            )}
 
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
               <p className="text-sm font-medium text-gray-700">Alphabet change</p>
@@ -258,12 +282,24 @@ export default function ToolClient() {
         <h3 className="text-lg font-semibold text-gray-900">Validation and display</h3>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <CheckboxRow checked={trimEncodedInput} label="Trim outer whitespace from encoded input" onChange={(checked) => { setTrimEncodedInput(checked); clearResult(); }} />
-          <CheckboxRow checked={decodeAsJson} label="Pretty-print decoded JSON when valid" onChange={(checked) => { setDecodeAsJson(checked); clearResult(); }} />
-          <CheckboxRow checked={warnInvalidChars} label="Report alphabet and canonical-form problems" onChange={(checked) => { setWarnInvalidChars(checked); clearResult(); }} />
-          <CheckboxRow checked={warnPadding} label="Explain padding state" onChange={(checked) => { setWarnPadding(checked); clearResult(); }} />
-          <CheckboxRow checked={warnJwtLike} label="Flag token-like Base64URL segments" onChange={(checked) => { setWarnJwtLike(checked); clearResult(); }} />
-          <CheckboxRow checked={warnBinaryText} label="Report non-text decoded bytes" onChange={(checked) => { setWarnBinaryText(checked); clearResult(); }} />
+          {usesEncodedInput && (
+            <CheckboxRow checked={trimEncodedInput} label="Trim outer whitespace from encoded input" onChange={(checked) => { setTrimEncodedInput(checked); clearResult(); }} />
+          )}
+          {canPrettyPrintJson && (
+            <CheckboxRow checked={decodeAsJson} label="Pretty-print decoded JSON when valid" onChange={(checked) => { setDecodeAsJson(checked); clearResult(); }} />
+          )}
+          {usesEncodedInput && (
+            <CheckboxRow checked={warnInvalidChars} label="Report alphabet and canonical-form problems" onChange={(checked) => { setWarnInvalidChars(checked); clearResult(); }} />
+          )}
+          {usesEncodedInput && (
+            <CheckboxRow checked={warnPadding} label="Explain padding state" onChange={(checked) => { setWarnPadding(checked); clearResult(); }} />
+          )}
+          {usesEncodedInput && (
+            <CheckboxRow checked={warnJwtLike} label="Flag token-like Base64URL segments" onChange={(checked) => { setWarnJwtLike(checked); clearResult(); }} />
+          )}
+          {usesEncodedInput && (
+            <CheckboxRow checked={warnBinaryText} label="Report non-text decoded bytes" onChange={(checked) => { setWarnBinaryText(checked); clearResult(); }} />
+          )}
         </div>
       </div>
 
@@ -477,7 +513,7 @@ function buildResult(options: {
     throw new Error("The encoded value is empty after trimming outer whitespace.");
   }
 
-  const isProbablyJwtPart = /^[A-Za-z0-9_-]{20,}$/.test(normalizedInput);
+  const isProbablyJwtPart = !isTextInput && /^[A-Za-z0-9_-]{20,}$/.test(normalizedInput);
   const issues: Issue[] = [];
   let bytes: Uint8Array = new Uint8Array();
   let standardBase64 = "";
@@ -524,7 +560,10 @@ function buildResult(options: {
       standardBase64 = validated.standardPadded;
       base64Url = validated.paddingCount > 0 ? validated.urlPadded : validated.urlUnpadded;
       try {
-        decodedText = bytesToText(bytes, options.textEncoding);
+        decodedText = formatDecodedText(
+          bytesToText(bytes, options.textEncoding),
+          options.decodeAsJson
+        );
       } catch {
         decodedText = "";
       }
@@ -598,7 +637,7 @@ function buildResult(options: {
     issues.push({
       severity: "warning",
       title: "Line wrapping changes the copied representation",
-      message: "The inserted line breaks are for display or transport contexts that explicitly allow them. They are not part of the Base64URL alphabet.",
+      message: "The inserted line breaks are for display or transport contexts that explicitly allow them. They are not part of canonical Base64 or Base64URL data unless the surrounding format explicitly permits whitespace.",
     });
   }
 
