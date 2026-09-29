@@ -239,7 +239,7 @@ export const tools = [
 
   {
   title: "Canonical URL Checker",
-  description: "Normalize a page URL and canonical URL, then report whether their serialized forms match.",
+  description: "Compare page URLs with HTML or HTTP Link canonicals, resolving relative targets and structural conflicts.",
   href: "/tools/canonical-url-checker",
   category: "SEO Tools"
   },
@@ -527,7 +527,7 @@ export const tools = [
 {
   title: "Meta Tags Checker",
   description:
-    "Check title tags, meta descriptions, canonical links, Open Graph tags, and Twitter card tags.",
+    "Audit pasted HTML for search/social metadata, duplicates, directives, URL issues, charset, and head placement.",
   href: "/tools/meta-tags-checker",
   category: "SEO Tools",
 },
@@ -561,7 +561,7 @@ export const tools = [
 {
   title: "Open Graph Preview Checker",
   description:
-    "Check Open Graph tags from HTML, preview social sharing metadata, and inspect Twitter card fields and common issues.",
+    "Inspect Open Graph and X metadata, repeated image groups, fallbacks, URL conflicts, and approximate previews.",
   href: "/tools/open-graph-preview-checker",
   category: "SEO Tools",
 },
