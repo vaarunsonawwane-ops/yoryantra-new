@@ -39,7 +39,7 @@ type Result = {
 const contentTypes: Record<ContentTypePreset, string> = {
   pdf: "application/pdf",
   csv: "text/csv; charset=utf-8",
-  json: "application/json; charset=utf-8",
+  json: "application/json",
   zip: "application/zip",
   png: "image/png",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -744,9 +744,13 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode, contentT
   }
 
   if (mode === "nginx") {
+    const mediaType = emittedContentType ? contentTypeEssence(emittedContentType) : "";
+    const parameters = emittedContentType ? contentTypeParameters(emittedContentType) : "";
+
     return [
       `add_header Content-Disposition '${result.headerValue.replace(/'/g, "\\'")}';`,
-      emittedContentType ? `types { ${emittedContentType} ${extensionFromFilename(result.asciiFilename)}; }` : "",
+      mediaType ? `types { ${mediaType} ${extensionFromFilename(result.asciiFilename)}; }` : "",
+      parameters ? `# Content-Type parameters are not represented by the Nginx types directive: ${parameters}` : "",
     ].filter(Boolean).join("\n");
   }
 
@@ -765,6 +769,16 @@ function formatOutput(result: Omit<Result, "output">, mode: OutputMode, contentT
   }
 
   return result.contentDispositionLine;
+}
+
+function contentTypeEssence(value: string) {
+  const separatorIndex = value.indexOf(";");
+  return (separatorIndex === -1 ? value : value.slice(0, separatorIndex)).trim();
+}
+
+function contentTypeParameters(value: string) {
+  const separatorIndex = value.indexOf(";");
+  return separatorIndex === -1 ? "" : value.slice(separatorIndex + 1).trim();
 }
 
 function extensionFromFilename(filename: string) {
