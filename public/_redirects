@@ -14,3 +14,4 @@
 /tools/cidr-calculator /tools/ipv4-subnet-calculator 301
 /tools/api-key-generator /tools/random-token-generator 301
 /tools/open-graph-generator /tools/meta-tag-generator 301
+/tools/ndjson-formatter-validator /tools/json-lines-to-json-converter 301

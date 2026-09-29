@@ -246,7 +246,7 @@ export const tools = [
 
   {
   title: "HTTP Headers Parser",
-  description: "Parse raw HTTP header lines into structured names and values for inspection.",
+  description: "Parse pasted HTTP field blocks while preserving order, duplicates, pseudo-headers, framing details, and protocol diagnostics.",
   href: "/tools/http-headers-parser",
   category: "SEO Tools"
   },
@@ -374,7 +374,7 @@ export const tools = [
   {
   title: "HTTP Headers Checker",
   description:
-    "Inspect browser-visible response headers, final status and URL, caching, content type, and security-related fields.",
+    "Fetch a URL and inspect browser-exposed response headers, final status, redirects, caching, and security fields.",
   href: "/tools/http-headers-checker",
   category: "SEO Tools",
   },
