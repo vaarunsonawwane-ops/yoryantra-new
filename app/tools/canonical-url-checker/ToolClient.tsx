@@ -843,13 +843,6 @@ export default function ToolClient() {
         </div>
       ) : null}
 
-      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        The comparison runs on the values pasted into the browser. No page is
-        fetched, no redirect is followed, and no rendered DOM or search-engine
-        selected canonical is inspected. Site-wide analytics or advertising
-        scripts, if enabled, are separate from the comparison itself.
-      </div>
-
       <section className="mt-12 border-t border-gray-200 pt-10">
         <h2 className="text-2xl font-semibold text-gray-900">
           Canonicalization Is About Consolidating Equivalent URLs
