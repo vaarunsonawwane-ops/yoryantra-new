@@ -56,7 +56,21 @@ function parseHttpUrl(value: string, label: string) {
 }
 
 function decodeEntities(value: string) {
+  if (typeof document !== "undefined") {
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = value;
+    return textarea.value;
+  }
+
   return value
+    .replace(/&#x([0-9a-f]+);?/gi, (_, hex: string) => {
+      const codePoint = Number.parseInt(hex, 16);
+      return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : "\uFFFD";
+    })
+    .replace(/&#([0-9]+);?/g, (_, decimal: string) => {
+      const codePoint = Number.parseInt(decimal, 10);
+      return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : "\uFFFD";
+    })
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
@@ -81,14 +95,24 @@ type HtmlCanonicalEntry = {
   index: number;
 };
 
+function maskHtmlRange(value: string) {
+  return value.replace(/[^\r\n]/g, " ");
+}
+
 function extractHtmlCanonicals(input: string) {
   const values: HtmlCanonicalEntry[] = [];
+  const searchable = input
+    .replace(/<!--[\s\S]*?-->/g, maskHtmlRange)
+    .replace(
+      /<(script|style|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
+      maskHtmlRange
+    );
   const regex = /<link\b[^>]*>/gi;
   let match: RegExpExecArray | null;
 
-  while ((match = regex.exec(input)) !== null) {
-    const tag = match[0];
-    const rel = htmlAttribute(tag, "rel");
+  while ((match = regex.exec(searchable)) !== null) {
+    const tag = input.slice(match.index, match.index + match[0].length);
+    const rel = decodeEntities(htmlAttribute(tag, "rel"));
     if (
       !rel ||
       !rel

@@ -22,6 +22,11 @@ type ExtractedSignal = {
   severity: "good" | "info" | "warning" | "high";
 };
 
+type ScopedDirective = {
+  crawler: string;
+  directive: string;
+};
+
 type Result = {
   status: "no-obvious-blocker" | "blocked" | "needs-review";
   issues: Issue[];
@@ -259,7 +264,7 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Review depth only changes optional observations; <code>noindex</code> and non-indexable HTTP responses remain blocking signals at every depth.
+          Review depth only changes optional observations. The blocking summary combines generic robots rules with rules scoped to <code>Googlebot</code>; crawler-specific rules for Googlebot News, Bingbot, or other bots stay scoped instead of becoming global blockers.
         </p>
       </div>
 
@@ -444,7 +449,7 @@ export default function ToolClient() {
             <Link href="/tools/robots-txt-tester" className="yoryantra-btn-outline whitespace-nowrap">Robots.txt Tester</Link>
             <Link href="/tools/meta-robots-tag-generator" className="yoryantra-btn-outline whitespace-nowrap">Meta Robots Tag Generator</Link>
             <Link href="/tools/canonical-url-checker" className="yoryantra-btn-outline whitespace-nowrap">Canonical URL Checker</Link>
-            <Link href="/tools/redirect-chain-checker" className="yoryantra-btn-outline whitespace-nowrap">Redirect Chain Checker</Link>
+            <Link href="/tools/redirect-checker" className="yoryantra-btn-outline whitespace-nowrap">Redirect Checker</Link>
             <Link href="/tools/http-headers-checker" className="yoryantra-btn-outline whitespace-nowrap">HTTP Headers Checker</Link>
           </div>
         </div>
@@ -506,10 +511,17 @@ function analyzeIndexability(options: {
   const separated = separateSource(options.input, options.inputMode);
   const html = separated.html;
   const headers = separated.headers;
-  const robotsDirectives = extractRobotsDirectives(html);
-  const xRobotsDirectives = extractXRobotsDirectives(headers);
-  const canonicalUrls = extractCanonicals(html);
+
+  const robotsRecords = extractRobotsDirectives(html);
+  const xRobotsRecords = extractXRobotsDirectives(headers);
+  const robotsDirectives = robotsRecords.map(formatScopedDirective);
+  const xRobotsDirectives = xRobotsRecords.map(formatScopedDirective);
+
+  const htmlCanonicals = extractHtmlCanonicals(html);
+  const headerCanonicals = extractHeaderCanonicals(headers);
+  const canonicalUrls = unique([...htmlCanonicals, ...headerCanonicals]);
   const canonicalUrl = canonicalUrls[0] || "";
+
   const metaRefresh = extractMetaRefresh(html);
   const title = extractTitle(html);
   const description = extractDescription(html);
@@ -518,75 +530,241 @@ function analyzeIndexability(options: {
   const signals: ExtractedSignal[] = [];
   const issues: Issue[] = [];
 
+  const effectiveDirectives = [
+    ...effectiveForGooglebot(robotsRecords),
+    ...effectiveForGooglebot(xRobotsRecords),
+  ];
+  const effectiveTokens = effectiveDirectives.map(normalizeDirectiveToken);
+  const hasNoindex = effectiveTokens.includes("noindex") || effectiveTokens.includes("none");
+  const hasIndex = effectiveTokens.includes("index") || effectiveTokens.includes("all");
+  const hasNofollow = effectiveTokens.includes("nofollow") || effectiveTokens.includes("none");
+
   addSignal(signals, "HTTP status", statusCode ? String(statusCode) : "not supplied", "headers", statusSeverity(statusCode));
   addSignal(signals, "Content-Type", contentType || "not supplied", "headers", "info");
-  addSignal(signals, "Robots meta", robotsDirectives.join(", ") || "not found", "html", directiveSeverity(robotsDirectives));
-  addSignal(signals, "X-Robots-Tag", xRobotsDirectives.join(", ") || "not found", "headers", directiveSeverity(xRobotsDirectives));
-  addSignal(signals, "Canonical", canonicalUrls.length ? canonicalUrls.join(" | ") : "not found", "html", canonicalUrls.length > 1 ? "warning" : canonicalUrl ? "good" : "info");
+  addSignal(
+    signals,
+    "Robots meta",
+    robotsDirectives.join(", ") || "not found",
+    "html",
+    directiveRecordSeverity(robotsRecords)
+  );
+  addSignal(
+    signals,
+    "X-Robots-Tag",
+    xRobotsDirectives.join(", ") || "not found",
+    "headers",
+    directiveRecordSeverity(xRobotsRecords)
+  );
+  addSignal(
+    signals,
+    "HTML canonical",
+    htmlCanonicals.join(" | ") || "not found",
+    "html",
+    htmlCanonicals.length > 1 ? "warning" : htmlCanonicals.length ? "good" : "info"
+  );
+  addSignal(
+    signals,
+    "HTTP Link canonical",
+    headerCanonicals.join(" | ") || "not found",
+    "headers",
+    headerCanonicals.length > 1 ? "warning" : headerCanonicals.length ? "good" : "info"
+  );
   addSignal(signals, "Meta refresh", metaRefresh || "not found", "html", metaRefresh ? "warning" : "good");
   addSignal(signals, "Title", title || "not found", "html", title ? "good" : "info");
   addSignal(signals, "Description", description || "not found", "html", description ? "good" : "info");
 
-  const allDirectives = [...robotsDirectives, ...xRobotsDirectives].map(normalizeDirectiveToken);
-  const hasNoindex = allDirectives.includes("noindex") || allDirectives.includes("none");
-  const hasIndex = allDirectives.includes("index") || allDirectives.includes("all");
-  const hasNofollow = allDirectives.includes("nofollow") || allDirectives.includes("none");
-
   if (statusCode !== null) {
-    if (statusCode >= 300 && statusCode < 400) {
-      issues.push({ severity: "high", title: "Redirect response supplied", message: `HTTP ${statusCode} redirects the current URL instead of serving a normal indexable document at this response.` });
+    if ([301, 302, 303, 307, 308].includes(statusCode)) {
+      issues.push({
+        severity: "high",
+        title: "Redirect response supplied",
+        message: `HTTP ${statusCode} redirects the current URL instead of serving the final document at this response.`,
+      });
+    } else if (statusCode === 304) {
+      issues.push({
+        severity: "warning",
+        title: "304 response needs cached context",
+        message:
+          "HTTP 304 Not Modified is a conditional cache-validation response, not a redirect. It does not contain a fresh representation by itself, so review it together with the cached 200 response.",
+      });
+    } else if (statusCode >= 300 && statusCode < 400) {
+      issues.push({
+        severity: "warning",
+        title: "Other 3xx response supplied",
+        message:
+          `HTTP ${statusCode} is not treated here as an automatic redirect. Check the status semantics and any Location header before deciding how crawlers process this URL.`,
+      });
     } else if (statusCode === 429 || statusCode >= 500) {
-      issues.push({ severity: "high", title: "Server or rate-limit response", message: `HTTP ${statusCode} prevents normal processing of the returned page and can reduce crawling while the error persists.` });
+      issues.push({
+        severity: "high",
+        title: "Server or rate-limit response",
+        message: `HTTP ${statusCode} prevents normal processing of the returned page and can reduce crawling while the error persists.`,
+      });
     } else if (statusCode >= 400) {
-      issues.push({ severity: "high", title: "Client-error response", message: `HTTP ${statusCode} is not a normal success response for content intended to remain indexed.` });
+      issues.push({
+        severity: "high",
+        title: "Client-error response",
+        message: `HTTP ${statusCode} is not a normal success response for content intended to remain indexed.`,
+      });
     }
   }
 
   if (hasNoindex) {
-    issues.push({ severity: "high", title: "Noindex directive is present", message: "A noindex rule (or none, which includes noindex) tells supporting search crawlers not to keep this page in search results once they can crawl the rule." });
+    issues.push({
+      severity: "high",
+      title: "Noindex applies to Googlebot",
+      message:
+        "A generic robots rule or a Googlebot-scoped noindex rule (including none) tells Googlebot not to keep this page in Google Search once it can crawl the rule.",
+    });
   }
 
   if (hasNoindex && hasIndex) {
-    issues.push({ severity: "warning", title: "Conflicting index directives", message: "Both permissive and restrictive indexing tokens are present. Google applies the more restrictive rule, so noindex wins." });
+    issues.push({
+      severity: "warning",
+      title: "Conflicting Googlebot index directives",
+      message:
+        "Permissive and restrictive indexing tokens that apply to Googlebot are both present. Google uses the more restrictive valid rule, so noindex wins.",
+    });
   }
 
   if (options.warnNofollow && hasNofollow) {
-    issues.push({ severity: "warning", title: "Nofollow directive is present", message: "Nofollow affects how links on the page are followed; it does not by itself make the page non-indexable." });
+    issues.push({
+      severity: "warning",
+      title: "Nofollow applies to Googlebot",
+      message:
+        "A generic or Googlebot-scoped nofollow rule affects how Googlebot treats links on the page; it does not by itself make the page non-indexable.",
+    });
+  }
+
+  const otherCrawlerScopes = unique(
+    [...robotsRecords, ...xRobotsRecords]
+      .map((record) => record.crawler)
+      .filter((crawler) => crawler !== "robots" && crawler !== "googlebot")
+  );
+
+  if (otherCrawlerScopes.length) {
+    issues.push({
+      severity: "info",
+      title: "Other crawler-specific directives are scoped",
+      message:
+        `Directives for ${otherCrawlerScopes.join(
+          ", "
+        )} are shown in the extracted signals but are not promoted to Googlebot blocking status. Crawler-specific rules should be evaluated in their own scope.`,
+    });
   }
 
   if (canonicalUrls.length > 1) {
-    issues.push({ severity: "warning", title: "Multiple canonical links found", message: "More than one canonical target makes the preferred URL signal ambiguous and should be resolved in the source." });
+    issues.push({
+      severity: "warning",
+      title: "Conflicting canonical targets found",
+      message:
+        "The pasted HTML and/or HTTP Link headers expose more than one canonical target. Resolve the conflict so the preferred URL signal is unambiguous.",
+    });
   }
 
-  if (options.warnMissingCanonical && !canonicalUrl && options.inputMode !== "headers" && options.checkingStyle !== "relaxed") {
-    issues.push({ severity: "info", title: "No canonical link in the pasted HTML", message: "A canonical link is not required for indexability, but it can help communicate a preferred URL when duplicate variants exist." });
+  if (
+    options.warnMissingCanonical &&
+    !canonicalUrl &&
+    options.inputMode !== "headers" &&
+    options.checkingStyle !== "relaxed"
+  ) {
+    issues.push({
+      severity: "info",
+      title: "No canonical annotation in the pasted data",
+      message:
+        "A canonical annotation is not required for indexability, but it can help communicate a preferred URL when duplicate variants exist.",
+    });
   }
 
   if (canonicalUrl && !isAbsoluteHttpUrl(canonicalUrl)) {
-    issues.push({ severity: "info", title: "Canonical is not an absolute HTTP(S) URL", message: "Relative canonicals can be resolved by browsers, but Google recommends absolute canonical URLs to reduce ambiguity." });
+    issues.push({
+      severity: "info",
+      title: "Canonical is not an absolute HTTP(S) URL",
+      message:
+        "Relative canonical references can resolve against the page URL, but Google recommends absolute canonical URLs to reduce ambiguity.",
+    });
   }
 
-  if (options.warnCanonicalMismatch && options.pageUrl && canonicalUrl && !sameUrlForComparison(options.pageUrl, canonicalUrl)) {
-    issues.push({ severity: "warning", title: "Canonical points away from the page URL", message: "That can be intentional for duplicate content, but it asks search engines to prefer another URL rather than this one." });
+  if (
+    options.warnCanonicalMismatch &&
+    options.pageUrl &&
+    canonicalUrl &&
+    !sameUrlForComparison(options.pageUrl, canonicalUrl)
+  ) {
+    issues.push({
+      severity: "warning",
+      title: "Canonical points away from the page URL",
+      message:
+        "That can be intentional for duplicate content, but it asks search engines to prefer another URL rather than this one.",
+    });
   }
 
   if (options.warnMetaRefresh && metaRefresh) {
-    issues.push({ severity: "warning", title: "Meta refresh is present", message: "A meta refresh can move users and crawlers to another URL. Check the delay and destination, and prefer an HTTP redirect when a real redirect is intended." });
+    issues.push({
+      severity: "warning",
+      title: "Meta refresh is present",
+      message:
+        "A meta refresh can move users and crawlers to another URL. Check the delay and destination, and prefer an HTTP redirect when a real redirect is intended.",
+    });
   }
 
-  if (options.warnThinSignals && options.inputMode !== "headers" && options.checkingStyle === "strict") {
-    if (!title) issues.push({ severity: "info", title: "Title is missing", message: "A missing title is a page-quality and search-presentation issue, not an indexing prohibition." });
-    if (!description) issues.push({ severity: "info", title: "Meta description is missing", message: "A missing meta description does not prevent indexing; search engines may generate snippet text from the page." });
+  if (
+    options.warnThinSignals &&
+    options.inputMode !== "headers" &&
+    options.checkingStyle === "strict"
+  ) {
+    if (!title) {
+      issues.push({
+        severity: "info",
+        title: "Title is missing",
+        message:
+          "A missing title is a page-quality and search-presentation issue, not an indexing prohibition.",
+      });
+    }
+    if (!description) {
+      issues.push({
+        severity: "info",
+        title: "Meta description is missing",
+        message:
+          "A missing meta description does not prevent indexing; search engines may generate snippet text from the page.",
+      });
+    }
   }
 
   if (issues.length === 0) {
-    issues.push({ severity: "info", title: "No blocking signal found in the pasted data", message: "The supplied HTML and headers do not show a common page-level indexing prohibition or non-success response." });
+    issues.push({
+      severity: "info",
+      title: "No blocking signal found in the pasted data",
+      message:
+        "The supplied HTML and headers do not show a common Googlebot page-level indexing prohibition or a blocking HTTP response.",
+    });
   }
 
   const blockingCount = issues.filter((issue) => issue.severity === "high").length;
   const warningCount = issues.filter((issue) => issue.severity === "warning").length;
-  const status: Result["status"] = blockingCount > 0 ? "blocked" : warningCount > 0 ? "needs-review" : "no-obvious-blocker";
-  const base = { status, issues, signals, robotsDirectives, xRobotsDirectives, canonicalUrls, canonicalUrl, metaRefresh, title, description, statusCode, contentType, blockingCount, warningCount };
+  const status: Result["status"] =
+    blockingCount > 0
+      ? "blocked"
+      : warningCount > 0
+      ? "needs-review"
+      : "no-obvious-blocker";
+
+  const base = {
+    status,
+    issues,
+    signals,
+    robotsDirectives,
+    xRobotsDirectives,
+    canonicalUrls,
+    canonicalUrl,
+    metaRefresh,
+    title,
+    description,
+    statusCode,
+    contentType,
+    blockingCount,
+    warningCount,
+  };
   const output = formatOutput(base, options.outputMode);
   return { ...base, output };
 }
@@ -595,9 +773,18 @@ function separateSource(input: string, mode: InputMode) {
   if (mode === "html") return { html: input, headers: "" };
   if (mode === "headers") return { html: "", headers: input };
 
-  const firstTag = input.search(/<(?!!--)/);
-  if (firstTag === -1) return { html: "", headers: input };
-  return { headers: input.slice(0, firstTag), html: input.slice(firstTag) };
+  const htmlStart = input.search(
+    /<(?:!doctype\s+html\b|html\b|head\b|body\b|title\b|meta\b|link\b|script\b|style\b|main\b|section\b|article\b|div\b|p\b|h[1-6]\b)/i
+  );
+
+  if (htmlStart === -1) {
+    return { html: "", headers: input };
+  }
+
+  return {
+    headers: input.slice(0, htmlStart),
+    html: input.slice(htmlStart),
+  };
 }
 
 function addSignal(signals: ExtractedSignal[], name: string, value: string, source: ExtractedSignal["source"], severity: ExtractedSignal["severity"]) {
@@ -609,39 +796,87 @@ function parseDocument(html: string) {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-function extractRobotsDirectives(html: string) {
+function extractRobotsDirectives(html: string): ScopedDirective[] {
   const doc = parseDocument(html);
   if (!doc) return [];
+
   const accepted = new Set(["robots", "googlebot", "googlebot-news", "bingbot"]);
-  const directives: string[] = [];
+  const directives: ScopedDirective[] = [];
+
   Array.from(doc.querySelectorAll("meta[name]")).forEach((meta) => {
-    const name = (meta.getAttribute("name") || "").trim().toLowerCase();
-    if (!accepted.has(name)) return;
-    directives.push(...splitDirectives(meta.getAttribute("content") || ""));
+    const crawler = (meta.getAttribute("name") || "").trim().toLowerCase();
+    if (!accepted.has(crawler)) return;
+
+    splitDirectives(meta.getAttribute("content") || "").forEach((directive) => {
+      directives.push({ crawler, directive });
+    });
   });
-  return unique(directives);
+
+  return uniqueScopedDirectives(directives);
 }
 
-function extractXRobotsDirectives(headers: string) {
-  const directives: string[] = [];
+const xRobotsColonDirectives = new Set([
+  "max-snippet",
+  "max-image-preview",
+  "max-video-preview",
+  "unavailable_after",
+]);
+
+function extractXRobotsDirectives(headers: string): ScopedDirective[] {
+  const directives: ScopedDirective[] = [];
+
   headers.split(/\r?\n/).forEach((line) => {
     const match = line.match(/^\s*x-robots-tag\s*:\s*(.+)$/i);
     if (!match) return;
-    directives.push(...splitDirectives(match[1]).map(stripKnownUserAgentPrefix));
+
+    let crawler = "robots";
+    let value = match[1].trim();
+    const scoped = value.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
+
+    if (
+      scoped &&
+      !xRobotsColonDirectives.has(scoped[1].toLowerCase())
+    ) {
+      crawler = scoped[1].toLowerCase();
+      value = scoped[2];
+    }
+
+    splitDirectives(value).forEach((directive) => {
+      directives.push({ crawler, directive });
+    });
   });
-  return unique(directives.filter(Boolean));
+
+  return uniqueScopedDirectives(directives);
 }
 
 function splitDirectives(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
-function stripKnownUserAgentPrefix(value: string) {
-  return value.replace(/^\s*(?:googlebot|googlebot-news|bingbot)\s*:\s*/i, "").trim();
+function formatScopedDirective(value: ScopedDirective) {
+  return value.crawler === "robots"
+    ? value.directive
+    : `${value.crawler}: ${value.directive}`;
+}
+
+function effectiveForGooglebot(values: ScopedDirective[]) {
+  return values
+    .filter((value) => value.crawler === "robots" || value.crawler === "googlebot")
+    .map((value) => value.directive);
+}
+
+function uniqueScopedDirectives(values: ScopedDirective[]) {
+  const seen = new Set<string>();
+  return values.filter((value) => {
+    const key = `${value.crawler}\u0000${value.directive.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function normalizeDirectiveToken(value: string) {
-  return stripKnownUserAgentPrefix(value).toLowerCase().split(":")[0].trim();
+  return value.toLowerCase().split(":")[0].trim();
 }
 
 function directiveSeverity(values: string[]): ExtractedSignal["severity"] {
@@ -651,13 +886,98 @@ function directiveSeverity(values: string[]): ExtractedSignal["severity"] {
   return values.length ? "info" : "good";
 }
 
-function extractCanonicals(html: string) {
+function directiveRecordSeverity(values: ScopedDirective[]): ExtractedSignal["severity"] {
+  const effective = effectiveForGooglebot(values);
+  const severity = directiveSeverity(effective);
+  if (severity !== "good") return severity;
+  return values.length ? "info" : "good";
+}
+
+function extractHtmlCanonicals(html: string) {
   const doc = parseDocument(html);
   if (!doc) return [];
   const values = Array.from(doc.querySelectorAll("link[rel][href]"))
     .filter((link) => (link.getAttribute("rel") || "").toLowerCase().split(/\s+/).includes("canonical"))
     .map((link) => (link.getAttribute("href") || "").trim())
     .filter(Boolean);
+  return unique(values);
+}
+
+function splitHttpLinkValues(input: string) {
+  const values: string[] = [];
+  let current = "";
+  let quoted = false;
+  let quote = "";
+  let angleDepth = 0;
+  let escaped = false;
+
+  for (let index = 0; index < input.length; index += 1) {
+    const char = input.charAt(index);
+
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+
+    if (quoted && char === "\\") {
+      current += char;
+      escaped = true;
+      continue;
+    }
+
+    if ((char === '"' || char === "'") && angleDepth === 0) {
+      if (quoted && char === quote) {
+        quoted = false;
+        quote = "";
+      } else if (!quoted) {
+        quoted = true;
+        quote = char;
+      }
+      current += char;
+      continue;
+    }
+
+    if (!quoted && char === "<") angleDepth += 1;
+    if (!quoted && char === ">" && angleDepth > 0) angleDepth -= 1;
+
+    if (!quoted && angleDepth === 0 && char === ",") {
+      if (current.trim()) values.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current.trim()) values.push(current.trim());
+  return values;
+}
+
+function extractHeaderCanonicals(headers: string) {
+  const unfolded = headers.replace(/\r?\n[ \t]+/g, " ");
+  const values: string[] = [];
+
+  unfolded.split(/\r?\n/).forEach((line) => {
+    const match = line.match(/^\s*link\s*:\s*(.+)$/i);
+    if (!match) return;
+
+    splitHttpLinkValues(match[1]).forEach((linkValue) => {
+      const target = linkValue.match(/^\s*<([^>]*)>/);
+      if (!target) return;
+
+      const relMatch = linkValue.match(
+        /;\s*rel\s*=\s*(?:"([^"]*)"|'([^']*)'|([^;,\s]+))/i
+      );
+      const relValue = relMatch?.[1] || relMatch?.[2] || relMatch?.[3] || "";
+      const rels = relValue.toLowerCase().split(/\s+/).filter(Boolean);
+
+      if (rels.includes("canonical") && target[1].trim()) {
+        values.push(target[1].trim());
+      }
+    });
+  });
+
   return unique(values);
 }
 
