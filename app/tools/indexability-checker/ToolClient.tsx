@@ -337,25 +337,23 @@ export default function ToolClient() {
         </div>
       )}
 
-      {result && result.issues.length > 0 && (
+      {result && (result.issues.length > 0 || notes.length > 0) && (
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-900">Signals that deserve attention</h3>
-          <div className="mt-4 grid items-start gap-3 md:grid-cols-2">
+          <div className="mt-4 grid items-start gap-3 md:grid-cols-2 lg:grid-cols-3">
             {result.issues.map((issue, index) => (
               <IssueCard key={`${issue.title}-${index}`} issue={issue} />
             ))}
+            {notes.map((note) => (
+              <div
+                key={note.title}
+                className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4"
+              >
+                <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
-
-      {notes.length > 0 && (
-        <div className="mt-6 grid items-start gap-3 md:grid-cols-2">
-          {notes.map((note) => (
-            <div key={note.title} className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-sm font-semibold text-gray-900">{note.title}</p>
-              <p className="mt-1 text-sm leading-relaxed text-gray-600">{note.message}</p>
-            </div>
-          ))}
         </div>
       )}
 

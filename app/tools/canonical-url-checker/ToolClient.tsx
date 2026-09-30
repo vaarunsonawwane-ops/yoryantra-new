@@ -741,7 +741,7 @@ export default function ToolClient() {
       title="Canonical URL Checker"
       description="Compare a page URL with a canonical declaration from a URL, HTML link element or HTTP Link header, then inspect how the scheme, host, path, query and fragment differ."
     >
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2">
         <Field
           label="Page URL"
           value={pageUrl}
@@ -972,7 +972,7 @@ function Field({
   multiline: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="self-start rounded-2xl border border-gray-200 bg-white p-4">
       <label className="block text-sm font-semibold text-gray-900">{label}</label>
       {multiline ? (
         <textarea
@@ -982,7 +982,7 @@ function Field({
           }
           placeholder={placeholder}
           spellCheck={false}
-          className="mt-3 min-h-[160px] w-full rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none focus:ring-2 focus:ring-[var(--green)]"
+          className="mt-3 min-h-[120px] w-full rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none focus:ring-2 focus:ring-[var(--green)]"
         />
       ) : (
         <input
