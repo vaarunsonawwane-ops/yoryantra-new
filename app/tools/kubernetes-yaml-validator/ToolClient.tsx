@@ -651,6 +651,7 @@ function inspectEnv(
         "resourceFieldRef",
         "configMapKeyRef",
         "secretKeyRef",
+        "fileKeyRef",
       ].filter((key) => hasOwn(item.valueFrom as PlainObject, key));
 
       if (sourceKeys.length !== 1) {
@@ -658,7 +659,14 @@ function inspectEnv(
           findings,
           "error",
           `${itemPath}.valueFrom`,
-          "env.valueFrom must select exactly one fieldRef, resourceFieldRef, configMapKeyRef, or secretKeyRef."
+          "env.valueFrom must select exactly one fieldRef, resourceFieldRef, configMapKeyRef, secretKeyRef, or fileKeyRef."
+        );
+      } else if (sourceKeys[0] === "fileKeyRef") {
+        addFinding(
+          findings,
+          "info",
+          `${itemPath}.valueFrom.fileKeyRef`,
+          "fileKeyRef is recognized as a current Kubernetes EnvVarSource, but it requires cluster support for the EnvFiles feature gate."
         );
       }
     }
