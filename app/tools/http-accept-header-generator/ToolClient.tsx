@@ -709,40 +709,114 @@ function splitCommaAware(value: string) {
   return parts.filter(Boolean);
 }
 
-function parseQValue(part: string, fieldName: string) {
-  const qParams = part.match(/(?:^|;)\s*q\s*=/ig) || [];
-  if (qParams.length > 1) throw new Error(`${fieldName} contains more than one q parameter in one item.`);
-  if (qParams.length === 0) return;
+function splitSemicolonAware(value: string) {
+  const parts: string[] = [];
+  let current = "";
+  let quoted = false;
+  let escaped = false;
 
-  const match = part.match(/(?:^|;)\s*q\s*=\s*([^;\s]+)\s*(?:;|$)/i);
-  if (!match || !/^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(match[1])) {
+  for (const ch of value) {
+    if (escaped) {
+      current += ch;
+      escaped = false;
+      continue;
+    }
+    if (quoted && ch === "\\") {
+      current += ch;
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      quoted = !quoted;
+      current += ch;
+      continue;
+    }
+    if (!quoted && ch === ";") {
+      parts.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+
+  if (quoted) throw new Error("A quoted header parameter is not closed.");
+  parts.push(current.trim());
+  return parts;
+}
+
+function validQuotedString(value: string) {
+  return /^"(?:[\x20-\x21\x23-\x5B\x5D-\x7E\x80-\xFF]|\\[\t\x20-\x7E\x80-\xFF])*"$/.test(value);
+}
+
+function parseParameters(value: string, fieldName: string) {
+  const segments = splitSemicolonAware(value);
+  const base = segments.shift()?.trim() || "";
+  const params: Array<{ name: string; value: string }> = [];
+  const seen = new Set<string>();
+
+  for (const segment of segments) {
+    const eq = segment.indexOf("=");
+    if (eq <= 0) throw new Error(`${fieldName} contains an invalid parameter: ${segment || "(empty)"}.`);
+
+    const name = segment.slice(0, eq).trim().toLowerCase();
+    const rawValue = segment.slice(eq + 1).trim();
+    if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(name)) {
+      throw new Error(`${fieldName} contains an invalid parameter name: ${name || "(empty)"}.`);
+    }
+    if (!rawValue || (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(rawValue) && !validQuotedString(rawValue))) {
+      throw new Error(`${fieldName} contains an invalid value for parameter ${name}.`);
+    }
+    if (seen.has(name)) throw new Error(`${fieldName} contains the ${name} parameter more than once.`);
+
+    seen.add(name);
+    params.push({ name, value: rawValue });
+  }
+
+  return { base, params };
+}
+
+function validateQValue(rawValue: string, fieldName: string) {
+  if (!/^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(rawValue)) {
     throw new Error(`${fieldName} contains an invalid q value. Use 0 to 1 with at most three decimal places.`);
   }
 }
 
 function validateAccept(value: string) {
   for (const item of splitCommaAware(value)) {
-    parseQValue(item, "Accept");
-    const media = item.split(";")[0].trim();
+    const { base: media, params } = parseParameters(item, "Accept");
     if (!/^(?:\*\/\*|[!#$%&'*+\-.^_`|~0-9A-Za-z]+\/(?:\*|[!#$%&'*+\-.^_`|~0-9A-Za-z]+))$/.test(media)) {
       throw new Error(`Accept contains an invalid media range: ${media || "(empty)"}.`);
+    }
+
+    const q = params.find((param) => param.name === "q");
+    if (q) {
+      if (q.value.startsWith('"')) throw new Error("Accept q values must use q=0..1 syntax, not a quoted string.");
+      validateQValue(q.value, "Accept");
     }
   }
 }
 
 function validateWeightedTokenList(fieldName: string, value: string, kind: "language" | "encoding") {
   for (const item of splitCommaAware(value)) {
-    parseQValue(item, fieldName);
-    const token = item.split(";")[0].trim();
+    const { base: token, params } = parseParameters(item, fieldName);
     const valid = kind === "language"
       ? token === "*" || /^[A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*$/.test(token)
       : token === "*" || /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(token);
     if (!valid) throw new Error(`${fieldName} contains an invalid ${kind === "language" ? "language range" : "content-coding"}: ${token || "(empty)"}.`);
+
+    if (params.some((param) => param.name !== "q")) {
+      throw new Error(`${fieldName} only supports the q preference parameter on each item.`);
+    }
+    const q = params.find((param) => param.name === "q");
+    if (q) {
+      if (q.value.startsWith('"')) throw new Error(`${fieldName} q values must use q=0..1 syntax, not a quoted string.`);
+      validateQValue(q.value, fieldName);
+    }
   }
 }
 
 function validateContentType(value: string) {
-  const media = value.split(";")[0].trim();
+  const { base: media } = parseParameters(value, "Content-Type");
   if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+\/[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(media)) {
     throw new Error("Content-Type must start with a valid type/subtype media type.");
   }

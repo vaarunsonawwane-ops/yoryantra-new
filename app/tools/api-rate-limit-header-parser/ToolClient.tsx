@@ -588,6 +588,7 @@ function analyzeRateLimitHeaders(options: {
 type StructuredItem = {
   id: string;
   params: Record<string, number | string>;
+  rawParams: Record<string, string>;
 };
 
 function structuredIntegerParam(item: StructuredItem | null, name: string): number | null {
@@ -705,6 +706,26 @@ function unquoteStructuredString(value: string) {
   return value.slice(1, -1).replace(/\\(["\\])/g, "$1");
 }
 
+function parseStructuredBareItem(rawValue: string): number | string | null {
+  if (/^-?\d{1,15}$/.test(rawValue)) {
+    const numeric = Number(rawValue);
+    return Number.isSafeInteger(numeric) ? numeric : null;
+  }
+
+  if (/^-?\d{1,12}\.\d{1,3}$/.test(rawValue)) return rawValue;
+
+  const quotedValue = unquoteStructuredString(rawValue);
+  if (quotedValue !== null) return quotedValue;
+
+  if (/^[A-Za-z*][!#$%&'*+\-.^_`|~0-9A-Za-z:/]*$/.test(rawValue)) return rawValue;
+  if (/^:[A-Za-z0-9+/]*={0,2}:$/.test(rawValue)) return rawValue;
+  if (/^\?[01]$/.test(rawValue)) return rawValue;
+  if (/^@-?\d{1,15}$/.test(rawValue)) return rawValue;
+  if (/^%"(?:[\x20-\x21\x23-\x24\x26-\x5B\x5D-\x7E]|\\["\\]|%[0-9a-f]{2})*"$/.test(rawValue)) return rawValue;
+
+  return null;
+}
+
 function parseStructuredRateLimitList(value: string): StructuredItem[] {
   if (!value.trim()) return [];
   const members = splitOutsideQuotes(value, ",");
@@ -719,38 +740,28 @@ function parseStructuredRateLimitList(value: string): StructuredItem[] {
     if (id === null) return [];
 
     const params: Record<string, number | string> = {};
+    const rawParams: Record<string, string> = {};
     let valid = true;
 
     for (const rawParam of segments.slice(1)) {
       const eq = rawParam.indexOf("=");
-      if (eq <= 0) {
-        valid = false;
-        break;
-      }
-      const name = rawParam.slice(0, eq).trim().toLowerCase();
-      const rawValue = rawParam.slice(eq + 1).trim();
-      if (!/^[a-z*][a-z0-9_.*-]*$/.test(name)) {
+      const rawName = (eq >= 0 ? rawParam.slice(0, eq) : rawParam).trim();
+      const name = rawName.toLowerCase();
+      if (!/^[a-z*][a-z0-9_.*-]*$/.test(name) || Object.prototype.hasOwnProperty.call(rawParams, name)) {
         valid = false;
         break;
       }
 
-      if (/^-?\d+$/.test(rawValue)) {
-        const numeric = Number(rawValue);
-        if (!Number.isSafeInteger(numeric)) {
-          valid = false;
-          break;
-        }
-        params[name] = numeric;
-      } else {
-        const quotedValue = unquoteStructuredString(rawValue);
-        if (quotedValue !== null) params[name] = quotedValue;
-        else if (/^[A-Za-z*][A-Za-z0-9_.*:/-]*$/.test(rawValue)) params[name] = rawValue;
-        else if (/^:[A-Za-z0-9+/=]*:$/.test(rawValue)) params[name] = rawValue;
-        else {
-          valid = false;
-          break;
-        }
+      // Structured Fields allows a bare parameter name as shorthand for Boolean true.
+      const rawValue = eq >= 0 ? rawParam.slice(eq + 1).trim() : "?1";
+      const parsedValue = parseStructuredBareItem(rawValue);
+      if (parsedValue === null) {
+        valid = false;
+        break;
       }
+
+      rawParams[name] = rawValue;
+      params[name] = parsedValue;
     }
 
     if (!valid) return [];
@@ -761,7 +772,12 @@ function parseStructuredRateLimitList(value: string): StructuredItem[] {
     }
     if (typeof params.w === "number" && params.w === 0) return [];
 
-    parsed.push({ id, params });
+    // draft-ietf-httpapi-ratelimit-headers-11 defines qu as an SF String
+    // and pk as an SF Byte Sequence. Do not silently accept another type.
+    if (rawParams.qu !== undefined && unquoteStructuredString(rawParams.qu) === null) return [];
+    if (rawParams.pk !== undefined && !/^:[A-Za-z0-9+/]*={0,2}:$/.test(rawParams.pk)) return [];
+
+    parsed.push({ id, params, rawParams });
   }
 
   return parsed;

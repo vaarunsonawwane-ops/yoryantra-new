@@ -41,9 +41,12 @@ type DirectiveMap = {
   staleIfError: number | null;
   public: boolean;
   private: boolean;
+  privateQualified: boolean;
   noStore: boolean;
   noCache: boolean;
+  noCacheQualified: boolean;
   mustRevalidate: boolean;
+  proxyRevalidate: boolean;
   immutable: boolean;
   duplicateDirectives: string[];
   invalidDeltaSeconds: string[];
@@ -604,6 +607,7 @@ function splitCommaAware(value: string) {
     if (!quoted && ch === ",") { parts.push(current.trim()); current = ""; continue; }
     current += ch;
   }
+  if (quoted) throw new Error("A quoted Cache-Control or Vary value is not closed.");
   parts.push(current.trim());
   return parts.filter(Boolean);
 }
@@ -624,9 +628,12 @@ function parseCacheControl(value: string): DirectiveMap {
     staleIfError: null,
     public: false,
     private: false,
+    privateQualified: false,
     noStore: false,
     noCache: false,
+    noCacheQualified: false,
     mustRevalidate: false,
+    proxyRevalidate: false,
     immutable: false,
     duplicateDirectives: [],
     invalidDeltaSeconds: [],
@@ -655,10 +662,15 @@ function parseCacheControl(value: string): DirectiveMap {
     }
 
     if (key === "public") directives.public = true;
-    else if (key === "private") directives.private = true;
-    else if (key === "no-store") directives.noStore = true;
-    else if (key === "no-cache") directives.noCache = true;
-    else if (key === "must-revalidate") directives.mustRevalidate = true;
+    else if (key === "private") {
+      if (rawValue === undefined) directives.private = true;
+      else directives.privateQualified = true;
+    } else if (key === "no-store") directives.noStore = true;
+    else if (key === "no-cache") {
+      if (rawValue === undefined) directives.noCache = true;
+      else directives.noCacheQualified = true;
+    } else if (key === "must-revalidate") directives.mustRevalidate = true;
+    else if (key === "proxy-revalidate") directives.proxyRevalidate = true;
     else if (key === "immutable") directives.immutable = true;
   }
 
@@ -731,11 +743,27 @@ function buildIssues(
     });
   }
 
+  if (directives.noCacheQualified) {
+    issues.push({
+      severity: "info",
+      title: "Qualified no-cache applies to named fields",
+      message: "The qualified form can allow reuse of the rest of the response when the named fields are removed or successfully revalidated. Some caches conservatively treat it like unqualified no-cache.",
+    });
+  }
+
   if (directives.private) {
     issues.push({
       severity: "info",
       title: "private restricts shared-cache storage",
       message: "Private caches can still store the response unless another directive prevents storage.",
+    });
+  }
+
+  if (directives.privateQualified) {
+    issues.push({
+      severity: "info",
+      title: "Qualified private applies to named fields",
+      message: "A shared cache may store the rest of the response after excluding the named private fields. Some caches conservatively treat qualified private as unqualified private.",
     });
   }
 
@@ -844,6 +872,7 @@ function buildIssues(
 function describeStoragePolicy(directives: DirectiveMap) {
   if (directives.noStore) return "do not store";
   if (directives.private) return "private caches only";
+  if (directives.privateQualified) return "shared caches may store response without named private fields";
   return "not prohibited by Cache-Control";
 }
 
@@ -873,7 +902,13 @@ function describeRevalidation(headers: HeaderMap, directives: DirectiveMap) {
         ? "Last-Modified"
         : "no ETag/Last-Modified";
   if (directives.noCache) return `required before reuse; ${validator}`;
-  if (directives.mustRevalidate) return `required once stale; ${validator}`;
+  if (directives.mustRevalidate) return `required once stale for all caches; ${validator}`;
+  if (directives.sMaxage !== null || directives.proxyRevalidate) {
+    return `shared caches must revalidate once stale; private caches: ${validator}`;
+  }
+  if (directives.noCacheQualified) {
+    return `named no-cache fields require removal or successful validation before reuse; ${validator}`;
+  }
   return validator;
 }
 
