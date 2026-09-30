@@ -456,7 +456,7 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Duplicate JSON names make an exact pointer undefined</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            RFC 6901 states that evaluation fails when the referenced object member name is not unique. JavaScript's normal <code className="rounded bg-gray-100 px-1 py-0.5">JSON.parse</code> would otherwise keep only one duplicate and hide the ambiguity, so duplicate member names are stopped before evaluation. Integers outside JavaScript's safe exact range are also rejected before matched values can be silently rounded.
+            RFC 6901 states that evaluation fails when the referenced object member name is not unique. JavaScript's normal <code className="rounded bg-gray-100 px-1 py-0.5">JSON.parse</code> would otherwise keep only one duplicate and hide the ambiguity, so duplicate member names are stopped before evaluation. Precision-sensitive JSON numbers, including unsafe integers and decimal values that browser number semantics cannot preserve conservatively, are also rejected before matched values can be silently rounded.
           </p>
           <p className="mt-3 text-sm text-gray-600">
             Primary reference:{" "}
@@ -1074,14 +1074,10 @@ function findJsonDataRisk(text: string): string | null {
     const token = match[0];
     index += token.length;
     const value = Number(token);
-    if (!Number.isFinite(value)) {
-      throw new Error("A JSON number is outside JavaScript's finite numeric range, so its matched value would not survive browser parsing faithfully.");
-    }
-    if (Number.isInteger(value) && !Number.isSafeInteger(value)) {
-      throw new Error(`JSON integer ${token} cannot be represented exactly by JavaScript. Represent it as a string before evaluating exact values.`);
-    }
-    if (Object.is(value, -0)) {
-      throw new Error("JSON number -0 can be serialized back as 0. Represent it as a string if the sign distinction matters.");
+    if (!isSafeNumberToken(token, value)) {
+      throw new Error(
+        `JSON number ${token} cannot be preserved safely with JavaScript number semantics. Represent precision-sensitive values as strings before evaluating exact values.`
+      );
     }
   };
 
@@ -1171,6 +1167,32 @@ function findJsonDataRisk(text: string): string | null {
   }
 }
 
+function isSafeNumberToken(token: string, numericValue: number) {
+  if (!Number.isFinite(numericValue) || Object.is(numericValue, -0)) {
+    return false;
+  }
+
+  if (/^-?(?:0|[1-9]\d*)$/.test(token)) {
+    return Number.isSafeInteger(numericValue);
+  }
+
+  const significantDigits = token
+    .replace(/^[+-]/, "")
+    .split(/[eE]/)[0]
+    .replace(".", "")
+    .replace(/^0+/, "").length;
+
+  if (significantDigits > 15) {
+    return false;
+  }
+
+  if (numericValue === 0 && /[1-9]/.test(token)) {
+    return false;
+  }
+
+  return true;
+}
+
 function escapeMarkdown(value: string) {
   return value.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
 }
@@ -1204,7 +1226,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 accent-[#d9a928]"
+        className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 accent-[var(--light-gold)]"
       />
       <span>{label}</span>
     </label>

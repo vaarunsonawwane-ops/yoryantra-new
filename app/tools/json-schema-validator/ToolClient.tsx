@@ -867,7 +867,8 @@ function validateTypeKeyword(value: unknown, path: string) {
     if (!allowed.has(value)) throw new Error(`${path} contains unknown type ${JSON.stringify(value)}.`);
     return;
   }
-  if (!Array.isArray(value)) throw new Error(`${path} must be a type name or an array of unique type names.`);
+  if (!Array.isArray(value)) throw new Error(`${path} must be a type name or a non-empty array of unique type names.`);
+  if (value.length === 0) throw new Error(`${path} must not be an empty type array under the Draft 2020-12 validation meta-schema.`);
   const seen = new Set<string>();
   value.forEach((item) => {
     if (typeof item !== "string" || !allowed.has(item)) throw new Error(`${path} contains an invalid type name.`);
