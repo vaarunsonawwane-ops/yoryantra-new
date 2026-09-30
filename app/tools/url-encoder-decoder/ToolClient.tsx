@@ -69,7 +69,7 @@ export default function ToolClient() {
   const decodeURL = () => {
     clearResultState();
 
-    if (hasMalformedPercentEscape(input)) {
+    if (mode !== "form" && hasMalformedPercentEscape(input)) {
       setOutput("");
       setHasResult(false);
       setError(
@@ -84,7 +84,7 @@ export default function ToolClient() {
       if (mode === "url") {
         decoded = decodeURI(input);
       } else if (mode === "form") {
-        decoded = decodeURIComponent(input.replace(/\+/g, " "));
+        decoded = new URLSearchParams(`value=${input}`).get("value") ?? "";
       } else {
         decoded = decodeURIComponent(input);
       }

@@ -504,8 +504,15 @@ function applyPlusHandling(input: string, inputMode: InputMode): string {
   }
 
   const queryStart = input.indexOf("?");
-  if (queryStart === -1) return input;
-  const fragmentStart = input.indexOf("#", queryStart + 1);
+  const fragmentStart = input.indexOf("#");
+
+  if (
+    queryStart === -1 ||
+    (fragmentStart !== -1 && queryStart > fragmentStart)
+  ) {
+    return input;
+  }
+
   const end = fragmentStart === -1 ? input.length : fragmentStart;
   return input.slice(0, queryStart + 1) + input.slice(queryStart + 1, end).replace(/\+/g, " ") + input.slice(end);
 }

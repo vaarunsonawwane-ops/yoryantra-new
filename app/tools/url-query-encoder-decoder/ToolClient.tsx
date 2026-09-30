@@ -91,7 +91,7 @@ export default function ToolClient() {
     () =>
       pairs
         .filter((pair) => pair.enabled)
-        .filter((pair) => pair.key.length > 0)
+        .filter((pair) => pair.key.length > 0 || pair.value.length > 0)
         .filter((pair) => !(skipEmptyValues && pair.value.length === 0)),
     [pairs, skipEmptyValues]
   );
@@ -113,6 +113,7 @@ export default function ToolClient() {
         }
 
         const nextResult = parseQueryInput(input, {
+          sourceMode: mode,
           decodePlusAsSpace,
           outputMode,
           sortKeys,
@@ -813,12 +814,13 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 function parseQueryInput(
   input: string,
   options: {
+    sourceMode: "decode" | "parse";
     decodePlusAsSpace: boolean;
     outputMode: OutputMode;
     sortKeys: boolean;
   }
 ): QueryResult {
-  const cleanQuery = extractQuery(input);
+  const cleanQuery = extractQuery(input, options.sourceMode);
   const warnings: string[] = [];
 
   if (!cleanQuery) {
@@ -925,21 +927,31 @@ function encodeQueryPairs(
   };
 }
 
-function extractQuery(input: string) {
-  const trimmed = input.trim();
+function extractQuery(input: string, sourceMode: "decode" | "parse") {
+  if (sourceMode === "decode") {
+    return input.startsWith("?") ? input.slice(1) : input;
+  }
+
+  const candidate = input.trim();
 
   try {
-    const url = new URL(trimmed);
-    return url.search.replace(/^\?/, "");
+    new URL(candidate);
   } catch {
-    const withoutHash = trimmed.split("#")[0];
-
-    if (withoutHash.includes("?")) {
-      return withoutHash.slice(withoutHash.indexOf("?") + 1).replace(/^\?/, "");
-    }
-
-    return withoutHash.replace(/^\?/, "");
+    throw new Error("Parse Full URL mode requires a valid absolute URL.");
   }
+
+  const fragmentStart = candidate.indexOf("#");
+  const queryStart = candidate.indexOf("?");
+
+  if (
+    queryStart === -1 ||
+    (fragmentStart !== -1 && queryStart > fragmentStart)
+  ) {
+    return "";
+  }
+
+  const queryEnd = fragmentStart === -1 ? candidate.length : fragmentStart;
+  return candidate.slice(queryStart + 1, queryEnd);
 }
 
 function safeDecode(value: string, decodePlusAsSpace: boolean): string {
