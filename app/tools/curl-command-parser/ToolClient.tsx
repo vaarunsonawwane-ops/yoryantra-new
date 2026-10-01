@@ -500,7 +500,7 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Data Flags Are Not Interchangeable</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            curl joins repeated data options with an ampersand. <code className="font-mono text-sm">--data-raw</code> differs from <code className="font-mono text-sm">--data</code> because a leading <code className="font-mono text-sm">@</code> is literal instead of a file reference. <code className="font-mono text-sm">--json</code> is a curl shortcut that also supplies JSON Accept and Content-Type headers when you have not overridden them. Multipart <code className="font-mono text-sm">--form</code> is different again because curl generates a MIME boundary while sending the request.
+            curl joins repeated ordinary data options with an ampersand. <code className="font-mono text-sm">--data-raw</code> differs from <code className="font-mono text-sm">--data</code> because a leading <code className="font-mono text-sm">@</code> is literal instead of a file reference. Repeated <code className="font-mono text-sm">--json</code> pieces are different: curl concatenates them directly and also supplies JSON Accept and Content-Type headers when you have not overridden them. Multipart <code className="font-mono text-sm">--form</code> is different again because curl generates a MIME boundary while sending the request.
           </p>
         </div>
 
@@ -653,8 +653,8 @@ function parseCurlCommand(
   const headers: ParsedHeader[] = [];
   const cookies: ParsedPair[] = [];
   const dataParts: string[] = [];
+  const jsonParts: string[] = [];
   const formParts: string[] = [];
-  let jsonMode = false;
 
   const setUrl = (nextUrl: string) => {
     if (!/^https?:\/\//i.test(nextUrl)) {
@@ -754,16 +754,14 @@ function parseCurlCommand(
     if (token === "--json") {
       const value = readRequiredValue(tokens, index, token);
       if (value.startsWith("@")) throw new Error("--json refers to a local file. File contents are not available to the browser parser.");
-      dataParts.push(value);
-      jsonMode = true;
+      jsonParts.push(value);
       index += 1;
       continue;
     }
     if (token.startsWith("--json=")) {
       const value = token.slice("--json=".length);
       if (value.startsWith("@")) throw new Error("--json refers to a local file. File contents are not available to the browser parser.");
-      dataParts.push(value);
-      jsonMode = true;
+      jsonParts.push(value);
       continue;
     }
 
@@ -888,33 +886,51 @@ function parseCurlCommand(
   }
 
   if (!url) throw new Error("Could not find an HTTP or HTTPS URL in the cURL command.");
-  if (dataParts.length > 0 && formParts.length > 0) throw new Error("curl data options and --form are different body modes and should not be combined here.");
-  if (headOnly && (dataParts.length > 0 || formParts.length > 0)) throw new Error("--head cannot be combined with request body options in this parser.");
+  if ((dataParts.length > 0 || jsonParts.length > 0) && formParts.length > 0) {
+    throw new Error("curl data options and --form are different body modes and should not be combined here.");
+  }
+  if (dataParts.length > 0 && jsonParts.length > 0) {
+    throw new Error("Mixing --json with other --data options is not represented by this parser because their repeat/merge rules differ.");
+  }
+  if (headOnly && formParts.length > 0) {
+    throw new Error("--head cannot be combined with multipart --form data in this parser.");
+  }
+  if (headOnly && jsonParts.length > 0) {
+    throw new Error("curl documents --json and --head as mutually exclusive.");
+  }
+  if (headOnly && dataParts.length > 0 && !useGet) {
+    throw new Error("--head can only be combined with these data options here when -G/--get moves the data into the URL query.");
+  }
 
   let bodyKind: ParsedCurlCommand["bodyKind"] = "none";
   let body = "";
   if (formParts.length > 0) {
     bodyKind = "multipart-form";
     body = formParts.join("\n");
+  } else if (jsonParts.length > 0) {
+    bodyKind = "json";
+    body = jsonParts.join("");
   } else if (dataParts.length > 0) {
-    bodyKind = jsonMode ? "json" : "data";
+    bodyKind = "data";
     body = dataParts.join("&");
   }
 
-  if (jsonMode) {
+  if (jsonParts.length > 0) {
     addHeaderIfMissing(headers, "Content-Type", "application/json");
     addHeaderIfMissing(headers, "Accept", "application/json");
   } else if (dataParts.length > 0) {
     addHeaderIfMissing(headers, "Content-Type", "application/x-www-form-urlencoded");
   }
 
-  if (useGet && dataParts.length > 0) {
+  const hasRequestData = dataParts.length > 0 || jsonParts.length > 0 || formParts.length > 0;
+
+  if (useGet && (dataParts.length > 0 || jsonParts.length > 0)) {
     url = appendQueryString(url, body);
     body = "";
     bodyKind = "none";
   }
 
-  const finalMethod = method || (headOnly ? "HEAD" : useGet ? "GET" : body || formParts.length > 0 ? "POST" : "GET");
+  const finalMethod = method || (headOnly ? "HEAD" : useGet ? "GET" : hasRequestData ? "POST" : "GET");
   const urlDetails = parseUrlDetails(url, options.decodeQueryParams);
 
   return {
@@ -950,6 +966,7 @@ function cleanCurlLineContinuations(input: string) {
 function tokenizeShellCommand(input: string) {
   const tokens: string[] = [];
   let current = "";
+  let tokenStarted = false;
   let quote: "'" | '"' | null = null;
   let shellExpansionPossible = false;
 
@@ -979,9 +996,10 @@ function tokenizeShellCommand(input: string) {
       continue;
     }
 
-    if (char === "'") { quote = "'"; continue; }
-    if (char === '"') { quote = '"'; continue; }
+    if (char === "'") { quote = "'"; tokenStarted = true; continue; }
+    if (char === '"') { quote = '"'; tokenStarted = true; continue; }
     if (char === "\\") {
+      tokenStarted = true;
       if (index + 1 >= input.length) { current += "\\"; continue; }
       current += input[index + 1];
       index += 1;
@@ -989,14 +1007,19 @@ function tokenizeShellCommand(input: string) {
     }
     if (char === "$" || char === "`" || char === "*" || char === "?") shellExpansionPossible = true;
     if (/\s/.test(char)) {
-      if (current) { tokens.push(current); current = ""; }
+      if (tokenStarted) {
+        tokens.push(current);
+        current = "";
+        tokenStarted = false;
+      }
       continue;
     }
+    tokenStarted = true;
     current += char;
   }
 
   if (quote) throw new Error("The cURL command has an unclosed quote.");
-  if (current) tokens.push(current);
+  if (tokenStarted) tokens.push(current);
   return { tokens, shellExpansionPossible };
 }
 

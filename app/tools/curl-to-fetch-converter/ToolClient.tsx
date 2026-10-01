@@ -14,6 +14,7 @@ type ParsedCurl = {
   method: string;
   headers: HeaderPair[];
   body: string | null;
+  followRedirects: boolean;
   warnings: string[];
 };
 
@@ -64,7 +65,6 @@ const ignoredNoValueOptions = new Set([
   "--compressed",
   "--fail",
   "--fail-with-body",
-  "--location",
   "--silent",
   "--show-error",
   "-L",
@@ -250,7 +250,7 @@ export default function ToolClient() {
           <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
             <li>HTTP and HTTPS URLs, including <code>--url</code>.</li>
             <li>Explicit methods from <code>-X</code> or <code>--request</code>.</li>
-            <li>Repeated request headers from <code>-H</code> or <code>--header</code>.</li>
+            <li>Request headers from <code>-H</code> or <code>--header</code>; repeated names are emitted as header tuples so the source values are not lost before Fetch normalizes them.</li>
             <li>
               Text bodies from <code>-d</code>, <code>--data</code>,
               <code> --data-raw</code>, and literal <code>--data-binary</code> values.
@@ -273,9 +273,10 @@ export default function ToolClient() {
             <p className="mt-2 text-sm leading-relaxed text-amber-900">
               Browsers control headers such as Host, Content-Length, Cookie,
               Origin, and several Sec-* headers. Fetch also rejects request
-              bodies on GET and HEAD. When those differences prevent an honest
-              conversion, the page warns or stops instead of emitting code that
-              only looks equivalent.
+              bodies on GET and HEAD, and it follows redirects by default while
+              curl does not unless <code>-L</code> is present. When those
+              differences prevent an honest conversion, the page warns or stops
+              instead of emitting code that only looks equivalent.
             </p>
           </div>
 
@@ -378,6 +379,7 @@ function parseCurlCommand(command: string): ParsedCurl {
   let method = "";
   let head = false;
   let useGet = false;
+  let followRedirects = false;
   let jsonMode = false;
   const headers: HeaderPair[] = [];
   const dataParts: Array<{ kind: "data" | "raw" | "binary" | "json"; value: string }> = [];
@@ -461,6 +463,11 @@ function parseCurlCommand(command: string): ParsedCurl {
 
     if (token === "-I" || token === "--head") {
       head = true;
+      continue;
+    }
+
+    if (token === "-L" || token === "--location") {
+      followRedirects = true;
       continue;
     }
 
@@ -603,11 +610,25 @@ function parseCurlCommand(command: string): ParsedCurl {
     );
   }
 
+  if (!followRedirects) {
+    warnings.push(
+      "curl does not follow redirects unless -L/--location is present. The generated fetch() uses redirect: \"manual\" to avoid silently changing that behavior, although browser manual redirects do not expose the same raw 3xx response that curl does."
+    );
+  }
+
+  const repeatedHeaderNames = findRepeatedHeaderNames(safeHeaders);
+  if (repeatedHeaderNames.length > 0) {
+    warnings.push(
+      `Repeated request headers are emitted as header tuples so the source values are not lost before Fetch processes them: ${repeatedHeaderNames.join(", ")}. Browsers can still normalize or combine repeated field values before sending the request.`
+    );
+  }
+
   return {
     url: parsedUrl.toString(),
     method,
     headers: safeHeaders,
     body,
+    followRedirects,
     warnings: uniqueStrings(warnings),
   };
 }
@@ -619,15 +640,28 @@ function generateFetchCode(parsed: ParsedCurl): string {
   ];
 
   if (parsed.headers.length > 0) {
-    lines.push("  headers: {");
-    parsed.headers.forEach((header) => {
-      lines.push(`    ${JSON.stringify(header.name)}: ${JSON.stringify(header.value)},`);
-    });
-    lines.push("  },");
+    const repeatedHeaderNames = findRepeatedHeaderNames(parsed.headers);
+    if (repeatedHeaderNames.length > 0) {
+      lines.push("  headers: [");
+      parsed.headers.forEach((header) => {
+        lines.push(`    [${JSON.stringify(header.name)}, ${JSON.stringify(header.value)}],`);
+      });
+      lines.push("  ],");
+    } else {
+      lines.push("  headers: {");
+      parsed.headers.forEach((header) => {
+        lines.push(`    ${JSON.stringify(header.name)}: ${JSON.stringify(header.value)},`);
+      });
+      lines.push("  },");
+    }
   }
 
   if (parsed.body !== null) {
     lines.push(`  body: ${JSON.stringify(parsed.body)},`);
+  }
+
+  if (!parsed.followRedirects) {
+    lines.push('  redirect: "manual",');
   }
 
   lines.push("});");
@@ -640,6 +674,7 @@ function generateFetchCode(parsed: ParsedCurl): string {
 function tokenizeCurl(command: string): string[] {
   const tokens: string[] = [];
   let current = "";
+  let tokenStarted = false;
   let quote: "single" | "double" | null = null;
   let escaped = false;
 
@@ -648,6 +683,7 @@ function tokenizeCurl(command: string): string[] {
 
     if (escaped) {
       current += char;
+      tokenStarted = true;
       escaped = false;
       continue;
     }
@@ -680,27 +716,32 @@ function tokenizeCurl(command: string): string[] {
 
     if (char === "'") {
       quote = "single";
+      tokenStarted = true;
       continue;
     }
 
     if (char === '"') {
       quote = "double";
+      tokenStarted = true;
       continue;
     }
 
     if (char === "\\") {
+      tokenStarted = true;
       escaped = true;
       continue;
     }
 
     if (/\s/.test(char)) {
-      if (current) {
+      if (tokenStarted) {
         tokens.push(current);
         current = "";
+        tokenStarted = false;
       }
       continue;
     }
 
+    tokenStarted = true;
     current += char;
   }
 
@@ -712,7 +753,7 @@ function tokenizeCurl(command: string): string[] {
     throw new Error("The cURL command ends with an incomplete backslash escape.");
   }
 
-  if (current) {
+  if (tokenStarted) {
     tokens.push(current);
   }
 
@@ -752,6 +793,19 @@ function addHeader(headers: HeaderPair[], rawHeader: string): void {
   }
 
   headers.push({ name, value });
+}
+
+function findRepeatedHeaderNames(headers: HeaderPair[]) {
+  const counts = new Map<string, number>();
+  const originalNames = new Map<string, string>();
+  headers.forEach((header) => {
+    const normalized = header.name.toLowerCase();
+    counts.set(normalized, (counts.get(normalized) || 0) + 1);
+    if (!originalNames.has(normalized)) originalNames.set(normalized, header.name);
+  });
+  return Array.from(counts.entries())
+    .filter(([, count]) => count > 1)
+    .map(([name]) => originalNames.get(name) || name);
 }
 
 function combineDataParts(

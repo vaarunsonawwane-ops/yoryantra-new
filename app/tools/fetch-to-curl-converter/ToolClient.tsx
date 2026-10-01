@@ -27,6 +27,8 @@ type ParsedFetchRequest = {
   headers: ParsedHeader[];
   ignoredForbiddenHeaders: string[];
   body: string;
+  bodyPresent: boolean;
+  autoContentTypeAdded: boolean;
   credentials: string;
   mode: string;
   cache: string;
@@ -403,7 +405,7 @@ export default function ToolClient() {
             An HTTP method, absolute URL, literal headers, and a literal body have direct command-line equivalents. The parser deliberately stays inside that boundary. A URL stored in a variable, a computed header object, FormData, a stream, or an arbitrary expression may depend on runtime state, so converting it without executing code would be guesswork.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            String bodies are preserved as text. <span className="font-mono">JSON.stringify(...)</span> is accepted only when its argument is a JSON-compatible literal object or array. GET and HEAD bodies are rejected because Fetch does not allow them.
+            String bodies are preserved as text. <span className="font-mono">JSON.stringify(...)</span> is accepted only when its argument is a JSON-compatible literal object or array. When a string body has no explicit Content-Type, the converter preserves Fetch&apos;s automatic <span className="font-mono">text/plain;charset=UTF-8</span> instead of allowing curl&apos;s data default to change it. GET and HEAD bodies are rejected because Fetch does not allow them.
           </p>
         </div>
 
@@ -549,9 +551,15 @@ function parseFetchRequest(input: string): ParsedFetchRequest {
 
   const headerResult = extractHeaders(optionEntries);
   const headers = headerResult.headers;
+  const bodyPresent = Boolean(getLastEntry(optionEntries, "body"));
   const body = extractBody(optionEntries);
-  if ((normalizedMethod === "GET" || normalizedMethod === "HEAD") && body !== "") {
+  if ((normalizedMethod === "GET" || normalizedMethod === "HEAD") && bodyPresent) {
     throw new Error(`${normalizedMethod} requests cannot carry a body in Fetch. Remove the body or choose the method used by the original request.`);
+  }
+
+  const autoContentTypeAdded = bodyPresent && !headers.some((header) => header.name.toLowerCase() === "content-type");
+  if (autoContentTypeAdded) {
+    headers.push({ name: "Content-Type", value: "text/plain;charset=UTF-8" });
   }
 
   const credentials = readValidatedStringOption(optionEntries, "credentials", ["omit", "same-origin", "include"]);
@@ -580,6 +588,8 @@ function parseFetchRequest(input: string): ParsedFetchRequest {
     headers,
     ignoredForbiddenHeaders: headerResult.ignoredForbiddenHeaders,
     body,
+    bodyPresent,
+    autoContentTypeAdded,
     credentials,
     mode,
     cache,
@@ -758,7 +768,7 @@ function buildCurlCommand(
     ? `curl ${quotedUrl}`
     : parsed.method === "HEAD"
       ? `curl --head ${quotedUrl}`
-      : parsed.method === "POST" && parsed.body !== ""
+      : parsed.method === "POST" && parsed.bodyPresent
         ? `curl ${quotedUrl}`
         : `curl --request ${parsed.method} ${quotedUrl}`;
   const segments = [firstSegment];
@@ -770,7 +780,7 @@ function buildCurlCommand(
     segments.push(`--header ${shellQuote(`${header.name}: ${value}`, quote)}`);
   });
 
-  if (parsed.body !== "") segments.push(`--data-raw ${shellQuote(parsed.body, quote)}`);
+  if (parsed.bodyPresent) segments.push(`--data-raw ${shellQuote(parsed.body, quote)}`);
 
   const effectiveRedirect = parsed.redirect || "follow";
   if (effectiveRedirect === "follow") {
@@ -813,6 +823,14 @@ function getConversionNotes(parsed: ParsedFetchRequest): ConversionNote[] {
       tone: "warning",
       title: "Share-sensitive values detected",
       message: "Credential-like headers or query parameters are present. Keep masking enabled before copying the command into tickets, chat, logs, or documentation.",
+    });
+  }
+
+  if (parsed.autoContentTypeAdded) {
+    notes.push({
+      tone: "info",
+      title: "Fetch's automatic string Content-Type is preserved",
+      message: 'A string body without an explicit Content-Type is sent by Fetch as text/plain;charset=UTF-8, so the generated cURL command adds that header instead of accepting curl\'s application/x-www-form-urlencoded default.',
     });
   }
 
