@@ -1348,10 +1348,10 @@ environment:
             Interpolation Happens Before You See the Final Compose Model
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Compose supports forms such as <code>${"${VAR}"}</code>,{" "}
-            <code>${"${VAR:-default}"}</code>,{" "}
-            <code>${"${VAR-default}"}</code>,{" "}
-            <code>${"${VAR:?error}"}</code> and alternative-value operators.
+            Compose supports forms such as <code>{"${VAR}"}</code>,{" "}
+            <code>{"${VAR:-default}"}</code>,{" "}
+            <code>{"${VAR-default}"}</code>,{" "}
+            <code>{"${VAR:?error}"}</code> and alternative-value operators.
             Shell and .env/--env-file inputs determine what those expressions
             become.
           </p>
