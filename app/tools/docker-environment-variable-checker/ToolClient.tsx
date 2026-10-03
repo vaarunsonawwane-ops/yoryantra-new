@@ -1111,7 +1111,7 @@ export default function ToolClient() {
               setMaskSecrets(event.target.checked);
               setCopied(false);
             }}
-            className="mt-1"
+            className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
           />
           <span>
             <strong className="text-gray-900">Mask secret-like values.</strong>
@@ -1348,10 +1348,10 @@ environment:
             Interpolation Happens Before You See the Final Compose Model
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Compose supports forms such as <code>{"${VAR}"}</code>,{" "}
-            <code>{"${VAR:-default}"}</code>,{" "}
-            <code>{"${VAR-default}"}</code>,{" "}
-            <code>{"${VAR:?error}"}</code> and alternative-value operators.
+            Compose supports forms such as <code>${"${VAR}"}</code>,{" "}
+            <code>${"${VAR:-default}"}</code>,{" "}
+            <code>${"${VAR-default}"}</code>,{" "}
+            <code>${"${VAR:?error}"}</code> and alternative-value operators.
             Shell and .env/--env-file inputs determine what those expressions
             become.
           </p>
