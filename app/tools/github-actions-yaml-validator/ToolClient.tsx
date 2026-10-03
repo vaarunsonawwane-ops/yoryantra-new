@@ -584,7 +584,7 @@ export default function ToolClient() {
           <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Missing workflow triggers such as push or pull_request.</li>
             <li>Jobs without runs-on values.</li>
-            <li>Steps without a supported execution form such as uses, run, wait, wait-all, cancel, or parallel.</li>
+            <li>Steps without uses or run commands.</li>
             <li>Actions without pinned versions.</li>
             <li>Missing permissions blocks in stricter workflows.</li>
             <li>Secret-looking values written directly in the YAML.</li>
@@ -645,7 +645,8 @@ jobs:
             Local parsing can catch malformed YAML and many structural mistakes,
             but it cannot resolve repository secrets, environments, matrices,
             permissions policies, referenced reusable workflows, or runner-time
-            behavior.
+            behavior. This is a static browser-side review: it does not connect to
+            GitHub or run workflow jobs.
           </p>
           <p className="mt-3 text-sm text-gray-600">
             <a
@@ -657,60 +658,6 @@ jobs:
               GitHub Actions workflow syntax
             </a>
           </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            GitHub Actions validation boundaries
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a local workflow validator actually verify?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks a GitHub Actions workflow file for workflow structure,
-                job, step, trigger, permission, and secret-related issues.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this execute jobs or expressions?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool only checks the YAML text. It does not connect to
-                GitHub or run any action.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What still needs GitHub’s runner and repository context?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Repository secrets, environments, expressions, matrices, referenced
-                reusable workflows, runner availability, and runtime behavior still
-                need GitHub's repository and runner context. Use this as a local
-                preflight, not a replacement for an actual workflow run.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Where does the workflow YAML go?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Validation happens directly in your browser, and your YAML is not
-                uploaded to a server.
-              </p>
-            </div>
-          </div>
         </div>
 
         <div>
@@ -818,9 +765,6 @@ function validateGitHubActionsWorkflow(
 
   const parsed = parseWorkflow(input);
   const issues: WorkflowIssue[] = [...syntaxIssues];
-  const rawRoot = isRecord(parsed.raw) ? parsed.raw : null;
-  const rawJobsValue = rawRoot ? rawRoot.jobs : undefined;
-  const rawJobs = isRecord(rawJobsValue) ? rawJobsValue : null;
 
   if (!parsed.workflowName) {
     issues.push({
@@ -842,46 +786,12 @@ function validateGitHubActionsWorkflow(
     });
   }
 
-  if (rawRoot && hasOwn(rawRoot, "jobs") && !rawJobs) {
-    issues.push({
-      severity: "error",
-      title: "Jobs must be a mapping",
-      message:
-        "The jobs key must contain a mapping whose keys are job IDs and whose values are job configuration mappings.",
-      path: "jobs",
-    });
-  }
-
-  if (rawJobs) {
-    Object.entries(rawJobs).forEach(([jobId, rawJob]) => {
-      if (!/^[A-Za-z_][A-Za-z0-9_-]*$/.test(jobId)) {
-        issues.push({
-          severity: "error",
-          title: "Invalid job ID",
-          message:
-            "A job ID must start with a letter or underscore and contain only letters, numbers, hyphens, or underscores.",
-          path: `jobs.${jobId}`,
-        });
-      }
-
-      if (!isRecord(rawJob)) {
-        issues.push({
-          severity: "error",
-          title: "Job definition is not a mapping",
-          message:
-            "Each jobs.<job_id> value must be a mapping of job configuration fields.",
-          path: `jobs.${jobId}`,
-        });
-      }
-    });
-  }
-
   if (parsed.jobs.length === 0) {
     issues.push({
       severity: "error",
       title: "No jobs found",
       message:
-        "A workflow needs at least one valid job mapping under the jobs block.",
+        "A workflow needs at least one job under the jobs block.",
       path: "jobs",
     });
   }
@@ -897,53 +807,13 @@ function validateGitHubActionsWorkflow(
   }
 
   parsed.jobs.forEach((job) => {
+    const rawJobs =
+      isRecord(parsed.raw) && isRecord(parsed.raw.jobs) ? parsed.raw.jobs : null;
     const rawJob =
-      rawJobs && isRecord(rawJobs[job.id])
-        ? (rawJobs[job.id] as Record<string, unknown>)
-        : null;
-    const hasReusableUses = Boolean(rawJob && hasOwn(rawJob, "uses"));
-    const reusableWorkflow =
-      Boolean(
-        rawJob &&
-          typeof rawJob.uses === "string" &&
-          rawJob.uses.trim().length > 0
-      );
-    const hasRunsOn = Boolean(
-      rawJob &&
-        hasOwn(rawJob, "runs-on") &&
-        isSupportedRunsOn(rawJob["runs-on"])
-    );
+      rawJobs && isRecord(rawJobs[job.id]) ? (rawJobs[job.id] as Record<string, unknown>) : null;
+    const reusableWorkflow = Boolean(rawJob && rawJob.uses);
 
-    if (
-      hasReusableUses &&
-      (!rawJob ||
-        typeof rawJob.uses !== "string" ||
-        !rawJob.uses.trim())
-    ) {
-      issues.push({
-        severity: "error",
-        title: "Reusable workflow reference is invalid",
-        message:
-          "jobs.<job_id>.uses must be a non-empty reusable-workflow reference string.",
-        path: `jobs.${job.id}.uses`,
-      });
-    }
-
-    if (
-      rawJob &&
-      hasOwn(rawJob, "runs-on") &&
-      !isSupportedRunsOn(rawJob["runs-on"])
-    ) {
-      issues.push({
-        severity: "error",
-        title: "Invalid runs-on value",
-        message:
-          "runs-on must be a non-empty string, a non-empty array of runner labels, or a mapping that uses group and/or labels.",
-        path: `jobs.${job.id}.runs-on`,
-      });
-    }
-
-    if (!hasRunsOn && !reusableWorkflow) {
+    if (!job.runsOn && !reusableWorkflow) {
       issues.push({
         severity: "error",
         title: "Job is missing runs-on",
@@ -953,7 +823,7 @@ function validateGitHubActionsWorkflow(
       });
     }
 
-    if (hasRunsOn && reusableWorkflow) {
+    if (job.runsOn && reusableWorkflow) {
       issues.push({
         severity: "error",
         title: "Reusable-workflow job also has runs-on",
@@ -963,50 +833,17 @@ function validateGitHubActionsWorkflow(
       });
     }
 
-    if (reusableWorkflow && rawJob && hasOwn(rawJob, "steps")) {
-      issues.push({
-        severity: "error",
-        title: "Reusable-workflow job also has steps",
-        message:
-          "A job that calls a reusable workflow with jobs.<job_id>.uses cannot also define normal job steps.",
-        path: `jobs.${job.id}.steps`,
-      });
-    }
-
-    const rawStepsValue = rawJob ? rawJob.steps : undefined;
-
-    if (
-      !reusableWorkflow &&
-      rawJob &&
-      hasOwn(rawJob, "steps") &&
-      !Array.isArray(rawStepsValue)
-    ) {
-      issues.push({
-        severity: "error",
-        title: "Steps must be an array",
-        message:
-          "jobs.<job_id>.steps must be a YAML sequence of step mappings.",
-        path: `jobs.${job.id}.steps`,
-      });
-    }
-
-    const rawSteps = Array.isArray(rawStepsValue) ? rawStepsValue : [];
-
-    if (rawSteps.length === 0 && !reusableWorkflow) {
+    if (job.steps.length === 0 && !reusableWorkflow) {
       issues.push({
         severity: "warning",
         title: "Job has no steps",
         message:
-          "This normal job does not appear to have any steps.",
+          "This job does not appear to have any steps.",
         path: `jobs.${job.id}.steps`,
       });
     }
 
-    if (
-      options.checkPermissions &&
-      !job.permissions &&
-      options.validationLevel === "strict"
-    ) {
+    if (options.checkPermissions && !job.permissions && options.validationLevel === "strict") {
       issues.push({
         severity: "info",
         title: "Job permissions not set",
@@ -1016,13 +853,46 @@ function validateGitHubActionsWorkflow(
       });
     }
 
-    rawSteps.forEach((step, index) => {
-      inspectWorkflowStep(
-        step,
-        `jobs.${job.id}.steps[${index}]`,
-        options,
-        issues
-      );
+    job.steps.forEach((step, index) => {
+      const path = `jobs.${job.id}.steps[${index}]`;
+
+      if (!step.uses && !step.run) {
+        issues.push({
+          severity: "error",
+          title: "Step has no uses or run",
+          message:
+            "Each step should either use an action or run a command.",
+          path,
+        });
+      }
+
+      if (step.uses && step.run) {
+        issues.push({
+          severity: "warning",
+          title: "Step has both uses and run",
+          message:
+            "A step normally uses either an action or a command, not both.",
+          path,
+        });
+      }
+
+      if (options.checkPinnedActions && step.uses) {
+        const pinIssue = checkActionPin(step.uses, path, options.validationLevel);
+
+        if (pinIssue) {
+          issues.push(pinIssue);
+        }
+      }
+
+      if (step.run && step.run.includes("sudo") && options.validationLevel === "strict") {
+        issues.push({
+          severity: "info",
+          title: "Step uses sudo",
+          message:
+            "Sudo can be fine on hosted runners, but review whether it is really needed.",
+          path,
+        });
+      }
     });
   });
 
@@ -1031,211 +901,6 @@ function validateGitHubActionsWorkflow(
   }
 
   return buildValidationResult(parsed, issues);
-}
-
-function inspectWorkflowStep(
-  value: unknown,
-  path: string,
-  options: {
-    validationLevel: ValidationLevel;
-    checkPinnedActions: boolean;
-    checkPermissions: boolean;
-    checkSecrets: boolean;
-  },
-  issues: WorkflowIssue[]
-) {
-  if (!isRecord(value)) {
-    issues.push({
-      severity: "error",
-      title: "Step is not a mapping",
-      message:
-        "Each workflow step must be a mapping/object, not a scalar or bare command.",
-      path,
-    });
-    return;
-  }
-
-  const executionKeys = [
-    "uses",
-    "run",
-    "wait",
-    "wait-all",
-    "cancel",
-    "parallel",
-  ].filter((key) => hasOwn(value, key));
-
-  if (executionKeys.length === 0) {
-    issues.push({
-      severity: "error",
-      title: "Step has no execution form",
-      message:
-        "A step needs a supported execution form such as uses, run, wait, wait-all, cancel, or parallel.",
-      path,
-    });
-    return;
-  }
-
-  if (executionKeys.length > 1) {
-    issues.push({
-      severity: "error",
-      title: "Step mixes execution forms",
-      message:
-        `A step should use one execution form, but this step defines ${executionKeys.join(
-          ", "
-        )}.`,
-      path,
-    });
-  }
-
-  if (
-    hasOwn(value, "uses") &&
-    (typeof value.uses !== "string" || !value.uses.trim())
-  ) {
-    issues.push({
-      severity: "error",
-      title: "Invalid action reference",
-      message: "uses must be a non-empty string action reference.",
-      path: `${path}.uses`,
-    });
-  }
-
-  if (
-    hasOwn(value, "run") &&
-    (typeof value.run !== "string" || !value.run.trim())
-  ) {
-    issues.push({
-      severity: "error",
-      title: "Invalid run command",
-      message: "run must be a non-empty string command.",
-      path: `${path}.run`,
-    });
-  }
-
-  if (hasOwn(value, "wait")) {
-    const waitValue = value.wait;
-    const validWait =
-      (typeof waitValue === "string" && Boolean(waitValue.trim())) ||
-      (Array.isArray(waitValue) &&
-        waitValue.length > 0 &&
-        waitValue.every(
-          (item) => typeof item === "string" && Boolean(item.trim())
-        ));
-
-    if (!validWait) {
-      issues.push({
-        severity: "error",
-        title: "Invalid wait target",
-        message:
-          "wait must name one background-step ID or a non-empty array of step IDs.",
-        path: `${path}.wait`,
-      });
-    }
-  }
-
-  if (
-    hasOwn(value, "wait-all") &&
-    value["wait-all"] !== null &&
-    value["wait-all"] !== ""
-  ) {
-    issues.push({
-      severity: "error",
-      title: "wait-all takes no arguments",
-      message:
-        "Use wait-all with an empty YAML value. It waits for all active background steps.",
-      path: `${path}.wait-all`,
-    });
-  }
-
-  if (
-    hasOwn(value, "cancel") &&
-    (typeof value.cancel !== "string" || !value.cancel.trim())
-  ) {
-    issues.push({
-      severity: "error",
-      title: "Invalid cancel target",
-      message:
-        "cancel must name the ID of one running background step.",
-      path: `${path}.cancel`,
-    });
-  }
-
-  if (hasOwn(value, "parallel")) {
-    if (!Array.isArray(value.parallel) || value.parallel.length === 0) {
-      issues.push({
-        severity: "error",
-        title: "Invalid parallel step group",
-        message:
-          "parallel must contain a non-empty array of step mappings.",
-        path: `${path}.parallel`,
-      });
-    } else {
-      value.parallel.forEach((nestedStep, index) => {
-        inspectWorkflowStep(
-          nestedStep,
-          `${path}.parallel[${index}]`,
-          options,
-          issues
-        );
-      });
-    }
-  }
-
-  if (
-    hasOwn(value, "background") &&
-    typeof value.background !== "boolean"
-  ) {
-    issues.push({
-      severity: "error",
-      title: "Invalid background flag",
-      message: "background must be true or false.",
-      path: `${path}.background`,
-    });
-  }
-
-  if (
-    value.background === true &&
-    !hasOwn(value, "run") &&
-    !hasOwn(value, "uses")
-  ) {
-    issues.push({
-      severity: "error",
-      title: "Background modifier has no runnable step",
-      message:
-        "background applies to a run or uses step, not to wait, wait-all, cancel, or parallel.",
-      path: `${path}.background`,
-    });
-  }
-
-  const usesValue =
-    typeof value.uses === "string" ? value.uses : "";
-  const runValue =
-    typeof value.run === "string" ? value.run : "";
-
-  if (options.checkPinnedActions && usesValue) {
-    const pinIssue = checkActionPin(
-      usesValue,
-      path,
-      options.validationLevel
-    );
-
-    if (pinIssue) {
-      issues.push(pinIssue);
-    }
-  }
-
-  if (
-    runValue &&
-    runValue.includes("sudo") &&
-    options.validationLevel === "strict"
-  ) {
-    issues.push({
-      severity: "info",
-      title: "Step uses sudo",
-      message:
-        "Sudo can be fine on hosted runners, but review whether it is really needed.",
-      path,
-    });
-  }
 }
 
 function checkYAMLSyntax(input: string): WorkflowIssue[] {
@@ -1323,7 +988,7 @@ function parseWorkflow(input: string): ParsedWorkflow {
       jobs.push({
         id,
         name: scalarText(value.name),
-        runsOn: formatRunsOn(value["runs-on"]),
+        runsOn: scalarText(value["runs-on"]),
         needs: stringList(value.needs),
         steps,
         permissions: value.permissions === undefined ? "" : compactValue(value.permissions),
@@ -1344,59 +1009,6 @@ function parseWorkflow(input: string): ParsedWorkflow {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function hasOwn(object: Record<string, unknown>, key: string) {
-  return Object.prototype.hasOwnProperty.call(object, key);
-}
-
-function isSupportedRunsOn(value: unknown) {
-  if (typeof value === "string") {
-    return Boolean(value.trim());
-  }
-
-  if (Array.isArray(value)) {
-    return (
-      value.length > 0 &&
-      value.every(
-        (item) => typeof item === "string" && Boolean(item.trim())
-      )
-    );
-  }
-
-  if (isRecord(value)) {
-    const hasGroup =
-      typeof value.group === "string" && Boolean(value.group.trim());
-    const labels = value.labels;
-    const hasLabels =
-      (typeof labels === "string" && Boolean(labels.trim())) ||
-      (Array.isArray(labels) &&
-        labels.length > 0 &&
-        labels.every(
-          (item) => typeof item === "string" && Boolean(item.trim())
-        ));
-
-    return hasGroup || hasLabels;
-  }
-
-  return false;
-}
-
-function formatRunsOn(value: unknown) {
-  if (typeof value === "string") return value;
-
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => (typeof item === "string" ? item : ""))
-      .filter(Boolean)
-      .join(", ");
-  }
-
-  if (isRecord(value)) {
-    return compactValue(value);
-  }
-
-  return "";
 }
 
 function scalarText(value: unknown): string {
@@ -1822,37 +1434,14 @@ function formatValidationOutput(
   }
 
   if (options.outputMode === "checklist") {
-    const rawJobs =
-      isRecord(result.parsed.raw) && isRecord(result.parsed.raw.jobs)
-        ? result.parsed.raw.jobs
-        : null;
-    const jobCallsReusableWorkflow = (job: WorkflowJob) => {
-      const rawJob =
-        rawJobs && isRecord(rawJobs[job.id])
-          ? (rawJobs[job.id] as Record<string, unknown>)
-          : null;
-
-      return Boolean(
-        rawJob &&
-          typeof rawJob.uses === "string" &&
-          rawJob.uses.trim()
-      );
-    };
-    const everyJobHasExecutionTarget = result.parsed.jobs.every(
-      (job) => Boolean(job.runsOn) || jobCallsReusableWorkflow(job)
-    );
-    const everyJobHasStepsOrReusableCall = result.parsed.jobs.every(
-      (job) => job.steps.length > 0 || jobCallsReusableWorkflow(job)
-    );
-
     return [
       "# GitHub Actions Workflow Checklist",
       "",
       `- [${result.parsed.workflowName ? "x" : " "}] Workflow name is set`,
       `- [${result.parsed.triggers.length > 0 ? "x" : " "}] Workflow trigger is defined`,
       `- [${result.parsed.jobs.length > 0 ? "x" : " "}] At least one job is defined`,
-      `- [${everyJobHasExecutionTarget ? "x" : " "}] Every normal job has runs-on; reusable-workflow jobs use uses`,
-      `- [${everyJobHasStepsOrReusableCall ? "x" : " "}] Every normal job has steps or calls a reusable workflow`,
+      `- [${result.parsed.jobs.every((job) => job.runsOn) ? "x" : " "}] Every job has runs-on`,
+      `- [${result.parsed.jobs.every((job) => job.steps.length > 0) ? "x" : " "}] Every job has steps`,
       `- [${result.parsed.permissions ? "x" : " "}] Workflow permissions are set`,
       "",
       "Issues:",
