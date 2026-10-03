@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 
@@ -132,11 +132,6 @@ export default function ToolClient() {
   const [matches, setMatches] = useState<StatusEntry[]>([]);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
-
-  const registeredCount = useMemo(
-    () => STATUS_CODES.filter((entry) => !entry.state || entry.state === "registered").length,
-    []
-  );
 
   const runSearch = () => {
     const cleaned = query.trim().toLowerCase();
@@ -302,13 +297,6 @@ export default function ToolClient() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Bundled entries" value={String(STATUS_CODES.length)} />
-        <StatCard label="Regular registrations" value={String(registeredCount)} />
-        <StatCard label="Temporary" value="104" />
-        <StatCard label="Unused / obsolete" value="306, 418, 510" />
-      </div>
-
       <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -470,19 +458,6 @@ export default function ToolClient() {
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            A Local Reference Cannot Explain a Live Response
-          </h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            The search is performed against bundled status data in the browser.
-            No URL is requested, no redirect is followed, and no response
-            headers are fetched. If the question is why a particular server
-            returned a code, inspect the real request and response alongside
-            application, proxy, CDN, or upstream logs.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
             Continue From the Response
           </h2>
 
@@ -495,15 +470,3 @@ export default function ToolClient() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {label}
-      </p>
-      <p className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">
-        {value}
-      </p>
-    </div>
-  );
-}
