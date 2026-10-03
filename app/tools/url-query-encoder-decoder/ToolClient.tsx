@@ -424,8 +424,9 @@ export default function ToolClient() {
           />
 
           <p className="mt-2 text-sm text-gray-500">
-            Paste a query string with or without a leading question mark. Full
-            URLs are also supported.
+            {mode === "parse"
+              ? "Paste an absolute HTTP or HTTPS URL. Only its query parameters are extracted."
+              : "Paste query text with or without a leading question mark. Use Parse Full URL when the input is a complete URL."}
           </p>
         </div>
       )}
