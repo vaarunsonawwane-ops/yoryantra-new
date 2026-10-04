@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -427,21 +427,15 @@ export default function ToolClient() {
             <a href="https://www.rfc-editor.org/rfc/rfc6750#section-2.1" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 6750 section 2.1</a> defines the Bearer scheme for the HTTP Authorization header. Its credential syntax does not permit embedded whitespace, and bearer credentials need protection from disclosure in storage and transport.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The formatter rebuilds the header from the credential you enter, can remove a pasted Authorization or Bearer prefix, and can redact the credential before producing cURL, fetch, raw HTTP, JSON, or Markdown output. It never establishes whether the credential is accepted by an API.
+            The formatter rebuilds the header from the credential you enter, can remove a pasted Authorization or Bearer prefix, and can redact the credential before producing cURL, fetch, raw HTTP, JSON, or Markdown output. Removing an existing prefix matters because prepending another one would create malformed output such as <code className="font-mono">Bearer Bearer ...</code>. It never establishes whether the credential is accepted by an API.
           </p>
         </div>
-
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Building the Header and Request Snippets</h2>
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a token or token placeholder into the input box.</li>
-            <li>Choose the output format: header, cURL, fetch, raw HTTP, JSON, Markdown, or checklist.</li>
-            <li>Set the endpoint URL and request method if you are generating a request snippet.</li>
-            <li>Enable redaction before copying output that might be shared outside your local machine.</li>
-            <li>Review warnings about whitespace, duplicate prefixes, HTTP endpoints, JWT shape, and token sharing.</li>
-          </ol>
+          <h2 className="text-xl font-semibold text-gray-900">Do Not Share Real Tokens Publicly</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Real access tokens can grant access to private APIs or accounts. Use placeholders in documentation and redact token values before sharing screenshots, logs, issue reports, or chat messages. If a real token is exposed publicly, rotate or revoke it in the system that issued it.
+          </p>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Example Bearer Header</h2>
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
@@ -452,35 +446,6 @@ curl -X GET "https://api.example.com/v1/profile" \\
   -H "Authorization: Bearer YOUR_TOKEN"`}</pre>
           </div>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Do Not Share Real Tokens Publicly</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Real access tokens can grant access to private APIs or accounts. Use placeholders in documentation and redact token values before sharing screenshots, logs, issue reports, or chat messages. If a real token is exposed publicly, rotate or revoke it in the system that issued it.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Bearer Header Questions</h2>
-          <div className="mt-5 space-y-6">
-            <Faq title="What output can I build from a Bearer credential?">
-              You can build the Authorization header itself or place it into cURL, fetch, raw HTTP, JSON, Markdown, or checklist output.
-            </Faq>
-            <Faq title="Does this verify whether my token is valid?">
-              No. It only formats and inspects text locally. It does not call APIs or verify token signatures, expiry, permissions, or scopes.
-            </Faq>
-            <Faq title="Should I paste real tokens into browser tools?">
-              Only use browser tools you trust and avoid sharing real credentials. Formatting stays local to this page, while placeholders remain safer for examples.
-            </Faq>
-            <Faq title="Why remove an existing Bearer prefix?">
-              If you paste “Bearer abc123” or “Authorization: Bearer abc123” and the generator adds another prefix, the result can become invalid. Removing the existing prefix prevents duplicate Authorization text.
-            </Faq>
-            <Faq title="Is anything uploaded while generating headers?">
-              No. Tokens, URLs, and request body text stay in your browser.
-            </Faq>
-          </div>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
@@ -939,11 +904,3 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}

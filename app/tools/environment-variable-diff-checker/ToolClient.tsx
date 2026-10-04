@@ -533,81 +533,6 @@ export default function ToolClient() {
             secret-looking keys so you can review risky changes before shipping.
           </p>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Checking Two .env Files
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste the first environment block into Environment A.</li>
-            <li>Paste the second environment block into Environment B.</li>
-            <li>Choose whether comments, spaces, and key case should matter.</li>
-            <li>Review added, removed, changed, duplicate, and empty variables.</li>
-            <li>Copy the summary, JSON, or patch-style diff output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Environment Changes Worth Comparing
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Comparing local and production .env files.</li>
-            <li>Checking staging variables before a deployment.</li>
-            <li>Comparing .env.example with a real .env file.</li>
-            <li>Finding missing variables in CI/CD settings.</li>
-            <li>Reviewing changed feature flags or API URLs.</li>
-            <li>Finding duplicate keys and empty secret values.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Environment Difference
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Environment A:
-NODE_ENV=development
-API_URL=https://api-dev.example.com
-LOG_LEVEL=debug
-
-Environment B:
-NODE_ENV=production
-API_URL=https://api.example.com
-LOG_LEVEL=info
-
-Changed:
-NODE_ENV
-API_URL
-LOG_LEVEL`}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Be Careful With Secrets
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Environment files often contain database URLs, tokens, API keys,
-            passwords, private endpoints, and service credentials. The tool hides
-            secret-looking values by default in copied output.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Before sharing a diff in a ticket, chat, or screenshot, replace real
-            values with safe examples. Keep production secrets out of public
-            messages and documentation.
-          </p>
-        </div>
-
-
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Dotenv Syntax Is Not Universal
@@ -632,56 +557,45 @@ LOG_LEVEL`}
         </div>
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Dotenv Comparison Questions
+            Example Environment Difference
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does an environment variable diff checker do?
-              </h3>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">
+{`Environment A:
+NODE_ENV=development
+API_URL=https://api-dev.example.com
+LOG_LEVEL=debug
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It compares two .env files or variable blocks and shows which
-                variables were added, removed, changed, or stayed the same.
-              </p>
-            </div>
+Environment B:
+NODE_ENV=production
+API_URL=https://api.example.com
+LOG_LEVEL=info
 
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this compare .env.example and .env?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Paste .env.example in one side and your .env file on the
-                other side to check missing or changed variables.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this hide secrets?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Secret-looking values are hidden in copied output by default, but
-                you should still avoid sharing real production secrets.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Are my environment variables uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Comparison happens directly in your browser, and your values
-                are not uploaded to a server.
-              </p>
-            </div>
+Changed:
+NODE_ENV
+API_URL
+LOG_LEVEL`}
+            </pre>
           </div>
         </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Be Careful With Secrets
+          </h2>
 
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Environment files often contain database URLs, tokens, API keys,
+            passwords, private endpoints, and service credentials. The tool hides
+            secret-looking values by default in copied output.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Before sharing a diff in a ticket, chat, or screenshot, replace real
+            values with safe examples. Keep production secrets out of public
+            messages and documentation.
+          </p>
+        </div>
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
@@ -731,43 +645,38 @@ function DiffColumn({
 
       <p className="mt-2 text-sm text-gray-500">{description}</p>
 
-      <div className="mt-4">
+      <div className="mt-4 space-y-3">
         {items.length === 0 ? (
           <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
             No items found.
           </p>
         ) : (
-          <div
-            className={`rounded-xl border border-gray-200 bg-gray-50 px-4 ${
-              items.length > 12 ? "max-h-[36rem] overflow-y-auto" : ""
-            }`}
-          >
-            <div className="divide-y divide-gray-200">
-              {items.map((item) => (
-                <div key={`${item.type}-${item.key}`} className="py-3">
-                  <p className="break-words font-mono text-sm font-semibold text-gray-900">
-                    {item.key}
+          items.map((item) => (
+            <div
+              key={`${item.type}-${item.key}`}
+              className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+            >
+              <p className="font-mono text-sm font-semibold text-gray-900">
+                {item.key}
+              </p>
+
+              {valueKey === "both" ? (
+                <>
+                  <p className="mt-2 break-words font-mono text-xs text-gray-600">
+                    A: {formatEnvValue(item.key, item.leftValue, hideSecretValues)}
                   </p>
 
-                  {valueKey === "both" ? (
-                    <>
-                      <p className="mt-1.5 break-words font-mono text-xs leading-5 text-gray-600">
-                        A: {formatEnvValue(item.key, item.leftValue, hideSecretValues)}
-                      </p>
-
-                      <p className="mt-0.5 break-words font-mono text-xs leading-5 text-gray-600">
-                        B: {formatEnvValue(item.key, item.rightValue, hideSecretValues)}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="mt-1.5 break-words font-mono text-xs leading-5 text-gray-600">
-                      {formatEnvValue(item.key, item[valueKey], hideSecretValues)}
-                    </p>
-                  )}
-                </div>
-              ))}
+                  <p className="mt-1 break-words font-mono text-xs text-gray-600">
+                    B: {formatEnvValue(item.key, item.rightValue, hideSecretValues)}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-2 break-words font-mono text-xs text-gray-600">
+                  {formatEnvValue(item.key, item[valueKey], hideSecretValues)}
+                </p>
+              )}
             </div>
-          </div>
+          ))
         )}
       </div>
     </div>

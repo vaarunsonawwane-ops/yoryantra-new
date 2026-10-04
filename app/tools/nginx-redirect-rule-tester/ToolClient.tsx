@@ -253,8 +253,8 @@ export default function ToolClient() {
             ]}
           />
 
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700">
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <label className="block text-sm font-medium text-gray-900">
               Max Steps
             </label>
 
@@ -268,7 +268,7 @@ export default function ToolClient() {
                 setCopied(false);
               }}
               placeholder="5"
-              className="w-full rounded-xl border border-gray-300 bg-white p-4 text-sm font-mono text-[var(--dark)] outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
             />
           </div>
 
@@ -562,56 +562,9 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The browser simulation focuses on redirect-producing return and rewrite directives. It now keeps server_name, listen, and location scope in view, but it still does not execute the full Nginx configuration engine.
+            The browser simulation focuses on redirect-producing return and rewrite directives. It keeps server_name, listen, and location scope in view, recognizes common 301, 302, 307, and 308 return redirects plus simple rewrite targets, but it still does not execute the full Nginx configuration engine.
           </p>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Checking a Redirect Rule
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste an Nginx server or location block into the input box.</li>
-            <li>Enter the URL you want to test.</li>
-            <li>Choose whether redirects should be followed for multiple steps.</li>
-            <li>Run the test and review the matched rules and final URL.</li>
-            <li>Copy the summary, JSON, or redirect step output.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Redirect Situations Worth Rehearsing
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Testing HTTP to HTTPS redirects before deployment.</li>
-            <li>Checking www to non-www redirects.</li>
-            <li>Reviewing old path to new path rewrite rules.</li>
-            <li>Finding possible redirect chains or loops.</li>
-            <li>Checking whether a location block redirect may apply.</li>
-            <li>Preparing safer notes for server config changes.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Nginx Redirect Rule
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`server {
-  listen 80;
-  server_name example.com www.example.com;
-
-  return 301 https://example.com$request_uri;
-}`}
-            </pre>
-          </div>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             A Browser-Side Tester, Not a Full Nginx Runtime
@@ -638,70 +591,22 @@ export default function ToolClient() {
             . That reference is the authority when this browser simulation and a real server disagree.
           </p>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Nginx Redirect Questions That Change the Result
+            Example Nginx Redirect Rule
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does an Nginx redirect rule tester do?
-              </h3>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">
+{`server {
+  listen 80;
+  server_name example.com www.example.com;
 
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It checks common Nginx return and rewrite rules against a test
-                URL and shows the redirect target when a rule matches.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this test return 301 and 302 rules?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. It can read common return 301, 302, 307, and 308 redirect
-                rules.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this test rewrite rules?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It can test simple rewrite patterns and targets, including
-                permanent and redirect flags.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this replace testing in Nginx?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. It is a quick browser-side helper. Always test the final
-                config in your real Nginx setup.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my Nginx config uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Testing happens directly in your browser, and your config is
-                not uploaded to a server.
-              </p>
-            </div>
+  return 301 https://example.com$request_uri;
+}`}
+            </pre>
           </div>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools

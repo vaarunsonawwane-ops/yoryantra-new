@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
@@ -393,50 +393,13 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Small SVG icons, short test payloads, documentation examples, and isolated browser experiments are the sensible end of the spectrum. Large assets lose normal file caching and can make source harder to inspect.
+            Small SVG icons, short test payloads, documentation examples, and isolated browser experiments are the sensible end of the spectrum. For text and SVG, percent encoding often stays easier to inspect; Base64 can be more convenient when the payload contains many reserved characters. Large assets lose normal file caching and can make source harder to inspect.
           </p>
 
           <p className="mt-4 text-sm text-gray-600 leading-relaxed">
             Specification: <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc2397" target="_blank" rel="noreferrer">RFC 2397 — The data URL scheme</a>.
           </p>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">From source bytes to a data URL</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose the content type, such as SVG, plain text, HTML, CSS, or JSON.</li>
-            <li>Paste the source content into the input box.</li>
-            <li>Review the MIME type and charset settings.</li>
-            <li>Select percent encoding or Base64 encoding.</li>
-            <li>Generate the data URI, preview supported output, and copy the result.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Where inline data earns its cost</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Embedding a small SVG icon directly in CSS or HTML.</p>
-            <p className="mt-2">Creating a quick data URL for testing browser behavior.</p>
-            <p className="mt-2">Preparing small text, HTML, CSS, or JSON examples for documentation.</p>
-            <p className="mt-2">Comparing percent-encoded output with Base64 output before using it.</p>
-            <p className="mt-2">Building small self-contained examples for bug reports or experiments.</p>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Example Data URI</h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <p className="font-medium text-gray-900">Plain text input:</p>
-            <pre className="mt-2 whitespace-pre-wrap break-words">Hello from Yoryantra</pre>
-
-            <p className="mt-4 font-medium text-gray-900">Generated data URI:</p>
-            <pre className="mt-2 whitespace-pre-wrap break-words">data:text/plain;charset=utf-8,Hello%20from%20Yoryantra</pre>
-          </div>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Data URIs Are Best for Small Content</h2>
 
@@ -448,37 +411,17 @@ export default function ToolClient() {
             Use data URIs for small assets, examples, experiments, and quick testing. For production pages, check performance, caching, and readability before inlining too much content.
           </p>
         </div>
-
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Questions that matter before embedding</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Example Data URI</h2>
 
-          <div className="mt-5 space-y-6">
-            <Faq title="What is a data URI?">
-              A data URI is a URL that contains the content itself, such as text, SVG, HTML, CSS, JSON, or Base64 data.
-            </Faq>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <p className="font-medium text-gray-900">Plain text input:</p>
+            <pre className="mt-2 whitespace-pre-wrap break-words">Hello from Yoryantra</pre>
 
-            <Faq title="Is a data URI the same as a data URL?">
-              In everyday developer usage, both terms usually refer to the same idea: a URL that starts with data: and contains the encoded content inline.
-            </Faq>
-
-            <Faq title="Should I use percent encoding or Base64?">
-              Percent encoding is often readable for text and SVG. Base64 is useful when the content has many special characters or when you prefer a single encoded block.
-            </Faq>
-
-            <Faq title="Can this create SVG data URIs?">
-              Yes. Choose SVG as the content type, paste the SVG, and generate a percent-encoded or Base64 data URI.
-            </Faq>
-
-            <Faq title="Are data URIs good for large files?">
-              Usually no. Data URIs are better for small snippets and small assets. Large files should normally stay as separate files.
-            </Faq>
-
-            <Faq title="Is my content uploaded anywhere?">
-              No. The data URI is generated directly in your browser, so pasted content is not uploaded to a server.
-            </Faq>
+            <p className="mt-4 font-medium text-gray-900">Generated data URI:</p>
+            <pre className="mt-2 whitespace-pre-wrap break-words">data:text/plain;charset=utf-8,Hello%20from%20Yoryantra</pre>
           </div>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
@@ -682,11 +625,3 @@ function getDataUriNotes(result: DataUriResult): DataUriNote[] {
   return notes;
 }
 
-function Faq({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}

@@ -461,52 +461,9 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Unicode-to-ASCII conversion here goes through the browser URL host parser so IDNA processing happens before the ASCII hostname is returned. Decoding an xn-- label still exposes the underlying Punycode string, then round-trips it through that host parser to flag suspicious or non-canonical labels.
+            Unicode-to-ASCII conversion here goes through the browser URL host parser so IDNA processing happens before the ASCII hostname is returned. For a full URL, only the hostname is transformed while the path, query, and fragment remain separate URL components; this is different from percent-encoding those components. Decoding an xn-- label still exposes the underlying Punycode string, then round-trips it through that host parser to flag suspicious or non-canonical labels.
           </p>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Converting the hostname without rewriting the rest
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a Unicode domain, Punycode domain, URL, email, or list of values.</li>
-            <li>Choose auto detect, Unicode to Punycode, or Punycode to Unicode.</li>
-            <li>Select the input type and output format.</li>
-            <li>Convert and review the label-by-label result.</li>
-            <li>Copy the clean output for DNS, SEO, browser, or debugging work.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Places where the ASCII hostname matters
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Converting international domain names before DNS setup.</li>
-            <li>Decoding xn-- domains found in logs, redirects, or browser output.</li>
-            <li>Checking Unicode domains before adding canonical or hreflang URLs.</li>
-            <li>Reviewing IDN email domains in forms or configuration files.</li>
-            <li>Debugging domain redirects, sitemap URLs, and browser display differences.</li>
-            <li>Spotting mixed-script labels that may need extra review.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Punycode Conversion
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Unicode:  mañana.com
-Punycode: xn--maana-pta.com`}
-            </pre>
-          </div>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Review IDN Domains Carefully
@@ -527,69 +484,18 @@ Punycode: xn--maana-pta.com`}
             Encoding reference: <a className="font-medium text-gray-900 underline underline-offset-4" href="https://www.rfc-editor.org/rfc/rfc3492" target="_blank" rel="noreferrer">RFC 3492 — Punycode</a>. IDNA processing updates that foundation through the IDNA2008 specifications.
           </p>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            IDN questions worth checking
+            Example Punycode Conversion
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is Punycode?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Punycode is an ASCII-safe encoding used for international domain
-                names that contain non-ASCII characters.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does xn-- mean in a domain?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                xn-- marks a domain label that has been encoded with Punycode.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this convert full URLs?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. The converter can convert the domain part while preserving
-                the path, query string, and hash.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is Punycode the same as URL encoding?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Punycode is used for international domain labels. URL
-                encoding is used for characters in URLs, paths, query strings,
-                and form values.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is anything uploaded when I convert a domain?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Punycode conversion happens directly in your browser.
-              </p>
-            </div>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">
+{`Unicode:  mañana.com
+Punycode: xn--maana-pta.com`}
+            </pre>
           </div>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools

@@ -440,22 +440,9 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The generated file follows the field model in <a href="https://www.rfc-editor.org/rfc/rfc9116" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 9116</a>: at least one Contact field, exactly one Expires field, and optional fields such as Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring.
+            The generated file follows the field model in <a href="https://www.rfc-editor.org/rfc/rfc9116" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 9116</a>: at least one Contact field, exactly one Expires field, and optional fields such as Canonical, Policy, Encryption, Acknowledgments, Preferred-Languages, and Hiring. Publish the final file at <code className="font-mono">/.well-known/security.txt</code> on the domain it describes.
           </p>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">From Domain to the Well-Known File</h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter your domain or website URL.</li>
-            <li>Add a security contact email, contact page, or both.</li>
-            <li>Choose an expiry date and optional policy, encryption, acknowledgment, and hiring URLs.</li>
-            <li>Copy the generated content.</li>
-            <li>Publish it at <span className="font-mono">/.well-known/security.txt</span> and keep it updated.</li>
-          </ol>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Important Security.txt Fields</h2>
 
@@ -468,7 +455,17 @@ export default function ToolClient() {
             <li><strong>Acknowledgments</strong> links to a page recognizing valid reports.</li>
           </ul>
         </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Keep Security.txt Practical</h2>
 
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            A security.txt file is most useful when the contact actually works. Use an email inbox or form that someone checks, and link to a policy that explains what is in scope, what is out of scope, and what researchers should expect after submitting a report.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Review the file before the Expires date so researchers do not rely on stale information.
+          </p>
+        </div>
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Example Security.txt Content</h2>
 
@@ -482,45 +479,6 @@ Preferred-Languages: en`}
             </pre>
           </div>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Keep Security.txt Practical</h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            A security.txt file is most useful when the contact actually works. Use an email inbox or form that someone checks, and link to a policy that explains what is in scope, what is out of scope, and what researchers should expect after submitting a report.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Review the file before the Expires date so researchers do not rely on stale information.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Security.txt Questions</h2>
-
-          <div className="mt-5 space-y-6">
-            <Faq title="What is security.txt?">
-              It is a standard text file that helps security researchers find the right contact and policy for vulnerability reports.
-            </Faq>
-
-            <Faq title="Where should I publish security.txt?">
-              The standard web location is /.well-known/security.txt on your domain. A top-level /security.txt can redirect there for legacy compatibility.
-            </Faq>
-
-            <Faq title="Is Expires required?">
-              Yes. RFC 9116 requires exactly one Expires field, and the value should be a future RFC3339 date-time.
-            </Faq>
-
-            <Faq title="Should I include a Policy URL?">
-              Yes, if you have one. A policy page helps define scope, expectations, safe testing rules, and reporting process.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I generate the file?">
-              No. The file is generated directly in your browser.
-            </Faq>
-          </div>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
@@ -590,14 +548,6 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}
 
 function buildSecurityTxt(options: {
   domain: string;

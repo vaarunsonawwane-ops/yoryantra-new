@@ -434,24 +434,9 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Reminder dates are calculated from the date you enter, then combined with renewal ownership, environment, and verification checks. For X.509 certificates, <a href="https://www.rfc-editor.org/rfc/rfc5280#section-4.1.2.5" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 5280 section 4.1.2.5</a> defines the certificate validity interval using notBefore and notAfter; the certificate is valid through the stated notAfter instant, subject to the rest of path validation.
+            Reminder dates are calculated from the date you enter, then combined with renewal ownership, environment, and verification checks. This page does not fetch the live certificate or verify the currently served chain, so confirm the real expiry date with your certificate manager, browser, OpenSSL, or monitoring system. For X.509 certificates, <a href="https://www.rfc-editor.org/rfc/rfc5280#section-4.1.2.5" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 5280 section 4.1.2.5</a> defines the certificate validity interval using notBefore and notAfter; the certificate is valid through the stated notAfter instant, subject to the rest of path validation.
           </p>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            From Expiry Date to Renewal Plan
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Enter the domain or certificate name.</li>
-            <li>Add issuer, owner, environment, and renewal method if known.</li>
-            <li>Enter the certificate expiry date exactly as shown by your provider or certificate viewer.</li>
-            <li>Choose reminder days and checklist options.</li>
-            <li>Copy the reminder plan, checklist, calendar notes, JSON, Markdown, or CSV output.</li>
-          </ol>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             What to Check During Renewal
@@ -466,7 +451,19 @@ export default function ToolClient() {
             <li>Document owner, issuer, renewal method, and next expiry date.</li>
           </ul>
         </div>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Automation Still Needs Monitoring
+          </h2>
 
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Automatic renewal tools are helpful, but they can fail because of DNS changes, CAA restrictions, rate limits, account issues, expired tokens, firewall rules, changed validation methods, or broken deployment hooks.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Even if renewal is automated, keep certificate expiry alerts and a manual fallback plan ready.
+          </p>
+        </div>
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Example Renewal Reminder
@@ -481,49 +478,6 @@ Post-renewal: verify browser, chain, CDN, load balancer, and monitoring checks`}
             </pre>
           </div>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Automation Still Needs Monitoring
-          </h2>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Automatic renewal tools are helpful, but they can fail because of DNS changes, CAA restrictions, rate limits, account issues, expired tokens, firewall rules, changed validation methods, or broken deployment hooks.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Even if renewal is automated, keep certificate expiry alerts and a manual fallback plan ready.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Certificate Renewal Questions
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <Faq title="What does the entered expiry date control?">
-              It anchors the reminder schedule and planning notes. It is not fetched from the live certificate and does not verify the certificate currently served.
-            </Faq>
-
-            <Faq title="Does the page scan my live certificate?">
-              No. It uses the expiry date you enter and generates reminders locally in your browser. Use your hosting provider, certificate manager, browser certificate view, OpenSSL, or monitoring tool to confirm the live expiry date.
-            </Faq>
-
-            <Faq title="How early should I renew a TLS certificate?">
-              The right window depends on your renewal process and certificate source. Production services often benefit from an early reminder such as 30 or 60 days, followed by tighter checks closer to expiry.
-            </Faq>
-
-            <Faq title="Do automatic renewals still need reminders?">
-              Yes. Automatic renewal can fail, so monitoring and fallback reminders are still useful.
-            </Faq>
-
-            <Faq title="Is anything uploaded when I generate reminders?">
-              No. The reminder plan is generated directly in your browser.
-            </Faq>
-          </div>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
@@ -868,14 +822,6 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Faq({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-gray-600 leading-relaxed">{children}</p>
-    </div>
-  );
-}
 
 function parseInputDate(value: string) {
   if (!value) return null;

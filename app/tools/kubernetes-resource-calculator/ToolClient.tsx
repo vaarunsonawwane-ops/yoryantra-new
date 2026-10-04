@@ -565,54 +565,6 @@ export default function ToolClient() {
             The calculation reads declared CPU and memory requests and limits from app containers in Pods, Deployments, StatefulSets, DaemonSets, Jobs, and CronJobs. Deployment and StatefulSet replicas can be multiplied into the displayed totals; other workload kinds stay at one pod because their eventual pod count depends on cluster or controller behavior.
           </p>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Checking Resource Totals From YAML
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste a Kubernetes workload YAML file into the input box.</li>
-            <li>Choose whether replica counts should be included.</li>
-            <li>Select CPU and memory display units.</li>
-            <li>Review total requests, limits, workloads, and containers.</li>
-            <li>Copy the summary, JSON, or table output for notes or review.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Kubernetes Resource Questions Behind the Totals
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Estimating CPU and memory usage before deploying a workload.</li>
-            <li>Checking total requests and limits after replica counts.</li>
-            <li>Reviewing sidecar containers that add hidden resource usage.</li>
-            <li>Finding containers with missing requests or limits.</li>
-            <li>Preparing capacity notes for staging or production clusters.</li>
-            <li>Comparing resource values during Kubernetes YAML reviews.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Kubernetes Resources
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`resources:
-  requests:
-    cpu: "250m"
-    memory: "256Mi"
-  limits:
-    cpu: "500m"
-    memory: "512Mi"`}
-            </pre>
-          </div>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Requests, Limits, and Real Cluster Capacity
@@ -639,71 +591,23 @@ export default function ToolClient() {
             . Quantity suffixes are case-sensitive: for example, <code className="font-mono">400m</code> of memory means 0.4 bytes, not 400 MiB.
           </p>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Kubernetes Quantity and Replica Questions
+            Example Kubernetes Resources
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What does a Kubernetes Resource Calculator do?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It reads Kubernetes YAML and calculates CPU and memory requests
-                and limits across containers and workloads.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this include replica counts?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Replica counts are included by default for workloads like
-                Deployments and StatefulSets. You can turn that off if you want
-                per-pod values only.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this parse CPU values like 250m?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. CPU values such as 250m, 0.5, and 1 are converted into
-                millicores or cores for output.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this parse memory values like Mi and Gi?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Memory values such as Mi, Gi, Ki, M, and G are converted
-                into Mi or Gi for output.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my Kubernetes YAML uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Calculation happens directly in your browser, and your YAML
-                is not uploaded to a server.
-              </p>
-            </div>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">
+{`resources:
+  requests:
+    cpu: "250m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"`}
+            </pre>
           </div>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools

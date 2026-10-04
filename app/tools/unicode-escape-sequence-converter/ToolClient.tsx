@@ -42,7 +42,7 @@ const encodeExample = "Hello Yoryantra 😀 नमस्ते";
 export default function ToolClient() {
   const [mode, setMode] = useState<Mode>("decode");
   const [input, setInput] = useState("");
-  const [escapeStyle, setEscapeStyle] = useState<EscapeStyle>("mixed");
+  const [escapeStyle, setEscapeStyle] = useState<EscapeStyle>("javascript");
   const [outputMode, setOutputMode] = useState<OutputMode>("text");
   const [uppercaseHex, setUppercaseHex] = useState(true);
   const [escapeAscii, setEscapeAscii] = useState(false);
@@ -107,7 +107,7 @@ export default function ToolClient() {
   const loadDecodeExample = () => {
     setMode("decode");
     setInput(decodeExample);
-    setEscapeStyle("mixed");
+    setEscapeStyle("javascript");
     setOutputMode("text");
     setUppercaseHex(true);
     setEscapeAscii(false);
@@ -137,7 +137,7 @@ export default function ToolClient() {
   const resetAll = () => {
     setMode("decode");
     setInput("");
-    setEscapeStyle("mixed");
+    setEscapeStyle("javascript");
     setOutputMode("text");
     setUppercaseHex(true);
     setEscapeAscii(false);
@@ -163,10 +163,9 @@ export default function ToolClient() {
           <ModeButton
             active={mode === "decode"}
             title="Decode Escapes"
-            description="Turn \\uXXXX, \\u{...}, \\xXX, and numeric HTML references into readable text."
+            description="Turn \\uXXXX, \\u{...}, \\xXX, and HTML entities into readable text."
             onClick={() => {
               setMode("decode");
-              setEscapeStyle("mixed");
               setOutputMode("text");
               setResult(null);
               setOutput("");
@@ -181,7 +180,6 @@ export default function ToolClient() {
             description="Turn readable text into Unicode escape sequences."
             onClick={() => {
               setMode("encode");
-              setEscapeStyle("javascript");
               setOutputMode("text");
               setResult(null);
               setOutput("");
@@ -272,7 +270,7 @@ export default function ToolClient() {
             />
           )}
 
-          {mode === "decode" && (
+          {mode !== "encode" && (
             <YoryantraSelect
               label="Decode Format"
               value={escapeStyle}
@@ -297,7 +295,7 @@ export default function ToolClient() {
                   value: "braced",
                 },
                 {
-                  label: "Numeric HTML references",
+                  label: "HTML entities",
                   value: "htmlDecimal",
                 },
               ]}
@@ -370,26 +368,24 @@ export default function ToolClient() {
             </label>
           )}
 
-          {mode === "encode" && (
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
-              <input
-                type="checkbox"
-                checked={preserveWhitespace}
-                onChange={(event) => {
-                  setPreserveWhitespace(event.target.checked);
-                  setResult(null);
-                  setOutput("");
-                  setError("");
-                  setCopied(false);
-                }}
-                className="h-4 w-4 accent-[var(--light-gold)]"
-              />
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+            <input
+              type="checkbox"
+              checked={preserveWhitespace}
+              onChange={(event) => {
+                setPreserveWhitespace(event.target.checked);
+                setResult(null);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              className="h-4 w-4 accent-[var(--light-gold)]"
+            />
 
-              Preserve whitespace
-            </label>
-          )}
+            Preserve whitespace
+          </label>
 
-          {mode === "decode" && escapeStyle === "mixed" && (
+          {mode === "decode" && (
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
               <input
                 type="checkbox"
@@ -404,7 +400,7 @@ export default function ToolClient() {
                 className="h-4 w-4 accent-[var(--light-gold)]"
               />
 
-              Decode numeric HTML references too
+              Decode HTML entities too
             </label>
           )}
         </div>
@@ -596,48 +592,6 @@ export default function ToolClient() {
             JavaScript&apos;s four-digit {"\\uXXXX"} form represents one UTF-16 code unit, not necessarily one complete Unicode character. Characters above U+FFFF need a surrogate pair in that form, while {"\\u{...}"} can represent the code point directly.
           </p>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Choosing code units, code points, or numeric references
-          </h2>
-
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Choose decode, encode, or inspect mode.</li>
-            <li>Paste escaped text or normal text into the input box.</li>
-            <li>Choose the escape style and output format.</li>
-            <li>Review the converted text and character details.</li>
-            <li>Copy the result for code, debugging notes, or localization work.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Where escaped text usually appears
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Decoding {"\\\\uXXXX"} text from JSON or JavaScript strings.</li>
-            <li>Encoding emoji and multilingual text into Unicode escapes.</li>
-            <li>Inspecting Unicode code points for copied characters.</li>
-            <li>Checking HTML decimal and hex entity values.</li>
-            <li>Reading localization strings that were escaped during export.</li>
-            <li>Debugging API responses with escaped text or emoji.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Example Unicode Escape Text
-          </h2>
-
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">
-{`Hello \\u0928\\u092E\\u0938\\u094D\\u0924\\u0947 \\u{1F600}`}
-            </pre>
-          </div>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Unicode Escapes and Real Characters
@@ -651,76 +605,24 @@ export default function ToolClient() {
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Lone surrogate code units are not Unicode scalar values. During decode they are surfaced as the replacement character rather than being silently presented as valid text. The character table is useful when emoji, combining marks, Indic text, or visually similar symbols need exact code-point inspection.
+            Lone surrogate code units are not Unicode scalar values. During decode they are surfaced as the replacement character rather than being silently presented as valid text. The decoder also distinguishes four-digit \u escapes, braced Unicode escapes, \x byte escapes, and optional HTML numeric entities instead of treating them as one interchangeable syntax. The character table is useful when emoji, combining marks, Indic text, or visually similar symbols need exact code-point inspection.
           </p>
 
           <p className="mt-4 text-sm text-gray-600 leading-relaxed">
             JavaScript syntax reference: <a className="font-medium text-gray-900 underline underline-offset-4" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#string_literals" target="_blank" rel="noreferrer">MDN lexical grammar — string escapes</a>.
           </p>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Unicode edge cases worth knowing
+            Example Unicode Escape Text
           </h2>
 
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What is a Unicode escape sequence?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                A Unicode escape sequence is a text form of a character, such as
-                {"\\\\u0041"} for A or {"\\\\u{1F600}"} for 😀.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this decode \\uXXXX strings?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. It can decode {"\\\\uXXXX"}, braced Unicode escapes, {"\\\\xXX"} values,
-                and optional HTML entities.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Can this encode emoji into Unicode escapes?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. Emoji can be encoded into JavaScript-style escapes, braced
-                escapes, or HTML entities.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Why do some emoji create two \\uXXXX values?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Some characters are outside the basic multilingual plane and are
-                represented as surrogate pairs in older JavaScript-style escapes.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Is my text uploaded anywhere?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Unicode conversion happens directly in your browser.
-              </p>
-            </div>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words">
+{`Hello \\u0928\\u092E\\u0938\\u094D\\u0924\\u0947 \\u{1F600}`}
+            </pre>
           </div>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             Related Tools
@@ -791,7 +693,6 @@ function convertUnicodeEscapes(
 
   if (options.mode === "decode") {
     converted = decodeEscapes(input, {
-      escapeStyle: options.escapeStyle,
       decodeHtmlEntities: options.decodeHtmlEntities,
     });
   }
@@ -840,110 +741,45 @@ function convertUnicodeEscapes(
   };
 }
 
-function decodeUtf16Escapes(input: string) {
-  let output = "";
-  let index = 0;
-
-  while (index < input.length) {
-    const match = input
-      .slice(index)
-      .match(/^\\u([0-9A-Fa-f]{4})/);
-
-    if (!match) {
-      output += input.charAt(index);
-      index += 1;
-      continue;
-    }
-
-    const first = parseInt(match[1], 16);
-    index += 6;
-
-    if (first >= 0xd800 && first <= 0xdbff) {
-      const lowMatch = input
-        .slice(index)
-        .match(/^\\u([0-9A-Fa-f]{4})/);
-
-      if (lowMatch) {
-        const second = parseInt(lowMatch[1], 16);
-
-        if (second >= 0xdc00 && second <= 0xdfff) {
-          const codePoint =
-            0x10000 + ((first - 0xd800) << 10) + (second - 0xdc00);
-          output += String.fromCodePoint(codePoint);
-          index += 6;
-          continue;
-        }
-      }
-
-      output += "\uFFFD";
-      continue;
-    }
-
-    if (first >= 0xdc00 && first <= 0xdfff) {
-      output += "\uFFFD";
-      continue;
-    }
-
-    output += String.fromCharCode(first);
-  }
-
-  return output;
-}
-
-function decodeBracedEscapes(input: string) {
-  return input.replace(
-    /\\u\{([0-9A-Fa-f]{1,6})\}/g,
-    (_match, hex: string) => scalarFromCodePoint(parseInt(hex, 16))
-  );
-}
-
-function decodeHexEscapes(input: string) {
-  return input.replace(
-    /\\x([0-9A-Fa-f]{2})/g,
-    (_match, hex: string) => String.fromCharCode(parseInt(hex, 16))
-  );
-}
-
-function decodeNumericHtmlReferences(input: string) {
-  return input
-    .replace(
-      /&#(\d+);/g,
-      (_match, decimal: string) => scalarFromCodePoint(Number(decimal))
-    )
-    .replace(
-      /&#x([0-9A-Fa-f]+);/g,
-      (_match, hex: string) => scalarFromCodePoint(parseInt(hex, 16))
-    );
-}
-
 function decodeEscapes(
   input: string,
   options: {
-    escapeStyle: EscapeStyle;
     decodeHtmlEntities: boolean;
   }
 ) {
-  if (options.escapeStyle === "javascript") {
-    return decodeUtf16Escapes(input);
-  }
+  let output = input;
 
-  if (options.escapeStyle === "braced") {
-    return decodeBracedEscapes(input);
-  }
+  output = output.replace(/\\u\{([0-9A-Fa-f]{1,6})\}/g, (_match, hex: string) => {
+    const codePoint = parseInt(hex, 16);
+    return scalarFromCodePoint(codePoint);
+  });
 
-  if (
-    options.escapeStyle === "htmlDecimal" ||
-    options.escapeStyle === "htmlHex"
-  ) {
-    return decodeNumericHtmlReferences(input);
-  }
+  output = output.replace(/\\u([0-9A-Fa-f]{4})(?:\\u([0-9A-Fa-f]{4}))?/g, (match, firstHex: string, secondHex?: string) => {
+    const first = parseInt(firstHex, 16);
+    if (first >= 0xd800 && first <= 0xdbff) {
+      if (!secondHex) {
+        return "\uFFFD";
+      }
+      const second = parseInt(secondHex, 16);
+      if (second < 0xdc00 || second > 0xdfff) {
+        return "\uFFFD" + scalarFromCodePoint(second);
+      }
+      const codePoint = 0x10000 + ((first - 0xd800) << 10) + (second - 0xdc00);
+      return String.fromCodePoint(codePoint);
+    }
+    if (first >= 0xdc00 && first <= 0xdfff) {
+      return "\uFFFD" + (secondHex ? scalarFromCodePoint(parseInt(secondHex, 16)) : "");
+    }
+    return String.fromCharCode(first) + (secondHex ? scalarFromCodePoint(parseInt(secondHex, 16)) : "");
+  });
 
-  let output = decodeBracedEscapes(input);
-  output = decodeUtf16Escapes(output);
-  output = decodeHexEscapes(output);
+  output = output.replace(/\\x([0-9A-Fa-f]{2})/g, (_match, hex: string) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
 
   if (options.decodeHtmlEntities) {
-    output = decodeNumericHtmlReferences(output);
+    output = output.replace(/&#(\d+);/g, (_match, decimal: string) => scalarFromCodePoint(Number(decimal)));
+    output = output.replace(/&#x([0-9A-Fa-f]+);/g, (_match, hex: string) => scalarFromCodePoint(parseInt(hex, 16)));
   }
 
   return output;
