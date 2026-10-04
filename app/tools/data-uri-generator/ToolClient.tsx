@@ -231,18 +231,20 @@ export default function ToolClient() {
             />
           </div>
 
-          <YoryantraSelect
-            label="Charset"
-            value={charsetMode}
-            onChange={(value) => {
-              setCharsetMode(value as CharsetMode);
-              clearResult();
-            }}
-            options={[
-              { label: "Include charset", value: "include" },
-              { label: "Omit charset", value: "omit" },
-            ]}
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Charset</label>
+            <select
+              value={charsetMode}
+              onChange={(event) => {
+                setCharsetMode(event.target.value as CharsetMode);
+                clearResult();
+              }}
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            >
+              <option value="include">Include charset</option>
+              <option value="omit">Omit charset</option>
+            </select>
+          </div>
 
           {charsetMode === "include" ? (
             <div>

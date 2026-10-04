@@ -186,19 +186,23 @@ export default function ToolClient() {
               placeholder="https://example.com"
             />
 
-            <YoryantraSelect
-              label="Contact Type"
-              value={contactType}
-              onChange={(value) => {
-                setContactType(value as ContactType);
-                clearResult();
-              }}
-              options={[
-                { label: "Email contact", value: "email" },
-                { label: "Contact page URL", value: "url" },
-                { label: "Email and URL", value: "both" },
-              ]}
-            />
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Contact Type
+              </label>
+              <select
+                value={contactType}
+                onChange={(event) => {
+                  setContactType(event.target.value as ContactType);
+                  clearResult();
+                }}
+                className="w-full rounded-xl border border-gray-300 bg-white p-3 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              >
+                <option value="email">Email contact</option>
+                <option value="url">Contact page URL</option>
+                <option value="both">Email and URL</option>
+              </select>
+            </div>
 
             {(contactType === "email" || contactType === "both") && (
               <InputField
@@ -307,15 +311,20 @@ export default function ToolClient() {
             />
           )}
 
-          <InputField
-            label="Preferred Languages"
-            value={preferredLanguages}
-            onChange={(value) => {
-              setPreferredLanguages(value);
-              clearResult();
-            }}
-            placeholder="en"
-          />
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Preferred Languages
+            </label>
+            <input
+              value={preferredLanguages}
+              onChange={(event) => {
+                setPreferredLanguages(event.target.value);
+                clearResult();
+              }}
+              placeholder="en"
+              className="h-[72px] w-full rounded-xl border border-gray-300 bg-white px-5 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            />
+          </div>
 
           <YoryantraSelect
             label="Output"
