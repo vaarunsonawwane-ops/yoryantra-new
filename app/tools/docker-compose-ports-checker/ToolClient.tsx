@@ -592,6 +592,14 @@ export default function ToolClient() {
             check whether the port is actually published under ports and whether
             another service is already using the same host port.
           </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Several services can normally use the same container port because
+            each container has its own network namespace. For an ordinary local
+            Compose deployment, the conflict is usually the published host
+            binding: overlapping host IP, host port, and protocol bindings cannot
+            both be owned by separate containers on the same host.
+          </p>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
@@ -615,59 +623,6 @@ export default function ToolClient() {
               Docker Compose services reference: ports
             </a>
           </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Docker Compose port questions that change the result
-          </h2>
-
-          <div className="mt-5 space-y-6">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                What counts as a host-port conflict?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                It reads Docker Compose YAML and checks published ports, exposed
-                ports, duplicate host ports, invalid mappings, and port
-                configuration issues.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                When can the same container port appear in several services?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                Yes. It can show when two services publish the same host port,
-                which often causes one container to fail at startup.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Does this prove the Compose file will start?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. This tool only checks the YAML text. It does not run Docker
-                or connect to your machine.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                Where does the Compose YAML go?
-              </h3>
-
-              <p className="mt-2 text-gray-600 leading-relaxed">
-                No. Port checking happens directly in your browser, and your
-                YAML is not uploaded to a server.
-              </p>
-            </div>
-          </div>
         </div>
 
         <div>

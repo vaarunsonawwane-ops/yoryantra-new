@@ -380,7 +380,7 @@ export default function ToolClient() {
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
           <h3 className="text-sm font-semibold text-gray-900">Compose dependency guidance</h3>
 
           <div className="mt-3 space-y-3">
