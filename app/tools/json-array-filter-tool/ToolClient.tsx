@@ -1483,7 +1483,7 @@ export default function ToolClient() {
                     className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-900"
                   >
                     <strong>{issue.title}</strong>
-                    <p className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]">{issue.message}</p>
+                    <p className="mt-1">{issue.message}</p>
                   </div>
                 ))}
               </div>
@@ -1724,7 +1724,7 @@ function Toggle({
         onChange={(event: { target: { checked: boolean } }) =>
           onChange(event.target.checked)
         }
-        className="mt-1"
+        className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 accent-[var(--light-gold)]"
       />
       <span>
         <strong className="text-gray-900">{title}</strong>
