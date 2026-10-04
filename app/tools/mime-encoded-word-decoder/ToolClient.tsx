@@ -42,7 +42,7 @@ type MimeResult = {
 };
 
 const SAMPLE_HEADER =
-  "Subject: =?UTF-8?B?U25laGEg4oCTIFlvcnlhbnRyYQ==?=";
+  "Subject: =?UTF-8?B?UsOpc3Vtw6kg4oCTIEFQSSBzdGF0dXM=?=";
 
 const WINDOWS_1252_DECODE: Record<number, number> = {
   0x80: 0x20ac,
@@ -418,6 +418,18 @@ function decodeWord(
   const errors = encoded.errors.concat(decoded.errors);
   const warnings = encoded.warnings.concat(decoded.warnings);
 
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(decoded.text)) {
+    warnings.push(
+      "Decoded text contains a control character. RFC 2047 is intended for printable or whitespace text, so inspect the source before displaying it in a terminal or log viewer."
+    );
+  }
+
+  if (/[\u202A-\u202E\u2066-\u2069]/.test(decoded.text)) {
+    warnings.push(
+      "Decoded text contains Unicode bidirectional-control characters. They can change visual ordering without changing the underlying string, so compare the raw value when identity or security matters."
+    );
+  }
+
   if (raw.length > 75) {
     errors.push(
       `Encoded-word is ${raw.length} characters long. RFC 2047 limits an encoded-word to 75 characters including =?charset?encoding?encoded-text?=.`
@@ -438,12 +450,21 @@ function decodeWord(
   };
 }
 
+function isRfc2047Token(value: string) {
+  return Boolean(value) &&
+    !/[\x00-\x20\x7F()<>@,;:\"\/\[\]?.=]/.test(value);
+}
+
 function parseEncodedWords(input: string) {
   const words: EncodedWord[] = [];
   const regex = /=\?([^?\s]+)\?([bBqQ])\?([^?\s]+)\?=/g;
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(input)) !== null) {
+    if (!isRfc2047Token(match[1])) {
+      continue;
+    }
+
     words.push(
       decodeWord(
         match[0],
@@ -501,18 +522,22 @@ function malformedCandidates(input: string, validWords: EncodedWord[]) {
       break;
     }
 
-    const valid = validWords.some((word) => word.start === start);
+    const containingWord = validWords.find(
+      (word) => start >= word.start && start < word.end
+    );
 
-    if (!valid) {
-      const end = input.indexOf("?=", start + 2);
-      const sample =
-        end === -1
-          ? input.slice(start, Math.min(input.length, start + 90))
-          : input.slice(start, Math.min(input.length, end + 2));
-
-      issues.push(sample);
+    if (containingWord) {
+      cursor = containingWord.end;
+      continue;
     }
 
+    const end = input.indexOf("?=", start + 2);
+    const sample =
+      end === -1
+        ? input.slice(start, Math.min(input.length, start + 90))
+        : input.slice(start, Math.min(input.length, end + 2));
+
+    issues.push(sample);
     cursor = start + 2;
   }
 
@@ -530,11 +555,14 @@ function buildDecodeIssues(
     originalInput
       .replace(/\r\n?/g, "\n")
       .split("\n");
-  const overHardLimit =
-    physicalLines.filter(
-      (line) =>
-        line.length > 998
-    ).length;
+  const hasRawNonAscii = physicalLines.some((line) => /[^\x00-\x7F]/.test(line));
+  const overHardLimit = physicalLines.filter((line) => {
+    const length = /[^\x00-\x7F]/.test(line)
+      ? new TextEncoder().encode(line).length
+      : line.length;
+
+    return length > 998;
+  }).length;
   const overRecommended =
     physicalLines.filter(
       (line) =>
@@ -544,11 +572,11 @@ function buildDecodeIssues(
   if (overHardLimit) {
     issues.push({
       severity: "warning",
-      title: "Header line exceeds RFC 5322 hard limit",
+      title: "Header line exceeds the hard length limit",
       message:
         `${overHardLimit} physical line${
           overHardLimit === 1 ? "" : "s"
-        } exceed 998 characters before CRLF. A conforming Internet message must keep each line within that limit.`,
+        } exceed the 998-${hasRawNonAscii ? "octet RFC 6532" : "character RFC 5322"} limit before CRLF. The 78-character recommendation is a separate display-oriented limit.`,
     });
   } else if (overRecommended) {
     issues.push({
@@ -575,7 +603,7 @@ function buildDecodeIssues(
       severity: "note",
       title: "No valid encoded-word recognized",
       message:
-        "No complete =?charset?B/Q?encoded-text?= token matching this decoder's RFC 2047 grammar was found.",
+        "No complete =?charset?B/Q?encoded-text?= token matching the RFC 2047 grammar was found.",
     });
   }
 
@@ -639,7 +667,7 @@ function buildDecodeIssues(
       severity: "warning",
       title: "Encoded-word used like a MIME parameter",
       message:
-        "RFC 2047 encoded-words are not the standard mechanism for MIME parameter values such as filename=. Parameter encoding uses other MIME mechanisms (for example RFC 2231/5987-style conventions depending on the context).",
+        "RFC 2047 encoded-words are not the standard mechanism for MIME parameter values such as filename=. Parameter encoding uses other MIME mechanisms (for example RFC 2231 parameter conventions).",
     });
   }
 
@@ -647,7 +675,7 @@ function buildDecodeIssues(
     severity: "note",
     title: "Display decoding is contextual",
     message:
-      "RFC 2047 allows encoded-words only in defined message-header contexts. This tool decodes recognizable tokens for diagnostics; it is not a complete RFC 5322 address/header parser.",
+      "RFC 2047 allows encoded-words only in defined message-header contexts. Recognizable tokens can be decoded for diagnosis, but complete RFC 5322 address and structured-header parsing requires field-specific grammar.",
   });
 
   return issues;
@@ -695,10 +723,7 @@ function encodeBytes(text: string, charset: CharsetMode) {
       continue;
     }
 
-    if (
-      codePoint <= 0x7f ||
-      (codePoint >= 0xa0 && codePoint <= 0xff)
-    ) {
+    if (codePoint <= 0x7f || (codePoint >= 0xa0 && codePoint <= 0xff)) {
       bytes.push(codePoint);
       continue;
     }
@@ -750,10 +775,13 @@ function encodedWordLength(
 function splitTextForWords(
   text: string,
   charset: CharsetMode,
-  encoding: "B" | "Q"
+  encoding: "B" | "Q",
+  firstWordLimit = 75
 ) {
   const words: string[] = [];
   let current = "";
+
+  const currentLimit = () => (words.length === 0 ? firstWordLimit : 75);
 
   const flush = () => {
     if (!current) return;
@@ -774,7 +802,7 @@ function splitTextForWords(
 
     if (
       current &&
-      encodedWordLength(charset, encoding, encoded) > 75
+      encodedWordLength(charset, encoding, encoded) > currentLimit()
     ) {
       flush();
       current = char;
@@ -782,15 +810,15 @@ function splitTextForWords(
       current = candidate;
     }
 
-    const singleBytes = encodeBytes(current, charset);
-    const singleEncoded =
+    const currentBytes = encodeBytes(current, charset);
+    const currentEncoded =
       encoding === "B"
-        ? bytesToBase64(singleBytes)
-        : bytesToQ(singleBytes);
+        ? bytesToBase64(currentBytes)
+        : bytesToQ(currentBytes);
 
-    if (encodedWordLength(charset, encoding, singleEncoded) > 75) {
+    if (encodedWordLength(charset, encoding, currentEncoded) > currentLimit()) {
       throw new Error(
-        `A single character cannot fit inside the RFC 2047 75-character encoded-word limit using ${charset}/${encoding}.`
+        `A character cannot fit inside the available RFC 2047 encoded-word line space using ${charset}/${encoding}.`
       );
     }
   }
@@ -801,9 +829,8 @@ function splitTextForWords(
 }
 
 function chooseEncoding(text: string, charset: CharsetMode) {
-  const bytes = encodeBytes(text, charset);
-  const b = bytesToBase64(bytes);
-  const q = bytesToQ(bytes);
+  const b = splitTextForWords(text, charset, "B").join("\r\n ");
+  const q = splitTextForWords(text, charset, "Q").join("\r\n ");
 
   return q.length <= b.length ? "Q" : "B";
 }
@@ -816,56 +843,74 @@ function encodeHeaderValue(
 ) {
   const unfolded = unfoldHeader(input.trim());
   const split = splitHeaderName(unfolded);
-  const headerName = preserveHeaderName ? split.name : "";
-  const body = preserveHeaderName && split.name ? split.body : unfolded;
-
-  if (
-    headerName &&
-    [
-      "FROM",
-      "TO",
-      "CC",
-      "BCC",
-      "SENDER",
-      "REPLY-TO",
-      "RESENT-FROM",
-      "RESENT-TO",
-      "RESENT-CC",
-      "RESENT-BCC",
-      "RESENT-SENDER",
-      "RETURN-PATH",
-      "RECEIVED",
-      "DATE",
-      "RESENT-DATE",
-      "MESSAGE-ID",
-      "RESENT-MESSAGE-ID",
-      "IN-REPLY-TO",
-      "REFERENCES",
-      "KEYWORDS",
-      "CONTENT-TYPE",
-      "CONTENT-DISPOSITION",
-      "CONTENT-TRANSFER-ENCODING",
-      "MIME-VERSION",
-    ].includes(headerName.toUpperCase())
-  ) {
-    throw new Error(
-      `${headerName}: has structured syntax that this whole-value encoder must not replace with one encoded-word sequence. Encode only the display text/phrase with "Preserve header name" off, then place it back into the structured field using an RFC-aware mail library.`
-    );
-  }
+  const sourceHeaderName = split.name;
+  const headerName = preserveHeaderName ? sourceHeaderName : "";
+  const body = sourceHeaderName ? split.body : unfolded;
 
   if (!body) {
     throw new Error("Enter text to encode.");
+  }
+
+  if (/[\r\n]/.test(body)) {
+    throw new Error(
+      "Enter one unfolded header value. A bare CR or LF inside the value would make the surrounding message header invalid."
+    );
+  }
+
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(body)) {
+    throw new Error(
+      "The source contains a control character that does not belong in ordinary RFC 2047 display text. Remove it or inspect the original message bytes before encoding."
+    );
+  }
+
+  const lowerHeaderName = sourceHeaderName.toLowerCase();
+  const structuredFields = [
+    "from", "to", "cc", "bcc", "sender", "reply-to",
+    "resent-from", "resent-to", "resent-cc", "resent-bcc", "resent-sender",
+    "date", "message-id", "return-path", "received", "mime-version",
+    "content-type", "content-disposition",
+  ];
+
+  if (sourceHeaderName && structuredFields.indexOf(lowerHeaderName) !== -1) {
+    throw new Error(
+      `${sourceHeaderName}: has structured syntax that must not be replaced by one RFC 2047 encoded-word value. Encode only the display-text fragment that belongs in an allowed phrase/text position, or use an unstructured field such as Subject.`
+    );
   }
 
   const selected =
     encodingMode === "auto"
       ? chooseEncoding(body, charset)
       : encodingMode;
-  const words = splitTextForWords(body, charset, selected);
+
+  let foldBeforeFirst = false;
+  let firstWordLimit = 75;
+
+  if (headerName) {
+    firstWordLimit = Math.min(75, 76 - `${headerName}: `.length);
+    const firstChar = Array.from(body)[0];
+
+    if (firstChar) {
+      const firstBytes = encodeBytes(firstChar, charset);
+      const firstEncoded =
+        selected === "B" ? bytesToBase64(firstBytes) : bytesToQ(firstBytes);
+
+      if (encodedWordLength(charset, selected, firstEncoded) > firstWordLimit) {
+        foldBeforeFirst = true;
+        firstWordLimit = 75;
+      }
+    }
+  }
+
+  const words = splitTextForWords(body, charset, selected, firstWordLimit);
   const value = words.join("\r\n ");
+  const encodedText = headerName
+    ? foldBeforeFirst
+      ? `${headerName}:\r\n ${value}`
+      : `${headerName}: ${value}`
+    : value;
 
   return {
-    encodedText: headerName ? `${headerName}: ${value}` : value,
+    encodedText,
     encoding: selected,
     wordCount: words.length,
   };
@@ -892,28 +937,52 @@ function buildResult(options: {
       options.preserveHeaderName
     );
 
+    const generatedWords = parseEncodedWords(unfoldHeader(encoded.encodedText));
+    const issues: MimeIssue[] = [
+      {
+        severity: "note",
+        title: `${encoded.encoding} encoding selected`,
+        message:
+          `The value was split into ${encoded.wordCount} encoded-word${
+            encoded.wordCount === 1 ? "" : "s"
+          }. Each token stays within RFC 2047's 75-character limit, and generated lines containing encoded-words stay within 76 characters.`,
+      },
+    ];
+
+    if (encoded.wordCount > 1 || encoded.encodedText.indexOf("\r\n") !== -1) {
+      issues.push({
+        severity: "note",
+        title: "Header folding was added",
+        message:
+          "CRLF followed by one space separates folded encoded-words. During display, linear whitespace between adjacent encoded-words is ignored.",
+      });
+    }
+
+    if (/[\u202A-\u202E\u2066-\u2069]/.test(options.input)) {
+      issues.push({
+        severity: "warning",
+        title: "Bidirectional control character in source text",
+        message:
+          "The source contains a Unicode bidirectional-control character. Encoding preserves that character, so compare the logical string with its visual rendering before using it in an identity, log, or security-sensitive header.",
+      });
+    }
+
+    if (/^[\x00-\x7F]*$/.test(options.input)) {
+      issues.push({
+        severity: "note",
+        title: "The source text is already ASCII",
+        message:
+          "RFC 2047 permits encoded-words for ASCII text but discourages unnecessary encoding. Plain ASCII is usually easier to read and debug when the surrounding field syntax allows it.",
+      });
+    }
+
     return {
       output: encoded.encodedText,
       decodedText: options.input,
       encodedText: encoded.encodedText,
-      words: [],
+      words: generatedWords,
       unfoldedInput: prepared,
-      issues: [
-        {
-          severity: "note",
-          title: `${encoded.encoding} encoding selected`,
-          message:
-            `Output was split into ${encoded.wordCount} encoded-word${
-              encoded.wordCount === 1 ? "" : "s"
-            } so each token stays within RFC 2047's 75-character limit.`,
-        },
-        {
-          severity: "note",
-          title: "Generated folding",
-          message:
-            "Multiple encoded-words are separated with CRLF + space. Mail software unfolds that header and ignores linear whitespace between adjacent encoded-words for display.",
-        },
-      ],
+      issues,
     };
   }
 
@@ -989,7 +1058,7 @@ export default function ToolClient() {
   const [preserveHeaderName, setPreserveHeaderName] = useState(true);
   const [result, setResult] = useState<MimeResult | null>(null);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copiedTarget, setCopiedTarget] = useState<"output" | "report" | "">("");
 
   const report = useMemo(
     () => (result ? formatReport(result) : ""),
@@ -999,7 +1068,7 @@ export default function ToolClient() {
   const clearResult = () => {
     setResult(null);
     setError("");
-    setCopied(false);
+    setCopiedTarget("");
   };
 
   const run = () => {
@@ -1026,10 +1095,10 @@ export default function ToolClient() {
         })
       );
       setError("");
-      setCopied(false);
+      setCopiedTarget("");
     } catch (caught) {
       setResult(null);
-      setCopied(false);
+      setCopiedTarget("");
       setError(
         caught instanceof Error
           ? caught.message
@@ -1065,10 +1134,10 @@ export default function ToolClient() {
 
     try {
       await navigator.clipboard.writeText(result.output);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1400);
+      setCopiedTarget("output");
+      window.setTimeout(() => setCopiedTarget(""), 1400);
     } catch {
-      setCopied(false);
+      setCopiedTarget("");
       setError("The output could not be copied. Select and copy it manually.");
     }
   };
@@ -1078,10 +1147,10 @@ export default function ToolClient() {
 
     try {
       await navigator.clipboard.writeText(report);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1400);
+      setCopiedTarget("report");
+      window.setTimeout(() => setCopiedTarget(""), 1400);
     } catch {
-      setCopied(false);
+      setCopiedTarget("");
       setError("The report could not be copied. Select and copy it manually.");
     }
   };
@@ -1089,9 +1158,9 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="MIME Encoded-Word Decoder"
-      description="Decode RFC 2047 encoded-words in email subjects and display text, inspect B/Q bytes and charsets, or generate deliberately bounded encoded-words without treating MIME header encoding as generic Base64."
+      description="Email subjects and display names can arrive as =?charset?B/Q?...?= encoded-words. The declared charset matters just as much as the Base64 or Q encoding around the bytes."
     >
-      <div className="grid gap-5 md:grid-cols-3">
+      <div className="max-w-sm">
         <YoryantraSelect
           label="Action"
           value={actionMode}
@@ -1104,72 +1173,85 @@ export default function ToolClient() {
             { label: "Encode text", value: "encode" },
           ]}
         />
-
-        <YoryantraSelect
-          label="Encoding"
-          value={encodingMode}
-          onChange={(value: string) => {
-            setEncodingMode(value as EncodingMode);
-            clearResult();
-          }}
-          options={[
-            { label: "Auto (shorter B or Q)", value: "auto" },
-            { label: "B (Base64)", value: "B" },
-            { label: "Q (header Q encoding)", value: "Q" },
-          ]}
-        />
-
-        <YoryantraSelect
-          label="Charset for encoding"
-          value={charset}
-          onChange={(value: string) => {
-            setCharset(value as CharsetMode);
-            clearResult();
-          }}
-          options={[
-            { label: "UTF-8", value: "UTF-8" },
-            { label: "ISO-8859-1", value: "ISO-8859-1" },
-            { label: "Windows-1252", value: "windows-1252" },
-            { label: "US-ASCII", value: "US-ASCII" },
-          ]}
-        />
       </div>
 
+      {actionMode === "encode" ? (
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <YoryantraSelect
+            label="Encoding"
+            value={encodingMode}
+            onChange={(value: string) => {
+              setEncodingMode(value as EncodingMode);
+              clearResult();
+            }}
+            options={[
+              { label: "Auto (shorter B or Q)", value: "auto" },
+              { label: "B (Base64)", value: "B" },
+              { label: "Q (header Q encoding)", value: "Q" },
+            ]}
+          />
+
+          <YoryantraSelect
+            label="Charset"
+            value={charset}
+            onChange={(value: string) => {
+              setCharset(value as CharsetMode);
+              clearResult();
+            }}
+            options={[
+              { label: "UTF-8", value: "UTF-8" },
+              { label: "ISO-8859-1", value: "ISO-8859-1" },
+              { label: "Windows-1252", value: "windows-1252" },
+              { label: "US-ASCII", value: "US-ASCII" },
+            ]}
+          />
+        </div>
+      ) : null}
+
       <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">
-          Email header or header value
+        <label htmlFor="mime-header-input" className="block text-sm font-semibold text-gray-900">
+          {actionMode === "decode" ? "Email header or header value" : "Text or unstructured header value"}
         </label>
         <textarea
+          id="mime-header-input"
           value={input}
           onChange={(event: { target: { value: string } }) => {
             setInput(event.target.value);
             clearResult();
           }}
-          placeholder={SAMPLE_HEADER}
+          placeholder={
+            actionMode === "decode"
+              ? SAMPLE_HEADER
+              : "Subject: Café résumé — नमस्ते"
+          }
           spellCheck={false}
           className="mt-3 min-h-[250px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <Toggle
-          checked={unfold}
-          onChange={(checked) => {
-            setUnfold(checked);
-            clearResult();
-          }}
-          title="Unfold header lines"
-          text="Convert CRLF/LF + whitespace folding into a single space before decoding."
-        />
-        <Toggle
-          checked={joinAdjacent}
-          onChange={(checked) => {
-            setJoinAdjacent(checked);
-            clearResult();
-          }}
-          title="Join adjacent encoded-words"
-          text="Ignore linear whitespace between adjacent encoded-words, matching RFC 2047 display rules."
-        />
+      <div className={`mt-6 grid gap-4 ${actionMode === "decode" ? "md:grid-cols-3" : "md:grid-cols-1"}`}>
+        {actionMode === "decode" ? (
+          <>
+            <Toggle
+              checked={unfold}
+              onChange={(checked) => {
+                setUnfold(checked);
+                clearResult();
+              }}
+              title="Unfold header lines"
+              text="Convert CRLF/LF + whitespace folding into a single space before decoding."
+            />
+            <Toggle
+              checked={joinAdjacent}
+              onChange={(checked) => {
+                setJoinAdjacent(checked);
+                clearResult();
+              }}
+              title="Join adjacent encoded-words"
+              text="Ignore linear whitespace between adjacent encoded-words, matching RFC 2047 display rules."
+            />
+          </>
+        ) : null}
         <Toggle
           checked={preserveHeaderName}
           onChange={(checked) => {
@@ -1177,7 +1259,11 @@ export default function ToolClient() {
             clearResult();
           }}
           title="Preserve header name"
-          text="Keep a field name such as Subject: or Comments: in output. Common structured fields are rejected because their full syntax cannot be replaced by encoded-words."
+          text={
+            actionMode === "decode"
+              ? "Keep Subject:, From:, Comments:, or another valid field name in decoded output."
+              : "Keep a field name such as Subject:. Whole structured fields such as From:, To:, Content-Type: and Content-Disposition: are rejected for encoding."
+          }
         />
       </div>
 
@@ -1194,7 +1280,7 @@ export default function ToolClient() {
       </div>
 
       {error ? (
-        <div className="mt-5 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
+        <div role="alert" className="mt-5 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">
           {error}
         </div>
       ) : null}
@@ -1226,14 +1312,14 @@ export default function ToolClient() {
                   onClick={copyOutput}
                   className="yoryantra-btn-outline whitespace-nowrap"
                 >
-                  {copied ? "Copied" : "Copy Output"}
+                  {copiedTarget === "output" ? "Copied" : "Copy Output"}
                 </button>
                 <button
                   type="button"
                   onClick={copyReport}
                   className="yoryantra-btn-outline whitespace-nowrap"
                 >
-                  Copy Report
+                  {copiedTarget === "report" ? "Copied" : "Copy Report"}
                 </button>
               </div>
             </div>
@@ -1317,151 +1403,183 @@ export default function ToolClient() {
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        MIME header decoding/encoding runs on the text in your browser. The tool
-        does not connect to an IMAP/SMTP server or upload an email message.
-        Site-wide analytics or advertising scripts, if enabled, are separate
-        from this operation.
+        Header parsing runs in browser-side code and does not connect to an
+        IMAP or SMTP server. Subjects, display names, addresses and Message-IDs
+        can still be sensitive, so remove details you do not need before sharing
+        decoded output. Site-wide analytics or advertising scripts, if enabled,
+        are separate from the header operation.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            An Encoded-Word Is a Header Token, Not “Base64 Somewhere in an Email”
+            An Encoded-Word Is More Than Base64
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            RFC 2047 encoded-words have a specific shape:{" "}
-            <code>=?charset?encoding?encoded-text?=</code>. The charset explains
-            how decoded bytes become characters, and the encoding is either B
-            (Base64) or Q (a header-oriented quoted encoding).
+            RFC 2047 uses the form <code>=?charset?encoding?encoded-text?=</code>.
+            The <code>B</code> form carries Base64 bytes; <code>Q</code> uses a
+            header-specific quoted form. The charset then decides how those
+            bytes become characters.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            MIME body transfer encodings and header encoded-words solve
-            different problems. A body can use Base64 without any{" "}
-            <code>=?charset?B?encoded-text?=</code> wrapper, while a Subject can contain several
-            encoded-words next to ordinary ASCII text.
+            Decoding only the Base64 portion is therefore incomplete. The same
+            byte can display differently under UTF-8, ISO-8859-1 and
+            Windows-1252, and an unsupported or incorrect charset label can be
+            the reason a subject looks corrupted.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <h2 className="text-xl font-semibold text-gray-700">
-            Q Encoding Is Not the Same as Quoted-Printable Body Encoding
+            Q Encoding Has Its Own Header Rules
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-700/90">
-            The syntax is related, but RFC 2047 gives Q encoded-words their own
-            rules. Inside an encoded-word, underscore represents an ASCII space,
-            and bytes can be written as <code>=HH</code> hexadecimal escapes.
+          <p className="mt-4 leading-relaxed text-gray-700">
+            Q looks similar to quoted-printable, but it is not the same thing as
+            a MIME body encoded with quoted-printable. Inside an encoded-word,
+            underscore means an ASCII space and <code>=HH</code> represents one
+            byte in hexadecimal. A literal underscore has to be encoded as
+            <code>=5F</code>.
           </p>
-          <p className="mt-4 leading-relaxed text-gray-700/90">
-            That means <code>=?UTF-8?Q?Sneha_Yoryantra?=</code> decodes the
-            underscore as a space. Treating the encoded-text as a normal URL or
-            generic quoted-printable string can produce the wrong result.
+          <p className="mt-4 leading-relaxed text-gray-700">
+            The allowed literal characters also depend on where the encoded-word
+            appears. A display-name phrase has tighter rules than an unstructured
+            Subject field, which is why conservative Q output escapes punctuation
+            instead of trying to keep every printable character readable.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Whitespace Between Adjacent Encoded-Words Disappears for Display
+            ISO-8859-1 and Windows-1252 Are Not Interchangeable
           </h2>
-          <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`=?UTF-8?B?U25laGE=?= =?UTF-8?Q?_Yoryantra?=`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
-            When encoded-words are adjacent and separated only by linear
-            whitespace, RFC 2047 display decoding ignores that separating
-            whitespace. The decoded characters inside the words decide whether
-            a visible space exists.
+            They agree across much of the byte range, but Windows-1252 assigns
+            printable characters such as the euro sign and smart quotes to many
+            bytes from 0x80 through 0x9F. ISO-8859-1 treats that range as control
+            characters.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            This is one reason naive regex replacement often creates an extra
-            space between words or removes a space that was encoded as{" "}
-            <code>_</code> or <code>=20</code>.
+            A classic symptom is punctuation turning into controls or replacement
+            characters even though the Base64 itself is valid. Check the declared
+            charset before assuming the transport encoding is broken.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            75 Characters Is an Encoded-Word Limit, Not Just a Pretty Line-Wrap Preference
+            Adjacent Encoded-Words Hide Their Separating Whitespace
           </h2>
+          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`=?UTF-8?Q?R=C3=A9sum=C3=A9?= =?UTF-8?Q?_=E2=80=93_API?=`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
-            RFC 2047 limits each complete encoded-word to 75 characters,
-            including the charset, encoding marker and delimiters. Long Unicode
-            header values therefore need multiple encoded-words.
+            When two encoded-words are next to each other and only linear
+            whitespace sits between them, that whitespace is ignored for display.
+            A visible space must come from the decoded content itself, such as
+            <code>_</code> or <code>=20</code> in Q encoding.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The encoder splits by Unicode characters and re-encodes each
-            candidate chunk until every generated word fits. Multiple words are
-            folded using CRLF plus whitespace instead of generating one
-            oversized token.
+            This is why plain regex replacement often inserts an extra space or
+            removes one that was intentionally encoded. Header unfolding and
+            encoded-word display rules have to be considered together.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            The Charset Is Part of the Data
+            The 75-Character Token Limit and 76-Character Line Limit Are Different
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The same byte value can mean different characters under UTF-8,
-            ISO-8859-1 or Windows-1252. Decoding the Base64 first and then
-            blindly calling the bytes UTF-8 can turn a valid legacy header into
-            replacement characters.
+            One complete encoded-word cannot exceed 75 characters. RFC 2047 also
+            limits a header line that contains an encoded-word to 76 characters.
+            A field name such as <code>Subject:</code> therefore reduces the room
+            available for the first token.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Yoryantra treats ISO-8859-1 and Windows-1252 separately for their
-            0x80–0x9F behavior, handles US-ASCII range violations, and uses the
-            browser TextDecoder for other recognized charset labels.
+            Long values need several self-contained encoded-words. A UTF-8
+            multi-byte character cannot be cut between two words, and a Q escape
+            such as <code>=E2</code> cannot be continued in the next token. Folding
+            with CRLF plus whitespace keeps the logical field value intact.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            Encoded-Words Are Allowed Only in Specific Header Contexts
+            Do Not Encode an Entire From or To Field as One Word
           </h2>
           <p className="mt-4 leading-relaxed text-gray-700">
-            RFC 2047 does not authorize replacing arbitrary header syntax with
-            encoded-words. They are used in text/phrase contexts such as Subject
-            and display names, with restrictions. Received is not a generic
-            encoded-word field, and MIME parameters such as filename have their
-            own parameter-encoding mechanisms.
+            Address fields have structure. An encoded-word may represent a
+            display-name phrase, but it must not replace the address itself or
+            hide the <code>addr-spec</code> syntax. The same restriction applies to
+            fields such as <code>Received</code> and MIME parameters such as
+            <code>filename=</code>.
           </p>
           <p className="mt-4 leading-relaxed text-gray-700">
-            This tool decodes recognizable tokens for diagnostics, but it does
-            not pretend to be a complete RFC 5322 address parser or MIME
-            parameter parser.
+            If you are repairing a complete structured header, parse that field
+            first and encode only the text position where RFC 2047 allows it. A
+            decoded display name also says nothing about whether the underlying
+            sender address or authentication results are trustworthy.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Broken Mail Often Requires Tolerant Reading and Strict Diagnosis
+            Broken Headers Need Tolerant Reading, Not Silent Repair
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Real messages contain missing Base64 padding, unknown charset
-            labels, malformed Q escapes and encoded-word-looking strings that do
-            not fully match the grammar. Silently “fixing” all of them makes it
-            hard to know whether the original sender was standards-compliant.
+            Old mail archives contain missing Base64 padding, unknown charset
+            labels, malformed Q escapes and strings that merely look like
+            encoded-words. It can be useful to recover readable text, but the
+            damaged source should remain visible.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The decoder therefore distinguishes warnings from successful
-            decoding. It can tolerate omitted Base64 padding for inspection
-            while still telling you that the serialized encoded-word is not the
-            canonical form you would generate.
+            Missing Base64 padding can be tolerated for inspection while still
+            being reported as non-canonical. Unknown charsets should not be
+            guessed silently. If the decoded result contains control or Unicode
+            bidirectional characters, compare it with the raw header before
+            pasting it into logs or security reports.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-2">
-          <ReferenceCard
-            title="RFC 2047 — Message Header Extensions"
-            href="https://www.rfc-editor.org/rfc/rfc2047"
-            text="Defines encoded-word syntax, B/Q encodings, contexts, adjacent-word whitespace and the 75-character limit."
-          />
-          <ReferenceCard
-            title="RFC 5322 — Internet Message Format"
-            href="https://www.rfc-editor.org/rfc/rfc5322"
-            text="Defines the surrounding message-header syntax, including fields and line folding."
-          />
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Modern SMTP Can Carry UTF-8 Headers Directly
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            RFC 6532 extends Internet message headers so field bodies can contain
+            Unicode directly when the message is transported with SMTPUTF8. That
+            does not make RFC 2047 disappear: encoded-words remain common in older
+            mail, mixed infrastructure and compatibility-oriented software.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            When you control both ends of a modern mail path, check whether direct
+            UTF-8 is already supported before adding legacy encoded-word syntax
+            purely out of habit.
+          </p>
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            RFC 2047 Sits Inside the Wider Email Format
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            <a href="https://www.rfc-editor.org/rfc/rfc2047" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">RFC 2047</a>{" "}
+            defines encoded-word syntax, B/Q rules, legal header contexts,
+            adjacent-word whitespace and length limits. <a href="https://www.rfc-editor.org/rfc/rfc5322" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">RFC 5322</a>{" "}
+            defines the surrounding Internet message-header syntax and folding.
+            <a href="https://www.rfc-editor.org/rfc/rfc6532" target="_blank" rel="noreferrer" className="ml-1 font-medium text-[var(--green)] underline underline-offset-4">RFC 6532</a>{" "}
+            covers internationalized UTF-8 header fields. For MIME parameters such as filenames, <a href="https://www.rfc-editor.org/rfc/rfc2231" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-4">RFC 2231</a>{" "}
+            defines the parameter mechanism instead of RFC 2047 encoded-words.
+          </p>
+        </div>
 
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            If the Header Is Only Part of the Problem
+          </h2>
+          <p className="mt-3 leading-relaxed text-gray-600">
+            A broken subject can be an encoded-word problem, a charset problem,
+            or just one symptom of a larger MIME message issue. Inspect the next
+            layer instead of decoding the same string repeatedly.
+          </p>
           <div className="mt-4">
             <YoryantraRelatedTools currentHref="/tools/mime-encoded-word-decoder" />
           </div>

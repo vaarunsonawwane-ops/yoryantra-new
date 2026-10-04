@@ -54,6 +54,7 @@ export default function ToolClient() {
   const [includeContentTypeHeader, setIncludeContentTypeHeader] = useState(false);
   const [includeRequestBody, setIncludeRequestBody] = useState(false);
   const [redactTokenInOutput, setRedactTokenInOutput] = useState(false);
+  const [warnWhitespace, setWarnWhitespace] = useState(true);
   const [warnBearerPrefix, setWarnBearerPrefix] = useState(true);
   const [warnJwtShape, setWarnJwtShape] = useState(true);
   const [warnSensitiveSharing, setWarnSensitiveSharing] = useState(true);
@@ -95,6 +96,7 @@ export default function ToolClient() {
         includeContentTypeHeader,
         includeRequestBody,
         redactTokenInOutput,
+        warnWhitespace,
         warnBearerPrefix,
         warnJwtShape,
         warnSensitiveSharing,
@@ -135,6 +137,7 @@ export default function ToolClient() {
     setIncludeContentTypeHeader(false);
     setIncludeRequestBody(false);
     setRedactTokenInOutput(true);
+    setWarnWhitespace(true);
     setWarnBearerPrefix(true);
     setWarnJwtShape(true);
     setWarnSensitiveSharing(true);
@@ -156,6 +159,7 @@ export default function ToolClient() {
     setIncludeContentTypeHeader(false);
     setIncludeRequestBody(false);
     setRedactTokenInOutput(false);
+    setWarnWhitespace(true);
     setWarnBearerPrefix(true);
     setWarnJwtShape(true);
     setWarnSensitiveSharing(true);
@@ -309,6 +313,7 @@ export default function ToolClient() {
           <Toggle checked={includeContentTypeHeader} onChange={setIncludeContentTypeHeader} label="Include Content-Type: application/json" />
           <Toggle checked={includeRequestBody} onChange={setIncludeRequestBody} label="Include request body in snippets" />
           <Toggle checked={redactTokenInOutput} onChange={setRedactTokenInOutput} label="Redact token in generated output" />
+          <Toggle checked={warnWhitespace} onChange={setWarnWhitespace} label="Warn about whitespace inside token" />
           <Toggle checked={warnBearerPrefix} onChange={setWarnBearerPrefix} label="Warn when token already includes Bearer prefix" />
           <Toggle checked={warnJwtShape} onChange={setWarnJwtShape} label="Warn about unusual JWT shape" />
           <Toggle checked={warnSensitiveSharing} onChange={setWarnSensitiveSharing} label="Warn about sharing real tokens" />
@@ -427,23 +432,13 @@ export default function ToolClient() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Where Bearer Header Formatting Goes Wrong</h2>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p>Creating Authorization headers for API examples, documentation, issue reports, or test notes.</p>
-            <p className="mt-2">Generating cURL or fetch snippets with a Bearer token placeholder instead of typing headers manually.</p>
-            <p className="mt-2">Checking whether a pasted token already includes the Bearer prefix or hidden whitespace.</p>
-            <p className="mt-2">Redacting token output before sharing snippets with teammates or support teams.</p>
-          </div>
-        </div>
-
-        <div>
           <h2 className="text-xl font-semibold text-gray-900">Building the Header and Request Snippets</h2>
           <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
             <li>Paste a token or token placeholder into the input box.</li>
             <li>Choose the output format: header, cURL, fetch, raw HTTP, JSON, Markdown, or checklist.</li>
             <li>Set the endpoint URL and request method if you are generating a request snippet.</li>
             <li>Enable redaction before copying output that might be shared outside your local machine.</li>
-            <li>Correct invalid Bearer credential syntax, then review duplicate-prefix, HTTP endpoint, JWT-shape, and token-sharing notes.</li>
+            <li>Review warnings about whitespace, duplicate prefixes, HTTP endpoints, JWT shape, and token sharing.</li>
           </ol>
         </div>
 
@@ -515,6 +510,7 @@ function buildResult(options: {
   includeContentTypeHeader: boolean;
   includeRequestBody: boolean;
   redactTokenInOutput: boolean;
+  warnWhitespace: boolean;
   warnBearerPrefix: boolean;
   warnJwtShape: boolean;
   warnSensitiveSharing: boolean;
@@ -527,10 +523,6 @@ function buildResult(options: {
 
   if (/[\u0000-\u001F\u007F]/.test(preparedToken.cleanedToken)) {
     throw new Error("Bearer credentials cannot contain control characters or line breaks. Remove them before generating a header.");
-  }
-
-  if (!isBearerCredentialShape(preparedToken.cleanedToken)) {
-    throw new Error("Bearer credentials must follow RFC 6750 token syntax: letters, digits, -, ., _, ~, +, /, with optional trailing = padding and no whitespace.");
   }
 
   if (["curl", "fetch", "http"].includes(options.outputMode) && options.endpointUrl.trim()) {
@@ -605,9 +597,9 @@ function inspectToken(token: string, redactionMode: RedactionMode, originalToken
 function redactToken(token: string, mode: RedactionMode) {
   if (mode === "none") return token;
   if (mode === "full") return "REDACTED_TOKEN";
-  if (mode === "last4") return token.length <= 4 ? "REDACTED" : `REDACTED_${token.slice(-4)}`;
-  if (token.length <= 12) return `REDACTED_${token.slice(-2)}`;
-  return `${token.slice(0, 8)}_REDACTED_${token.slice(-6)}`;
+  if (mode === "last4") return token.length <= 4 ? "****" : `****${token.slice(-4)}`;
+  if (token.length <= 12) return `${token.slice(0, 2)}••••${token.slice(-2)}`;
+  return `${token.slice(0, 8)}••••••${token.slice(-6)}`;
 }
 
 function labelForToken(type: TokenType) {
@@ -641,12 +633,30 @@ function buildIssues(options: {
   endpointUrl: string;
   requestMethod: RequestMethod;
   includeRequestBody: boolean;
+  warnWhitespace: boolean;
   warnBearerPrefix: boolean;
   warnJwtShape: boolean;
   warnSensitiveSharing: boolean;
   redactTokenInOutput: boolean;
 }, tokenInfo: TokenInfo, preparedToken: { cleanedToken: string; hadBearerPrefix: boolean; hadAuthorizationPrefix: boolean }) {
   const issues: Issue[] = [];
+
+  if (options.warnWhitespace && tokenInfo.hasWhitespace) {
+    issues.push({
+      severity: "warning",
+      title: "Whitespace inside token",
+      message: "The token contains whitespace. Bearer credentials are normally sent as one token value after the Bearer scheme, not as multiple space-separated words or lines.",
+    });
+  }
+
+
+  if (!tokenInfo.hasWhitespace && !isBearerCredentialShape(preparedToken.cleanedToken)) {
+    issues.push({
+      severity: "warning",
+      title: "Credential contains characters outside RFC 6750 syntax",
+      message: "Bearer credentials use letters, digits, -, ., _, ~, +, /, with optional trailing = padding. A resource server may reject other characters.",
+    });
+  }
 
   if (options.warnBearerPrefix && preparedToken.hadAuthorizationPrefix) {
     issues.push({
@@ -913,7 +923,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
+        className="h-4 w-4 rounded border-gray-300 accent-[var(--light-gold)]"
       />
       <span>{label}</span>
     </label>

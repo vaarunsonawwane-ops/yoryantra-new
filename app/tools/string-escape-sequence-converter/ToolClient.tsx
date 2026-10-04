@@ -2054,7 +2054,7 @@ function Toggle({
         onChange={(event: { target: { checked: boolean } }) =>
           onChange(event.target.checked)
         }
-        className="mt-1"
+        className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
       />
       <span>
         <strong className="text-gray-900">{title}</strong>

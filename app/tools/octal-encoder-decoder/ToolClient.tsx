@@ -760,7 +760,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 accent-[#d9a928]"
+        className="h-4 w-4 rounded border-gray-300 accent-[var(--light-gold)]"
       />
       <span>{label}</span>
     </label>

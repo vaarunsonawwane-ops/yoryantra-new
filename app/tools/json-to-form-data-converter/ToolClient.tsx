@@ -1118,13 +1118,13 @@ export default function ToolClient() {
           </div>
 
           {notes.length ? (
-            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-              <h3 className="font-semibold text-gray-900">Encoding review</h3>
+            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+              <h3 className="font-semibold text-yellow-900">Encoding review</h3>
               <div className="mt-4 space-y-3">
                 {notes.map((issue, index) => (
                   <div
                     key={`${issue.title}-${index}`}
-                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-900"
+                    className="rounded-xl border border-yellow-200 bg-white/60 p-4 text-sm leading-relaxed text-yellow-900"
                   >
                     <strong>{issue.title}</strong>
                     <p className="mt-1">{issue.message}</p>
@@ -1189,18 +1189,18 @@ export default function ToolClient() {
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
             Pick a Field Naming Convention the Server Actually Parses
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-700">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             Names such as <code>profile.role</code> and
             <code>profile[role]</code> are conventions used by frameworks and
             form parsers. HTTP does not assign nesting semantics to either one.
             A server can just as easily treat the brackets or dot as literal
             characters in the field name.
           </p>
-          <p className="mt-4 leading-relaxed text-gray-700">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             Literal JSON keys can also collide with a flattening convention. A
             source key named <code>profile.role</code> becomes ambiguous when a
             dot is also being used to mean “nested property.” Rename the field,
@@ -1277,17 +1277,17 @@ tags=["api","forms"]`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h2 className="text-xl font-semibold text-red-900">
             A Filename String Is Not a File Upload
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-700">
+          <p className="mt-4 leading-relaxed text-red-900/90">
             <code>{"{ \"avatar\": \"/tmp/photo.jpg\" }"}</code> contains a
             path string, not the bytes of the photo. Browser uploads need a File
             or Blob object. cURL file upload has its own file-reading syntax such
             as <code>--form avatar=@photo.jpg</code>.
           </p>
-          <p className="mt-4 leading-relaxed text-gray-700">
+          <p className="mt-4 leading-relaxed text-red-900/90">
             Generated cURL fields use <code>--form-string</code> so an input value
             beginning with <code>@</code> stays text instead of unexpectedly
             reading a local file. Add an actual file part separately when that is
@@ -1330,15 +1330,15 @@ tags=["api","forms"]`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="text-xl font-semibold text-yellow-900">
             Duplicate JSON Names Disappear During Normal Parsing
           </h2>
           <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`{
   "tag": "first",
   "tag": "second"
 }`}</pre>
-          <p className="mt-4 leading-relaxed text-gray-700">
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
             JavaScript keeps one <code>tag</code> property after parsing, so the
             two source members cannot later become two form fields. Duplicate
             names are flagged before the main parse so that overwrite risk stays
@@ -1373,10 +1373,7 @@ tags=["api","forms"]`}</pre>
           <h2 className="text-xl font-semibold text-gray-900">
             When the Server Still Rejects the Payload
           </h2>
-
-          <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-to-form-data-converter" />
-          </div>
+          <YoryantraRelatedTools currentHref="/tools/json-to-form-data-converter" />
         </div>
       </section>
     </ToolShell>
@@ -1402,7 +1399,7 @@ function Toggle({
         onChange={(event: { target: { checked: boolean } }) =>
           onChange(event.target.checked)
         }
-        className="mt-1"
+        className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
       />
       <span>
         <strong className="text-gray-900">{title}</strong>
