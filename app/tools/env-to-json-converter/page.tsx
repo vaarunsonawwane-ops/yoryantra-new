@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "ENV to JSON Converter | Parse .env to JSON | Yoryantra",
+  title: "ENV to JSON Converter | Type Inference & Nested Keys | Yoryantra",
   description:
     "Parse dotenv-style assignments into flat or nested JSON with comment handling, export prefixes, conservative type inference, and collision detection.",
   keywords: [
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/env-to-json-converter",
   },
   openGraph: {
-    title: "ENV to JSON Converter | Parse .env to JSON | Yoryantra",
+    title: "ENV to JSON Converter | Type Inference & Nested Keys | Yoryantra",
     description:
       "Parse dotenv-style assignments into flat or nested JSON with explicit type inference and collision checks.",
     url: "https://yoryantra.com/tools/env-to-json-converter",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ENV to JSON Converter | Parse .env to JSON | Yoryantra",
+    title: "ENV to JSON Converter | Type Inference & Nested Keys | Yoryantra",
     description:
       "Parse dotenv-style assignments into flat or nested JSON with explicit type inference and collision checks.",
   },

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "JSON Schema Generator | Schema from Sample JSON | Yoryantra",
+  title: "JSON Schema Generator | Infer Types from Sample Data | Yoryantra",
   description:
     "Infer JSON Schema 2020-12, 2019-09, or Draft 7 from sample JSON with explicit required-field, array, format, null, and additional-property choices.",
   keywords: [
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/json-schema-generator",
   },
   openGraph: {
-    title: "JSON Schema Generator | Schema from Sample JSON | Yoryantra",
+    title: "JSON Schema Generator | Infer Types from Sample Data | Yoryantra",
     description:
       "Infer a draft-aware JSON Schema from sample data while keeping required fields, arrays, nulls, formats, and object strictness explicit.",
     url: "https://yoryantra.com/tools/json-schema-generator",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "JSON Schema Generator | Schema from Sample JSON | Yoryantra",
+    title: "JSON Schema Generator | Infer Types from Sample Data | Yoryantra",
     description:
       "Infer a draft-aware JSON Schema from sample data while keeping required fields, arrays, nulls, formats, and object strictness explicit.",
   },

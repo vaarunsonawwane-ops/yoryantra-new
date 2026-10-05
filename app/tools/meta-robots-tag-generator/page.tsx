@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ToolClient from "./ToolClient";
 
 export const metadata: Metadata = {
-  title: "Meta Robots Tag Generator | Robots Meta & X-Robots-Tag | Yoryantra",
+  title: "Meta Robots Tag Generator | X-Robots-Tag Controls | Yoryantra",
   description:
     "Build robots meta and X-Robots-Tag directives for indexing, link following, snippets, previews, and expiry.",
   keywords: [
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     canonical: "https://yoryantra.com/tools/meta-robots-tag-generator",
   },
   openGraph: {
-    title: "Meta Robots Tag Generator | Robots Meta & X-Robots-Tag | Yoryantra",
+    title: "Meta Robots Tag Generator | X-Robots-Tag Controls | Yoryantra",
     description:
       "Build robots meta and X-Robots-Tag directives for indexing, link following, snippets, previews, and expiry.",
     url: "https://yoryantra.com/tools/meta-robots-tag-generator",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Meta Robots Tag Generator | Robots Meta & X-Robots-Tag | Yoryantra",
+    title: "Meta Robots Tag Generator | X-Robots-Tag Controls | Yoryantra",
     description:
       "Build robots meta and X-Robots-Tag directives for indexing, link following, snippets, previews, and expiry.",
   },
