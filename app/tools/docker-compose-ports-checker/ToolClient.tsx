@@ -508,57 +508,35 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What Docker Compose port checks can catch before `up`
+            Host bindings are where Compose port collisions happen
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Port collisions often appear when several services try to
-            publish the same host port. A web app, admin panel, database UI, or
-            local debug service can fail to start because another container is
-            already using the port.
+            Several services can normally use the same container port because each
+            container has its own network namespace. The collision usually begins
+            when two services try to publish an overlapping host IP, host port, and
+            protocol binding.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This Docker Compose Ports Checker reads the ports and expose sections
-            from a Compose file and shows published ports, container ports,
-            duplicate host ports, invalid mappings, privileged ports, and useful
-            notes before you run the stack.
+            The checker reads <code>ports</code> and <code>expose</code> entries and
+            reports duplicate published bindings, invalid mappings, privileged ports,
+            and other review notes before the stack is started.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Reading short and long Compose port syntax
+            Short and long syntax still describe the same network boundary
           </h2>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste your Docker Compose YAML into the input box.</li>
-            <li>Choose whether to check host ports, container ports, and low ports.</li>
-            <li>Run the checker to see published and exposed ports.</li>
-            <li>Review conflicts, invalid mappings, and quoting suggestions.</li>
-            <li>Copy the summary, JSON, or table output for notes or fixes.</li>
-          </ol>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Where port collisions usually appear
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Finding two services using the same host port.</li>
-            <li>Checking localhost-bound ports like 127.0.0.1:9229:9229.</li>
-            <li>Reviewing published ports before sharing a Compose file.</li>
-            <li>Finding unquoted port mappings that may be confusing in YAML.</li>
-            <li>Checking exposed-only ports that are not published to the host.</li>
-            <li>Preparing cleaner debugging notes for a Compose startup issue.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Reading one published-port mapping
-          </h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Short syntax can combine the host address, published port, container
+            port, and protocol in one value, while long syntax names those parts
+            explicitly. A host address such as <code>127.0.0.1</code> narrows the
+            binding to that interface; it does not turn the published port into an
+            internal-only container port.
+          </p>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
             <pre className="whitespace-pre-wrap break-words">
@@ -573,45 +551,44 @@ export default function ToolClient() {
       - "8080:8080"`}
             </pre>
           </div>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            In this example, <code>web</code> and <code>admin</code> both try to own
+            host port <code>8080</code>. Their container-side ports differ, but that
+            does not remove the host-side conflict.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            `ports` and `expose` have different network effects
+            <code>ports</code> and <code>expose</code> answer different reachability questions
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            The ports section publishes a container port to the host machine.
-            The expose section only documents or exposes ports inside the Docker
-            network. A service can be reachable by other containers without being
-            published to your laptop or server.
+            The <code>ports</code> section publishes a container port to the host
+            machine. The <code>expose</code> section does not create that host
+            publication. A service can therefore be reachable by other containers
+            without being published to your laptop or server.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            When a container is not reachable from the browser or API client,
-            check whether the port is actually published under ports and whether
-            another service is already using the same host port.
-          </p>
-
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Several services can normally use the same container port because
-            each container has its own network namespace. For an ordinary local
-            Compose deployment, the conflict is usually the published host
-            binding: overlapping host IP, host port, and protocol bindings cannot
-            both be owned by separate containers on the same host.
+            When a service is not reachable from the browser or an API client, check
+            whether the expected port is actually published and whether another
+            service in the same Compose model claims an overlapping host binding.
           </p>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-lg font-semibold text-gray-900">
-            Compose syntax is the source of truth
+            What this browser-side check cannot prove
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-gray-600">
-            Docker documents both short and long <code>ports</code> syntax,
-            requires equivalent host/container range lengths, and rejects port
-            publishing with <code>network_mode: host</code>. The checker follows
-            those rules, but it does not run the Docker Engine or test whether a
-            port is already occupied by a process outside this Compose file.
+            Docker documents both short and long <code>ports</code> syntax, requires
+            equivalent host/container range lengths, and rejects port publishing
+            with <code>network_mode: host</code>. This checker can review those
+            declarations, but it does not run the Docker Engine or test whether an
+            operating-system process outside the Compose file already occupies a
+            port.
           </p>
           <p className="mt-3 text-sm text-gray-600">
             <a

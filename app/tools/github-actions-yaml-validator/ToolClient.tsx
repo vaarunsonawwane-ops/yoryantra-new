@@ -544,56 +544,44 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            What a local workflow review can catch before GitHub runs it
+            YAML syntax and workflow structure fail for different reasons
           </h2>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            GitHub Actions workflows can fail because of small YAML mistakes,
-            missing runners, incomplete steps, wrong triggers, or unclear
-            permissions. Sometimes the file looks fine at a quick glance, but the
-            workflow still fails after you push it.
+            A workflow can be valid YAML and still be unusable as a GitHub Actions
+            workflow. Triggers, jobs, runners, steps, permissions, action references,
+            and secret handling add another layer of rules on top of YAML parsing.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
-            This GitHub Actions YAML Validator checks the workflow structure and
-            points out structural and policy issues in jobs, steps, triggers, permissions,
-            runners, action versions, and secret handling. It is meant for quick
-            checks before committing or while debugging CI problems.
+            This validator separates those layers so a malformed document is not
+            reported as the same kind of problem as a missing runner, incomplete
+            step, action-version concern, or permission warning.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            How the workflow structure is interpreted
+            Jobs, steps, and triggers need their own structural checks
           </h2>
 
-          <ol className="mt-4 list-decimal list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Paste the workflow YAML from your .github/workflows folder.</li>
-            <li>Choose basic or strict validation.</li>
-            <li>Turn on checks for action versions, permissions, and secrets.</li>
-            <li>Review the workflow overview, jobs, and issues.</li>
-            <li>Copy the summary, JSON, or checklist output for notes or fixes.</li>
-          </ol>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The review looks at the workflow trigger, job definitions, runner
+            declarations, and whether individual steps contain an action reference or
+            command. Optional checks can also surface unpinned action versions,
+            missing permission declarations, and secret-looking literal values.
+          </p>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            These findings are intentionally kept separate from YAML syntax errors.
+            That distinction matters when the file parses correctly but GitHub still
+            rejects or behaves differently from what the author expected.
+          </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Workflow mistakes worth separating from YAML syntax
-          </h2>
-
-          <ul className="mt-4 list-disc list-inside space-y-2 text-gray-600 leading-relaxed">
-            <li>Missing workflow triggers such as push or pull_request.</li>
-            <li>Jobs without runs-on values.</li>
-            <li>Steps without uses or run commands.</li>
-            <li>Actions without pinned versions.</li>
-            <li>Missing permissions blocks in stricter workflows.</li>
-            <li>Secret-looking values written directly in the YAML.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            A small workflow with explicit permissions
+            Permission scope is easier to review when it is explicit
           </h2>
 
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 overflow-auto">
@@ -605,6 +593,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -614,6 +605,13 @@ jobs:
       - run: npm run build`}
             </pre>
           </div>
+
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The explicit <code>contents: read</code> permission makes the token scope
+            visible in the workflow instead of leaving the reader to infer repository
+            or organization defaults. Real workflows may need different permissions;
+            the required scope depends on what their jobs actually do.
+          </p>
         </div>
 
         <div>
@@ -623,30 +621,29 @@ jobs:
 
           <p className="mt-4 text-gray-600 leading-relaxed">
             GitHub Actions workflows often touch source code, packages, release
-            jobs, deployment keys, and cloud credentials. A clear permissions
-            block and proper secret usage make workflows easier to review and
-            safer to maintain.
+            jobs, deployment keys, and cloud credentials. A clear permissions block
+            and proper secret usage make workflows easier to review and safer to
+            maintain.
           </p>
 
           <p className="mt-4 text-gray-600 leading-relaxed">
             Use repository or organization secrets for real values. Avoid writing
-            tokens, passwords, API keys, or private URLs directly in workflow
-            files.
+            tokens, passwords, API keys, or private URLs directly in workflow files.
           </p>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-lg font-semibold text-gray-900">
-            YAML validity is only the first layer
+            Repository context remains GitHub&apos;s job
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-gray-600">
-            GitHub defines the workflow keys, expression contexts, event-specific
-            behavior, permissions, reusable workflows, and runner semantics.
-            Local parsing can catch malformed YAML and many structural mistakes,
-            but it cannot resolve repository secrets, environments, matrices,
-            permissions policies, referenced reusable workflows, or runner-time
-            behavior. This is a static browser-side review: it does not connect to
-            GitHub or run workflow jobs.
+            GitHub defines workflow keys, expression contexts, event-specific
+            behavior, permissions, reusable workflows, and runner semantics. Local
+            parsing can catch malformed YAML and many structural mistakes, but it
+            cannot resolve repository secrets, environments, matrices, repository
+            policies, referenced reusable workflows, or runner-time behavior. This
+            is a static browser-side review: it does not connect to GitHub or run
+            workflow jobs.
           </p>
           <p className="mt-3 text-sm text-gray-600">
             <a
