@@ -15,7 +15,7 @@ const workflowGroups = [
     title: "Text, patterns, and URL structure",
     text: "Use syntax-aware parsers and testers when the meaning depends on delimiters, escaping, regular-expression flags, duplicate query keys, or URL resolution rules.",
     tools: [
-      { label: "Regex Tester", href: "/tools/regex-tester" },
+      { label: "Regex Match Tester", href: "/tools/regex-match-tester" },
       { label: "Regex Replace Tester", href: "/tools/regex-replace-tester" },
       { label: "URL Parts Parser", href: "/tools/url-parts-parser" },
       { label: "Query String Builder", href: "/tools/query-string-builder" },
@@ -25,7 +25,6 @@ const workflowGroups = [
     title: "Time, identifiers, and small protocol values",
     text: "Convert timestamps with explicit units, inspect UUID structure, and generate identifiers without turning a convenience value into an application-level guarantee.",
     tools: [
-      { label: "Timestamp Converter", href: "/tools/timestamp-converter" },
       { label: "Unix Timestamp Generator", href: "/tools/unix-timestamp-generator" },
       { label: "UUID Generator", href: "/tools/uuid-generator" },
       { label: "UUID Validator", href: "/tools/uuid-validator" },

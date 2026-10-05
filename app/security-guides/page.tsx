@@ -104,9 +104,7 @@ export default function Page() {
           <div className="self-start rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-900">Useful JWT tools</h2>
             <div className="mt-5 flex flex-col gap-3 text-sm font-semibold">
-              <Link href="/tools/jwt-decoder" className="text-[var(--light-gold)] hover:underline">JWT Decoder →</Link>
               <Link href="/tools/jwt-signature-verifier" className="text-[var(--light-gold)] hover:underline">JWT Signature Verifier →</Link>
-              <Link href="/tools/jwt-expiration-checker" className="text-[var(--light-gold)] hover:underline">JWT Expiration Checker →</Link>
               <Link href="/tools/jwt-claims-inspector" className="text-[var(--light-gold)] hover:underline">JWT Claims Inspector →</Link>
               <Link href="/tools/jwt-secret-strength-checker" className="text-[var(--light-gold)] hover:underline">JWT Secret Strength Checker →</Link>
             </div>

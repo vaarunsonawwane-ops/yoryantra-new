@@ -23,7 +23,7 @@ const contexts = [
     title: "Markup and escaped text",
     text: "HTML entities, XML entities, Unicode escapes, and language string escapes solve different parsing problems even when the visible character is the same.",
     links: [
-      { label: "HTML Encoder Decoder", href: "/tools/html-encoder-decoder" },
+      { label: "HTML Escape Unescape", href: "/tools/html-escape-unescape" },
       { label: "XML Escape Unescape", href: "/tools/xml-escape-unescape" },
       { label: "Unicode Escape Sequence Converter", href: "/tools/unicode-escape-sequence-converter" },
     ],
