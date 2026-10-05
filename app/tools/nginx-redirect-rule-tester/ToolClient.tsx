@@ -268,7 +268,7 @@ export default function ToolClient() {
                 setCopied(false);
               }}
               placeholder="5"
-              className="w-full min-h-[48px] rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              className="w-full min-h-[54px] rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
             />
           </div>
 
