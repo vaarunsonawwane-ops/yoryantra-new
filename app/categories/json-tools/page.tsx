@@ -55,7 +55,7 @@ export default function Page() {
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">All JSON & Data Tools</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Browse all 32 tools for JSON, CSV, XML, YAML formatting, SQL formatting,
+              Browse all {jsonTools.length} tools for JSON, CSV, XML, YAML formatting, SQL formatting,
               schema work, paths, pointers, patches, merges, tables, environment data,
               form data, query conversion, filtering, grouping, and line-delimited JSON.
             </p>

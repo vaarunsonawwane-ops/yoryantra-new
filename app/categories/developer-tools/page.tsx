@@ -9,7 +9,7 @@ const developerTools = tools.filter(
 
 const representativeHrefs = new Set<string>([
   "/tools/http-request-parser",
-  "/tools/regex-tester",
+  "/tools/regex-match-tester",
   "/tools/fetch-to-curl-converter",
   "/tools/url-parts-parser",
   "/tools/http-cache-header-analyzer",
@@ -150,7 +150,7 @@ export default function Page() {
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">All Developer Tools</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Browse all 32 tools for HTTP text, APIs, headers, URLs, regex,
+              Browse all {developerTools.length} tools for HTTP text, APIs, headers, URLs, regex,
               timestamps, UUIDs, query strings, cURL, Fetch, GraphQL, and related
               implementation work.
             </p>

@@ -123,7 +123,7 @@ export default function Page() {
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">All Security Tools</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Browse all 32 tools for JWTs, hashes, HMACs, bcrypt, random secrets,
+              Browse all {securityTools.length} tools for JWTs, hashes, HMACs, bcrypt, random secrets,
               RSA keys, PEM and certificates, CSP, CORS, cookies, HSTS, Permissions
               Policy, SRI, Referrer Policy, security.txt, and TLS-expiry planning.
             </p>

@@ -72,7 +72,7 @@ export default function Page() {
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">All DevOps Tools</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              The 32 tools cover Docker Compose, Dockerfiles, Kubernetes, environment
+              The {devopsTools.length} tools cover Docker Compose, Dockerfiles, Kubernetes, environment
               variables, YAML validation and conversion, cron, DNS, CIDR, GitHub
               Actions, and Nginx configuration.
             </p>

@@ -80,7 +80,7 @@ export default function Page() {
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">All SEO Tools</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Browse all 32 tools for metadata, robots rules, sitemaps, canonicals,
+              Browse all {seoTools.length} tools for metadata, robots rules, sitemaps, canonicals,
               hreflang, redirects, HTTP signals, structured data, indexability,
               headings, image alt text, title and description review, slug analysis,
               crawl cleanup, and search-result previews.

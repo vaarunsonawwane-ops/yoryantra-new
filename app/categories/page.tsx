@@ -1,6 +1,7 @@
 import Link from "next/link";
 import SectionCard from "@/app/components/SectionCard";
 import SectionMiniCard from "@/app/components/SectionMiniCard";
+import { tools } from "@/app/data/tools";
 
 const categories = [
   {
@@ -43,7 +44,7 @@ const categories = [
     description:
       "Handle HTTP text, regex, URLs, timestamps, UUIDs, cURL and Fetch translation, headers, and everyday debugging tasks.",
     href: "/categories/developer-tools",
-    examples: ["HTTP Request Parser", "Regex Tester", "Fetch to cURL Converter"],
+    examples: ["HTTP Request Parser", "Regex Match Tester", "Fetch to cURL Converter"],
   },
 ];
 
@@ -80,7 +81,7 @@ export default function Page() {
           </h1>
 
           <p className="mt-6 text-lg leading-relaxed text-gray-600">
-            Yoryantra groups 192 tools into six practical areas. The categories
+            Yoryantra groups {tools.length} tools into six practical areas. The categories
             follow the main question each tool answers, because the same format can
             play very different roles in development, deployment, security, search,
             or data work.

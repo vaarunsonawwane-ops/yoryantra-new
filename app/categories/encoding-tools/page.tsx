@@ -135,7 +135,7 @@ export default function Page() {
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">All Encoding Tools</h2>
             <p className="mt-3 text-gray-600 leading-relaxed">
-              Browse all 32 tools for Base64 and Base64URL, Base32, Base58, hex and
+              Browse all {encodingTools.length} tools for Base64 and Base64URL, Base32, Base58, hex and
               octal bytes, percent encoding, Unicode escapes, HTML or XML entities,
               MIME text, Punycode, PEM text, QR data, and related transformations.
             </p>
