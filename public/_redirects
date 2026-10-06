@@ -15,3 +15,5 @@
 /tools/api-key-generator /tools/random-token-generator 301
 /tools/open-graph-generator /tools/meta-tag-generator 301
 /tools/ndjson-formatter-validator /tools/json-lines-to-json-converter 301
+/tools/jwt-decoder /tools/jwt-claims-inspector 301
+/tools/jwt-expiration-checker /tools/jwt-claims-inspector 301
