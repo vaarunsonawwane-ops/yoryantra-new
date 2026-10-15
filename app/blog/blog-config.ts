@@ -3,7 +3,7 @@
  * authorizes publication of the first reviewed article.
  * Never derive this from NODE_ENV or an environment variable alone.
  */
-export const BLOG_RELEASE_ENABLED = false;
+export const BLOG_RELEASE_ENABLED = true;
 
 /** Historical C8/C9-approved launch corpus: preserve in the strategy master.
  * Individual article publishing at C14 does not require all eight to go live at once.

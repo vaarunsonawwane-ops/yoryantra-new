@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BLOG_RELEASE_ENABLED } from "@/app/blog/blog-config";
 const linkClass =
   "text-gray-700 transition-colors duration-200 hover:!text-[var(--light-gold)] focus-visible:outline-none focus-visible:text-[var(--green)]";
 
@@ -32,7 +33,10 @@ export default function Footer() {
                 Resources
               </Link>
 
-              <Link href="/sitemap" className={linkClass}>
+              {BLOG_RELEASE_ENABLED && (
+                <Link href="/blog" className={linkClass}>Blog</Link>
+              )}
+                            <Link href="/sitemap" className={linkClass}>
                 Sitemap
               </Link>
             </div>

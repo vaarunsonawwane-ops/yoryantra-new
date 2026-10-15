@@ -1,0 +1,93 @@
+/* Blog-only styles. 180 tools and global design tokens remain unchanged. */
+/* Matches the existing Yoryantra lift/shadow behavior without default borders. */
+.yoryantra-blog-card {
+  background: #f9fafb;
+  box-shadow: none;
+  transform: translateY(0);
+  transition: background-color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.yoryantra-blog-card:hover {
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .11);
+  transform: translateY(-4px);
+}
+.yoryantra-blog-card:focus-visible {
+  background: #fff;
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .11);
+}
+.yoryantra-blog-card-title {
+  color: #111827;
+  transition: color .2s ease;
+}
+/* Use the same official --light-gold accent as Yoryantra tool cards; card titles stay dark at rest. */
+.yoryantra-blog-card:hover .yoryantra-blog-card-title,
+.yoryantra-blog-card:focus-visible .yoryantra-blog-card-title {
+  color: var(--light-gold);
+}
+.yoryantra-blog-card-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.yoryantra-blog-preview-note {
+  border-left: 4px solid var(--light-gold);
+  background: var(--light-bg);
+  color: var(--dark);
+}
+@media (prefers-reduced-motion: reduce) {
+  .yoryantra-blog-card,
+  .yoryantra-blog-card-title { transition: none; }
+  .yoryantra-blog-card:hover { transform: none; }
+}
+
+.yoryantra-blog-link { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+.yoryantra-blog-link:hover { color: var(--light-gold); }
+.yoryantra-blog-link:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+.yoryantra-blog-prose { color: #253143; font-size: 1rem; line-height: 1.85; overflow-wrap: anywhere; }
+.yoryantra-blog-prose > * + * { margin-top: 1.15rem; }
+.yoryantra-blog-prose h2, .yoryantra-blog-prose h3, .yoryantra-blog-prose h4 { font-weight: 700; color: #182434; line-height: 1.4; scroll-margin-top: 6rem; }
+.yoryantra-blog-prose h2 { font-size: 1.55rem; margin-top: 2.6rem; }
+.yoryantra-blog-prose h3 { font-size: 1.25rem; margin-top: 1.8rem; }
+.yoryantra-blog-prose h4 { font-size: 1.1rem; margin-top: 1.6rem; }
+.yoryantra-blog-prose a { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+.yoryantra-blog-prose a:hover { color: var(--light-gold); }
+.yoryantra-blog-prose a:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+.yoryantra-blog-prose strong { color: #111827; font-weight: 700; }
+.yoryantra-blog-prose ul { list-style: disc; padding-left: 1.6rem; }
+.yoryantra-blog-prose ol { list-style: decimal; padding-left: 1.6rem; }
+.yoryantra-blog-prose li + li { margin-top: .35rem; }
+.yoryantra-blog-prose li > ul, .yoryantra-blog-prose li > ol { margin-top: .4rem; }
+.yoryantra-blog-prose blockquote { border-left: 3px solid var(--light-gold); padding: .3rem 1.15rem; background: var(--light-bg); color: #374151; }
+.yoryantra-blog-prose hr { border: 0; border-top: 1px solid #e5e7eb; margin: 2rem 0; }
+.yoryantra-blog-prose pre { max-width: 100%; overflow-x: auto; border-radius: 12px; background: #111827; color: #f9fafb; padding: 1.1rem 1.2rem; font-size: .875rem; line-height: 1.65; tab-size: 2; }
+.yoryantra-blog-prose pre code { background: transparent; border: 0; padding: 0; color: inherit; white-space: pre; }
+.yoryantra-blog-prose :not(pre) > code { padding: .12rem .3rem; border-radius: .25rem; background: #f3f4f6; font-size: .91em; overflow-wrap: anywhere; }
+.yoryantra-blog-prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; border: 1px solid #d1d5db; font-size: .92rem; }
+.yoryantra-blog-prose th, .yoryantra-blog-prose td { padding: .65rem .8rem; text-align: left; border: 1px solid #d1d5db; vertical-align: top; min-width: 7rem; }
+.yoryantra-blog-prose th { background: #f9fafb; color: #182434; font-weight: 700; }
+.yoryantra-blog-prose img { display: block; height: auto; max-width: 100%; }
+@media (max-width: 640px) { .yoryantra-blog-prose { font-size: .97rem; line-height: 1.8; } .yoryantra-blog-prose h2 { font-size: 1.4rem; } .yoryantra-blog-prose pre { font-size: .8rem; } }
+
+/* Breadcrumbs and return link follow Yoryantra's subdued Tools navigation. */
+.yoryantra-blog-breadcrumb-link,
+.yoryantra-blog-back-link {
+  color: #64748b;
+  text-decoration: none;
+  transition: color .2s ease;
+}
+.yoryantra-blog-breadcrumb-link:hover,
+.yoryantra-blog-back-link:hover { color: var(--light-gold); }
+.yoryantra-blog-breadcrumb-link:focus-visible,
+.yoryantra-blog-back-link:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .yoryantra-blog-breadcrumb-link,
+  .yoryantra-blog-back-link { transition: none; }
+}

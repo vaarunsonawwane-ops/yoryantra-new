@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { BLOG_RELEASE_ENABLED } from "@/app/blog/blog-config";
 const navigation = [
   {
     href: "/",
@@ -20,6 +21,7 @@ const navigation = [
     href: "/resources",
     label: "Resources",
   },
+  ...(BLOG_RELEASE_ENABLED ? [{ href: "/blog", label: "Blog" }] : []),
   {
     href: "/about",
     label: "About",

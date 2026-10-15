@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { tools } from "@/app/data/tools";
+import { getPublishedArticles } from "@/app/blog/blog-data";
 
 export const dynamic = "force-static";
 
@@ -38,5 +39,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${baseUrl}${tool.href}`,
   }));
 
-  return [...staticEntries, ...toolEntries];
+  // Only the individually approved, published articles enter the public sitemap.
+  const published = getPublishedArticles();
+  const blogEntries: MetadataRoute.Sitemap = published.length > 0
+    ? [
+        { url: `${baseUrl}/blog` },
+        ...published.map((article) => ({
+          url: `${baseUrl}/blog/${article.slug}`,
+          lastModified: new Date(`${article.dateModified ?? article.datePublished}T00:00:00Z`),
+        })),
+      ]
+    : [];
+
+  return [...staticEntries, ...toolEntries, ...blogEntries];
 }
