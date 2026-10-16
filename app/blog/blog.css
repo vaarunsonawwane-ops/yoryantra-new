@@ -66,7 +66,29 @@
 .yoryantra-blog-prose pre { max-width: 100%; overflow-x: auto; border-radius: 12px; background: #111827; color: #f9fafb; padding: 1.1rem 1.2rem; font-size: .875rem; line-height: 1.65; tab-size: 2; }
 .yoryantra-blog-prose pre code { background: transparent; border: 0; padding: 0; color: inherit; white-space: pre; }
 .yoryantra-blog-prose :not(pre) > code { padding: .12rem .3rem; border-radius: .25rem; background: #f3f4f6; font-size: .91em; overflow-wrap: anywhere; }
-.yoryantra-blog-prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; border: 1px solid #d1d5db; font-size: .92rem; }
+/* Wrap only tables, not the entire article, to keep two-column tables aligned and
+   let wider technical comparisons scroll horizontally on small screens. */
+.yoryantra-blog-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #d1d5db;
+}
+.yoryantra-blog-table-scroll:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.yoryantra-blog-prose table {
+  display: table;
+  width: 100%;
+  max-width: none;
+  table-layout: auto;
+  margin: 0;
+  border: 0;
+  border-collapse: collapse;
+  font-size: .92rem;
+}
 .yoryantra-blog-prose th, .yoryantra-blog-prose td { padding: .65rem .8rem; text-align: left; border: 1px solid #d1d5db; vertical-align: top; min-width: 7rem; }
 .yoryantra-blog-prose th { background: #f9fafb; color: #182434; font-weight: 700; }
 .yoryantra-blog-prose img { display: block; height: auto; max-width: 100%; }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ComponentProps } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
@@ -47,6 +48,19 @@ function readerArticleType(value: string) {
   if (value === "Evergreen") return "Guide";
   if (value === "Comparison / Explainer") return "Comparison";
   return value;
+}
+
+function ScrollableTechnicalTable(props: ComponentProps<"table">) {
+  return (
+    <div
+      className="yoryantra-blog-table-scroll"
+      role="region"
+      aria-label="Technical comparison table"
+      tabIndex={0}
+    >
+      <table {...props} />
+    </div>
+  );
 }
 
 export default async function BlogArticlePage({ params }: PageProps) {
@@ -101,7 +115,7 @@ export default async function BlogArticlePage({ params }: PageProps) {
         </div>
       </header>
       <article className="yoryantra-blog-prose mx-auto mt-9 max-w-3xl">
-        <MDXRemote source={article.content} options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }} />
+        <MDXRemote source={article.content} components={{ table: ScrollableTechnicalTable }} options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }} />
       </article>
       <nav aria-label="Return to Blog" className="mx-auto mt-12 max-w-3xl border-t border-gray-200 pt-7">
         <Link className="yoryantra-blog-back-link inline-flex items-center gap-2 text-sm" href="/blog">← Back to Blog</Link>
