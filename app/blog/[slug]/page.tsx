@@ -120,21 +120,25 @@ export default async function BlogArticlePage({ params }: PageProps) {
       </header>
       {tocLinks.length > 0 && (
         <div className="mx-auto mt-9 max-w-3xl">
-          <nav className="yoryantra-blog-toc-desktop" aria-label="In this article">
-            <div className="yoryantra-blog-toc-heading">
-              <p className="yoryantra-blog-toc-title">In this article</p>
+          <details className="yoryantra-blog-toc-desktop" open>
+            <summary>
+              <span className="yoryantra-blog-toc-desktop-text">
+                <span className="yoryantra-blog-toc-title">In this article</span>
+                <span className="yoryantra-blog-toc-help">Jump to a section</span>
+              </span>
               <svg aria-hidden="true" className="yoryantra-blog-toc-list-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M8 6h13M8 12h13M8 18h13" />
                 <path d="M3 6h.01M3 12h.01M3 18h.01" />
               </svg>
-            </div>
-            <p className="yoryantra-blog-toc-help">Jump to a section</p>
-            <ul className="yoryantra-blog-toc-list">
-              {tocLinks.map((section) => (
-                <li key={section.id}><a href={`#${section.id}`}>{section.title}</a></li>
-              ))}
-            </ul>
-          </nav>
+            </summary>
+            <nav aria-label="In this article">
+              <ul className="yoryantra-blog-toc-list">
+                {tocLinks.map((section) => (
+                  <li key={section.id}><a href={`#${section.id}`}>{section.title}</a></li>
+                ))}
+              </ul>
+            </nav>
+          </details>
           <details className="yoryantra-blog-toc-mobile">
             <summary>
               <span className="yoryantra-blog-toc-mobile-text">
