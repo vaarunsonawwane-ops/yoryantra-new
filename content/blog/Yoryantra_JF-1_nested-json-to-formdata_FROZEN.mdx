@@ -1,0 +1,325 @@
+---
+slug: nested-json-to-formdata-arrays-objects
+title: "Nested JSON to FormData: Arrays, Objects, Brackets and What the Server Actually Receives"
+description: "Nested JSON does not map to FormData automatically. See how arrays, objects, repeated keys, bracket notation and JSON-stringified fields change what a backend receives."
+topic: Developer
+articleType: Evergreen
+datePublished: 2026-10-16
+dateModified: null
+author: "Varoun Sonawane"
+relatedTools:
+  - /tools/json-to-form-data-converter
+  - /tools/json-to-url-query-converter
+relatedResources:
+  - /developers
+sources:
+  - https://developer.mozilla.org/en-US/docs/Web/API/FormData/append
+  - https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects
+  - https://xhr.spec.whatwg.org/#interface-formdata
+  - https://www.rfc-editor.org/rfc/rfc7578.html
+  - https://axios-http.com/docs/multipart
+  - https://www.php.net/manual/en/language.variables.external.php
+  - https://yoryantra.com/tools/json-to-form-data-converter
+status: published
+---
+
+You have a JSON object that works fine in an API request. Then the request needs a file upload, so you switch to `FormData`. The simple fields still work, but the nested user object is missing, your tags arrive as one string, or the server sees field names such as `user[name]` instead of a user object.
+
+This is where the conversion gets confusing. The browser can send `FormData` correctly and the backend can still receive something different from what you intended. The reason is simple: **multipart form data carries named fields; it does not define one universal way to rebuild nested JSON.**
+
+Before changing bracket styles or writing a recursive converter, it helps to see what `FormData` actually stores, what goes over HTTP, and which decisions belong to the receiving server.
+
+## First, check whether this endpoint needs FormData
+
+If the endpoint already accepts `application/json`, and you are not sending files or following a multipart-specific contract, keeping JSON is usually the clearest choice. JSON already represents objects, arrays, numbers, booleans, and null values without inventing rules for field names.
+
+`FormData` makes sense when the endpoint asks for `multipart/form-data`, especially when you need to send a real `File` or `Blob` alongside ordinary fields. But an endpoint that accepts JSON does not automatically accept multipart. If switching formats produces HTTP 415, resolve that media-type mismatch first; converting the nested fields will not make the route support a different request body. That particular failure is covered in our guide to [415 Unsupported Media Type after switching from JSON to FormData](/blog/formdata-415-unsupported-media-type).
+
+Once the server genuinely expects form fields, the next question is: how does that server turn those fields back into your intended structure?
+
+## FormData stores entries, not JavaScript objects
+
+Consider a simple object:
+
+```js
+const payload = { name: "Sneha", role: "developer" };
+ 
+const form = new FormData();
+form.append("name", payload.name);
+form.append("role", payload.role);
+```
+
+That works because both values are already strings. Now imagine the same payload also contains a `profile` object and a `tags` array. A tempting shortcut is to pass those values directly to `append()`. It does not preserve their JavaScript types.
+
+The original JF-1 reproduction used Node 22.16.0's built-in `FormData` to check the conversion. Its results illustrate what happens when ordinary values are appended rather than being encoded deliberately:
+
+```js
+const form = new FormData();
+form.append("profile", { name: "Sneha" });
+form.append("tags", ["api", "forms"]);
+form.append("count", 2);
+form.append("active", true);
+form.append("empty", null);
+form.append("missing", undefined);
+ 
+for (const [name, value] of form.entries()) {
+  console.log(name, value);
+}
+```
+
+| Value passed to append() | Value stored as text |
+| --- | --- |
+| `{ name: "Sneha" }` | `[object Object]` |
+| `["api", "forms"]` | `api,forms` |
+| `2` | `2` |
+| `true` | `true` |
+| `null` | `null` |
+| `undefined` | `undefined` |
+
+The last two entries are the literal strings `"null"` and `"undefined"`, not JSON null or a missing field. MDN documents this string conversion for values that are not strings or `Blob` objects.
+
+So when you see a backend receive `[object Object]`, the browser has not mysteriously lost your JSON. The object was converted to text before the request was sent. You need to choose a representation that the API understands.
+
+## A nested object can be sent several ways
+
+Take this input:
+
+```json
+{
+  "user": {
+    "name": "Sneha",
+    "role": "developer"
+  }
+}
+```
+
+You might flatten the keys using dots:
+
+```js
+form.append("user.name", "Sneha");
+form.append("user.role", "developer");
+```
+
+Or use bracket notation:
+
+```js
+form.append("user[name]", "Sneha");
+form.append("user[role]", "developer");
+```
+
+Both produce valid `FormData` entries. They do **not** mean the same thing to every backend. In the multipart request, `user.name` and `user[name]` are ordinary field names. The browser does not interpret either name as instructions to construct an object.
+
+A server parser may turn bracket names into a nested structure. Another parser may expose the literal name `user[name]`. A framework may prefer dots, or a custom endpoint may expect a completely different field layout. The correct choice comes from the API documentation, a working request, or the actual parser configuration—not from whichever notation looks tidiest in the client code.
+
+## Arrays are where the differences become easier to see
+
+Suppose your JSON contains:
+
+```json
+{ "tags": ["api", "forms", "debugging"] }
+```
+
+There are at least three common ways to express those values as form fields. All are possible requests; none is a universal array rule.
+
+### Repeat the same field name
+
+```js
+form.append("tags", "api");
+form.append("tags", "forms");
+form.append("tags", "debugging");
+ 
+console.log(form.getAll("tags"));
+// ["api", "forms", "debugging"]
+```
+
+`FormData` keeps multiple entries with the same name. This is often a clean choice for a simple list when the backend is designed to collect repeated fields. But a parser that reads only one value per key might keep just one of them. The client cannot decide how the server handles repeats.
+
+### Add empty brackets
+
+```js
+form.append("tags[]", "api");
+form.append("tags[]", "forms");
+form.append("tags[]", "debugging");
+```
+
+Some parsers recognize `[]` as an array convention. Other backends receive three fields literally named `tags[]`. Axios documents this type of bracket-based expansion for its FormData serializer, but that serializer convention does not make `[]` a requirement of the multipart standard.
+
+### Use numbered indexes when the array contains objects
+
+For a list of people, explicit indexes make the pairing between fields much clearer:
+
+```json
+{
+  "users": [
+    { "name": "Sneha", "role": "developer" },
+    { "name": "Varoun", "role": "creator" }
+  ]
+}
+```
+
+```js
+form.append("users[0][name]", "Sneha");
+form.append("users[0][role]", "developer");
+form.append("users[1][name]", "Varoun");
+form.append("users[1][role]", "creator");
+```
+
+This preserves the intended grouping in the field names. It does not guarantee that the server will reconstruct an array of objects. That still depends on its parser. By comparison, sending `name`, `role`, `name`, `role` repeatedly gives the backend much less explicit information about which values belong together.
+
+## What the multipart request actually contains
+
+This distinction is worth seeing at the HTTP level. The frozen JF-1 source also used Node 22.16.0 to serialize bracket-style field names. The generated request included a multipart boundary, but the field names remained unchanged. It did not produce a hidden JSON object.
+
+For example, if the client adds these entries:
+
+```js
+form.append("user[name]", "Sneha");
+form.append("tags[]", "api");
+form.append("tags[]", "forms");
+```
+
+The body is conceptually shaped like this (the boundary below is illustrative):
+
+```http
+Content-Type: multipart/form-data; boundary=----example
+ 
+------example
+Content-Disposition: form-data; name="user[name]"
+ 
+Sneha
+------example
+Content-Disposition: form-data; name="tags[]"
+ 
+api
+------example
+Content-Disposition: form-data; name="tags[]"
+ 
+forms
+------example--
+```
+
+Notice what is missing: there is no extra schema describing a `user` object or a `tags` array. The request contains a sequence of parts with names and values. Reconstructing an object is a server-side decision.
+
+That is why an API can accept the multipart body without a boundary error and still give you an unexpected parsed result. **Correct multipart framing and correct application-level field mapping are different checks.**
+
+## Sometimes one JSON string field is the better answer
+
+Flattening everything into field names can become awkward when the nested data is large or contains arrays of objects. If the endpoint's contract supports it, you can send a JSON string as one field and keep the file as a separate binary part.
+
+```js
+const metadata = {
+  title: "Profile",
+  user: { name: "Sneha", preferences: { theme: "dark" } },
+  tags: ["api", "forms"],
+};
+ 
+const form = new FormData();
+form.append("metadata", JSON.stringify(metadata));
+form.append("avatar", fileInput.files[0]);
+```
+
+Here, the `metadata` field is **text containing JSON**. It is not automatically a nested object in the multipart parser's output. The backend must explicitly parse that field as JSON, and the API must document that expectation.
+
+This approach can be easier to maintain when the multipart request exists mainly because of a file upload. But it is wrong for an endpoint that expects separate `user[name]` or `tags[]` fields. A JSON-stringified field and a collection of bracket-named fields are different contracts, even when they describe similar data.
+
+For example, these two forms cannot safely be swapped without checking the receiving code:
+
+```text
+filters[status][] = open
+filters[status][] = pending
+filters[owner][id] = 42
+```
+
+```text
+filters = {"status":["open","pending"],"owner":{"id":42}}
+```
+
+The first relies on a parser understanding those field names. The second relies on application code parsing a JSON string called `filters`.
+
+## Empty, missing, null, and false need deliberate handling
+
+Some of the hardest bugs are not about brackets at all. They come from values that have different meanings in JSON but look similar after conversion.
+
+Consider:
+
+```json
+{ "middleName": "", "nickname": null, "active": false, "count": 0 }
+```
+
+A missing field is different from an empty string. JSON `null` is different from the literal text `"null"`. And if you append `false` or `0` to FormData, their entries are text—`"false"` and `"0"`—unless you are sending a different binary representation.
+
+An API might define an empty string as “clear this field,” a missing field as “leave it unchanged,” and null as “remove the value.” Another API may reject one or more of those cases. A generic conversion function cannot know those rules.
+
+This matters particularly for partial updates. Before sending the request, decide whether each field should be omitted, sent empty, or represented using a documented sentinel or JSON metadata field. Then confirm how the backend performs type coercion. Don't assume the parser will recover the original JSON types for you.
+
+### A file path is not a file upload
+
+A real `File` or `Blob` is one good reason to use multipart. But this is only a text field:
+
+```js
+form.append("avatar", "profile.jpg");
+```
+
+To include the file's contents, append the actual browser file object:
+
+```js
+form.append("avatar", fileInput.files[0]);
+```
+
+The endpoint must still support file parts under that field name. Converting pasted JSON into field names cannot manufacture a binary upload from a filename string.
+
+## One backend's bracket rules are not everyone's
+
+PHP is a useful concrete example. Its manual describes external form names such as `personal[name]`, `personal[email]`, and `beer[]`, which its parser can interpret as array-shaped values. It also documents normalization of dots in external variable names to underscores.
+
+So a field named `user.name` does not carry a cross-platform instruction to create a nested `user` object. Nor does `user[name]` promise the same result in every language or framework. The names are transported literally; the parser applies its own rules.
+
+If you are working with Axios, PHP, a Node server, or a custom backend, check both sides of the request: **how the client serializes the fields and how the server parses them**. A client library documenting bracket expansion is not proof that your API server recognizes those brackets.
+
+## A practical way to check the mapping before sending it
+
+When a nested payload is failing or arriving in the wrong shape, this order usually saves time:
+
+1. **Confirm the request format.** Does the route accept JSON, multipart, or URL-encoded form data? If it expects JSON, stop converting unless the contract changed.
+
+2. **Write down one expected server-side example.** What should the parsed `user`, `tags`, or `users` value actually look like?
+
+3. **Choose the field naming strategy that backend understands.** Repeated keys, empty brackets, numbered indexes, dots, and JSON strings are not substitutes for one another.
+
+4. **Set rules for special values.** Decide how to represent empty strings, missing fields, nulls, numbers, booleans, and actual files.
+
+5. **Inspect the outgoing request in DevTools.** Look at the payload and `Content-Type`, not only the JavaScript object that created the request. Let Fetch supply the multipart boundary when passing a normal `FormData` body.
+
+6. **Inspect what the server parsed.** A backend log or temporary development endpoint can tell you whether the entries became the structure you expected.
+
+If the browser sends the expected names but the backend gives you an unexpected object, the next thing to investigate is the server parser—not another frontend loop that rewrites all your keys.
+
+## Where Yoryantra's converter helps
+
+The [JSON to Form Data Converter](/tools/json-to-form-data-converter) is useful for comparing how nested fields could be named before you connect the payload to an API. It helps make arrays, repeated fields, bracket paths, and value handling easier to inspect without actually submitting a request to your backend.
+
+It cannot choose the server's contract, guarantee that a PHP-style bracket name works in another framework, or attach the contents of a real local file from a filename in pasted JSON. Those checks still belong to the application receiving the request.
+
+If an endpoint expects URL-encoded fields rather than multipart, a different representation may be appropriate; Yoryantra's [JSON to URL Query Converter](/tools/json-to-url-query-converter) can help with query-style mappings, but it is not a replacement for validating the request-body contract.
+
+The rule I use is straightforward: **work backward from what the endpoint needs to receive.** Once you know how the server parses field names and values, converting the JSON becomes a predictable task rather than a guessing game.
+
+## Sources and test basis
+
+The technical distinctions here follow MDN's `FormData.append()` and FormData usage documentation, the WHATWG XMLHttpRequest FormData interface, RFC 7578's multipart/form-data specification, Axios's multipart serializer documentation, and PHP's documentation for variables from external sources. The coercion and multipart field-name examples were documented in the original JF-1 frozen draft using Node 22.16.0; exact server parsing results depend on the receiving backend.
+
+- [MDN — FormData.append()](https://developer.mozilla.org/en-US/docs/Web/API/FormData/append)
+
+- [MDN — Using FormData Objects](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects)
+
+- [WHATWG — XMLHttpRequest FormData interface](https://xhr.spec.whatwg.org/#interface-formdata)
+
+- [RFC 7578 — multipart/form-data](https://www.rfc-editor.org/rfc/rfc7578.html)
+
+- [Axios — Multipart Bodies](https://axios-http.com/docs/multipart)
+
+- [PHP Manual — Variables From External Sources](https://www.php.net/manual/en/language.variables.external.php)
+
+- [Related Yoryantra tool](https://yoryantra.com/tools/json-to-form-data-converter)
+
+- [Related Yoryantra guide](https://yoryantra.com/blog/formdata-415-unsupported-media-type)
