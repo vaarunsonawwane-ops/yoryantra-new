@@ -6,6 +6,7 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { BLOG_RELEASE_ENABLED } from "../blog-config";
 import { getRenderableArticle, getRenderableArticles } from "../blog-data";
+import { collectBlogSections, selectBlogTocSections, remarkBlogHeadingAnchors } from "../blog-toc";
 import "../blog.css";
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -68,6 +69,9 @@ export default async function BlogArticlePage({ params }: PageProps) {
   const article = getRenderableArticle(slug);
   if (!article) notFound();
 
+  const sections = collectBlogSections(article.content);
+  const tocLinks = selectBlogTocSections(sections, article.content);
+  const headingAnchors = remarkBlogHeadingAnchors(sections);
   const canonical = `https://yoryantra.com/blog/${article.slug}`;
   const jsonLd = BLOG_RELEASE_ENABLED && article.datePublished ? {
     "@context": "https://schema.org",
@@ -114,8 +118,30 @@ export default async function BlogArticlePage({ params }: PageProps) {
           )}
         </div>
       </header>
+      {tocLinks.length > 0 && (
+        <div className="mx-auto mt-9 max-w-3xl">
+          <nav className="yoryantra-blog-toc-desktop" aria-label="In this article">
+            <p className="yoryantra-blog-toc-title">In this article</p>
+            <ul className="yoryantra-blog-toc-list">
+              {tocLinks.map((section) => (
+                <li key={section.id}><a href={`#${section.id}`}>{section.title}</a></li>
+              ))}
+            </ul>
+          </nav>
+          <details className="yoryantra-blog-toc-mobile">
+            <summary>In this article</summary>
+            <nav aria-label="In this article">
+              <ul className="yoryantra-blog-toc-list">
+                {tocLinks.map((section) => (
+                  <li key={section.id}><a href={`#${section.id}`}>{section.title}</a></li>
+                ))}
+              </ul>
+            </nav>
+          </details>
+        </div>
+      )}
       <article className="yoryantra-blog-prose mx-auto mt-9 max-w-3xl">
-        <MDXRemote source={article.content} components={{ table: ScrollableTechnicalTable }} options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }} />
+        <MDXRemote source={article.content} components={{ table: ScrollableTechnicalTable }} options={{ mdxOptions: { remarkPlugins: [remarkGfm, headingAnchors] } }} />
       </article>
       <nav aria-label="Return to Blog" className="mx-auto mt-12 max-w-3xl border-t border-gray-200 pt-7">
         <Link className="yoryantra-blog-back-link inline-flex items-center gap-2 text-sm" href="/blog">← Back to Blog</Link>
