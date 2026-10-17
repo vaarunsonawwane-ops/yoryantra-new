@@ -135,7 +135,6 @@
 .yoryantra-blog-toc-desktop summary:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 3px; }
 .yoryantra-blog-toc-desktop-text { display: flex; flex-direction: column; }
 .yoryantra-blog-toc-title { color: #182434; font-size: .95rem; font-weight: 700; }
-.yoryantra-blog-toc-list-icon { flex: none; color: #6b7280; }
 .yoryantra-blog-toc-help { color: #6b7280; font-size: .82rem; line-height: 1.5; margin-top: .2rem; }
 .yoryantra-blog-toc-list {
   display: grid;
@@ -183,6 +182,7 @@
 .yoryantra-blog-toc-mobile summary:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 3px; }
 .yoryantra-blog-toc-mobile-text { display: flex; flex-direction: column; }
 .yoryantra-blog-toc-chevron { color: #6b7280; flex: none; transition: transform .2s ease; }
+.yoryantra-blog-toc-desktop[open] .yoryantra-blog-toc-chevron,
 .yoryantra-blog-toc-mobile[open] .yoryantra-blog-toc-chevron { transform: rotate(180deg); }
 @media (max-width: 639px) {
   .yoryantra-blog-toc-desktop { display: none; }
