@@ -1,0 +1,409 @@
+---
+slug: valid-sitemap-not-indexed
+title: "Why a Valid XML Sitemap Does Not Guarantee That Its URLs Will Be Indexed"
+description: "A valid or successfully processed sitemap can help Google discover URLs, but it does not guarantee crawling or indexing. Diagnose sitemap status, discovery, fetchability, noindex, canonicals, redirects, and Search Console indexing reasons."
+topic: SEO
+articleType: Troubleshooting
+datePublished: null
+dateModified: null
+author: "Varoun Sonawane"
+relatedTools:
+  - /tools/sitemap-validator
+  - /tools/sitemap-generator
+  - /tools/indexability-checker
+  - /tools/canonical-url-checker
+relatedResources:
+  - /seo-resources
+sources:
+  - https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap
+  - https://support.google.com/webmasters/answer/7451001
+  - https://support.google.com/webmasters/answer/7440203
+  - https://support.google.com/webmasters/answer/9012289
+  - https://developers.google.com/search/docs/crawling-indexing/troubleshoot-crawling-errors
+  - https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
+  - https://yoryantra.com/tools/sitemap-validator
+status: ready
+---
+
+Your sitemap passes validation, and Search Console says `Success`. Yet some of its URLs are missing from Google Search. That's possible because **validating a sitemap, processing it, crawling pages and indexing them are separate steps**. A successful sitemap means Google could read and process the file. Its URLs are queued for crawling; Google still has to fetch and evaluate each page, choose a canonical and decide whether to index it. Google does not guarantee that every submitted URL will be indexed.
+
+So instead of resubmitting the XML, ask a more useful question: **what happened to each URL after Google discovered it?** Search Console can usually help narrow down the next check.
+
+## Three things a “valid sitemap” can mean
+
+People often use “valid sitemap” to mean three different things.
+
+### 1. Valid XML
+
+The document can be parsed as XML. This only proves that the XML is well formed.
+
+### 2. Valid Sitemap protocol structure
+
+The document has the expected sitemap root, namespace, entries, absolute URLs, file limits, and other protocol rules. The Yoryantra Sitemap Validator works at this layer. It can inspect pasted XML for:
+
+- `urlset` or `sitemapindex`;
+- Sitemap namespace;
+- `loc` entries;
+- duplicates;
+- `lastmod`;
+- file limits;
+- deployment scope.
+
+It does **not** fetch the URLs listed in the sitemap and does not verify live robots.txt, HTTP status, `noindex`, canonical selection, or Google indexing.
+
+### 3. Successfully processed by Google
+
+Search Console can show:
+
+```text
+Success
+```
+
+for a submitted sitemap. That means Google could load and process the sitemap without errors. It still does not mean every URL passed the rest of Google's crawling and indexing pipeline. A useful model is:
+
+```text
+valid XML
+    ↓
+valid Sitemap protocol
+    ↓
+Google can read/process sitemap
+    ↓
+URL queued / discovered
+    ↓
+URL crawled
+    ↓
+page indexable
+    ↓
+canonical selected
+    ↓
+Google chooses whether to index it
+```
+
+A sitemap success message sits near the top of that chain, not at the bottom.
+
+## A submitted URL still has to be fetched
+
+Suppose your sitemap contains:
+
+```xml
+<url>
+  <loc>https://example.com/guides/api-auth</loc>
+</url>
+```
+
+The sitemap identifies a URL you want Google to know about.
+
+It does not deliver the page content itself. Google still has to request:
+
+```text
+https://example.com/guides/api-auth
+```
+
+and the fetch can encounter:
+
+```text
+robots.txt block
+401
+403
+404
+5xx
+redirect chain
+DNS/network failure
+```
+
+The sitemap cannot override any of those conditions. That is why the correct next step after confirming sitemap success is usually **URL Inspection**, not another round of XML editing.
+
+## Check the sitemap report before the pages
+
+Before diagnosing individual URLs, eliminate actual sitemap problems. Check:
+
+- Search Console sitemap status;
+- `Last read`;
+- whether the file can be fetched;
+- XML/Sitemap protocol validity;
+- absolute URL format;
+- scope/location;
+- sitemap-index relationships;
+- file-size and URL-count limits.
+
+If Search Console says:
+
+```text
+Couldn't fetch
+```
+
+or the validator finds protocol errors, solve those first. If Search Console says:
+
+```text
+Success
+```
+
+and your local validator passes, move to the URLs. Do not keep regenerating the same correct sitemap because a page is not indexed.
+
+## Check which URLs the sitemap lists
+
+A sitemap is not supposed to be a dump of every URL your application can generate. Google's sitemap guidance says to include the URLs you want to see in Google Search results. That usually means the preferred, canonical versions. Good sitemap candidates look like:
+
+```text
+https://example.com/products/red-shirt
+https://example.com/guides/api-auth
+https://example.com/about
+```
+
+Potentially contradictory entries include:
+
+```text
+HTTP version that redirects to HTTPS
+old slug that redirects to a new slug
+tracking-parameter duplicate
+URL with noindex
+alternate URL that canonicals somewhere else
+404/410 URL
+```
+
+Google can process a sitemap containing one of those URLs. That does not make the URL a good indexing candidate.
+
+## Sitemap inclusion is a canonical signal, but a weak one
+
+This becomes important when the listed URL conflicts with other canonical signals. Google currently describes canonicalization signals in this order:
+
+```text
+redirects -> strong
+rel=canonical -> strong
+sitemap inclusion -> weak
+```
+
+Suppose the sitemap lists:
+
+```text
+https://example.com/product/red-shirt?sort=popular
+```
+
+but the page declares:
+
+```html
+<link
+  rel="canonical"
+  href="https://example.com/product/red-shirt"
+/>
+```
+
+and internal links also point to the clean URL. The sitemap does not force the parameter URL to become canonical. Google still evaluates the duplicate relationship and can choose the clean URL. This is why sitemap troubleshooting often becomes canonical troubleshooting.
+
+## Look at Page indexing for the submitted URLs
+
+Once Search Console has processed the sitemap, filter the **Page indexing** report to its submitted URLs. This is where a status such as `Discovered - currently not indexed`, `Crawled - currently not indexed`, or `Page with redirect` gives you a more useful next step than another sitemap validation run.
+
+## `Discovered - currently not indexed`
+
+Google knows the URL but has not crawled it yet. That is one of the clearest examples of a sitemap doing its discovery job without producing an index entry. A successfully processed sitemap can be the reason Google discovered the URL. But discovery still precedes crawling. Do not rewrite a valid sitemap simply because a URL is in this state. Instead, inspect:
+
+- whether the URL is also internally linked;
+- whether Google can crawl the site reliably;
+- whether the URL is important enough to be linked from relevant indexed pages;
+- whether the sitemap contains a large amount of stale or unwanted URLs.
+
+Google's documentation for this status is intentionally limited: the page was found but has not been crawled yet. Do not invent a single guaranteed cause from that label.
+
+## `Crawled - currently not indexed`
+
+This means Google crawled the page but did not index it. At this point, the sitemap has already succeeded at its core discovery role. Regenerating or resubmitting the same sitemap does not explain the indexing decision. Google's Page indexing documentation says the page may or may not be indexed in the future and there is no need to resubmit the URL for crawling. Use URL Inspection and examine the page itself.
+
+Check:
+
+```text
+HTTP response
+rendered content
+meta robots / X-Robots-Tag
+canonical
+duplicate relationship
+soft-404 interpretation
+Google-selected canonical
+```
+
+Do not turn `Crawled - currently not indexed` into an automatic “content quality” diagnosis either. Search Console does not give one universal reason inside that status.
+
+## `URL marked 'noindex'`
+
+This is a direct contradiction if the URL is supposed to be indexed. The sitemap includes the URL, but the page instructs Google not to index it.
+
+Google can successfully process the sitemap and then honor the page-level `noindex`. A valid sitemap does not override:
+
+```html
+<meta name="robots" content="noindex">
+```
+
+or:
+
+```http
+X-Robots-Tag: noindex
+```
+
+If the `noindex` is intentional, remove the URL from the sitemap. If indexing is intended, remove the unintended `noindex` and verify the live page.
+
+## `URL blocked by robots.txt`
+
+Again, sitemap discovery and crawl permission are different systems. A sitemap can list:
+
+```text
+https://example.com/private/report
+```
+
+while robots.txt says:
+
+```text
+User-agent: Googlebot
+Disallow: /private/
+```
+
+The sitemap does not grant crawl permission. If the URL should be indexed normally, fix the robots rule. If it should remain blocked, question why it is listed among URLs you want Google to search.
+
+## `Page with redirect`
+
+A sitemap should generally list the final preferred URL, not the URL that immediately redirects somewhere else. Example:
+
+```text
+Sitemap:
+http://example.com/guide
+
+Response:
+301 -> https://example.com/guide
+```
+
+The sitemap can still be parsed successfully. But the listed URL is not the page you ultimately want indexed. Update the sitemap to the final canonical destination. This reduces contradictory signals and makes the sitemap a cleaner representation of your preferred URLs.
+
+## `Not found (404)`
+
+A stale sitemap can continue listing URLs that no longer exist. The XML remains valid. Search Console can still process the sitemap. But a `404` URL cannot become an indexed live page simply because it appears in the file. If the page is permanently gone:
+
+```text
+return 404/410
+remove it from the sitemap
+```
+
+If it moved:
+
+```text
+redirect to the appropriate replacement
+list the replacement URL in the sitemap
+```
+
+Keep the sitemap consistent with the live site.
+
+## Duplicate and canonical statuses
+
+Submitted URLs can also appear under duplicate/canonical reasons such as:
+
+```text
+Alternate page with proper canonical tag
+Duplicate without user-selected canonical
+Duplicate, Google chose different canonical than user
+```
+
+Again, this is not a sitemap-format problem. The URL may be syntactically perfect and successfully submitted while Google chooses another representative page. A sitemap is one canonicalization signal. It is weaker than a redirect or `rel="canonical"` according to Google's current guidance. So inspect:
+
+- user-declared canonical;
+- Google-selected canonical;
+- redirects;
+- internal links;
+- sitemap entry;
+- whether the pages are actually duplicates.
+
+The sitemap should generally list the URL you want treated as canonical.
+
+## Find the next check from the URL's status
+
+The sitemap can be healthy in every row below. Use this as a quick reference after reading the specific reason in Search Console.
+
+| URL status | Next check | Change the sitemap? |
+| --- | --- | --- |
+| `Discovered - currently not indexed` | Internal discovery links and crawl history | Usually no |
+| `Crawled - currently not indexed` | Live content, fetch result, canonical and indexing evidence | Usually no |
+| `URL marked 'noindex'` | Whether exclusion is intentional | Remove intentionally excluded URL; otherwise fix `noindex` |
+| `URL blocked by robots.txt` | Intended crawl permission | Only if URL should not be included |
+| `Page with redirect` | Final preferred destination | List final URL |
+| `Not found (404)` | Deleted page or replacement | Remove or replace stale URL |
+| Duplicate or alternate canonical | User-declared and Google-selected canonicals | Align with preferred canonical |
+| Indexed | No indexing issue to diagnose here | No |
+
+## A locally valid sitemap can still fail after deployment
+
+There is another important distinction between local validation and live use. You can paste perfect XML into a validator:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://example.com/page</loc>
+  </url>
+</urlset>
+```
+
+and get a clean result. But the deployed file might still:
+
+```text
+return 404
+require authentication
+be blocked by robots.txt
+time out
+live at a different URL than the one submitted
+contain a different generated version
+```
+
+A browser-side XML validator cannot verify those deployment conditions. That is why Yoryantra's Sitemap Validator deliberately says that listed URLs are not crawled and search-engine submission is not verified. Use local validation for the file structure. Use Search Console for Google's live fetch/process status.
+
+## `lastmod` can help scheduling, but it is not an indexing switch
+
+Google says it uses `<lastmod>` when the value is consistently and verifiably accurate. The date should represent the last significant update to the page. Good example:
+
+```xml
+<lastmod>2026-10-08</lastmod>
+```
+
+when the main content, important structured data, or links genuinely changed on that date. Bad use:
+
+```text
+rewrite every lastmod to today on every sitemap build
+```
+
+even though the pages did not materially change. Accurate `lastmod` can help Google schedule crawling for URLs it already knows. It still does not guarantee:
+
+```text
+immediate crawl
+indexing
+ranking
+```
+
+Use genuine update dates rather than changing `<lastmod>` on every build.
+
+## Repeated sitemap submission is not an indexing strategy
+
+If Search Console already shows:
+
+```text
+Status: Success
+```
+
+submitting the same unchanged sitemap again does not create a new indexing guarantee. Google's crawling troubleshooting guidance explicitly says to avoid submitting the same unchanged sitemap multiple times per day. Similarly, Request Indexing in URL Inspection does not guarantee inclusion. Google says an indexing request can take time and does not guarantee the page will appear in the index. Use these mechanisms after a meaningful change.
+
+Do not use them as substitutes for diagnosis.
+
+## Diagnose one missing URL without starting over
+
+Take an important URL that is absent from Search and work through four checks:
+
+1. **Check the file.** Is the submitted sitemap fetchable, processed successfully, and recent enough to reflect the deployment? If not, fix the file or deployment first.
+2. **Check the listed URL.** Does it resolve to the preferred canonical URL, or is it an outdated slug, redirect, parameter variant, or intentionally excluded page?
+3. **Check Google's URL-level evidence.** In Page indexing and URL Inspection, look at the last crawl, fetch, crawl permission, indexing permission, declared canonical, and Google-selected canonical. For live signals, inspect the HTTP response, robots directives and rendered page.
+4. **Change only what the evidence supports.** Repair a 404, wrong redirect, accidental `noindex`, or contradictory canonical if present. If Google has crawled but not indexed an otherwise accessible URL, investigate the page rather than repeatedly resubmitting the same sitemap.
+
+The [Yoryantra Sitemap Validator](https://yoryantra.com/tools/sitemap-validator) checks the XML and protocol structure; it cannot tell you whether Google fetched the live file or indexed any listed page. Search Console supplies that second layer of evidence. A successful sitemap and a missing search result are not contradictory facts.
+
+## Sources
+
+- [Google Search Central — Build and submit a sitemap](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)
+- [Google Search Console — Sitemaps report](https://support.google.com/webmasters/answer/7451001)
+- [Google Search Console — Page indexing report](https://support.google.com/webmasters/answer/7440203)
+- [Google Search Console — URL Inspection tool](https://support.google.com/webmasters/answer/9012289)
+- [Google Search Central — Troubleshoot crawling errors](https://developers.google.com/search/docs/crawling-indexing/troubleshoot-crawling-errors)
+- [Google Search Central — Canonicalization methods](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls)
