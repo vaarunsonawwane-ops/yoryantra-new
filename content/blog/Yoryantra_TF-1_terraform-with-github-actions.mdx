@@ -1,0 +1,238 @@
+---
+slug: terraform-with-github-actions
+title: "Terraform with GitHub Actions for Pull Request Checks and Controlled Deployments"
+description: "Use GitHub Actions to validate Terraform pull requests, review infrastructure plans, separate cloud permissions, and protect production applies with real approval boundaries."
+topic: DevOps
+articleType: Guide
+datePublished: "2026-10-20"
+dateModified: null
+author: "Varoun Sonawane"
+relatedTools:
+  - /tools/github-actions-yaml-validator
+  - /tools/github-actions-matrix-builder
+sources:
+  - https://developer.hashicorp.com/terraform/tutorials/automation/github-actions
+  - https://developer.hashicorp.com/terraform/tutorials/automation/automate-terraform
+  - https://developer.hashicorp.com/terraform/cli/commands/plan
+  - https://developer.hashicorp.com/terraform/cli/commands/apply
+  - https://developer.hashicorp.com/terraform/language/backend
+  - https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers
+  - https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments
+  - https://docs.github.com/en/actions/reference/security/secure-use
+  - https://github.com/actions/upload-artifact
+  - https://github.com/actions/download-artifact
+  - https://github.com/hashicorp/setup-terraform
+status: published
+---
+
+A Terraform change is easy to review in Git when it is only a few lines. The harder question is what those lines will do to infrastructure that already exists. GitHub Actions can check formatting, initialize providers, validate configuration and request a plan. It can also trigger an apply. Those operations should not all receive the same permissions or run for every pull request.
+
+Imagine Sneha updates an AWS security group in a repository's `infra` directory. A pull-request check can tell her whether the Terraform files parse and pass validation. A plan needs access to the chosen backend and provider. Applying that plan can create, replace or delete resources. If the workflow treats those three stages as interchangeable, one apparently helpful automation can become a deployment risk.
+
+There are two common architectures worth separating. You can run the Terraform CLI directly on a GitHub Actions runner with remote state, or let HCP Terraform execute plans and applies while GitHub Actions triggers and observes the work. Both can be valid. This guide starts with an example that is safe to use as a review check, then explains what a production-grade plan and apply path needs beyond YAML that happens to run successfully.
+
+## Decide where Terraform is actually running
+
+GitHub Actions schedules jobs on runners. A runner can install the Terraform CLI and execute `terraform plan` directly; in that arrangement, the runner needs backend and cloud permissions for the operation. Alternatively, an action can call the HCP Terraform API and let an HCP workspace run Terraform elsewhere. In the second arrangement, GitHub Actions is the orchestrator, not necessarily the machine evaluating infrastructure.
+
+| Question | Terraform CLI on an Actions runner | HCP Terraform execution |
+| --- | --- | --- |
+| Where does plan or apply run | GitHub-hosted or self-hosted runner | HCP Terraform execution environment |
+| Who coordinates state and runs | Your automation plus configured backend and locking | HCP Terraform workspace and run controls |
+| Where approval can happen | GitHub environments or a custom reviewed-plan process | HCP Terraform run approval and policies |
+| Credential design | Runner must authenticate to state backend and provider | Workspace or dynamic provider credentials, plus API identity for caller |
+| Main operational responsibility | You maintain workflow ordering, isolation and artifact handling | You configure workspace permissions, run triggers and policies |
+
+Do not mix examples from these models without noticing. An HCP Terraform speculative plan is not automatically a saved CLI plan that a different runner can apply. HashiCorp documents different constraints for local CLI runs and remote execution. If a team already has HCP Terraform plan approvals and state management, recreating those controls inside GitHub Actions may add risk without adding much developer value.
+
+## Begin with a pull request that cannot apply anything
+
+The first workflow can run for untrusted contributions because it needs no cloud deployment role. Suppose the Terraform root module lives in `infra` and the repository commits its `.terraform.lock.hcl` file. This illustrative workflow checks syntax and provider configuration without initializing the remote backend:
+
+```yaml
+name: Terraform review checks
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: '1.14.6'
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate -no-color
+```
+
+`fmt -check` checks Terraform's canonical formatting and returns a failure if changes are needed. `init -backend=false` initializes what validation needs without connecting to the configured state backend. `validate` checks Terraform configuration consistency. It does not contact your live resources to prove that a security group rule is safe, that an IAM policy is least-privileged or that a provider API will accept the eventual change.
+
+That last limitation matters for reviews. A validator can accept a resource block that will fail during a real plan because the provider lacks credentials, the selected region does not support a value, or an API quota has already been reached. It also cannot see drift introduced outside Terraform. That is why a green validation check should not be labeled “safe to deploy.” It establishes that the proposed configuration passes particular local checks; the plan and approval stages still have work to do.
+
+This workflow has deliberate limits. Private modules and providers may still need credentials during initialization. Provider version constraints and the committed lock file affect reproducibility. A pull request can change the Terraform configuration, but a reviewer should not give it production credentials merely so this check looks green. If the check cannot work for external forks because modules require access, fix that trust and dependency design instead of quietly promoting the workflow to a privileged event.
+
+The action versions shown reflect published versions checked for this review. A production repository can pin actions to reviewed full commit SHAs, update them deliberately and require protected workflow changes. Tag references are convenient for reading an example but do not have the same immutability guarantee as full SHAs.
+
+## Planning needs more than syntactically valid YAML
+
+A real plan compares configuration with state and, depending on the provider, queries infrastructure. That means it may need access to a state backend, cloud APIs and credentials whose permissions go beyond those needed for formatting. Even if the plan does not modify infrastructure, its output can reveal hostnames, addresses or other sensitive attributes. It can also fail because the state backend is unavailable or a provider cannot read current resources.
+
+For that reason, don't copy `id-token: write` or an AWS role into the preceding pull-request check as a quick fix. Treat elevated planning as a distinct trust boundary. Decide which branches and actors can initiate it, which cloud account and role it may access, and which repository environment protects those settings.
+
+The event type is part of the security design. A `pull_request` workflow receives code supplied by the contributor, including changes that might affect build steps. A privileged `pull_request_target` workflow runs in the base repository's security context, which can make checking out and executing untrusted pull-request code especially dangerous. Moving a failing plan to a more privileged trigger without rethinking trust is not an ordinary CI repair. Keep the untrusted validation phase isolated and use explicitly approved, trusted code when a workflow can access infrastructure credentials.
+
+## A reviewed plan needs a real apply boundary
+
+For a repository where a tightly restricted team is allowed to handle saved Terraform plans, the approval boundary can be made visible in one manually triggered workflow. The example below runs only from `main`, gives planning and applying different AWS roles, and pauses at a protected `production` environment after the plan job completes. The reviewer can inspect the proposed change *before* approving the apply job. It is a pattern to adapt, not a workflow that has been tested against an actual AWS account or safe to copy into an unreviewed repository.
+
+**Important restriction:** `tfplan` is a sensitive binary file. A GitHub Actions artifact can be downloaded by people with sufficient access to the repository and its runs; shortening retention does not make it a secret store. Only use this handoff if your organization's repository access, artifact visibility and security policy permit it. For sensitive production plans, an HCP Terraform run with plan review and approval in HCP Terraform avoids passing the saved plan through a GitHub artifact at all.
+
+```yaml
+name: Terraform production change
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-production
+  queue: max
+
+jobs:
+  plan:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production-plan
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      plan_sha256: ${{ steps.fingerprint.outputs.sha256 }}
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: '1.14.6'
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.TF_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: terraform init -input=false
+      - run: terraform plan -input=false -no-color -out=tfplan
+      - id: fingerprint
+        run: echo "sha256=$(sha256sum tfplan | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: terraform-plan-${{ github.run_id }}
+          path: infra/tfplan
+          retention-days: 1
+          if-no-files-found: error
+
+  apply:
+    if: github.ref == 'refs/heads/main'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: '1.14.6'
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.TF_APPLY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: terraform-plan-${{ github.run_id }}
+          path: infra
+      - run: echo "${{ needs.plan.outputs.plan_sha256 }}  tfplan" | sha256sum -c -
+      - run: terraform init -input=false
+      - run: terraform apply -input=false tfplan
+```
+
+The variables `TF_PLAN_ROLE_ARN`, `TF_APPLY_ROLE_ARN` and `AWS_REGION` are placeholders for configuration accessible to their respective jobs. The workflow assumes that both GitHub environments and their branch/reviewer protection rules are configured, that AWS OIDC trust policies grant the appropriate roles, and that `infra` contains a usable Terraform root module and an already provisioned remote backend. GitHub environment-review availability depends on repository visibility and plan, so verify that the required-reviewer rule actually applies before relying on it. Protect `main` and workflow-file changes, restrict who can dispatch this workflow, and pin third-party actions to reviewed full commit SHAs in production instead of relying on moving major-version tags.
+
+GitHub's OIDC mechanism lets each job request a short-lived identity token rather than storing a permanent AWS access key in the repository. That mechanism is not safe by name alone. Each AWS role trust policy must restrict the issuer, expected audience and repository or environment subject; the plan role should only read the information planning needs, while the apply role gets narrowly scoped write access for the reviewed target. `id-token: write` permits requesting an OIDC token; it is not itself unrestricted AWS access. A successful role assumption also does not prove the role is least-privileged.
+
+Here the `production-plan` environment, if protected, is an authorization to *produce* a plan. It is not the review of the plan's effects. The second `production` environment is where a reviewer can inspect the completed plan's output in an appropriately access-controlled run and decide whether to authorize applying it. Configure the environment so the apply job cannot start without that approval. GitHub's environment gate is not evidence that anybody read the plan; the team's review procedure must require that explicitly. If the plan output is too sensitive to show in GitHub logs, use a restricted HCP Terraform approval workflow instead of posting a redacted-looking summary and assuming it is sufficient.
+
+The checksum step ties the downloaded binary to the plan job's reported hash. It can detect an accidental mismatch, but cannot make a compromised plan job or broadly accessible artifact trustworthy. `needs: plan` links the apply job to the successful plan in the *same* workflow run; `ref: ${{ github.sha }}` prevents the two jobs from silently checking out different commits. The saved plan fixes the proposed actions, so `terraform apply tfplan` does not prompt interactively. If the state has changed meanwhile, investigate and regenerate a plan for another review rather than bypassing the stale-plan failure.
+
+The HCP Terraform route is not merely a change of action name in this YAML. You configure an API-driven or VCS-connected workspace, let HCP Terraform own the run and its plan, then require a reviewer to confirm that run in HCP Terraform before apply. HashiCorp's GitHub Actions tutorial demonstrates the integration, but its automatic main-branch apply path is not automatically the right approval policy for every team. This arrangement can be preferable when a saved plan should not travel through GitHub artifacts. Don't try to download an HCP speculative plan and apply it as though it were a local CLI saved-plan file.
+
+Terraform's saved plan also carries information about the backend used during planning. Changing a backend setting in the apply job does not silently retarget the saved plan to a different state. Check the account, backend, workspace and run identity before issuing an approval, and use a new plan if any of those values differ from what the reviewer expected.
+
+It is tempting to put `terraform plan` followed immediately by `terraform apply -auto-approve` in one protected job. That can be appropriate for explicitly authorized low-risk automation, but it is **not** plan-based approval just because an environment reviewer clicked Approve before the job ran. For production, choose a control that matches the change risk and the audience actually examining the plan.
+
+Teams sometimes use `terraform plan -detailed-exitcode` to drive CI decisions. Unlike the default success/failure signal, that flag distinguishes an error, no changes and changes proposed. Your workflow must handle the documented exit codes intentionally: code 0 means no difference, code 2 means a nonempty plan, and code 1 signals an error. A naïve shell step may treat code 2 as job failure even when it simply means the proposed change is real. Equally, a script that turns every nonzero exit into a green check could conceal a genuine plan error. The exit code should inform the review process rather than substitute for reading the plan.
+
+## State locking and workflow concurrency solve different problems
+
+Terraform remote state represents infrastructure shared across executions. The backend's locking behavior helps prevent conflicting state operations. GitHub Actions concurrency, meanwhile, controls which workflow jobs or runs GitHub schedules at once. Both can matter because a workflow might perform actions outside Terraform or because two workflows could target the same deployment environment.
+
+For a production apply, use a stable concurrency group that identifies the deployment target. Do not build the group only from a pull-request number if separate pull requests could apply against the same production state. GitHub currently documents a `queue: max` option that can retain multiple waiting runs, while the default behavior retains at most one pending run. Neither setting replaces state locking, and a queue of outdated deployment requests may need explicit human review before execution.
+
+Do not set automatic cancellation for a long-running production apply without understanding what interruption does to your deployment process. Terraform might already have changed resources before a job is canceled. The next run must inspect actual state and provider results, not blindly assume the canceled run did nothing. [Yoryantra's companion guide on GitHub Actions concurrency](/blog/github-actions-concurrency-controls) covers the scheduling behavior in more detail.
+
+## Failures worth diagnosing separately
+
+**Formatting failed.** `terraform fmt -check` usually points to canonical style. Run `terraform fmt` locally, inspect the diff and commit the intentional formatting. Do not loosen a policy because the plan would probably be fine; a deterministic formatting check is inexpensive to satisfy.
+
+**Initialization failed.** An unavailable module source, unsupported provider version, missing lock-file compatibility, backend authentication or transient registry access can all surface during `init`. Read whether the failure happened while initializing backend, modules or providers. `init -backend=false` in a PR check and `init` during a real plan have intentionally different external dependencies.
+
+**OIDC role assumption failed.** Verify that the job has `id-token: write`, the cloud trust policy allows the exact repository, branch or environment subject, the audience is correct, and the role ARN and region are configured. An `AccessDenied` during resource inspection after successful role assumption is a different issue: it points to AWS permissions, not the OIDC exchange itself.
+
+**Plan showed unexpected deletion.** Stop. Inspect the affected resource address, configuration diff, provider version, workspace and current state. A renamed resource without a state move, a changed `for_each` key or a wrong workspace can produce a deletion/recreation proposal. Do not use `-auto-approve` to make an unfamiliar plan go away.
+
+**Plan succeeded but apply failed.** Look for drift, state contention, IAM changes, quotas or partial provider operations. Re-running an earlier saved plan after unrelated infrastructure changes may be unsafe or refused. Preserve logs and the exact run identity for diagnosis, while keeping secrets and sensitive plan artifacts out of public output.
+
+**Wrong account or workspace.** A workflow can authenticate successfully to the wrong target. Check the backend configuration, Terraform workspace, cloud account identity, region and role before blaming the provider. A development plan that accidentally reads production state is a serious issue even if the command exits successfully. Many teams make the selected environment, account identifier and workspace visible in job summaries without exposing secrets, then verify them before the first state-changing operation.
+
+## Checks that make the workflow dependable
+
+Keep Terraform configuration under review, commit the dependency lock file, restrict who can edit deployment workflow files and use least-privilege tokens. Distinguish the test identity from the production identity. Make the state backend, account and workspace visible in approved configuration so a correctly spelled command cannot silently target the wrong environment.
+
+Finally, record what each workflow actually proves. A formatter check proves formatting. `validate` checks configuration consistency. A plan describes proposed changes against an observed state at a particular point in time. An apply attempts to realize those changes and needs post-deployment verification. Those distinctions are more useful to a developer than a single green check mark labeled “Terraform passed.”
+
+## Official references and related Yoryantra tools
+
+- <a href="https://developer.hashicorp.com/terraform/tutorials/automation/github-actions" target="_blank" rel="noopener noreferrer">HashiCorp Automate Terraform with GitHub Actions</a>
+- <a href="https://developer.hashicorp.com/terraform/tutorials/automation/automate-terraform" target="_blank" rel="noopener noreferrer">HashiCorp Running Terraform in Automation</a>
+- <a href="https://developer.hashicorp.com/terraform/cli/commands/plan" target="_blank" rel="noopener noreferrer">HashiCorp Terraform plan command</a>
+- <a href="https://developer.hashicorp.com/terraform/cli/commands/apply" target="_blank" rel="noopener noreferrer">HashiCorp Terraform apply command</a>
+- <a href="https://developer.hashicorp.com/terraform/language/backend" target="_blank" rel="noopener noreferrer">HashiCorp Terraform backend configuration</a>
+- <a href="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers" target="_blank" rel="noopener noreferrer">GitHub OpenID Connect in cloud providers</a>
+- <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments" target="_blank" rel="noopener noreferrer">GitHub deployments and environments</a>
+- <a href="https://docs.github.com/en/actions/reference/security/secure-use" target="_blank" rel="noopener noreferrer">GitHub security guidance for actions</a>
+- <a href="https://github.com/actions/upload-artifact" target="_blank" rel="noopener noreferrer">GitHub upload-artifact action</a>
+- <a href="https://github.com/actions/download-artifact" target="_blank" rel="noopener noreferrer">GitHub download-artifact action</a>
+- <a href="https://github.com/hashicorp/setup-terraform" target="_blank" rel="noopener noreferrer">HashiCorp setup-terraform action</a>
+- [Yoryantra GitHub Actions YAML Validator](/tools/github-actions-yaml-validator)
+- [Yoryantra GitHub Actions Matrix Builder](/tools/github-actions-matrix-builder)
