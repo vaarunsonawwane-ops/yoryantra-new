@@ -1,0 +1,261 @@
+---
+slug: webhooks-vs-api
+title: What Is a Webhook? Webhook vs API, Signatures, Retries, and Delivery Failures
+description: Learn how webhooks differ from API polling, verify signed deliveries in Node.js, handle duplicate events, retries and missing notifications.
+topic: Developer
+articleType: Guide
+relatedTools:
+- /tools/hmac-generator
+sources:
+- https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks
+- https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries
+- https://docs.github.com/en/webhooks/using-webhooks/handling-failed-webhook-deliveries
+- https://docs.stripe.com/webhooks
+- https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html
+- https://yoryantra.com/tools/hmac-generator
+datePublished: '2026-10-21'
+dateModified: null
+status: published
+author: Varoun Sonawane
+---
+
+A payment succeeds, but the order stays unpaid. A GitHub repository gets a new push, but the deployment never starts. You check the application logs and find nothing. The business event happened; the notification that should have told your application about it did not produce the expected result.
+
+This is where understanding webhooks matters. A webhook lets one system send an HTTP request to another system when a selected event occurs. Your application exposes a receiving URL, and the sender calls it. The basic idea is short. In practice, a webhook can fail even when the sending system worked correctly. The request might time out, arrive twice, or arrive after a newer event. A signature—a cryptographic check attached by the sender—can also fail if the body is altered. Retry behavior depends on the provider. Stripe retries some failed deliveries automatically, while GitHub does not automatically redeliver failed deliveries. Always check the provider's rules instead of assuming a missed event will be sent again.
+
+We'll follow an event from the sender to your endpoint, compare webhooks with API polling, verify a signed payload in Node.js, and diagnose deliveries that never turn into completed work. The aim is to make both the first integration and the inevitable production incident less mysterious.
+
+*When a webhook does not trigger the expected action, trace the event in order: provider delivery, receiving endpoint, saved event, then background work. The provider reporting a successful HTTP response only confirms part of that journey.*
+
+## The event starts somewhere other than your application
+
+If you run an online shop, your checkout provider may handle payments while your application manages the orders. After the provider confirms a charge, you need to mark the order as paid and send a receipt. You cannot always rely on the checkout response: the customer might close the browser, a payment may settle later, or its status may change in another system.
+
+You register a receiving URL, such as https://shop.example.test/webhooks/payments, in your payment provider’s dashboard. When a payment succeeds, the provider sends your server an HTTP POST with an event ID and payment information. Your server checks that the message really came from the provider, saves the event somewhere that survives a restart, and arranges for the order to be updated. It returns a success response once the event is safely recorded. The order update can run afterward.
+
+The webhook does not move money or prove that you have fulfilled the order. It tells your application that an event happened. Your application still has to decide how the event changes the order and make sure a duplicate notification does not send a second parcel or receipt. Receiving the event and completing the work it describes are different steps.
+
+What if your server is offline when the provider sends the event? The answer depends on the provider. It may try again later, or you may need to request redelivery yourself. A local test that succeeds once does not show you which approach the provider uses.
+
+## Webhooks and APIs both use HTTP but start in opposite places
+
+With an ordinary API call, your application asks for information when it needs it. With a webhook, another service sends your application a message when something happens. Both can use HTTP: a webhook is not an alternative to the whole idea of an API. It is a way of sending event notifications to an HTTP endpoint your application exposes.
+
+If you check an order-status API every minute for 100 active orders, you make roughly 6,000 checks per hour—even when almost nothing changes. A webhook avoids many of those empty requests and can notify you sooner. But your receiving endpoint must be able to accept deliveries, and you need a plan for failures. Polling can still help you find missed events or confirm the latest order status.
+
+| Approach | Who starts the exchange | Best fit and main cost |
+| --- | --- | --- |
+| API request | Your app calls the provider | Fetching or changing current data on demand; each check costs a request |
+| API polling | Your app calls repeatedly | Predictable checks and reconciliation; delay and unnecessary calls |
+| Webhook | Provider calls your receiving URL | Event-driven updates; you must handle delivery security and failures |
+| WebSocket | Client and server keep a connection open | Ongoing two-way or live traffic; connection management is different |
+
+You can use all three approaches together. A webhook tells your application that a payment changed. The provider’s API lets you fetch the latest payment details when necessary. Your own API lets the customer view the order. Using a webhook does not mean other API requests should disappear.
+
+## Read an incoming delivery before writing code
+
+A GitHub-style delivery gives a concrete example. The exact payload depends on the subscribed event and action, but a small illustration might look like this:
+
+```http
+POST /webhooks/github HTTP/1.1
+Host: app.example.test
+Content-Type: application/json
+X-GitHub-Event: push
+X-GitHub-Delivery: 8ce5a516-example-delivery
+X-Hub-Signature-256: sha256=EXPECTED_HEX_SIGNATURE
+
+{"ref":"refs/heads/main","repository":{"full_name":"example-org/demo"}}
+```
+
+The method and path tell your web server where to route the request. `X-GitHub-Event` describes the event category. `X-GitHub-Delivery` identifies a delivery, and GitHub retains the same value when you request redelivery. The signature is calculated using the webhook secret and the exact message body. The shortened illustrative signature above cannot authenticate a real message; a real signature contains the computed HMAC digest.
+
+Do not start by trusting arbitrary JSON fields. An attacker can post a lookalike payload to a public endpoint. Validate the provider's signature or other documented authentication mechanism before taking action. Then check that the event type, action, repository, account, and expected state match the integration you intended to handle. Verification establishes that the message matches the configured secret; it does not mean that every instruction in its payload is safe to execute.
+
+## Why a signature depends on the original request body
+
+For GitHub's `X-Hub-Signature-256`, the provider creates an HMAC-SHA256 digest over the payload using the webhook secret. Your endpoint computes its own digest over the received bytes, then compares the result with the header using a timing-safe comparison. GitHub documents `sha256=` as the prefix and recommends avoiding ordinary string equality for this check.
+
+A common mistake is to read a JSON message, parse it into a JavaScript object, and then turn the object back into text before checking the signature. The text can change even when the data means the same thing: spaces, field order, or escaping may differ. A signature protects the original bytes, not just the meaning of the JSON. Verify the exact bytes the server received first, then parse the JSON.
+
+Stripe uses a different signature header and includes a timestamp in the signed data. Its verification logic and tolerance checks must follow Stripe's documentation or SDK. You cannot copy GitHub's `X-Hub-Signature-256` function into a Stripe receiver just because both use HMAC. Likewise, a timestamp in one provider's scheme does not authorize you to invent the same replay checks for another provider without consulting its protocol.
+
+## A local Node.js receiver that verifies GitHub-style signatures
+
+This small receiver uses Node.js’s built-in HTTP and crypto modules. It checks GitHub-style signatures against the exact body bytes. It also keeps a set of delivery IDs so you can see what happens when the same event arrives twice. That set lives only in memory: restarting Node clears it. In production, store accepted events and their IDs in a database or reliable queue before telling the sender that delivery succeeded.
+
+```js
+// save as webhook-demo.cjs; Node.js 20+
+const http = require('node:http');
+const { createHmac, timingSafeEqual } = require('node:crypto');
+
+const secret = process.env.WEBHOOK_SECRET;
+if (!secret) throw new Error('Set WEBHOOK_SECRET first');
+const seen = new Set(); // demo only; use durable storage in production
+
+function matches(body, given) {
+  if (typeof given !== 'string') return false;
+  const expected = 'sha256=' + createHmac('sha256', secret)
+    .update(body).digest('hex');
+  const a = Buffer.from(expected);
+  const b = Buffer.from(given);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+http.createServer((req, res) => {
+  if (req.method !== 'POST' || req.url !== '/webhook') {
+    res.writeHead(404).end();
+    return;
+  }
+
+  const chunks = [];
+  req.on('data', chunk => chunks.push(chunk));
+  req.on('end', () => {
+    const body = Buffer.concat(chunks);
+    if (!matches(body, req.headers['x-hub-signature-256'])) {
+      res.writeHead(401).end('Invalid signature');
+      return;
+    }
+    let event;
+    try { event = JSON.parse(body.toString('utf8')); }
+    catch { res.writeHead(400).end('Invalid JSON'); return; }
+
+    const id = req.headers['x-github-delivery'];
+    if (typeof id !== 'string' || !id) {
+      res.writeHead(400).end('Missing delivery ID');
+      return;
+    }
+    if (seen.has(id)) { res.writeHead(200).end('Duplicate'); return; }
+    seen.add(id);
+
+    console.log('Verified event', id, req.headers['x-github-event'],
+      event.action ?? 'no action field');
+    res.writeHead(202).end('Demo accepted');
+  });
+}).listen(3000, '127.0.0.1');
+```
+
+To try it on Windows, open Command Prompt in the folder containing the file, run `set WEBHOOK_SECRET=local-demo-secret`, and then run `node webhook-demo.cjs`. Leave that window open. In a second Command Prompt, run the test script below with `node send-webhook-test.cjs`. It signs a real JSON body with the same local demo secret, then sends a valid event, the same event again, and a request with a deliberately wrong signature. No public webhook account or live secret is needed. These are local demonstration credentials; never reuse them in production.
+
+Save the following as `send-webhook-test.cjs` in the same folder. It expects Node.js 20 or later and the demo receiver already running:
+
+```js
+// save as send-webhook-test.cjs; Node.js 20+
+const { createHmac } = require('node:crypto');
+const secret = 'local-demo-secret'; // match WEBHOOK_SECRET
+const body = JSON.stringify({
+  ref: 'refs/heads/main',
+  repository: { full_name: 'example-org/demo' },
+});
+const digest = createHmac('sha256', secret).update(body).digest('hex');
+
+async function send(deliveryId, signature) {
+  const response = await fetch('http://127.0.0.1:3000/webhook', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-GitHub-Event': 'push',
+      'X-GitHub-Delivery': deliveryId,
+      'X-Hub-Signature-256': signature,
+    },
+    body,
+  });
+  console.log(response.status, await response.text());
+}
+
+(async () => {
+  await send('local-demo-001', `sha256=${digest}`); // 202 accepted
+  await send('local-demo-001', `sha256=${digest}`); // 200 duplicate
+  await send('local-demo-002', 'sha256=incorrect'); // 401 rejected
+})().catch(error => { console.error(error); process.exitCode = 1; });
+```
+
+You should see `202 Demo accepted`, then `200 Duplicate`, then `401 Invalid signature`. The first request has a valid signature and a new delivery ID. The second has the same ID, so the example acknowledges it without processing it twice. The third uses an incorrect signature. If all three requests return 401, check that both terminal sessions use the same demo secret and that the request body has not been changed. This tests the signature check and simple duplicate detection—not durable delivery or production reliability.
+
+The receiver deliberately does not run a deployment, change an order, or send an email. Before exposing a real endpoint to the internet, add a maximum request size, timeouts, better error handling, and a database or reliable queue for accepted events. A real worker should also check whether an action has already been performed. This example is for learning how signature checks work, not a ready-made production service.
+
+## A successful HTTP response is an acknowledgment, not a completed job
+
+GitHub recommends returning a successful `2xx` HTTP status within ten seconds. If your server takes too long, GitHub can mark delivery as failed even if the job eventually finishes. The safer approach is to check the request, save the event reliably, and reply promptly. Expensive work, such as building an application or sending a receipt, runs afterward in a background worker (a separate process that handles saved jobs).
+
+“Save reliably” means save the event somewhere it will still exist after the server restarts—such as a database or a queue backed by persistent storage. A simple JavaScript array in memory is not enough. If you reply `200` and the process crashes before recording the event, the sender may believe the message arrived even though the work has disappeared. Save first, acknowledge second, and let another process handle the actual job.
+
+What should happen if saving the event fails? Do not acknowledge success. Return a failure that the provider treats as unsuccessful, then use the provider's supported retry or redelivery process. Conversely, if the same event arrives twice after an earlier acknowledgment, return success for the already accepted event without repeating irreversible work.
+
+One workable design is a database table with a unique pair of values: provider name and delivery ID. Each row has a status such as received, processing, completed, or failed. The unique pair stops two copies of the same delivery from being recorded as two different jobs. A worker picks up saved jobs and records their result. You still need to protect the actual operation—such as creating an order—because a worker can crash after performing it but before saving “completed.”
+
+## Duplicate events and out-of-order delivery are different problems
+
+There are two different problems. A duplicate means the same notification arrives twice. If you react twice to one `payment_succeeded` event, you might send two receipts. Out-of-order delivery means separate notifications arrive in a different order from when the events happened. For example, `payment_pending` could arrive after `payment_succeeded`. Neither case should put an already-paid order back into the pending state.
+
+To spot repeats, keep a stable event or delivery identifier. GitHub provides `X-GitHub-Delivery` and uses the same value when someone asks it to redeliver that delivery. Stripe provides event IDs but also documents situations in which two different event objects describe the same underlying action. Choose the duplicate-checking ID using the actual provider rules. This is called *idempotency*: handling the same action again should not produce another irreversible result.
+
+Stripe also states that it does not guarantee event ordering. It may send an invoice event before an earlier subscription event reaches your endpoint. A robust handler can fetch the current authoritative object through the provider's API and decide whether a transition is valid based on stored state and business rules. Comparing two timestamps is often insufficient because timestamps may have limited precision and replays can arrive later.
+
+Suppose an order moves from pending to paid and is then refunded. A delayed `pending` notification must not erase the refund. If the provider supplies a reliable version number or a defined order of states, use it. Otherwise your application may need to call the provider’s API for the latest payment status and update its own record based on that confirmed state. Comparing notification timestamps alone can be unsafe.
+
+## Retries are different on GitHub and Stripe
+
+This difference can decide whether a missed event recovers automatically or disappears from your workflow. GitHub's webhook documentation says failed deliveries are **not** automatically redelivered. You can redeliver them in the interface or run your own scheduled script using GitHub's delivery APIs. Expecting GitHub to retry overnight without that automation is a real operational mistake.
+
+Stripe documents automatic retry attempts in live mode for up to three days using exponential backoff. Its sandbox retry behavior is shorter and different. A manual resend can also coexist with automatic retries, so the receiver must tolerate duplicates even when an engineer has already repaired the incident. Do not assume the sender stops retrying simply because you manually resent one event successfully.
+
+Other providers use their own schedules, maximum attempts, signature headers, and retention windows. Write down the policy for the actual account and endpoint you deploy. If a third-party article says “webhooks retry three times,” it may be describing one provider, one environment, or an older product behavior rather than a general property of webhooks.
+
+| Sender | Documented failed-delivery behavior | What the receiver should plan for |
+| --- | --- | --- |
+| GitHub | No automatic redelivery for failed deliveries | Monitor failures and use manual or scripted redelivery |
+| Stripe live mode | Automatic retries for up to three days | Durable deduplication, delivery monitoring, replay-safe processing |
+| Your own webhook system | Whatever you explicitly implement | State and test retry timing, timeout, dead-letter path and idempotency |
+
+Retries help when a server is temporarily unavailable. But imagine a webhook causes an email to be sent, and the server crashes before returning a success response. The sender might send that event again. If your handler sends another email, one event produced two emails. Prevent this by storing a stable identifier for the business action and checking it before repeating the side effect. When a downstream provider supports an idempotency key, reuse the same operation ID for repeated attempts.
+
+## Diagnose the missing webhook at the right boundary
+
+When a webhook seems missing, find out whether the provider generated the event, attempted delivery, your server received it, the signature passed, and the worker completed the business action. These are separate checkpoints. A blank application log does not prove the provider never sent anything; a load balancer may have rejected the request before it reached the application.
+
+Start in the provider dashboard's delivery history. Look for the event type, destination URL, timestamp, response status, attempt count, and error details. If it shows a network failure, examine DNS, TLS certificate validity, public reachability, firewalls, and routing. If it shows a timeout, identify whether the receiver performed slow work before acknowledging. If it shows `401`, check the signing secret and the raw body. If it shows `404`, inspect the registered path and deployment route.
+
+If the provider shows `2xx` but the order did not update, the event probably reached the receiving endpoint. Follow it to the saved event record, work queue, background worker, and database. A worker may have failed after HTTP delivery succeeded. If the event was stored reliably, replay it through the same duplicate-safe worker. If it was not stored, check whether the provider lets you retrieve or redeliver it. Do not treat “provider says delivered” as proof the business operation finished.
+
+| Observed symptom | Boundary to inspect | Common correction |
+| --- | --- | --- |
+| No provider delivery record | Subscription or event generation | Enable the correct event and verify the triggering action |
+| Timeout or 5xx | Endpoint and durable intake | Make response fast; move slow work to a queue |
+| 401 invalid signature | Secret, header and raw request bytes | Use provider-specific verification before JSON processing |
+| 404 or connection failure | Public route, TLS, DNS and firewall | Correct URL and make endpoint reachable over HTTPS |
+| 2xx but no business update | Queue, worker, database state | Trace event ID from acknowledgment through the job |
+| Duplicate or regressed state | Idempotency key and ordering policy | Enforce unique processing and reconcile current state |
+
+Do not turn off signature verification to “make the webhook green.” That converts a delivery problem into a security problem. Similarly, blindly retrying every failed event without understanding the previous side effects may double the work. Fix the broken boundary and replay only through an idempotent path.
+
+## Security checks after the signature is valid
+
+Use HTTPS and keep the webhook secret in server-side secrets storage. Reject unexpected event types and actions. Check that the payload belongs to the account, installation, or resource your endpoint is meant to handle. If supported, restrict sender IP addresses as defense in depth, but maintain the list as it changes and do not replace signature verification with an IP check.
+
+Also think about an attacker repeating an old, correctly signed message. GitHub’s delivery ID helps you detect repeats, but only if you keep IDs after restarts. Stripe’s signature includes a timestamp, and its official SDK can check how recent it is. Those rules differ by provider. Use the supported checks rather than inventing a blanket timestamp limit that might reject legitimate delayed or manually resent events.
+
+Limit payload size, validate the JSON schema or required fields, and avoid using untrusted fields as shell commands, paths, SQL fragments, or arbitrary URLs. If an event triggers a deployment, use a fixed allowlist of allowed repositories and branches and apply normal deployment permissions. Receiving an authentic event is permission to consider the action, not unconditional authority to execute everything it describes.
+
+Finally, avoid logging the complete signed payload when it contains personal or commercial data. Log enough for tracing: event type, delivery ID, account or resource identifier where appropriate, response code, processing state, and correlation ID. Redact secrets and sensitive fields and set retention rules for delivery logs and failure queues.
+
+## Test the failure cases before exposing a real webhook
+
+Configure a sandbox endpoint and deliberately send the same event twice. Confirm the second copy is acknowledged without repeating the business action. Send two state changes in reverse order and verify that the final state remains correct. Stop the worker while leaving the receiver online and confirm the event persists until the worker resumes. Then stop the receiver and examine exactly how your provider reports delivery failure and handles redelivery.
+
+The final test is a process crash between performing the side effect and recording completion. This is where a system that merely stores delivery IDs can still send a duplicate email or create a duplicate order. Use idempotency at the business operation boundary, not only at the webhook HTTP boundary. Where an external API supports idempotency keys, pass a stable operation identifier so the downstream service can recognize a retried request.
+
+Keep the provider's delivery logs and your own worker history visible during these tests. An integration that succeeds once with a clean network is only a starting point. A production-ready integration should also explain what happens when an event is late, duplicated, malformed, or missing, and how someone can safely recover it.
+
+## Official references and related Yoryantra tools
+
+- [GitHub Best Practices for Using Webhooks](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)
+
+- [GitHub Validating Webhook Deliveries](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)
+
+- [GitHub Handling Failed Webhook Deliveries](https://docs.github.com/en/webhooks/using-webhooks/handling-failed-webhook-deliveries)
+
+- [Stripe Receive Events in Your Webhook Endpoint](https://docs.stripe.com/webhooks)
+
+- [OWASP REST Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html)
+
+- [Yoryantra HMAC Generator](https://yoryantra.com/tools/hmac-generator)
