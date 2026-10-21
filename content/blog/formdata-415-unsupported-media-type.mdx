@@ -1,50 +1,41 @@
 ---
 slug: formdata-415-unsupported-media-type
-title: "415 Unsupported Media Type After Switching from JSON to FormData"
-description: "A JSON request works, but switching to FormData returns 415? Compare what the endpoint accepts with the body and Content-Type your client actually sent."
+title: 415 Unsupported Media Type After Switching from JSON to FormData
+description: A 415 after switching from JSON to FormData usually means the endpoint and request media type no longer agree. Diagnose the body before changing headers.
 topic: Developer
 articleType: Troubleshooting
-datePublished: 2026-10-15
-dateModified: null
-author: "Varoun Sonawane"
+datePublished: '2026-10-15'
+dateModified: '2026-10-21'
+author: Varoun Sonawane
 relatedTools:
-  - /tools/json-to-form-data-converter
-  - /tools/http-request-formatter
+- /tools/json-to-form-data-converter
+- /tools/http-request-formatter
 relatedResources:
-  - /developer-workflows
+- /developer-workflows
 sources:
-  - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/415
-  - https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
-  - https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects
-  - https://fetch.spec.whatwg.org/
-  - https://www.rfc-editor.org/rfc/rfc9110.html#name-415-unsupported-media-type
+- https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/415
+- https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
+- https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects
+- https://fetch.spec.whatwg.org/
+- https://www.rfc-editor.org/rfc/rfc9110.html#name-415-unsupported-media-type
 status: published
 ---
 
-Your API request works when you send JSON. You switch the client to `FormData`, keep the same fields, and suddenly the server responds with **415 Unsupported Media Type**.
+A request works while you send JSON. You change the client to FormData, send the same logical fields, and the API starts returning **415 Unsupported Media Type**.
 
-The first instinct is often to change `Content-Type` until the error goes away. But before doing that, check one thing: **does this endpoint accept multipart form data in the first place?**
+The important change is the body format. The endpoint may accept JSON but not multipart form data. A 415 usually means the server does not accept the format you sent—not necessarily that the values or field names are wrong.
 
-That question matters because the names and values in your request can stay exactly the same while the HTTP body changes completely. A route that accepts JSON is not automatically a route that accepts multipart uploads. If the server rejects the new format before reading the fields, adjusting field names or adding a boundary will not solve the underlying problem.
+If the endpoint accepts application/json and you send multipart/form-data instead, you are asking it to read a different kind of request. The fields may look identical in your code, but the bytes sent over HTTP are not. The server is allowed to reject that representation with 415.
 
-## Start with what the endpoint accepts
+The useful question is therefore not “How do I force FormData through?” It is:
 
-A 415 response means the server is refusing the request because the request representation is not supported for that resource. The cause may be the media type, content coding, or representation itself; the status alone does not tell you which one. That's the distinction in [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-415-unsupported-media-type).
+**What media type does this endpoint accept, and what did my client actually send?**
 
-Before you edit the client, open the API documentation or a working request. If you control the backend, check the route's accepted media types and body-parsing middleware. Look for a specific format:
+## Check which request format the endpoint accepts
 
-- `application/json` — a JSON request body.
-- `multipart/form-data` — multipart fields and, where supported, file parts.
-- `application/x-www-form-urlencoded` — URL-encoded form fields.
-- More than one of these, if the endpoint explicitly supports them.
+HTTP 415 means the origin server is refusing the request because its content is in a format that the target resource does not support. The mismatch can involve the request Content-Type, Content-Encoding, or the body format itself.
 
-A JavaScript object such as `{ name: "Sneha", role: "developer" }` does not settle this question. Those values can be sent in several formats. **The server contract decides which representation is valid.**
-
-If you are unsure, compare your failing request with one that worked before the change. It is often the fastest way to spot what really changed.
-
-## The same fields, but a different HTTP request
-
-Suppose a profile endpoint accepts JSON. This request is straightforward:
+Suppose this request works:
 
 ```js
 await fetch("/api/profile", {
@@ -59,7 +50,7 @@ await fetch("/api/profile", {
 });
 ```
 
-The header says JSON, and the body is JSON:
+The endpoint receives a JSON representation:
 
 ```http
 Content-Type: application/json
@@ -67,7 +58,7 @@ Content-Type: application/json
 {"name":"Sneha","role":"developer"}
 ```
 
-Now imagine you change only the way the client creates the body:
+Now the client changes to FormData:
 
 ```js
 const form = new FormData();
@@ -80,7 +71,9 @@ await fetch("/api/profile", {
 });
 ```
 
-Nothing looks different about `name` or `role`. But Fetch serializes this `FormData` as `multipart/form-data` and generates a boundary that separates the parts. An illustrative request looks like this:
+The browser no longer sends JSON. Fetch serializes the body as multipart form data and supplies a generated boundary in the Content-Type header.
+
+Conceptually, the request now looks like this:
 
 ```http
 Content-Type: multipart/form-data; boundary=----generated-boundary
@@ -96,43 +89,149 @@ developer
 ------generated-boundary--
 ```
 
-The boundary shown here is an example, not a value to copy into your code. The browser generates its own value for each multipart request.
+If /api/profile accepts only application/json, returning 415 is reasonable. The fields may be logically equivalent, but the representation is not.
 
-If `/api/profile` was designed to accept only `application/json`, receiving that multipart body is a real change in the API request—not a harmless variation. A 415 response can be the correct outcome even though every field value is perfectly reasonable.
+## Compare the working JSON request with the failing FormData request
 
-## What the five local request tests showed
+I reproduced the request-shape change against a small local HTTP endpoint using Node 22.16.0 with its built-in Fetch and FormData implementation.
 
-I checked this behaviour using Node 22.16.0's built-in Fetch and FormData against a deliberately strict local HTTP endpoint. One test route accepted JSON; another accepted multipart only when the header supplied a usable boundary.
+The endpoint was deliberately strict: one route accepted only application/json; another accepted only multipart/form-data with a boundary.
 
 | Client request | Endpoint expectation | Observed result |
 | --- | --- | --- |
-| JSON body with `application/json` | JSON | `200` |
-| FormData body | JSON | `415` |
-| FormData body | multipart | `200` |
-| FormData body with manually forced `Content-Type: multipart/form-data` | multipart with boundary | `415` in this strict test |
-| JSON body with an `application/x-www-form-urlencoded` header | JSON | `415` |
+| JSON body + application/json | JSON | 200 |
+| FormData body | JSON | 415 |
+| FormData body | multipart | 200 |
+| FormData body + manually forced Content-Type: multipart/form-data | multipart with boundary | 415 in this strict test |
+| JSON body + application/x-www-form-urlencoded header | JSON | 415 |
 
-These results are from that controlled reproduction, not a promise about every framework. A different server may return 400, 415, or an application-specific parsing error when its expectations are not met.
+The important part is not the exact status every framework will choose. Different servers and middleware can return 400, 415, or an application-specific error for a malformed or unexpected body.
 
-The useful lesson is simpler than the individual status codes: **the request body, its declared media type, and the endpoint's expectations need to agree**. Once they do, you can move on to debugging the actual fields.
+The useful observation is that **body type, declared media type, and server expectation have to agree**.
 
-## Check what actually left the browser
+## Diagnose a 415 in this order
 
-If the API contract looks right but the request still fails, open your browser's DevTools, go to **Network**, and reproduce the call. Select the failing request and look at both its request headers and payload.
+### 1. Find out what the endpoint accepts
 
-Check the outgoing `Content-Type`. Does it say JSON or multipart? If it says multipart, does it include a `boundary` parameter? Is the transmitted payload actually multipart? Those details matter more than the variable type in the source code.
+Check the API documentation, OpenAPI definition, server route, controller annotation, middleware configuration, or a previously working request.
 
-Also check any shared request code. It is possible to create a correct `FormData` object and still send an incorrect request because an Axios default, interceptor, wrapper, or helper inserts `Content-Type: application/json`. The code where you call `fetch` or Axios may not be the only place that modifies headers.
+You are looking for something concrete such as:
 
-If you have a previously working JSON request, comparing the two Network entries side by side often makes the problem obvious. You do not need to guess which header changed.
+- application/json
 
-## Use the format the server actually expects
+- multipart/form-data
 
-There is no single header fix for every 415. The right change depends on which request representation the endpoint supports.
+- application/x-www-form-urlencoded
 
-### If the endpoint accepts JSON, keep JSON
+- more than one accepted media type
 
-When a route expects `application/json`, converting a plain object into FormData does not improve the request. Send the JSON the route already understands:
+Do not infer this from the data shape alone. An object with name and role can be represented as JSON, multipart fields, or URL-encoded fields. The endpoint decides which representations it understands.
+
+A 415 response may also include a header that hints at accepted formats, although you should not depend on every API returning one.
+
+### 2. Inspect the request that left the client
+
+Look at the actual request in browser DevTools or your HTTP client, not only the source code that built it.
+
+Check:
+
+- Request Content-Type
+
+- Whether a multipart boundary is present
+
+- The request payload/body
+
+- Whether your client library transformed the body
+
+- Whether a wrapper or interceptor changed headers
+
+This catches a common debugging mistake: the code says “FormData”, but a shared HTTP client still injects Content-Type: application/json from a default configuration.
+
+### 3. Compare the body type with the media type
+
+These are three different request representations:
+
+**JSON**
+
+```js
+await fetch("/api/profile", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ name: "Sneha", role: "developer" }),
+});
+```
+
+**URL-encoded form data**
+
+```js
+const body = new URLSearchParams({
+  name: "Sneha",
+  role: "developer",
+});
+
+await fetch("/api/profile", {
+  method: "POST",
+  body,
+});
+```
+
+The Fetch Standard assigns a URLSearchParams body the media type application/x-www-form-urlencoded;charset=UTF-8 when the request does not already contain a Content-Type header.
+
+**Multipart FormData**
+
+```js
+const form = new FormData();
+form.append("name", "Sneha");
+form.append("role", "developer");
+
+await fetch("/api/profile", {
+  method: "POST",
+  body: form,
+});
+```
+
+For FormData, Fetch serializes the entries as multipart/form-data and generates the boundary used to separate the parts.
+
+These formats are not interchangeable merely because they carry the same field names.
+
+## Do not “fix” FormData by forcing the multipart header
+
+A common reaction to a 415 is:
+
+```js
+const form = new FormData();
+form.append("name", "Sneha");
+
+await fetch("/api/profile", {
+  method: "POST",
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+  body: form,
+});
+```
+
+That can create a second problem.
+
+When Fetch receives a FormData body, it generates the multipart boundary and normally adds a Content-Type such as:
+
+```http
+Content-Type: multipart/form-data; boundary=----some-generated-value
+```
+
+If you manually set only multipart/form-data, the body still contains boundary markers but the header may not tell the server what boundary to parse. MDN specifically warns against explicitly setting the Content-Type header when sending FormData with Fetch or XMLHttpRequest for this reason.
+
+So there are two separate questions:
+
+- **Does the endpoint accept multipart at all?**
+
+- **If it does, is the multipart request correctly framed with its boundary?**
+
+Do not use a header tweak to hide the first problem.
+
+## If the endpoint accepts JSON, keep JSON
+
+If the API contract says the route consumes JSON and you are not uploading files or using a form-specific contract, the correct fix may simply be to keep the request as JSON.
 
 ```js
 await fetch("/api/profile", {
@@ -147,13 +246,15 @@ await fetch("/api/profile", {
 });
 ```
 
-This is especially relevant when the body contains nested objects or arrays. JSON represents those structures directly. FormData holds named entries whose values are strings or Blob/File objects; nested data needs an agreed naming or serialization convention before a server can reconstruct it.
+Converting an object to FormData is not an upgrade by itself. It is useful only when it matches what the receiving endpoint expects.
 
-If the server expects JSON, don't spend time converting nested fields into brackets or repeated keys. That work only becomes useful when the endpoint really expects form-style input.
+This is especially important with nested objects and arrays. JSON has explicit object and array types. FormData has an ordered list of field names whose values are strings or File/Blob objects, so nesting requires a naming or serialization convention that the server must understand.
 
-### If the endpoint accepts multipart, let Fetch set the header
+If you need to inspect those field mappings before sending anything, the [JSON to Form Data Converter](/tools/json-to-form-data-converter) can show the flattened fields and form encodings without making a network request.
 
-For a normal browser FormData request, the client code should be simple:
+## If the endpoint accepts multipart, let FormData be multipart
+
+For an endpoint that actually accepts multipart/form-data, keep the Fetch request simple:
 
 ```js
 const form = new FormData();
@@ -166,35 +267,21 @@ await fetch("/api/profile", {
 });
 ```
 
-Notice that there is **no manually specified `Content-Type` header**. Fetch supplies one with the boundary it used for the body.
+Do not add Content-Type manually unless you are deliberately constructing the multipart body yourself and understand the framing requirements.
 
-Here is the mistake to avoid:
+If files are involved, append a real File or Blob. A path-looking string is still only a string.
 
-```js
-await fetch("/api/profile", {
-  method: "POST",
-  headers: {
-    "Content-Type": "multipart/form-data", // Don't force this for browser FormData
-  },
-  body: form,
-});
-```
-
-That manually supplied header can leave out the boundary even while the multipart body contains boundary markers. The server then has no usable boundary parameter to tell it how to separate the parts. [MDN's FormData guidance](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects) warns against setting this header yourself when Fetch or XMLHttpRequest is creating the body.
-
-But keep the two problems separate: fixing a missing boundary does **not** make multipart acceptable to a JSON-only endpoint. First confirm that multipart is supported; then check that it is correctly framed.
-
-For a file upload, append the actual File object, not a string containing a path:
-
-```js
+```text
 form.append("avatar", fileInput.files[0]);
 ```
 
-The endpoint must also support multipart parsing and the field names you send. An otherwise valid multipart request can still fail validation later because it uses the wrong fields.
+The endpoint still has to be configured to consume multipart data and to use field names that match the server’s parser or binding rules.
 
-### If the endpoint expects URL-encoded fields, use URLSearchParams
+## If the endpoint expects URL-encoded fields, FormData is still the wrong body
 
-Some form handlers and authentication endpoints expect `application/x-www-form-urlencoded`, not multipart. For simple text fields, `URLSearchParams` may be the correct body:
+Some form-style endpoints accept application/x-www-form-urlencoded, not multipart.
+
+For simple text fields, URLSearchParams is often a better match:
 
 ```js
 const body = new URLSearchParams({
@@ -208,41 +295,66 @@ await fetch("/oauth/token", {
 });
 ```
 
-When you have not set a conflicting `Content-Type`, Fetch gives that body an appropriate URL-encoded media type. Calling the data "form fields" does not mean the endpoint accepts every form-related HTTP format.
+Again, the deciding factor is the endpoint contract. “Form-like data” does not imply one universal HTTP representation.
 
-## What if multipart is supported and you still get 415?
+## 415 is not the same problem as a bad multipart boundary
 
-At that point, stop trying to turn the body back into JSON and examine the multipart request itself. Does the `Content-Type` include a boundary? Does that boundary match the body's separators? Has a client wrapper overwritten the header? Is an intermediary or backend parser rejecting the representation before it reaches the route handler?
+These two failures are easy to mix together:
 
-This is also a good time to read the server-side error if you have access. There is a difference between a rejection **before parsing**, a malformed multipart body that fails **during parsing**, and an application validation error **after parsing**. Frameworks can express those failures differently, so the HTTP status by itself is not a reliable description of the exact failure stage.
+**Unsupported representation**
 
-If the media type and body already line up, remember that HTTP 415 can also relate to an unsupported `Content-Encoding`. It is not the first suspect in the simple FormData examples here, but it becomes relevant when a request passes through compression middleware or a gateway.
+The endpoint expects JSON, but the client sends multipart. A 415 is a natural response.
 
-One other distinction is worth keeping clear: a **CORS preflight failure** is not the same thing as an API endpoint returning 415. If the browser blocks the call before exposing an application response, investigate the preflight and its response headers separately.
+**Malformed multipart representation**
 
-## A quick check before changing more code
+The endpoint accepts multipart, but the request is missing or has an unusable boundary. A server might return 400, 415, or another parser error depending on its implementation.
 
-When a working JSON request starts failing after a switch to FormData, this is the order worth following:
+That distinction matters because the fixes are different.
 
-1. Check the endpoint's accepted request media type in its docs or backend configuration.
-2. Inspect the failing Network request's actual `Content-Type` and body.
-3. Look for old JSON headers inserted by a shared client or interceptor.
-4. If multipart is supported, let Fetch generate its boundary and matching header.
-5. If the endpoint expects JSON or URL-encoded data, send that format instead.
-6. Only after the representation is accepted, debug field names, nested values, files, and application validation.
+If the endpoint does not accept multipart, fixing the boundary will not make multipart valid for that route.
 
-This order prevents a common detour: spending an hour adjusting nested field notation when the server has already rejected the whole multipart representation before examining a single field.
+If the endpoint does accept multipart but the boundary is broken, changing the endpoint contract is unnecessary; fix how the multipart request is generated.
 
-## Where Yoryantra helps
+## What to check when a 415 appears
 
-If the endpoint accepts form-style input and you need to see how nested JSON values become fields, the [JSON to Form Data Converter](/tools/json-to-form-data-converter) helps you inspect the available representations without submitting a request to your API. It cannot make a JSON-only server accept multipart; that requires a server-side contract change or a different request body.
+When a previously working JSON request starts returning 415 after moving to FormData:
 
-If you already have a raw request and want to read its parts more clearly, the [HTTP Request Formatter](/tools/http-request-formatter) helps separate headers and body. It does not send the request or replace the server logs.
+- Confirm the media types the endpoint actually accepts.
 
-The main thing to remember is not a particular header trick. It is to **check what the endpoint accepts and what your client actually sent**. Once those two agree, the rest of the debugging becomes much more focused.
+- Inspect the outgoing Content-Type in DevTools.
+
+- Inspect the outgoing body, not just the JavaScript object that created it.
+
+- If the body is FormData, check that Content-Type includes a generated boundary.
+
+- Remove a manually forced multipart header when the browser should generate it.
+
+- If the route accepts only JSON, send JSON instead of trying to force multipart through it.
+
+- If it expects URL-encoded form fields, use the representation the endpoint requires.
+
+- Only after the media type is correct, debug field names, nesting, arrays, null handling, and file parts.
+
+That order prevents a lot of wasted debugging. There is little value in fixing nested field notation while the server is rejecting the entire representation before it reaches field parsing.
+
+## Where the converter helps — and where it does not
+
+Yoryantra’s [JSON to Form Data Converter](/tools/json-to-form-data-converter) is useful when the endpoint already expects form-style input and you need to reason about field names, arrays, nulls, multipart framing, or URL-encoded output.
+
+It does **not** tell a server to accept FormData, and it does not change an API endpoint’s media-type contract.
+
+If the response is 415, solve the representation mismatch first. Then use the converter to make the fields match the server’s form-data contract.
+
+For inspecting a raw HTTP request after that, the [HTTP Request Formatter](/tools/http-request-formatter) can help separate the request line, headers, and body without sending the request.
 
 ## Sources and test basis
 
-The request-format distinctions above are grounded in the [HTTP 415 definition in RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-415-unsupported-media-type), [MDN's 415 reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/415), [MDN's Fetch guidance](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch), [MDN's FormData guidance](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects), and the [WHATWG Fetch Standard](https://fetch.spec.whatwg.org/).
+- RFC 9110, section 15.5.16 — definition and semantics of 415 Unsupported Media Type.
 
-The five-case comparison refers to the controlled local reproduction recorded on 7 October 2026 using Node 22.16.0 and a strict HTTP endpoint. It shows how request format, headers, and multipart boundaries behave in that setup—not a guarantee of the exact response status from every server or framework.
+- MDN — 415 Unsupported Media Type and Content-Type request behavior.
+
+- MDN — Using the Fetch API and Using FormData Objects.
+
+- WHATWG Fetch Standard — body extraction rules for FormData and URLSearchParams, including generated media types and multipart boundaries.
+
+- Local reproduction run on 7 October 2026 with Node 22.16.0 built-in Fetch/FormData against a strict local HTTP endpoint. The reproduction was used to verify request media types and boundary behavior; real server status codes can vary by framework and parser configuration.

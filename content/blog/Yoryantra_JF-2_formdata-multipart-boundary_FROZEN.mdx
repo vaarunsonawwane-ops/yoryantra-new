@@ -1,0 +1,602 @@
+---
+slug: formdata-multipart-boundary-troubleshooting
+title: 'Multipart FormData Boundary Problems: How to Diagnose Broken Upload Requests'
+description: Multipart requests depend on one boundary value appearing in both the Content-Type header and body. Learn how missing, mismatched and malformed boundaries break FormData requests.
+topic: Developer
+articleType: Troubleshooting
+datePublished: '2026-10-16'
+dateModified: '2026-10-21'
+author: Varoun Sonawane
+relatedTools:
+- /tools/json-to-form-data-converter
+- /tools/http-request-formatter
+relatedResources:
+- /developers
+sources:
+- https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects
+- https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/415
+- https://fetch.spec.whatwg.org/
+- https://www.rfc-editor.org/rfc/rfc7578.html
+- https://www.rfc-editor.org/rfc/rfc9110.html#name-415-unsupported-media-type
+- https://axios-http.com/docs/multipart
+- https://yoryantra.com/tools/json-to-form-data-converter
+status: published
+---
+
+A multipart request can look correct in application code and still be impossible for the server to parse.
+
+The usual culprit is a mismatch between the Content-Type header and the body. A **boundary** is the separator that tells the server where each field or file begins and ends. If the header omits it or names the wrong separator, the server cannot reliably split the request into parts.
+
+When you send browser FormData, let the browser choose the separator and set the Content-Type header. You normally should not write either value yourself. The browser generates it while serializing the body and places the same value in the request header.
+
+Boundary bugs appear when code, a client wrapper, an interceptor, a proxy, or a manually constructed request breaks that agreement.
+
+The useful debugging question is:
+
+**Does the boundary declared in** **Content-Type** **exactly match the delimiter actually used in the multipart body?**
+
+## Why multipart requests need a boundary
+
+A multipart request contains several independent parts.
+
+Each part may contain its own headers and body. The outer request needs a delimiter so the receiver can tell where one part ends and the next begins.
+
+RFC 7578 defines the boundary parameter for multipart/form-data.
+
+A request might declare:
+
+```http
+Content-Type: multipart/form-data; boundary=----demo-boundary
+```
+
+The body then uses that value with leading -- delimiter markers:
+
+```yaml
+------demo-boundary
+Content-Disposition: form-data; name="name"
+
+Sneha
+------demo-boundary
+Content-Disposition: form-data; name="role"
+
+developer
+------demo-boundary--
+```
+
+The final delimiter has the closing --.
+
+The server does not guess the boundary from the body. It uses the boundary parameter supplied with the media type.
+
+If the header and body disagree, parsing fails.
+
+### Two boundary details that matter when you inspect raw HTTP
+
+RFC 7578 adds two details that are easy to miss when debugging a hand-built request.
+
+First, the boundary parameter in the Content-Type header can be quoted:
+
+```http
+Content-Type: multipart/form-data; boundary="demo-boundary"
+```
+
+The quotes are part of the header syntax, not part of the delimiter itself. The body still uses:
+
+```text
+--demo-boundary
+```
+
+Second, the chosen boundary value must not occur inside the encapsulated parts in a way that can be mistaken for a delimiter. Browser and standards-compliant client serializers choose the boundary for you, which is another reason not to copy a convenient boundary string from documentation into production code.
+
+If you are manually constructing multipart bytes, both details become your responsibility.
+
+## What Fetch does when the body is FormData
+
+With browser-style Fetch:
+
+```js
+const form = new FormData();
+form.append("name", "Sneha");
+form.append("role", "developer");
+
+await fetch("/api/profile", {
+  method: "POST",
+  body: form,
+});
+```
+
+the Fetch Standard serializes the FormData entry list as multipart/form-data and generates a boundary.
+
+The request receives a Content-Type conceptually similar to:
+
+```http
+Content-Type: multipart/form-data; boundary=----generated-value
+```
+
+That generated value is also used in the body.
+
+This is why MDN warns against doing this in browser code:
+
+```js
+await fetch("/api/profile", {
+  method: "POST",
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+  body: form,
+});
+```
+
+You have declared the media type yourself, but you have not supplied the boundary that the browser-generated body actually uses.
+
+## Test a browser-generated boundary against a manually forced header
+
+I reproduced the failure against a small strict local HTTP endpoint using Node 22.16.0 with built-in Fetch and FormData.
+
+The endpoint inspected the request header and checked whether the declared boundary appeared in the body.
+
+### Test 1: let Fetch manage the header
+
+```js
+const form = new FormData();
+form.append("name", "Sneha");
+form.append("tags", "api");
+form.append("tags", "forms");
+
+await fetch(url, {
+  method: "POST",
+  body: form,
+});
+```
+
+Observed request:
+
+```http
+Content-Type:
+multipart/form-data; boundary=----formdata-undici-...
+
+Body begins with:
+------formdata-undici-...
+```
+
+The strict reproduction accepted the request.
+
+### Test 2: force only multipart/form-data
+
+```js
+const form = new FormData();
+form.append("name", "Sneha");
+
+await fetch(url, {
+  method: "POST",
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+  body: form,
+});
+```
+
+Observed:
+
+```http
+Content-Type:
+multipart/form-data
+```
+
+but the body still contained generated delimiters.
+
+The strict reproduction rejected it because the header gave the receiver no boundary parameter to use.
+
+### Test 3: declare one boundary and send another
+
+A manually created request declared:
+
+```http
+Content-Type: multipart/form-data; boundary=demo-boundary
+```
+
+while its body used:
+
+```text
+--wrong-boundary
+...
+--wrong-boundary--
+```
+
+The strict reproduction rejected that request too.
+
+### Test 4: the declared boundary exists, but the closing delimiter is missing
+
+I also sent a manually constructed body whose header and opening delimiter matched:
+
+```http
+Content-Type: multipart/form-data; boundary=demo-boundary
+```
+
+but the body stopped before the final:
+
+```text
+--demo-boundary--
+```
+
+The strict reproduction rejected the body as incomplete.
+
+This is different from a missing boundary parameter. The parser knows which delimiter to look for, but the multipart message never terminates correctly.
+
+These tests demonstrate the structural problem. They do not claim that every real framework will return the same HTTP status code. Some will report a malformed request as 400, some middleware may surface another parser error, and an endpoint that does not support multipart at all may return 415.
+
+## Failure pattern 1: Content-Type has no boundary
+
+This is the classic browser FormData mistake.
+
+Header:
+
+```http
+Content-Type: multipart/form-data
+```
+
+Body:
+
+```text
+------browser-generated-value
+...
+------browser-generated-value--
+```
+
+The body has delimiters, but the header does not tell the server which value defines them.
+
+Typical source:
+
+```yaml
+headers: {
+  "Content-Type": "multipart/form-data"
+}
+```
+
+combined with:
+
+```text
+body: formData
+```
+
+For browser Fetch/XHR with a native FormData body, remove the manual Content-Type header and let the runtime generate it.
+
+## Failure pattern 2: header boundary and body boundary do not match
+
+Header:
+
+```http
+Content-Type: multipart/form-data; boundary=alpha
+```
+
+Body:
+
+```yaml
+--beta
+Content-Disposition: form-data; name="name"
+
+Sneha
+--beta--
+```
+
+A parser looking for --alpha will not find the part delimiters.
+
+This often happens in hand-built multipart requests or when code copies a sample Content-Type header while generating the body separately.
+
+A boundary is not a reusable constant from documentation. It belongs to the specific serialized request body.
+
+## Failure pattern 3: the closing boundary is missing or malformed
+
+A complete multipart body ends with a closing delimiter:
+
+```text
+--boundary--
+```
+
+If the final delimiter is missing, truncated, or malformed, a strict parser may treat the body as incomplete.
+
+Problems can appear when:
+
+- a request body is manually concatenated;
+
+- a stream ends early;
+
+- an upstream component truncates the request;
+
+- a custom multipart builder writes incorrect CRLF/delimiter syntax.
+
+Browser-native FormData serialization exists partly so application code does not need to construct those details manually.
+
+## Failure pattern 4: a default JSON header survives after switching to FormData
+
+This is related to multipart debugging even though the immediate problem is not the boundary.
+
+You start with:
+
+```js
+await fetch("/api/profile", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(data),
+});
+```
+
+Later you change only the body:
+
+```js
+const form = new FormData();
+form.append("name", "Sneha");
+
+await fetch("/api/profile", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: form,
+});
+```
+
+Now the header says JSON while the body is multipart bytes.
+
+Before investigating boundary syntax, make sure the media type itself matches the body representation.
+
+This can happen when a shared HTTP client automatically injects JSON headers into every POST request.
+
+## Failure pattern 5: the endpoint never accepted multipart
+
+A perfectly framed multipart request can still fail.
+
+If the route accepts only:
+
+```http
+Content-Type: application/json
+```
+
+then switching the body to FormData changes the HTTP representation.
+
+The server may correctly reject the request with 415 Unsupported Media Type.
+
+That is a different problem from a missing boundary.
+
+Boundary troubleshooting answers:
+
+Is this multipart body framed correctly?
+
+Media-type contract troubleshooting answers:
+
+Does this endpoint accept multipart in the first place?
+
+Do not try to repair an unsupported representation by changing boundary syntax.
+
+## How to inspect the real request in DevTools
+
+When the code and server disagree, inspect what actually left the browser.
+
+In the Network panel, check the request.
+
+### 1. Request headers
+
+Look for:
+
+```http
+Content-Type: multipart/form-data; boundary=...
+```
+
+If the boundary parameter is absent while the request body came from native browser FormData, search your code for a manually set Content-Type.
+
+### 2. Payload / form fields
+
+Developer tools may show parsed form fields rather than the raw multipart body.
+
+That is still useful: confirm the expected keys and values are present.
+
+For low-level boundary problems, use a server echo endpoint, local debugging proxy, or backend request logging that can show the raw request/header combination.
+
+### 3. Request initiator
+
+Check which code path created the request.
+
+A wrapper, Axios instance, interceptor, API helper, or generated client may modify headers after your feature code constructs FormData.
+
+### 4. Compare a working request
+
+If Postman, cURL, or an older client succeeds, compare:
+
+- Content-Type;
+
+- boundary parameter;
+
+- field names;
+
+- file part headers;
+
+- request method;
+
+- any content-encoding transformations.
+
+Do not compare only the visible field values.
+
+## Fetch and Axios are not always the same code path
+
+Browser-native Fetch with a native FormData body can manage the multipart boundary automatically.
+
+Axios also supports native FormData and has its own multipart serialization features. Its current documentation explicitly says not to manually set Content-Type for browser, Web Worker, or React Native FormData, because those runtimes add the multipart boundary themselves. Axios also documents automatic object-to-FormData serialization and bracket/dot/index options.
+
+The important debugging point is to know **which component is serializing the body**.
+
+There are two broad cases:
+
+- You create a native FormData instance and pass it to a browser HTTP client.
+
+- A client library receives a plain object and serializes it into multipart form data for you.
+
+Do not mix assumptions from one case into the other.
+
+When a library owns serialization, use that library’s documented multipart behavior rather than manually copying browser Fetch header logic.
+
+## Boundary syntax is not a JSON-to-FormData naming problem
+
+Nested names such as:
+
+```text
+user[name]
+tags[]
+tags[0]
+```
+
+are inside individual multipart parts.
+
+The boundary only separates the parts.
+
+So this:
+
+```text
+user[name] = Sneha
+```
+
+and this:
+
+```text
+user.name = Sneha
+```
+
+can both be carried in a perfectly valid multipart body.
+
+Whether the backend understands either name as a nested object is a parser-contract question, not a boundary question.
+
+This distinction matters because two problems can happen at once:
+
+- multipart framing can be invalid;
+
+- field naming can be valid multipart but wrong for the backend parser.
+
+Fix framing first. Then debug how the server interprets the field names.
+
+## A 400 and a 415 can point to different problems
+
+A missing or malformed boundary is a bad request framing problem.
+
+An unsupported request representation is a media-type contract problem.
+
+In theory, those are different categories. In practice, middleware and frameworks do not all expose parser failures the same way.
+
+You may see:
+
+- 400 Bad Request;
+
+- 415 Unsupported Media Type;
+
+- a framework-specific multipart parser error;
+
+- an empty parsed body followed by application validation errors.
+
+RFC 9110 defines 415 around unsupported request content format or content coding.
+
+A malformed multipart body may instead be treated as invalid request content.
+
+Use the status code as evidence, not as proof of the exact cause.
+
+Inspect the header and body.
+
+## A boundary troubleshooting checklist
+
+When multipart suddenly breaks, use this order.
+
+### Confirm the endpoint
+
+- Does it accept multipart/form-data?
+
+- Is multipart required only when files are uploaded?
+
+- Does the API documentation show a working request?
+
+### Confirm the serializer
+
+- Browser-native FormData?
+
+- Axios automatic FormData serializer?
+
+- Node multipart library?
+
+- Hand-built raw HTTP body?
+
+### Confirm the header
+
+For browser-native FormData, expect a header containing:
+
+```text
+multipart/form-data; boundary=...
+```
+
+Do not manually copy a boundary from another request.
+
+### Confirm the body
+
+The declared boundary must appear as the multipart delimiter.
+
+The final closing delimiter must be present.
+
+### Confirm intermediaries
+
+Check whether a:
+
+- request interceptor;
+
+- reverse proxy;
+
+- API gateway;
+
+- serverless adapter;
+
+- HTTP client wrapper
+
+rewrites Content-Type or transforms the body.
+
+### Confirm field parsing only after framing works
+
+Once the server can parse the multipart body, then debug:
+
+- bracket notation;
+
+- repeated arrays;
+
+- file field names;
+
+- null/empty values;
+
+- server parser conventions.
+
+## Use the converter for fields, not raw multipart framing
+
+The JSON to Form Data Converter helps answer questions such as:
+
+- Should nested keys be dot paths or brackets?
+
+- Should arrays repeat a key or use indexes?
+
+- What text fields will be produced from a JSON object?
+
+- How would the payload look as cURL form parameters?
+
+It does not generate a live browser multipart request with a real runtime boundary or binary file upload.
+
+That separation is useful.
+
+Use the converter to model the **field structure**.
+
+Let the browser or your documented multipart client handle the **wire-level multipart framing**.
+
+## Sources
+
+- [MDN — Using FormData Objects](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects)
+
+- [WHATWG Fetch Standard](https://fetch.spec.whatwg.org/)
+
+- [RFC 7578 — multipart/form-data](https://www.rfc-editor.org/rfc/rfc7578.html)
+
+- [RFC 9110 — 415 Unsupported Media Type](https://www.rfc-editor.org/rfc/rfc9110.html#name-415-unsupported-media-type)
+
+- [MDN — 415 Unsupported Media Type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/415)
+
+- [Axios — Multipart Bodies](https://axios-http.com/docs/multipart)

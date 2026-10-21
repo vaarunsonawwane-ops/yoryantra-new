@@ -1,35 +1,39 @@
 ---
 slug: terraform-with-github-actions
-title: "Terraform with GitHub Actions for Pull Request Checks and Controlled Deployments"
-description: "Use GitHub Actions to validate Terraform pull requests, review infrastructure plans, separate cloud permissions, and protect production applies with real approval boundaries."
+title: Terraform with GitHub Actions for Pull Request Checks and Controlled Deployments
+description: Learn how to validate Terraform pull requests and run controlled deployments with GitHub Actions, safe plans, approvals, state and cloud credentials.
 topic: DevOps
 articleType: Guide
-datePublished: "2026-10-20"
-dateModified: null
-author: "Varoun Sonawane"
 relatedTools:
-  - /tools/github-actions-yaml-validator
-  - /tools/github-actions-matrix-builder
+- /tools/github-actions-yaml-validator
+- /tools/github-actions-matrix-builder
 sources:
-  - https://developer.hashicorp.com/terraform/tutorials/automation/github-actions
-  - https://developer.hashicorp.com/terraform/tutorials/automation/automate-terraform
-  - https://developer.hashicorp.com/terraform/cli/commands/plan
-  - https://developer.hashicorp.com/terraform/cli/commands/apply
-  - https://developer.hashicorp.com/terraform/language/backend
-  - https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers
-  - https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments
-  - https://docs.github.com/en/actions/reference/security/secure-use
-  - https://github.com/actions/upload-artifact
-  - https://github.com/actions/download-artifact
-  - https://github.com/hashicorp/setup-terraform
+- https://developer.hashicorp.com/terraform/tutorials/automation/github-actions
+- https://developer.hashicorp.com/terraform/tutorials/automation/automate-terraform
+- https://developer.hashicorp.com/terraform/cli/commands/plan
+- https://developer.hashicorp.com/terraform/cli/commands/apply
+- https://developer.hashicorp.com/terraform/language/backend
+- https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers
+- https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments
+- https://docs.github.com/en/actions/reference/security/secure-use
+- https://github.com/actions/upload-artifact
+- https://github.com/actions/download-artifact
+- https://github.com/hashicorp/setup-terraform
+- https://yoryantra.com/tools/github-actions-yaml-validator
+- https://yoryantra.com/tools/github-actions-matrix-builder
+datePublished: '2026-10-20'
+dateModified: '2026-10-21'
 status: published
+author: Varoun Sonawane
 ---
 
 A Terraform change is easy to review in Git when it is only a few lines. The harder question is what those lines will do to infrastructure that already exists. GitHub Actions can check formatting, initialize providers, validate configuration and request a plan. It can also trigger an apply. Those operations should not all receive the same permissions or run for every pull request.
 
-Imagine Sneha updates an AWS security group in a repository's `infra` directory. A pull-request check can tell her whether the Terraform files parse and pass validation. A plan needs access to the chosen backend and provider. Applying that plan can create, replace or delete resources. If the workflow treats those three stages as interchangeable, one apparently helpful automation can become a deployment risk.
+Imagine Sneha updates an AWS security group in a repository's infra directory. A pull-request check can tell her whether the Terraform files parse and pass validation. A plan normally needs to read the Terraform state (the saved record of managed infrastructure) and may need cloud access to compare that record with real resources. Applying that plan can create, replace or delete resources. If the workflow treats those three stages as interchangeable, one apparently helpful automation can become a deployment risk.
 
 There are two common architectures worth separating. You can run the Terraform CLI directly on a GitHub Actions runner with remote state, or let HCP Terraform execute plans and applies while GitHub Actions triggers and observes the work. Both can be valid. This guide starts with an example that is safe to use as a review check, then explains what a production-grade plan and apply path needs beyond YAML that happens to run successfully.
+
+*For failed pull-request checks, begin with the review-only workflow. For a production deployment, read the approval and saved-plan section before running an apply.*
 
 ## Decide where Terraform is actually running
 
@@ -195,11 +199,11 @@ Teams sometimes use `terraform plan -detailed-exitcode` to drive CI decisions. U
 
 ## State locking and workflow concurrency solve different problems
 
-Terraform remote state represents infrastructure shared across executions. The backend's locking behavior helps prevent conflicting state operations. GitHub Actions concurrency, meanwhile, controls which workflow jobs or runs GitHub schedules at once. Both can matter because a workflow might perform actions outside Terraform or because two workflows could target the same deployment environment.
+Terraform state is its saved record of resources it manages. Teams usually keep that record in a shared remote backend so different runs see the same infrastructure. The backend's locking behavior helps prevent conflicting state operations. GitHub Actions concurrency, meanwhile, controls which workflow jobs or runs GitHub schedules at once. Both can matter because a workflow might perform actions outside Terraform or because two workflows could target the same deployment environment.
 
 For a production apply, use a stable concurrency group that identifies the deployment target. Do not build the group only from a pull-request number if separate pull requests could apply against the same production state. GitHub currently documents a `queue: max` option that can retain multiple waiting runs, while the default behavior retains at most one pending run. Neither setting replaces state locking, and a queue of outdated deployment requests may need explicit human review before execution.
 
-Do not set automatic cancellation for a long-running production apply without understanding what interruption does to your deployment process. Terraform might already have changed resources before a job is canceled. The next run must inspect actual state and provider results, not blindly assume the canceled run did nothing. [Yoryantra's companion guide on GitHub Actions concurrency](/blog/github-actions-concurrency-controls) covers the scheduling behavior in more detail.
+Do not set automatic cancellation for a long-running production apply without understanding what interruption does to your deployment process. Terraform might already have changed resources before a job is canceled. The next run must inspect actual state and provider results, not blindly assume the canceled run did nothing. Yoryantra's companion guide on GitHub Actions concurrency covers the scheduling behavior in more detail.
 
 ## Failures worth diagnosing separately
 
@@ -223,16 +227,28 @@ Finally, record what each workflow actually proves. A formatter check proves for
 
 ## Official references and related Yoryantra tools
 
-- <a href="https://developer.hashicorp.com/terraform/tutorials/automation/github-actions" target="_blank" rel="noopener noreferrer">HashiCorp Automate Terraform with GitHub Actions</a>
-- <a href="https://developer.hashicorp.com/terraform/tutorials/automation/automate-terraform" target="_blank" rel="noopener noreferrer">HashiCorp Running Terraform in Automation</a>
-- <a href="https://developer.hashicorp.com/terraform/cli/commands/plan" target="_blank" rel="noopener noreferrer">HashiCorp Terraform plan command</a>
-- <a href="https://developer.hashicorp.com/terraform/cli/commands/apply" target="_blank" rel="noopener noreferrer">HashiCorp Terraform apply command</a>
-- <a href="https://developer.hashicorp.com/terraform/language/backend" target="_blank" rel="noopener noreferrer">HashiCorp Terraform backend configuration</a>
-- <a href="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers" target="_blank" rel="noopener noreferrer">GitHub OpenID Connect in cloud providers</a>
-- <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments" target="_blank" rel="noopener noreferrer">GitHub deployments and environments</a>
-- <a href="https://docs.github.com/en/actions/reference/security/secure-use" target="_blank" rel="noopener noreferrer">GitHub security guidance for actions</a>
-- <a href="https://github.com/actions/upload-artifact" target="_blank" rel="noopener noreferrer">GitHub upload-artifact action</a>
-- <a href="https://github.com/actions/download-artifact" target="_blank" rel="noopener noreferrer">GitHub download-artifact action</a>
-- <a href="https://github.com/hashicorp/setup-terraform" target="_blank" rel="noopener noreferrer">HashiCorp setup-terraform action</a>
-- [Yoryantra GitHub Actions YAML Validator](/tools/github-actions-yaml-validator)
-- [Yoryantra GitHub Actions Matrix Builder](/tools/github-actions-matrix-builder)
+- HashiCorp Automate Terraform with GitHub Actions — [https://developer.hashicorp.com/terraform/tutorials/automation/github-actions](https://developer.hashicorp.com/terraform/tutorials/automation/github-actions)
+
+- HashiCorp Running Terraform in Automation — [https://developer.hashicorp.com/terraform/tutorials/automation/automate-terraform](https://developer.hashicorp.com/terraform/tutorials/automation/automate-terraform)
+
+- HashiCorp Terraform plan command — [https://developer.hashicorp.com/terraform/cli/commands/plan](https://developer.hashicorp.com/terraform/cli/commands/plan)
+
+- HashiCorp Terraform apply command — [https://developer.hashicorp.com/terraform/cli/commands/apply](https://developer.hashicorp.com/terraform/cli/commands/apply)
+
+- HashiCorp Terraform backend configuration — [https://developer.hashicorp.com/terraform/language/backend](https://developer.hashicorp.com/terraform/language/backend)
+
+- GitHub OpenID Connect in cloud providers — [https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers)
+
+- GitHub deployments and environments — [https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
+
+- GitHub security guidance for actions — [https://docs.github.com/en/actions/reference/security/secure-use](https://docs.github.com/en/actions/reference/security/secure-use)
+
+- GitHub upload-artifact action — [https://github.com/actions/upload-artifact](https://github.com/actions/upload-artifact)
+
+- GitHub download-artifact action — [https://github.com/actions/download-artifact](https://github.com/actions/download-artifact)
+
+- HashiCorp setup-terraform action — [https://github.com/hashicorp/setup-terraform](https://github.com/hashicorp/setup-terraform)
+
+- Yoryantra GitHub Actions YAML Validator — [https://yoryantra.com/tools/github-actions-yaml-validator](https://yoryantra.com/tools/github-actions-yaml-validator)
+
+- Yoryantra GitHub Actions Matrix Builder — [https://yoryantra.com/tools/github-actions-matrix-builder](https://yoryantra.com/tools/github-actions-matrix-builder)
