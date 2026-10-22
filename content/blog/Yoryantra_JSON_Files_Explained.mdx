@@ -15,7 +15,7 @@ sources:
 - https://yoryantra.com/tools/json-validator
 - https://yoryantra.com/tools/json-minifier
 datePublished: '2026-10-20'
-dateModified: '2026-10-21'
+dateModified: '2026-10-22'
 status: published
 author: Varoun Sonawane
 ---
@@ -75,11 +75,11 @@ Here is a compact way to recognize the most frequent mistakes:
 
 | Input fragment | Why it fails as JSON | What the JSON text needs |
 | --- | --- | --- |
-| {name:"Sneha"} | Member name is not quoted | {"name":"Sneha"} |
-| {'name':'Sneha'} | JSON strings use double quotes | {"name":"Sneha"} |
-| {"roles":["dev",]} | Trailing comma in array | {"roles":["dev"]} |
-| {"timeout":NaN} | NaN is not a JSON number | Use a defined number, null or application-specific representation |
-| {"enabled":True} | JSON literals are lowercase | {"enabled":true} |
+| `{name:"Sneha"}` | Member name is not quoted | `{"name":"Sneha"}` |
+| `{'name':'Sneha'}` | JSON strings use double quotes | `{"name":"Sneha"}` |
+| `{"roles":["dev",]}` | Trailing comma in array | `{"roles":["dev"]}` |
+| `{"timeout":NaN}` | NaN is not a JSON number | Use a defined number, null or application-specific representation |
+| `{"enabled":True}` | JSON literals are lowercase | `{"enabled":true}` |
 | // settings | Comments are not part of standard JSON | Put comments in documentation or use an explicitly supported alternative format |
 
 An error message such as “Unexpected token” points to where one parser first stopped accepting the text. It does not necessarily identify the author's underlying mistake. A missing quote earlier in the document can make a later comma look wrong. When the error points near the end, look for an unclosed string, array or object before changing the final character.
