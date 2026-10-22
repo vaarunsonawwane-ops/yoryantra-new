@@ -280,17 +280,17 @@ export default function ToolClient() {
 
       <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Whitespace is easy; SQL lexical boundaries are not</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Why SQL quotes and comments need protection</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            A formatter that blindly replaces spaces or uppercases words can alter text inside a string literal, quoted identifier, or comment. A semicolon inside <code className="rounded bg-gray-100 px-1">'message; still text'</code> is not a statement boundary either. The formatting pass therefore protects those regions first, changes only the surrounding SQL text, and restores the protected content afterward.
+            When you format SQL, the words inside a quoted string or a comment should stay exactly as written. Even the semicolon inside <code className="rounded bg-gray-100 px-1">'message; still text'</code> is part of the message, not the end of a statement. This formatter sets those parts aside, formats the SQL around them, and puts them back unchanged.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The same protection covers PostgreSQL dollar-quoted bodies, backtick-quoted names commonly seen in MySQL-family syntax, and bracketed identifiers used by SQL Server-style syntax. Supporting those lexical forms does not make the formatter a parser for every dialect; it simply avoids treating their contents as ordinary code.
+            The same approach protects PostgreSQL dollar-quoted text, MySQL-style names in backticks, and SQL Server-style names in square brackets. It helps preserve those parts of a query, but it does not mean the formatter understands every database dialect.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">What the formatter deliberately changes</h2>
+          <h2 className="text-xl font-semibold text-gray-900">What the formatter changes</h2>
           <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-gray-600">
             <li>Selected keyword casing outside protected text.</li>
             <li>Spacing around common comparison operators and commas.</li>
@@ -304,15 +304,15 @@ export default function ToolClient() {
 
         <div className="grid items-start gap-5 md:grid-cols-2">
           <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
-            <h2 className="text-lg font-semibold text-gray-900">Line comments need their newline</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Keep the line break after a -- comment</h2>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              <code className="rounded bg-white px-1">-- comment</code> extends to the end of its line. Removing that line break can accidentally comment out the next clause. The protected representation carries a forced newline marker so formatting cannot merge following SQL into the comment.
+              When you write <code className="rounded bg-white px-1">-- comment</code>, the comment ends at the next line break. If a formatter removes that break, it can turn the next SQL clause into part of the comment. Yoryantra keeps the line break in place.
             </p>
           </div>
           <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
             <h2 className="text-lg font-semibold text-amber-900">Data-changing statements deserve a second check</h2>
             <p className="mt-3 text-sm leading-relaxed text-amber-800">
-              Simple cautions flag UPDATE or DELETE statements that appear to lack WHERE in their own statement, plus SELECT *. These are reading aids, not a safety proof: CTEs, subqueries, dialect syntax, and dynamic SQL can make regex-level warnings incomplete.
+              The tool flags some UPDATE or DELETE statements with no outer WHERE clause, even when a nested query contains WHERE. It also flags SELECT *. These warnings are reminders, not a safety check: database-specific syntax and dynamic SQL can still need closer review.
             </p>
           </div>
         </div>
@@ -402,7 +402,7 @@ function beautifySQL(sql: string, options: FormatOptions) {
   }
 
   if (options.breakBooleanConditions) {
-    formatted = formatted.replace(/\s+(AND|OR)\s+/gi, `\n${indent}$1 `);
+    formatted = breakBooleanConditionsSafely(formatted, indent);
   }
 
   formatted = formatSelectList(formatted, indent, options.commaStyle);
@@ -445,6 +445,60 @@ function applyFunctionCase(sql: string, keywordCase: KeywordCase) {
     result = result.replace(new RegExp(`\\b${escapeRegExp(fn)}\\s*\\(`, "gi"), `${replacement}(`);
   });
   return result;
+}
+
+/** Keep the AND that separates BETWEEN bounds attached to its expression.
+ * This is a lexical formatting aid, not a dialect-aware SQL parser.
+ */
+function breakBooleanConditionsSafely(sql: string, indent: string) {
+  let result = "";
+  let last = 0;
+  let depth = 0;
+  const betweenAtDepth = new Map<number, number>();
+  const token = /[A-Za-z_][A-Za-z0-9_$]*/g;
+  let match: RegExpExecArray | null;
+  let position = 0;
+
+  while ((match = token.exec(sql)) !== null) {
+    for (; position < match.index; position += 1) {
+      if (sql[position] === "(") depth += 1;
+      else if (sql[position] === ")") {
+        betweenAtDepth.delete(depth);
+        depth = Math.max(0, depth - 1);
+      } else if (sql[position] === ";") {
+        betweenAtDepth.clear();
+      }
+    }
+
+    const word = match[0].toUpperCase();
+    const end = match.index + match[0].length;
+    // Do not mistake part of a longer identifier (e.g. myAND) for a keyword.
+    if ((match.index > 0 && /[A-Za-z0-9_$]/.test(sql[match.index - 1])) ||
+        (end < sql.length && /[A-Za-z0-9_$]/.test(sql[end]))) continue;
+
+    if (word === "BETWEEN") {
+      betweenAtDepth.set(depth, (betweenAtDepth.get(depth) ?? 0) + 1);
+    } else if (word === "AND") {
+      const pending = betweenAtDepth.get(depth) ?? 0;
+      if (pending) {
+        if (pending === 1) betweenAtDepth.delete(depth);
+        else betweenAtDepth.set(depth, pending - 1);
+      } else {
+        const whitespace = sql.slice(last, match.index).match(/\s+$/)?.[0];
+        if (whitespace) {
+          result += sql.slice(last, match.index - whitespace.length) + `\n${indent}${match[0]}`;
+          last = end;
+        }
+      }
+    } else if (word === "OR") {
+      const whitespace = sql.slice(last, match.index).match(/\s+$/)?.[0];
+      if (whitespace) {
+        result += sql.slice(last, match.index - whitespace.length) + `\n${indent}${match[0]}`;
+        last = end;
+      }
+    }
+  }
+  return result + sql.slice(last);
 }
 
 function formatSelectList(sql: string, indent: string, commaStyle: CommaStyle) {
@@ -646,6 +700,28 @@ function getSQLStats(sql: string): SQLStats {
   };
 }
 
+/** Return only words outside parentheses and protected strings/comments.
+ * A WHERE inside a subquery must not count as the outer UPDATE/DELETE's WHERE.
+ */
+function topLevelSQLWords(sql: string) {
+  const words: string[] = [];
+  let depth = 0;
+  const token = /[A-Za-z_][A-Za-z0-9_$]*|[()]/g;
+  let match: RegExpExecArray | null;
+  while ((match = token.exec(sql)) !== null) {
+    if (match[0] === "(") depth += 1;
+    else if (match[0] === ")") depth = Math.max(0, depth - 1);
+    else if (depth === 0) {
+      const end = match.index + match[0].length;
+      if ((match.index === 0 || !/[A-Za-z0-9_$]/.test(sql[match.index - 1])) &&
+          (end === sql.length || !/[A-Za-z0-9_$]/.test(sql[end]))) {
+        words.push(match[0].toUpperCase());
+      }
+    }
+  }
+  return words;
+}
+
 function getSQLWarnings(sql: string): QueryWarning[] {
   const code = analysisCode(sql);
   const warnings: QueryWarning[] = [];
@@ -656,11 +732,19 @@ function getSQLWarnings(sql: string): QueryWarning[] {
     if (/\bselect\s+\*/i.test(statement)) {
       warnings.push({ title: `SELECT *${number}`, message: "Selecting every column can be intentional, but it can also pull more data than expected or make callers depend on schema changes." });
     }
-    if (/\bdelete\s+from\b/i.test(statement) && !/\bwhere\b/i.test(statement)) {
-      warnings.push({ title: `DELETE without WHERE${number}`, message: "The executable text appears to contain DELETE without a WHERE clause. Confirm the intended row scope in the target database before running it." });
-    }
-    if (/\bupdate\b/i.test(statement) && !/\bwhere\b/i.test(statement)) {
-      warnings.push({ title: `UPDATE without WHERE${number}`, message: "The executable text appears to contain UPDATE without a WHERE clause. Confirm the intended row scope in the target database before running it." });
+
+    const words = topLevelSQLWords(statement);
+    // A leading WITH may define one or more CTEs before the outer statement.
+    // Check the first top-level command rather than UPDATE within an INSERT upsert.
+    const firstCommand = words[0] === "WITH"
+      ? words.findIndex((word) => ["SELECT", "INSERT", "UPDATE", "DELETE", "MERGE"].includes(word))
+      : 0;
+    const command = words[firstCommand];
+    if ((command === "UPDATE" || command === "DELETE") && !words.slice(firstCommand + 1).includes("WHERE")) {
+      warnings.push({
+        title: `${command} without WHERE${number}`,
+        message: `The outer ${command} appears to have no WHERE clause. A WHERE inside a nested query does not limit the outer statement. Confirm which rows will be affected in your database before running it.`,
+      });
     }
   });
 
