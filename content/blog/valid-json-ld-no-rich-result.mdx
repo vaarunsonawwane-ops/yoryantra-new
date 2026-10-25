@@ -1,0 +1,210 @@
+---
+slug: valid-json-ld-no-rich-result
+title: Why Valid JSON-LD Still Doesn't Show a Google Rich Result
+description: Valid JSON-LD but no rich result? Diagnose Google feature eligibility, deployed markup, indexing, canonicals, and search appearance with worked examples.
+topic: SEO
+articleType: Troubleshooting
+relatedTools:
+- /tools/structured-data-validator
+sources:
+- https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data
+- https://developers.google.com/search/docs/appearance/structured-data/sd-policies
+- https://developers.google.com/search/docs/appearance/structured-data/search-gallery
+- https://developers.google.com/search/docs/appearance/structured-data/breadcrumb
+- https://developers.google.com/search/docs/appearance/structured-data/generate-structured-data-with-javascript
+- https://developers.google.com/search/updates
+- https://search.google.com/test/rich-results
+- https://support.google.com/webmasters/answer/9012289
+- https://yoryantra.com/tools/structured-data-validator
+- https://yoryantra.com/blog/robots-txt-allowed-but-not-indexed
+- https://yoryantra.com/blog/valid-sitemap-not-indexed
+datePublished: '2026-10-25'
+dateModified: null
+status: published
+author: Varoun Sonawane
+---
+
+Your JSON-LD passes a validator. Google's Rich Results Test may even say the page is eligible. Then you search for it and see an ordinary result, with none of the special appearance you expected. It is tempting to keep adding properties until something changes. That usually sends you in the wrong direction.
+
+A green result can be correct while the desired Search appearance is absent. The reason might be that you marked up a type Google doesn't turn into a special feature, that Google indexed a different canonical, that the deployed page differs from your local snippet, or simply that Google didn't choose to display an eligible feature for that search. You need different evidence for each possibility.
+
+Trace the page from your JSON-LD source through its rendered HTML, Google's indexing record, and the final Search result. Small, clearly illustrative examples help you recognise the point of failure without pretending a local parser can tell you what Google will display.
+
+## Before debugging, name the result you expected
+
+"Rich result" is not one universal design. Recipe details, product information and breadcrumb trails have different documentation and availability. Article markup can help Google understand article information without promising a decorative card for every Blog post. A generic `WebPage` object can be perfectly legitimate Schema.org without creating a standalone Google rich-result type. Before running another validator, write down the exact feature you were expecting and locate it in Google's current Search Gallery.
+
+This matters more than it first sounds. You cannot troubleshoot missing required properties for a feature Google does not provide. You also cannot judge a desktop-only feature by a mobile screenshot. Google stopped showing breadcrumb paths in mobile Search results in January 2025; breadcrumb markup is still supported for desktop results. And Google's FAQ rich-result feature stopped appearing in May 2026, with its documentation removed the following month. Neither change is fixed by rewriting correct JSON-LD.
+
+| Expected outcome | What to check | What a passing JSON validator cannot prove |
+| --- | --- | --- |
+| Breadcrumb path | Is the result being checked on desktop, where Google supports it? | That the breadcrumb will appear for this search |
+| Recipe details | Does this specific page actually contain a recipe meeting the current feature guide? | Eligibility, crawling or final display |
+| Product details | Does the live offer and page meet the applicable Product or merchant rules? | Truthfulness or current offer accuracy |
+| Article enhancement | Which Article properties does the Google guide use, and what appearance is actually promised? | That Google will display a distinct card |
+| FAQ expansion | Is the feature still supported? | The return of a retired Search feature |
+| Generic `WebPage` graph | Is there even a matching Google rich-result feature? | A special result from valid Schema.org alone |
+
+If you cannot identify a supported feature, stop there. Preserve useful, truthful structured data if it serves other consumers; don't insert an unrelated `Product`, `FAQPage` or rating solely to trigger Google's test.
+
+## A reproducible example: green JSON, no Google feature
+
+Consider a developer documentation page about HTTP headers. This JSON-LD is syntactically valid and the described page is plausible:
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "HTTP header examples",
+  "url": "https://example.com/docs/headers"
+}
+```
+
+A JSON parser can accept it. A general structured-data checker can inspect the type, URL and graph. But Google's Rich Results Test is designed around Google-supported Search features; it can report that no supported rich-result items were detected. Those statements aren't contradictory. A parser's job is not to promise Search presentation.
+
+Now imagine the same website publishes a guide with a navigation path: Docs → HTTP → Headers. If the visible page genuinely provides that hierarchy, `BreadcrumbList` is a more specific supported feature. An illustrative JSON-LD block would look like this:
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1,
+     "name": "Docs", "item": "https://example.com/docs"},
+    {"@type": "ListItem", "position": 2,
+     "name": "HTTP", "item": "https://example.com/docs/http"},
+    {"@type": "ListItem", "position": 3,
+     "name": "Headers"}
+  ]
+}
+```
+
+The second example has a feature-specific candidate, but it is still not a guarantee. Its links must reflect the site's real hierarchy, the page needs to be accessible and indexed appropriately, and Google decides the presentation. The final breadcrumb item omits `item`, as in Google's own example. A valid desktop breadcrumb can also be absent from mobile Search by design.
+
+**What this test establishes:** both samples can be parsed as JSON. It does not demonstrate a real Google Rich Results Test pass, a real indexed URL, or a live breadcrumb display. Those checks require the deployed page and Google's tools.
+
+## Run three tools in the right order
+
+Start with the tool that answers the next unanswered question. Running every validator repeatedly without recording its findings produces noise, not a diagnosis.
+
+**1. Inspect the source.** Paste the actual JSON-LD or rendered HTML into [Yoryantra's Structured Data Validator](https://yoryantra.com/tools/structured-data-validator). It reviews parsing, multiple JSON-LD blocks, graph IDs, types, references and selected implementation signals. It does not fetch your live URL, check all Schema.org definitions, or reproduce Google's feature rules. If it flags a duplicate ID or a malformed script, fix that concrete source issue before proceeding.
+
+**2. Test the public URL.** In [Google's Rich Results Test](https://search.google.com/test/rich-results), prefer the deployed URL over a pasted snippet. Note the detected feature type, eligible items, errors and warnings. If an item's required property is missing, use the exact Google feature guide to correct it. A recommendation or optional-field warning does not automatically mean the item is ineligible. If no supported items are detected, revisit feature support or inspect the rendered page rather than adding arbitrary markup.
+
+**3. Inspect Google's stored view.** In Search Console URL Inspection, read the indexed status, last crawl, user-declared canonical and Google-selected canonical. Compare that stored view with the **Test live URL** result. The stored inspection data comes from Google's last recorded crawl; the live test checks current fetchability and some page conditions. A green live test does not mean Google already indexed the new deployment, and neither test promises a rich result.
+
+Record the URL, date of deployment, last reported crawl, feature tested and both tool outcomes. That small evidence trail often saves more time than another rewrite of the JSON-LD.
+
+## Case 1: the code snippet passes, but production has no JSON-LD
+
+Sneha edits an article template locally and sees a `BreadcrumbList` script in the development build. The code-input version of Google's test recognises it. The public URL test, however, finds no eligible breadcrumb item.
+
+Before changing schema properties, inspect the response you deployed. Is the script present in the actual public HTML? Was the latest build deployed to the intended domain? Did a page template omit the JSON-LD on the static-exported version? Does the tag manager inject the block only after a visitor interaction, consent choice or failed network request?
+
+For a quick local DOM inventory, open DevTools on the **public page**, select Console and run the following. It only reads the page's JSON-LD script elements; it does not modify content or contact Google:
+
+```javascript
+const blocks = [...document.querySelectorAll(
+  'script[type="application/ld+json"]'
+)];
+console.table(blocks.map((el, i) => {
+  try {
+    const doc = JSON.parse(el.textContent || '');
+    const nodes = Array.isArray(doc) ? doc :
+      Array.isArray(doc['@graph']) ? doc['@graph'] : [doc];
+    return { block: i + 1, parsed: true,
+      types: nodes.map(n => n?.['@type'] || '(none)').join(', ') };
+  } catch (error) {
+    return { block: i + 1, parsed: false,
+      types: String(error.message) };
+  }
+}));
+```
+
+If this reports zero blocks on the deployed page, look at deployment and rendering first. If it reports a parse error, inspect the exact affected script. If the expected block is present in your browser but missing in Google's URL test, compare rendered HTML, crawl accessibility and when or how the JavaScript injects it. This console snippet sees **your browser's current DOM**, not the specific page version in Google's index; it cannot prove what Google has crawled.
+
+**Fix:** correct the actual render/deploy fault, retest the public URL, and request another crawl only when a meaningful correction has shipped. Don't solve a missing script by adding more properties to a script that wasn't deployed.
+
+## Case 2: rich-result markup is correct, but Google indexed another URL
+
+Suppose `https://example.com/guides/headers?ref=home` passes a current test. In URL Inspection, Google selects `https://example.com/guides/headers` as canonical. The parameter URL doesn't get an independent rich result simply because it has valid JSON-LD.
+
+Inspect the chosen canonical page. Does it contain the same relevant visible content and markup? Is the canonical declaration on the parameter URL consistent with the intended page? Do internal links and sitemap entries use the preferred clean URL? The canonical-selection issue is separate from source syntax. You usually shouldn't force every tracking-parameter variation to become its own indexed page.
+
+If Search Console says `Crawled - currently not indexed` for a genuinely distinct page, record its last crawl and compare its content and internal links. Avoid calling every such status a markup penalty. Google may have crawled the URL without selecting it for indexing; JSON-LD alone doesn't change that choice. The Yoryantra guide on [duplicate without user-selected canonical](https://yoryantra.com/blog/duplicate-without-user-selected-canonical) covers the canonical investigation in depth. That is the next task when canonical evidence points there; it isn't a reason to repeat this article's schema checks.
+
+**Fix:** align truly conflicting canonical signals or examine page-level indexing evidence. Don't change healthy canonical tags because a special appearance is missing.
+
+## Case 3: the visible page and the JSON-LD disagree
+
+A product page shows a price of ₹599, but its `Product` JSON-LD still says ₹499 because the markup reads a stale CMS field. Parsing can succeed perfectly, and a quick test may not know which price is true. The page and the structured data disagree, which matters under Google's content policies. The same problem can affect an event date, article byline, job salary or marked-up reviews that users cannot find on the page.
+
+Don't just patch the JSON number. Trace which data source creates the visible price and which creates the JSON-LD. Update the template or data flow so both describe the same current offer. Recheck the rendered public page afterwards. For fast-moving offers, also verify that caching and deployment rules are not serving inconsistent versions. Avoid inventing ratings or reviews to obtain a richer appearance; misleading markup can create a policy issue that no syntax checker can diagnose.
+
+**Fix:** repair the source-of-truth mismatch and test the actual deployed representation. This example illustrates a policy/content mismatch, not a complete implementation of every Product feature requirement.
+
+## Case 4: Rich Results Test is green, but the result stays ordinary
+
+Assume the page is indexed under the expected canonical, the current Google feature is supported, the public URL test finds a valid item, and the markup matches the visible content. You still see a normal Search result. This is a possible, legitimate outcome.
+
+Google explicitly says passing the Rich Results Test does not guarantee a rich appearance. Its Search presentation can vary with the query and result surface. Check the device first: a breadcrumb path won't appear in mobile results even though breadcrumb markup continues to be supported for desktop. Check the feature's current status next: FAQ rich results are no longer a live feature in 2026, regardless of any old tutorial screenshots. Then look at actual Search Performance reports over a reasonable period rather than treating a single manual search as universal evidence.
+
+If the page is otherwise healthy and there is no documented feature or technical defect, **stop changing the JSON-LD**. Improve the underlying page for readers and relevant searches. You cannot force a feature by repeating validation, stuffing properties, or manufacturing reviews.
+
+## Case 5: today's Rich Results Test and last week's crawl disagree
+
+An article deployed updated markup yesterday. Today the Rich Results Test on the live URL sees the new item, but URL Inspection lists a last crawl from before the deployment. That isn't a mysterious conflict: one result reflects the live page, the other describes Google's stored view.
+
+Check the last crawl timestamp and the version actually deployed. If the live URL test is healthy and Google has not fetched the changed page since release, allow time for recrawling. An indexing request can notify Google about a meaningful update but cannot impose a timetable. If Google has crawled **after** the release and still sees different markup, investigate robots restrictions, server responses, client-side injection and the HTML delivered to Google. Use evidence from the two timestamps before blaming schema syntax.
+
+**Fix:** wait or investigate depending on crawl timing. Repeatedly republishing an unchanged JSON-LD block is not a diagnostic method.
+
+## What to write down when the test fails
+
+This table is deliberately about **the next action**, not a list of every possible validator message. It helps stop the common habit of applying the same fix to unrelated symptoms.
+
+| Observed evidence | What it tells you | Appropriate next action |
+| --- | --- | --- |
+| Local JSON syntax fails | The source cannot be parsed as JSON | Correct quotes, commas, escaping or truncation and rerun source check |
+| Source parses; Google's URL test finds no supported item | The deployed page may not expose the markup, or the type isn't a supported feature | Inspect rendered page and Search Gallery; separate absence from a broken script |
+| Supported item reported with a required-field error | Google found the item but a documented requirement is missing | Follow the exact feature guide and fix only applicable required data |
+| Optional-field warning only | The item may remain eligible; enhancement quality can be improved | Add truthful recommended data if available; don't invent it |
+| Current live test passes; URL not indexed | Eligibility and indexing are separate | Review URL Inspection, selected canonical and page-level discovery/indexing |
+| Indexed canonical is different | Another URL is the selected representative | Inspect the selected canonical and align inconsistent signals if needed |
+| Item is valid and indexed; no special Search appearance | Eligibility doesn't compel Search presentation | Check device/feature availability and monitor; stop unsupported edits |
+| Search Console reports structured-data manual action | Google's policy enforcement has identified a structured-data issue | Read the Manual Actions report, fix the stated violation and follow its process |
+
+Notice which findings **don't** prove a penalty: absence of a special Search card, a normal blue-link result, an old last crawl, or a single unindexed URL. Each has narrower explanations. A structured-data manual action is a specific Search Console report, not an assumption to make from screenshots.
+
+## A short release check for a real page
+
+Before deploying: confirm the exact feature still exists; confirm the structured properties describe content users can see; inspect the JSON-LD in Yoryantra for source issues; compare identifiers and URLs across any `@graph` nodes. Do not force `@graph` where a simple object is sufficient, and do not assume multiple complementary `application/ld+json` blocks are automatically a mistake.
+
+After deploying: open the public canonical URL; inspect its delivered HTML or rendered DOM; run the URL version of Google's Rich Results Test; save the results and any detected item details; inspect Search Console for indexed status, last crawl and selected canonical. If a Search Console enhancement report is available for that feature, use it to monitor changes across affected URLs, remembering that not every Schema.org type receives its own enhancement report.
+
+After a genuine fix: verify the deployed URL again and record the change. Wait for Google's reprocessing instead of repeatedly resubmitting the same unchanged page. For a page that is eligible but not displaying a feature, review real query-level Search Performance over time; don't extrapolate from one search result or a test green badge.
+
+## Where the Yoryantra validator stops—and why that's useful
+
+[Yoryantra's Structured Data Validator](https://yoryantra.com/tools/structured-data-validator) provides the first layer: review the JSON-LD or pasted HTML, spot duplicate JSON keys, inspect type and `@id` relationships, and notice selected graph-level implementation problems. Its optional page URL gives context for URL interpretation; it **does not fetch that URL**. Nor does it run Google's Rich Results Test, verify a feature's current support, compare markup with actual visible production content, or inspect Google's indexed copy.
+
+That's a useful boundary, not a missing promise. Use the Yoryantra tool when the question is, "What is in this JSON-LD source, and is anything structurally suspicious?" Use Google's test when the question is, "What supported Search feature does Google detect on this public page?" Use Search Console when the question is, "Which page did Google crawl and index, and when?" Once you can answer those three questions, most missing-rich-result investigations become much more focused.
+
+If URL Inspection reveals a crawl or indexing issue, Yoryantra's [robots.txt indexing guide](https://yoryantra.com/blog/robots-txt-allowed-but-not-indexed) and [valid sitemap but not indexed guide](https://yoryantra.com/blog/valid-sitemap-not-indexed) cover the broader discovery path. They are related reading, not substitutes for checking feature-specific structured-data requirements.
+
+## Stop at the boundary your evidence establishes
+
+Suppose the correct production URL is indexed, Google's URL test sees a supported feature without blocking errors, your marked-up values agree with the content, and there is no relevant manual action. You have tested the parts you can control. Google might still show an ordinary result. At that point, changing the schema again has no evidenced benefit.
+
+On the other hand, if Google reports a required-field error, the production page is missing the script, an old canonical is selected, or the markup invents content, you have a specific reason to act. Fix **that** issue, not the entire schema graph. That distinction keeps debugging practical and protects a working site from unnecessary changes.
+
+## References
+
+- [Google Search Central — Introduction to structured data](https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data)
+- [Google Search Central — General structured data guidelines](https://developers.google.com/search/docs/appearance/structured-data/sd-policies)
+- [Google Search Central — Search Gallery](https://developers.google.com/search/docs/appearance/structured-data/search-gallery)
+- [Google Search Central — Breadcrumb structured data](https://developers.google.com/search/docs/appearance/structured-data/breadcrumb)
+- [Google Search Central — Generate structured data with JavaScript](https://developers.google.com/search/docs/appearance/structured-data/generate-structured-data-with-javascript)
+- [Google Search Central — Documentation updates, May–June 2026 FAQ retirement](https://developers.google.com/search/updates)
+- [Google — Rich Results Test](https://search.google.com/test/rich-results)
+- [Google Search Console Help — URL Inspection](https://support.google.com/webmasters/answer/9012289)
