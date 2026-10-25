@@ -1,0 +1,213 @@
+---
+slug: github-api-rate-limit-403-429-reset-headers
+title: 'GitHub API Rate Limit Exceeded: Understanding 403, 429 and Reset Headers'
+description: GitHub API returning 403 or 429? Identify primary and secondary rate limits, interpret reset headers, and fix throttled integrations without unsafe retries.
+topic: DevOps
+articleType: Troubleshooting
+relatedTools:
+- /tools/api-rate-limit-header-parser
+- /tools/unix-timestamp-generator
+sources:
+- https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
+- https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api
+- https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api
+- https://docs.github.com/en/rest/rate-limit/rate-limit
+- https://docs.github.com/en/graphql/overview/rate-limits-and-query-limits-for-the-graphql-api
+- https://yoryantra.com/tools/api-rate-limit-header-parser
+- https://yoryantra.com/tools/unix-timestamp-generator
+- https://yoryantra.com/blog/webhooks-vs-api
+datePublished: '2026-10-25'
+dateModified: null
+status: published
+author: Varoun Sonawane
+---
+
+A GitHub integration runs happily all morning, then starts returning `403 Forbidden`. The token is still valid. The repository still exists. Five minutes later, some requests work again, while others fail with `429 Too Many Requests`. If you treat every 403 as a permissions problem or every 429 as a simple hourly quota, you can spend hours investigating the wrong thing.
+
+GitHub's REST API has **primary limits** for the total allowance within a time window and **secondary limits** that protect the service against bursty, expensive or highly concurrent traffic. Both can produce a 403 or a 429. The headers, error message and timing give you a much better diagnosis than the status code on its own.
+
+## The request that broke a previously working job
+
+Sneha maintains a repository reporting script. It reads pull requests across several repositories. One day the script runs from two scheduled jobs at once, each making a large number of API calls. One request returns this illustrative response:
+
+```http
+HTTP/2 403
+content-type: application/json
+x-ratelimit-limit: 5000
+x-ratelimit-remaining: 0
+x-ratelimit-used: 5000
+x-ratelimit-reset: 1793001600
+x-ratelimit-resource: core
+
+{"message":"API rate limit exceeded for this account"}
+```
+
+The zero `x-ratelimit-remaining` is the decisive clue. The example represents an exhausted primary budget for that resource, not a missing repository permission. The numerical reset value is **illustrative**, not an actual current GitHub reset time. It is a Unix epoch timestamp in seconds; when the clock reaches that point, the affected primary window resets. Convert it before calculating the delay.
+
+Now imagine a different response from the same integration:
+
+```http
+HTTP/2 429
+content-type: application/json
+retry-after: 60
+x-ratelimit-limit: 5000
+x-ratelimit-remaining: 2700
+x-ratelimit-resource: core
+
+{"message":"You have exceeded a secondary rate limit"}
+```
+
+The overall core budget still has room. Yet the request is being throttled by a secondary control. A script that checks only `x-ratelimit-remaining` would miss the problem and continue sending traffic. The response body and `Retry-After` make the distinction.
+
+These are teaching examples, not captured GitHub responses. In a real investigation, save the sanitized status, headers, error message, request URL, UTC timestamp and GitHub request ID (if present) before changing your retry policy.
+
+## Primary and secondary limits measure different things
+
+GitHub documents 60 unauthenticated REST requests per hour for many public resources and typically 5,000 per hour for requests authenticated as a user. Some apps and Enterprise Cloud contexts have different allowances; installation tokens can scale based on the installation. You cannot safely derive *your* limit from another developer's screenshot. Inspect the actual response and the documented credential type. Search endpoints and some other resources have their own budgets.
+
+Secondary limits are separate safeguards. Among the documented triggers are high concurrency, endpoint point costs, CPU load and excessive content-generating requests. GitHub lists a shared REST/GraphQL concurrency cap and point-based per-minute thresholds, but says some limits are not disclosed and can change. Treat published figures as operational guidance rather than a challenge to load-test the maximum.
+
+| Behaviour | Primary rate limit | Secondary rate limit |
+| --- | --- | --- |
+| Main purpose | Constrains a quota for a resource and time window | Discourages high concurrency, rapid bursts or costly patterns |
+| Typical signal | `403` or `429`, `x-ratelimit-remaining: 0` | `403` or `429`, message indicating secondary throttling |
+| Recovery evidence | `x-ratelimit-reset` in UTC epoch seconds | `Retry-After`, or GitHub's documented minimum pause if absent |
+| Usual corrective work | Wait for resource reset; reduce total requests | Reduce concurrency; queue and pace traffic |
+| Can remaining stay above zero? | Not when the affected primary budget is exhausted | Yes, because primary and secondary budgets are different |
+
+GitHub's documentation distinguishes REST from GraphQL. A GraphQL rate-limit failure may use a successful HTTP status with an error body, so a client that assumes all GitHub API quota failures are HTTP 403/429 is incomplete. The examples here intentionally concern the **REST API**.
+
+## Read the GitHub headers as a set, not as isolated numbers
+
+A REST response commonly contains the primary-rate headers below. Header names are case-insensitive; API clients may present them in lowercase.
+
+| Header | Meaning | Common interpretation mistake |
+| --- | --- | --- |
+| `x-ratelimit-limit` | Maximum for the applicable primary budget | Treating it as a universal GitHub limit across every endpoint |
+| `x-ratelimit-remaining` | Requests remaining in the current primary window | Assuming `> 0` rules out secondary throttling |
+| `x-ratelimit-used` | Amount consumed in the current window | Using it without checking `resource` and timing |
+| `x-ratelimit-reset` | Primary reset time in **UTC Unix seconds** | Treating it as milliseconds or seconds from now |
+| `x-ratelimit-resource` | Resource bucket charged by the request | Assuming `core`, `search` and GraphQL share one counter |
+| `retry-after` | Minimum waiting period if GitHub provides it | Ignoring it and retrying when the primary count looks healthy |
+
+For a concrete timestamp conversion, suppose a fictional response reports `x-ratelimit-reset: 1793001600`. JavaScript's `Date` constructor expects milliseconds, so `new Date(1793001600 * 1000).toISOString()` converts that number to UTC. Passing `1793001600` to the constructor without multiplying by 1,000 would interpret the number as milliseconds since 1970 and give a wildly incorrect date.
+
+GitHub says rate-limit headers on **individual responses** are the authority for the request just made. `GET /rate_limit` gives a periodic overview, but it doesn't provide the current state of secondary limits. That endpoint is excluded from primary-rate charging but can still contribute to secondary limits. Polling it every second to find out whether you may poll again defeats the purpose.
+
+You can paste a sanitized header block into [Yoryantra's API Rate Limit Header Parser](https://yoryantra.com/tools/api-rate-limit-header-parser) to interpret reset formats and possible conflicts. The tool analyses the headers you paste locally; it neither queries GitHub nor knows the state of your installation's secondary limit.
+
+## How to tell a rate-limited 403 from a permission 403
+
+A 403 isn't a diagnosis. GitHub can return a 403 when a fine-grained token lacks the necessary permission, an organisation policy blocks access, or the caller has exceeded a rate limit. The response's own message and documentation for the endpoint matter. `x-ratelimit-remaining: 0` with the corresponding rate-limit message supports primary exhaustion. A secondary-rate error is identified by GitHub's message, even when primary remaining is positive.
+
+If the body says `Resource not accessible by integration`, check the installation scope and the endpoint's required fine-grained token permissions. Waiting for a quota reset won't grant new access. Likewise, a 404 for a private repository may conceal missing access rather than prove the resource does not exist. Don't treat every status outside 2xx as a retry candidate.
+
+Use this evidence order when a GitHub API call fails:
+
+1. Save the failing endpoint, method and response status, **without** logging a token.
+2. Read the JSON `message` (and documentation URL, if supplied) and the rate-limit headers from the same response.
+3. If remaining is zero and GitHub identifies a primary limit, calculate the reset from `x-ratelimit-reset`.
+4. If GitHub identifies a secondary limit, honour `Retry-After`; otherwise follow GitHub's published cooldown rule.
+5. If the body indicates permissions, token scope, organisation restrictions or missing resources, investigate access rather than sleeping.
+6. Check whether other scheduled workers, CI jobs or applications are using the same credential or installation budget.
+
+This sequence avoids two expensive mistakes: regenerating credentials for a quota problem, and repeatedly hammering an endpoint whose permissions are genuinely missing.
+
+## The waiting rule is different for each failure
+
+GitHub's primary-limit rule is specific: **do not retry until the time in `x-ratelimit-reset`** when `x-ratelimit-remaining` is zero. Use the reset value from the failed request; add a small safety margin for scheduling and clock differences if needed. Repeatedly checking the same endpoint before reset can make the incident worse.
+
+For a secondary limit, GitHub says to use `Retry-After` if present. If the primary remaining count is also zero, wait for that primary reset as well. When neither instruction supplies a later boundary, GitHub says to wait **at least one minute** before retrying. If repeated attempts still hit secondary limits, increase the delay exponentially and stop after a bounded number of retries. Continuing to issue rate-limited requests can lead to an integration ban.
+
+A subtle problem arises when a request has both a primary reset and a `Retry-After` value. Waiting only for the shorter signal may violate the longer constraint. If both apply, plan for the later eligible time. A temporary outage or a separate 403 permission error needs its own handling; the rate-limit policy should not be applied blindly to every 403 response.
+
+## Reproduce the classification locally without hitting GitHub
+
+The following Node.js 22 script creates fake REST responses in memory and prints how they should be classified. It makes **no** calls to `api.github.com`, needs no token and cannot consume a GitHub quota. The code distinguishes primary exhaustion, secondary throttling and an ordinary permission failure. Its reset number is based on the local test clock, so the displayed delay is short and reproducible.
+
+```javascript
+// save as github-rate-limit-demo.mjs; run: node github-rate-limit-demo.mjs
+function rateDecision(status, headers, message, now = Date.now()) {
+  const h = new Headers(headers);
+  const remaining = h.get('x-ratelimit-remaining');
+  const secondary = /secondary rate limit/i.test(message);
+  const primary = remaining === '0' && (status === 403 || status === 429);
+  if (!secondary && !primary) {
+    return { kind: 'not a proven rate limit', waitMs: null };
+  }
+  const retryRaw = h.get('retry-after');
+  const retrySecs = retryRaw != null && /^\d+$/.test(retryRaw.trim())
+    ? Number(retryRaw) : null;
+  const retryMs = retrySecs === null ? 0 : retrySecs * 1000;
+  const reset = Number(h.get('x-ratelimit-reset'));
+  const resetMs = primary && Number.isFinite(reset) && reset > 0
+    ? Math.max(0, reset * 1000 - now) : 0;
+  const fallback = secondary && retrySecs === null && !primary
+    ? 60_000 : 0; // GitHub's minimum pause in this case
+  return {
+    kind: secondary ? 'secondary (possibly also primary)' : 'primary',
+    waitMs: Math.max(retryMs, resetMs, fallback),
+  };
+}
+
+const now = Date.now();
+const resetSoon = String(Math.ceil((now + 70_000) / 1000));
+const cases = [
+  [403, { 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': resetSoon },
+   'API rate limit exceeded'],
+  [429, { 'x-ratelimit-remaining': '2700', 'retry-after': '60' },
+   'You have exceeded a secondary rate limit'],
+  [403, { 'x-ratelimit-remaining': '4000' },
+   'Resource not accessible by integration'],
+];
+for (const [status, headers, message] of cases) {
+  console.log(status, rateDecision(status, headers, message, now));
+}
+```
+
+The expected classifications are primary, secondary and not a proven rate limit. The sample approximates GitHub's documented rules for these **controlled cases**, not every possible response. Production logic should also parse an HTTP-date `Retry-After` if your upstream can send one, check provider documentation, handle missing or malformed headers, honour job deadlines and coordinate retries across multiple workers. It should never blindly retry a write request merely because a helper returned a wait duration.
+
+## Why two workers can hit a limit faster than one
+
+Suppose a repository dashboard, a release-monitoring job and a CI workflow all use the same personal token. Each sees a healthy remaining count on its own last response and assumes there is space for another batch. The budget is shared, while each local limiter knows only about its own traffic. You can reach a primary limit earlier than any one application's estimate suggests.
+
+The same design can trigger secondary enforcement long before the hourly budget is exhausted. A deployment triggers many parallel pull-request, check-run and commit requests. Each request may be individually valid, yet the concurrent burst looks abusive to GitHub's infrastructure. A failed call retries immediately; two workers multiply the effect. Better code alone will not help if every process independently decides to send another request right away.
+
+Avoid unnecessary polling where GitHub offers webhooks. Queue REST requests rather than sending all of them concurrently. GitHub specifically recommends serial requests to reduce secondary-limit risk and waiting at least one second between mutative REST requests. Use pagination correctly and request only what the job needs. Conditional authenticated GET requests that return `304 Not Modified` do not count against the primary limit under GitHub's documented conditions; they may still be subject to other constraints.
+
+If your job needs events rather than full snapshots, see [What Is a Webhook? Webhook vs API, Signatures, Retries, and Delivery Failures](https://yoryantra.com/blog/webhooks-vs-api). Replacing constant polling with the right event subscription may remove most calls that caused the limit. Webhook delivery, however, has its own security and failure-handling requirements; it is not a switch that makes all integrations automatically reliable.
+
+## Three GitHub incidents and what fixed them
+
+**Nightly export hits the core limit.** The response shows `x-ratelimit-remaining: 0`, a future reset and a primary-limit message. The next request belongs after reset, not in a rapid retry loop. Check whether authenticated requests, a better-fitting GitHub App installation or fewer polling calls suit the integration. A higher token allowance can help some workloads, but only if the actual credential and installation qualify.
+
+**A webhook-triggered workflow hits secondary throttling.** The core remaining count is high; the body identifies a secondary limit. The workflow launches dozens of REST requests simultaneously. Reduce concurrency, serialise writes and follow GitHub's `Retry-After` or minimum cooldown. A healthy primary budget is not proof that the burst is permitted.
+
+**A private repository request returns 403 with a healthy quota.** The response says access is restricted for this installation. The right investigation is permissions, repository access and GitHub App installation scope, not a rate-limit reset. If the resource instead returns 404, remember that access controls can influence that result as well. In either case, changing retry timing cannot supply the missing entitlement.
+
+| Evidence from one response | Most likely next action | What to avoid |
+| --- | --- | --- |
+| `remaining: 0`, primary-limit message | Pause until primary reset | Repeated calls to check whether it has cleared |
+| Secondary-limit message, `Retry-After: 60` | Stop burst; pause at least 60 seconds | Assuming high remaining means no rate limit |
+| Secondary-limit message, no retry header, remaining positive | Pause at least one minute; reduce concurrency | Busy-looping on 403 or 429 |
+| Permission-related 403, remaining positive | Check token/installation and endpoint rights | Rotating tokens or delaying without evidence |
+| `GET /rate_limit` differs from recent headers | Trust individual response headers | Using a periodic overview as exact live enforcement state |
+
+## Keep rate-limit recovery visible in your application
+
+Save the response's status, requested resource, sanitized error message, `x-ratelimit-resource`, remaining budget, reset time and GitHub request ID when available. Do not log access tokens or private repository content just to diagnose a quota. For repeated failures, track whether requests are being queued, delayed, retried or permanently failed. A 429 count falling to zero is not success if the queue silently stopped processing.
+
+After your change, run a restrained test that exercises normal operations and one controlled delay path. Confirm queued work resumes after the documented boundary. Verify that no job creates duplicate issues, comments or releases through unsafe retries. If the integration still encounters secondary limits, reduce request pressure again; do not try to infer an undocumented safe threshold by flooding the API.
+
+The status code tells you what happened to one request. The headers and the workload explain why. Once you distinguish those, most GitHub rate-limit incidents become scheduling or permission problems with specific fixes, rather than mysteries solved by regenerating tokens.
+
+## References and related Yoryantra tools
+
+- [GitHub — Rate limits for the REST API](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)
+- [GitHub — Troubleshooting the REST API](https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api)
+- [GitHub — Best practices for using the REST API](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)
+- [GitHub — REST endpoints for rate limits](https://docs.github.com/en/rest/rate-limit/rate-limit)
+- [GitHub — Rate limits and query limits for GraphQL](https://docs.github.com/en/graphql/overview/rate-limits-and-query-limits-for-the-graphql-api)
+- [Yoryantra — API Rate Limit Header Parser](https://yoryantra.com/tools/api-rate-limit-header-parser)
+- [Yoryantra — Unix Timestamp Generator](https://yoryantra.com/tools/unix-timestamp-generator)
+- [Yoryantra — What Is a Webhook?](https://yoryantra.com/blog/webhooks-vs-api)

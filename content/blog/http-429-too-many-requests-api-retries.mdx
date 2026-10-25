@@ -1,0 +1,187 @@
+---
+slug: http-429-too-many-requests-api-retries
+title: '429 Too Many Requests: How to Fix API Rate Limits and Handle Retries'
+description: HTTP 429 Too Many Requests? Diagnose API quotas and Retry-After headers, fix burst traffic, and implement safe backoff and retries with tested Node.js examples.
+topic: Developer
+articleType: Troubleshooting
+relatedTools:
+- /tools/api-rate-limit-header-parser
+- /tools/api-error-response-formatter
+- /tools/http-request-formatter
+sources:
+- https://www.rfc-editor.org/rfc/rfc6585.html#section-4
+- https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429
+- https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
+- https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Idempotency-Key
+- https://yoryantra.com/tools/api-rate-limit-header-parser
+- https://yoryantra.com/tools/api-error-response-formatter
+- https://yoryantra.com/tools/http-request-formatter
+datePublished: '2026-10-25'
+dateModified: null
+status: published
+author: Varoun Sonawane
+---
+
+An API call works during a manual test. Then a background import starts, and some requests return `429 Too Many Requests`. The first instinct is often to retry immediately. That can make things worse: the client adds traffic at exactly the moment the server is asking it to slow down.
+
+A 429 response means the server is enforcing a request limit. It doesn't necessarily mean the API is down, the token is invalid, or the request body is wrong. The useful details are usually in the response headers, the provider's quota rules, and the pattern of requests your application is sending. A fix might be as small as respecting a wait time. It might also require changing how the entire application schedules work.
+
+## A 429 is a traffic decision, not a broken endpoint
+
+Imagine Sneha's nightly job fetching customer reports. She tests one request from her laptop and receives `200 OK`. The production job runs 30 workers, each fetching report pages at the same time. Some responses arrive normally; others return:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 30
+
+{"error":"rate_limit_exceeded","message":"Wait before retrying"}
+```
+
+The server is not telling her that the URL has changed. It is telling her that the allowed request rate for some identity or resource has been exceeded. RFC 6585 defines 429 but deliberately does not prescribe how a service counts requests. A limit may apply to an IP address, API key, authenticated account, endpoint, organisation, or some combination. Two requests from different workers can still share one quota.
+
+The `Retry-After: 30` in this example asks the caller to wait at least 30 seconds before trying again. The specific error body and 30-second window are illustrative; each provider documents its own messages and enforcement.
+
+Do not confuse a successful low-volume test with evidence that production traffic will work. A burst can exceed a short-window limit even while an hourly allowance looks healthy. Conversely, an exhausted daily quota will not be repaired by reducing concurrency for the next ten seconds.
+
+## Read the response before changing the code
+
+Capture the status, response body, relevant headers and the request timestamp. If several workers are involved, record a correlation ID and which credential or tenant each request uses. Avoid saving raw access tokens in logs or support tickets.
+
+| Signal | Interpretation | Limitation |
+| --- | --- | --- |
+| `429` | The responder is throttling requests | Which exact quota or user identity was counted |
+| `Retry-After: 30` | Wait at least 30 seconds before the next attempt | That every queued request is now permitted |
+| `Retry-After: Wed, 21 Oct 2026 12:00:00 GMT` | Wait until the given HTTP date | That the client clock is perfectly synchronized |
+| `X-RateLimit-*` or `RateLimit*` | Possible quota, remaining budget or reset information | Universal units or identical meanings across providers |
+| Error body / request ID | Often identifies the particular rule or support trace | That the body is sufficient without provider documentation |
+
+There are two legal forms of `Retry-After`: a non-negative number of seconds and an HTTP date. It isn't always present, and it isn't specific to 429; it can also appear on other responses such as 503. A missing header is not permission to fire requests in a loop.
+
+Also watch for a common reset-time mistake. GitHub's `x-ratelimit-reset` is a Unix timestamp **in seconds**; other APIs use relative delay values, or their own documented formats. Blindly treating every `reset` field as a Unix epoch can yield a wait of decades or a retry in a few milliseconds. Yoryantra's [API Rate Limit Header Parser](https://yoryantra.com/tools/api-rate-limit-header-parser) can help interpret pasted response headers, but the API provider remains the authority for its own rules. The tool reads pasted input; it does not call the live API.
+
+## A small example of how retries make the incident worse
+
+Suppose a server allows ten requests per second, and a job sends twenty at once. Ten succeed and ten receive 429. If every rejected request retries immediately, the second wave competes with new work from the same job. If five application instances run that logic, the burst multiplies. You may observe periodic waves of failures even though the original job was only slightly over the limit.
+
+There are two different controls to apply. **Pacing** changes when requests are sent in the first place; **backoff** changes when failed requests are attempted again. Backoff alone won't solve a queue that keeps admitting work faster than the provider can process it. Put an upper bound on in-flight requests, and use a shared or coordinated limiter when several workers spend the same quota.
+
+A sensible retry policy is also selective. A read-only GET that received 429 can often be retried after waiting. A POST that creates a payment, subscription or order needs an idempotency design supported by the receiving service. A timed-out POST may have succeeded even if the client never saw its response. An `Idempotency-Key` header only helps if the server actually implements and documents that contract; adding an arbitrary header cannot make an endpoint retry-safe.
+
+## Check `Retry-After` and then use bounded backoff
+
+When a server gives a usable `Retry-After`, honour it. When it does not, use a provider-appropriate delay that grows with repeated failures. Adding jitter spreads concurrent clients across a range of times instead of letting them all wake up together. Don't cap a valid server-requested wait to an arbitrarily short delay; if the indicated wait exceeds your job's deadline, stop and requeue the work for later.
+
+The example below uses Node.js 22 and makes **only local** HTTP requests. Its small server sends one synthetic 429, then a 200. The client waits for the `Retry-After` seconds value before retrying. Replace the local endpoint with a real API only after checking its quota rules, request safety and authentication.
+
+```javascript
+// save as local-429-demo.mjs; run: node local-429-demo.mjs
+import http from 'node:http';
+import { setTimeout as sleep } from 'node:timers/promises';
+
+function retryAfterMs(value, now = Date.now()) {
+  if (value == null) return null;
+  const raw = value.trim();
+  if (/^\d+$/.test(raw)) return Number(raw) * 1000;
+  const when = Date.parse(raw); // HTTP-date, if valid
+  return Number.isFinite(when) ? Math.max(0, when - now) : null;
+}
+
+function backoffMs(attempt) {
+  const ceiling = Math.min(1000 * 2 ** attempt, 8000);
+  return Math.floor(Math.random() * ceiling); // full jitter
+}
+
+async function getWithRetries(url, maxAttempts = 3) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (response.status !== 429) return response;
+    if (attempt === maxAttempts - 1) {
+      throw new Error(`Still rate-limited after ${maxAttempts} attempts`);
+    }
+    const headerDelay = retryAfterMs(response.headers.get('retry-after'));
+    const delay = headerDelay ?? backoffMs(attempt);
+    await response.body?.cancel(); // free resources before waiting
+    console.log(`429; waiting ${delay} ms`);
+    await sleep(delay);
+  }
+}
+
+let calls = 0;
+const server = http.createServer((_req, res) => {
+  if (++calls === 1) {
+    res.writeHead(429, { 'Retry-After': '1', 'Content-Type': 'text/plain' });
+    return res.end('Slow down');
+  }
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Recovered');
+});
+
+server.listen(0, '127.0.0.1', async () => {
+  const { port } = server.address();
+  try {
+    const response = await getWithRetries(`http://127.0.0.1:${port}/report`);
+    console.log(response.status, await response.text());
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+  } finally {
+    server.close();
+  }
+});
+```
+
+Expected output is a 429 wait of about 1,000 milliseconds followed by `200 Recovered`. This reproduces a small part of the protocol, not a live provider's policies. The sample intentionally retries only 429, limits attempts and times out each request. A real client also needs an overall job deadline, cancellation during the waiting period, decisions about transport failures, and coordination across workers. JavaScript's `fetch` does not automatically turn an HTTP 429 into a thrown exception; inspect `response.status` or `response.ok` yourself.
+
+If a provider sends `Retry-After: 120` but the processing job has a 30-second deadline, do not silently substitute a 30-second wait. Finish the current attempt and schedule later work through the job queue, or surface a clear failure to the caller. A retry loop that runs past every deadline can consume worker capacity without making progress.
+
+## Four failures that look similar but need different fixes
+
+**Case A — a burst of 429s, then clean requests.** A batch worker starts fifty parallel fetches; the rejection rate falls when the next minute begins. Focus on concurrency and request pacing. If the same API key is shared by all workers, a limiter inside one worker cannot enforce the shared quota.
+
+**Case B — 429 continues even with one request.** Check the quota scope and period. Another application might share the same credential. A daily billing-plan quota or exhausted account allowance is not corrected by another 500-millisecond backoff. Inspect the provider dashboard and its documented reset conditions.
+
+**Case C — retries work locally but production has a 429 storm.** Ten instances all wait one fixed second and retry at once. Add jitter, a queue and fleet-wide admission control. Instrument how many requests are in flight, how often throttling occurs and how long work spends waiting.
+
+**Case D — a retry creates duplicate work.** A write endpoint times out after accepting the first request, then the client repeats it. This isn't strictly a 429 problem, but it often appears during rate-limit recovery when calls are retried broadly. Confirm method semantics, use provider-supported idempotency keys where available, and reconcile uncertain outcomes before replaying writes.
+
+| Pattern in logs | Probable cause | Corrective direction |
+| --- | --- | --- |
+| 429 only during scheduled imports | Burst or parallel workers | Reduce concurrency; pace queued requests |
+| `Retry-After` is present but ignored | Client retry bug | Honour seconds or HTTP-date, with deadline handling |
+| Remaining quota seems high but 429 persists | Different short-window or secondary rule | Read provider-specific error body and documentation |
+| Calls repeatedly align on the same second | Coordinated retry storm | Add jitter and central scheduling |
+| Only one tenant is throttled | Account- or credential-scoped quota | Isolate tenants and investigate shared credentials |
+| Writes duplicate after transient errors | Non-idempotent retry | Reconcile state; use documented idempotency mechanism |
+
+## What if the API sends 403, 503 or no clear rate-limit headers?
+
+A 403 normally means access was refused, but some providers—GitHub included—also use 403 for certain rate limits. Never interpret status alone when a provider documents a more specific error protocol. For a 403 with an authorization error, slowing down won't fix missing permissions. For a 503, check whether the service is temporarily unavailable and whether it supplied `Retry-After`; that is an availability response, not necessarily a quota failure.
+
+No headers? Preserve the response status, sanitized body, URL path, timestamp and request ID. Check the provider's published quotas and dashboard before guessing. You might be seeing enforcement by an API gateway, CDN or upstream proxy, with a different quota identity from the application server. Avoid probing the limit by sending hundreds of requests. Reproduce it in a small controlled test or with provider-supported observability.
+
+For a GitHub REST integration, rate-limit diagnosis has a further complication: GitHub uses both 403 and 429 for primary and secondary limits, and the meaning of its reset headers is specific to GitHub. Inspect that provider’s rate-limit documentation rather than applying one universal rule.
+
+## Reduce the request volume instead of polishing the retry loop forever
+
+Start with the query pattern. Are you polling an endpoint every few seconds when changes arrive only once an hour? Does a paginated job request the same pages repeatedly? Are you refetching an unchanged response after every user navigation? Cache where the API contract permits it, request only the fields you need, and use webhooks when the provider supports the events you require.
+
+For shared infrastructure, keep the number of queued and active requests visible. Track the proportion of responses that are 429, the wait durations requested by the server, the number of retries actually attempted, and the age of jobs still waiting. These measurements tell you whether traffic has merely become slower or whether the workload is genuinely sustainable. They are more useful than treating a falling error count as proof that every job completed.
+
+It is also worth distinguishing client-side throttling from server-side enforcement. Your local limiter should prevent predictable overload, but only the provider knows its full quota state. Other applications, credential sharing, dynamic limits and undisclosed secondary controls can still produce 429 even after your client is behaving reasonably.
+
+## Before calling the incident resolved
+
+Run the troublesome batch at a controlled volume. Confirm that your client reads the actual rate-limit response, waits when instructed, respects deadlines and stops after a bounded number of attempts. Check that a burst of work is queued rather than discarded and that delayed tasks complete without duplication. If the provider has separate per-minute and per-day limits, verify both over an appropriate period.
+
+A good fix changes the workload that caused the 429, not just the text of the error message. Once requests are paced and observable, occasional throttling can be handled calmly without generating a new incident.
+
+## References and related Yoryantra tools
+
+- [RFC 6585, Section 4 — 429 Too Many Requests](https://www.rfc-editor.org/rfc/rfc6585.html#section-4)
+- [MDN — 429 Too Many Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429)
+- [MDN — Retry-After](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After)
+- [MDN — Idempotency-Key and method semantics](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Idempotency-Key)
+- [Yoryantra — API Rate Limit Header Parser](https://yoryantra.com/tools/api-rate-limit-header-parser)
+- [Yoryantra — API Error Response Formatter](https://yoryantra.com/tools/api-error-response-formatter)
+- [Yoryantra — HTTP Request Formatter](https://yoryantra.com/tools/http-request-formatter)
