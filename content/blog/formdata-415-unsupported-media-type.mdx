@@ -347,12 +347,12 @@ For inspecting a raw HTTP request after that, the [HTTP Request Formatter](/tool
 
 ## Sources and test basis
 
-- RFC 9110, section 15.5.16 — definition and semantics of 415 Unsupported Media Type.
+- [RFC 9110, section 15.5.16](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.5.16) — definition and semantics of 415 Unsupported Media Type.
 
-- MDN — 415 Unsupported Media Type and Content-Type request behavior.
+- MDN — [415 Unsupported Media Type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/415) and [`Content-Type`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Type) request behavior.
 
-- MDN — Using the Fetch API and Using FormData Objects.
+- MDN — [Using the Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch) and [Using FormData Objects](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects).
 
-- WHATWG Fetch Standard — body extraction rules for FormData and URLSearchParams, including generated media types and multipart boundaries.
+- [WHATWG Fetch Standard](https://fetch.spec.whatwg.org/) — body extraction rules for FormData and URLSearchParams, including generated media types and multipart boundaries.
 
 - Local reproduction run on 7 October 2026 with Node 22.16.0 built-in Fetch/FormData against a strict local HTTP endpoint. The reproduction was used to verify request media types and boundary behavior; real server status codes can vary by framework and parser configuration.
