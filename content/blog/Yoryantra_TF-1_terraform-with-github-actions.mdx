@@ -31,7 +31,7 @@ A Terraform change is easy to review in Git when it is only a few lines. The har
 
 Imagine Sneha updates an AWS security group in a repository's infra directory. A pull-request check can tell her whether the Terraform files parse and pass validation. A plan normally needs to read the Terraform state (the saved record of managed infrastructure) and may need cloud access to compare that record with real resources. Applying that plan can create, replace or delete resources. If the workflow treats those three stages as interchangeable, one apparently helpful automation can become a deployment risk.
 
-There are two common architectures worth separating. You can run the Terraform CLI directly on a GitHub Actions runner with remote state, or let HCP Terraform execute plans and applies while GitHub Actions triggers and observes the work. Both can be valid. This guide starts with an example that is safe to use as a review check, then explains what a production-grade plan and apply path needs beyond YAML that happens to run successfully.
+There are two common architectures worth separating. You can run the Terraform CLI directly on a GitHub Actions runner with remote state, or let HCP Terraform execute plans and applies while GitHub Actions triggers and observes the work. Both approaches can work. The review-only example below can be checked without applying infrastructure changes; production plans and applies need additional controls beyond a workflow that runs successfully.
 
 *For failed pull-request checks, begin with the review-only workflow. For a production deployment, read the approval and saved-plan section before running an apply.*
 

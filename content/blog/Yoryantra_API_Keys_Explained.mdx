@@ -26,7 +26,7 @@ An API asks for a key, you paste the string into a request, and the first call w
 
 An API key is a string that an API provider gives your application. Your code includes it in an API request so the provider can recognize which project, app or account is making the call. Depending on the service, it may be an access credential, a billing or quota identifier, or part of a larger authorization process. A valid key does not necessarily identify the person behind the request, and it does not mean every endpoint is permitted. You can have the right key and still receive `403 Forbidden` because the account or project lacks access.
 
-This guide follows a request from code to server, then covers restrictions, common failures, safe deployment, rotation, and the cases where another authentication method is a better fit. The examples use invented keys and a local test endpoint; no third-party account is needed to follow them.
+An API key travels from application code to the server, where restrictions and permissions determine whether the request is accepted. Deployment, rotation, and authentication choices affect how safely that key can be used. The examples use invented keys and a local test endpoint; no third-party account is needed to follow them.
 
 *If an API call fails, use its response code as a clue—not a complete diagnosis. The troubleshooting section explains how to narrow down authorization problems, restricted keys and usage limits.*
 

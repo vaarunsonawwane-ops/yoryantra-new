@@ -15,20 +15,22 @@ sources:
 - https://yoryantra.com/tools/github-actions-yaml-validator
 - https://yoryantra.com/tools/github-actions-matrix-builder
 datePublished: '2026-10-20'
-dateModified: '2026-10-22'
+dateModified: '2026-10-27'
 status: published
 author: Varoun Sonawane
 ---
 
 Your GitHub Actions workflow is green, but the job queue is confusing. A new push cancels a run that was nearly finished. Two deployments start close together and one waits. A test matrix with six combinations runs only two jobs at a time. These symptoms can look related in the Actions UI, but they are controlled by different parts of the workflow.
 
-Three controls answer different questions. `needs` decides which job must finish first. `max-parallel` limits how many versions of a matrix job run at once. A `concurrency` group decides whether separate jobs or workflow runs may run at the same time. Inside a single job, steps run one after another by default. To run tasks simultaneously, you usually need separate jobs; naming steps differently is not enough. Understanding the scheduling layer makes the YAML much easier to reason about when a build is slow or a deployment has side effects.
+`needs` decides which job must finish first. `max-parallel` limits how many versions of a matrix job run at once. A `concurrency` group decides whether separate jobs or workflow runs may run at the same time. Inside a single job, steps run one after another by default. To run tasks simultaneously, you usually need separate jobs; naming steps differently is not enough. Understanding the scheduling layer makes the YAML much easier to reason about when a build is slow or a deployment has side effects.
 
-This guide works through concrete examples and the failure modes they create. GitHub's current documentation also includes a queuing option that some older articles omit, so treating “one pending run” as an unchangeable platform rule would be misleading.
+GitHub's current documentation includes a queuing option, so “one pending run” should not be treated as an unchangeable platform rule.
 
 *A canceled build, a waiting deployment and a slow test matrix may look alike in GitHub Actions, but they have different causes. The examples separate those three situations.*
 
-## Start with jobs steps and dependencies
+![GitHub Actions needs dependencies, matrix max-parallel of two across six job combinations, and default concurrency group pending-run replacement](/images/blog/github-actions-concurrency-controls.png)
+
+## Jobs, steps and dependencies
 
 Suppose a workflow builds a project, then tests it, then deploys it. If those are three steps in one job, the commands normally execute in order on that job's runner. That may be what you want when the next step depends on files produced by the previous one. Splitting them into jobs changes the boundary: each job can run on a different runner, and files do not automatically follow from one job to another.
 
@@ -91,7 +93,7 @@ There are two OS choices and three Node versions, producing six jobs. The cap of
 
 You can use Yoryantra's GitHub Actions Matrix Builder to inspect combinations before copying them into a workflow. It helps with the shape of the matrix, but the actual runtime depends on runner availability, repository settings, permissions, other jobs and any separate concurrency policy you add.
 
-## Concurrency groups answer a different question
+## Concurrency groups across jobs and workflow runs
 
 Now suppose you push three commits to the same pull request within a minute. Do you want the runner to finish testing every superseded commit, or should the newest run replace older work? A workflow-level concurrency group can describe that policy:
 

@@ -198,7 +198,7 @@ Tracing doesn't prove the answer was correct. A trace can show that a tool retur
 
 Treat trace payloads as potentially sensitive. Prompts, retrieved text, and tool inputs may contain customer information or credentials. Review the SDK's tracing configuration, data-retention policies, and your organization's privacy requirements. The SDK documentation notes that tracing is unavailable for organizations using OpenAI APIs under Zero Data Retention policies. It also documents controls for disabling tracing when required.
 
-## Read a failed run without guessing
+## Inspect a failed run in the trace
 
 When a multi-agent request fails, inspect the recorded sequence: initial agent, available handoffs, selected destination, forwarded context, guardrail results, tool calls, and final response. Compare that sequence with the intended routing and permission policy.
 

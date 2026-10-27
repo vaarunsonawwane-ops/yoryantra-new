@@ -27,9 +27,7 @@ The important change is the body format. The endpoint may accept JSON but not mu
 
 If the endpoint accepts application/json and you send multipart/form-data instead, you are asking it to read a different kind of request. The fields may look identical in your code, but the bytes sent over HTTP are not. The server is allowed to reject that representation with 415.
 
-The useful question is therefore not “How do I force FormData through?” It is:
-
-**What media type does this endpoint accept, and what did my client actually send?**
+Check the media type accepted by the endpoint against the request body and `Content-Type` header your client actually sends.
 
 ## Check which request format the endpoint accepts
 

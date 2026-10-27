@@ -24,7 +24,7 @@ You download a configuration file, open it, and see a wall of braces, quotes and
 
 JSON stands for JavaScript Object Notation. Despite the name, it is a language-independent text format for exchanging structured data. A JSON document can hold an object, an array, a string, a number, `true`, `false` or `null`. JavaScript, Python, Go and other languages can read it, but their runtime values and numeric limits do not always match. The syntax is specified by RFC 8259, not by whichever formatter happens to accept your input.
 
-This guide starts with the actual characters in a JSON file, then looks at the errors and interoperability surprises developers encounter when configuration, API responses and application code meet. If all you need is to format or validate a sample, Yoryantra has dedicated tools; the explanations below are for understanding what their results mean.
+JSON syntax and escaping errors can stop a file from parsing. Even valid JSON may fail when its fields or value types do not match an application's expectations. Yoryantra's formatting and validation tools help inspect the text; the examples below show how to interpret the results.
 
 *If a JSON file fails immediately, check its syntax and escaping. If the text parses but your application still rejects it, look at the fields and value types the application expects.*
 
@@ -187,7 +187,7 @@ When exact preservation matters, especially for signed payloads, audit records o
 
 There is another consequence for developers comparing payloads in source control. Two JSON documents with differently ordered object members can describe equivalent application data, while two files that look nearly identical can differ in number precision or duplicate names. A text diff is useful for reviewing edits but is not a complete semantic comparison. If you need canonical bytes for signing or hashing, use an explicitly agreed canonicalization scheme and confirm that every producer follows it. Ordinary pretty-printing is not a canonicalization contract.
 
-## Formatting validation and minification answer different questions
+## Formatting, validation and minification
 
 Suppose a colleague sends you an unreadable API response. You can paste it into Yoryantra's JSON Formatter to inspect nesting and line structure. If the formatter rejects it, start with the syntax problem and its location. If it succeeds but the application still fails, compare the resulting shape with the expected contract rather than repeatedly reformatting the same text.
 
