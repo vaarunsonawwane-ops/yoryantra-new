@@ -1,0 +1,225 @@
+---
+slug: a2a-agent-cards-json-structure-discovery-authentication
+title: 'A2A Agent Cards: JSON Structure, Discovery and Authentication'
+description: Inspect A2A Agent Cards for correct v1.0 JSON, discovery URLs, protocol bindings, and authentication. Includes local validation and troubleshooting.
+topic: DevOps
+articleType: Explainer
+relatedTools:
+- /tools/json-validator
+- /tools/http-headers-checker
+sources:
+- https://a2a-protocol.org/v1.0.1/specification/
+- https://github.com/a2aproject/A2A/blob/main/docs/specification.md
+- https://www.rfc-editor.org/rfc/rfc8615
+- https://www.rfc-editor.org/rfc/rfc7515
+- https://yoryantra.com/tools/json-validator
+- https://yoryantra.com/tools/http-headers-checker
+datePublished: '2026-10-27'
+dateModified: null
+status: published
+author: Varoun Sonawane
+---
+
+You have an A2A endpoint and a client that is supposed to discover it. The service answers requests when you call it manually, yet the client says it cannot find an agent, chooses the wrong transport, or fails before sending a task. The problem may be in the Agent Card rather than the agent's actual work.
+
+An Agent Card is a JSON document that describes what an A2A agent offers, how a client should contact it, and what authentication may be required. It is closer to a service contract than an introduction to the agent. Clients need the correct interface details and a trustworthy service endpoint. JSON validation catches malformed documents, but it cannot verify endpoint ownership, operational behavior, or permission to use the service.
+
+The examples follow the A2A **1.0.1 specification**. Some tutorials still show the earlier `/.well-known/agent.json` path or a single `url` field at the top level. Those examples are not equivalent to the v1.0 `supportedInterfaces` model. The sample domains and agent are fictional; the small Python checks can run locally without contacting an external service.
+
+## Where the client discovers an Agent Card
+
+The well-known discovery location for a v1.0 A2A service is:
+
+```text
+https://agent.example.com/.well-known/agent-card.json
+```
+
+A client can also receive an Agent Card through a registry or through explicit configuration. That matters in private networks where a public well-known endpoint is undesirable. Discovery tells a client where a card is claimed to live; it does not grant permission to accept any arbitrary URL as a safe service.
+
+Try fetching a card with a normal HTTP client before debugging an A2A SDK:
+
+```bash
+curl -i https://agent.example.com/.well-known/agent-card.json
+```
+
+Here `agent.example.com` is a placeholder. A real request should return a successful HTTP response and a JSON object that matches the current Agent Card schema. A branded HTML login page is not an Agent Card, even if the server returns status 200. A reverse proxy can also send the well-known path to the website frontend while the actual A2A service sits behind `/api/agent`.
+
+If the endpoint redirects, note the final address and origin. A redirect to a different domain introduces another trust decision. Do not forward bearer tokens or internal request headers across an unfamiliar redirect merely because the destination responds with JSON.
+
+## A small Agent Card using the v1.0 fields
+
+The following is a **fictional, deliberately small** Agent Card for a support-status agent. It declares one JSON-RPC endpoint, text input and output, and one skill. No authentication scheme is declared; that is suitable only for explaining public discovery, not a recommendation to expose a real support system without access control.
+
+```json
+{
+  "name": "Parcel Status Agent",
+  "description": "Looks up shipment status using a supplied reference.",
+  "version": "1.3.0",
+  "supportedInterfaces": [
+    {
+      "url": "https://agent.example.com/a2a/v1",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "extendedAgentCard": false
+  },
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "skills": [
+    {
+      "id": "shipment_status",
+      "name": "Shipment status",
+      "description": "Reports the current status of a shipment reference.",
+      "tags": ["shipping", "tracking", "status"]
+    }
+  ]
+}
+```
+
+`version` is the agent service's own release number. `protocolVersion` belongs to the A2A interface and says which version of the A2A protocol the endpoint speaks. Mixing those up is easy when the service team releases `1.3.0` while the A2A protocol remains `1.0`. A client should not treat an application release as protocol compatibility evidence.
+
+The card's `name` and `description` help a human or client understand the service; neither proves that the server implements the promised skill. `skills` advertises individual capabilities, with stable IDs, descriptions, and tags. The client's eventual request still has to follow the selected A2A binding and the server's authorization rules.
+
+## Read the interface list before making a task request
+
+In A2A v1.0, `supportedInterfaces` is an ordered list. Each entry combines a URL, a `protocolBinding`, and a `protocolVersion`. Standard bindings include `JSONRPC`, `GRPC`, and `HTTP+JSON`. An agent may provide more than one:
+
+```json
+"supportedInterfaces": [
+  {
+    "url": "https://agent.example.com/a2a/rpc",
+    "protocolBinding": "JSONRPC",
+    "protocolVersion": "1.0"
+  },
+  {
+    "url": "https://agent.example.com/a2a/rest",
+    "protocolBinding": "HTTP+JSON",
+    "protocolVersion": "1.0"
+  }
+]
+```
+
+The first declared interface is preferred. A client should select the first interface **it actually supports**, preserving the advertised preference where possible. It must then use the URL and wire format belonging to that interface. Posting a REST-shaped payload to the JSON-RPC address may produce a server error even though both transports are available.
+
+An HTTP 404 can mean the wrong interface URL. An HTTP 400 or a JSON-RPC method error can mean the URL is correct but the method and payload belong to another binding. The symptom “agent not responding” hides two distinct cases that are easy to separate by recording the request URL, method, Content-Type, and selected binding.
+
+A2A v1.0 also supports an optional `tenant` value on an interface. When present, the client must carry that exact tenant value in requests to the selected interface. A missing tenant can make the same network endpoint appear unavailable or unauthorized for only some callers. The tenant is routing context, not by itself a security credential.
+
+## Skills, capabilities and supported formats
+
+A skill describes *what* the agent can attempt, such as `shipment_status` or `draft_refund_summary`. Capabilities describe *how* interaction may work. For example, `streaming` indicates that streaming operation support is available, while `pushNotifications` describes support for notifications. An agent with `streaming: false` may still complete ordinary request-response tasks.
+
+For a simple request-response client, `streaming: false` may be sufficient. A client that displays progress as messages arrive needs an interface with streaming support. Check that setting before selecting an agent, even when the advertised skill matches the task.
+
+`defaultInputModes` and `defaultOutputModes` are media types, such as `text/plain`. A skill can override them using `inputModes` and `outputModes`. Before sending an image or expecting a structured artifact, inspect the relevant skill's modes rather than assuming every A2A service accepts any format that its underlying model could theoretically process.
+
+A skill list should remain descriptive and narrowly useful. Avoid advertising a broad tag like `customer-support` if the service only retrieves delivery status. The card is part of the integration contract; overselling its skills leads clients to send tasks it cannot complete.
+
+## Inspect a card locally without building an entire A2A client
+
+A basic structural check can catch missing keys and inconsistent interfaces before authentication enters the picture. Save the JSON above as `agent-card.json`, then use this Python example. It checks a small subset of the published schema, not full A2A compliance.
+
+```python
+import json
+from pathlib import Path
+from urllib.parse import urlparse
+
+card = json.loads(Path("agent-card.json").read_text(encoding="utf-8"))
+
+for field in (
+    "name", "description", "version", "supportedInterfaces",
+    "capabilities", "defaultInputModes", "defaultOutputModes", "skills"
+):
+    assert field in card, f"Missing Agent Card field: {field}"
+
+assert isinstance(card["supportedInterfaces"], list)
+assert card["supportedInterfaces"], "No supported interfaces"
+
+for interface in card["supportedInterfaces"]:
+    for field in ("url", "protocolBinding", "protocolVersion"):
+        assert field in interface, f"Interface missing {field}"
+    assert urlparse(interface["url"]).scheme == "https", "Expected HTTPS URL"
+
+skill_ids = [skill["id"] for skill in card["skills"]]
+assert len(skill_ids) == len(set(skill_ids)), "Duplicate skill IDs"
+print("Basic card structure looks consistent")
+```
+
+This check deliberately does not fetch a URL or pass any secret. It is useful in a CI preflight but it cannot confirm that a service exists, implements its advertised protocol, validates permissions, or passes all normative schema constraints. The HTTPS assertion is a production-oriented local policy; development setups can differ.
+
+For stricter checks, validate against the versioned A2A schema or generated protocol types and test the endpoint with an interoperable client. Treat the sample script as a quick error detector, not an official certification test.
+
+## Authentication belongs to the card and the receiving server
+
+A card can declare `securitySchemes`, which describe supported authentication mechanisms, and `securityRequirements`, which state what is required to contact the agent. The v1.0 schema models schemes as typed objects, including HTTP authentication, API keys, OAuth 2.0, OpenID Connect, and mutual TLS. Some A2A versions and examples use different security-field names; don't copy `security` from an older example into a v1.0 card and assume its semantics are unchanged.
+
+For an OAuth-protected agent, the card can tell a client which kind of scheme is expected. It must not contain a reusable bearer token or an API key for anyone to copy. The client obtains its own credentials through the intended provider and sends them according to the chosen binding. The agent server, not the description in the card, must verify identity and authorization for each operation.
+
+A public Agent Card can be harmless to fetch while the actual task endpoint demands authorization. Conversely, a card can be private because it reveals internal skills or partner-only capabilities. Both arrangements are possible; the security design should match what the card discloses.
+
+Pay particular attention to **skill-level security requirements**. A customer-status lookup may be available to an ordinary authenticated customer, while a refund action may require a different role. A generic “client has logged in” check is not sufficient when two skills have different consequences.
+
+## Extended Agent Cards are not an invitation to expose secrets
+
+A2A supports an extended Agent Card for cases where an authenticated caller should see capabilities unavailable in the public discovery document. In v1.0, the public card indicates support through `capabilities.extendedAgentCard: true`. The client then uses the appropriate authenticated operation to obtain more detail.
+
+An extended card can describe partner-only skills, quotas, or richer integration options. It still should not hand clients server-side secrets, internal service credentials, or unrestricted tool permissions. Authentication controls what description the caller can retrieve; actual operations need their own authorization checks.
+
+A common integration failure happens when the public card advertises extended-card support but the server has not configured the operation or denies it to the current identity. The client should distinguish that from an ordinary failure to fetch the public card. Check the operation route, the caller's permissions, and whether the capability flag accurately reflects the deployed server.
+
+For caching, consider that public and authenticated cards may be different documents. A private extended card should not be served from a public shared cache. Cache keys and expiration must respect authentication context, card version, and any user-specific capability descriptions.
+
+## Validate the source, not just the JSON
+
+Imagine that a catalog lists a route-planning agent with a professional description and an HTTPS endpoint. The JSON parses. The skills seem relevant. The domain still needs to be verified against the intended provider. An attacker can publish convincing metadata under a domain they control.
+
+Use a trusted registry or explicit allowlist when agents may receive sensitive material or perform actions. Verify the expected origin, certificate behavior, and any provided Agent Card signatures. A2A supports optional JWS signatures; when present, signature validation only helps if you already trust the correct signing key and verify the signed content. A random self-signed card is not automatically a trustworthy partner.
+
+Discovery should not become an open server-side request facility. If a user can supply any Agent Card URL and your backend fetches it, validate destinations and network routing to reduce SSRF exposure. Prevent requests to internal metadata endpoints and private addresses unless the product explicitly supports such destinations under appropriate permissions.
+
+If the discovered agent can send messages or perform downstream actions, apply normal tenant and user authorization. An Agent Card states advertised capabilities. The server must authorize each requested action against the actual user or service identity.
+
+## Five failures worth separating
+
+| Symptom | Check | Why it matters |
+| --- | --- | --- |
+| 200 response, but client says card is invalid | Body is HTML or wrong JSON shape | A website route may have answered instead of the card route |
+| Card loads, but every task call fails | Chosen `supportedInterfaces` entry and request binding | JSON-RPC and HTTP+JSON need different request shapes |
+| Client claims protocol mismatch | Interface `protocolVersion`, SDK version | The agent's own `version` is not the protocol version |
+| Skills look correct, access returns 401 or 403 | Advertised security, actual token, user permissions | Discovery is not authentication or authorization |
+| Public card works, extended card fails | Extended capability flag, operation, caller role | Extra metadata can require separate authorization |
+
+The response itself provides evidence. Keep a sanitized copy of the card, the exact selected interface, request headers excluding secrets, and the server's error response. If the card changed during deployment, inspect whether a CDN or client cache is still serving the prior version.
+
+One more case: the well-known path may be correct on a staging domain but not on production because a proxy strips `/.well-known`. Check the entire URL from outside the server network. Fixing a JSON schema will not make an unreachable route available.
+
+## When to update an Agent Card
+
+A service can change its implementation without changing its public contract. But when the agent adds a new binding, removes a skill, changes a security requirement, or stops supporting a media type, its card needs review alongside the release. Otherwise, the document becomes a misleading promise.
+
+A practical release check should fetch the deployed card from its real public address and confirm that every advertised endpoint is reachable through its intended protocol. Send a small authorized test request for each critical skill, plus one deliberately unauthorized request that must be refused. Verify streaming only if the card declares it, and verify that a cached older card doesn't point at a removed interface.
+
+For external integrations, keep a known-good snapshot of the card in test fixtures. A change to `skills` can be intentional; a change from `JSONRPC` to `HTTP+JSON` without a client rollout can break every caller. Diff the actual fields and decide whether the release is backward compatible, rather than equating “JSON passed validation” with “integration is healthy.”
+
+## Using A2A alongside MCP
+
+A2A is aimed at communication between agents across defined interfaces. MCP is commonly used to expose tools and contextual resources to a model-powered application. The technologies may appear in the same system, but an MCP tool listing is not an A2A Agent Card, and an A2A skill should not be interpreted as a directly executable MCP tool definition.
+
+An agent may use MCP internally to reach a database or service, then publish an A2A endpoint so another agent can request work. That arrangement creates multiple trust boundaries. Authentication between agents does not automatically authorize each downstream MCP tool or database query. Inspect each layer according to its own protocol and access model.
+
+## Before an integration goes live
+
+Confirm that the public discovery URL points to the intended service, that the JSON follows the version you support, and that the client selects the correct interface. Check capabilities and media types against actual behavior. Verify the security scheme and enforce authorization in the server; do not rely on a card's description as proof of trust.
+
+When a partner reports an agent-discovery failure, request the fetched Agent Card and the interface the client selected. Compare the URL, protocol binding, and version before changing prompts or agent instructions.
+
+## References
+
+- A2A Protocol v1.0.1 specification, Agent Card data model, discovery, and protocol bindings: https://a2a-protocol.org/v1.0.1/specification/
+- A2A Protocol source specification: https://github.com/a2aproject/A2A/blob/main/docs/specification.md
+- RFC 8615, Well-Known Uniform Resource Identifiers: https://www.rfc-editor.org/rfc/rfc8615
+- RFC 7515, JSON Web Signature: https://www.rfc-editor.org/rfc/rfc7515

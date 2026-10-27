@@ -1,0 +1,155 @@
+---
+slug: owasp-top-10-llm-applications-2026-what-changed
+title: 'OWASP Top 10 for LLM Applications 2026: What Changed for Developers'
+description: Compare OWASP LLM Top 10 editions for 2025 and 2026, including category renames, ranking changes, and actionable developer security checks.
+topic: Security
+articleType: Explainer
+relatedTools:
+- /tools/jwt-claims-inspector
+sources:
+- https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/main/2026/README.md
+- https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/main/2026/final/LLM00_Preface.md
+- https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/
+- https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+- https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+- https://yoryantra.com/tools/jwt-claims-inspector
+datePublished: '2026-10-27'
+dateModified: null
+status: published
+author: Varoun Sonawane
+---
+
+A security review written against OWASP's 2025 LLM Top 10 may still cover real risks, yet its IDs and priorities no longer match the August 2026 edition. A ticket referring to `LLM06` is a particularly easy trap: in 2025 that meant Excessive Agency; in 2026 it means Unbounded Consumption. An existing dashboard that labels `LLM06` as Excessive Agency would misidentify 2026 findings for Unbounded Consumption. Security tickets and controls must retain the edition year and category name, not just the number.
+
+OWASP published the **2026 Top 10 for LLM Applications on August 4, 2026**. Several categories changed position, and one changed name and scope. The official 2026 material also discusses cross-modal prompt injection, agent authority, insecure generated code, and incident evidence in greater detail. An existing 2025 security plan deserves a careful mapping rather than a mechanical search-and-replace.
+
+The material below compares the published 2025 and 2026 editions and turns the most consequential differences into specific engineering checks. It is not a substitute for the OWASP publication or a claim that a vulnerability assessment was performed on any particular product.
+
+## A 2025 identifier cannot safely stand on its own
+
+The published 2026 list is:
+
+| 2026 ID | Category | Position in 2025 |
+| --- | --- | --- |
+| LLM01:2026 | Prompt Injection | 1 — unchanged |
+| LLM02:2026 | Sensitive Information Disclosure | 2 — unchanged |
+| LLM03:2026 | Excessive Agency | 6 — moved up |
+| LLM04:2026 | Supply Chain | 3 — moved down |
+| LLM05:2026 | Data and Model Poisoning | 4 — moved down |
+| LLM06:2026 | Unbounded Consumption | 10 — moved up |
+| LLM07:2026 | Misinformation | 9 — moved up |
+| LLM08:2026 | Hidden Context Exposure | 7 — renamed and broadened |
+| LLM09:2026 | Vector and Embedding Weaknesses | 8 — moved down |
+| LLM10:2026 | Improper Output Handling | 5 — moved down |
+
+The table is a migration map, not a recommendation to drop a control because its category moved lower. OWASP's rankings are a way to organize risk awareness across different applications; an individual system's actual risk depends on its tools, data, users, integrations, and deployment.
+
+Notice the difference between a category ID and a control ID. If your checklist says “LLM05:2025 — sanitize model-generated SQL before execution,” simply updating the year without checking the category would associate that control with Data and Model Poisoning in 2026. The underlying control is still sensible, but the mapping is wrong. Record both the **category name and edition year**, not merely the number.
+
+## Why the 2026 ordering changed
+
+OWASP's published 2026 preface explains a change to the ranking method. The community examined **7,714 publicly collected incidents**, and **6,639** had enough information to classify. Practitioner voting contributed **75%** of the final weighting; classified incident evidence supplied **25%**. That is important context for interpreting the reordered list.
+
+The incident sample is not a perfect measure of how often every type of attack occurs. Prevented attacks, incidents never reported publicly, and differences in reporting all affect what appears in public datasets. OWASP explicitly discusses this tension for Prompt Injection. The category remains at number one even though its ranking by the raw incident record alone would differ substantially.
+
+The ranking combines practitioner judgment and observed incidents; it is not a frequency chart or an application-specific risk score. Set priorities using your system's exposed data, available actions, attack paths, and existing controls.
+
+## Excessive Agency moves from sixth to third
+
+The largest change for applications that can take action is the rise of **Excessive Agency** to `LLM03:2026`. This covers applications that allow a model to exercise too much functionality, permission, or autonomy. A model might read an untrusted message and then call a tool that sends email, deletes records, grants access, or exports data.
+
+Consider an assistant asked to summarize customer returns. The read operation needs access to return tickets. It does not need permission to create refunds or email the full customer database. If both operations run under the same broad service account, an instruction hidden in a retrieved ticket could steer the assistant toward a side effect the user never requested.
+
+Test the executor directly: even if the model requests an unauthorized action, the tool or backend must refuse it. Put the permission check in application code or a trusted authorization service, bind it to the real user and resource, and reject unknown tool names by default.
+
+An operational test record might look like this:
+
+| Legitimate task | Injected or mistaken request | Expected result |
+| --- | --- | --- |
+| Summarize a return | Export all customer records | Tool dispatch denied |
+| Read order status | Issue a refund | No write permission; no refund created |
+| Draft a support reply | Send reply to an external address | Confirmation or destination policy enforced |
+
+The companion Yoryantra article on AI Agent Security contains a worked authorization check for agent tools. Here, update the 2025-to-2026 risk mapping and test the controls affected by that change.
+
+## Unbounded Consumption rises from tenth to sixth
+
+`LLM06:2026` refers to resource exhaustion and uncontrolled usage. A single request can trigger repeated model calls, expensive retrieval, large outputs, cascading retries, or slow tools. With paid inference, the failure may appear first as an unexpected bill rather than as a traditional denial-of-service event.
+
+A simple per-minute request limit isn't enough when one accepted request can fan out into 30 model turns and multiple external services. Consider budgets at more than one level: authenticated user, tenant, workflow, tool, and total task. A workflow can hit a tool timeout and still consume the budget allocated to the requests that happened before it.
+
+For example, suppose a ticket assistant can call a search tool repeatedly until it finds an answer. Give it a maximum number of tool invocations and model turns; limit how much text may be returned per retrieval; set deadlines for upstream calls; and decide what useful failure message to return when the budget is exhausted. Test that the counters remain effective when the agent retries after a partial failure.
+
+Limit requests and concurrency, cap token usage or context size where appropriate, and set billing alerts. If the only monitor is monthly spend, a runaway workflow can do substantial damage before anyone sees it.
+
+## Hidden Context Exposure replaces System Prompt Leakage
+
+In 2025, `LLM07` was **System Prompt Leakage**. The 2026 edition has **Hidden Context Exposure** at `LLM08:2026`, with a broader view of material that should not be revealed or trusted as public output. System prompts remain relevant, but the threat isn't limited to an application printing its top-level instructions.
+
+Modern systems carry private retrieved documents, previous conversation excerpts, tool responses, hidden metadata, instructions, and intermediate reasoning or state through multiple steps. Some of that context may appear in outputs or logs if boundaries are poorly designed. An application can expose sensitive material even when its original system prompt contains no secrets.
+
+Review every source of model context: retrieved documents, tool results containing customer identifiers, session history, and data included in traces or support logs. Test cross-tenant retrieval access and verify that sensitive material is excluded before context is assembled. A prompt asking the model not to disclose information is a poor substitute for controlling access before the model receives it.
+
+The underlying confidentiality controls remain familiar: enforce tenant boundaries before retrieval, minimize sensitive input, redact logs where necessary, and limit which downstream components can see particular records. Do not respond to the renamed category by simply hiding the system prompt more aggressively.
+
+## Prompt Injection stays first, with broader coverage
+
+Prompt Injection remains `LLM01:2026`. OWASP's 2026 preface explicitly mentions **cross-modal prompt injection**: instructions can be hidden inside image or audio material, not just text documents. This matters when an assistant processes screenshots, calls, uploaded PDFs, websites, and repository files before deciding which tools to use.
+
+Imagine an expense-processing agent that reads a photo of a receipt. Text visible or embedded in the image says to ignore the approval workflow. The content is still receipt data. It should not grant permission to override the expense policy. A different modality does not change the authority of untrusted material.
+
+Test with representative untrusted inputs, including formatted documents and tool results, then inspect attempted and executed actions separately. You may see the model propose a prohibited tool call while the executor blocks it. That is a meaningful difference: model behavior still merits investigation, but the application boundary prevented the side effect.
+
+Prompt injection cannot be eliminated by placing a longer prohibition in a system prompt. Explicit tool authorization, scope limits, trusted data handling, and review of dangerous side effects remain essential.
+
+## Misinformation is now seventh, not ninth
+
+Misinformation moved to `LLM07:2026`. OWASP's published risk description addresses outputs that are wrong, incomplete, unsupported, or misleading but credible enough to influence humans or automated workflows. A confident-looking answer can be especially damaging when a downstream component treats it as verified state.
+
+A customer-service assistant might invent a refund eligibility date. If the application sends that date directly to a refund API, misinformation has crossed into an operational failure. Retrieve policy facts from maintained sources, preserve timestamps and evidence, and let application code decide eligibility rather than turning generated prose into authorization.
+
+Treat citations as a claim that can be checked, not as proof by decoration. If a cited page doesn't contain the value in the answer, the response is still unsupported. For important decisions, capture the structured upstream fact and compare the generated statement against it. When a required source is unavailable, show uncertainty instead of filling gaps with plausible text.
+
+## Supply Chain and Data Poisoning have sharper examples
+
+Supply Chain is `LLM04:2026`. OWASP's 2026 preface discusses trust problems around promoted model artifacts: a model, adapter, or other dependency used in production may not be the artifact that was reviewed. Record artifact provenance, hashes where appropriate, signed releases, and deployment approvals. Apply ordinary dependency and supply-chain security to retrieval libraries, connectors, containers, and agent frameworks as well as model files.
+
+Data and Model Poisoning is `LLM05:2026`. Its scope includes attempts to manipulate training, fine-tuning, embedding, or retrieval material so the application produces distorted behavior. The 2026 discussion broadens attention to fine-tuning subversion. If an assistant's answers shift after a data refresh, review the data source, ingestion changes, indexing, document permissions, and evaluation set before assuming the model itself changed.
+
+An incident may involve both a compromised dependency and poisoned retrieval data. A compromised dataset might arrive through a third-party pipeline and then poison retrieval. Record each affected component and the controls that should have blocked the attack.
+
+## Improper Output Handling falls to tenth but remains serious
+
+Improper Output Handling is `LLM10:2026`, down from `LLM05:2025`. OWASP's 2026 material includes risks from insecure generated code being treated as trustworthy output. A lower rank does not make it acceptable to execute model-produced shell commands or SQL without checks.
+
+If an assistant proposes an SQL query, constrain it to a narrowly authorized database account and an approved query interface. If it returns HTML for a website, escape or sanitize content according to where it is inserted. If it generates a patch, review and test it before deployment. Output validation belongs to the consumer that will act on the bytes, not to the model's claim that its output is safe.
+
+A practical test is to feed structured but unexpected outputs into each downstream parser. Look for unsafe type coercion, unrecognized commands, unsupported URLs, oversized payloads, and fields that shouldn't be present. The model is not a trusted serializer merely because the JSON parses.
+
+## Vector and Embedding Weaknesses remain a separate review area
+
+The 2026 list places Vector and Embedding Weaknesses at `LLM09:2026`. Retrieval-augmented generation can fail when chunk permissions are lost, embeddings are queried across tenant boundaries, poisoned documents are indexed, or stale records remain available after revocation.
+
+Check access restrictions at retrieval time rather than relying on metadata merely attached to generated answers. A shared vector index is not automatically unsafe, but its filters and tenancy behavior need adversarial tests. Delete or revoke a document in the source system and verify that the retrieval layer stops returning it. A technically correct similarity search can still be an access-control failure.
+
+## Update security reviews without losing existing work
+
+A sensible migration does not throw away the 2025 risk register. Preserve existing tests and controls, then remap each item to the **2026 category name and identifier**. Mark cases where the category broadened, and record why a control maps to more than one risk. Review action-capable agents, ingestion pipelines, context exposure, and usage budgets as separate workstreams rather than assigning everything to one developer.
+
+For each high-risk workflow, keep an evidence record: the permitted user action, the data and tools available, the actual authorization point, an abuse-case input, and the observed side effect or denial. That evidence matters more than a spreadsheet with every Top 10 box ticked.
+
+Pair the LLM Top 10 with OWASP's **Top 10 for Agentic Applications** when the system delegates actions, uses persistent memory, or coordinates agents. The LLM list covers risks around the model as an application component; agentic behavior introduces further operational and control concerns. These frameworks complement rather than replace secure API design, identity policy, dependency review, and ordinary application testing.
+
+## What the 2026 change should mean in a pull request
+
+An engineer reviewing an LLM integration can make the edition change concrete. Require an explicit security owner for each external tool; check that retrieval is tenant-scoped; reject dangerous model-generated commands at the executor; enforce per-workflow budgets; and inspect what private context appears in logs or traces. Write one test that proves a forbidden action is blocked even when the model requests it.
+
+Apply the ranking to the actual system rather than treating every LLM integration as equally exposed. A text-only document summarizer and a finance agent with payment tools do not have the same exposure. Record that difference in the threat model and in the controls you actually test.
+
+## References
+
+- Official 2026 OWASP release and canonical entry list: https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/main/2026/README.md
+- OWASP 2026 preface, ranking method and edition changes: https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/main/2026/final/LLM00_Preface.md
+- OWASP's published 2026 resource: https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/
+- Previous OWASP LLM Top 10, 2025 edition: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+- OWASP Top 10 for Agentic Applications 2026: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
