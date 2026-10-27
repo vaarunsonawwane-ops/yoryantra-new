@@ -68,6 +68,12 @@ export default function BlogIndex() {
               {article.datePublished && BLOG_RELEASE_ENABLED && (
                 <p className="mt-auto pt-4 text-xs text-gray-600">
                   <time dateTime={article.datePublished}>Published {readableDate(article.datePublished)}</time>
+                  {article.dateModified && article.dateModified > article.datePublished && (
+                    <>
+                      <span className="mx-2 text-gray-400" aria-hidden="true">·</span>
+                      <time dateTime={article.dateModified}>Updated {readableDate(article.dateModified)}</time>
+                    </>
+                  )}
                 </p>
               )}
             </Link>
