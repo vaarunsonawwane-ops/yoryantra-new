@@ -1,0 +1,182 @@
+---
+slug: webhook-automation-signature-retries-idempotency
+title: "Webhook Automation: Verify Events, Handle Retries and Prevent Duplicate Processing"
+description: "Verify signed email webhooks, preserve raw request bodies, handle retries, and stop duplicate business actions using durable idempotency."
+topic: DevOps
+articleType: Troubleshooting
+relatedTools:
+- /tools/json-validator
+- /tools/http-headers-checker
+sources:
+- https://resend.com/docs/webhooks/introduction
+- https://github.com/resend/resend-skills/blob/main/skills/resend/references/webhooks.md
+- https://github.com/resend/resend-skills/blob/main/skills/resend/references/receiving.md
+datePublished: '2026-10-31'
+dateModified: null
+status: published
+author: Varoun Sonawane
+---
+
+Your application receives an email webhook, creates a support ticket, and returns HTTP 200. A minute later, another ticket appears for the same message. Or the delivery dashboard shows a successful webhook, but the ticket never reached the database. These are two sides of the same reliability problem: getting an HTTP notification is not the same as processing a business event exactly once.
+
+Webhook automation has renewed interest as products such as Resend Inboxes make incoming mail and agent workflows easier to connect. The technical problem is older and broader than any one product. A provider delivers signed events over HTTP. Networks fail, clients retry, queues duplicate messages, workers crash, and downstream APIs time out. The design must assume duplicate delivery and separate successful receipt from completed business work. That is what makes email-driven automation dependable rather than a fragile demo.
+
+## Treat delivery, acceptance and business processing as separate events
+
+Consider an `email.received` event. The provider sends a POST containing a JSON envelope. Your route checks its authenticity and stores the event. A worker later creates a support ticket and sends an acknowledgment. Four questions need different answers: Did the endpoint receive the POST? Was the sender authentic? Was the event saved durably? Did the ticket creation actually complete?
+
+A `200 OK` only tells the provider how your HTTP endpoint responded. It does not prove the ticket was created, the downstream job ran, or the message was understood. Conversely, a provider may retry a delivery even when your handler completed the ticket but failed to return an acknowledgment on time. If your automation assumes each webhook delivery is unique, that retry can create duplicate tickets or send duplicate email replies.
+
+Use a short ingestion path that authenticates the request, records a unique event key, queues the work, and then acknowledges the provider. Process the expensive task separately. For production, the event store and queue must have a documented durability boundary: acknowledging before persistence risks losing events during a restart.
+
+## Understand the payload and event identifiers
+
+Resend's webhook payloads include a top-level event type and a `data` object for the relevant resource. For inbound email the sample `email.received` event includes fields such as an email identifier, sender, recipients, message ID and subject. The exact event schema belongs to the provider and can evolve, so pin the event family you handle rather than treating every notification as the same object.
+
+```json
+{
+  "type": "email.received",
+  "created_at": "2026-10-29T09:00:00Z",
+  "data": {
+    "email_id": "example-email-001",
+    "from": "Example <hello@example.invalid>",
+    "to": ["support@example.invalid"],
+    "subject": "Cannot sign in"
+  }
+}
+```
+
+This is a reduced **illustrative** event shape, not a complete provider payload or a sample that should be signed and submitted to a production endpoint. The provider may include additional fields; `email.received` carries metadata, not email body content or attachment bytes. Retrieve those separately using the Receiving API if needed. Resend Inboxes also provides distinct `inbox.*` event types; subscribe to and handle those explicitly rather than treating every inbox event as `email.received`. The event ID used for delivery deduplication can differ from the email's resource ID. For Resend's signing protocol, the `svix-id` header provides a message identity that can be used as part of an idempotency key after signature verification. The `data.email_id` identifies the underlying email, not every delivery attempt.
+
+Choose the key according to the operation. To prevent processing the same signed event delivery more than once, store a unique key derived from the provider, endpoint and event message ID. To prevent two distinct legitimate events for the same email from creating the same ticket, use a separate business uniqueness rule such as provider plus email ID plus operation. They solve related but different duplicate problems.
+
+## Verify the signature using the exact raw body
+
+A webhook is an inbound request from the public internet. A client can POST plausible JSON without ever having received a real provider event. Validate the provider's signature **before** trusting payload fields or recording privileged actions. Resend documents three signature headers: `svix-id`, `svix-timestamp`, and `svix-signature`. Its SDK verification helper takes the original raw payload, those headers, and the webhook signing secret.
+
+A minimal Next.js route illustrates the boundary:
+
+```ts
+import { NextRequest, NextResponse } from "next/server";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function POST(req: NextRequest) {
+  const payload = await req.text();
+  const secret = process.env.RESEND_WEBHOOK_SECRET;
+  if (!secret) return new NextResponse("Not configured", { status: 500 });
+
+  let event;
+  try {
+    event = resend.webhooks.verify({
+      payload,
+      headers: {
+        id: req.headers.get("svix-id") ?? "",
+        timestamp: req.headers.get("svix-timestamp") ?? "",
+        signature: req.headers.get("svix-signature") ?? "",
+      },
+      webhookSecret: secret,
+    });
+  } catch {
+    return new NextResponse("Invalid signature", { status: 400 });
+  }
+
+  // Persist an idempotency key and enqueue work DURABLY before returning 2xx.
+  // Persistence/queue logic is application-specific and omitted here.
+  // Fail closed until your own durable handler is implemented.
+  void event;
+  return new NextResponse("Durable ingestion not configured", { status: 503 });
+}
+```
+
+The example deliberately returns HTTP 503 after verification because it omits the database and queue adapter. It is **not a complete production webhook processor**, and changing the status to 200 without durable ingestion would risk event loss. Its value is demonstrating why `req.text()` must happen before parsing. If you call `req.json()` and then stringify the result, key order or whitespace can change, breaking signature verification. Do not invent your own signature algorithm when the provider maintains a verifier. Also check timestamp freshness and secret rotation according to the provider's verification contract.
+
+`RESEND_API_KEY` authorizes calls your application makes to Resend; the webhook signing secret authenticates callbacks Resend sends to you. They are different credentials. Neither belongs in browser code, logs, or publicly shared screenshots. If verification fails, inspect whether the secret belongs to the correct endpoint and environment rather than disabling validation to make a test pass.
+
+## Make duplicate processing impossible at the persistence boundary
+
+![Webhook event verification, durable storage, worker execution, and reconciliation for duplicate deliveries and retries.](/images/blog/webhook-retry-idempotency-boundaries.png)
+
+*Deduplication at receipt and idempotency at the downstream operation solve different failure modes.*
+
+
+
+A process-local `Set` may appear to prevent duplicates in development but fails across serverless instances, restarts, and horizontally scaled workers. Use a database uniqueness constraint or equivalent durable transactional store. The intended workflow is: verify the signed message; derive the idempotency key; insert the event record with a unique constraint; enqueue work atomically or through a recoverable outbox; and acknowledge accepted deliveries.
+
+For example, a PostgreSQL table can enforce one record per provider message ID:
+
+```sql
+CREATE TABLE webhook_events (
+  provider TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status TEXT NOT NULL DEFAULT 'pending',
+  PRIMARY KEY (provider, event_id)
+);
+
+INSERT INTO webhook_events (provider, event_id, event_type)
+VALUES ('resend', $1, 'email.received')
+ON CONFLICT (provider, event_id) DO NOTHING;
+```
+
+This prevents duplicate event rows, but it doesn't automatically ensure exactly one external side effect. A worker could create a ticket and crash before marking the event complete. On retry, it might create another ticket. Prefer a downstream API with its own idempotency key, or store a business operation key such as `ticket-for:resend:<email_id>` in a table with a uniqueness constraint and a reconcilable state machine. Call the downstream service with an idempotency key when it supports one. If it doesn't, design a lookup-and-reconcile path rather than asserting mathematically perfect exactly-once delivery.
+
+The important delivery model is **at least once**, not “every notification arrives exactly once.” Your application is responsible for making repeated delivery safe. A failed delivery should also remain observable instead of disappearing after a few unsuccessful attempts.
+
+## Return the right HTTP response at the right time
+
+An invalid signature should fail immediately. A valid signed event with a permanently unsupported event type may be safely recorded and ignored, depending on the provider contract. A temporarily unavailable database or queue is a reason not to acknowledge successfully before persistence. A slow machine-learning classification or CRM request should happen after queuing, not while the provider waits for an HTTP response.
+
+| Endpoint result | Typical meaning | Operator action |
+| --- | --- | --- |
+| 2xx after durable acceptance | Provider may stop retrying | Process asynchronously and monitor completion |
+| 400 invalid signature | Request cannot be trusted | Check secret, raw body, signing headers |
+| 4xx for valid but unsupported event | Depends on provider retry policy | Avoid accidental retry storm; document behavior |
+| 5xx before persistence | Temporary endpoint failure | Allow provider retry; repair dependency |
+| Timeout | Provider saw no timely acknowledgment | Expect duplicate delivery and inspect logs |
+
+Always check the provider's documented retry policy. Resend exposes retries and manual replays, so a repeated event can be legitimate even after the original attempt was delivered. Some systems stop retrying particular client errors; others retry broadly. Do not build a universal policy from one provider's behavior. If you intentionally return a 5xx, ensure the handler is safe to execute again.
+
+## Troubleshoot signature failures without weakening security
+
+When signatures fail locally but work in production—or the reverse—compare the environment's webhook signing secret, the raw payload length, the timestamp header and the exact endpoint receiving the request. A reverse proxy may transform the body or headers. A JSON middleware may consume the request stream before the verifier runs. Replaying a captured payload without the original signed headers is not a faithful provider replay.
+
+Do not log signing secrets or full personal email bodies. For debugging, record a request ID, byte count, verification result, event type after verification, and the durable event key. If a production webhook has been exposed publicly, rotate the secret and audit any accepted events created during the exposure window.
+
+Use a provider's delivery dashboard and replay tools when available. Resend's observability view can help compare delivery attempts and responses. If delivery reaches your endpoint and verification succeeds but no ticket appears, the defect is downstream: inspect the queue, worker and CRM integration. Replaying the webhook alone will not reveal a worker crash unless those later stages have their own logs.
+
+## Handling events that arrive out of order
+
+Notifications for one resource may not arrive in the order your database expects. For example, a message could trigger `email.received`, a thread update and a status change close together. If the second event is processed before the first, a worker that assumes a pre-existing ticket might fail or create a duplicate placeholder. Avoid relying on webhook arrival order unless the provider explicitly guarantees it.
+
+Use an upsert or a per-resource processing strategy for order-sensitive transitions. Re-fetch current resource state from the provider when the event only signals that something changed. Include an event timestamp in diagnostics, but do not automatically trust timestamps from unauthenticated messages. Consider whether stale events should be ignored, merged or retained as audit history. Different event types can require different answers.
+
+A webhook payload may contain personally identifiable information, email addresses and message subjects. Store only what the workflow needs, apply retention rules, and restrict access to full message content. Email attachments and malicious HTML deserve their own content-handling controls. Verification proves origin of the notification, not safety of the message content or attachment.
+
+## Keep automation effects visible and recoverable
+
+A queue is useful only if failures can be surfaced and repaired. Record event states such as `pending`, `processing`, `completed` and `failed`. Track attempts, last error category and next retry time. Use a dead-letter process for poison messages or repeated downstream failures. Give operators a way to replay the **business operation** safely without re-posting raw unverified payloads into a public endpoint.
+
+Test three deliberately awkward cases: send the same verified event twice; fail the worker after the downstream ticket is created; and simulate the queue being unavailable before acceptance. The first must not create duplicate processing records. The second needs reconciliation or downstream idempotency. The third must not return a success response if the event could be lost. Also test valid but unknown event types and malformed JSON independently.
+
+For inspection, [Yoryantra JSON Validator](https://yoryantra.com/tools/json-validator) can check the shape of sanitized event JSON, [HTTP Headers Parser](https://yoryantra.com/tools/http-headers-parser) can help examine pasted signature-header blocks, and [API Error Response Formatter](https://yoryantra.com/tools/api-error-response-formatter) can clarify downstream API error details. None of these utilities verifies a Resend signature or reproduces its delivery infrastructure. Avoid putting signing secrets or real customer data into public troubleshooting samples.
+
+## Replay an event without repeating the customer action
+
+A support operator may need to reprocess a failed `email.received` event days after it arrived. A safe replay operation should load the already-verified, durably stored event, check the current processing state, and request another worker attempt. It should not invent new signed headers or bypass idempotency. Restrict replay access, record who initiated it, and provide a preview of the action that might occur. If the ticket was already created, reconciliation should find it and mark the event complete rather than create another.
+
+Distinguish a **delivery replay** from a **business replay**. The provider resending the HTTP notification is useful when the endpoint never accepted it. Re-running a failed business action is useful after acceptance succeeded but the worker failed. Both paths should converge on the same persistence and uniqueness rules. If operators can't tell which stage failed, they may replay the wrong stage and amplify the problem. An event timeline with delivery ID, acceptance time, worker attempts and external ticket ID is far more actionable than a single red “failed webhook” badge.
+
+## A release checklist for reliable webhooks
+
+Before switching on incoming-email automation, verify the signing secret and raw-body handling in the deployed environment. Persist the event key durably, acknowledge only after acceptance, and ensure the worker can retry safely. Test a duplicate, a timeout, a malformed signature, and a downstream failure. Document what happens when two events refer to one email. Add monitoring for accepted-but-unprocessed events as well as rejected deliveries.
+
+Successful webhook automation is not measured by how quickly the endpoint responds on the happy path. It is measured by whether a customer email produces the intended result once, even when the same event arrives again, the worker crashes, or the downstream service is unavailable.
+
+## Official references
+
+- [Resend Webhooks — events, retries and observability](https://resend.com/features/webhooks)
+- [Resend — webhook verification helper and raw-body requirement](https://resend.com/changelog/managing-webhooks-via-api)
+- [Resend webhook features and example event payloads](https://www.resend.com/features/webhooks)
