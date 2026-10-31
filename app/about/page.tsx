@@ -15,11 +15,6 @@ export default function AboutPage() {
     <main className="bg-white text-[#222]">
       <div className="max-w-[900px] mx-auto px-6 py-[70px] leading-[1.9]">
 	  
-		<a
-			href="/"
-			className="inline-flex items-center text-[#c89b3c] font-semibold hover:underline mb-10"
-		>
-		</a>
 
         <h1 className="text-[34px] md:text-[42px] font-bold text-[#111] mb-[45px]">
           About Yoryantra
@@ -70,29 +65,29 @@ export default function AboutPage() {
         </p>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
-          The name "
+          The name &quot;
           <span className="text-[#c89b3c] font-bold">Yoryantra</span>
-          " came to my mind while I was thinking about the{" "}
+          &quot; came to my mind while I was thinking about the{" "}
           <span className="text-[#c89b3c] font-bold">
             SRIMAD BHAGAVAD GITA
           </span>.
         </p>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
-          Being a spiritual person, I was looking for a name that is connected to my Sanatani roots and has a meaning that remains relevant even in today's world.
+          Being a spiritual person, I was looking for a name that is connected to my Sanatani roots and has a meaning that remains relevant even in today&apos;s world.
         </p>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
-          <strong>YOR</strong> represents <strong>"Your"</strong> and{" "}
+          <strong>YOR</strong> represents <strong>&quot;Your&quot;</strong> and{" "}
           <strong>Yantra</strong> is a Sanskrit word meaning{" "}
-          <strong>"machine"</strong> or <strong>"tool"</strong>.
+          <strong>&quot;machine&quot;</strong> or <strong>&quot;tool&quot;</strong>.
         </p>
 
         <div className="bg-[#faf7f0] border-l-[4px] border-[#c89b3c] p-[22px] rounded-[8px] my-[35px] text-[17px] md:text-[18px] text-[#444]">
           Yoryantra simply means:
           <br />
           <br />
-          <strong>"Your Tools. Your Utilities. Your Digital Yantra."</strong>
+          <strong>&quot;Your Tools. Your Utilities. Your Digital Yantra.&quot;</strong>
         </div>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
@@ -107,12 +102,12 @@ export default function AboutPage() {
         </p>
 
         <div>
-          <h1 className="text-[28px] md:text-[32px] font-bold text-[#111] mb-[30px]">
+          <h2 className="text-[28px] md:text-[32px] font-bold text-[#111] mb-[30px]">
             About Me
-          </h1>
+          </h2>
 
           <p className="mt-[40px] text-[17px] md:text-[18px] text-[#444] mb-[26px]">
-            I am <strong>Varoun Sonawane</strong>, an IT professional with 7 years of experience across multiple industries. I passionately want to give back to society and help whoever I can in this universe, even if it starts with something small, like saving someone's time through useful tools.
+            I am <strong>Varoun Sonawane</strong>, an IT professional with 7 years of experience across multiple industries. I passionately want to give back to society and help whoever I can in this universe, even if it starts with something small, like saving someone&apos;s time through useful tools.
           </p>
 
           <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">

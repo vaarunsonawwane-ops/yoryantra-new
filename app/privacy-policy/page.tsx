@@ -87,7 +87,15 @@ export default function PrivacyPolicyPage() {
                 Third-party vendors, including Google, may use cookies to serve ads based on your
                 prior visits to Yoryantra or other websites. Google’s advertising cookies may allow
                 Google and its partners to show ads based on visits to Yoryantra and other sites on the
-                Internet. You can opt out of personalized advertising through Google Ads Settings.
+                Internet. You can opt out of personalized advertising through{" "}
+                <a
+                  href="https://myadcenter.google.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-[var(--green)] underline decoration-1 underline-offset-4 hover:no-underline"
+                >
+                  Google Ads Settings
+                </a>.
 				Where consent is required, advertising or analytics behavior may also depend on the
 				choices you make through the consent controls available on the site.
               </p>
