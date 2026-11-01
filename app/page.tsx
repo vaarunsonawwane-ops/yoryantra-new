@@ -193,75 +193,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* A LITTLE CONTEXT — useful without turning the homepage into a sales page */}
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="max-w-4xl">
-          <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
-            Some results need a little context
-          </h2>
-
-          <div className="mt-6 space-y-5 leading-relaxed text-gray-600">
-            <p>
-              A JSON formatter makes data easier to read, but that does not mean the data is valid.
-              A schema validator checks the structure. In the same way, decoding a JWT lets you
-              read what is inside it, but it does not prove that the signature is valid.
-            </p>
-
-            <p>
-              The same is true for configuration and SEO checks. A browser-based check can point
-              out problems, but the live server, browser, cluster, or search engine still decides what
-              actually happens.
-            </p>
-
-            <p>
-              When that difference matters, I explain it on the tool page so you know what the result
-              means — and what it does not.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* RESOURCES */}
-      <section className="border-y border-gray-100 bg-gray-50 py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="max-w-3xl">
-            <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
-              Guides for work that needs more than one tool
-            </h2>
-
-            <p className="mt-4 leading-relaxed text-gray-600">
-              Some technical jobs need more than one tool. These guides bring the related tools
-              and explanations together so you can work through the task in one place.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-x-10 md:grid-cols-2">
-            {guides.map((guide) => (
-              <Link
-                key={guide.href}
-                href={guide.href}
-                className="group border-b border-gray-200 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
-              >
-                <h3 className="text-base font-semibold text-gray-900 transition-colors duration-200 group-hover:text-[var(--gold-text)]">
-                  {guide.title}
-                </h3>
-
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                  {guide.description}
-                </p>
-              </Link>
-            ))}
-          </div>
-
-          <Link
-            href="/resources"
-            className="mt-8 inline-flex text-sm font-semibold text-[var(--green)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
-          >
-            Browse all resources →
-          </Link>
-        </div>
-      </section>
-
       {/* LATEST ARTICLES — only published posts, using their original dates */}
       {latestArticles.length > 0 && (
         <section aria-labelledby="latest-articles-heading" className="mx-auto max-w-7xl px-6 py-16">
@@ -316,53 +247,47 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* WHY YORYANTRA — original production wording restored */}
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="max-w-4xl">
-          <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
-            Why Yoryantra Exists
-          </h2>
+      {/* RESOURCES */}
+      <section className="border-y border-gray-100 bg-gray-50 py-20">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="max-w-3xl">
+            <h2 className="text-3xl font-semibold tracking-tight text-gray-950">
+              Guides for work that needs more than one tool
+            </h2>
 
-          <div className="mt-6 space-y-5 text-gray-600 leading-relaxed">
-            <p>
-              I created Yoryantra because many utility websites make small technical tasks harder than they need to be.
+            <p className="mt-4 leading-relaxed text-gray-600">
+              Some technical jobs need more than one tool. These guides bring the related tools
+              and explanations together so you can work through the task in one place.
             </p>
+          </div>
 
-            <p>
-              Sometimes you only need to format a payload, inspect a token,
-              validate a file, convert a value, or check a configuration before
-              moving back to the main task.
-            </p>
-
-            <p>
-              If you want to know how the tools are chosen, tested, and improved, I explain that{" "}
+          <div className="mt-8 grid gap-x-10 md:grid-cols-2">
+            {guides.map((guide) => (
               <Link
-                href="/how-yoryantra-tools-are-built"
-                className="font-semibold text-[var(--gold-text)] hover:underline"
+                key={guide.href}
+                href={guide.href}
+                className="group border-b border-gray-200 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
               >
-                here
+                <h3 className="text-base font-semibold text-gray-900 transition-colors duration-200 group-hover:text-[var(--gold-text)]">
+                  {guide.title}
+                </h3>
+
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                  {guide.description}
+                </p>
               </Link>
-              .
-            </p>
+            ))}
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-4">
-            <Link
-              href="/how-yoryantra-tools-are-built"
-              className="rounded-xl bg-[var(--green)] px-6 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
-            >
-              How Tools Are Built
-            </Link>
-
-            <Link
-              href="/about"
-              className="rounded-xl border border-[var(--green)] bg-white px-6 py-3 text-sm font-medium text-[var(--green)] transition hover:-translate-y-0.5 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
-            >
-              About Yoryantra
-            </Link>
-          </div>
+          <Link
+            href="/resources"
+            className="mt-8 inline-flex text-sm font-semibold text-[var(--green)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
+          >
+            Browse all resources →
+          </Link>
         </div>
       </section>
+
     </main>
   );
 }
