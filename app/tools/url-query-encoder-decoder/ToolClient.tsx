@@ -743,7 +743,7 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Percent encoding and form encoding are not identical</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">Normal URI component encoding represents a space as <code>%20</code>. The <code>application/x-www-form-urlencoded</code> algorithm uses <code>+</code> for spaces and also applies a slightly different percent-encode set. The “plus” option follows that form-style component behavior rather than merely replacing <code>%20</code>.</p>
-          <p className="mt-3 text-gray-600 leading-relaxed">Reference: <a className="text-[var(--gold)] underline underline-offset-2" href="https://url.spec.whatwg.org/#application/x-www-form-urlencoded" target="_blank" rel="noreferrer">WHATWG URL Standard — form-urlencoded</a>.</p>
+          <p className="mt-3 text-gray-600 leading-relaxed">Reference: <a className="text-[var(--gold-text)] underline underline-offset-2" href="https://url.spec.whatwg.org/#application/x-www-form-urlencoded" target="_blank" rel="noreferrer">WHATWG URL Standard — form-urlencoded</a>.</p>
         </div>
 
         <div>

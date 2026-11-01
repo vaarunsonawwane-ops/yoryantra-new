@@ -636,7 +636,7 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Base64 rules used here</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">The alphabet and padding rules follow RFC 4648 Base64. Pasted values may omit final padding when the remaining length can still represent complete bytes; impossible one-character remainders and malformed padding are rejected. Whitespace between Base64 characters is removed for pasted input.</p>
-          <p className="mt-3 text-gray-600 leading-relaxed">Reference: <a className="text-[var(--gold)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc4648" target="_blank" rel="noreferrer">RFC 4648 — Base-N Encodings</a>.</p>
+          <p className="mt-3 text-gray-600 leading-relaxed">Reference: <a className="text-[var(--gold-text)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc4648" target="_blank" rel="noreferrer">RFC 4648 — Base-N Encodings</a>.</p>
         </div>
 
         <div>

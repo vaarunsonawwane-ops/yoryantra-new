@@ -546,7 +546,7 @@ function DatePickerField({
             <button
               type="button"
               onClick={() => moveMonth(-1)}
-              className="px-1 py-1 text-xl leading-none text-[var(--light-gold)] transition hover:opacity-75"
+              className="px-1 py-1 text-xl leading-none text-[var(--gold-text)] transition hover:opacity-75"
               aria-label="Previous month"
             >
               ←
@@ -558,7 +558,7 @@ function DatePickerField({
                 onClick={() => setPickerMode((current) => current === "months" ? "days" : "months")}
                 className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
                   pickerMode === "months"
-                    ? "bg-[var(--light-gold)]/15 text-[var(--light-gold)]"
+                    ? "bg-[var(--light-gold)]/15 text-[var(--gold-text)]"
                     : "text-gray-900 hover:bg-[var(--light-gold)]/10"
                 }`}
               >
@@ -570,7 +570,7 @@ function DatePickerField({
                 onClick={() => setPickerMode((current) => current === "years" ? "days" : "years")}
                 className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
                   pickerMode === "years"
-                    ? "bg-[var(--light-gold)]/15 text-[var(--light-gold)]"
+                    ? "bg-[var(--light-gold)]/15 text-[var(--gold-text)]"
                     : "text-gray-900 hover:bg-[var(--light-gold)]/10"
                 }`}
               >
@@ -581,7 +581,7 @@ function DatePickerField({
             <button
               type="button"
               onClick={() => moveMonth(1)}
-              className="px-1 py-1 text-xl leading-none text-[var(--light-gold)] transition hover:opacity-75"
+              className="px-1 py-1 text-xl leading-none text-[var(--gold-text)] transition hover:opacity-75"
               aria-label="Next month"
             >
               →
@@ -674,7 +674,7 @@ function DatePickerField({
             <button
               type="button"
               onClick={clearDate}
-              className="text-sm font-semibold text-gray-900 transition hover:text-[var(--light-gold)]"
+              className="text-sm font-semibold text-gray-900 transition hover:text-[var(--gold-text)]"
             >
               Clear
             </button>
@@ -682,7 +682,7 @@ function DatePickerField({
             <button
               type="button"
               onClick={selectToday}
-              className="text-sm font-semibold text-gray-900 transition hover:text-[var(--light-gold)]"
+              className="text-sm font-semibold text-gray-900 transition hover:text-[var(--gold-text)]"
             >
               Today
             </button>

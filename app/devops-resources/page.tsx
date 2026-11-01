@@ -84,7 +84,7 @@ export default function Page() {
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-8 flex items-center text-sm text-gray-500">
-          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--light-gold)]">Home</Link>
+          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--gold-text)]">Home</Link>
           <span className="mx-2">/</span>
           <span className="text-gray-900">DevOps Resources</span>
         </div>
@@ -156,7 +156,7 @@ export default function Page() {
                 <p className="mt-3 text-sm leading-6 text-gray-600">{card.text}</p>
                 <div className="mt-5 flex flex-col gap-2">
                   {card.links.map((link) => (
-                    <Link key={link.href} href={link.href} className="text-sm font-semibold text-[var(--light-gold)] hover:underline">
+                    <Link key={link.href} href={link.href} className="text-sm font-semibold text-[var(--gold-text)] hover:underline">
                       {link.label} →
                     </Link>
                   ))}

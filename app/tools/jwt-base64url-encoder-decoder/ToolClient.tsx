@@ -594,7 +594,7 @@ export default function ToolClient() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Padding and the URL-safe alphabet</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">RFC 4648 Base64URL replaces <code>+</code> with <code>-</code> and <code>/</code> with <code>_</code>. JOSE compact serialization normally omits trailing <code>=</code> padding. Missing padding can be reconstructed from the segment length, but a length with remainder one modulo four is impossible and is rejected.</p>
-          <p className="mt-3 text-gray-600 leading-relaxed">References: <a className="text-[var(--gold)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc4648#section-5" target="_blank" rel="noreferrer">RFC 4648 §5</a>, <a className="text-[var(--gold)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc7515" target="_blank" rel="noreferrer">RFC 7515 (JWS)</a>, and <a className="text-[var(--gold)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc7516" target="_blank" rel="noreferrer">RFC 7516 (JWE)</a>.</p>
+          <p className="mt-3 text-gray-600 leading-relaxed">References: <a className="text-[var(--gold-text)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc4648#section-5" target="_blank" rel="noreferrer">RFC 4648 §5</a>, <a className="text-[var(--gold-text)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc7515" target="_blank" rel="noreferrer">RFC 7515 (JWS)</a>, and <a className="text-[var(--gold-text)] underline underline-offset-2" href="https://www.rfc-editor.org/rfc/rfc7516" target="_blank" rel="noreferrer">RFC 7516 (JWE)</a>.</p>
         </div>
 
         <div>

@@ -68,7 +68,7 @@ export default function Page() {
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-8 flex items-center text-sm text-gray-500">
-          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--light-gold)]">Home</Link>
+          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--gold-text)]">Home</Link>
           <span className="mx-2">/</span>
           <span className="text-gray-900">Security Guides</span>
         </div>
@@ -104,9 +104,9 @@ export default function Page() {
           <div className="self-start rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-900">Useful JWT tools</h2>
             <div className="mt-5 flex flex-col gap-3 text-sm font-semibold">
-              <Link href="/tools/jwt-signature-verifier" className="text-[var(--light-gold)] hover:underline">JWT Signature Verifier →</Link>
-              <Link href="/tools/jwt-claims-inspector" className="text-[var(--light-gold)] hover:underline">JWT Claims Inspector →</Link>
-              <Link href="/tools/jwt-secret-strength-checker" className="text-[var(--light-gold)] hover:underline">JWT Secret Strength Checker →</Link>
+              <Link href="/tools/jwt-signature-verifier" className="text-[var(--gold-text)] hover:underline">JWT Signature Verifier →</Link>
+              <Link href="/tools/jwt-claims-inspector" className="text-[var(--gold-text)] hover:underline">JWT Claims Inspector →</Link>
+              <Link href="/tools/jwt-secret-strength-checker" className="text-[var(--gold-text)] hover:underline">JWT Secret Strength Checker →</Link>
             </div>
           </div>
         </section>
@@ -126,7 +126,7 @@ export default function Page() {
                 <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Use it to:</strong> {item.purpose}</p>
                 <p className="mt-2 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Do not assume:</strong> {item.boundary}</p>
-                <Link href={item.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">{item.label} →</Link>
+                <Link href={item.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--gold-text)]">{item.label} →</Link>
               </div>
             ))}
           </div>

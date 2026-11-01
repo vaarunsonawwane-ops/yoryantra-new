@@ -66,9 +66,9 @@ export default function AboutPage() {
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
           The name &quot;
-          <span className="text-[#c89b3c] font-bold">Yoryantra</span>
+          <span className="text-[var(--gold-text)] font-bold">Yoryantra</span>
           &quot; came to my mind while I was thinking about the{" "}
-          <span className="text-[#c89b3c] font-bold">
+          <span className="text-[var(--gold-text)] font-bold">
             SRIMAD BHAGAVAD GITA
           </span>.
         </p>
@@ -94,7 +94,7 @@ export default function AboutPage() {
           You can also read{" "}
           <a
             href="/how-yoryantra-tools-are-built"
-            className="text-[#c89b3c] font-bold hover:underline"
+            className="text-[var(--gold-text)] font-bold hover:underline"
           >
             how Yoryantra tools are selected, tested, and improved
           </a>
@@ -114,7 +114,7 @@ export default function AboutPage() {
             You can find my contact details on the{" "}
             <a
               href="/contact"
-              className="text-[#c89b3c] font-bold hover:underline"
+              className="text-[var(--gold-text)] font-bold hover:underline"
             >
               Contact
             </a>{" "}

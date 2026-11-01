@@ -11,6 +11,7 @@
 :root {
   --green: #2f6f4e;
   --light-gold: #c89b3c;
+  --gold-text: #966a14; /* readable gold for text on light surfaces */
   --dark: #1f2937;
   --light-bg: #faf7f0;
 }

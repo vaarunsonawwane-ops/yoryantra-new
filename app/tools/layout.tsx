@@ -13,7 +13,7 @@ export default function ToolsLayout({
 
         <Link
           href="/"
-          className="hover:!text-[var(--light-gold)] transition-colors duration-200"
+          className="hover:!text-[var(--gold-text)] transition-colors duration-200"
         >
           Home
         </Link>
@@ -22,7 +22,7 @@ export default function ToolsLayout({
 
         <Link
           href="/tools"
-          className="hover:!text-[var(--light-gold)] transition-colors duration-200"
+          className="hover:!text-[var(--gold-text)] transition-colors duration-200"
         >
           Tools
         </Link>

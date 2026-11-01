@@ -41,6 +41,12 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-[var(--green)] focus:shadow-lg focus:ring-2 focus:ring-[var(--green)]"
+      >
+        Skip to main content
+      </a>
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link
           href="/"
@@ -62,7 +68,7 @@ export default function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-sm text-gray-700 transition-colors duration-200 hover:!text-[var(--light-gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
+              className="rounded-sm text-gray-700 transition-colors duration-200 hover:!text-[var(--gold-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
             >
               {item.label}
             </Link>
@@ -128,7 +134,7 @@ export default function Header() {
               key={item.href}
               href={item.href}
               onClick={closeMobileMenu}
-              className="border-b border-gray-100 py-3 text-sm font-medium text-gray-700 transition-colors duration-200 last:border-b-0 hover:!text-[var(--light-gold)] focus-visible:outline-none focus-visible:text-[var(--green)]"
+              className="border-b border-gray-100 py-3 text-sm font-medium text-gray-700 transition-colors duration-200 last:border-b-0 hover:!text-[var(--gold-text)] focus-visible:outline-none focus-visible:text-[var(--green)]"
             >
               {item.label}
             </Link>

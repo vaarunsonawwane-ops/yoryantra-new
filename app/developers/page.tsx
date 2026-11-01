@@ -80,7 +80,7 @@ export default function Page() {
         <div className="mb-8 flex items-center text-sm text-gray-500">
           <Link
             href="/"
-            className="transition-colors duration-200 hover:!text-[var(--light-gold)]"
+            className="transition-colors duration-200 hover:!text-[var(--gold-text)]"
           >
             Home
           </Link>
@@ -205,11 +205,11 @@ export default function Page() {
                 href={area.href}
                 className="group rounded-2xl border border-gray-200 bg-gray-50 p-6 transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">
+                <h3 className="font-semibold text-gray-900 group-hover:text-[var(--gold-text)]">
                   {area.title}
                 </h3>
                 <p className="mt-3 text-sm leading-6 text-gray-600">{area.text}</p>
-                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
+                <span className="mt-5 inline-flex text-sm font-semibold text-[var(--gold-text)]">
                   Continue →
                 </span>
               </Link>

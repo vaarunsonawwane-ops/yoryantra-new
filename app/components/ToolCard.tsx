@@ -14,7 +14,7 @@ export default function ToolCard({
       <div className="h-full rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md">
 
         {/* TITLE */}
-        <h2 className="text-xl font-semibold text-gray-900 group-hover:text-[var(--light-gold)] transition-colors duration-200">
+        <h2 className="text-xl font-semibold text-gray-900 group-hover:text-[var(--gold-text)] transition-colors duration-200">
           {title}
         </h2>
 

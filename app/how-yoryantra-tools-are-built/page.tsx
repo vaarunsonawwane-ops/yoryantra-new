@@ -67,13 +67,13 @@ export default function HowYoryantraToolsAreBuiltPage() {
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-10 flex items-center text-sm text-gray-500">
-          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--light-gold)]">Home</Link>
+          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--gold-text)]">Home</Link>
           <span className="mx-2">/</span>
           <span className="text-gray-900">How Yoryantra Tools Are Built</span>
         </div>
 
         <div className="max-w-4xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--light-gold)]">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--gold-text)]">
             Yoryantra methodology
           </p>
           <h1 className="mt-5 text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
@@ -233,7 +233,7 @@ export default function HowYoryantraToolsAreBuiltPage() {
             Yoryantra revisits existing pages in small batches so working behavior
             can be preserved while the specific problem is corrected.
           </p>
-          <Link href="/contact" className="mt-5 inline-flex font-semibold text-[var(--light-gold)]">
+          <Link href="/contact" className="mt-5 inline-flex font-semibold text-[var(--gold-text)]">
             Report a problem or unclear result →
           </Link>
         </section>

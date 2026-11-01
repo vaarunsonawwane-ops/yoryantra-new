@@ -32,9 +32,9 @@ export default function Page() {
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-8 flex items-center text-sm text-gray-500">
-          <Link href="/" className="hover:!text-[var(--light-gold)] transition-colors duration-200">Home</Link>
+          <Link href="/" className="hover:!text-[var(--gold-text)] transition-colors duration-200">Home</Link>
           <span className="mx-2">/</span>
-          <Link href="/categories" className="hover:!text-[var(--light-gold)] transition-colors duration-200">Categories</Link>
+          <Link href="/categories" className="hover:!text-[var(--gold-text)] transition-colors duration-200">Categories</Link>
           <span className="mx-2">/</span>
           <span className="text-gray-900">JSON & Data Tools</span>
         </div>
@@ -67,7 +67,7 @@ export default function Page() {
                 href={tool.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--light-gold)]">{tool.title}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[var(--gold-text)]">{tool.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-gray-600">{tool.description}</p>
               </Link>
             ))}

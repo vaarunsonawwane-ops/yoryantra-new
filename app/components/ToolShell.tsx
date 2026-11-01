@@ -15,7 +15,7 @@ export default function ToolShell({
       {/* BACK LINK */}
       <Link
         href="/tools"
-        className="inline-flex items-center mb-6 text-sm text-gray-500 hover:!text-[var(--light-gold)] transition-colors duration-200"
+        className="inline-flex items-center mb-6 text-sm text-gray-500 hover:!text-[var(--gold-text)] transition-colors duration-200"
       >
         ← Back to Tools
       </Link>

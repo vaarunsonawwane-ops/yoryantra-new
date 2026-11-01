@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getPublishedArticles } from "./blog/blog-data";
 
 export const metadata = {
   title: "Yoryantra | Practical Browser Tools for Everyday Work",
@@ -111,36 +112,31 @@ const guides = [
   },
 ];
 
+function readableDate(value: string) {
+  return new Date(`${value}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
+  });
+}
+
 export default function HomePage() {
+  const latestArticles = getPublishedArticles().slice(0, 4);
+
   return (
     <main className="bg-white text-gray-900">
-      {/* HERO — original production copy restored */}
+      {/* HERO — approved homepage copy */}
       <section className="mx-auto max-w-7xl px-6 pt-4 pb-20 md:pt-8 md:pb-24">
         <div className="max-w-4xl">
-          <p className="text-sm font-medium text-[var(--light-gold)]">
+          <p className="text-sm font-medium text-[var(--gold-text)]">
             ✦ Built for you
           </p>
 
           <h1 className="mt-8 text-4xl font-semibold tracking-tight text-gray-950 md:text-5xl md:leading-tight">
-            Practical browser tools for everyday technical work.
+            Find the tool you need. Get back to your work.
           </h1>
 
-          <div className="mt-8 max-w-4xl space-y-5 text-lg leading-relaxed text-gray-600">
-            <p>
-              Yoryantra is built around focused browser tools for development, DevOps, security, SEO, JSON, encoding, and related technical tasks.
-            </p>
-
-            <p>
-              Use them to format data, validate files, inspect values, convert
-              text, check configuration, and prepare information for another
-              system.
-            </p>
-
-            <p>
-              The idea is simple: open the tool, complete the task, understand
-              the result, and continue your work without unnecessary clutter.
-            </p>
-          </div>
+          <p className="mt-8 max-w-4xl text-lg leading-relaxed text-gray-600">
+            Need to check a page title, review a sitemap, validate JSON, test a regex, or decode text? Yoryantra brings together browser-based tools for these tasks and more, whether you’re working on a website, creating content, working on SEO, developing software, or troubleshooting an issue.
+          </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
             <Link
@@ -180,7 +176,7 @@ export default function HomePage() {
                 href={category.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
               >
-                <h3 className="text-lg font-semibold text-gray-900 transition-colors duration-200 group-hover:text-[var(--light-gold)]">
+                <h3 className="text-lg font-semibold text-gray-900 transition-colors duration-200 group-hover:text-[var(--gold-text)]">
                   {category.title}
                 </h3>
 
@@ -188,7 +184,7 @@ export default function HomePage() {
                   {category.description}
                 </p>
 
-                <p className="mt-5 text-sm font-medium text-[var(--light-gold)]">
+                <p className="mt-5 text-sm font-medium text-[var(--gold-text)]">
                   View tools →
                 </p>
               </Link>
@@ -246,7 +242,7 @@ export default function HomePage() {
                 href={guide.href}
                 className="group border-b border-gray-200 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
               >
-                <h3 className="text-base font-semibold text-gray-900 transition-colors duration-200 group-hover:text-[var(--light-gold)]">
+                <h3 className="text-base font-semibold text-gray-900 transition-colors duration-200 group-hover:text-[var(--gold-text)]">
                   {guide.title}
                 </h3>
 
@@ -265,6 +261,60 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      {/* LATEST ARTICLES — only published posts, using their original dates */}
+      {latestArticles.length > 0 && (
+        <section aria-labelledby="latest-articles-heading" className="mx-auto max-w-7xl px-6 py-16">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 id="latest-articles-heading" className="text-3xl font-semibold tracking-tight text-gray-950">
+                Latest technical articles
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
+                Practical explanations, debugging notes, and fixes for everyday technical work.
+              </p>
+            </div>
+            <Link
+              href="/blog"
+              className="text-sm font-semibold text-[var(--green)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
+            >
+              View all articles →
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-5 sm:grid-cols-2">
+            {latestArticles.map((article) => (
+              <article key={article.slug} className="min-w-0">
+                <Link
+                  href={`/blog/${article.slug}`}
+                  className="group flex h-full flex-col rounded-2xl p-5 transition-shadow duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--green)]">
+                    {article.topic}
+                  </p>
+                  <h3 className="mt-3 text-lg font-bold leading-snug text-gray-950 transition-colors group-hover:text-[var(--gold-text)]">
+                    {article.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-gray-600">
+                    {article.description}
+                  </p>
+                  {article.datePublished && (
+                    <p className="mt-auto pt-4 text-xs text-gray-600">
+                      <time dateTime={article.datePublished}>Published {readableDate(article.datePublished)}</time>
+                      {article.dateModified && article.dateModified > article.datePublished && (
+                        <>
+                          <span className="mx-2 text-gray-400" aria-hidden="true">·</span>
+                          <time dateTime={article.dateModified}>Updated {readableDate(article.dateModified)}</time>
+                        </>
+                      )}
+                    </p>
+                  )}
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* WHY YORYANTRA — original production wording restored */}
       <section className="mx-auto max-w-7xl px-6 py-20">
@@ -288,7 +338,7 @@ export default function HomePage() {
               If you want to know how the tools are chosen, tested, and improved, I explain that{" "}
               <Link
                 href="/how-yoryantra-tools-are-built"
-                className="font-semibold text-[var(--light-gold)] hover:underline"
+                className="font-semibold text-[var(--gold-text)] hover:underline"
               >
                 here
               </Link>

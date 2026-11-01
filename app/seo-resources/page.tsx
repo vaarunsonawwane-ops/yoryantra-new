@@ -68,7 +68,7 @@ export default function Page() {
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-8 flex items-center text-sm text-gray-500">
-          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--light-gold)]">Home</Link>
+          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--gold-text)]">Home</Link>
           <span className="mx-2">/</span>
           <span className="text-gray-900">SEO Resources</span>
         </div>
@@ -95,7 +95,7 @@ export default function Page() {
                 <h3 className="text-lg font-semibold text-gray-900">{signal.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Useful for:</strong> {signal.does}</p>
                 <p className="mt-2 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Does not guarantee:</strong> {signal.not}</p>
-                <Link href={signal.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">{signal.label} →</Link>
+                <Link href={signal.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--gold-text)]">{signal.label} →</Link>
               </div>
             ))}
           </div>
@@ -117,11 +117,11 @@ export default function Page() {
           <div className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-7">
             <h2 className="text-xl font-semibold text-gray-900">Useful diagnostic tools</h2>
             <div className="mt-5 flex flex-col gap-3 text-sm font-semibold">
-              <Link href="/tools/indexability-checker" className="text-[var(--light-gold)] hover:underline">Indexability Checker →</Link>
-              <Link href="/tools/meta-robots-tag-generator" className="text-[var(--light-gold)] hover:underline">Meta Robots Tag Generator →</Link>
-              <Link href="/tools/redirect-checker" className="text-[var(--light-gold)] hover:underline">Redirect Checker →</Link>
-              <Link href="/tools/sitemap-url-extractor" className="text-[var(--light-gold)] hover:underline">Sitemap URL Extractor →</Link>
-              <Link href="/tools/crawl-budget-url-cleaner" className="text-[var(--light-gold)] hover:underline">Crawl Budget URL Cleaner →</Link>
+              <Link href="/tools/indexability-checker" className="text-[var(--gold-text)] hover:underline">Indexability Checker →</Link>
+              <Link href="/tools/meta-robots-tag-generator" className="text-[var(--gold-text)] hover:underline">Meta Robots Tag Generator →</Link>
+              <Link href="/tools/redirect-checker" className="text-[var(--gold-text)] hover:underline">Redirect Checker →</Link>
+              <Link href="/tools/sitemap-url-extractor" className="text-[var(--gold-text)] hover:underline">Sitemap URL Extractor →</Link>
+              <Link href="/tools/crawl-budget-url-cleaner" className="text-[var(--gold-text)] hover:underline">Crawl Budget URL Cleaner →</Link>
             </div>
             <p className="mt-5 text-sm leading-6 text-gray-600">
               The Redirect Checker analyzes response information you provide; it

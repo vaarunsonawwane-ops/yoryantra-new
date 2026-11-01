@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { BLOG_RELEASE_ENABLED } from "@/app/blog/blog-config";
 const linkClass =
-  "text-gray-700 transition-colors duration-200 hover:!text-[var(--light-gold)] focus-visible:outline-none focus-visible:text-[var(--green)]";
+  "text-gray-700 transition-colors duration-200 hover:!text-[var(--gold-text)] focus-visible:outline-none focus-visible:text-[var(--green)]";
 
 export default function Footer() {
   return (
@@ -91,7 +91,7 @@ export default function Footer() {
 				href="https://beeija.com"
 				target="_blank"
 				rel="noopener noreferrer"
-				className="text-gray-700 hover:!text-[var(--light-gold)] transition-colors duration-200"
+				className="text-gray-700 hover:!text-[var(--gold-text)] transition-colors duration-200"
 			  >
 				Beeija — AI & Cloud Cost Calculators
 			  </a>
@@ -119,7 +119,7 @@ export default function Footer() {
         <div className="mt-8 flex flex-col items-start justify-between gap-2 border-t border-gray-100 pt-5 text-sm text-gray-500 md:flex-row md:items-center">
           <p>© {new Date().getFullYear()} Yoryantra. All rights reserved.</p>
 
-          <p className="text-sm font-medium text-[var(--light-gold)]">
+          <p className="text-sm font-medium text-[var(--gold-text)]">
             Built with Gratitude 🙏
           </p>
         </div>

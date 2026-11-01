@@ -88,7 +88,7 @@ export default function SitemapPage() {
             <div key={page.href} className="flex items-center">
               <Link
                 href={page.href}
-                className="text-gray-700 transition hover:text-[var(--light-gold)]"
+                className="text-gray-700 transition hover:text-[var(--gold-text)]"
               >
                 {page.title}
               </Link>
@@ -113,7 +113,7 @@ export default function SitemapPage() {
             <div key={category.href} className="flex items-center">
               <Link
                 href={category.href}
-                className="text-gray-700 transition hover:text-[var(--light-gold)]"
+                className="text-gray-700 transition hover:text-[var(--gold-text)]"
               >
                 {category.title}
               </Link>
@@ -160,7 +160,7 @@ export default function SitemapPage() {
 				  <Link
 				    key={tool.href}
 				    href={tool.href}
-				    className="mb-2 block break-inside-avoid text-[15px] leading-6 text-gray-700 transition hover:text-[var(--light-gold)]"
+				    className="mb-2 block break-inside-avoid text-[15px] leading-6 text-gray-700 transition hover:text-[var(--gold-text)]"
 				  >
 				    {tool.title}
 				  </Link>

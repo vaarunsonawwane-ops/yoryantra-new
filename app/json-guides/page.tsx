@@ -74,7 +74,7 @@ export default function Page() {
     <main className="min-h-screen bg-white">
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-8 flex items-center text-sm text-gray-500">
-          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--light-gold)]">Home</Link>
+          <Link href="/" className="transition-colors duration-200 hover:!text-[var(--gold-text)]">Home</Link>
           <span className="mx-2">/</span>
           <span className="text-gray-900">JSON Guides</span>
         </div>
@@ -100,7 +100,7 @@ export default function Page() {
               <div key={question.title} className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-6">
                 <h3 className="text-lg font-semibold text-gray-900">{question.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-gray-600">{question.text}</p>
-                <Link href={question.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
+                <Link href={question.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--gold-text)]">
                   {question.label} →
                 </Link>
               </div>
@@ -118,7 +118,7 @@ export default function Page() {
               names, and any workflow where exact source tokens are useful for
               debugging.
             </p>
-            <Link href="/tools/json-formatter" className="mt-5 inline-flex text-sm font-semibold text-[var(--light-gold)]">
+            <Link href="/tools/json-formatter" className="mt-5 inline-flex text-sm font-semibold text-[var(--gold-text)]">
               JSON Formatter →
             </Link>
           </div>
