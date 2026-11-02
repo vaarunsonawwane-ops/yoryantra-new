@@ -21,7 +21,7 @@ export default function ContactPage() {
           </p>
         </div>
 
-        <section className="mt-10 rounded-2xl border-l-4 border-l-[var(--light-gold)] bg-[rgba(200,155,60,0.08)] p-6 md:p-7">
+        <section className="mt-10 rounded-[8px] bg-[#FAF6EB] p-6 md:p-7">
           <h2 className="text-xl font-semibold text-gray-950">
             Contact
           </h2>
