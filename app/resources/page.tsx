@@ -4,57 +4,57 @@ const resourceAreas = [
   {
     title: "Developer Workflows",
     description:
-      "Choose between parsers, formatters, builders, converters, and request-debugging tools without confusing local inspection with live network behavior.",
+      "Know when to use a parser, formatter, builder, converter and request debugger.",
     href: "/developers",
   },
   {
     title: "DevOps Resources",
     description:
-      "Read Docker, Kubernetes, environment, cron, DNS, and CI configuration in layers before relying on runtime behavior.",
+      "Read and understand Docker, Kubernetes, environment, cron, DNS and CI config files.",
     href: "/devops-resources",
   },
   {
     title: "Encoding Guides",
     description:
-      "Understand how bytes, Unicode text, Base64, percent encoding, entities, and URL-safe representations differ by context.",
+      "Understand the differences between bytes, unicode, base64, percent encoding, entities and url safe versions.",
     href: "/encoding-guides",
   },
   {
     title: "JSON & Data Guides",
     description:
-      "Separate parsing, schema validation, comparison, querying, and conversion so transformed data keeps the meaning you expect.",
+      "Understand how to parse, validate, compare, query and convert data to keep the correct meaning.",
     href: "/json-guides",
   },
   {
     title: "Security Guides",
     description:
-      "Distinguish decoding from verification, hashing from authentication, and generated headers from real production security controls.",
+      "Understand the difference between decoding, verifying, hashing and authenticating, along with the difference between generated headers and actual security measures.",
     href: "/security-guides",
   },
   {
     title: "SEO Resources",
     description:
-      "Debug crawling, indexing, canonicalization, redirects, hreflang, sitemaps, and search snippets as separate signals rather than one score.",
+      "Debug your crawl, index, canonical, redirect, hreflang, sitemap and search snippet signals.",
     href: "/seo-resources",
   },
 ];
 
 const decisionPoints = [
   {
-    title: "Inspect or validate?",
-    text: "Inspection makes structure visible. Validation answers a narrower question against syntax, a schema, or a documented rule set.",
+    title: "Inspection vs validation",
+    text: "Inspection will expose the structure. Validation will answer a very specific question about whether it is valid according to a syntax, schema or documented rules.",
   },
   {
-    title: "Encode or secure?",
-    text: "Encoding changes representation so data can travel through another context. It does not add secrecy, authenticity, or trust.",
+    title: "Encoding vs securing",
+    text: "Encoding will change the format of the data so it can fit into another context. However it will not provide any secrecy, authenticity or trust.",
   },
   {
-    title: "Generate or verify?",
-    text: "A generator can produce valid-looking output. Verification checks whether an existing value satisfies a specific rule or cryptographic condition.",
+    title: "Generation vs verification",
+    text: "A generator can create something that looks valid. A verifier will check that a value already exists meets a specific rule or cryptographic requirement.",
   },
   {
-    title: "Static check or live behavior?",
-    text: "Pasted text and local configuration can reveal many mistakes, but live HTTP, DNS, containers, clusters, and browsers still have runtime state.",
+    title: "Static vs runtime",
+    text: "By pasting in text and having a local config you can catch lots of errors. However there is still runtime state when dealing with HTTP, DNS, containers, clusters and browsers.",
   },
 ];
 
@@ -98,26 +98,26 @@ export default function Page() {
 
         <div className="max-w-4xl">
           <h1 className="text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
-            Start With the Technical Question, Not the Tool Name
+            Explore Resources
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            Many developer utilities look similar because they accept the same
-            kind of input. The useful distinction is the question they answer:
-            format, parse, validate, convert, inspect, generate, compare, or
-            verify. These resource pages connect Yoryantra&apos;s tools to those
-            questions and explain where a browser result stops being enough.
+            Many tools for developers have similar inputs but can be categorised by what they do 
+            with that input. This page provides an overview of how our tools at Yoryantra can be
+            used for formatting, parsing, validating, transforming, analysing, generating, 
+            comparing or checking inputs. We also explain when you will need to go beyond the
+            browser.
           </p>
         </div>
 
         <section className="mt-16">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              Choose a Workflow Area
+              Browse by Topic
             </h2>
             <p className="mt-3 leading-7 text-gray-600">
-              Each area is written around a different kind of technical work.
-              The goal is not to repeat the tool list, but to help you choose an
-              operation and interpret its result correctly.
+              Discover practical guides on DevOps, encoding, JSON, security and SEO. Including
+              explanations, examples and tools from Yoryantra to assist you with common tasks, 
+              understanding and troubleshooting.
             </p>
           </div>
 
@@ -145,11 +145,11 @@ export default function Page() {
         <section className="mt-18 rounded-2xl border border-gray-200 bg-gray-50 p-7 md:p-9">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              Four Distinctions That Prevent the Wrong Tool Choice
+              What do different tools do?
             </h2>
             <p className="mt-3 leading-7 text-gray-600">
-              Tool names often differ by one word, but that word can change the
-              meaning of the result. These distinctions recur across the site.
+              There are often small differences in the name of the tools which
+              can have a big impact on what they actually do.
             </p>
           </div>
 
@@ -167,31 +167,29 @@ export default function Page() {
 
         <section className="mt-18 max-w-4xl">
           <h2 className="text-2xl font-semibold text-gray-900">
-            A Practical Way to Use Yoryantra
+            Use Cases
           </h2>
           <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              First, identify what you are trying to learn or change. If the
-              question is whether text is valid JSON, use a validator. If the
-              question is whether valid JSON matches an API contract, use a
-              schema validator. If the question is what changed between two
-              payloads, use a diff tool. Treating those as interchangeable can
-              produce a technically correct result that answers the wrong
-              question.
+              If your goal is to determine if text is valid JSON, use a validator. If
+              your goal is to determine if valid JSON conforms to an API
+              contract, use a schema validator. If your goal is to determine what
+              has changed between two payloads, use a diff. By using one in place
+              of another you may get a technically accurate result but to the
+              wrong question.
             </p>
             <p>
-              Second, check the boundary of the tool. Some utilities operate
-              entirely on text or bytes you provide. Others depend on browser
-              APIs or remote data. A static configuration check cannot prove a
-              deployment will succeed, and a generated SEO tag cannot prove a
-              search engine will index or display it.
+              Be aware of the limitations of tools. Whilst some tools will work
+              purely on the text/bytes you provide others will rely on browser
+              APIs or external data. You can’t guarantee that a configuration will
+              work in deployment by checking it is valid. You can’t guarantee that
+              an SEO tag will be indexed or shown by a search engine by generating it.
             </p>
             <p>
-              Finally, take the result back to the system that owns the real
-              decision: your API, runtime, browser, container engine, cluster,
-              DNS provider, application security policy, or search platform.
-              Yoryantra is most useful as a focused inspection and preparation
-              layer, not as a substitute for the environment itself.
+              Return the results to the system that actually makes the decision.
+              Your API, runtime, browser, container engine, cluster, DNS provider,
+              application security policy or search platform. Yoryantra is best
+              used as a focused inspection and preparation tool.
             </p>
           </div>
         </section>
@@ -200,11 +198,10 @@ export default function Page() {
           <div className="grid gap-6 md:grid-cols-2">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                Want to see the review approach?
+                Behind the Tools
               </h2>
               <p className="mt-3 leading-7 text-gray-600">
-                The methodology page explains how tools are selected, checked,
-                documented, and kept honest about their limits.
+                How we choose, verify, and document our tools.
               </p>
               <Link
                 href="/how-yoryantra-tools-are-built"
@@ -219,15 +216,15 @@ export default function Page() {
                 Prefer to browse directly?
               </h2>
               <p className="mt-3 leading-7 text-gray-600">
-                Use the category pages when you already know the subject area,
-                or the complete tools page when you know the exact utility.
+                If you know what area you're looking for use our category pages. If
+                you know the exact tool you want use our full tools page.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link href="/categories" className="yoryantra-btn-outline">
-                  Browse categories
+                  Categories
                 </Link>
                 <Link href="/tools" className="yoryantra-btn-outline">
-                  Browse all tools
+                  All Tools
                 </Link>
               </div>
             </div>
