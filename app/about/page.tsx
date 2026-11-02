@@ -52,7 +52,7 @@ export default function AboutPage() {
         </p>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
-          The name came to me whilst thinking about the <span className="text-[var(--gold-text)] font-bold">SRIMAD BHAGAVAD GITA</span>.
+          The name 'Yoryantra' came to me whilst thinking about the <span className="text-[var(--gold-text)] font-bold">SRIMAD BHAGAVAD GITA</span>.
         </p>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
