@@ -116,44 +116,43 @@ export default function Page() {
 
         <SectionCard>
           <h2 className="text-2xl font-semibold text-gray-900">
-            When Two Categories Seem to Overlap
+            When Categories Appear to Overlap
           </h2>
 
           <p className="mt-4 max-w-4xl text-gray-600 leading-relaxed">
-            Category boundaries are based on purpose rather than file extension.
-            That matters when one technology appears in several workflows.
+            Categories are defined by their purpose, not file type. This can
+            cause issues when a technology is used in multiple scenarios.
           </p>
 
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-gray-200 bg-[#FAF6EB] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">Encoding vs security:</strong>{" "}
-                Base64 and percent encoding change representation. JWT verification,
-                HMACs, password hashing, and security-policy checks answer trust or
-                protection questions.
+                Base64 and percent encoding technologies. JWT validation,
+                HMACs, hashing passwords, and verifying security policies.
               </p>
             </div>
             <div className="rounded-2xl border border-gray-200 bg-[#FAF6EB] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">JSON & Data vs DevOps:</strong>{" "}
-                formatting YAML is a data-shaping task; validating a Kubernetes
-                manifest or resolving Compose environment variables is deployment
-                configuration work.
+                Formatting YAML is a data manipulation task. Validating a Kubernetes
+                manifest or resolving Compose environment variables is related to deployment
+                configuration.
               </p>
             </div>
             <div className="rounded-2xl border border-gray-200 bg-[#FAF6EB] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">Developer vs SEO:</strong>{" "}
-                parsing an HTTP response is a general implementation task, while
-                interpreting canonical, robots, hreflang, sitemap, or indexability
-                signals belongs to search diagnostics.
+                Parsing an HTTP response is a general implementation task, Interpreting 
+                canonical, robots, hreflang, sitemap, or indexability signals is related
+                to search diagnostics.
               </p>
             </div>
             <div className="rounded-2xl border border-gray-200 bg-[#FAF6EB] p-5">
               <p className="text-sm leading-relaxed text-gray-700">
                 <strong className="text-gray-900">Formatting vs validation:</strong>{" "}
-                making text easier to read does not prove that it satisfies a schema,
-                protocol, runtime, or application requirement.
+                Just because something is easier to read doesn’t mean it meets the 
+                requirements of a schema, protocol,runtime, or application.
               </p>
             </div>
 			</div>
@@ -164,11 +163,10 @@ export default function Page() {
             Category Pages Explain the Boundaries; Tool Pages Handle the Exact Case
           </h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A category page helps you choose the right kind of operation and understand
-            where static browser checks stop. Each individual tool then documents its
-            own input rules, behavior, limitations, edge cases, and relevant standards.
-            That separation keeps navigation useful without reducing technical topics to
-            one generic explanation.
+            Category Pages – Provide Guidance on Applicability. Tool Pages – Provide Detailed Information
+            Category pages help you select the correct type of operation, and will show you 
+            where static browser checks are not applicable. Each tool page provides information
+            on its inputs, functionality, limitations, special cases and any relevant standards.
           </p>
         </section>
       </section>
