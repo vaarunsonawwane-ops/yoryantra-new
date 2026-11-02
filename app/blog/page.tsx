@@ -36,9 +36,9 @@ export default function BlogIndex() {
         <span aria-current="page">Blog</span>
       </nav>
       <header className="mb-10 mt-7 max-w-3xl">
-        <h1 className="text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">Technical guides and explanations</h1>
+        <h1 className="text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">Technical Articles</h1>
         <p className="mt-4 text-base leading-7 text-gray-700">
-          Understand what a tool result means, diagnose failures, and choose the next step in a technical workflow.
+          Articles on technical topics, common issues and troubleshooting. With examples that can be applied to your work.
         </p>
         {!BLOG_RELEASE_ENABLED && (
           <p className="yoryantra-blog-preview-note mt-4 px-4 py-3 text-sm" role="status">
