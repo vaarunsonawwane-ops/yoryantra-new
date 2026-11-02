@@ -12,25 +12,18 @@ export default function ContactPage() {
     <main className="bg-white text-gray-700">
       <div className="mx-auto max-w-4xl px-6 py-16 md:py-20">
         <h1 className="text-4xl font-bold tracking-tight text-gray-950">
-          Contact Yoryantra
+          Contact Us
         </h1>
 
         <div className="mt-8 max-w-3xl space-y-5 text-[17px] leading-8">
           <p>
-            If a tool behaves unexpectedly, an explanation is unclear, or you
-            have a practical suggestion for Yoryantra, you can contact me
-            directly.
-          </p>
-
-          <p>
-            Useful reports help me reproduce the problem and decide whether the
-            tool, its explanation, or both need to be corrected.
+            If you are having issues with the tool, or you would like to provide feedback on how we can improve Yoryantra please feel free to get in touch.
           </p>
         </div>
 
         <section className="mt-10 rounded-2xl border-l-4 border-l-[var(--light-gold)] bg-[rgba(200,155,60,0.08)] p-6 md:p-7">
           <h2 className="text-xl font-semibold text-gray-950">
-            Contact details
+            Contact
           </h2>
 
           <p className="mt-4 text-gray-700">Varoun Sonawane</p>
@@ -45,46 +38,22 @@ export default function ContactPage() {
 
         <section className="mt-12 border-t border-gray-200 pt-10">
           <h2 className="text-2xl font-semibold text-gray-950">
-            Reporting a tool issue
+            Report a Problem with a Tool
           </h2>
 
           <div className="mt-5 max-w-3xl space-y-4 leading-8">
             <p>
-              Please include the tool name, what you expected to happen, what
-              actually happened, and the browser or device if it appears
-              relevant. A small reproducible example is especially helpful.
+              If something isn't working as expected please let us know which tool you were using, what you were trying to do and what happened.
             </p>
 
             <p>
-              Please do not email passwords, private keys, access tokens,
-              production credentials, or other secrets. Replace sensitive
-              values with safe examples before sending a report.
+              We can get a better understanding of what went wrong by having a small example. If you think it might be browser/device related please let us know.
+            </p>
+
+            <p>
+              Do not include any sensitive information such as passwords, private keys, access tokens, production credentials etc. in your email. Please replace any private information with example information.
             </p>
           </div>
-        </section>
-
-        <section className="mt-12 border-t border-gray-200 pt-10">
-          <h2 className="text-2xl font-semibold text-gray-950">
-            About the project
-          </h2>
-
-          <p className="mt-5 max-w-3xl leading-8">
-            For the story behind Yoryantra, visit the{" "}
-            <a
-              href="/about"
-              className="font-medium text-[var(--green)] underline decoration-1 underline-offset-4 hover:no-underline"
-            >
-              About page
-            </a>
-            . You can also read{" "}
-            <a
-              href="/how-yoryantra-tools-are-built"
-              className="font-medium text-[var(--green)] underline decoration-1 underline-offset-4 hover:no-underline"
-            >
-              how Yoryantra tools are built and reviewed
-            </a>
-            .
-          </p>
         </section>
       </div>
     </main>
