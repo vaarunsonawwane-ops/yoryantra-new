@@ -2,8 +2,8 @@ import Link from "next/link";
 
 const workflowGroups = [
   {
-    title: "Request and response debugging",
-    text: "Build or parse HTTP requests, compare headers, inspect API errors, and move between cURL and Fetch without assuming a local transformation sent a network request.",
+    title: "Debugging requests and responses",
+    text: "Build or parse HTTP requests, compare headers, debug API errors and switch between cURL and Fetch without assuming you have done any local processing.",
     tools: [
       { label: "HTTP Request Parser", href: "/tools/http-request-parser" },
       { label: "cURL Command Parser", href: "/tools/curl-command-parser" },
@@ -12,8 +12,8 @@ const workflowGroups = [
     ],
   },
   {
-    title: "Text, patterns, and URL structure",
-    text: "Use syntax-aware parsers and testers when the meaning depends on delimiters, escaping, regular-expression flags, duplicate query keys, or URL resolution rules.",
+    title: "Text, patterns, URLs",
+    text: "Use syntax-sensitive tools to test and parse text where the meaning is determined by delimiters, escaping, regex flags, duplicated query keys and URL resolution rules.",
     tools: [
       { label: "Regex Match Tester", href: "/tools/regex-match-tester" },
       { label: "Regex Replace Tester", href: "/tools/regex-replace-tester" },
@@ -22,8 +22,8 @@ const workflowGroups = [
     ],
   },
   {
-    title: "Time, identifiers, and small protocol values",
-    text: "Convert timestamps with explicit units, inspect UUID structure, and generate identifiers without turning a convenience value into an application-level guarantee.",
+    title: "Time, IDs, and small protocol values",
+    text: "Convert time values with explicit units, examine the structure of UUIDs and generate IDs without making any guarantees at an application level.",
     tools: [
       { label: "Unix Timestamp Generator", href: "/tools/unix-timestamp-generator" },
       { label: "UUID Generator", href: "/tools/uuid-generator" },
@@ -35,17 +35,17 @@ const workflowGroups = [
 const relatedAreas = [
   {
     title: "JSON & Data",
-    text: "Use this when the question is about JSON syntax, schemas, conversion, querying, patching, or structured-data shape.",
+    text: "Use this when your issue relates to JSON syntax, schemas, data conversion, querying, patching or structured data..",
     href: "/json-guides",
   },
   {
     title: "Encoding",
-    text: "Use this when the problem is a byte or text representation such as Base64, percent encoding, entities, or Unicode escapes.",
+    text: "when your problem relates to encoded bytes/text (Base64, percent encoding, entities, Unicode escapes etc).",
     href: "/encoding-guides",
   },
   {
     title: "Security",
-    text: "Move here when readability is no longer enough and you need to reason about signatures, secrets, trust, or browser security policy.",
+    text: "Issue related to security, signatures, secrets, trust or browser security policies and it's no longer just about readability.",
     href: "/security-guides",
   },
 ];
@@ -90,14 +90,14 @@ export default function Page() {
 
         <div className="max-w-4xl">
           <h1 className="text-4xl font-semibold tracking-tight text-gray-950 md:text-6xl md:leading-tight">
-            Debug the Boundary Before You Debug the Whole Application
+            Debugging the Boundary
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            A surprising number of development problems live at boundaries:
-            text becoming bytes, a URL becoming a request, headers becoming
-            application state, or a timestamp being interpreted in the wrong
-            unit. Yoryantra&apos;s developer tools are most useful when you isolate
-            one of those boundaries and ask a precise question about it.
+            A surprising number of issues occur at boundaries. For example, 
+			converting between text and bytes, URL to request, 
+            header to application state, or timestamp with incorrect units. 
+			The developer tools within Yoryantra allow you to gain
+            the most value when you have isolated a single boundary and have a specific question to ask.
           </p>
         </div>
 
@@ -109,17 +109,18 @@ export default function Page() {
             <div className="mt-5 space-y-4 leading-8 text-gray-600">
               <p>
                 A <strong className="font-semibold text-gray-900">parser</strong>
-                {" "}breaks an existing value into meaningful parts. A formatter
-                changes presentation without intending to change meaning. A
-                builder assembles a value from explicit choices. A tester runs a
-                defined rule or behavior against input.
+                {" "}will decompose an existing value. A formatter will format 
+				a value without changing its meaning. 
+                A builder will create a value through an explicit process.
+				A tester will apply a specific rule or behaviour.
               </p>
               <p>
-                Those operations are not substitutes for one another. Formatting
-                a request does not prove a server will accept it. Parsing a URL
-                does not prove the destination is reachable. Testing a regular
-                expression shows JavaScript matching behavior, not whether the
-                pattern expresses the business rule you intended.
+                These are not interchangeable. If we format a request this does 
+				not prove that a server will accept it. Parsing a URL
+                does not prove we can reach the destination. Testing a regular 
+				expression tells us how JavaScript will match, but does
+                not tell us if the regular expression represents the business rule 
+				we intended.
               </p>
             </div>
           </div>
@@ -140,11 +141,10 @@ export default function Page() {
         <section className="mt-18">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-gray-900">
-              Workflows Worth Separating
+              Workflow Types to Consider Splitting
             </h2>
             <p className="mt-3 leading-7 text-gray-600">
-              These groups intentionally mix related tools only where they help
-              answer the same debugging question.
+              These workflows deliberately combine related tools to help with debugging.
             </p>
           </div>
 
@@ -170,26 +170,28 @@ export default function Page() {
 
         <section className="mt-18 max-w-5xl">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Local Inspection Is Different From Live HTTP
+            Local Inspection
           </h2>
           <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              A browser utility can parse pasted request text, build a cURL
-              command, compare two header sets, or explain the semantics of an
-              HTTP method without contacting the target server. That is valuable
-              because it makes the input deterministic and easy to inspect.
+              A variety of browser tools exist to help you understand requests.
+              You can generate a cURL command from request text, compare
+              two headers, or determine what a given HTTP method does
+              without needing to make a request to the server. This provides
+			  deterministic input which is easy to inspect.
             </p>
             <p>
-              Live behavior adds DNS resolution, TLS, proxies, redirects,
-              authentication state, CORS, caches, service workers, server logic,
-              and timing. For example, Yoryantra&apos;s Redirect Checker works from
-              response information you provide; it does not silently crawl a URL
-              and pretend a local analysis is a live network trace.
+              There are many more factors to consider when making your request
+              live. DNS lookups, TLS, proxies, redirects, auth state, CORS,
+              caching, service workers, server logic and timing all need to be
+              considered. Tools such as Yoryantra's Redirect Checker will use
+              the response information you provide, rather than silently crawling a URL.
             </p>
             <p>
-              When the bug depends on the network, capture the real request and
-              response with browser DevTools, cURL, or the relevant client, then
-              use a focused tool to inspect the part that is hard to read.
+              If the bug is network dependent then you should capture the
+              actual request and response using your browsers DevTools, cURL
+              or the appropriate client. Use a specific tool to inspect the
+			  difficult to read part.
             </p>
           </div>
         </section>
@@ -220,9 +222,8 @@ export default function Page() {
         <section className="mt-18 border-t border-gray-200 pt-10">
           <h2 className="text-xl font-semibold text-gray-900">Useful primary references</h2>
           <p className="mt-3 max-w-3xl leading-7 text-gray-600">
-            When a result depends on protocol behavior, compare it with the
-            specification or platform documentation rather than relying on a
-            utility summary alone.
+            If you're seeing something that depends on the behaviour of the protocol 
+			then it's best to refer back to the specification or platform documentation.
           </p>
           <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
             <a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noreferrer" className="text-[var(--green)] underline underline-offset-4">HTTP Semantics — RFC 9110 ↗</a>
