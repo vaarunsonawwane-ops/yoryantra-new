@@ -34,14 +34,13 @@ export default function AboutPage() {
           It feels like a waste of time closing all the adverts to finally get to the tool you actually want.
         </p>
 
-        <div className="my-[40px] p-[26px] bg-[#faf6eb] border-l-[4px] border-[#c89b3c] rounded-[10px]">
-          <p className="text-[17px] md:text-[18px] text-[#444] mb-0">
-            I really felt that there should be a modern platform that would provide developers with exactly what they want.
-            <br />
-            <br />
-            Tools should save you time.
-          </p>
-        </div>
+        <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
+          I really felt that there should be a modern platform that would provide developers with exactly what they want.
+        </p>
+
+        <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
+          <strong>Tools should save you time.</strong>
+        </p>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
           Some minimal ads may be displayed to help pay for our hosting, maintenance, and improvements.
@@ -52,7 +51,7 @@ export default function AboutPage() {
         </p>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
-          The name 'Yoryantra' came to me whilst thinking about the <span className="text-[var(--gold-text)] font-bold">SRIMAD BHAGAVAD GITA</span>.
+          The name &apos;Yoryantra&apos; came to me whilst thinking about the <span className="text-[var(--gold-text)] font-bold">SRIMAD BHAGAVAD GITA</span>.
         </p>
 
         <p className="text-[17px] md:text-[18px] text-[#444] mb-[26px]">
@@ -63,7 +62,7 @@ export default function AboutPage() {
           <strong>YOR</strong> = Your and <strong>Yantra</strong> is Sanskrit word meaning machine or tool.
         </p>
 
-        <div className="bg-[#faf7f0] border-l-[4px] border-[#c89b3c] p-[22px] rounded-[8px] my-[35px] text-[17px] md:text-[18px] text-[#444]">
+        <div className="bg-[#FAF6EB] p-[22px] rounded-[8px] my-[35px] text-[17px] md:text-[18px] text-[#444]">
           Yoryantra means:
           <br />
           <br />
