@@ -2,8 +2,8 @@ import Link from "next/link";
 
 const contexts = [
   {
-    title: "Binary data in text-only channels",
-    text: "Base64 and Base64URL represent bytes as text. They are transport encodings, not encryption, signatures, or secrecy.",
+    title: "Encoding binary data for text-based transports",
+    text: "Base64 and Base64URL encode bytes into text. They are not encryption, signing or confidentiality methods.",
     links: [
       { label: "Base64 Encoder Decoder", href: "/tools/base64-encoder-decoder" },
       { label: "URL Safe Base64 Converter", href: "/tools/url-safe-base64-converter" },
@@ -12,7 +12,7 @@ const contexts = [
   },
   {
     title: "URLs and query strings",
-    text: "Percent encoding works on bytes, while query forms can also treat plus signs as spaces. A full URL and one URL component need different handling.",
+    text: "Percent encoding is applied to bytes. Query strings may also use + to represent space. A complete URL and partial URL will require different treatments.",
     links: [
       { label: "URL Encoder Decoder", href: "/tools/url-encoder-decoder" },
       { label: "URL Query Encoder Decoder", href: "/tools/url-query-encoder-decoder" },
@@ -21,7 +21,7 @@ const contexts = [
   },
   {
     title: "Markup and escaped text",
-    text: "HTML entities, XML entities, Unicode escapes, and language string escapes solve different parsing problems even when the visible character is the same.",
+    text: "HTML Entities, XML Entities, Unicode Escapes and Language String Escapes are used to escape text to solve different parsing issues.",
     links: [
       { label: "HTML Escape Unescape", href: "/tools/html-escape-unescape" },
       { label: "XML Escape Unescape", href: "/tools/xml-escape-unescape" },
@@ -29,8 +29,8 @@ const contexts = [
     ],
   },
   {
-    title: "Email, hostnames, and specialized formats",
-    text: "MIME encoded-words, quoted-printable bodies, and Punycode exist because email headers, message bodies, and internationalized hostnames have their own representation rules.",
+    title: "Email, Hostnames and Specialised Formats",
+    text: "MIME Encoded Words, Quoted Printable and Punycode are used to represent email headers, message body and internationalised hostnames.",
     links: [
       { label: "MIME Encoded-Word Decoder", href: "/tools/mime-encoded-word-decoder" },
       { label: "Quoted Printable Encoder Decoder", href: "/tools/quoted-printable-encoder-decoder" },
@@ -74,42 +74,40 @@ export default function Page() {
 
         <div className="max-w-4xl">
           <h1 className="text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
-            Encoding Changes Representation, Not Trust
+            Encoding is usually contextual. 
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            Encoding problems are usually context problems. The same character
-            can become UTF-8 bytes, percent escapes in a URL, an HTML entity in
-            markup, a Unicode escape in source text, or Base64 when binary data
-            must pass through a text channel. Choosing the right transformation
-            starts with where the value is going next.
+            The way characters are converted depends on the situation. You might 
+			encode them in UTF-8 bytes, percent encode them inside a URL, 
+			convert them to HTML entities, Unicode escapes or even Base64 if 
+			you need to encode binary data using text.
           </p>
         </div>
 
         <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-7 md:p-9">
-          <h2 className="text-2xl font-semibold text-gray-900">Text First, Bytes Second</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Text to bytes</h2>
           <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              Unicode describes characters and code points. Encodings such as
-              UTF-8 describe how those characters become bytes. Base64 then
-              represents bytes using a restricted text alphabet. If you skip one
-              of those layers, two systems can display the same text but produce
-              different encoded output.
+              Unicode is used to define the characters and code points. The encoding 
+			  (e.g. UTF-8) defines how to convert these to bytes. Finally the bytes 
+			  can be converted to Base64 so they can be represented with a 
+			  limited text alphabet. If you miss out any of these steps you 
+			  will end up with two systems that show the same text but will encode 
+			  it differently.
             </p>
             <p>
-              This is why exact UTF-8 handling matters when converting text to
-              hexadecimal, Base64, hashes, or escaped byte sequences. It also
-              explains why malformed byte sequences should be surfaced instead
-              of silently replaced with a generic replacement character.
+              It is important to be precise with how you handle UTF-8 when converting 
+			  text to hex, Base64, hashes or escaped bytes. Malformed bytes should also 
+			  be exposed.
             </p>
           </div>
         </section>
 
         <section className="mt-18">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">Choose by Destination Context</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">Choose a context for your transformation</h2>
             <p className="mt-3 leading-7 text-gray-600">
-              A transformation is useful only when its output matches the syntax
-              rules of the destination that will consume it.
+              Choose a context for your transformation.
             </p>
           </div>
           <div className="mt-7 grid gap-6 md:grid-cols-2">
@@ -133,42 +131,39 @@ export default function Page() {
           <div className="self-start rounded-2xl border border-gray-200 bg-white p-7">
             <h2 className="text-xl font-semibold text-gray-900">Base64 vs Base64URL</h2>
             <p className="mt-4 leading-7 text-gray-600">
-              Standard Base64 uses <code>+</code> and <code>/</code> in its
-              alphabet and commonly uses <code>=</code> padding. Base64URL uses
-              <code>-</code> and <code>_</code> instead so the alphabet fits URL
-              and filename contexts more comfortably, and many protocols omit
-              padding. Changing the alphabet is not the same as percent-encoding
-              a standard Base64 string.
+              Standard Base64 includes <code>+</code> and <code>/</code> the character set, often with 
+			  <code>=</code> padding. Base64URL replaces these with 
+              <code>-</code> and <code>_</code> to better fit with URL and filename characters. 
+			  Many protocols do not include padding. This is not the same as percent encoding a 
+			  standard Base64 string.
             </p>
           </div>
 
           <div className="self-start rounded-2xl border border-gray-200 bg-white p-7">
-            <h2 className="text-xl font-semibold text-gray-900">Canonical Form Matters</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Canonical Forms</h2>
             <p className="mt-4 leading-7 text-gray-600">
-              Some decoders accept several spellings of the same value: optional
-              padding, lowercase or uppercase hex, redundant percent escapes, or
-              non-canonical Base64 pad bits. Interoperability and signatures can
-              depend on the exact representation, so a tolerant decoder should
-              not make every accepted spelling look equally canonical.
+              Some decoders will take multiple forms of the same value. Padding 
+			  is not required, hex may be in any case, percent encoding may be 
+			  overkill and Base64 may not be canonical. For interoperability 
+			  and signing the exact value may matter. A forgiving decoder should 
+			  not present all values as the canonical form.
             </p>
           </div>
         </section>
 
         <section className="mt-18 max-w-5xl">
-          <h2 className="text-2xl font-semibold text-gray-900">Escaping Is Context-Specific</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Different escaping</h2>
           <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              Escaping text for HTML does not make it safe as JavaScript source,
-              a shell argument, CSS, SQL, or a URL. Each parser gives special
-              meaning to a different set of characters. The correct question is
-              not “is this string escaped?” but “escaped for which grammar, and
-              at which point in the parsing chain?”
+              Escaped text for HTML is not safe to use as JavaScript source, shell 
+			  arguments, CSS, SQL or URLs. Each parser will have specific characters 
+			  with special meaning. The important thing to consider is what grammar 
+			  the string is escaped for and when in the parsing process.
             </p>
             <p>
-              The same rule applies to security: encoding is reversible and
-              should not be used as a substitute for encryption, signatures,
-              authorization, or secret storage. If the problem is trust rather
-              than representation, move to the security workflow instead.
+              Encoding is not a reversible process and should not be used as a 
+			  replacement for encryption, signing, authorisation or confidentiality. 
+			  If the issue is a trust issue then head over to the security workflow.
             </p>
           </div>
           <Link href="/security-guides" className="mt-5 inline-flex font-semibold text-[var(--gold-text)]">
