@@ -109,10 +109,10 @@ export default function Page() {
           </div>
           <div className="mt-7 grid gap-6 lg:grid-cols-3">
             {workflowCards.map((card) => (
-              <div key={card.title} className="self-start rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div key={card.title} className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-900">{card.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-gray-600">{card.text}</p>
-                <div className="mt-5 flex flex-col gap-2">
+                <div className="mt-auto flex flex-col gap-2 pt-5">
                   {card.links.map((link) => (
                     <Link key={link.href} href={link.href} className="text-sm font-semibold text-[var(--gold-text)] hover:underline">
                       {link.label} →
