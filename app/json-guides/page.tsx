@@ -3,19 +3,19 @@ import Link from "next/link";
 const conversionCases = [
   {
     title: "JSON → CSV",
-    text: "CSV is tabular. Nested objects and arrays need flattening, serialization, or a chosen column strategy, and spreadsheets add formula-injection concerns.",
+    text: "CSV is a table format, nested objects and arrays must be flattened/serialized or decided to have certain columns. Spreadsheets also introduce injection of formulae..",
   },
   {
     title: "JSON → environment variables",
-    text: "Environment values are strings. Objects, arrays, booleans, null, and numbers need a naming and serialization convention before round-tripping is possible.",
+    text: "Environment variables are strings. Objects, arrays, booleans, nulls and numbers must be given naming and serialization rules.",
   },
   {
     title: "JSON → query or form values",
-    text: "Repeated keys, arrays, nesting, spaces, nulls, and booleans have several conventions. The receiver decides which convention is correct.",
+    text: "Multiple rules exist for dealing with duplicate keys, arrays, nesting, whitespace, nulls and booleans. The recipient will decide what is the correct rule.",
   },
   {
     title: "XML ↔ JSON",
-    text: "XML has attributes, namespaces, mixed text, element order, and repeated children that do not map to one universal JSON shape.",
+    text: "XML has attributes, namespaces, mixed content, ordered elements and duplicate children. There is not a single JSON format that can represent this.",
   },
 ];
 
@@ -54,27 +54,24 @@ export default function Page() {
 
         <div className="max-w-4xl">
           <h1 className="text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
-            Valid JSON Can Still Be the Wrong Data
+            Valid JSON does not necessarily mean correct data
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            JSON syntax is deliberately small, but real data work is not. A
-            document can parse correctly and still violate an API contract,
-            lose meaning during conversion, hide a duplicate member, overflow a
-            JavaScript-safe integer, or use a path that points somewhere other
-            than you expected. The first step is to identify which of those
-            questions you are actually asking.
+            JSON is a very simple syntax and can be invalid in many ways. 
+			Your JSON may be valid but might cause issues with your API 
+			agreement, could cause data loss, have duplicate members, go 
+			beyond the integer limits of JavaScript or not have the correct path.
           </p>
         </div>
 
         <section className="mt-18 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="self-start rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-            <h2 className="text-xl font-semibold text-gray-900">Formatting vs re-serialization</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Formatting</h2>
             <p className="mt-4 leading-7 text-gray-600">
-              A careful formatter can preserve source spellings that a
-              parse-and-stringify cycle may normalize. That matters for very
-              large numbers, exponent notation, negative zero, duplicate member
-              names, and any workflow where exact source tokens are useful for
-              debugging.
+              If you’re careful with your formatting then you can retain the 
+			  original formatting of your data. This is useful for large numbers, 
+			  exponents, negative zero, duplicated member names and anything where 
+			  knowing the exact original token is helpful for debugging.
             </p>
             <Link href="/tools/json-formatter" className="mt-5 inline-flex text-sm font-semibold text-[var(--gold-text)]">
               JSON Formatter →
@@ -82,26 +79,26 @@ export default function Page() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">Three JSON Details That Deserve Attention</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">Three Things to Watch out for when using JSON</h2>
             <div className="mt-5 space-y-4 leading-8 text-gray-600">
               <p>
                 <strong className="font-semibold text-gray-900">Numbers:</strong>
-                {" "}JSON itself does not impose JavaScript&apos;s safe-integer limit,
-                but many implementations parse numbers into IEEE 754 binary64.
-                Large integer identifiers and high-precision decimals can change
-                if a tool re-serializes them through ordinary JavaScript numbers.
+                {" "}Although there are no restrictions on numbers in JSON as there 
+				are in JavaScript for safe integers, many implementations will parse 
+				them as IEEE 754 binary64. This can cause issues if your large integers
+				or high precision decimals change when re-serialised.
               </p>
               <p>
-                <strong className="font-semibold text-gray-900">Duplicate member names:</strong>
-                {" "}interoperability becomes uncertain because parsers may keep
-                the first value, the last value, all values, or reject the input.
-                Avoid relying on duplicate keys even when a parser accepts them.
+                <strong className="font-semibold text-gray-900">Duplicate Member Names:</strong>
+                {" "}Interoperability is not guaranteed as different parsers may handle 
+				duplicates in different ways. This could be taking the first, last, all 
+				or rejecting the input. Try not to depend on duplicate keys.
               </p>
               <p>
-                <strong className="font-semibold text-gray-900">Object order:</strong>
-                {" "}member ordering is often preserved by tools for readability,
-                but applications should not treat object-member order as the
-                meaning of the data unless their own contract explicitly does so.
+                <strong className="font-semibold text-gray-900">Order:</strong>
+                {" "}Whilst many tools will preserve the order of members in an object, 
+				it should not be assumed that the order of members in an object has 
+				any meaning unless agreed upon.
               </p>
             </div>
           </div>
@@ -109,10 +106,10 @@ export default function Page() {
 
         <section className="mt-18">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">Where Conversion Stops Being Lossless</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">Where Conversion Is Not Lossless</h2>
             <p className="mt-3 leading-7 text-gray-600">
-              JSON has arrays, objects, strings, numbers, booleans, and null.
-              Other formats do not always have the same types or nesting model.
+              JSON contains arrays, objects, strings, numbers, booleans and nulls. 
+			  Not every format will have the same data types and structure.
             </p>
           </div>
           <div className="mt-7 grid gap-5 md:grid-cols-2">
@@ -132,20 +129,20 @@ export default function Page() {
         </section>
 
         <section className="mt-18 max-w-5xl">
-          <h2 className="text-2xl font-semibold text-gray-900">Pointer, Path, and Patch Are Different Ideas</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Pointer, Path & Patch</h2>
           <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              JSON Pointer is a standard way to identify one location using
-              escaped path tokens. JSON Patch is a standard list of operations
-              such as add, remove, and replace that uses Pointer paths. JSONPath
-              is standardized by RFC 9535 for querying JSON values, although
-              older implementations may still have dialect differences. A
-              JSONPath expression is not interchangeable with a Pointer.
+              JSON Pointer allows you to reference a specific location via an 
+			  escaped path. JSON Patch provides a set of standard operations 
+			  (add, remove, replace) that use Pointers to define the paths. 
+			  JSONPath is a standardised way to query JSON values as defined by RFC 9535. 
+			  Older implementations may vary between dialects. JSONPath expressions are 
+			  not the same as Pointers.
             </p>
             <p>
-              Use a Pointer when another standard asks for a precise location,
-              Patch when you need a set of document mutations, and a query/path
-              tool when you are exploring or selecting values.
+              Use a Pointer when another standard requires a specific location. 
+			  Use a Patch when you want to make changes to a document. Use a 
+			  query/path tool when you want to explore or select values.
             </p>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
