@@ -124,8 +124,8 @@ export default function Page() {
             {primitives.map((item) => (
               <div key={item.title} className="self-start rounded-2xl border border-gray-200 bg-white p-6">
                 <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Use it to:</strong> {item.purpose}</p>
-                <p className="mt-2 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Do not assume:</strong> {item.boundary}</p>
+                <p className="mt-3 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Use it to:</strong> {item.useFor}</p>
+                <p className="mt-2 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Do not assume:</strong> {item.dontAssume}</p>
                 <Link href={item.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--gold-text)]">{item.label} →</Link>
               </div>
             ))}
