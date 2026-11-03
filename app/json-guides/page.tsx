@@ -1,32 +1,5 @@
 import Link from "next/link";
 
-const questions = [
-  {
-    title: "Can it be parsed?",
-    text: "Syntax validation answers whether the text is valid JSON. It does not know whether the fields are useful or acceptable to your application.",
-    href: "/tools/json-validator",
-    label: "JSON Validator",
-  },
-  {
-    title: "Does it match a contract?",
-    text: "Schema validation can check types, required members, ranges, patterns, and other declared constraints after the JSON itself parses.",
-    href: "/tools/json-schema-validator",
-    label: "JSON Schema Validator",
-  },
-  {
-    title: "What changed or where is a value?",
-    text: "Diff, Pointer, key extraction, filtering, and path tools answer structural questions without converting the document to another format.",
-    href: "/tools/json-pointer-evaluator",
-    label: "JSON Pointer Evaluator",
-  },
-  {
-    title: "How should it be transformed?",
-    text: "CSV, ENV, form data, query strings, Markdown, XML, and YAML have different data models. Conversion requires explicit choices about what cannot be represented directly.",
-    href: "/tools/json-to-url-query-converter",
-    label: "JSON to URL Query Converter",
-  },
-];
-
 const conversionCases = [
   {
     title: "JSON → CSV",
@@ -92,21 +65,6 @@ export default function Page() {
             questions you are actually asking.
           </p>
         </div>
-
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">Four Different Questions About the Same JSON</h2>
-          <div className="mt-7 grid gap-5 md:grid-cols-2">
-            {questions.map((question) => (
-              <div key={question.title} className="self-start rounded-2xl border border-gray-200 bg-gray-50 p-6">
-                <h3 className="text-lg font-semibold text-gray-900">{question.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-gray-600">{question.text}</p>
-                <Link href={question.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--gold-text)]">
-                  {question.label} →
-                </Link>
-              </div>
-            ))}
-          </div>
-        </section>
 
         <section className="mt-18 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="self-start rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
