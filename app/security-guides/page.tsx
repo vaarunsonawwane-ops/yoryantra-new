@@ -3,29 +3,29 @@ import Link from "next/link";
 const primitives = [
   {
     title: "Hash",
-    purpose: "Fingerprint data with a one-way digest.",
-    boundary: "A plain hash does not authenticate who produced the data and is not password storage by itself.",
+    Use For: "Create a one way digest of your data to use as a fingerprint.",
+    Don’t Assume : "A simple hash will not verify the source of the data. It is not a password storage mechanism.",
     href: "/tools/hash-generator",
     label: "Hash Generator",
   },
   {
     title: "HMAC",
-    purpose: "Authenticate data with a shared secret and a hash construction.",
-    boundary: "Both sides need the secret; compare the exact byte representation and protocol rules used by the sender.",
+    Use For: "Use a shared secret to verify data using a hash.",
+    Don’t Assume: "Both parties must know the secret. Compare the exact bytes and protocol used by the sender.",
     href: "/tools/hmac-generator",
     label: "HMAC Generator",
   },
   {
     title: "Password hash",
-    purpose: "Derive a deliberately expensive verifier from a password and salt.",
-    boundary: "Password hashing has different goals from fast checksums or request signatures.",
+    Use For: "Create a slow verifier from a password and salt.",
+    Don’t Assume: "Password hashing has a different purpose to quick checksums or signing requests.",
     href: "/tools/bcrypt-generator",
     label: "bcrypt Generator",
   },
   {
     title: "Asymmetric key pair",
-    purpose: "Separate public and private key material for protocols that use public-key cryptography.",
-    boundary: "Generating a key pair does not choose a safe protocol, certificate policy, storage method, or rotation process for you.",
+    Use For: "Split private and public keys for protocols using public key cryptography.",
+    Don’t Assume: "Creating a key pair will not select a secure protocol, certificate policy, storage or rotation.",
     href: "/tools/rsa-key-generator",
     label: "RSA Key Generator",
   },
@@ -75,29 +75,29 @@ export default function Page() {
 
         <div className="max-w-4xl">
           <h1 className="text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
-            Readable Is Not the Same as Trusted
+            Readable Does Not Mean Verifiable
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            Security values often look like encoded text: JWTs, hashes, keys,
-            certificates, signatures, tokens, and HTTP headers. The dangerous
-            mistake is to treat successful decoding or valid syntax as proof of
-            authenticity, authorization, safety, or production readiness. Use a
-            security tool only after deciding which property you need to check.
+            Security often involves using encoded data (JWTs, hashes, keys, 
+			certificates, signatures, tokens, HTTP headers). Being able to 
+			decode or having valid syntax is a dangerous assumption and 
+			should not be considered as valid or safe. Only use a security 
+			tool once you have decided which security check you want to perform.
           </p>
         </div>
 
         <section className="mt-16 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-7 md:p-9">
-            <h2 className="text-2xl font-semibold text-gray-900">A JWT Acceptance Chain</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">JWT Verification Flow</h2>
             <ol className="mt-5 space-y-4 leading-7 text-gray-600">
-              <li><span className="font-semibold text-gray-900">1.</span> <strong className="text-gray-900">Parse:</strong> Is the compact token structurally readable?</li>
-              <li><span className="font-semibold text-gray-900">2.</span> <strong className="text-gray-900">Verify:</strong> Does the signature match the expected algorithm and key material?</li>
-              <li><span className="font-semibold text-gray-900">3.</span> <strong className="text-gray-900">Validate claims:</strong> Are issuer, audience, expiry, not-before time, and other required claims acceptable?</li>
-              <li><span className="font-semibold text-gray-900">4.</span> <strong className="text-gray-900">Apply application policy:</strong> Does this token authorize this action in this system?</li>
+              <li><span className="font-semibold text-gray-900">1.</span> <strong className="text-gray-900">Parse:</strong> Is the compact token readable?</li>
+              <li><span className="font-semibold text-gray-900">2.</span> <strong className="text-gray-900">Verify:</strong> Does the signature use the correct algorithm and key?</li>
+              <li><span className="font-semibold text-gray-900">3.</span> <strong className="text-gray-900">Validate claims:</strong> Are the claims (issuer, audience, expiry, not before and any other required claims) valid?</li>
+              <li><span className="font-semibold text-gray-900">4.</span> <strong className="text-gray-900">Apply Policy:</strong> Does the token allow this action on this system?</li>
             </ol>
             <p className="mt-5 text-sm leading-6 text-gray-600">
-              Stopping at step one is why a decoded JWT should never be described
-              as “verified” simply because its header and payload are readable.
+              If you stop at step 1 then you should never refer to a decoded 
+			  JWT as being verified.
             </p>
           </div>
 
@@ -113,11 +113,11 @@ export default function Page() {
 
         <section className="mt-18">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold text-gray-900">Match the Primitive to the Property You Need</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">Use the Right Primitive for the Right Purpose</h2>
             <p className="mt-3 leading-7 text-gray-600">
-              “Security” is not one operation. Integrity, authenticity, password
-              verification, confidentiality, and authorization require different
-              mechanisms.
+              Security is not a single task. Each mechanism will differ depending 
+			  on your purpose (Integrity, Authenticity, Password Verification, 
+			  Confidentiality, Authorisation).
             </p>
           </div>
           <div className="mt-7 grid gap-5 md:grid-cols-2">
@@ -133,21 +133,20 @@ export default function Page() {
         </section>
 
         <section className="mt-18 max-w-5xl">
-          <h2 className="text-2xl font-semibold text-gray-900">Headers Express Policy; Browsers Enforce It</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Headers & Browser Policies</h2>
           <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              CSP, HSTS, Permissions-Policy, Referrer-Policy, and cookie
-              attributes are configuration inputs to browser behavior. A header
-              generator can help build syntactically plausible policy text, but
-              only a real response in the target application reveals deployment
-              issues such as missing headers, conflicting directives, redirect
-              placement, subdomain effects, or application resources blocked by
-              policy.
+              Headers such as CSP, HSTS, Permissions-Policy, Referrer-Policy and 
+			  cookie attributes can be used to configure your browser. Whilst a header 
+			  generator can help you create a syntactically correct policy, 
+			  only a real response from your target application will show any 
+			  issues with your deployment (missing headers, conflicting policies, 
+			  redirects, subdomains and blocked resources).
             </p>
             <p>
-              Prefer report-only or staged testing where the platform supports
-              it, inspect browser developer tools, and keep policy scope as small
-              as the application actually needs.
+              Try to use report mode or staged if possible on the platform. 
+			  Check the developer tools on your browser. Keep the policy 
+			  as small as possible for your application..
             </p>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
@@ -158,19 +157,18 @@ export default function Page() {
         </section>
 
         <section className="mt-18 rounded-2xl border border-amber-200 bg-amber-50 p-7 md:p-9">
-          <h2 className="text-xl font-semibold text-gray-900">Handle Secrets as Secrets</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Secrets</h2>
           <div className="mt-4 space-y-3 leading-7 text-gray-700">
             <p>
-              Prefer sample, test, or redacted values when the task does not
-              require a real production secret. Private keys, session tokens,
-              signing secrets, passwords, and personal data deserve the same
-              care in a browser tool that they receive in logs, terminals, and
-              support tickets.
+              Where possible use sample/test/redacted data. Any private keys, 
+			  session tokens, signing secrets, passwords or personal 
+			  data should be treated with the same care as they would be in logs, 
+			  terminal or support tickets. 
             </p>
             <p>
-              When a Yoryantra tool runs locally, that reduces one class of data
-              transfer; it does not make the surrounding device, clipboard,
-              browser extensions, screenshots, or operational process trusted.
+              If you are running a Yoryantra tool locally it will reduce one 
+			  category of data transfer but doesn’t mean that your device, 
+			  clipboard, extensions, screenshots or process are trusted.
             </p>
           </div>
         </section>
