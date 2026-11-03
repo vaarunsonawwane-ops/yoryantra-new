@@ -13,7 +13,7 @@ export default function Footer() {
             <p className="text-lg font-bold text-gray-900">Yoryantra</p>
 
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Practical browser tools and guides for everyday technical work.
+              Tools that make your work simpler.
             </p>
           </div>
 
