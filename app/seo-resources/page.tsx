@@ -3,41 +3,41 @@ import Link from "next/link";
 const signalCards = [
   {
     title: "robots.txt",
-    does: "Controls crawler access to URL paths for matching user-agents.",
-    not: "It is not a reliable way to remove an already known URL from search results, and blocked crawling can prevent a crawler from seeing page-level noindex directives.",
+    does: "Controlling what crawlers can access on specific URLs for specific user-agents.",
+    not: "However it cannot be used to ensure that URLs that are already known will be removed from search results. It can also stop crawlers from accessing noindex directives on the page itself.",
     href: "/tools/robots-txt-tester",
     label: "Robots.txt Tester",
   },
   {
     title: "XML sitemap",
-    does: "Provides a discovery list and optional URL metadata to search engines.",
-    not: "Submission does not guarantee crawling, indexing, canonical selection, or ranking.",
+    does: "Provides a list of URLs for discovery and optional metadata.",
+    not: "The site will be crawled, indexed, canonicalised or ranked..",
     href: "/tools/sitemap-validator",
     label: "Sitemap Validator",
   },
   {
     title: "Canonical URL",
-    does: "Expresses a preferred representative URL for duplicate or very similar content.",
-    not: "It is a signal, not a command; search engines can select another canonical when signals disagree.",
+    does: "Specifying a preferred canonical URL for duplicated or very similar content.",
+    not: "To force search engines to use your preferred canonical. If signals conflict search engines can pick another canonical.",
     href: "/tools/canonical-url-checker",
     label: "Canonical URL Checker",
   },
   {
     title: "hreflang",
-    does: "Connects language or regional alternatives so search engines can serve a suitable version.",
-    not: "It does not replace canonicalization, translation quality, or correct indexability of the alternate URLs.",
+    does: "To link language or region variants so search engines can return the correct version.",
+    not: "An alternative to canonicalisation, quality translations or ensuring that alternate URLs are correctly indexable.",
     href: "/tools/hreflang-validator",
     label: "Hreflang Validator",
   },
 ];
 
 const debugOrder = [
-  "Confirm the URL returns the intended HTTP status and redirect behavior.",
-  "Check whether robots.txt permits the crawler to fetch the page.",
-  "Inspect robots meta and X-Robots-Tag directives for indexing restrictions.",
-  "Compare the declared canonical with redirects, internal links, and sitemap URLs.",
-  "For international pages, verify hreflang relationships and self-references.",
-  "Use Search Console to see what Google actually crawled, indexed, or selected as canonical.",
+  "If your page isn’t showing up in Google Search, this may not be an issue with your robots.txt or sitemap. There are many factors that can affect if Google can find, crawl and index your URL.",
+  "Ensure that the HTTP response is successful. You want to confirm that you are able to load the final URL and not being redirected.",
+  "Check robots.txt rules to make sure that Googlebot can crawl the page.",
+  "Check for any indexing restrictions. Ensure that there are no noindex directives in robots meta tags and X-Robots-Tag headers. However if the crawler is blocked it may never see these.",
+  "Check for canonical signals. Ensure that the canonical URL matches what is being used in the internal linking, redirects and sitemap.",
+  "Use Google Search Console to check what Google is reporting. This can be done using the URL Inspection tool.",
 ];
 
 export const metadata = {
@@ -75,20 +75,18 @@ export default function Page() {
 
         <div className="max-w-4xl">
           <h1 className="text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
-            Technical SEO Is a Chain of Signals, Not a Single Score
+            Technical SEO As A Chain Of Signals
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            A page can be crawlable but not indexable, indexable but not chosen
-            as canonical, canonicalized correctly but missing hreflang, or fully
-            indexable while its title is rewritten in search results. Debugging
-            becomes easier when crawling, indexing, canonicalization,
-            international targeting, and presentation are treated as separate
-            questions.
+            There are many factors that can affect if your page is crawlable, 
+			indexable, canonicalised and hreflang’d, or a fully indexable page 
+			with altered titles. It can be much easier to debug your issues if 
+			you treat each of these factors as a separate question.
           </p>
         </div>
 
         <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">What Common SEO Signals Actually Do</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">What do common SEO signals do?</h2>
           <div className="mt-7 grid gap-5 md:grid-cols-2">
             {signalCards.map((signal) => (
               <div key={signal.title} className="self-start rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -103,7 +101,7 @@ export default function Page() {
 
         <section className="mt-18 grid gap-7 lg:grid-cols-[1fr_0.9fr]">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">Debug Indexability in a Useful Order</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">Debugging An Indexing Issue</h2>
             <ol className="mt-6 space-y-4">
               {debugOrder.map((item, index) => (
                 <li key={item} className="flex gap-4 leading-7 text-gray-600">
@@ -124,28 +122,28 @@ export default function Page() {
               <Link href="/tools/crawl-budget-url-cleaner" className="text-[var(--gold-text)] hover:underline">Crawl Budget URL Cleaner →</Link>
             </div>
             <p className="mt-5 text-sm leading-6 text-gray-600">
-              The Redirect Checker analyzes response information you provide; it
-              does not silently fetch and follow a live URL. Use live HTTP data
-              when the problem depends on actual server behavior.
+              While Yoryantra’s SEO tools can help to break down each part of the 
+			  process, you will need to use Google Search Console to see how 
+			  Google has actually processed the URL.
             </p>
           </div>
         </section>
 
         <section className="mt-18 rounded-2xl border border-gray-200 bg-white p-7 md:p-9">
-          <h2 className="text-2xl font-semibold text-gray-900">A Search Preview Is Still a Preview</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Search Preview Tools</h2>
           <div className="mt-5 space-y-4 leading-8 text-gray-600">
             <p>
-              Title and description tools can measure source text, estimated
-              width, duplicate wording, and likely truncation. They cannot
-              guarantee the exact title link or snippet a search engine will
-              display for every query. Search systems may choose different text
-              from the page when it better represents the result.
+              While title and description tools can tell you about the text length, 
+			  width, duplicated words and likely truncation, they cannot guarantee 
+			  that Google will show exactly the same title link and snippet for all 
+			  queries. Search systems may decide to use different text from the page 
+			  to best represent the result.
             </p>
             <p>
-              Treat preview tools as editing aids. Check the live HTML, make the
-              page title and main heading descriptive, keep the visible content
-              consistent with the metadata, and evaluate actual search behavior
-              in Search Console after the page has been crawled.
+              Use these as editing tools. Ensure that your live HTML is correct, your 
+			  page title and heading are descriptive, and that the content on screen 
+			  matches the metadata. Once the page has been crawled you can check how 
+			  it behaves in search using Search Console..
             </p>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
@@ -157,15 +155,14 @@ export default function Page() {
         </section>
 
         <section className="mt-18 max-w-5xl">
-          <h2 className="text-2xl font-semibold text-gray-900">Consistency Matters More Than One Perfect Tag</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Ensure All Signals Are Consistent</h2>
           <p className="mt-5 leading-8 text-gray-600">
-            Redirects, canonicals, internal links, sitemap URLs, hreflang
-            alternates, robots directives, and actual HTTP responses should tell
-            a coherent story about which URLs are accessible and preferred.
-            Conflicting signals are more useful to investigate than chasing a
-            single “SEO score.” Technical correctness also does not guarantee
-            ranking; the page still needs useful content that satisfies the
-            person who searched for it.
+            Redirects, canonical, internal linking, sitemap, hreflangs, robots 
+			and HTTP responses should all tell a consistent story. If there are 
+			conflicting signals then this can be useful to investigate. Trying to 
+			get one perfect SEO score won’t help. Just because something is technically 
+			correct doesn’t mean it will rank. The content on the page should be useful 
+			to satisfy the searcher.
           </p>
         </section>
 
