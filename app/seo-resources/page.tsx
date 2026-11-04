@@ -1,36 +1,5 @@
 import Link from "next/link";
 
-const signalCards = [
-  {
-    title: "robots.txt",
-    does: "Controlling what crawlers can access on specific URLs for specific user-agents.",
-    not: "However it cannot be used to ensure that URLs that are already known will be removed from search results. It can also stop crawlers from accessing noindex directives on the page itself.",
-    href: "/tools/robots-txt-tester",
-    label: "Robots.txt Tester",
-  },
-  {
-    title: "XML sitemap",
-    does: "Provides a list of URLs for discovery and optional metadata.",
-    not: "The site will be crawled, indexed, canonicalised or ranked..",
-    href: "/tools/sitemap-validator",
-    label: "Sitemap Validator",
-  },
-  {
-    title: "Canonical URL",
-    does: "Specifying a preferred canonical URL for duplicated or very similar content.",
-    not: "To force search engines to use your preferred canonical. If signals conflict search engines can pick another canonical.",
-    href: "/tools/canonical-url-checker",
-    label: "Canonical URL Checker",
-  },
-  {
-    title: "hreflang",
-    does: "To link language or region variants so search engines can return the correct version.",
-    not: "An alternative to canonicalisation, quality translations or ensuring that alternate URLs are correctly indexable.",
-    href: "/tools/hreflang-validator",
-    label: "Hreflang Validator",
-  },
-];
-
 const debugOrder = [
   "If your page isn’t showing up in Google Search, this may not be an issue with your robots.txt or sitemap. There are many factors that can affect if Google can find, crawl and index your URL.",
   "Ensure that the HTTP response is successful. You want to confirm that you are able to load the final URL and not being redirected.",
@@ -85,20 +54,6 @@ export default function Page() {
           </p>
         </div>
 
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-900">What do common SEO signals do?</h2>
-          <div className="mt-7 grid gap-5 md:grid-cols-2">
-            {signalCards.map((signal) => (
-              <div key={signal.title} className="self-start rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900">{signal.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Useful for:</strong> {signal.does}</p>
-                <p className="mt-2 text-sm leading-6 text-gray-600"><strong className="text-gray-900">Does not guarantee:</strong> {signal.not}</p>
-                <Link href={signal.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--gold-text)]">{signal.label} →</Link>
-              </div>
-            ))}
-          </div>
-        </section>
-
         <section className="mt-18 grid gap-7 lg:grid-cols-[1fr_0.9fr]">
           <div>
             <h2 className="text-2xl font-semibold text-gray-900">Debugging An Indexing Issue</h2>
@@ -152,18 +107,6 @@ export default function Page() {
             <Link href="/tools/serp-snippet-preview-tool" className="yoryantra-btn-outline">SERP Snippet Preview</Link>
             <Link href="/tools/open-graph-preview-checker" className="yoryantra-btn-outline">Open Graph Preview Checker</Link>
           </div>
-        </section>
-
-        <section className="mt-18 max-w-5xl">
-          <h2 className="text-2xl font-semibold text-gray-900">Ensure All Signals Are Consistent</h2>
-          <p className="mt-5 leading-8 text-gray-600">
-            Redirects, canonical, internal linking, sitemap, hreflangs, robots 
-			and HTTP responses should all tell a consistent story. If there are 
-			conflicting signals then this can be useful to investigate. Trying to 
-			get one perfect SEO score won’t help. Just because something is technically 
-			correct doesn’t mean it will rank. The content on the page should be useful 
-			to satisfy the searcher.
-          </p>
         </section>
 
         <section className="mt-18 border-t border-gray-200 pt-10">
