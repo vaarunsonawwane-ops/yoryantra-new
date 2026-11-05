@@ -1,0 +1,356 @@
+---
+slug: build-mcp-server-typescript-connect-client
+title: "How to Build an MCP Server in TypeScript and Connect It to a Client"
+description: "Build a TypeScript MCP server with SDK v2, register a validated tool, test with MCP Inspector, connect a stdio client, and troubleshoot common failures."
+topic: DevOps
+articleType: Tutorial
+relatedTools:
+- /tools/json-validator
+relatedResources:
+- /devops-resources
+sources:
+- https://ts.sdk.modelcontextprotocol.io/v2/
+- https://ts.sdk.modelcontextprotocol.io/v2/get-started/packages
+- https://ts.sdk.modelcontextprotocol.io/v2/get-started/first-server
+- https://ts.sdk.modelcontextprotocol.io/v2/get-started/first-client
+- https://ts.sdk.modelcontextprotocol.io/v2/migration/upgrade-to-v2
+- https://ts.sdk.modelcontextprotocol.io/v2/serving/stdio
+- https://ts.sdk.modelcontextprotocol.io/v2/serving/http.html
+- https://github.com/modelcontextprotocol/inspector
+- https://ts.sdk.modelcontextprotocol.io/v2/troubleshooting
+datePublished: '2026-11-05'
+dateModified: null
+status: published
+author: Varoun Sonawane
+---
+
+Your MCP server is running just fine, yet the AI client still shows it as empty. Sometimes the client simply hasn't started the server process, or it's running a different file entirely. There is one more point worth thinking about: the example you are working with brings in old versions from an earlier release of the TypeScript SDK, and that can lead to issues.
+
+We will create a read-only server for testing. The inspect-json tool can be used to show us what type of data we have in a JSON string as well as what top level keys we have. As we aren’t using any APIs or databases we can focus on seeing how well our MCP connection is working.
+
+.
+
+## The MCP server we're going to build
+
+### What the example tool accepts and returns
+
+The inspect-json tool takes a jsonText argument containing a JSON string. For a valid object, it returns its top-level type and key names. For malformed JSON, it returns a tool error rather than pretending the input is valid.
+
+### How an MCP client calls the tool
+
+An MCP *server* exposes a tool, but it doesn't usually decide when the tool is called. An MCP *client* connects, discovers the available tools and calls one with arguments. A larger AI host may use those definitions in a model's tool-calling loop; this tutorial doesn't need to involve a model at all.
+
+We'll test two clients:MCP Inspector, which helps us inspect the tool manually, and a short TypeScript client that does the same sequence in code. Both launch the server. You won't need to keep a separate npx tsx src/index.ts command running.
+
+### Why use a read-only JSON inspection tool?
+
+A read-only example avoids external API permissions and changing files while you establish that registration, discovery and tool calls work. The connection can be debugged without involving an AI model or a production secret.
+
+![MCP stdio request path, validation and logging channels.](/images/blog/mcp-typescript-stdio-request-path.png)
+
+*MCP stdio request path, validation and logging channels.*
+
+## Set up TypeScript with MCP SDK v2
+
+### Node.js and package requirements
+
+A new v2 example needs a supported Node.js release and an ESM project. Check the minimum version stated by the SDK packages you actually install rather than assuming an old tutorial still applies.
+
+### Install the server package, Zod and TypeScript tooling
+
+Use Node.js 20 or later as required by the official getting-started example; a current patched Node release is preferable. From a new directory:
+
+```bash
+mkdir yoryantra-mcp-lab
+cd yoryantra-mcp-lab
+npm init -y
+npm pkg set type=module
+npm install @modelcontextprotocol/server zod tsx
+mkdir src
+```
+
+The type=module setting matters because the SDK uses ESM. We're using Zod v4 to describe the arguments of one tool. An HTTP server, Docker image and API credentials would add more failure points without helping with this first local test. 
+
+### Why older tutorials use different package names
+
+The MCP TypeScript SDK changed significantly between v1 and v2. The current v2 documentation uses @modelcontextprotocol/server and @modelcontextprotocol/client; many articles and repository examples still use the older combined @modelcontextprotocol/sdk package. If you install one and paste imports from the other, TypeScript will complain before any MCP request is sent. [Official SDK packages](https://ts.sdk.modelcontextprotocol.io/v2/get-started/packages)
+
+| Concern | Older v1 examples | This v2 tutorial |
+| --- | --- | --- |
+| Main package | @modelcontextprotocol/sdk | @modelcontextprotocol/server and @modelcontextprotocol/client |
+| Server stdio wiring | Instantiate transport and connect server | serveStdio(createServer) |
+| Server import | Deep path under sdk/server/... | @modelcontextprotocol/server |
+| Client stdio import | Deep path under sdk/client/... | @modelcontextprotocol/client/stdio |
+| Recommendation | Keep when maintaining a pinned v1 application | Use when starting a new v2 example |
+
+This doesn't mean every v1 server is broken. SDK version and protocol-version negotiation are different concerns. The v2 serving code supports legacy clients by default, subject to the documented compatibility behavior. Don't describe “v2” as a magic switch that makes every host support every modern feature. [Upgrade guide](https://ts.sdk.modelcontextprotocol.io/v2/migration/upgrade-to-v2)
+
+## Write the server and register its first tool
+
+### Create the server instance
+
+Create src/index.ts. McpServer identifies your server, while serveStdio() attaches it to the standard input/output transport.
+
+### Register inspect-json with a Zod input schema
+
+The complete file below includes server creation, the tool registration and stdio startup. Keeping the full implementation together makes it easier to copy and inspect.
+
+```typescript
+import { McpServer } from '@modelcontextprotocol/server';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
+import * as z from 'zod/v4';
+
+function createServer(): McpServer {
+  const server = new McpServer({
+    name: 'yoryantra-json-lab',
+    version: '1.0.0',
+  });
+
+  server.registerTool(
+    'inspect-json',
+    {
+      description: 'Report the top-level type and keys of JSON text',
+      inputSchema: z.object({
+        jsonText: z.string().min(1).max(20_000),
+      }),
+    },
+    async ({ jsonText }) => {
+      let value: unknown;
+      try {
+        value = JSON.parse(jsonText);
+      } catch {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: 'Input is not valid JSON.' }],
+        };
+      }
+
+      const type = Array.isArray(value)
+        ? 'array'
+        : value === null ? 'null' : typeof value;
+      const keys = type === 'object'
+        ? Object.keys(value as Record<string, unknown>)
+        : [];
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({ type, keys }),
+        }],
+      };
+    },
+  );
+
+  return server;
+}
+
+void serveStdio(createServer);
+console.error('MCP JSON lab listening on stdio');
+```
+
+### Return successful results and useful errors
+
+Two independent checks happen here. The SDK validates the *argument object* using Zod: jsonText must exist, be a string and satisfy the length limit. Then the handler checks whether the *contents of that string* can be parsed as JSON. Clearing the first check doesn't mean the second one is passed.
+
+There is one more limitation worth spelling out.JSON.parse() tells us whether the text is parseable; it does not enforce a business schema or preserve duplicate JSON object members as separate entries. The little tool is an MCP demonstration, not a replacement for a full JSON validation workflow.
+
+### Keep stdout clean for MCP messages
+
+A stdio MCP server waits for a client to send protocol messages through stdin. If you run npx tsx src/index.ts directly, a human-readable banner may appear on stderr, but you won't get an interactive prompt. That's expected. Stop the process and let Inspector or your client launch it for the next step.
+
+Keep diagnostics on stderr using console.error(). stdout carries protocol responses. Some newer SDK readers tolerate certain non-JSON lines, but you shouldn't build a server that depends on clients silently ignoring stray console output. [Official stdio guidance](https://ts.sdk.modelcontextprotocol.io/v2/serving/stdio)
+
+## Test the server with MCP Inspector
+
+### Launch the server through Inspector
+
+From the project directory, start Inspector with the server command:
+
+```bash
+npx @modelcontextprotocol/inspector npx tsx src/index.ts
+```
+
+Connect over stdio, choose Tools, and look for inspect-json. Run the handler with the following *value of the jsonText argument*, not as an arbitrary top-level Inspector request:
+
+```json
+{"status":"ok","items":[1,2],"source":"demo"}
+```
+
+The server code is expected to return a text block containing {"type":"object","keys":["status","items","source"]}. We derived that from the code; it is not a claim that Yoryantra executed this version of the server against a local Inspector session.
+
+### Discover the registered tool
+
+Connect over stdio and open Tools. The name should be inspect-json—not the server name yoryantra-json-lab. If there are no tools, first check whether Inspector launched the intended process and whether the server registered the tool.
+
+### Test valid input, invalid JSON and missing arguments
+
+Now try three different failures. First, enter malformed JSON text, such as { "status":. The handler should return isError: true. Second, omit jsonText: that should fail at input validation before the handler runs. Third, call the wrong tool name from code; unlike a handler error, a protocol-level “unknown tool” failure can throw. These are not interchangeable error paths.
+
+## Connect your own TypeScript MCP client
+
+### Install the client SDK
+
+The Inspector proves a manual call can reach your handler. It doesn't prove that your editor's MCP configuration is correct. A small client is a useful second test because you can see the launch command, tool list and result in one file.
+
+Install the client package separately:
+
+```bash
+npm install @modelcontextprotocol/client
+```
+
+### Create a stdio client connection
+
+Create src/client.ts:
+
+```typescript
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
+
+const client = new Client({
+  name: 'yoryantra-mcp-test',
+  version: '1.0.0',
+});
+
+const transport = new StdioClientTransport({
+  command: 'npx',
+  args: ['tsx', 'src/index.ts'],
+});
+
+await client.connect(transport);
+try {
+  const { tools } = await client.listTools();
+  console.log('Discovered:', tools.map(tool => tool.name));
+
+  const result = await client.callTool({
+    name: 'inspect-json',
+    arguments: { jsonText: '{"status":"ok","count":2}' },
+  });
+  for (const block of result.content) {
+    if (block.type === 'text') console.log(block.text);
+  }
+  if (result.isError) process.exitCode = 1;
+} finally {
+  await client.close();
+}
+```
+
+### Discover available tools
+
+The listTools() call in the client example should report the registered tool name. If it does not, confirm the child process command, working directory and stderr output before changing the tool handler.
+
+### Call the tool and read its result
+
+Run the client:
+
+```bash
+npx tsx src/client.ts
+```
+
+### Close the connection correctly
+
+The client launches the server as a child processand owns its lifetime. Running the server manually first isn't necessary and can confuse the diagnosis. The finally block closes the connection even if a tool call fails. [Official first-client tutorial](https://ts.sdk.modelcontextprotocol.io/v2/get-started/first-client)
+
+## Why does an MCP server run but the client cannot use it?
+
+A tool that isn't *discovered*, a call that is *rejected*, and a handler that *returns an error* are three separate situations. Changing the JSON body won't fix a server process that never started.
+
+| What you see | Likely boundary | Check before editing code |
+| --- | --- | --- |
+| No tools in Inspector | Process startup or tool registration | Launch command, package imports, stderr, working directory |
+| Tool appears, argument is rejected | Zod input schema | Exact argument name and type; missing/oversized string |
+| Tool returns isError: true | Handler logic | Whether the supplied jsonText is valid JSON |
+| Call to unknown tool throws | MCP protocol request | Name returned by listTools() |
+| Works in Inspector, fails in editor | Host configuration | Executable path, permissions, environment, protocol support |
+| JSON-RPC or connection problems | Transport or protocol messages | stdout discipline, process exit, SDK generation |
+
+If the tool fails after being listed successfully, start with the tool-call result. If the host never lists tools, inspect the process and connection first. Yoryantra already has a separate [MCP Inspector troubleshooting article](https://yoryantra.com/blog/mcp-inspector-debug-connection-failures); this guide concentrates on building a server with the newer SDK.
+
+![Process, discovery, validation and handler boundaries.](/images/blog/mcp-typescript-troubleshooting-boundaries.png)
+
+*Process, discovery, validation and handler boundaries.*
+
+### The server process fails to start
+
+The launch command may refer to a missing executable, a wrong working directory or code that cannot import its installed SDK. Treat a process error as a process error; no tool arguments have been handled yet.
+
+That error concerns process launching: the host couldn't find the executable named npx on its PATH. It doesn't tell you anything about JSON schema validation or the model. Check how the program is launched, its working directory and platform-specific executable handling. On Windows, a host may need a different command or explicit executable path; follow that host's documented configuration rather than copying a Unix command blindly.
+
+### No tools appear in the client
+
+Confirm that the client actually connects to the process that calls registerTool. A running server with no registered tools is different from a handler error, which occurs only after a tool was discovered and called.
+
+### Unexpected stdout breaks communication
+
+stdout is reserved for protocol messages on stdio. Move console messages and human-readable diagnostics to stderr, then retry discovery. If the transport is corrupt, rewriting the JSON tool logic will not fix it.
+
+### Schema validation rejects arguments
+
+An MCP tool call passes an argument object. This example requires jsonText as a string; sending raw JSON as the entire argument object or omitting the field fails Zod validation before the handler executes.
+
+### Client and server use incompatible SDK examples
+
+Check package names and imports on both sides. Old v1 tutorials and v2 code cannot always be pasted together unchanged. Distinguish an SDK source-code mismatch from protocol-version negotiation between running processes.
+
+## When should you use stdio instead of Streamable HTTP?
+
+For a local host that launches its own tool process, stdio is usually the simplest choice: no port to deploy, and the client manages that process. For one network endpoint used by remote clients, Streamable HTTP is the relevant transport. Switching transport changes deployment and security requirements; it doesn't change the basic fact that tools need meaningful input checks and permission checks.
+
+| Concern | stdio | Streamable HTTP |
+| --- | --- | --- |
+| Who starts the server? | Usually the local client/host | Your deployed service/process |
+| How messages travel | stdin and stdout | HTTP requests/responses |
+| Appropriate first example | Local, single-host process | Remote/shared service |
+| Common configuration failures | Executable path, working directory, stdout output | URL, routing, transport compatibility, network/authentication |
+| Security responsibilities | Tool permissions, local data access | Tool permissions plus remote identity and network access |
+
+### Local process connections
+
+stdio is usually the smaller setup when the host launches a process on the same machine. The host controls the child process and passes messages over stdin/stdout without deploying an HTTP endpoint.
+
+### Remote clients and shared services
+
+Streamable HTTP fits a network service shared across clients, but adds routing, connection handling and deployment concerns. Switching transport is not simply replacing a command with an HTTP URL.
+
+### Authentication and authorization considerations
+
+Don't add an Express listen()call to the stdio script and call that a secure MCP HTTP server. The v2 SDK provides web-standard handlers and platform adapters; use the appropriate server transport and review authentication, authorization, origin handling and exposure. [MCP HTTP serving](https://ts.sdk.modelcontextprotocol.io/v2/serving/http.html)
+
+## What a working MCP demonstration still doesn't prove
+
+This is a test worksheet, not invented laboratory data. Each row is an assertion that can be checked in Inspector or a running client before publication.
+
+| Test input | Expected behavior from source code | Observed result |
+| --- | --- | --- |
+| Valid JSON object | Text result with top-level object keys | Not executed |
+| JSON array | Text result with type array and no object keys | Not executed |
+| Malformed JSON text | Handler returns isError: true | Not executed |
+| Missing jsonText argument | SDK rejects input based on schema | Not executed |
+| Wrong tool name | Protocol-level error | Not executed |
+
+A developer can use this worksheet to compare their own results. If Yoryantra later runs it on specific Node and SDK versions, we can replace the placeholders with the actual setup and captured observations. Until then, these are documented expectations, not firsthand test results.
+
+### Input validation is not authorization
+
+Finally, input validation isn't authorization.The Zod schema won't stop a tool from reading a file it shouldn't, and a successful local Inspector test doesn't prove that a remote deployment is safe. If you add file or API operations, narrow their permissions, limit returned data, and keep secrets out of tool results. A model-triggered tool call still reaches your real code.
+
+### Tool results can contain untrusted or sensitive data
+
+A read-only JSON inspection result can still contain values supplied by an untrusted caller. If a later tool reads files or calls APIs, treat both returned content and tool parameters as untrusted until the application trust boundary has been checked.
+
+### What to test before connecting real services
+
+Run the test worksheet with the exact Node and SDK versions you intend to deploy. Verify malformed input, missing fields, unexpected tool names, process startup failures and secret handling. Record actual observations before replacing any "Not executed" cells.
+
+To inspect sanitized JSON separately from MCP, use Yoryantra's [JSON Validator](https://yoryantra.com/tools/json-validator). That tool can check JSON syntax, but it cannot test MCP protocol negotiation or authorize tool calls.
+
+## References
+
+1. [MCP TypeScript SDK v2 overview](https://ts.sdk.modelcontextprotocol.io/v2/)
+2. [MCP SDK packages](https://ts.sdk.modelcontextprotocol.io/v2/get-started/packages)
+3. [Build your first MCP server](https://ts.sdk.modelcontextprotocol.io/v2/get-started/first-server)
+4. [Build your first MCP client](https://ts.sdk.modelcontextprotocol.io/v2/get-started/first-client)
+5. [SDK v1 to v2 upgrade notes](https://ts.sdk.modelcontextprotocol.io/v2/migration/upgrade-to-v2)
+6. [Serve MCP over stdio](https://ts.sdk.modelcontextprotocol.io/v2/serving/stdio)
+7. [Serve MCP over HTTP](https://ts.sdk.modelcontextprotocol.io/v2/serving/http.html)
+8. [MCP Inspector documentation](https://github.com/modelcontextprotocol/inspector)
+9. [MCP TypeScript SDK troubleshooting](https://ts.sdk.modelcontextprotocol.io/v2/troubleshooting)
