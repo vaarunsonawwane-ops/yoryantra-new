@@ -176,7 +176,7 @@ Connect over stdio, choose Tools, and look for inspect-json. Run the handler wit
 {"status":"ok","items":[1,2],"source":"demo"}
 ```
 
-The server code is expected to return a text block containing {"type":"object","keys":["status","items","source"]}. We derived that from the code; it is not a claim that Yoryantra executed this version of the server against a local Inspector session.
+The server code is expected to return a text block containing `{"type":"object","keys":["status","items","source"]}`. We derived that from the code; it is not a claim that Yoryantra executed this version of the server against a local Inspector session.
 
 ### Discover the registered tool
 
@@ -184,7 +184,7 @@ Connect over stdio and open Tools. The name should be inspect-json—not the ser
 
 ### Test valid input, invalid JSON and missing arguments
 
-Now try three different failures. First, enter malformed JSON text, such as { "status":. The handler should return isError: true. Second, omit jsonText: that should fail at input validation before the handler runs. Third, call the wrong tool name from code; unlike a handler error, a protocol-level “unknown tool” failure can throw. These are not interchangeable error paths.
+Now try three different failures. First, enter malformed JSON text, such as `{ "status":`. The handler should return isError: true. Second, omit jsonText: that should fail at input validation before the handler runs. Third, call the wrong tool name from code; unlike a handler error, a protocol-level “unknown tool” failure can throw. These are not interchangeable error paths.
 
 ## Connect your own TypeScript MCP client
 
