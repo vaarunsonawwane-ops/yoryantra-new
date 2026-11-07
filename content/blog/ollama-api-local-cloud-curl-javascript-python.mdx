@@ -1,0 +1,293 @@
+---
+slug: ollama-api-local-cloud-curl-javascript-python
+title: "Ollama API Explained: Use Local and Cloud Models with curl, JavaScript and Python"
+description: "Call Ollama local and cloud APIs using curl, JavaScript and Python; compare native and OpenAI-compatible endpoints, diagnose streaming and HTTP errors, and secure API access."
+topic: Developer
+articleType: Tutorial
+relatedTools:
+- /tools/json-validator
+relatedResources:
+- /developers
+sources:
+- https://docs.ollama.com/api/introduction
+- https://docs.ollama.com/api/chat
+- https://docs.ollama.com/api/generate
+- https://docs.ollama.com/cloud
+- https://docs.ollama.com/api/openai-compatibility
+- https://docs.ollama.com/api/streaming
+datePublished: '2026-11-07'
+dateModified: null
+status: published
+author: Varoun Sonawane
+---
+
+An Ollama model replies in your terminal. Your Node application sends what looks like the same prompt and gets an empty answer. Or a request works on your laptop but fails in Docker. Both problems are common enough that developers start changing models or reinstalling software, when the actual issue is usually closer to the request: a different API route, a different address, or a response they're reading incorrectly.
+
+This guide starts with the HTTP request itself. We'll call Ollama locally, use the same endpoint from JavaScript and Python, and then switch to direct cloud access. The examples are based on the current Ollama API documentation; they are not presented as benchmarks or as tests run on Yoryantra's production infrastructure.
+
+## Making your first Ollama API request
+
+### Check the server and find an available model
+
+First, run ollama --version and ollama list. If your model is not in this list then you need to pull the model (see example below using llama3.2, substitute with one of your local models):
+
+```bash
+ollama --version
+ollama list
+curl http://localhost:11434/api/tags
+ollama pull llama3.2
+```
+
+If you are having trouble connecting to /api/tags then it is an issue with the command and Ollama server. It is too soon to think that the issue is with your model or prompt. In some cases, the Ollama desktop app will be running the server so trying to run another ollama serve may just result in an address in use error.
+
+### Send a simple request with curl
+
+Now send a request with the native chat endpoint:
+
+```bash
+curl http://localhost:11434/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "llama3.2",
+    "messages": [
+      {"role": "user", "content": "Explain HTTP 429 in two sentences."}
+    ],
+    "stream": false
+  }'
+```
+
+### Parsing the JSON response
+
+The text will be in message.content. Note that we are using messages rather than prompt. The response is a chat-message object. Setting "stream": false will make the first debugging attempt easier. You'll get a single HTTP response containing a single JSON document. The exact text used by the model may vary.
+
+## Local Ollama, Ollama Cloud and OpenAI compatible APIs
+
+### What base URL should your application use??
+
+The URL will depend on where your application is running and what service you are trying to connect to. Note that localhost does NOT mean "my laptop". It refers to the machine (or network namespace) that the requesting process is running on. This will matter if you ever put your code in a container.
+
+| Setup | Base URL | Authentication | Practical catch |
+| --- | --- | --- | --- |
+| Native local API | http://localhost:11434/api | No API key for local endpoint | Model must be available to that server |
+| Native direct cloud API | https://ollama.com/api | Bearer API key | Use a cloud-supported model name |
+| OpenAI-compatible local API | http://localhost:11434/v1 | SDK may require a placeholder key; local Ollama ignores it | OpenAI-style endpoints and response shape |
+| OpenAI-compatible cloud API | https://ollama.com/v1 | Real Ollama API key | Only supported OpenAI-compatible features |
+
+![Local versus cloud request paths and credential boundaries.](/images/blog/ollama-api-local-cloud-paths.png)
+
+*Local versus cloud request paths and credential boundaries.*
+
+There is a third arrangement worth knowing about:a signed-in local Ollama installation can provide access to cloud models through the local interface. That does not make direct calls to https://ollama.com/api and local calls to localhost:11434 interchangeable. Check which route your application is actually using. [Official API base URLs](https://docs.ollama.com/api/introduction)
+
+### When is an API key required?
+
+Direct cloud requests use https://ollama.com/api and require an Ollama API key. You don't need to install Ollama locally. Use a model name returned by the cloud listing or the current cloud documentation; don't copy the name of a downloaded local model without checking it.
+
+```bash
+export OLLAMA_API_KEY='replace-with-your-key'
+curl https://ollama.com/api/chat \
+  -H "Authorization: Bearer $OLLAMA_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "gemma4:31b",
+    "messages": [{"role": "user", "content": "Say hello."}],
+    "stream": false
+  }'
+```
+
+Note this is Bash/Zsh and PowerShell uses different syntax for environment variables. This model (gemma4:31b) represents the model currently used in the official cloud example. Models may vary. Never hardcode secrets in the frontend JavaScript, screenshot or source repo. [Ollama Cloud](https://docs.ollama.com/cloud)
+
+Something that many people miss are that the cloud documentation have different model names for directly calling the API, versus when launching the model from the local app/CLI. Instead of making assumptions and adding :cloud to the end of the model name, it is better to go to the tags page (https://ollama.com/API/tags) and see what models are available in your account.
+
+### What is the difference between /API/chat, /API/generate and /v1?
+
+/API/generate takes a prompt and returns the generated text in the top level response field. /API/chat takes a list of messages and returns message.content. If you mix them up you will reliably get a successful HTTP response and an application-level error.
+
+```bash
+curl http://localhost:11434/api/generate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "llama3.2",
+    "prompt": "What does HTTP 429 mean?",
+    "stream": false
+  }'
+```
+
+| Native operation | Input field | Where the answer appears | Suitable use |
+| --- | --- | --- | --- |
+| POST /api/chat | messages | message.content | Chat histories and message roles |
+| POST /api/generate | prompt | response | A direct prompt without chat-message structure |
+| GET /api/tags | No request body | models array | Check which models the server reports |
+
+These specify the format of the response. [Ollama chat API](https://docs.ollama.com/api/chat) [Ollama generate API](https://docs.ollama.com/api/generate)
+
+Using an example from the OpenAI SDK will return incorrect fields as it will be using the /v1 format. When using OpenAI compatibility the route will be something like /v1/chat/completions and the response will be in that format. The native /API/chat route will have a different format. You can't just change the URL and have code that expects choices[0].message.content as it will be expecting a native response. You also can't just access message.content from an OpenAI compatible response.
+
+Using the OpenAI Python client you can set the base_url to "http://localhost:11434/v1/". You'll also need to set the api_key to something like "ollama" (this is not a secret and is just to fulfill the configuration requirement). You should never use a placeholder when calling the direct API in the cloud. Also note that not all endpoints are supported. OpenAI compatibility is only a subset of the full service. [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility)
+
+## Calling Ollama from JavaScript and Python
+
+### Node.js fetch with error handling
+
+This example demonstrates a server-side node.js script that will check the HTTP status code before parsing the JSON response. There is also a timeout for the request, and reading of the correct field returned by the /api/chat endpoint. The model name and server can be changed so that this can be used in any local setup.
+
+```javascript
+const host = process.env.OLLAMA_HOST_URL ?? 'http://localhost:11434';
+const model = process.env.OLLAMA_MODEL ?? 'llama3.2';
+
+async function ask(question) {
+  const res = await fetch(`${host}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content: question }],
+      stream: false,
+    }),
+    signal: AbortSignal.timeout(60_000),
+  });
+
+  const raw = await res.text();
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${raw}`);
+
+  const data = JSON.parse(raw);
+  if (typeof data.message?.content !== 'string') {
+    throw new Error('Response has no message.content string');
+  }
+  return data.message.content;
+}
+
+ask('Name one way to debug a failed API request.')
+  .then(console.log)
+  .catch(console.error);
+```
+
+### Python example using standard library
+
+No extra SDK is needed to see what request is being made. Using the standard library in Python is enough to make a basic call, with the HTTP error body printed.
+
+.
+
+```python
+import json
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+
+payload = {
+    "model": "llama3.2",
+    "messages": [{"role": "user", "content": "Explain JSON schema simply."}],
+    "stream": False,
+}
+request = Request(
+    "http://localhost:11434/api/chat",
+    data=json.dumps(payload).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+
+try:
+    with urlopen(request, timeout=60) as response:
+        data = json.load(response)
+    print(data["message"]["content"])
+except HTTPError as error:
+    print("HTTP error:", error.code,
+          error.read().decode("utf-8", "replace"))
+except URLError as error:
+    print("Connection error:", error.reason)
+```
+
+### Timeouts, failed requests and missing response fields
+
+This code belongs on your server, not in a public page with cloud credentials embedded in it. Sixty seconds is an application timeout choice. A large model, a cold start or a busy machine may need longer. An abort doesn't prove that the model or prompt was invalid.
+
+If Python says “connection refused”while curl succeeds, run both from the same environment before assuming Ollama is inconsistent. A notebook kernel, a virtual machine and a container can each have a different view of localhost.
+
+## Why are there multiple JSON objects?
+
+### How streaming changes the response
+
+By default, the native chat and generate endpoints will stream responses. This means they will return multiple JSON objects separated by newlines. The JSON cannot be parsed as a single document as it will fail even if the server is working properly.
+
+### Parsing streamed JSON
+
+When reading from HTTP you may get part way through a streamed JSON response. You should buffer the bytes and parse the complete newline separated JSON. You should never assume that each network chunk contains a single JSON object.
+
+### When to use stream: false.
+
+For initial debugging, using stream: false will keep things simple. If you want to show the text being generated to the user, parse the streamed JSON objects as they come in. Don’t try to parse arbitrary network chunks or the whole concatenated JSON. Instead handle the last partial chunk.
+
+This isn’t just for show. Streaming can give the impression of a faster UI but you will need to implement cancellation, partial responses and meaningful error messages. You should test the performance in production. [Ollama streaming](https://docs.ollama.com/api/streaming)
+
+## Avoiding guessing when fixing Ollama API errors
+
+The error message is more important than guessing what the error is. Use the first command to determine whether the error is a transport or model issue.
+
+| Symptom | Check first | Likely area to fix |
+| --- | --- | --- |
+| Connection refused | curl http://localhost:11434/api/tags from the calling environment | Server process, hostname, port, container network |
+| HTTP 404 / model not found | Exact model name in ollama list or cloud model listing | Wrong server, missing model, unsupported model name |
+| HTTP 401 or 403 in cloud | Bearer header and key environment | Missing, invalid or unauthorized cloud credentials |
+| HTTP 200 but empty UI | message.content versus response versus choices | Wrong API interface or wrong response field |
+| JSON parse fails on a streamed response | Whether stream is true | NDJSON framing instead of a single document |
+| Very slow first call | Server logs and response timing fields, if present | Model loading, hardware, prompt size; not necessarily an HTTP bug |
+
+A 404 means that the model name could not be found on the server. Re-installing Ollama without checking the models listed on the server may not help. A connection refusal is not a response for incorrect API keys, it typically means that there was no TCP connection established.
+
+### Connection Refused (localhost:11434)
+
+Try running curl HTTP://localhost:11434/API/tags in the same environment as the request. If there is no TCP connection then make sure the server, host and port are correct before changing any API keys or prompts.
+
+### Model not found
+
+Make sure the model name is in the list provided by the server. Just because you have installed a model locally doesn’t mean it will be available on the direct cloud API.
+
+### Authentication issues
+
+The local Ollama typically doesn’t need an API key however when connecting directly to the cloud it will. If you receive an HTTP 401/403 error from the cloud API then make sure you are using the correct bearer token, credentials source and account access.
+
+### Empty responses and incorrect JSON fields
+
+You need to check where the response is coming from. The native chat will have message.content, native generate will have response, and an OpenAI compatible completion will have a different format. You should always log the sanitized response meta data to ensure that the model did actually return something.
+
+### Ollama not working locally in Docker
+
+This will only work if Ollama is available in the same container/network namespace. If your node process is in a container and Ollama is running on the host, or another service, then localhost will not point to the correct location. You will need to use the correct network name for your deployment, and check it can be reached by doing a basic request to /API/tags from within your node container.
+
+Do not expose an unauthenticated Ollama server. You need to plan how you want to expose the server, and what access controls you will have in place. The exact host name of the docker host will vary depending on your OS and container setup.
+
+## Testing API
+
+The following is a repeatable test plan. Perform this on a specific machine, and note the versions. This can then be turned into a case study.
+
+| Test | Request or condition | Expected result based on documented behavior | Measured result |
+| --- | --- | --- | --- |
+| Local discovery | GET /api/tags | JSON models array if server is reachable | Not tested |
+| Native chat | /api/chat with stream: false | One JSON document with message.content | Not tested |
+| Native generate | /api/generate with stream: false | One JSON document with response | Not tested |
+| Missing model | Valid endpoint, nonexistent model | Error response; capture exact status and body | Not tested |
+| Cloud authentication | Direct cloud call without valid key | Authentication failure; capture exact response | Not tested |
+
+If performance is an issue, then log the model, Ollama version, OS, hardware, prompt, number of output tokens, model loading time and total time. The difference between one warm run locally and one cold run in the cloud would give little information to the reader. You don’t need to provide fake speed numbers.
+
+## Before connecting Ollama to a your application
+
+### Exposing the API locally
+
+Decide whether you want to expose your endpoint to your host only, trusted containers or another service. Don’t expose your local endpoint (without authentication) to the internet just to fix your Docker networking.
+
+### Securing your cloud credentials and private prompts
+
+Ensure your cloud API keys are not stored in your browser code, screenshots or repositories. Check what data you’re sending to your hosted service before using prompts in production or private.
+
+### Before deployment
+
+Before deploying ensure your endpoint is only accessible by a certain network, your credentials are kept on the server side and whether the native API or OpenAI compatible API is needed. If you do debug your structured output, then you can use Yoryantra’s [JSON Validator](https://yoryantra.com/tools/json-validator) to ensure your JSON syntax is correct, but this will not validate the factual answer from the model or whether the Ollama server is accessible.
+
+## References
+
+- [Ollama API introduction and base URLs](https://docs.ollama.com/api/introduction)
+- [Ollama native chat endpoint](https://docs.ollama.com/api/chat)
+- [Ollama native generate endpoint](https://docs.ollama.com/api/generate)
+- [Ollama Cloud and model naming](https://docs.ollama.com/cloud)
+- [Ollama OpenAI-compatible endpoints](https://docs.ollama.com/api/openai-compatibility)
+- [Ollama streaming](https://docs.ollama.com/api/streaming)
