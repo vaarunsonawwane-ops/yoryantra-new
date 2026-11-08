@@ -6,8 +6,8 @@ import { getRenderableArticles } from "./blog-data";
 import "./blog.css";
 
 export const metadata: Metadata = {
-  title: "Blog | Yoryantra",
-  description: "Practical explanations and troubleshooting guides for development, DevOps and technical SEO.",
+  title: "Discover Free Articles on APIs, AI & DevOps | Yoryantra",
+  description: "Build an MCP server, use the Ollama API and work with local LLMs. Find code examples and practical fixes for AI agents, API errors and DevOps.",
   alternates: BLOG_RELEASE_ENABLED ? { canonical: "/blog" } : undefined,
   robots: BLOG_RELEASE_ENABLED ? { index: true, follow: true } : { index: false, follow: false },
 };

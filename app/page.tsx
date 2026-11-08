@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getPublishedArticles } from "./blog/blog-data";
 
 export const metadata = {
-  title: "Yoryantra | Practical Browser Tools for Everyday Work",
+  title: "Free Developer Tools You'll Love: JSON, Regex, SEO & APIs",
 
   description:
     "Yoryantra helps you do technical tasks easier everyday. Validate JSON, test regex, validate SEO tags and analyse API requests using browser-based tools and guides.",
@@ -12,7 +12,7 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "Yoryantra | Practical Browser Tools for Everyday Work",
+    title: "Free Developer Tools You'll Love: JSON, Regex, SEO & APIs",
 
     description:
       "Yoryantra helps you do technical tasks easier everyday. Validate JSON, test regex, validate SEO tags and analyse API requests using browser-based tools and guides.",
@@ -27,7 +27,7 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
 
-    title: "Yoryantra | Practical Browser Tools for Everyday Work",
+    title: "Free Developer Tools You'll Love: JSON, Regex, SEO & APIs",
 
     description:
       "Yoryantra helps you do technical tasks easier everyday. Validate JSON, test regex, validate SEO tags and analyse API requests using browser-based tools and guides.",

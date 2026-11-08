@@ -49,25 +49,25 @@ const categories = [
 ];
 
 export const metadata = {
-  title: "Browse Tools by Category | Yoryantra",
+  title: "Enjoy Browsing Free Developer Tools by Category | Yoryantra",
   description:
-    "Browse Yoryantra by development, DevOps, security, SEO, JSON and data, or encoding workflow.",
+    "Find the right tool to help with your next task. Browse free developer tools for JSON, regex, SEO, DevOps, security and encoding, neatly organised by category.",
   alternates: {
     canonical: "https://yoryantra.com/categories",
   },
   openGraph: {
-    title: "Tool Categories | Yoryantra",
+    title: "Enjoy Browsing Free Developer Tools by Category | Yoryantra",
     description:
-      "Choose tools by the kind of problem you are solving: development, DevOps, security, SEO, data, or encoding.",
+      "Find the right tool to help with your next task. Browse free developer tools for JSON, regex, SEO, DevOps, security and encoding, neatly organised by category.",
     url: "https://yoryantra.com/categories",
     siteName: "Yoryantra",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tool Categories | Yoryantra",
+    title: "Enjoy Browsing Free Developer Tools by Category | Yoryantra",
     description:
-      "Browse Yoryantra by development, DevOps, security, SEO, JSON and data, or encoding workflow.",
+      "Find the right tool to help with your next task. Browse free developer tools for JSON, regex, SEO, DevOps, security and encoding, neatly organised by category.",
   },
 };
 

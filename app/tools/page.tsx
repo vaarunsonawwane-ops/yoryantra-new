@@ -2,10 +2,10 @@ import { tools } from "@/app/data/tools";
 import ToolsClient from "./ToolsClient";
 
 export const metadata = {
-  title: "Find Developer, SEO, Security, and Data Tools | Yoryantra",
+  title: "Search Free Developer Tools for JSON, Regex & SEO | Yoryantra",
 
   description:
-    "Search Yoryantra tools by name, task, keyword, or category across development, DevOps, security, SEO, JSON, and encoding.",
+    "Find free tools for JSON, regex, SEO, APIs, DevOps, and security. Search by name, task, or keyword to get to the right tool faster.",
 
   alternates: {
     canonical: "https://yoryantra.com/tools",
