@@ -2,7 +2,7 @@ export const metadata = {
   title: "About | Yoryantra",
 
   description:
-    "Learn why Yoryantra was created and the idea behind building practical browser tools that save time.",
+    "How Yoryantra got its name, why I created it, and what I wanted to make easier for people using developer tools.",
 
   alternates: {
     canonical: "https://yoryantra.com/about",

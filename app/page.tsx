@@ -5,7 +5,7 @@ export const metadata = {
   title: "Yoryantra | Practical Browser Tools for Everyday Work",
 
   description:
-    "Practical browser tools and guides for development, DevOps, security, SEO, JSON, encoding, and everyday technical work.",
+    "Yoryantra helps you do technical tasks easier everyday. Validate JSON, test regex, validate SEO tags and analyse API requests using browser-based tools and guides.",
 
   alternates: {
     canonical: "https://yoryantra.com",
@@ -15,7 +15,7 @@ export const metadata = {
     title: "Yoryantra | Practical Browser Tools for Everyday Work",
 
     description:
-      "Practical browser tools and guides for development, DevOps, security, SEO, JSON, encoding, and everyday technical work.",
+      "Yoryantra helps you do technical tasks easier everyday. Validate JSON, test regex, validate SEO tags and analyse API requests using browser-based tools and guides.",
 
     url: "https://yoryantra.com",
 
@@ -30,7 +30,7 @@ export const metadata = {
     title: "Yoryantra | Practical Browser Tools for Everyday Work",
 
     description:
-      "Practical browser tools and guides for development, DevOps, security, SEO, JSON, encoding, and everyday technical work.",
+      "Yoryantra helps you do technical tasks easier everyday. Validate JSON, test regex, validate SEO tags and analyse API requests using browser-based tools and guides.",
   },
 };
 

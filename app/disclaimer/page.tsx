@@ -1,7 +1,7 @@
 export const metadata = {
   title: "Disclaimer | Yoryantra",
   description:
-    "Understand the limits of Yoryantra tool results, technical explanations, external references, and browser-based checks.",
+    "Yoryantra tools help create and validate technical information. validation needs to be performed independently.",
   alternates: {
     canonical: "https://yoryantra.com/disclaimer",
   },

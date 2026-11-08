@@ -1,7 +1,7 @@
 export const metadata = {
   title: "Terms of Use | Yoryantra",
   description:
-    "Read the terms that apply when using Yoryantra tools, technical content, references, and website services.",
+    "The terms for using Yoryantra's tools and guides, including responsible use, checking important results and the limits of the website.",
   alternates: {
     canonical: "https://yoryantra.com/terms",
   },

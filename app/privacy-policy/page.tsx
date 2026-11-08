@@ -1,7 +1,7 @@
 export const metadata = {
   title: "Privacy Policy | Yoryantra",
   description:
-    "Learn how Yoryantra handles tool inputs, analytics, advertising, cookies, technical data, and privacy choices.",
+    "Most Yoryantra tools process your input in the browser. See how remote requests, analytics, cookies and advertising work on the site.",
   alternates: {
     canonical: "https://yoryantra.com/privacy-policy",
   },

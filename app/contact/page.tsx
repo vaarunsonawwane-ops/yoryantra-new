@@ -1,7 +1,7 @@
 export const metadata = {
   title: "Contact | Yoryantra",
   description:
-    "Contact Yoryantra to report a tool issue, suggest an improvement, or ask a question about the website.",
+    "Having trouble with a Yoryantra tool? Tell us what you tried, what happened and which browser you're using, or send feedback on the website.",
   alternates: {
     canonical: "https://yoryantra.com/contact",
   },
