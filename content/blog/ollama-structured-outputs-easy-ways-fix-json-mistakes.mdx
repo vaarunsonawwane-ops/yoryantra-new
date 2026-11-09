@@ -1,0 +1,268 @@
+---
+slug: ollama-structured-outputs-easy-ways-fix-json-mistakes
+title: "Ollama Structured Outputs: Easy Ways to Fix JSON Mistakes"
+description: "Use Ollama JSON mode and JSON Schema to extract structured data, validate responses with Pydantic or Zod, and troubleshoot JSON mistakes."
+topic: Developer
+articleType: Tutorial
+relatedTools:
+- /tools/json-validator
+- /tools/json-schema-validator
+relatedResources:
+- /developers
+sources:
+- https://docs.ollama.com/capabilities/structured-outputs
+- https://docs.ollama.com/api/chat
+- https://docs.ollama.com/api/openai-compatibility
+- https://docs.ollama.com/cloud
+- https://ollama.com/library/llama3.2
+- https://zod.dev/json-schema
+- https://pydantic.dev/docs/validation/latest/concepts/json_schema/
+- https://json-schema.org/understanding-json-schema/reference/object
+datePublished: '2026-11-09'
+dateModified: null
+status: published
+author: Varoun Sonawane
+---
+
+Ollama can return JSON responses using format: "JSON" or using a JSON Schema. This allows you to specify what fields and types you want. The latter can be useful to directly put into your application code, but you should always validate your responses.
+
+Sometimes you will need to parse a support note, for example: POST /checkout returned HTTP 429 (Retry-After: 30 seconds). You may need to extract the numerical status, text route and null request ID. You cannot just return a JSON-like response. We will look at how Ollama can enforce some structure, and how Pydantic and Zod can validate the data, but also what we as developers need to look at in the source data.
+
+![Support note to Ollama structured JSON, Pydantic or Zod validation, and source verification](/images/blog/ollama-structured-outputs-flow.png)
+
+## Getting JSON from Ollama
+
+### Make a request with format: "JSON"
+
+Ensure that Ollama is running and that there is a local model installed. The examples use llama3.2, but you'll need to use the exact name given by ollama list. The requests are made to the native /api/chat endpoint. Set stream to false so that it will return a single JSON document.
+
+**CURL — JSON MODE**
+
+```bash
+curl http://localhost:11434/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "llama3.2",
+    "messages": [{
+      "role": "user",
+      "content": "Extract an incident from this note as JSON: POST /checkout returned HTTP 429 (Retry-After: 30 seconds). No request ID was provided."
+    }],
+    "format": "json",
+    "stream": false
+  }'
+```
+
+The HTTP response has many fields. The actual content of the generated text can be found in message.content. This is a string so you will need to parse the string again. It is easy to accidentally validate the entire response object instead of just the models response.
+
+### Why JSON mode is not a schema
+
+JSON mode is not telling Ollama that http_status should be an integer or that request_id should exist. The model could return \{"status": "429"\} and this would still be valid JSON. While this may be acceptable in a chat interface, when the next line of code tries to use http_status and compare it as a number it can become fragile.
+
+The benefit of using a JSON Schema in the native API is that you can pass in a JSON Schema instead of the string 'JSON'.
+
+## Using a JSON Schema with Ollama
+
+### Passing the schema into /API/chat
+
+In this request we are specifying exactly what keys are present, if they are a number or string and what is required. We can also specify that request_id can be null. This is different to not having the key at all. We can also specify that there cannot be any additional properties (additionalProperties: false) which means there will be no extra fields that the application has no reason to accept.
+
+**CURL — SCHEMA-CONSTRAINED RESPONSE**
+
+```bash
+curl http://localhost:11434/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "llama3.2",
+    "messages": [{
+      "role": "user",
+      "content": "Extract the HTTP status, route, Retry-After seconds and request ID from: POST /checkout returned HTTP 429 (Retry-After: 30 seconds). No request ID was provided."
+    }],
+    "stream": false,
+    "format": {
+      "type": "object",
+      "properties": {
+        "http_status": { "type": "integer" },
+        "route": { "type": "string" },
+        "retry_after_seconds": { "type": "integer" },
+        "request_id": { "type": ["string", "null"] }
+      },
+      "required": ["http_status", "route", "retry_after_seconds", "request_id"],
+      "additionalProperties": false
+    }
+  }'
+```
+
+A reasonable reply to the prompt's report would be as follows. This shows the expected format; it is not output from a model run:
+
+**EXPECTED JSON STRUCTURE — ILLUSTRATIVE ONLY**
+
+```json
+{
+  "http_status": 429,
+  "route": "/checkout",
+  "retry_after_seconds": 30,
+  "request_id": null
+}
+```
+
+This will only limit the possible shapes. This doesn’t show that the model has picked up the right number of values or that it has understood the complex log. If the source had a value of 429 but the answer was 404 it would still be an incorrect object as it is valid within the schema.
+
+### Required properties, types and arrays
+
+The required property makes the specified properties required. They don’t need to be non-null. The type is enforced by the schema of each property. When using arrays, each element in the array will have a certain type enforced by the items schema. If the additionalProperties property is not set to false, then by default JSON Schema will allow unspecified keys on the object. These things can easily be missed when working with a strict looking schema.
+
+| Schema keyword | Effect | Example |
+| --- | --- | --- |
+| required | All named keys must be present | ["http_status", "request_id"] |
+| type | Specifies a value type | "integer"; ["string", "null"] |
+| items | Specifies the types allowed in arrays | `{"type": "string"}` |
+| additionalProperties | When false, reject extra keys | false |
+
+## Validating responses from Ollama in Python and JavaScript
+
+By defining the schema once in your application you can pass this to Ollama. This means you can validate the response using the same schema. This is much safer than having the schema defined in your prompt and making assumptions about the response elsewhere in your program.
+
+### Python: Using Pydantic
+
+Install the Ollama Python package and Pydantic (pip install -U ollama pydantic). The class below will define the properties of the incident, create the JSON Schema for the request and validate message.content. If the validation fails we won’t include the result in the success branch.
+
+**PYTHON — PYDANTIC SCHEMA AND VALIDATION**
+
+```python
+from ollama import chat
+from pydantic import BaseModel, ConfigDict, ValidationError
+
+class Incident(BaseModel):
+    model_config = ConfigDict(strict=True, extra='forbid')
+    http_status: int
+    route: str
+    retry_after_seconds: int
+    request_id: str | None
+
+note = ('POST /checkout returned HTTP 429 '
+        '(Retry-After: 30 seconds). No request ID was provided.')
+response = chat(
+    model='llama3.2',
+    messages=[{'role': 'user',
+               'content': f'Extract an incident from: {note}'}],
+    format=Incident.model_json_schema(),
+    options={'temperature': 0},
+)
+
+try:
+    incident = Incident.model_validate_json(response.message.content)
+    print(incident.model_dump())
+except ValidationError as error:
+    print('Validation failed:', error)
+```
+
+Note that nullable fields do not have any default value, so you must include them in the response and they can be null. If you want to make them optional, then your model would be different. However, if you're enforcing a contract to extract certain data, and you want your downstream code to get 4 fields with specific names, then making them required will help with debugging.
+
+### Install ollama and zod 4.
+
+In Zod 4, we have the z.toJSONSchema() function, so we don't need to install the zod-to-JSON-schema package.
+
+**INSTALL**
+
+```bash
+npm install ollama zod@^4
+```
+
+**JAVASCRIPT — ZOD 4 JSON SCHEMA AND VALIDATION**
+
+```javascript
+import ollama from 'ollama';
+import * as z from 'zod';
+
+const Incident = z.strictObject({
+  http_status: z.number().int(),
+  route: z.string(),
+  retry_after_seconds: z.number().int(),
+  request_id: z.string().nullable(),
+});
+
+const note = 'POST /checkout returned HTTP 429 '
+  + '(Retry-After: 30 seconds). No request ID was provided.';
+
+const response = await ollama.chat({
+  model: 'llama3.2',
+  messages: [{ role: 'user',
+    content: `Extract an incident from: ${note}` }],
+  format: z.toJSONSchema(Incident),
+  options: { temperature: 0 },
+});
+
+try {
+  const incident = Incident.parse(JSON.parse(response.message.content));
+  console.log(incident);
+} catch (error) {
+  console.error('Validation failed:', error);
+  process.exitCode = 1;
+}
+```
+
+Parsing and validation are separate. If the JSON is invalid then it will fail to parse. If the JSON is valid but has incorrect fields then it will fail validation. If the status field is incorrect but passes the schema then you will have to validate it against the report/service.
+
+## Issues with structured outputs:
+
+### JSON parses but values are incorrect.
+
+This is the one issue that you won't be able to catch using a schema. If the incident report says HTTP 429 but the model returns 500, then http_status will still be a valid integer. If you're using operational data, always validate that the values are correct against the log line/API response/database entry. Don't add any generated fields to your audit trail just because they passed validation.
+
+### Required field is missing or incorrect data type.
+
+If the request_id is missing then we're breaking our contract. Whilst it's nullable, it's not present. If it's "30" then it will fail as it needs to be a number. Always validate that the message.content is correct and the error from validation. Don't convert all fields to strings to make the request pass. If there really is no value from the source, decide whether it should be null or excluded.
+
+### Model returned unexpected response.
+
+Ensure that the HTTP status, model name and endpoint (/API/chat or OpenAI compatible) are correct. Using the native chat API, the answer will be in message.content. If you're parsing the response as /API/generate or expecting choices[0], like with /v1/chat/completions, then nothing may show in your UI. This is covered in more detail in the Ollama API guide above.
+
+### Different behaviour between models.
+
+The models capabilities, context length and how clear your prompt is will all impact how well the model performs. Smaller models may struggle with complex constraints or extracting information from a noisy document. To ensure that your test is repeatable, always include the exact version of Ollama, model tag, schema, text and generation options. Using temperature 0 can help with consistency but doesn't guarantee the same or correct response.
+
+## Local Ollama, Cloud and OpenAI compatibility
+
+Ollama currently states that structured outputs are not supported on Ollama Cloud. With the local native API you can use JSON Mode and the schema request format. The local OpenAI compatible API has documentation for using structured outputs with Ollama. However, this does not mean that all endpoints will have support for this feature. For calls to the local OpenAI compatible endpoint, you’ll need to use the base URL of http://localhost:11434/v1. When calling directly into the cloud, the route and auth will be different. We do not recommend assuming that the response_format schema will be enforced. If you are relying on schema constrained generation, make sure your specific route, model and deployment all support it.
+
+| Interface | Schema request | Caution |
+| --- | --- | --- |
+| Local native /api/chat | format: JSON Schema | Extract message.content |
+| Local OpenAI-compatible /v1 | response_format (where supported) | Response uses OpenAI-compatible fields |
+| Ollama Cloud | Not supported as documented | Do not assume schema enforcement |
+
+## Testing your JSON
+
+It is better to test your JSON with a small number of test examples. Don’t assume that the model will always return valid JSON. Try running the same examples with the versions you are going to use and check that you can successfully extract the data. Also try some bad inputs. This will give you an idea of what you can expect. The table below is a worksheet rather than results from a Yoryantra benchmark.
+
+| Test input | Expected result to verify | Observed result |
+| --- | --- | --- |
+| HTTP 429, Retry-After: 30, no request ID | 429, /checkout, 30 and null | Not tested |
+| Missing request ID | Required key present with null | Not tested |
+| Wrong data type, e.g. "30" as text | Application validator rejects wrong type | Not tested |
+| Malformed generated JSON | JSON parsing fails before schema validation | Not tested |
+| Valid JSON with incorrect HTTP status | Compare extracted status with source note | Not tested |
+
+When using in production, make sure to log sufficient information (sanitized) to help identify where the issue occurred. This should include the model, endpoint, schema version, validation error and request correlation ID if available. By default we would not recommend logging any sensitive information such as prompts and API keys. If you are using the returned object to make payments, security actions or any significant decisions, make sure to validate the values against a trusted source.
+
+The JSON Validator can be used to help view the JSON text. The JSON Schema Validator can be used to validate the document against a defined structure. These tools will not tell you if the LLM understood the source correctly or if your Ollama server is running.
+
+## References
+
+- [Ollama structured outputs](https://docs.ollama.com/capabilities/structured-outputs)
+
+- [Ollama chat API](https://docs.ollama.com/api/chat)
+
+- [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility)
+
+- [Ollama cloud](https://docs.ollama.com/cloud)
+
+- [Ollama Llama 3.2 model](https://ollama.com/library/llama3.2)
+
+- [Zod JSON Schema conversion](https://zod.dev/json-schema)
+
+- [Pydantic JSON Schema](https://pydantic.dev/docs/validation/latest/concepts/json_schema/)
+
+- [JSON Schema object rules](https://json-schema.org/understanding-json-schema/reference/object)
+
+Related Yoryantra pages: [Yoryantra JSON Validator](https://yoryantra.com/tools/json-validator)  |  [Yoryantra JSON Schema Validator](https://yoryantra.com/tools/json-schema-validator)  |  [Yoryantra Ollama API guide](https://yoryantra.com/blog/ollama-api-local-cloud-curl-javascript-python)
