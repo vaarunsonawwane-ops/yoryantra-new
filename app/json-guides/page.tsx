@@ -20,9 +20,9 @@ const conversionCases = [
 ];
 
 export const metadata = {
-  title: "JSON and Data Guides for Validation, Schemas, and Conversion | Yoryantra",
+  title: "Fix JSON Errors: Validation, Schema & Conversion | Yoryantra",
   description:
-    "Separate JSON parsing, schema validation, comparison, querying, patching, and conversion while understanding number, duplicate-key, and cross-format data-loss risks.",
+    "Understand JSON schema, validation, paths and patches, and check what can go wrong when converting JSON to other formats.",
   alternates: {
     canonical: "https://yoryantra.com/json-guides",
   },

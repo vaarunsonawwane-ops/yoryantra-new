@@ -40,9 +40,9 @@ const contexts = [
 ];
 
 export const metadata = {
-  title: "Encoding Guides for Base64, URLs, Unicode, HTML, and MIME | Yoryantra",
+  title: "Base64, URL Encoding & Unicode Made Clear | Yoryantra",
   description:
-    "Understand text and byte representations across Base64, percent encoding, Unicode escapes, HTML/XML entities, MIME, Punycode, and URL-safe formats.",
+    "Understand how Base64, URL encodings, Unicode, HTML entities, MIME and Punycode work and when to use them.",
   alternates: {
     canonical: "https://yoryantra.com/encoding-guides",
   },

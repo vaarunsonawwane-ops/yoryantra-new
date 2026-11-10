@@ -59,9 +59,9 @@ const decisionPoints = [
 ];
 
 export const metadata = {
-  title: "Technical Resources and Workflow Guides | Yoryantra",
+  title: "Free Developer Resources for JSON, DevOps & SEO | Yoryantra",
   description:
-    "Use Yoryantra workflow guides to choose the right developer, DevOps, encoding, JSON, security, or SEO tool and understand what its result can prove.",
+    "Explore resources for developers using APIs, JSON, DevOps, encoding, security and SEO. Compare tools and test results.",
   alternates: {
     canonical: "https://yoryantra.com/resources",
   },

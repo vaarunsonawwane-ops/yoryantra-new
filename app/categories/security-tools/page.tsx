@@ -19,9 +19,9 @@ const representativeTools = securityTools.filter((tool) =>
 );
 
 export const metadata = {
-  title: "Security Tools for JWTs, Hashes, Headers, and Keys | Yoryantra",
+  title: "Free Security Tools for JWTs, Hashes & Headers | Yoryantra",
   description:
-    "Inspect JWTs, hashes, HMACs, passwords, browser security headers, cookies, CSP, keys, certificates, tokens, and security.txt with explicit trust boundaries.",
+    "Decode JWTs, verify signatures, generate hashes and HMACs, and check security headers. Find free tools for CSP, cookies, passwords and API testing.",
   alternates: {
     canonical: "https://yoryantra.com/categories/security-tools",
   },

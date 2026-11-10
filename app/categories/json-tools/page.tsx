@@ -5,9 +5,9 @@ import SectionCard from "@/app/components/SectionCard";
 const jsonTools = tools.filter((tool) => tool.category === "JSON & Data Tools");
 
 export const metadata = {
-  title: "JSON & Data Tools for Formatting, Validation, and Conversion | Yoryantra",
+  title: "Free JSON Formatter, Validator & Converter Tools | Yoryantra",
   description:
-    "Format, validate, compare, query, transform, and convert JSON, CSV, XML, YAML, SQL, schemas, JSON Pointer, JSON Patch, and related structured data.",
+    "Format and validate JSON, compare JSON data and convert between JSON, CSV and XML. Find tools for JSON Schema, JSONPath and JSON Patch.",
   alternates: {
     canonical: "https://yoryantra.com/categories/json-tools",
   },

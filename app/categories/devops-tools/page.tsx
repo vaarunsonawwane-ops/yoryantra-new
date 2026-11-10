@@ -6,9 +6,9 @@ import SectionCard from "@/app/components/SectionCard";
 const devopsTools = tools.filter((tool) => tool.category === "DevOps Tools");
 
 export const metadata = {
-  title: "DevOps Tools for Docker, Kubernetes, DNS, and Config | Yoryantra",
+  title: "Free DevOps Tools for Docker, Kubernetes & CI | Yoryantra",
   description:
-    "Review Docker Compose, Kubernetes, cron, DNS, CIDR, environment variables, GitHub Actions, Nginx, and deployment configuration before runtime.",
+    "Check Docker Compose files, Kubernetes YAML and GitHub Actions workflows. Explore free DevOps tools for Nginx, DNS, cron and environment settings.",
   alternates: {
     canonical: "https://yoryantra.com/categories/devops-tools",
   },

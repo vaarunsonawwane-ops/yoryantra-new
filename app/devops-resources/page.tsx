@@ -34,9 +34,9 @@ const workflowCards = [
 ];
 
 export const metadata = {
-  title: "DevOps Configuration Workflows for Docker, Kubernetes, CI, and Nginx | Yoryantra",
+  title: "Catch Docker & Kubernetes Config Mistakes Early | Yoryantra",
   description:
-    "Review DevOps configuration in layers: syntax, platform structure, variable resolution, and runtime behavior across Docker, Kubernetes, CI, Nginx, cron, and DNS.",
+    "Review Docker Compose, Kubernetes YAML, GitHub Actions and Nginx configurations. Spot common mistakes and check settings before deploying changes.",
   alternates: {
     canonical: "https://yoryantra.com/devops-resources",
   },

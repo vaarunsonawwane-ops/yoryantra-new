@@ -40,9 +40,9 @@ const reviewSteps = [
 ];
 
 export const metadata = {
-  title: "How Yoryantra Tools Are Built and Reviewed | Yoryantra",
+  title: "How Yoryantra Developer Tools Are Built and Tested",
   description:
-    "See how Yoryantra selects tool ideas, checks technical behavior, tests edge cases, writes supporting guidance, handles privacy boundaries, and reviews changes before release.",
+    "See how Yoryantra tools are chosen, built and tested. Learn how inputs are checked, when data stays in the browser and what each tool can verify.",
   alternates: {
     canonical: "https://yoryantra.com/how-yoryantra-tools-are-built",
   },

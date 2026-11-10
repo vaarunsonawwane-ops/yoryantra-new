@@ -5,7 +5,7 @@ export const metadata = {
   title: "Sitemap | Yoryantra",
 
   description:
-    "Browse all pages, categories, and tools available on Yoryantra.",
+    "Find all Yoryantra pages and tools in one place. Browse developer, DevOps, JSON, security, SEO and encoding tools by category.",
 
   alternates: {
     canonical: "https://yoryantra.com/sitemap",

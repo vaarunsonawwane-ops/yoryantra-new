@@ -10,9 +10,9 @@ const debugOrder = [
 ];
 
 export const metadata = {
-  title: "Technical SEO Resources for Crawling, Indexing, Canonicals, and Hreflang | Yoryantra",
+  title: "Fix SEO issues - Robots.txt, Sitemaps & Indexing | Yoryantra",
   description:
-    "Debug technical SEO signals in order across HTTP status, robots.txt, noindex, canonicals, sitemaps, hreflang, metadata, and Search Console verification.",
+    "Check robots.txt, sitemaps, canonical URLs and indexing settings. Find SEO problems, review search snippets and check your pages in Google Search Console.",
   alternates: {
     canonical: "https://yoryantra.com/seo-resources",
   },

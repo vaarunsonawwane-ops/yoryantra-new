@@ -21,9 +21,9 @@ const representativeTools = developerTools.filter((tool) =>
 );
 
 export const metadata = {
-  title: "Developer Tools for HTTP, Regex, URLs, and Debugging | Yoryantra",
+  title: "Free Developer Tools for HTTP, Regex & APIs | Yoryantra",
   description:
-    "Inspect HTTP text, translate cURL and Fetch requests, test regexes, parse URLs, work with timestamps and UUIDs, and debug implementation details.",
+    "Test regex, parse HTTP requests, inspect URLs and work with cURL and Fetch. Browse developer tools for APIs, headers, UUIDs and debugging.",
   alternates: {
     canonical: "https://yoryantra.com/categories/developer-tools",
   },

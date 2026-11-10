@@ -51,9 +51,9 @@ const relatedAreas = [
 ];
 
 export const metadata = {
-  title: "Developer Debugging Workflows for HTTP, URLs, Regex, and APIs | Yoryantra",
+  title: "Developer Debugging: APIs, HTTP & Regex | Yoryantra",
   description:
-    "Choose developer tools for HTTP, cURL, Fetch, regex, URLs, timestamps, UUIDs, and API debugging while understanding local versus live behavior.",
+    "Debug HTTP requests, test regex, inspect URLs and troubleshoot API errors. Discover useful dev tools for working with cURL, Fetch and general debugging.",
   alternates: {
     canonical: "https://yoryantra.com/developers",
   },

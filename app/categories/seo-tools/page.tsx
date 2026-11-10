@@ -6,9 +6,9 @@ import SectionMiniCard from "@/app/components/SectionMiniCard";
 const seoTools = tools.filter((tool) => tool.category === "SEO Tools");
 
 export const metadata = {
-  title: "SEO Tools for Crawling, Indexing, Canonicals, and Metadata | Yoryantra",
+  title: "Free SEO Tools Robots.txt, Sitemaps & Meta Tags | Yoryantra",
   description:
-    "Inspect technical SEO signals for crawling, indexing, canonicals, hreflang, sitemaps, redirects, metadata, structured data, headings, and search-result previews.",
+    "Find SEO problems on your website with free tools. Check robots.txt, sitemaps and canonical URLs, and preview your page titles and descriptions.",
   alternates: {
     canonical: "https://yoryantra.com/categories/seo-tools",
   },

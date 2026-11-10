@@ -19,9 +19,9 @@ const representativeTools = encodingTools.filter((tool) =>
 );
 
 export const metadata = {
-  title: "Encoding Tools for Base64, URLs, Unicode, and Text | Yoryantra",
+  title: "Free Encoding Tools for Base64, URLs & Unicode | Yoryantra",
   description:
-    "Encode, decode, escape, and inspect Base64, Base32, Base58, hex, percent encoding, Unicode escapes, HTML or XML entities, MIME text, Punycode, and related representations.",
+    "Encode and decode Base64, URLs and HTML entities. Convert Unicode escapes, hex and Punycode using free online tools.",
   alternates: {
     canonical: "https://yoryantra.com/categories/encoding-tools",
   },

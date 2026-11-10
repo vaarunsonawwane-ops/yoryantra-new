@@ -41,9 +41,9 @@ const browserPolicies = [
 ];
 
 export const metadata = {
-  title: "Security Guides for JWTs, Hashes, HMAC, Keys, and Headers | Yoryantra",
+  title: "JWT Verification, HMAC & HTTP Security Headers | Yoryantra",
   description:
-    "Understand security-tool boundaries across JWT verification, hashing, HMAC, password hashing, keys, cookies, CSP, HSTS, and other browser security policies.",
+    "Decode and validate JWTs, understand how hashing and HMAC work and validate security headers in your application.",
   alternates: {
     canonical: "https://yoryantra.com/security-guides",
   },
