@@ -17,10 +17,6 @@ const navigation = [
     href: "/categories",
     label: "Categories",
   },
-  {
-    href: "/resources",
-    label: "Resources",
-  },
   ...(BLOG_RELEASE_ENABLED ? [{ href: "/blog", label: "Blog" }] : []),
   {
     href: "/about",

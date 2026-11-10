@@ -29,10 +29,6 @@ export default function Footer() {
                 Categories
               </Link>
 
-              <Link href="/resources" className={linkClass}>
-                Resources
-              </Link>
-
               {BLOG_RELEASE_ENABLED && (
                 <Link href="/blog" className={linkClass}>Blog</Link>
               )}
