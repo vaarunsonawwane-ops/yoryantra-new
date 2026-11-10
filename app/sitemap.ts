@@ -17,7 +17,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/categories/security-tools",
     "/categories/seo-tools",
     "/categories/devops-tools",
-    "/resources",
     "/developers",
     "/devops-resources",
     "/encoding-guides",

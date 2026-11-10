@@ -236,9 +236,6 @@ export default function Page() {
           <Link href="/categories/developer-tools" className="yoryantra-btn-outline">
             Browse Developer Tools
           </Link>
-          <Link href="/resources" className="yoryantra-btn-outline">
-            All Resource Guides
-          </Link>
         </div>
       </section>
     </main>

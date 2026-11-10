@@ -122,7 +122,6 @@ export default function Page() {
         <div className="mt-12 flex flex-wrap gap-3">
           <Link href="/categories/seo-tools" className="yoryantra-btn-outline">Browse SEO Tools</Link>
           <Link href="/developers" className="yoryantra-btn-outline">Developer Workflows</Link>
-          <Link href="/resources" className="yoryantra-btn-outline">All Resource Guides</Link>
         </div>
       </section>
     </main>

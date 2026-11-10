@@ -17,3 +17,6 @@
 /tools/ndjson-formatter-validator /tools/json-lines-to-json-converter 301
 /tools/jwt-decoder /tools/jwt-claims-inspector 301
 /tools/jwt-expiration-checker /tools/jwt-claims-inspector 301
+/resources / 308
+/resources/ / 308
+/resources.html / 308

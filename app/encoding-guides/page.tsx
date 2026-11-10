@@ -183,7 +183,6 @@ export default function Page() {
 
         <div className="mt-12 flex flex-wrap gap-3">
           <Link href="/categories/encoding-tools" className="yoryantra-btn-outline">Browse Encoding Tools</Link>
-          <Link href="/resources" className="yoryantra-btn-outline">All Resource Guides</Link>
         </div>
       </section>
     </main>

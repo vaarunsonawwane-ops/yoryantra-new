@@ -160,7 +160,6 @@ export default function Page() {
         <div className="mt-12 flex flex-wrap gap-3">
           <Link href="/categories/devops-tools" className="yoryantra-btn-outline">Browse DevOps Tools</Link>
           <Link href="/json-guides" className="yoryantra-btn-outline">JSON & Data Guides</Link>
-          <Link href="/resources" className="yoryantra-btn-outline">All Resource Guides</Link>
         </div>
       </section>
     </main>

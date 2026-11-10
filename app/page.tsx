@@ -279,12 +279,6 @@ export default function HomePage() {
             ))}
           </div>
 
-          <Link
-            href="/resources"
-            className="mt-8 inline-flex text-sm font-semibold text-[var(--green)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2"
-          >
-            Browse all resources →
-          </Link>
         </div>
       </section>
 
