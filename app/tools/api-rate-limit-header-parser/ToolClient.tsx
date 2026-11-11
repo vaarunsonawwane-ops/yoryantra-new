@@ -150,7 +150,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="API Rate Limit Header Parser"
-      description="Interpret current and provider-specific rate-limit headers without guessing ambiguous reset semantics."
+      description="Check your API request limits, how many requests are left and when you can send more requests. Paste your API response headers to see the details."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block mb-2 text-sm font-medium text-gray-700">API Response Headers</label>
@@ -164,7 +164,7 @@ export default function ToolClient() {
           className="w-full min-h-[380px] rounded-xl border border-gray-300 p-4 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
         <p className="mt-2 text-sm text-gray-500">
-          Paste headers from curl, browser DevTools, Postman, an API client, or gateway logs. The parser runs locally in your browser.
+          Paste your API response headers from Postman, curl or browser DevTools.
         </p>
       </div>
 
@@ -244,7 +244,7 @@ export default function ToolClient() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          The reset-format choice applies only to legacy or provider-specific reset values. Current draft RateLimit t values are seconds.
+          Use Auto-detect to read common rate limit headers. For older or API-specific reset values, choose the format under Legacy Reset Format. The t value in the newer RateLimit header uses seconds.
         </p>
       </div>
 
@@ -271,7 +271,7 @@ export default function ToolClient() {
       {result && (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
           <h3 className="text-lg font-semibold text-gray-900">Parsed Rate Limit Headers</h3>
-          <p className="mt-2 text-sm text-gray-500">Header values and derived rate limit details from the pasted response.</p>
+          <p className="mt-2 text-sm text-gray-500">Review the rate limit details found in your headers.</p>
 
           <div className="mt-4 overflow-auto rounded-xl border border-gray-200">
             <table className="w-full min-w-[860px] text-left text-sm">
@@ -325,88 +325,93 @@ export default function ToolClient() {
         </div>
 
         <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">
-          {output || "Parsed API rate limit output will appear here."}
+          {output || "Your results will appear here after you parse the headers."}
         </pre>
       </div>
 
       <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-        Rate limit header formats vary across APIs and gateways. Always check the provider documentation for exact semantics before building retry logic.
+        Check your API's documentation before using these results to decide when to retry a request.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Rate-limit headers are not one universal format</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Which rate limit headers can you check?</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            APIs expose quota information in several incompatible ways. The current IETF HTTPAPI work is centered on
-            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">RateLimit</code> and
-            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">RateLimit-Policy</code> structured fields,
-            while many deployed APIs still use older RateLimit-* or X-RateLimit conventions.
+            The tool reads headers such as <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">RateLimit</code>,
+            <code className="mx-1 rounded bg-gray-100 px-1 py-0.5 text-sm">RateLimit-Policy</code>,
+            X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset and Retry-After.
+            It also supports older RateLimit-* headers.
           </p>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            That difference matters most for time values. In the current draft, the <code className="rounded bg-gray-100 px-1 py-0.5 text-sm">t</code>
-            parameter is an effective window in seconds. X-RateLimit-Reset has no single cross-provider meaning, so the parser
-            will not silently guess a provider-specific reset format when it is ambiguous.
+            These headers can show request limits, requests left and waiting times. The results depend on what your API provides.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">What the parser derives</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Understand the results</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Current draft fields can expose a policy identifier, allocated quota, available quota, and effective window.
-            Older split fields can expose limit and remaining values directly. Retry-After is handled separately because it
-            can be either delay-seconds or an HTTP date and takes precedence over quota-window hints when a server asks the client to wait.
+            Check how many requests your API allows and how many are left.
+            For example, if your API reports a limit of 100 requests with 20 remaining, it means 20 requests are left under that limit at the time of the response.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            If you see <code className="rounded bg-gray-100 px-1 py-0.5 text-sm">Retry-After</code>, check how long the API asks you to wait before making another request.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Provider-specific reset values need an explicit choice</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Check reset times</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Some X-RateLimit APIs use Unix seconds, others use a delay, and some publish a date-time. Auto mode recognizes
-            GitHub-style epoch resets when the resource field identifies that convention; otherwise an ambiguous numeric reset
-            stays unresolved until you choose its format.
+            Some APIs use <code className="rounded bg-gray-100 px-1 py-0.5 text-sm">X-RateLimit-Reset</code> to provide a reset time.
+            It may be a Unix timestamp, a number of seconds or a date. If the tool cannot identify the format, select the one used by your API.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            The tool can also recognise GitHub-style reset times when the matching resource header is available.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            For the newer <code className="rounded bg-gray-100 px-1 py-0.5 text-sm">RateLimit</code> header, the <code className="rounded bg-gray-100 px-1 py-0.5 text-sm">t</code> value gives a time window in seconds. Your API may still limit requests after that time.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">A remaining value is a hint, not a promise</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Check your remaining requests</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            A positive remaining quota does not guarantee that the next request will succeed. Servers can apply several limits,
-            change capacity dynamically, or throttle for reasons not represented by these fields. Treat the numbers as input to
-            conservative scheduling rather than permission to consume the quota as fast as possible.
+            Use the remaining request count to plan when to send more requests.
+            Your API may have several limits, such as 100 requests per minute and 1,000 requests per hour. Reaching either limit can stop your request.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Check the latest response if your request fails.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Sensitive response metadata</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Keep your headers private</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Parsing happens in the browser, but pasted header dumps can still contain request identifiers, account-specific quota
-            names, cookies, authorization data, or internal gateway metadata. Remove unrelated secrets before sharing copied output.
+            Response headers can contain cookies, tokens and account details. The tool processes your headers in your browser.
+            Remove private information before sharing your headers or results.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Standards and live specification status</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Standards and references</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Retry-After semantics come from{" "}
-            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after" target="_blank" rel="noreferrer">RFC 9110</a>,
-            and HTTP 429 is defined by{" "}
-            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc6585.html#section-4" target="_blank" rel="noreferrer">RFC 6585</a>.
-            The newer RateLimit / RateLimit-Policy design is still an active IETF Internet-Draft, not a published RFC, so its syntax can change before standardization.{" "}
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after" target="_blank" rel="noreferrer">RFC 9110</a> explains the Retry-After header.
+            <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://www.rfc-editor.org/rfc/rfc6585.html#section-4" target="_blank" rel="noreferrer">RFC 6585</a> defines the HTTP 429 Too Many Requests response.
+            The newer RateLimit and RateLimit-Policy headers are described in an IETF draft that is still being developed.{" "}
             <a className="font-medium text-[var(--green)] underline-offset-4 hover:underline" href="https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/" target="_blank" rel="noreferrer">Follow the current HTTPAPI draft</a>.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Questions that affect retry code</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Common questions about API rate limits</h2>
           <div className="mt-5 space-y-6">
-            <Faq title="Why is my X-RateLimit-Reset value not converted automatically?">
-              Because that field is provider-specific. A numeric value can mean epoch seconds or a delay, so guessing can produce a dangerously wrong retry time.
+            <Faq title="Why isn't my X-RateLimit-Reset value converted automatically?">
+              APIs use different reset time formats. Select the format used by your API under Legacy Reset Format.
             </Faq>
-            <Faq title="Should Retry-After override a RateLimit window?">
-              When both are present, follow Retry-After for the requested wait. Quota fields can still help shape the request rate after that delay.
+            <Faq title="Should I use Retry-After or RateLimit?">
+              Use Retry-After to check how long you should wait before retrying. Use the rate limit values to plan your other requests.
             </Faq>
-            <Faq title="Does a parsed quota prove how the server will throttle me?">
-              No. The server remains authoritative, and multiple or dynamic quota policies can affect later requests.
+            <Faq title="Why am I getting a 429 error when I still have requests left?">
+              Your API may have another request limit, or its limits may have changed. Check the latest API response and your provider's documentation.
             </Faq>
           </div>
         </div>

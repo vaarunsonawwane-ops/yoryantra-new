@@ -1080,7 +1080,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Robots.txt Tester"
-      description="Compare a URL path with robots.txt Allow/Disallow rules using RFC 9309 group selection, percent-encoding rules and longest-match precedence, with a separate Google-style full User-Agent mode."
+      description="Enter your robots.txt rules, choose a crawler and test a URL or path. See whether crawling is allowed and which Allow or Disallow rule applies. You can check using RFC 9309 product-token matching or Google-style User-Agent matching."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(330px,0.85fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -1344,7 +1344,7 @@ export default function ToolClient() {
       <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            The First Question Is “Which Group Applies?”
+            Find the rules for your crawler
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             RFC 9309 describes crawlers using a product token such as{" "}
