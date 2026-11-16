@@ -52,7 +52,7 @@ type ConversionResult = {
 };
 
 const SAMPLE_INPUT = `{
-  "name": "Asha",
+  "name": "Sneha",
   "active": true,
   "tags": ["api", "forms", "debugging"],
   "profile": {
@@ -487,6 +487,9 @@ function buildFormDataCode(fields: FieldRow[]) {
 
 function buildFetchCode(fields: FieldRow[]) {
   return [
+    '// Replace this example URL with your API endpoint.',
+    'const url = "https://api.example.com/submit";',
+    "",
     buildFormDataCode(fields),
     "",
     "fetch(url, {",
@@ -494,8 +497,7 @@ function buildFetchCode(fields: FieldRow[]) {
     "  body: formData,",
     "});",
     "",
-    "// Do not manually set Content-Type for browser FormData.",
-    "// The browser adds multipart/form-data with the generated boundary.",
+    "// Let the browser set Content-Type and the multipart boundary.",
   ].join("\n");
 }
 
@@ -596,18 +598,18 @@ function buildIssues(
   if (hasNestedObject(parsed)) {
     issues.push({
       severity: "warning",
-      title: "Nested JSON has no universal form encoding",
+      title: "Check your nested field names",
       message:
-        `Nested objects were flattened with the selected ${options.keyStyle} key style. Your server framework must interpret those field names the same way.`,
+        `Your JSON has nested objects. The tool used ${options.keyStyle === "dot" ? "dots" : "brackets"} in the field names. Check that your API accepts them.`,
     });
   }
 
   if (hasArray(parsed)) {
     issues.push({
       severity: "warning",
-      title: "Array representation is API-specific",
+      title: "Check the array format",
       message:
-        `Arrays use "${options.arrayMode}" mode. Repeated keys, [] suffixes, numeric indexes and JSON-string arrays are all used by real APIs, but none is universal.`,
+        `Your JSON contains arrays. You selected "${options.arrayMode}" mode. Make sure your API accepts this format.`,
     });
   }
 
@@ -615,75 +617,63 @@ function buildIssues(
   if (options.ambiguousKeys.length) {
     issues.push({
       severity: "warning",
-      title: "A source key collides with the flattening syntax",
+      title: "Some field names may conflict",
       message:
-        `${options.ambiguousKeys.length} JSON key${
-          options.ambiguousKeys.length === 1 ? "" : "s"
-        } contain characters used by the selected ${options.keyStyle} path convention: ${options.ambiguousKeys
-          .slice(0, 6)
-          .join(", ")}${options.ambiguousKeys.length > 6 ? "…" : ""}. Confirm how the server distinguishes literal key characters from nested paths.`,
+        `Check these JSON keys: ${options.ambiguousKeys.slice(0, 6).join(", ")}${options.ambiguousKeys.length > 6 ? "…" : ""}. They contain dots or brackets that may also be used for nested fields. Your API might read them differently than you expect.`,
     });
   }
 
   if (options.hasArrayOfObjects && options.arrayMode === "repeat") {
     issues.push({
       severity: "warning",
-      title: "Repeated names can lose array-item grouping",
+      title: "Array items may get mixed together",
       message:
-        "An array contains objects while array mode is set to repeat field names. Multiple object items can flatten into repeated child names without a reliable boundary between one item and the next.",
+        "Your JSON has an array of objects. Repeated field names can make it hard to tell which values belong to each object. Try numbered indexes or JSON text if your API accepts them.",
     });
   }
 
   if (options.duplicateJsonKeys.length) {
     issues.push({
       severity: "warning",
-      title: "Duplicate JSON member names",
+      title: "Duplicate JSON keys found",
       message:
-        `The source repeats ${options.duplicateJsonKeys.join(
-          ", "
-        )}. JSON.parse keeps only the last value for a duplicate name, so earlier source values cannot become form fields.`,
+        `These keys appear more than once: ${options.duplicateJsonKeys.join(", ")}. JavaScript keeps the last value for each repeated key, so earlier values won't appear in the result.`,
     });
   }
 
   if (options.unsafeNumberPaths.length) {
     issues.push({
       severity: "warning",
-      title: "Unsafe JavaScript integer precision",
+      title: "A large number may have lost digits",
       message:
-        `${options.unsafeNumberPaths.length} integer field${
-          options.unsafeNumberPaths.length === 1 ? "" : "s"
-        } exceed JavaScript's safe-integer range after JSON parsing: ${options.unsafeNumberPaths
-          .slice(0, 6)
-          .join(", ")}${
-          options.unsafeNumberPaths.length > 6 ? "…" : ""
-        }. If every digit matters, represent the value as a JSON string before conversion.`,
+        `Check these fields: ${options.unsafeNumberPaths.slice(0, 6).join(", ")}${options.unsafeNumberPaths.length > 6 ? "…" : ""}. The numbers are too large for JavaScript to read safely. If they're IDs, put them inside quotes in your original JSON to keep every digit.`,
     });
   }
 
   if (options.trimStrings) {
     issues.push({
       severity: "note",
-      title: "String trimming is enabled",
+      title: "Spaces were removed",
       message:
-        "Leading and trailing whitespace in JSON strings was removed before form output. Keep trimming off when spaces are meaningful data.",
+        "You've turned on trimming, so spaces at the beginning and end of text values were removed. Turn it off if those spaces matter.",
     });
   }
 
   if (options.nullMode === "omit") {
     issues.push({
       severity: "note",
-      title: "Null fields are omitted",
+      title: "Null fields were left out",
       message:
-        "JSON null values do not appear in the generated form field set. Some APIs distinguish a missing field from an explicitly empty/null-like field.",
+        "You chose to skip null values, so those fields won't appear in the result. Some APIs treat a missing field differently from an empty field.",
     });
   }
 
   if (!fields.length) {
     issues.push({
       severity: "warning",
-      title: "No form fields generated",
+      title: "No fields were created",
       message:
-        "The JSON object produced no scalar form fields under the selected null/array/empty-string rules.",
+        "There are no fields to show. Check your JSON and the options you've selected. Empty objects, empty arrays and skipped values can leave you with no fields.",
     });
   }
 
@@ -698,11 +688,9 @@ function buildIssues(
   if (fileLike.length) {
     issues.push({
       severity: "warning",
-      title: "File-like fields are still strings",
+      title: "Add the actual file if you're uploading one",
       message:
-        `${fileLike.length} generated field${
-          fileLike.length === 1 ? " looks" : "s look"
-        } file-related. JSON text cannot create a browser File/Blob upload automatically.`,
+        `${fileLike.length} field${fileLike.length === 1 ? " may be" : "s may be"} related to a file. The tool keeps these values as text. To upload a file, add a File or Blob in JavaScript, or use cURL's file upload option.`,
     });
   }
 
@@ -712,27 +700,27 @@ function buildIssues(
   ) {
     issues.push({
       severity: "note",
-      title: "FormData values become strings unless they are Blob/File",
+      title: "Numbers and true/false become text",
       message:
-        "Numbers and booleans are serialized here as text intentionally. Browser FormData.append() converts non-Blob values to strings.",
+        "FormData stores numbers and true/false values as text. For example, true becomes the text \"true\". Add a real File or Blob separately if you need to upload one.",
     });
   }
 
   if (options.outputMode === "urlencoded") {
     issues.push({
       severity: "note",
-      title: "URL-encoded output uses form encoding",
+      title: "URL-encoded output is for text fields",
       message:
-        "application/x-www-form-urlencoded represents field pairs as text and encodes spaces as +. It cannot represent binary file parts like multipart/form-data can.",
+        "This format uses + for spaces and encodes special characters. It sends text fields, not file uploads. Check that your API accepts application/x-www-form-urlencoded.",
     });
   }
 
   if (options.outputMode === "multipart") {
     issues.push({
       severity: "note",
-      title: "Multipart output is a preview",
+      title: "This is a multipart preview",
       message:
-        "The boundary/body preview demonstrates multipart field framing. Browser FormData chooses its own boundary, and real file parts need filename/content-type plus actual bytes.",
+        "The preview shows how the fields are separated. Your browser will create its own boundary when it sends FormData. To upload a file, add the actual file bytes separately.",
     });
   }
 
@@ -767,7 +755,7 @@ function convertJson(options: {
     Array.isArray(parsed)
   ) {
     throw new Error(
-      "The top-level JSON value must be an object. Form field names are generated from object properties."
+      "Your JSON must start with an object, like {\"name\": \"Sneha\"}. The tool uses its keys to make form fields."
     );
   }
 
@@ -924,7 +912,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="JSON to FormData Converter"
-      description="JSON and form submissions use different data models. Choose how nested objects, arrays, nulls, and scalar values should become form fields."
+      description="Turn your JSON into FormData for API requests. Just paste in your JSON, decide what to do with nested objects, arrays and null values, and then copy the result."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -932,9 +920,10 @@ export default function ToolClient() {
             JSON object
           </label>
           <p className="mt-1 text-sm leading-relaxed text-gray-500">
-            Paste a request model, frontend state object or API example. The
-            top-level value must be an object so property names can become form
-            field names.
+            Enter the JSON code you want to change. This can be from a program
+            you're working on, an example from an API, or your own information.
+            Your JSON must start with an object, like {"{}"}. The tool uses its
+            keys to make form fields.
           </p>
           <textarea
             value={input}
@@ -1039,7 +1028,7 @@ export default function ToolClient() {
               clearResult();
             }}
             title="Trim leading/trailing spaces"
-            text="Off by default because whitespace can be meaningful form data."
+            text="Off by default. Sometimes the spaces at the start or end of a value matter."
           />
           <Toggle
             checked={includeEmptyStrings}
@@ -1047,8 +1036,8 @@ export default function ToolClient() {
               setIncludeEmptyStrings(checked);
               clearResult();
             }}
-            title="Keep empty string fields"
-            text="Turn this off only if the target API treats an empty field the same as a missing field."
+            title="Keep empty strings from JSON"
+            text="Turn this off to skip empty text values in your JSON. Null values use the separate JSON null option."
           />
         </div>
       </div>
@@ -1098,8 +1087,9 @@ export default function ToolClient() {
                   Generated output
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  The representation follows the selected flattening rules; it
-                  is not an assertion that your server uses those rules.
+                  The results of your conversion will show up here. You can copy
+                  the form fields, JavaScript code, or whichever output you chose.
+                  Check the field names before using them in your API request.
                 </p>
               </div>
 
@@ -1119,7 +1109,7 @@ export default function ToolClient() {
 
           {notes.length ? (
             <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-              <h3 className="font-semibold text-yellow-900">Encoding review</h3>
+              <h3 className="font-semibold text-yellow-900">Things to check</h3>
               <div className="mt-4 space-y-3">
                 {notes.map((issue, index) => (
                   <div
@@ -1136,6 +1126,12 @@ export default function ToolClient() {
 
           {result.fields.length ? (
             <div className="mt-6 overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+              {result.fields.length > 80 ? (
+                <p className="border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                  Showing the first 80 of {result.fields.length} fields here.
+                  The generated output above has all {result.fields.length} fields.
+                </p>
+              ) : null}
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50 text-left text-gray-600">
                   <tr>
@@ -1159,219 +1155,336 @@ export default function ToolClient() {
         </div>
       ) : (
         <pre className="yoryantra-output mt-8 min-h-[300px] whitespace-pre-wrap break-words text-sm">
-          Flattened fields, FormData code, form-encoded output or multipart
-          preview will appear here.
+          Your converted fields or code will show up here.
         </pre>
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        The pasted JSON is converted in your browser. No form submission, Fetch
-        request, or cURL command is run. Site-wide analytics or advertising
-        scripts, if enabled, are separate from the conversion step.
+        Your JSON is converted right in your browser. The tool doesn't send
+        your JSON to an API or run any code it generates. Website analytics
+        and ads, if they're turned on, work on their own and don't affect
+        the conversion.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
-            JSON and Form Data Do Not Describe the Same Shapes
+            How JSON becomes FormData
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON has objects, arrays, numbers, booleans, strings, and null.
-            Browser FormData is an ordered list of names whose values are
-            strings or Blob/File objects. There is no built-in FormData type for
-            a nested object and no universal rule that says how an array should
-            be flattened.
+            JSON is pretty flexible - it can hold all sorts of things like text,
+            numbers, and even objects and arrays. FormData is a different story
+            though. It uses names for fields, and these fields can contain text
+            or files.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            That gap is where most integration bugs happen. Decide the field
-            naming convention from the server contract first, then generate the
-            request body to match it.
+            So, let's say you have a basic JSON object with a name and an email -
+            that can easily turn into two form fields. But things get tricky
+            when your JSON has nested objects or lists. Then you have to figure
+            out what to call those fields.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            So the tool offers a few choices. This way, you can pick the format
+            that fits with your API. Numbers and true/false values are sent as text.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
-            Pick a Field Naming Convention the Server Actually Parses
+            How to handle nested objects
           </h2>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            Names such as <code>profile.role</code> and
-            <code>profile[role]</code> are conventions used by frameworks and
-            form parsers. HTTP does not assign nesting semantics to either one.
-            A server can just as easily treat the brackets or dot as literal
-            characters in the field name.
+            Let's say your JSON looks like this:
+          </p>
+          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`{
+  "profile": {
+    "role": "developer"
+  }
+}`}</pre>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            You can change it to one of these field names:
+          </p>
+          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`profile.role=developer
+
+or
+
+profile[role]=developer`}</pre>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            Some APIs use dots to show nested data, while others use brackets.
+            This is pretty standard - you'll see both ways used a lot.
           </p>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            Literal JSON keys can also collide with a flattening convention. A
-            source key named <code>profile.role</code> becomes ambiguous when a
-            dot is also being used to mean “nested property.” Rename the field,
-            choose a different contract, or confirm how the receiving parser
-            resolves that ambiguity.
+            Something to keep in mind is that if your original JSON has a key
+            called <code>profile.role</code>, the result might look identical
+            to a field made from a nested object. Take a closer look at how
+            your API reads that field name. You may need to change the key's
+            name or try a different format to get it working.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Arrays Can Lose Structure When They Are Flattened
+            Converting JSON arrays
           </h2>
-          <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`Repeated:
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Arrays can be converted in different ways too. For example,
+            suppose you have:
+          </p>
+          <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`{
+  "tags": ["api", "forms"]
+}`}</pre>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This tool gives you four options to change the array.
+          </p>
+          <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`Repeat the field name:
 tags=api
 tags=forms
 
-Brackets:
+Add brackets:
 tags[]=api
 tags[]=forms
 
-Indexed:
+Use numbered indexes:
 tags[0]=api
 tags[1]=forms
 
-JSON text:
+Keep the array as JSON text:
 tags=["api","forms"]`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
-            All four patterns exist in production APIs. Repeated names match the
-            underlying entry-list model well for simple scalar arrays. Brackets
-            and numeric indexes put extra structure into the field name. JSON
-            text keeps the whole array together but requires a second JSON parse
-            on the server.
+            Different APIs use these formats, so you need to check which one
+            works with yours.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Arrays of objects need extra care. Repeating child names can lose the
-            boundary between item 0 and item 1. Indexed names or a JSON field are
-            usually easier to interpret when object grouping matters.
+            When you're working with arrays that have objects in them, you need
+            to be a bit more careful. If you use the same field names over and
+            over, the server can have trouble knowing which fields go with
+            which object. Numbered indexes can help tell things apart. If your
+            API allows it, you can also keep the whole array as JSON text.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            Let the Browser Add the Multipart Boundary
+            Let your browser handle the multipart boundary
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            When Fetch sends a FormData body, the browser serializes the entries
-            and generates the multipart boundary. Setting
-            <code>Content-Type: multipart/form-data</code> by hand usually leaves
-            out that generated boundary, so the server cannot split the parts
-            correctly.
+            When you use JavaScript Fetch to send FormData, the browser handles
+            the details of splitting it into parts for you. The boundary
+            separates the different fields in the request so the server can
+            read them.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Leave the Content-Type header unset for browser FormData unless you
-            are deliberately constructing the multipart body yourself. A manual
-            multipart preview is useful for reading the framing, not for copying
-            a fixed boundary into Fetch code.
+            You don't have to include the <code>Content-Type: multipart/form-data</code>
+            header on your own. If you set it without the right boundary,
+            it can actually make the request fail. Just include FormData in the
+            body of your Fetch request. The browser will add the right header.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            This tool has a multipart preview that shows you how the fields
+            are put together. The browser creates its own boundary when you
+            actually send FormData.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            URL-Encoded Forms and Multipart Forms Solve Different Problems
+            URL-encoded or multipart form data?
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            <code>application/x-www-form-urlencoded</code> is compact and works
-            well for ordinary text fields, OAuth token requests, and older form
-            endpoints. Spaces are represented as <code>+</code>, and other bytes
-            are percent-encoded using the form encoding algorithm.
+            These two formats are used for sending form data, but they don't
+            work the same way.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            <code>multipart/form-data</code> is built from separate parts and can
-            carry file content as well as text fields. A URL-encoded body cannot
-            represent a browser File or Blob part in the same way.
+            <strong>URL-encoded form data</strong> is great for sending text
+            information. We usually use it for normal forms and API requests,
+            like when we need an OAuth token. Spaces are replaced with
+            <code>+</code> and other characters are encoded so they can be sent.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            <strong>Multipart form data</strong> sends information in separate
+            parts. These parts can contain text or files - it can handle both.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            If your API expects <code>application/x-www-form-urlencoded</code>,
+            choose URL-encoded output. If it expects
+            <code>multipart/form-data</code>, use FormData or the Fetch example
+            the tool creates. The multipart preview shows how the fields are
+            laid out, but it doesn't upload any files.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-5">
           <h2 className="text-xl font-semibold text-red-900">
-            A Filename String Is Not a File Upload
+            Uploading files
           </h2>
           <p className="mt-4 leading-relaxed text-red-900/90">
-            <code>{"{ \"avatar\": \"/tmp/photo.jpg\" }"}</code> contains a
-            path string, not the bytes of the photo. Browser uploads need a File
-            or Blob object. cURL file upload has its own file-reading syntax such
-            as <code>--form avatar=@photo.jpg</code>.
+            Suppose your JSON contains:
+          </p>
+          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`{
+  "avatar": "/tmp/photo.jpg"
+}`}</pre>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            This tells you where a picture is, but it doesn't include the
+            actual picture. To upload it from your browser, add the actual
+            File or Blob to FormData.
           </p>
           <p className="mt-4 leading-relaxed text-red-900/90">
-            Generated cURL fields use <code>--form-string</code> so an input value
-            beginning with <code>@</code> stays text instead of unexpectedly
-            reading a local file. Add an actual file part separately when that is
-            what the endpoint expects.
+            For cURL, you can use:
+          </p>
+          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{"curl --form 'avatar=@photo.jpg' https://example.com/upload"}</pre>
+          <p className="mt-4 leading-relaxed text-red-900/90">
+            This tool uses <code>--form-string</code> when it creates cURL output.
+            That way, if a text field starts with <code>@</code>, it's treated
+            as regular text and not mistaken for a file path. If you need to
+            send a real file with your API, add it separately.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Missing, Empty, and null Can Mean Different Things
+            Handling null and empty values
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON has a real null value. Form fields do not have one universal
-            typed null representation. An update endpoint may treat an omitted
-            field as “leave unchanged,” an empty string as “clear it,” and the
-            text <code>null</code> as five ordinary characters.
+            When you change JSON into form data, you might get fields that are
+            empty or have <code>null</code> in them. The tool gives you three
+            options for <code>null</code>:
+          </p>
+          <ul className="mt-4 list-disc space-y-2 pl-6 leading-relaxed text-gray-600">
+            <li>Send an empty string.</li>
+            <li>Send the text <code>null</code>.</li>
+            <li>Leave the field out.</li>
+          </ul>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Why does this matter?
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Pick the null rule from the endpoint semantics, not from how tidy the
-            generated request looks. The same warning applies to empty strings;
-            dropping them can change meaning when the server distinguishes an
-            empty value from a missing field.
+            So, let's say you're making changes to someone's profile. With
+            some APIs, if you don't include a particular field, it will just
+            stay the same. But here's the thing: if you include that field
+            and it's empty, the API might actually clear the saved value.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The text <code>null</code> may be treated like any other text.
+            So take a look at how your API works with these values before you
+            pick an option. You also get to choose if you want to include
+            empty strings in the result or not.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Large Numeric IDs Are Safer as JSON Strings
+            Working with large numbers
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            JSON number syntax allows integer literals beyond JavaScript&apos;s exact
-            safe-integer range. <code>JSON.parse()</code> produces a JavaScript
-            Number, so a large database ID can lose digits before any form
-            encoding happens.
+            When you're working with JSON and it has a really big number,
+            JavaScript might have trouble reading all the digits right.
+            This is an issue with really long IDs, like order numbers or
+            account numbers, where every single digit is important.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">For example:</p>
+          <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`{
+  "orderId": "9007199254740993"
+}`}</pre>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            When you put the ID in quotes, JavaScript treats it as text,
+            so it keeps all the digits. If you use the same ID as a number
+            in JSON, JavaScript may change its value when it reads it.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            If every digit is an identifier rather than a quantity, send it as a
-            JSON string at the source. Turning an already-rounded Number back
-            into text cannot recover the missing digits.
+            If JavaScript has already changed the number, turning it back into
+            text won't bring the missing digits back. For long IDs, it's
+            generally better to keep them as strings.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
           <h2 className="text-xl font-semibold text-yellow-900">
-            Duplicate JSON Names Disappear During Normal Parsing
+            Check for duplicate JSON keys
           </h2>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            Look at this JSON:
+          </p>
           <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`{
   "tag": "first",
   "tag": "second"
 }`}</pre>
           <p className="mt-4 leading-relaxed text-yellow-900/90">
-            JavaScript keeps one <code>tag</code> property after parsing, so the
-            two source members cannot later become two form fields. Duplicate
-            names are flagged before the main parse so that overwrite risk stays
-            visible.
+            The key <code>tag</code> appears twice. When JavaScript reads the
+            JSON, it uses the last value it finds, which in this case is
+            <code>second</code>. So the first value just gets lost.
+          </p>
+          <p className="mt-4 leading-relaxed text-yellow-900/90">
+            This tool looks at your JSON to see if you have any keys that are
+            the same. If it finds duplicates, it will show a warning, so you
+            can fix them before using the converted result.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            Specifications Behind the Encoding
+            When your API rejects the converted data
           </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            The converted data might look fine, but for some reason, the API
+            still gives an error. This can be really confusing because
+            everything seems okay, yet it just doesn't work.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Start by looking at the error message your API gives you. This
+            message might say what's wrong or what's missing.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Next, check the fields you've converted to see if they match what
+            the API is looking for. Make sure to look closely at nested field
+            names, arrays, and empty values too.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            If you get an HTTP 415 error, take a look at how you're sending
+            the request. Your API might need JSON, URL-encoded form data or
+            multipart form data. Check the format it accepts.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            When you're making a Fetch request with FormData, just let the
+            browser handle the multipart header. If you're uploading a file,
+            double-check that you're sending the file itself, not just its name.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            Try sending just a couple of fields to start. If they work okay,
+            then add the rest and see where things go wrong.
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Technical references
+          </h2>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            To get a better grasp of FormData, it's helpful to look at the
+            standards that make it work. These standards explain how FormData
+            functions in more detail.
+          </p>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <ReferenceCard
               title="XMLHttpRequest Standard — FormData"
               href="https://xhr.spec.whatwg.org/#interface-formdata"
-              text="Defines FormData as an ordered entry list and the append() behavior for string and Blob/File values."
+              text="FormData stores field names with text or file values. It also has append(), which lets you add another field or file."
             />
             <ReferenceCard
               title="Fetch Standard"
               href="https://fetch.spec.whatwg.org/"
-              text="Defines how a FormData request body is serialized and how the multipart/form-data boundary is generated."
+              text="Explains how browsers send FormData in HTTP requests and generate multipart boundaries."
             />
             <ReferenceCard
               title="RFC 7578 — multipart/form-data"
               href="https://www.rfc-editor.org/rfc/rfc7578"
-              text="Defines multipart boundaries, Content-Disposition form-data parts, field names, and file parts."
+              text="Explains how multipart requests send form fields and files, including field names, filenames and boundaries."
             />
           </div>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            When the Server Still Rejects the Payload
+            Related Tools
           </h2>
           <YoryantraRelatedTools currentHref="/tools/json-to-form-data-converter" />
         </div>
