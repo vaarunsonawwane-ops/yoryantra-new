@@ -523,7 +523,7 @@ function parseSecretDocument(
 
   if (effectiveDataBytes > 1024 * 1024) {
     notes.push(
-      `Decoded effective Secret data is already ${effectiveDataBytes} bytes, which exceeds Kubernetes' 1 MiB Secret size limit before object metadata/serialization overhead is considered.`
+      `Decoded Secret data totals ${effectiveDataBytes} bytes, above Kubernetes' 1 MiB Secret data limit.`
     );
   }
 
@@ -810,7 +810,7 @@ export default function ToolClient() {
   return (
     <ToolShell
       title="Kubernetes Secret Decoder"
-      description="Kubernetes Secret data is stored as Base64-encoded bytes. Parse the YAML, inspect data and stringData, and keep decoded values masked until you need to read them."
+      description="When you open a Kubernetes Secret YAML file, you&apos;ll usually see the values under data written in Base64. To read those values, you need to decode them."
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -818,9 +818,9 @@ export default function ToolClient() {
             Kubernetes YAML
           </label>
           <p className="mt-1 text-sm leading-relaxed text-gray-500">
-            Single- or multi-document YAML is supported. Quoted scalars, block
-            scalars, anchors and normal YAML syntax are parsed by the project&apos;s
-            YAML library rather than a hand-written line parser.
+            The project supports YAML in single or multiple documents. It uses
+            the project&apos;s YAML library to parse quoted scalars, block scalars,
+            anchors, and other normal YAML syntax instead of using a custom line parser.
           </p>
           <textarea
             value={input}
@@ -851,16 +851,19 @@ export default function ToolClient() {
             />
             <span>
               <strong>Mask decoded values.</strong>{" "}
-              Enabled by default so a successful decode does not immediately
-              expose credentials during screen sharing or screenshots.
+              When you decode a Secret, the values stay hidden by default. You
+              can show them whenever you need to check something. Just remember
+              that the original YAML is still visible in the input box, so be
+              careful when sharing your screen.
             </span>
           </label>
 
           <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
-            Base64 is not encryption. A Secret manifest can contain production
-            credentials, private keys, registry passwords or tokens. Prefer
-            placeholders during testing and avoid copying unmasked output into
-            tickets or chat.
+            Base64 isn&apos;t a way to keep things secret. A secret file can have
+            important info like passwords, private keys, or special tokens for
+            getting into systems. When you&apos;re testing, use fake info instead
+            of the real thing, and don&apos;t copy the actual details into help
+            tickets or chat rooms.
           </div>
         </div>
       </div>
@@ -1026,52 +1029,56 @@ export default function ToolClient() {
         </div>
       ) : (
         <pre className="yoryantra-output mt-8 min-h-[300px] whitespace-pre-wrap break-words text-sm">
-          Parsed Secret metadata, masked decoded values, binary-field previews
-          and type-specific review notes will appear here.
+          This is where you&apos;ll see secret metadata, decoded values that have
+          been hidden, previews of binary fields, and notes about the types of
+          data being reviewed.
         </pre>
       )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        The pasted manifest is parsed and decoded in your browser. No Kubernetes
-        API request is made. Site-wide analytics or advertising scripts, if
-        enabled, are separate from the parsing and Base64 decoding steps.
+        The tool reads and decodes your YAML right in your browser. It doesn&apos;t
+        connect to your Kubernetes cluster or make any Kubernetes API requests.
+        If the site is tracking visits or running ads, that&apos;s a separate thing
+        and doesn&apos;t affect how the information is decoded.
       </div>
 
       <section className="mt-12 border-t border-gray-200 pt-10">
-        <div>
+        <div className="mt-12">
           <h2 className="text-2xl font-semibold text-gray-900">
             Parse the YAML Before Decoding Base64
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Kubernetes manifests are YAML documents, not a collection of lines
-            that can be split safely at every colon. Quoted values can contain
-            <code>#</code>, block scalars can span several lines, anchors can
-            reuse nodes, and YAML parsing decides whether an unquoted value
-            becomes a string, number, boolean, array, or mapping.
+            Kubernetes manifests are written in YAML, which is a type of document. You can&apos;t just
+            split these documents into lines at every colon, because that won&apos;t always work. This
+            is because values can be quoted and still have special characters like <code>#</code>, or
+            they can take up several lines. There&apos;s also a feature that lets you reuse parts of
+            the document, and how YAML is parsed determines what type of data something is - like a
+            string, a number, or false, a list, or a group of key-value pairs.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Base64 decoding only makes sense after those YAML rules have been
-            applied. If <code>data</code> or <code>stringData</code> contains a
-            non-string value, fix the YAML first instead of trying to decode a
-            value Kubernetes would not accept as a Secret string entry.
+            You need to apply the YAML rules first before you can decode something using Base64. This
+            is because if your <code>data</code> or <code>stringData</code> has something that
+            isn&apos;t a string, you should fix the YAML instead of trying to decode it - Kubernetes
+            won&apos;t accept it as a Secret string anyway.
           </p>
         </div>
 
         <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-xl font-semibold text-gray-900">
-            data and stringData Are Two Authoring Paths to the Same Stored Data
+            How data and stringData work in Kubernetes Secrets
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Values under <code>data</code> are Base64-encoded representations of
-            arbitrary bytes. <code>stringData</code> accepts ordinary strings as
-            write-time input and Kubernetes merges them into <code>data</code>.
-            <code>stringData</code> is not returned when the Secret is later read
-            from the API.
+            So, the values under <code>data</code> are coded in a special way called Base64, which can
+            handle any kind of bytes. The <code>stringData</code> field is where you can put regular
+            text when you&apos;re creating something, and Kubernetes will combine it with the
+            <code>data</code>. But here&apos;s the thing: when you go back to get the Secret from the
+            API later, the <code>stringData</code> part won&apos;t be there.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            If the same key appears in both sections, the stringData value wins.
-            That matters during troubleshooting because the Base64 value visible
-            under <code>data</code> may not be the value that is finally stored.
+            When the same key shows up in two places, the <code>stringData</code> value takes priority.
+            This is important to remember when you&apos;re trying to figure out what&apos;s going
+            wrong, because the Base64 value you see under <code>data</code> might not be the one
+            that&apos;s actually saved.
           </p>
         </div>
 
@@ -1080,17 +1087,16 @@ export default function ToolClient() {
             Base64 Is Not a Security Boundary
           </h2>
           <p className="mt-4 leading-relaxed text-gray-700">
-            Base64 changes representation; it does not provide confidentiality.
-            Anyone who can read the encoded bytes can normally recover the
-            original password, token, certificate, private key, or application
-            value.
+            Base64 just changes how something looks, it doesn&apos;t keep it secret. If someone can
+            read the coded message, they can usually figure out the original password, token, or other
+            important info like a private key or certificate.
           </p>
           <p className="mt-4 leading-relaxed text-gray-700">
-            Real protection comes from access control, API authorization, Secret
-            distribution, workload isolation, and encryption-at-rest choices.
-            Keeping decoded values masked reduces accidental exposure on screen,
-            but it does not make a production credential safe to paste into an
-            unrelated system.
+            To really stay safe, you need to control who can access your stuff, make sure your APIs are
+            secure, keep secrets hidden, separate your work, and encrypt things when they&apos;re not
+            being used. Hiding sensitive info on screens is a good idea, but it&apos;s not enough to
+            keep your important credentials safe if you copy and paste them into another system by
+            mistake.
           </p>
         </div>
 
@@ -1099,15 +1105,14 @@ export default function ToolClient() {
             Not Every Decoded Value Is Text
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Secret data is a byte map. Certificates, key material, compressed
-            data, and application blobs can contain byte sequences that are not
-            valid UTF-8. Forcing those bytes through a forgiving text decoder can
-            replace invalid sequences and hide the actual content.
+            Some Secrets contain text, while others contain files, certificates, keys, or other binary
+            data. When you decode them, the result may not always look like readable text. That&apos;s
+            normal because some files contain bytes that aren&apos;t meant to be displayed as text.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Valid UTF-8 is shown as text. Other byte sequences are shown by byte
-            count with a hexadecimal preview, which is safer than pretending
-            arbitrary binary data is readable text.
+            If the decoded data contains valid UTF-8 text, the tool shows it normally. If it contains
+            binary data that can&apos;t be read as UTF-8, you&apos;ll see the number of bytes and a hex
+            preview instead.
           </p>
         </div>
 
@@ -1116,44 +1121,44 @@ export default function ToolClient() {
             Built-In Secret Types Add Key-Level Rules
           </h2>
           <p className="mt-4 leading-relaxed text-gray-700">
-            <code>Opaque</code> allows application-defined keys. Built-in types
-            add expectations: TLS uses <code>tls.crt</code> and
-            <code>tls.key</code>; Docker config uses
-            <code>.dockerconfigjson</code> or <code>.dockercfg</code>; SSH auth
-            uses <code>ssh-privatekey</code>; basic auth uses
-            <code>username</code> and/or <code>password</code> according to the
-            Kubernetes type rules.
+            <code>Opaque</code> lets you use your own keys. Some built-in types have specific
+            requirements: for example, TLS needs a <code>tls.crt</code> and a <code>tls.key</code>,
+            while Docker config uses either <code>.dockerconfigjson</code> or <code>.dockercfg</code>.
+            Then there&apos;s SSH auth, which uses an <code>ssh-privatekey</code>, and basic auth,
+            which uses a <code>username</code> and/or <code>password</code> - all based on the rules
+            set by Kubernetes.
           </p>
           <p className="mt-4 leading-relaxed text-gray-700">
-            Required key names are only the first check. Their presence does not
-            prove that a TLS key matches its certificate, a registry login works,
-            or an SSH private key is appropriate for the host you plan to trust.
+            First, you need to check if you have the right key names. But just having them doesn&apos;t
+            mean everything is okay. It doesn&apos;t check if your TLS key is a good match for its
+            certificate, or if your registry login will work, or even if your SSH private key is
+            suitable for the host you want to trust.
           </p>
         </div>
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
-            YAML Can Change the Type You Thought You Wrote
+            YAML Can Change the Data Type You Thought You Specified
           </h2>
-          <pre className="mt-4 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`stringData:
+          <p className="mt-4 text-sm font-medium text-gray-700">Without quotes</p>
+          <pre className="mt-2 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`stringData:
   enabled: true
-  pin: 012345
-
-When strings are intended:
-stringData:
+  pin: 012345`}</pre>
+          <p className="mt-4 text-sm font-medium text-gray-700">When you want both values to be strings</p>
+          <pre className="mt-2 overflow-auto rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-800">{`stringData:
   enabled: "true"
   pin: "012345"`}</pre>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Secret <code>data</code> and <code>stringData</code> are string-keyed
-            maps in the Kubernetes API. If YAML produces a boolean, number,
-            array, or mapping where a string is expected, the manifest can fail
-            before Base64 decoding is even relevant.
+            In Kubernetes, we have two types of maps: secret <code>data</code> and
+            <code>stringData</code>. These maps use strings as keys. Sometimes, when we use YAML, it
+            can cause problems if it gives us a true/false value, a number, a list, or a map when it
+            should give us a string. This can make our manifest fail, and it happens before the system
+            even tries to decode anything using Base64.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Secret keys have their own restriction too: only alphanumeric
-            characters, <code>-</code>, <code>_</code>, and <code>.</code> are
-            allowed. A YAML parser can accept a wider key, but the Kubernetes API
-            will not necessarily accept that Secret entry.
+            Secret keys have some rules too - they can only use letters, numbers, <code>-</code>,
+            <code>_</code>, and <code>.</code>. A YAML parser might accept other kinds of keys, but
+            that doesn&apos;t mean the Kubernetes API will work with them.
           </p>
         </div>
 
@@ -1162,16 +1167,16 @@ stringData:
             stringData Is Awkward With Server-Side Apply
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Kubernetes documents that <code>stringData</code> does not work well
-            with server-side apply. The field is write-only and is merged into
-            <code>data</code>, so field ownership and later reads do not line up as
-            neatly as they do for ordinary persisted fields.
+            Kubernetes notes that using <code>stringData</code> can be tricky with server-side apply.
+            This field is only for writing and gets mixed into the <code>data</code>, which means it
+            doesn&apos;t always match up nicely when you try to read it back or figure out who owns it,
+            unlike other fields that are saved normally.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            If a GitOps or server-side-apply workflow manages the Secret, decide
-            whether to store Base64 values under <code>data</code> or use a
-            dedicated secret-management system instead of repeatedly fighting
-            write-only field behavior.
+            When you&apos;re using GitOps or a server-side-apply workflow to manage a Secret, you need
+            to figure out if you should store Base64 values under <code>data</code>. Or maybe it&apos;s
+            better to use a separate system to manage your secrets. This way, you can avoid the hassle
+            of dealing with fields that can only be written to, but not read from.
           </p>
         </div>
 
@@ -1180,15 +1185,14 @@ stringData:
             immutable Changes Update Behavior, Not Decoding
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            Setting <code>immutable: true</code> prevents later changes to Secret
-            data. It can also reduce kubelet watch load in clusters with many
-            Secret mounts. It does not change the Base64 representation or the
-            bytes already stored in the Secret.
+            When you set <code>immutable</code> to true, you can&apos;t make any changes to the secret
+            data later on. This can also help reduce the load on the kubelet in big clusters where lots
+            of secrets are mounted. But it won&apos;t affect how the data is stored in the secret - the
+            Base64 representation and the bytes will stay the same.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            An update can therefore fail even when the YAML value itself looks
-            perfectly valid. Check the immutable flag before assuming a rejected
-            change is an encoding problem.
+            So, an update can still fail even if the YAML value seems fine. Make sure to check the
+            <code>immutable</code> flag before thinking a rejected change is just an encoding issue.
           </p>
         </div>
 
@@ -1197,16 +1201,13 @@ stringData:
             Secret Size Has a Hard Limit
           </h2>
           <p className="mt-4 leading-relaxed text-gray-700">
-            Kubernetes limits an individual Secret to 1 MiB. Large certificates,
-            bundles, generated credentials, or application blobs can push a
-            Secret past that boundary faster than expected, especially once the
-            complete API object is serialized.
+            Kubernetes allows up to 1 MiB of data in a single Secret. This limit is based on the actual
+            data stored in the Secret, not the size of the YAML file.
           </p>
           <p className="mt-4 leading-relaxed text-gray-700">
-            If the decoded effective data alone is already over 1 MiB, the
-            manifest is beyond the documented Secret size limit before metadata
-            and serialization overhead are considered. Large non-secret payloads
-            usually belong somewhere else.
+            Large certificates, keys, and other files can quickly add up. If your Secret contains more
+            than 1 MiB of data, Kubernetes will reject it. For large files that aren&apos;t sensitive,
+            it&apos;s better to store them somewhere else.
           </p>
         </div>
 
@@ -1215,49 +1216,48 @@ stringData:
             A Manifest Is Not the Live Cluster
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            The YAML on disk can differ from the object stored in the cluster
-            after templating, GitOps substitution, admission changes, Secret
-            generation, controller updates, or a later deployment. Decoding a
-            pasted manifest answers what that text contains, not what a Pod is
-            reading right now.
+            The YAML file on your computer might not be the same as what&apos;s actually running in the
+            cluster. This can happen after you&apos;ve made changes with templating, GitOps, or updated
+            the controller. Maybe some secrets were added or something changed during deployment. If
+            you decode a manifest you copied, it will show you what&apos;s in that text, but not
+            what&apos;s currently running in a Pod.
           </p>
           <p className="mt-4 leading-relaxed text-gray-600">
-            When live state is the question, use authenticated kubectl or API
-            access and follow the organization&apos;s credential-handling process.
-            Long-lived service-account-token Secrets are also a special case;
-            current Kubernetes guidance prefers short-lived TokenRequest or
-            projected service account tokens for most workloads.
+            If you want to check what&apos;s actually stored in your Kubernetes cluster, you can use
+            <code>kubectl</code> or the Kubernetes API with the access your team has given you. Just
+            make sure you follow your company&apos;s rules when handling passwords, tokens, and other
+            sensitive information.
+          </p>
+          <p className="mt-4 leading-relaxed text-gray-600">
+            There&apos;s a special situation with long-term secret codes for services - usually,
+            it&apos;s better to use short-term codes or special tokens that are linked to a service
+            account, as recommended by Kubernetes for most tasks.
           </p>
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Kubernetes Behavior to Verify
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Kubernetes Behavior to Verify</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <ReferenceCard
               title="Kubernetes Secrets"
               href="https://kubernetes.io/docs/concepts/configuration/secret/"
-              text="data, stringData, built-in Secret types, size limits, immutable Secrets, service account token guidance, and security considerations."
+              text="Things to think about include data, stringData, built-in Secret types, how big they can be, and how immutable Secrets can't be changed. We also need to consider service account tokens and how to keep everything secure."
             />
             <ReferenceCard
               title="Secret v1 API Reference"
               href="https://kubernetes.io/docs/reference/kubernetes-api/core/secret-v1/"
-              text="The API-level fields and types for Secret objects, including data, stringData, immutable, metadata, and type."
+              text="The fields and types at the API level for Secret objects include data, stringData, immutable, metadata, and type."
             />
             <ReferenceCard
               title="Encrypting Confidential Data at Rest"
               href="https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/"
-              text="Explains API-server encryption at rest, which is separate from Base64 representation."
+              text="Kubernetes can encrypt Secret data before storing it, but this depends on how your cluster is configured. Base64 is only used to represent the data, so it shouldn't be confused with encryption."
             />
           </div>
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Check the Rest of the Manifest
-          </h2>
-
+          <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
             <YoryantraRelatedTools currentHref="/tools/kubernetes-secret-decoder" />
           </div>
