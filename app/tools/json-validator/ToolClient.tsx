@@ -4,8 +4,17 @@ import { useMemo, useState, type ReactNode } from "react";
 import ToolShell from "@/app/components/ToolShell";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
+import {
+  prettyPrintJson,
+  minifyJsonTokens,
+  inspectJsonSource,
+  sortJsonKeysSafely,
+  type SortDirection,
+  type OutputSpacing,
+} from "./json-workflow";
 
-type IndentSize = "2" | "4";
+type IndentSize = "2" | "4" | "tab";
+type Operation = "validate" | "format" | "minify" | "sort";
 
 type ValidationResult = {
   rootType: string;
@@ -14,6 +23,10 @@ type ValidationResult = {
   duplicateKeys: string[];
   unsafeIntegers: string[];
   loneSurrogates: number;
+  highPrecisionNumbers: string[];
+  nonFiniteNumbers: string[];
+  inputBytes: number;
+  outputBytes: number;
 };
 
 type JsonErrorDetail = {
@@ -38,6 +51,9 @@ const exampleJson = `{
 export default function ToolClient() {
   const [input, setInput] = useState("");
   const [indentSize, setIndentSize] = useState<IndentSize>("2");
+  const [operation, setOperation] = useState<Operation>("validate");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [sortSpacing, setSortSpacing] = useState<OutputSpacing>("two");
   const [output, setOutput] = useState("");
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<JsonErrorDetail | null>(null);
@@ -72,6 +88,13 @@ export default function ToolClient() {
       );
     }
 
+    if (result.highPrecisionNumbers.length > 0) {
+      next.push(`High-precision decimal or exponent values found: ${result.highPrecisionNumbers.slice(0, 5).join(", ")}. They remain unchanged in formatting and minification, but a JavaScript Number consumer may round them.`);
+    }
+    if (result.nonFiniteNumbers.length > 0) {
+      next.push(`Numbers outside JavaScript's finite range: ${result.nonFiniteNumbers.slice(0, 5).join(", ")}. The original JSON tokens remain intact, but parsing them as JavaScript Number produces Infinity or -Infinity.`);
+    }
+
     return next;
   }, [result]);
 
@@ -82,11 +105,11 @@ export default function ToolClient() {
     setCopied(false);
   };
 
-  const validateJson = () => {
+  const runOperation = () => {
     if (!input.trim()) {
       setError({
         kind: "validation",
-        message: "Please paste JSON to validate.",
+        message: "Please paste JSON to continue.",
         line: null,
         column: null,
         context: "",
@@ -115,13 +138,24 @@ export default function ToolClient() {
     }
 
     try {
+      // Sorting must check the original text BEFORE JSON.parse can lose data.
+      const sortedOutput = operation === "sort"
+        ? sortJsonKeysSafely(input, sortDirection, sortSpacing)
+        : null;
       const parsed = JSON.parse(input) as unknown;
       const cleanSource = input.trim();
       const duplicateKeys = findDuplicateObjectKeys(cleanSource);
       const unsafeIntegers = findUnsafeIntegerTokens(cleanSource);
       const loneSurrogates = countLoneSurrogatesInJsonStrings(cleanSource);
+      const extraDiagnostics = inspectJsonSource(cleanSource);
 
-      setOutput(formatJsonText(cleanSource, Number(indentSize)));
+      const nextOutput = operation === "sort" ? sortedOutput!
+        : operation === "minify" ? minifyJsonTokens(cleanSource)
+        : operation === "format" ? prettyPrintJson(cleanSource, indentSize === "tab" ? "\t" : " ".repeat(Number(indentSize)))
+        : indentSize === "tab" ? prettyPrintJson(cleanSource, "\t")
+        : formatJsonText(cleanSource, Number(indentSize));
+
+      setOutput(nextOutput);
       setResult({
         rootType: describeRootType(parsed),
         charCount: cleanSource.length,
@@ -129,14 +163,18 @@ export default function ToolClient() {
         duplicateKeys,
         unsafeIntegers,
         loneSurrogates,
+        highPrecisionNumbers: extraDiagnostics.highPrecisionNumbers,
+        nonFiniteNumbers: extraDiagnostics.nonFiniteNumbers,
+        inputBytes: new TextEncoder().encode(input).length,
+        outputBytes: new TextEncoder().encode(nextOutput).length,
       });
       setError(null);
       setCopied(false);
     } catch (err) {
-      const nextError = buildJsonErrorDetail(
-        input,
-        err instanceof Error ? err.message : "Invalid JSON."
-      );
+      const message = err instanceof Error ? err.message : "Invalid JSON.";
+      const nextError = operation === "sort"
+        ? { kind: "validation" as const, message, line: null, column: null, context: "", pointer: "" }
+        : buildJsonErrorDetail(input, message);
       setError(nextError);
       setOutput("");
       setResult(null);
@@ -156,7 +194,7 @@ export default function ToolClient() {
       setCopied(false);
       setError({
         kind: "action",
-        message: "The formatted JSON could not be copied. Select it and copy it manually.",
+        message: "The JSON output could not be copied. Select it and copy it manually.",
         line: null,
         column: null,
         context: "",
@@ -173,13 +211,39 @@ export default function ToolClient() {
   const resetAll = () => {
     setInput("");
     setIndentSize("2");
+    setOperation("validate");
+    setSortDirection("asc");
+    setSortSpacing("two");
     clearValidation();
   };
+
+  const downloadOutput = () => {
+    if (!output) return;
+    const blob = new Blob([output], { type: "application/json;charset=utf-8" });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = "yoryantra-json-output.json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+  };
+
+  const useOutputAsInput = () => {
+    if (!output) return;
+    setInput(output);
+    clearValidation();
+  };
+
+  const operationName = operation === "validate" ? "Validate JSON"
+    : operation === "format" ? "Format JSON"
+    : operation === "minify" ? "Minify JSON" : "Sort JSON Keys";
 
   return (
     <ToolShell
       title="JSON Validator"
-      description="Validate JSON syntax, locate parsing errors, pretty-print valid JSON, and review interoperability warnings for duplicate keys and large integer values."
+      description="Validate, format, minify and sort JSON in one place. Inspect syntax errors, duplicate keys and large-number warnings before copying your result."
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <label className="block text-sm font-semibold text-gray-900">JSON Input</label>
@@ -189,7 +253,7 @@ export default function ToolClient() {
 
         <textarea
           value={input}
-          onChange={(event) => {
+          onChange={(event: { target: { value: string } }) => {
             setInput(event.target.value);
             clearValidation();
           }}
@@ -201,28 +265,78 @@ export default function ToolClient() {
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">Output Settings</h3>
-        <div className="mt-4 max-w-sm">
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
           <YoryantraSelect
-            label="Indentation"
-            value={indentSize}
+            label="What do you want to do?"
+            value={operation}
             onChange={(value) => {
-              setIndentSize(value as IndentSize);
+              setOperation(value as Operation);
               clearValidation();
             }}
             options={[
-              { label: "2 spaces", value: "2" },
-              { label: "4 spaces", value: "4" },
+              { label: "Validate JSON", value: "validate" },
+              { label: "Format JSON", value: "format" },
+              { label: "Minify JSON", value: "minify" },
+              { label: "Sort JSON keys", value: "sort" },
             ]}
           />
+          {operation === "validate" || operation === "format" ? (
+            <YoryantraSelect
+              label="Indentation"
+              value={indentSize}
+              onChange={(value) => {
+                setIndentSize(value as IndentSize);
+                clearValidation();
+              }}
+              options={[
+                { label: "2 spaces", value: "2" },
+                { label: "4 spaces", value: "4" },
+                { label: "Tab", value: "tab" },
+              ]}
+            />
+          ) : null}
+          {operation === "sort" ? (
+            <>
+              <YoryantraSelect
+                label="Key order"
+                value={sortDirection}
+                onChange={(value) => {
+                  setSortDirection(value as SortDirection);
+                  clearValidation();
+                }}
+                options={[
+                  { label: "Ascending (UTF-16)", value: "asc" },
+                  { label: "Descending (UTF-16)", value: "desc" },
+                ]}
+              />
+              <YoryantraSelect
+                label="Sorted output spacing"
+                value={sortSpacing}
+                onChange={(value) => {
+                  setSortSpacing(value as OutputSpacing);
+                  clearValidation();
+                }}
+                options={[
+                  { label: "2 spaces", value: "two" },
+                  { label: "4 spaces", value: "four" },
+                  { label: "Compact", value: "compact" },
+                ]}
+              />
+            </>
+          ) : null}
         </div>
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          Formatting is applied to the already-validated source text without re-serializing parsed values, so duplicate keys and original number spellings remain visible in the output.
+          {operation === "sort"
+            ? "Sorting keeps arrays in their original order. It stops if duplicate keys or number conversion would lose data."
+            : operation === "minify"
+            ? "Only extra JSON whitespace is removed. Text inside strings, duplicate names and number spellings are preserved."
+            : "Formatting keeps the JSON's original number spellings and duplicate object keys visible."}
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button type="button" onClick={validateJson} className="yoryantra-btn">
-          Validate JSON
+        <button type="button" onClick={runOperation} className="yoryantra-btn">
+          {operationName}
         </button>
         <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
           Load Example
@@ -235,7 +349,7 @@ export default function ToolClient() {
       {error ? (
         <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           <div className="font-semibold">
-            {error.kind === "validation" ? "JSON is not valid for this parser" : "Action could not be completed"}
+            {error.kind === "validation" ? (operation === "sort" ? "JSON could not be sorted safely" : "JSON validation error") : "Action could not be completed"}
           </div>
           <p className="mt-2 leading-relaxed break-words">{error.message}</p>
           {error.line !== null && error.column !== null ? (
@@ -256,7 +370,7 @@ export default function ToolClient() {
       {result ? (
         <>
           <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
-            <strong>Valid JSON syntax.</strong> The text was accepted by the browser&apos;s JSON parser.
+            <strong>Valid JSON syntax.</strong> {operation === "sort" ? "Keys were sorted successfully." : operation === "minify" ? "Extra whitespace was removed." : "The text was accepted by the browser's JSON parser."}
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -265,6 +379,13 @@ export default function ToolClient() {
             <SummaryCard label="Lines" value={result.lineCount.toLocaleString()} />
             <SummaryCard label="Warnings" value={warnings.length.toLocaleString()} />
           </div>
+          {operation === "minify" ? (
+            <p className="mt-3 text-sm leading-relaxed text-gray-600">
+              Whitespace removed: {Math.max(result.inputBytes - result.outputBytes, 0).toLocaleString()} bytes
+              {result.inputBytes ? ` (${((Math.max(result.inputBytes - result.outputBytes, 0) / result.inputBytes) * 100).toFixed(1)}%)` : ""}.
+              This measures JSON whitespace removed, not gzip or Brotli compression.
+            </p>
+          ) : null}
         </>
       ) : null}
 
@@ -282,22 +403,36 @@ export default function ToolClient() {
       <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Formatted JSON</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{operationName} output</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Appears only after syntax validation succeeds.
+              {result ? `Input ${result.inputBytes.toLocaleString()} bytes · Output ${result.outputBytes.toLocaleString()} bytes` : "The result will appear after the selected action runs."}
             </p>
           </div>
           {output ? (
-            <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">
-              {copied ? "Copied" : "Copy Output"}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">
+                {copied ? "Copied" : "Copy Output"}
+              </button>
+              <button type="button" onClick={downloadOutput} className="yoryantra-btn-outline text-sm">
+                Download JSON
+              </button>
+              <button type="button" onClick={useOutputAsInput} className="yoryantra-btn-outline text-sm">
+                Use output as input
+              </button>
+            </div>
           ) : null}
         </div>
 
         <pre className="mt-4 yoryantra-output overflow-auto text-sm min-h-[260px] whitespace-pre-wrap break-words">
-          {output || "Validated and formatted JSON will appear here."}
+          {output || "Your JSON output will appear here."}
         </pre>
       </div>
+
+      {operation === "sort" ? (
+        <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+          Sorting follows UTF-16 key order and keeps array items in place. It is not RFC 8785 canonical JSON for signing or hashing.
+        </div>
+      ) : null}
 
       <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
         <h3 className="text-sm font-semibold text-gray-900">
