@@ -48,8 +48,10 @@ export default function ToolClient() {
       description="Test an RFC 9535 JSONPath subset against JSON and inspect the ordered matched nodes and normalized paths."
     >
       <div className="mb-7 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h2 className="text-lg font-semibold text-gray-900">JSON operations</h2>
-        <div className="mt-4 max-w-lg">
+        <p className="text-sm leading-relaxed text-gray-600">
+          Test JSONPath, evaluate JSON Pointer, extract JSON keys, filter JSON arrays, or group JSON arrays.
+        </p>
+        <div className="mt-3 w-full max-w-[20rem]">
           <YoryantraSelect
             label="What do you want to do?"
             value={operation}

@@ -265,9 +265,13 @@ export default function ToolClient() {
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
         <h3 className="text-lg font-semibold text-gray-900">Output Settings</h3>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <YoryantraSelect
-            label="What do you want to do?"
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+          Validate JSON, format JSON, minify JSON, or sort JSON keys.
+        </p>
+        <div className="mt-3 grid gap-4 md:grid-cols-2">
+          <div className="w-full max-w-[20rem]">
+            <YoryantraSelect
+              label="What do you want to do?"
             value={operation}
             onChange={(value) => {
               setOperation(value as Operation);
@@ -279,7 +283,8 @@ export default function ToolClient() {
               { label: "Minify JSON", value: "minify" },
               { label: "Sort JSON keys", value: "sort" },
             ]}
-          />
+            />
+          </div>
           {operation === "validate" || operation === "format" ? (
             <YoryantraSelect
               label="Indentation"

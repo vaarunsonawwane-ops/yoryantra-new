@@ -29,8 +29,10 @@ export default function ToolClient() {
       description="Compare, merge and generate JSON Patch operations from two JSON documents in one place."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h2 className="text-lg font-semibold text-gray-900">JSON operations</h2>
-        <div className="mt-4 max-w-lg">
+        <p className="text-sm leading-relaxed text-gray-600">
+          Compare JSON, merge JSON, or generate JSON Patch.
+        </p>
+        <div className="mt-3 w-full max-w-[20rem]">
           <YoryantraSelect
             label="What do you want to do?"
             value={operation}

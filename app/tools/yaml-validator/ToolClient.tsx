@@ -2,17 +2,18 @@
 
 import { useRef, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 import YamlValidatorPanel from "./_panels/YamlValidatorPanel";
 import YamlFormatterPanel from "./_panels/YamlFormatterPanel";
 import JsonToYamlPanel from "./_panels/JsonToYamlPanel";
 import YamlToJsonPanel from "./_panels/YamlToJsonPanel";
 import type { IncomingWorkflowInput, WorkflowOperation } from "./workflow-types";
 
-const tasks: { id: WorkflowOperation; label: string; detail: string }[] = [
-  { id: "validate", label: "Validate YAML", detail: "Check syntax, documents, and parser errors" },
-  { id: "format", label: "Format YAML", detail: "Adjust indentation and line width" },
-  { id: "json-to-yaml", label: "JSON to YAML", detail: "Convert JSON with formatting choices" },
-  { id: "yaml-to-json", label: "YAML to JSON", detail: "Convert documents and review data loss" },
+const tasks: { label: string; value: WorkflowOperation }[] = [
+  { value: "validate", label: "Validate YAML" },
+  { value: "format", label: "Format YAML" },
+  { value: "json-to-yaml", label: "JSON to YAML" },
+  { value: "yaml-to-json", label: "YAML to JSON" },
 ];
 
 export default function ToolClient() {
@@ -36,41 +37,33 @@ export default function ToolClient() {
     >
       <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-gray-900">Choose a YAML task</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Validate, format, and convert YAML or JSON here. After an operation succeeds, use its result in another task without copying it again.
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+          Validate YAML, format YAML, convert JSON to YAML, or convert YAML to JSON.
         </p>
-        <div role="tablist" aria-label="YAML operations" className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {tasks.map((task) => (
-            <button
-              type="button"
-              role="tab"
-              id={`yaml-tab-${task.id}`}
-              key={task.id}
-              aria-selected={activeTask === task.id}
-              aria-controls={`yaml-panel-${task.id}`}
-              onClick={() => setActiveTask(task.id)}
-              className={`rounded-xl border border-[var(--green)] bg-white p-4 text-left transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--green)] motion-reduce:transform-none ${
-                activeTask === task.id ? "shadow-sm" : ""
-              }`}
-            >
-              <span className="block font-semibold text-gray-900">{task.label}</span>
-              <span className="mt-1 block text-xs leading-5 text-gray-600">{task.detail}</span>
-            </button>
-          ))}
+        <div className="mt-3 w-full max-w-[20rem]">
+          <YoryantraSelect
+            label="What do you want to do?"
+            value={activeTask}
+            onChange={(value: string) => setActiveTask(value as WorkflowOperation)}
+            options={tasks}
+          />
         </div>
+        <p className="mt-3 text-sm leading-relaxed text-gray-600">
+          After an operation succeeds, use its result in another task without copying it again.
+        </p>
       </div>
 
       {/* Keep panels mounted: inputs, settings, diagnostics, and results survive tab changes. */}
-      <div id="yaml-panel-validate" role="tabpanel" aria-labelledby="yaml-tab-validate" hidden={activeTask !== "validate"}>
+      <div id="yaml-panel-validate" hidden={activeTask !== "validate"}>
         <YamlValidatorPanel incoming={incoming.validate} onSend={sendTo} />
       </div>
-      <div id="yaml-panel-format" role="tabpanel" aria-labelledby="yaml-tab-format" hidden={activeTask !== "format"}>
+      <div id="yaml-panel-format" hidden={activeTask !== "format"}>
         <YamlFormatterPanel incoming={incoming.format} onSend={sendTo} />
       </div>
-      <div id="yaml-panel-json-to-yaml" role="tabpanel" aria-labelledby="yaml-tab-json-to-yaml" hidden={activeTask !== "json-to-yaml"}>
+      <div id="yaml-panel-json-to-yaml" hidden={activeTask !== "json-to-yaml"}>
         <JsonToYamlPanel incoming={incoming["json-to-yaml"]} onSend={sendTo} />
       </div>
-      <div id="yaml-panel-yaml-to-json" role="tabpanel" aria-labelledby="yaml-tab-yaml-to-json" hidden={activeTask !== "yaml-to-json"}>
+      <div id="yaml-panel-yaml-to-json" hidden={activeTask !== "yaml-to-json"}>
         <YamlToJsonPanel incoming={incoming["yaml-to-json"]} onSend={sendTo} />
       </div>
     </ToolShell>

@@ -44,7 +44,10 @@ export default function ToolClient() {
       description="Validate JSON against a schema, generate a schema from sample data, or convert a schema to TypeScript in one place."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <div className="max-w-xl">
+        <p className="text-sm leading-relaxed text-gray-600">
+          Validate JSON against a schema, generate a schema from JSON, or convert a schema to TypeScript.
+        </p>
+        <div className="mt-3 w-full max-w-[20rem]">
           <YoryantraSelect
             label="What do you want to do?"
             value={operation}

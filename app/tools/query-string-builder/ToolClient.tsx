@@ -41,7 +41,10 @@ export default function ToolClient() {
       description="Build, encode, decode and inspect URL query parameters. Convert JSON into query strings, work with repeated keys, and edit the result without opening another tool."
     >
       <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <div className="max-w-xl">
+        <p className="text-sm leading-relaxed text-gray-600">
+          Build query strings, convert between JSON and query strings, parse URLs or queries, or encode and decode queries.
+        </p>
+        <div className="mt-3 w-full max-w-[20rem]">
           <YoryantraSelect
             label="What do you want to do?"
             value={operation}
