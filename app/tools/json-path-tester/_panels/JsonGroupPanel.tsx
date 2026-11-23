@@ -209,7 +209,7 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
         <p className="mt-2 text-sm leading-relaxed text-gray-600">Group JSON records by escaped dot paths while keeping types and numeric summaries distinct.</p>
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="min-w-0">
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-900">JSON Array of Records</label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
@@ -229,11 +229,11 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
           />
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div>
           <h3 className="text-lg font-semibold text-gray-900">Grouping Settings</h3>
 
-          <div className="mt-4 space-y-4">
-            <div>
+          <div className="mt-4 flex flex-wrap items-start gap-x-5 gap-y-4">
+            <div className="w-full min-w-0 sm:w-64">
               <label className="block text-sm font-medium text-gray-700">Group By Key</label>
               <input
                 value={groupKey}
@@ -242,12 +242,12 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
                   clearResult();
                 }}
                 placeholder="category or user.role"
-                className="mt-2 min-h-[48px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                className="mt-2 h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm font-mono placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
               />
               <p className="mt-1 text-xs text-gray-500">Use dot paths such as user.role. Escape a literal dot as \. and a backslash as \\.</p>
             </div>
 
-            <div>
+            <div className="w-full min-w-0 sm:w-64">
               <label className="block text-sm font-medium text-gray-700">Numeric Field</label>
               <input
                 value={numericKey}
@@ -256,11 +256,11 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
                   clearResult();
                 }}
                 placeholder="views, count, amount"
-                className="mt-2 min-h-[48px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-mono placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                className="mt-2 h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm font-mono placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
               />
             </div>
 
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Output"
               value={outputMode}
               onChange={(value) => {
@@ -277,7 +277,7 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Group Value Handling"
               value={groupMode}
               onChange={(value) => {
@@ -291,7 +291,7 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Sort Groups"
               value={sortMode}
               onChange={(value) => {
@@ -307,7 +307,7 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Missing Group Key"
               value={missingMode}
               onChange={(value) => {
@@ -321,7 +321,7 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Numeric Summary"
               value={numericMode}
               onChange={(value) => {
@@ -339,7 +339,7 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="mt-7 ">
         <h3 className="text-lg font-semibold text-gray-900">Options</h3>
         <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
           <Toggle checked={includeRecordsInJson} onChange={setIncludeRecordsInJson} label="Include records in grouped JSON output" />
@@ -351,9 +351,7 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
           <Toggle checked={warnHighCardinality} onChange={setWarnHighCardinality} label="Warn when too many groups are created" />
           <Toggle checked={warnNonNumericSummary} onChange={setWarnNonNumericSummary} label="Warn when numeric summary skips values" />
         </div>
-        <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          These options keep grouped output easier to inspect while still preserving enough detail for API responses, reports, and data cleanup.
-        </p>
+        
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3">
@@ -374,7 +372,7 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
         <button
           type="button"
           onClick={resetAll}
-          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="yoryantra-btn-outline whitespace-nowrap"
         >
           Reset
         </button>
@@ -394,13 +392,13 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="yoryantra-btn-outline whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
             </div>
 
-            <pre className="mt-4 max-h-[520px] overflow-auto rounded-xl bg-gray-950 p-4 text-sm leading-6 text-gray-100 whitespace-pre-wrap break-words">
+            <pre className="yoryantra-output mt-4 max-h-[520px] overflow-auto whitespace-pre-wrap break-words text-sm leading-6">
               {output}
             </pre>
           </div>
@@ -415,7 +413,7 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
       ) : null}
 
       {notes.length ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((note) => (
@@ -462,7 +460,7 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
         </div>
       ) : null}
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12  space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Group counts are only meaningful when the key is unambiguous</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -474,15 +472,15 @@ export default function JsonGroupPanel({ input, setInput }: { input: string; set
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-gray-900">Nested paths without flattening the record</h2>
             <p className="mt-3 text-sm leading-6 text-gray-600">
               Records are grouped from their original structure. No flattened copy is created first, so a nested path cannot silently overwrite a literal dotted member name. Array indexes can be addressed with paths such as <code className="rounded bg-white px-1 py-0.5">items.0.status</code>.
             </p>
           </div>
-          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
-            <h2 className="text-lg font-semibold text-amber-900">Joined arrays are deliberately marked as lossy</h2>
-            <p className="mt-3 text-sm leading-6 text-amber-800">
+          <div className="self-start text-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900">Joined arrays are deliberately marked as lossy</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-900">
               Keeping an array as JSON text preserves its boundaries. Joining array items into display text can make different arrays collapse to the same label, especially when values contain the separator. Leave the joined-array option off when exact grouping matters.
             </p>
           </div>
@@ -544,15 +542,15 @@ viewer  → count 1, numeric values used 1, sum 7`}</pre>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Browser-side limits are part of the result</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Large arrays need more memory</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Parsing, grouping, sorting, and export happen in the current browser tab; pasted JSON is not sent to a Yoryantra server by the page code. Large arrays still consume local memory because the full document and group map must exist at once. For very large datasets, a database aggregation, dataframe, or streaming script is a better fit than a browser textarea.
+            Large arrays consume memory because the full document and group map must exist at once. For very large datasets, a database aggregation, dataframe, or streaming script is a better fit than a browser textarea.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/json-path-tester" /></div>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/json-path-tester" presentation="links" /></div>
         </div>
       </section>
     </section>
@@ -1221,9 +1219,9 @@ function findJsonDataRisk(text: string): string | null {
 }
 
 function issueCardClass(severity: Issue["severity"]) {
-  if (severity === "high") return "self-start rounded-xl border border-red-200 bg-red-50 p-4";
-  if (severity === "warning") return "self-start rounded-xl border border-amber-200 bg-amber-50 p-4";
-  return "self-start rounded-xl border border-gray-200 bg-gray-50 p-4";
+  if (severity === "high") return "py-1";
+  if (severity === "warning") return "py-1";
+  return "py-1";
 }
 
 function issueTitleClass(severity: Issue["severity"]) {
@@ -1267,7 +1265,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="min-w-0">
       <p className="text-sm text-gray-500">{label}</p>
       <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
     </div>

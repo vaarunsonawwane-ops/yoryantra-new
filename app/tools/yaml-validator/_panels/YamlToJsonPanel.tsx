@@ -563,7 +563,7 @@ environment:
 
   return (
     <>
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <label htmlFor="yaml-json-input" className="block text-sm font-semibold text-gray-900">
@@ -595,8 +595,8 @@ environment:
       </div>
 
       <div className="mt-5 flex flex-wrap items-end gap-3">
-        <div className="w-full sm:w-56">
-          <YoryantraSelect
+        <div className="w-full sm:w-44">
+          <YoryantraSelect width="short"
             label="JSON indentation"
             value={String(indent)}
             onChange={(value: string) => {
@@ -612,13 +612,13 @@ environment:
           />
         </div>
 
-        <button type="button" onClick={convert} className="yoryantra-btn inline-flex h-[52px] items-center justify-center">
+        <button type="button" onClick={convert} className="yoryantra-btn">
           Convert to JSON
         </button>
-        <button type="button" onClick={loadExample} className="yoryantra-btn-outline inline-flex h-[52px] items-center justify-center">
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline">
           Load Multi-Document Example
         </button>
-        <button type="button" onClick={reset} className="yoryantra-btn-outline inline-flex h-[52px] items-center justify-center">
+        <button type="button" onClick={reset} className="yoryantra-btn-outline">
           Reset
         </button>
       </div>
@@ -691,18 +691,11 @@ environment:
 
 
       {result && result.output ? (
-        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           <span className="text-sm text-gray-600">Use this result in:</span>
           <button type="button" className="yoryantra-btn-outline text-sm" onClick={() => onSend("json-to-yaml", result.output)}>Convert to YAML</button>
         </div>
       ) : null}
-
-      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Conversion happens on the pasted YAML in your browser. No conversion
-        API receives the text, and no application schema is fetched. Site-wide
-        analytics or advertising scripts, if enabled, are separate from the
-        conversion operation.
-      </div>
 
 
     </>

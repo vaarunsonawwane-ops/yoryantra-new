@@ -49,12 +49,14 @@ type Incoming = { id: number; text: string; to: Operation; context?: "url" | "qu
 type Transfer = (to: Operation, text: string, context?: Incoming["context"]) => void;
 type PanelProps = { incoming?: Incoming; onTransfer: Transfer };
 
+const defaultBaseUrl = "https://example.com/app/";
+
 const sampleUrl =
   "https://user:pass@api.example.com:8443/v1/users/101/profile?role=admin&active=true&tag=api&tag=http#details";
 
 export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
   const [input, setInput] = useState("");
-  const [baseUrl, setBaseUrl] = useState("https://example.com/app/");
+  const [baseUrl, setBaseUrl] = useState("");
   const [outputMode, setOutputMode] = useState<OutputMode>("summary");
   const [decodeMode, setDecodeMode] = useState<DecodeMode>("decoded");
   const [allowRelativeUrls, setAllowRelativeUrls] = useState(true);
@@ -91,7 +93,7 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
 
     try {
       const nextParsed = parseURL(input, {
-        baseUrl,
+        baseUrl: baseUrl.trim() || defaultBaseUrl,
         decodeMode,
         allowRelativeUrls,
       });
@@ -128,7 +130,7 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
 
   const loadExample = () => {
     setInput(sampleUrl);
-    setBaseUrl("https://example.com/app/");
+    setBaseUrl("");
     setOutputMode("summary");
     setDecodeMode("decoded");
     setAllowRelativeUrls(true);
@@ -141,7 +143,7 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
 
   const resetAll = () => {
     setInput("");
-    setBaseUrl("https://example.com/app/");
+    setBaseUrl("");
     setOutputMode("summary");
     setDecodeMode("decoded");
     setAllowRelativeUrls(true);
@@ -155,7 +157,7 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
   return (
 
     <div className="min-w-0">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0">
         <label className="mb-2 block text-sm font-medium text-gray-700">URL or Relative Reference</label>
         <textarea
           value={input}
@@ -174,11 +176,12 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
         </p>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-7 ">
         <h3 className="text-lg font-semibold text-gray-900">Parsing Options</h3>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <YoryantraSelect
+        <div className="mt-5 flex flex-wrap items-start gap-x-6 gap-y-4">
+          <div className="w-full sm:w-[12rem]">
+          <YoryantraSelect width="medium"
             label="Output"
             value={outputMode}
             onChange={(value) => {
@@ -193,8 +196,9 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
               { label: "Query parameters", value: "query" },
             ]}
           />
-
-          <YoryantraSelect
+          </div>
+          <div className="w-full sm:w-[18rem]">
+          <YoryantraSelect width="medium"
             label="Query & Path Segment Values"
             value={decodeMode}
             onChange={(value) => {
@@ -209,10 +213,11 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
               { label: "Serialized", value: "serialized" },
             ]}
           />
+          </div>
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex cursor-pointer gap-3 self-start rounded-xl border border-gray-200 bg-white p-4">
+        <div className="mt-5 flex flex-wrap items-start gap-x-8 gap-y-4">
+          <label className="flex cursor-pointer items-start gap-3 self-start py-1">
             <input
               type="checkbox"
               checked={allowRelativeUrls}
@@ -227,13 +232,13 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
             />
             <span>
               <span className="block text-sm font-medium text-gray-900">Resolve relative references</span>
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+              <span className="mt-1 block max-w-xl text-xs leading-relaxed text-gray-500">
                 Use the base URL below for paths such as <span className="font-mono">../users?page=1</span> or <span className="font-mono">//cdn.example.com/a.js</span>.
               </span>
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 self-start rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex cursor-pointer items-start gap-3 self-start py-1">
             <input
               type="checkbox"
               checked={hideCredentials}
@@ -247,7 +252,7 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
             />
             <span>
               <span className="block text-sm font-medium text-gray-900">Hide URL userinfo credentials</span>
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+              <span className="mt-1 block max-w-xl text-xs leading-relaxed text-gray-500">
                 Remove username and password from copied full-URL and JSON output. Query-string secrets are not automatically removed.
               </span>
             </span>
@@ -266,8 +271,8 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
                 setError("");
                 setCopied(false);
               }}
-              placeholder="https://example.com/app/"
-              className="w-full rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              placeholder={defaultBaseUrl}
+              className="h-11 w-full max-w-xl rounded-lg border border-gray-300 bg-white px-3 font-mono text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
             />
             <p className="mt-2 text-sm leading-relaxed text-gray-500">
               Must itself be an absolute URL. Relative resolution follows browser URL rules, including dot-segment removal.
@@ -392,11 +397,8 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
-        URL parsing stays in your browser. No DNS lookup, HTTP request, redirect follow, or server validation is performed.
-      </div>
 
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      <section className="mt-12 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Browser URL parsing is more than splitting on punctuation</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
@@ -444,7 +446,7 @@ export default function UrlParserPanel({ incoming, onTransfer }: PanelProps) {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="min-w-0">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
     </div>
@@ -453,7 +455,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 
 function DetailCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="min-w-0">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-sm text-gray-900">{value || "(none)"}</div>
     </div>
@@ -472,7 +474,7 @@ function ParsedTable({
   rows: string[][];
 }) {
   return (
-    <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="mt-8">
       <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-gray-500">{description}</p>
       <div className="mt-4 overflow-auto rounded-xl border border-gray-200">

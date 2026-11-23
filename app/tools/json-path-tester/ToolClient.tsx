@@ -44,15 +44,17 @@ export default function ToolClient() {
 
   return (
     <ToolShell
+      layout="plain"
       title="JSONPath Tester"
       description="Test an RFC 9535 JSONPath subset against JSON and inspect the ordered matched nodes and normalized paths."
     >
-      <div className="mb-7 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mb-10">
         <p className="text-sm leading-relaxed text-gray-600">
           Test JSONPath, evaluate JSON Pointer, extract JSON keys, filter JSON arrays, or group JSON arrays.
         </p>
         <div className="mt-3 w-full max-w-[20rem]">
-          <YoryantraSelect
+          <YoryantraSelect width="wide"
+            variant="task"
             label="What do you want to do?"
             value={operation}
             onChange={selectOperation}

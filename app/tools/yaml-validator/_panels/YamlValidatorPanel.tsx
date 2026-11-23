@@ -427,7 +427,7 @@ service:
 
   return (
     <>
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <label htmlFor="yaml-validator-input" className="block text-sm font-semibold text-gray-900">
@@ -473,7 +473,7 @@ service:
         </button>
       </div>
 
-      <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="mt-9">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
@@ -540,21 +540,14 @@ service:
 
 
       {result && result.valid ? (
-        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           <span className="text-sm text-gray-600">Use this result in:</span>
           <button type="button" className="yoryantra-btn-outline text-sm" onClick={() => onSend("format", input)}>Format YAML</button>
           <button type="button" className="yoryantra-btn-outline text-sm" onClick={() => onSend("yaml-to-json", input)}>Convert to JSON</button>
         </div>
       ) : null}
 
-      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Validation is performed on the pasted text in your browser using the
-        bundled YAML parser. No validation API receives the YAML, and no
-        product-specific schema is fetched. Site-wide analytics or advertising
-        scripts, if enabled, are separate from the validation operation.
-      </div>
-
-      <section className="mt-12 border-t border-gray-200 pt-10">
+      <section className="mt-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             When YAML Breaks, the Error Is Often One Character Away From the Real Cause
@@ -574,56 +567,26 @@ service:
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 md:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 p-5">
-            <h3 className="font-semibold text-gray-900">
-              Indentation changes structure
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-gray-600">
-              Sibling mapping keys need the same indentation level. A single
-              extra or missing space can move a value into another mapping or
-              make the stream invalid.
-            </p>
-          </div>
+        <ul className="mt-10 list-disc space-y-5 pl-5 text-gray-600">
+          <li className="pl-1 leading-relaxed">
+            <strong className="text-gray-900">Indentation changes structure.</strong> Sibling mapping keys need the same indentation level. A single extra or missing space can move a value into another mapping or make the stream invalid.
+          </li>
+          <li className="pl-1 leading-relaxed">
+            <strong className="text-gray-900">Tabs are not indentation.</strong> YAML indentation uses spaces. A tab may appear inside some scalar content, but using tabs to create indentation is a parser error.
+          </li>
+          <li className="pl-1 leading-relaxed">
+            <strong className="text-gray-900">: and # are context-sensitive.</strong> A colon followed by separation can introduce a mapping value, and # can start a comment in plain-scalar contexts. Quote text when punctuation would otherwise be interpreted as YAML structure.
+          </li>
+          <li className="pl-1 leading-relaxed">
+            <strong className="text-gray-900">Flow collections still follow YAML rules.</strong> Bracketed sequences and brace-style mappings look JSON-like but are still parsed as YAML and have their own indicator and separation rules.
+          </li>
+        </ul>
 
-          <div className="rounded-xl border border-gray-200 p-5">
-            <h3 className="font-semibold text-gray-900">
-              Tabs are not indentation
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-gray-600">
-              YAML indentation uses spaces. A tab may appear inside some scalar
-              content, but using tabs to create indentation is a parser error.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 p-5">
-            <h3 className="font-semibold text-gray-900">
-              : and # are context-sensitive
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-gray-600">
-              A colon followed by separation can introduce a mapping value, and
-              # can start a comment in plain-scalar contexts. Quote text when
-              punctuation would otherwise be interpreted as YAML structure.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 p-5">
-            <h3 className="font-semibold text-gray-900">
-              Flow collections still follow YAML rules
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-gray-600">
-              Bracketed sequences and brace-style mappings look JSON-like but
-              are still parsed as YAML and have their own indicator and
-              separation rules.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             Duplicate Mapping Keys Are Not a Harmless “Last One Wins” Style
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-700">
+          <p className="mt-4 leading-relaxed text-gray-600">
             YAML mappings require unique keys. Silently keeping the last value
             can hide configuration mistakes—especially when a long deployment
             file contains two copies of <code>image</code>,{" "}
@@ -722,11 +685,11 @@ service:
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             Validate Rendered YAML, Not Only the Template Source
           </h2>
-          <p className="mt-4 leading-relaxed text-gray-700">
+          <p className="mt-4 leading-relaxed text-gray-600">
             Helm, Jinja-style templates, CI substitutions, and other generators
             may contain <code>{"{{ ... }}"}</code> or other syntax that is not
             the final YAML sent to the application. The template can be
@@ -734,7 +697,7 @@ service:
             of values—or the template source can fail a generic YAML parser even
             though rendering would remove the placeholders.
           </p>
-          <p className="mt-4 leading-relaxed text-gray-700">
+          <p className="mt-4 leading-relaxed text-gray-600">
             For deployment confidence, render with representative production
             values and validate the resulting YAML as a separate step.
           </p>
@@ -745,7 +708,7 @@ service:
             Move From YAML Syntax to the Configuration It Represents
           </h2>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/yaml-validator" />
+            <YoryantraRelatedTools currentHref="/tools/yaml-validator" presentation="links" />
           </div>
         </div>
       </section>

@@ -298,55 +298,32 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
 
   return (
     <div className="min-w-0">
-      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Choose a Query String Task
-        </h3>
-
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <ModeButton
-            active={mode === "decode"}
-            title="Decode Query"
-            description="Decode percent-encoded query text into readable key-value pairs."
-            onClick={() => {
-              setMode("decode");
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
-            }}
-          />
-
-          <ModeButton
-            active={mode === "encode"}
-            title="Encode Query"
-            description="Build an encoded query string from plain key-value rows."
-            onClick={() => {
-              setMode("encode");
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
-            }}
-          />
-
-          <ModeButton
-            active={mode === "parse"}
-            title="Parse Full URL"
-            description="Paste a full URL and extract only its query parameters."
-            onClick={() => {
-              setMode("parse");
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
-            }}
-          />
-        </div>
+      <div>
+        <p className="mb-3 text-sm leading-relaxed text-gray-600">
+          Decode Query, Encode Query or Parse Full URL.
+        </p>
+        <YoryantraSelect
+          label="Choose a Query String Task"
+          variant="task"
+          width="medium"
+          value={mode}
+          onChange={(nextMode) => {
+            setMode(nextMode as Mode);
+            setResult(null);
+            setOutput("");
+            setError("");
+            setCopied(false);
+          }}
+          options={[
+            { label: "Decode Query", value: "decode" },
+            { label: "Encode Query", value: "encode" },
+            { label: "Parse Full URL", value: "parse" },
+          ]}
+        />
       </div>
 
       {mode === "encode" ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
@@ -368,7 +345,7 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
             {pairs.map((pair, index) => (
               <div
                 key={pair.id}
-                className="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-[auto_1fr_1fr_auto]"
+                className="grid items-center gap-3 py-2 md:grid-cols-[auto_1fr_1fr_auto]"
               >
                 <label className="flex items-center gap-2 text-sm text-gray-700">
                   <input
@@ -412,7 +389,7 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
           </div>
         </div>
       ) : (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-6 min-w-0">
           <label className="block mb-2 text-sm font-medium text-gray-700">
             {mode === "parse" ? "Full URL or Query String" : "Encoded Query String"}
           </label>
@@ -442,13 +419,13 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
         </div>
       )}
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-7 ">
         <h3 className="text-lg font-semibold text-gray-900">
           Options
         </h3>
 
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
-          <YoryantraSelect
+        <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-4">
+          <YoryantraSelect width="medium"
             label="Output"
             value={outputMode}
             onChange={(value) => {
@@ -479,7 +456,7 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
           />
 
           {mode === "encode" && (
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Spaces"
               value={spaceMode}
               onChange={(value) => {
@@ -503,7 +480,7 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
           )}
 
           {mode === "encode" && (
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Pair Separator"
               value={pairSeparator}
               onChange={(value) => {
@@ -526,8 +503,9 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
             />
           )}
 
+          <div className="flex w-full flex-wrap items-center gap-x-6 gap-y-3 pt-1">
           {(mode === "decode" || mode === "parse") && (
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
               <input
                 type="checkbox"
                 checked={decodePlusAsSpace}
@@ -545,7 +523,7 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
             </label>
           )}
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
             <input
               type="checkbox"
               checked={sortKeys}
@@ -563,7 +541,7 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
           </label>
 
           {mode === "encode" && (
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-900">
               <input
                 type="checkbox"
                 checked={skipEmptyValues}
@@ -580,6 +558,7 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
               Skip empty values
             </label>
           )}
+          </div>
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-gray-500">
@@ -712,15 +691,15 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
+        <div className="mt-6">
+          <h3 className="text-base font-semibold text-gray-900">
             Query notes
           </h3>
 
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
-                <p className="text-sm font-semibold text-amber-900">
+                <p className="text-sm font-semibold text-gray-700">
                   {note.title}
                 </p>
 
@@ -754,11 +733,8 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
         </pre>
       </div>
 
-      <div className="mt-4 self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
-        Query parsing and encoding happen in this browser tab. Yoryantra does not send the pasted URL, query string, or parameter values to its server.
-      </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12  space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">A query string is a sequence, not a JavaScript object</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">Repeated keys, empty values, ordering, and even an empty key can carry meaning to an application. The result therefore keeps parameters as ordered pairs instead of collapsing them into one object where duplicate names would be lost.</p>
@@ -768,7 +744,7 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Percent encoding and form encoding are not identical</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">Normal URI component encoding represents a space as <code>%20</code>. The <code>application/x-www-form-urlencoded</code> algorithm uses <code>+</code> for spaces and also applies a slightly different percent-encode set. The “plus” option follows that form-style component behavior rather than merely replacing <code>%20</code>.</p>
-          <p className="mt-3 text-gray-600 leading-relaxed">Reference: <a className="text-[var(--gold-text)] underline underline-offset-2" href="https://url.spec.whatwg.org/#application/x-www-form-urlencoded" target="_blank" rel="noreferrer">WHATWG URL Standard — form-urlencoded</a>.</p>
+          <p className="mt-3 text-gray-600 leading-relaxed">Reference: <a className="text-[var(--green)] underline underline-offset-2" href="https://url.spec.whatwg.org/#application/x-www-form-urlencoded" target="_blank" rel="noreferrer">WHATWG URL Standard — form-urlencoded</a>.</p>
         </div>
 
         <div>
@@ -779,7 +755,7 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Malformed and double-encoded input</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">A broken percent escape such as <code>%E0%A4</code> is rejected rather than quietly returned as if it decoded successfully. <code>%25</code> is not automatically wrong—it is the encoding of a literal percent sign—but a dense sequence of <code>%25</code> values is worth checking when debugging accidental double encoding.</p>
-          <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">Decoding a query reveals data; it does not validate whether redirect targets, callback URLs, tokens, or tracking values are trustworthy. Treat security-sensitive parameters according to the application that consumes them.</div>
+          <div className="mt-4 self-start text-sm leading-relaxed text-gray-700">Decoding a query reveals data; it does not validate whether redirect targets, callback URLs, tokens, or tracking values are trustworthy. Treat security-sensitive parameters according to the application that consumes them.</div>
         </div>
 
         <div>
@@ -791,36 +767,9 @@ export default function QueryEncoderPanel({ incoming, onTransfer }: { incoming?:
   );
 }
 
-function ModeButton({
-  active,
-  title,
-  description,
-  onClick,
-}: {
-  active: boolean;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-xl border border-gray-200 bg-white p-4 text-left transition ${
-        active ? "shadow-sm ring-2 ring-[var(--green)]" : "hover:border-[var(--green)]"
-      }`}
-    >
-      <span className="block text-sm font-semibold text-gray-900">{title}</span>
-
-      <span className="mt-1 block text-sm leading-relaxed text-gray-500">
-        {description}
-      </span>
-    </button>
-  );
-}
-
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="min-w-0">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
         {label}
       </div>

@@ -387,8 +387,8 @@ export default function QueryParserPanel({ incoming, onTransfer }: { incoming?: 
 
   return (
     <div className="min-w-0">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <YoryantraSelect
+      <div className="min-w-0">
+        <YoryantraSelect width="medium"
           label="Input type"
           value={mode}
           onChange={(value) => {
@@ -482,16 +482,16 @@ export default function QueryParserPanel({ incoming, onTransfer }: { incoming?: 
         </pre>
       </div>
 
-      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <div className="mt-8 text-gray-700">
         <h3 className="text-sm font-semibold text-gray-900">
           Long links can contain private tokens
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-gray-700">
-          Password-reset links, OAuth authorization codes, signed download links, invitation tokens, and API credentials sometimes appear in URLs. Parsing stays in your browser; the destination is not requested and no query-parsing API receives the pasted text. Copied output can still expose those values. Site-wide analytics or advertising scripts, if enabled, are separate from this parsing operation.
+          Password-reset links, OAuth authorization codes, signed downloads, invitation tokens and API credentials may appear in URLs. Check sensitive values before copying or sharing the parsed output.
         </p>
       </div>
 
-      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
+      <section className="mt-12 space-y-12 ">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             Understanding Everything After ? in a Long URL
@@ -504,11 +504,11 @@ export default function QueryParserPanel({ incoming, onTransfer }: { incoming?: 
           </p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <div className="min-w-0">
           <h2 className="text-xl font-semibold text-gray-900">
             Break This URL Into Pieces
           </h2>
-          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`https://example.com/search?name=Sneha&tag=books&tag=music&q=hello+world#results`}</pre>
+          <pre className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-3 font-mono text-sm leading-7 text-gray-800">{`https://example.com/search?name=Sneha&tag=books&tag=music&q=hello+world#results`}</pre>
           <div className="mt-4 space-y-3 leading-relaxed text-gray-600">
             <p><code>name=Sneha</code> is one parameter.</p>
             <p><code>tag=books</code> and <code>tag=music</code> repeat the same parameter name with two values.</p>
@@ -588,7 +588,7 @@ export default function QueryParserPanel({ incoming, onTransfer }: { incoming?: 
           </p>
         </div>
 
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div className=" text-gray-700">
           <h2 className="text-xl font-semibold text-gray-900">
             Be Careful With Reset, OAuth, Invitation, and Signed Links
           </h2>

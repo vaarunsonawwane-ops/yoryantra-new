@@ -360,7 +360,7 @@ export default function YamlFormatterPanel({ incoming, onSend }: WorkflowPanelPr
 
   return (
     <>
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0">
         <label
           htmlFor="yaml-formatter-input"
           className="block text-sm font-semibold text-gray-900"
@@ -394,8 +394,8 @@ profile:
         />
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <YoryantraSelect
+      <div className="mt-5 flex flex-wrap items-start gap-x-5 gap-y-4">
+        <YoryantraSelect width="short"
           label="Indentation"
           value={indentMode}
           onChange={(value: string) => {
@@ -416,7 +416,7 @@ profile:
           ]}
         />
 
-        <YoryantraSelect
+        <YoryantraSelect width="medium"
           label="Preferred line width"
           value={widthMode}
           onChange={(value: string) => {
@@ -557,21 +557,16 @@ profile:
 
 
       {result && result.output ? (
-        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           <span className="text-sm text-gray-600">Use this result in:</span>
           <button type="button" className="yoryantra-btn-outline text-sm" onClick={() => onSend("validate", result.output)}>Validate YAML</button>
           <button type="button" className="yoryantra-btn-outline text-sm" onClick={() => onSend("yaml-to-json", result.output)}>Convert to JSON</button>
         </div>
       ) : null}
 
-      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        The YAML text is parsed and serialized in the browser; the formatting
-        code does not upload the configuration, execute template expressions,
-        or fetch a product-specific schema. Configuration files often contain
-        credentials, so browser extensions, the system clipboard, and site-wide
-        analytics or advertising scripts remain separate privacy boundaries.
-        Large or deeply nested streams are processed on the page and can briefly
-        make the tab less responsive.
+      <div className="mt-8 text-sm leading-relaxed text-gray-700">
+        Formatting does not execute template expressions or fetch a product-specific schema.
+        Large or deeply nested streams can briefly make the tab less responsive.
       </div>
 
 

@@ -25,15 +25,17 @@ export default function ToolClient() {
 
   return (
     <ToolShell
+      layout="plain"
       title="JSON Diff Checker"
       description="Compare, merge and generate JSON Patch operations from two JSON documents in one place."
     >
-      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mb-9">
         <p className="text-sm leading-relaxed text-gray-600">
           Compare JSON, merge JSON, or generate JSON Patch.
         </p>
         <div className="mt-3 w-full max-w-[20rem]">
-          <YoryantraSelect
+          <YoryantraSelect width="wide"
+            variant="task"
             label="What do you want to do?"
             value={operation}
             onChange={(value: string) => setOperation(value as Operation)}
@@ -50,7 +52,7 @@ export default function ToolClient() {
         </p>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-10">
         <Suspense fallback={<p className="text-sm text-gray-600">Loading JSON operation…</p>}>
           {operation === "compare" ? <JsonDiffPanel {...sharedInputs} /> : null}
           {operation === "merge" ? <JsonMergePanel {...sharedInputs} /> : null}

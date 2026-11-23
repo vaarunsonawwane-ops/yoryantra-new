@@ -101,7 +101,7 @@ export default function SchemaTypescriptPanel({
 }) {
   const input = schemaInput;
   const setInput = setSchemaInput;
-  const [rootName, setRootName] = useState("GeneratedType");
+  const [rootName, setRootName] = useState("");
   const [outputStyle, setOutputStyle] = useState<OutputStyle>("interface");
   const [propertyStyle, setPropertyStyle] = useState<PropertyStyle>("preserve");
   const [arrayStyle, setArrayStyle] = useState<ArrayStyle>("array");
@@ -139,7 +139,7 @@ export default function SchemaTypescriptPanel({
 
       const schema = parsed as SchemaNode;
       const nextResult = convertJsonSchemaToTypeScript(schema, {
-        rootName,
+        rootName: rootName.trim() || "GeneratedType",
         outputStyle,
         propertyStyle,
         arrayStyle,
@@ -206,7 +206,7 @@ export default function SchemaTypescriptPanel({
 
   const resetAll = () => {
     setInput("");
-    setRootName("GeneratedType");
+    setRootName("");
     setOutputStyle("interface");
     setPropertyStyle("preserve");
     setArrayStyle("array");
@@ -223,7 +223,7 @@ export default function SchemaTypescriptPanel({
 
   return (
     <div className="min-w-0">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0">
         <label className="block mb-2 text-sm font-medium text-gray-700">
           JSON Schema
         </label>
@@ -243,17 +243,17 @@ export default function SchemaTypescriptPanel({
         />
 
         <p className="mt-2 text-sm text-gray-500">
-          Paste a JSON Schema object or boolean schema. Conversion runs in this browser tab; local <code className="font-mono text-xs">#/$defs/...</code> and <code className="font-mono text-xs">#/definitions/...</code> references can be resolved when present in the same document.
+          Paste a JSON Schema object or boolean schema. Local <code className="font-mono text-xs">#/$defs/...</code> and <code className="font-mono text-xs">#/definitions/...</code> references can be resolved when present in the same document.
         </p>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-7 ">
         <h3 className="text-lg font-semibold text-gray-900">
           Options
         </h3>
 
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
-          <div className="md:col-span-2">
+        <div className="mt-5 grid max-w-[1200px] grid-cols-1 items-start gap-x-6 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="min-w-0">
             <label className="block text-sm font-medium text-gray-700">
               Root Type Name
             </label>
@@ -268,75 +268,81 @@ export default function SchemaTypescriptPanel({
                 setCopied(false);
               }}
               placeholder="GeneratedType"
-              className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm font-mono outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              className="mt-2 h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm font-mono text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
             />
           </div>
+          <div className="min-w-0">
+            <YoryantraSelect
+              label="Output Style"
+              value={outputStyle}
+              onChange={(value) => {
+                setOutputStyle(value as OutputStyle);
+                setResult(null);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              options={[
+                { label: "Interface", value: "interface" },
+                { label: "Type alias", value: "type" },
+              ]}
+            />
+          </div>
+          <div className="min-w-0">
+            <YoryantraSelect
+              label="Property Names"
+              value={propertyStyle}
+              onChange={(value) => {
+                setPropertyStyle(value as PropertyStyle);
+                setResult(null);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              options={[
+                { label: "Preserve", value: "preserve" },
+                { label: "Camel case", value: "camel" },
+              ]}
+            />
+          </div>
+          <div className="min-w-0">
+            <YoryantraSelect
+              label="Array Style"
+              value={arrayStyle}
+              onChange={(value) => {
+                setArrayStyle(value as ArrayStyle);
+                setResult(null);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              options={[
+                { label: "Type[]", value: "array" },
+                { label: "Array<Type>", value: "generic" },
+              ]}
+            />
+          </div>
+          <div className="min-w-0">
+            <YoryantraSelect
+              label="Extra Object Keys"
+              value={additionalMode}
+              onChange={(value) => {
+                setAdditionalMode(value as AdditionalMode);
+                setResult(null);
+                setOutput("");
+                setError("");
+                setCopied(false);
+              }}
+              options={[
+                { label: "Add index signature", value: "record" },
+                { label: "Ignore", value: "ignore" },
+              ]}
+            />
+          </div>
+        </div>
 
-          <YoryantraSelect
-            label="Output Style"
-            value={outputStyle}
-            onChange={(value) => {
-              setOutputStyle(value as OutputStyle);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
-            }}
-            options={[
-              { label: "Interface", value: "interface" },
-              { label: "Type alias", value: "type" },
-            ]}
-          />
-
-          <YoryantraSelect
-            label="Property Names"
-            value={propertyStyle}
-            onChange={(value) => {
-              setPropertyStyle(value as PropertyStyle);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
-            }}
-            options={[
-              { label: "Preserve", value: "preserve" },
-              { label: "Camel case", value: "camel" },
-            ]}
-          />
-
-          <YoryantraSelect
-            label="Array Style"
-            value={arrayStyle}
-            onChange={(value) => {
-              setArrayStyle(value as ArrayStyle);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
-            }}
-            options={[
-              { label: "Type[]", value: "array" },
-              { label: "Array<Type>", value: "generic" },
-            ]}
-          />
-
-          <YoryantraSelect
-            label="Extra Object Keys"
-            value={additionalMode}
-            onChange={(value) => {
-              setAdditionalMode(value as AdditionalMode);
-              setResult(null);
-              setOutput("");
-              setError("");
-              setCopied(false);
-            }}
-            options={[
-              { label: "Add index signature", value: "record" },
-              { label: "Ignore", value: "ignore" },
-            ]}
-          />
-
-          <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+        <div className="mt-5 grid max-w-[1200px] grid-cols-1 items-start gap-x-6 gap-y-3 md:grid-cols-2 xl:grid-cols-3">
+          <label className="flex min-w-0 cursor-pointer items-start gap-2 text-sm font-medium leading-relaxed text-gray-900">
             <input
               type="checkbox"
               checked={includeComments}
@@ -347,13 +353,12 @@ export default function SchemaTypescriptPanel({
                 setError("");
                 setCopied(false);
               }}
-              className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
 
-            Include comments from descriptions
+            <span className="min-w-0">Include comments from descriptions</span>
           </label>
-
-          <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+          <label className="flex min-w-0 cursor-pointer items-start gap-2 text-sm font-medium leading-relaxed text-gray-900">
             <input
               type="checkbox"
               checked={exportTypes}
@@ -364,13 +369,12 @@ export default function SchemaTypescriptPanel({
                 setError("");
                 setCopied(false);
               }}
-              className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
 
-            Export generated types
+            <span className="min-w-0">Export generated types</span>
           </label>
-
-          <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+          <label className="flex min-w-0 cursor-pointer items-start gap-2 text-sm font-medium leading-relaxed text-gray-900">
             <input
               type="checkbox"
               checked={preferUnknown}
@@ -381,13 +385,15 @@ export default function SchemaTypescriptPanel({
                 setError("");
                 setCopied(false);
               }}
-              className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
 
-            Use unknown instead of any
+            <span className="min-w-0">Use unknown instead of any</span>
           </label>
+        </div>
 
-          <label className="flex cursor-pointer items-start gap-2 text-sm font-medium text-gray-900 md:col-span-2">
+        <div className="mt-3 max-w-[1200px]">
+          <label className="flex min-w-0 cursor-pointer items-start gap-2 text-sm font-medium leading-relaxed text-gray-900">
             <input
               type="checkbox"
               checked={optionalWhenRequiredMissing}
@@ -398,10 +404,12 @@ export default function SchemaTypescriptPanel({
                 setError("");
                 setCopied(false);
               }}
-              className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
 
-            Keep properties optional when <code className="font-mono text-xs">required</code> is missing (JSON Schema default)
+            <span className="min-w-0 leading-relaxed">
+              Keep properties optional when <code className="font-mono text-[0.9em]">required</code> is missing (JSON Schema default)
+            </span>
           </label>
         </div>
 
@@ -444,8 +452,8 @@ export default function SchemaTypescriptPanel({
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-gray-900">
+        <div className="mt-6">
+          <h3 className="text-base font-semibold text-gray-900">
             TypeScript notes
           </h3>
 
@@ -483,12 +491,11 @@ export default function SchemaTypescriptPanel({
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
-        <strong className="text-gray-900">The schema stays in this browser tab during conversion.</strong>{" "}
-        No application-server request is made with the pasted schema. The generated TypeScript describes static shapes for the compiler; it does not enforce JSON Schema assertions at runtime.
+      <div className="mt-5 text-sm leading-relaxed text-gray-600">
+        The generated TypeScript describes static shapes for the compiler; it does not enforce JSON Schema assertions at runtime.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <section className="mt-12  space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             JSON Schema and TypeScript Solve Different Problems
@@ -510,9 +517,9 @@ export default function SchemaTypescriptPanel({
             <table className="w-full min-w-[760px] border-collapse text-left text-sm">
               <thead className="bg-gray-50 text-gray-900">
                 <tr>
-                  <th className="border-b border-gray-200 px-4 py-3 font-semibold">JSON Schema</th>
-                  <th className="border-b border-gray-200 px-4 py-3 font-semibold">TypeScript output</th>
-                  <th className="border-b border-gray-200 px-4 py-3 font-semibold">Important caveat</th>
+                  <th className=" px-4 py-3 font-semibold">JSON Schema</th>
+                  <th className=" px-4 py-3 font-semibold">TypeScript output</th>
+                  <th className=" px-4 py-3 font-semibold">Important caveat</th>
                 </tr>
               </thead>
               <tbody className="text-gray-600">
@@ -625,7 +632,7 @@ interface GeneratedType {
             TypeScript can represent broad shapes, unions, intersections, optional members, tuples, and literal values, but ordinary types do not validate most JSON Schema assertions. Examples include numeric limits, string length and regex patterns, array uniqueness and size, conditional schemas, dependencies, property-name patterns, content annotations, and unevaluated-item/property rules.
           </p>
 
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <div className="mt-4 text-sm leading-relaxed text-gray-600">
             <ul className="space-y-3">
               <li><strong>format:</strong> an email or URI schema still becomes <code className="font-mono text-xs">string</code>; whether format is asserted depends on your JSON Schema implementation and vocabulary.</li>
               <li><strong>integer:</strong> becomes <code className="font-mono text-xs">number</code>; TypeScript does not reject 1.5 merely because the source schema said integer.</li>
@@ -647,14 +654,14 @@ interface GeneratedType {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Before generated types go into a codebase</h2>
 
-          <ol className="mt-4 list-decimal space-y-3 pl-6 text-gray-600 leading-relaxed">
+          <ul className="mt-4 list-disc space-y-3 pl-6 text-gray-600 leading-relaxed">
             <li>Validate that the source document is the JSON Schema draft and dialect your system actually uses.</li>
             <li>Generate TypeScript with property names preserved unless your runtime transforms the data.</li>
             <li>Read every warning, especially references, composition keywords, additional properties, and validation-only rules.</li>
             <li>Compile the generated declarations in the real project with its actual TypeScript settings.</li>
             <li>Keep runtime JSON Schema validation at trust boundaries such as API input, config loading, queues, files, or third-party responses.</li>
             <li>Regenerate or diff the TypeScript when the authoritative schema changes so the static model does not drift.</li>
-          </ol>
+          </ul>
         </div>
 
         <div>
@@ -700,7 +707,7 @@ interface GeneratedType {
           </h2>
 
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-schema-to-typescript-converter" />
+            <YoryantraRelatedTools currentHref="/tools/json-schema-to-typescript-converter" presentation="links" />
           </div>
         </div>
       </section>
@@ -710,7 +717,7 @@ interface GeneratedType {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="min-w-0">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
         {label}
       </div>

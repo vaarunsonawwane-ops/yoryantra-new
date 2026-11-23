@@ -35,15 +35,17 @@ export default function ToolClient() {
 
   return (
     <ToolShell
+      layout="plain"
       title="URL Parts Parser"
       description="Parse URL components, encode or decode URL text, and inspect percent escapes, UTF-8 errors and reserved characters in one place."
     >
-      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mb-9">
         <p className="text-sm leading-relaxed text-gray-600">
           Parse URL parts, encode or decode URL text, or analyze percent encoding.
         </p>
         <div className="mt-3 w-full max-w-[20rem]">
-          <YoryantraSelect
+          <YoryantraSelect width="wide"
+            variant="task"
             label="What do you want to do?"
             value={operation}
             onChange={(value: string) => select(value as Operation)}
@@ -75,9 +77,9 @@ export default function ToolClient() {
         </Suspense>
       </div>
 
-      <div className="mt-10 border-t border-gray-200 pt-8">
+      <div className="mt-10 ">
         <h2 className="text-lg font-semibold text-gray-900">Related Tools</h2>
-        <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/url-parts-parser" /></div>
+        <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/url-parts-parser" presentation="links" /></div>
       </div>
     </ToolShell>
   );

@@ -165,7 +165,7 @@ export default function PercentAnalyzerPanel({ incoming, onTransfer }: PanelProp
   return (
 
     <div className="min-w-0">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0">
         <label className="mb-2 block text-sm font-medium text-gray-700">URL or percent-encoded text</label>
         <textarea
           value={input}
@@ -182,11 +182,11 @@ export default function PercentAnalyzerPanel({ incoming, onTransfer }: PanelProp
         </p>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-7 ">
         <h3 className="text-lg font-semibold text-gray-900">Interpretation settings</h3>
 
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
-          <YoryantraSelect
+        <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-4">
+          <YoryantraSelect width="medium"
             label="Input context"
             value={inputMode}
             onChange={(value) => {
@@ -200,7 +200,7 @@ export default function PercentAnalyzerPanel({ incoming, onTransfer }: PanelProp
             ]}
           />
 
-          <YoryantraSelect
+          <YoryantraSelect width="medium"
             label="Decode behavior"
             value={decodeMode}
             onChange={(value) => {
@@ -214,7 +214,7 @@ export default function PercentAnalyzerPanel({ incoming, onTransfer }: PanelProp
             ]}
           />
 
-          <YoryantraSelect
+          <YoryantraSelect width="medium"
             label="Output"
             value={outputMode}
             onChange={(value) => {
@@ -335,8 +335,8 @@ export default function PercentAnalyzerPanel({ incoming, onTransfer }: PanelProp
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <h3 className="text-sm font-semibold text-gray-900">Context notes</h3>
+        <div className="mt-6">
+          <h3 className="text-base font-semibold text-gray-900">Context notes</h3>
           <div className="mt-3 space-y-3">
             {notes.map((note) => (
               <div key={note.title}>
@@ -358,11 +358,11 @@ export default function PercentAnalyzerPanel({ incoming, onTransfer }: PanelProp
         <pre className="yoryantra-output overflow-auto text-sm min-h-[320px] whitespace-pre-wrap break-words">{output || "Percent-encoding analysis output will appear here."}</pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
-        Analysis runs in your browser and does not request the pasted URL. That means redirects, server routing, proxy normalization, framework decoding, and application behavior are not executed or reproduced.
+      <div className="mt-4 text-sm leading-relaxed text-gray-600">
+        This analysis does not follow redirects or reproduce server routing, proxy normalization, framework decoding or application behavior.
       </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12  space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">A percent escape represents one byte</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -378,7 +378,7 @@ export default function PercentAnalyzerPanel({ incoming, onTransfer }: PanelProp
           <p className="mt-4 text-gray-600 leading-relaxed">
             Characters such as <strong>/</strong>, <strong>?</strong>, <strong>#</strong>, <strong>&</strong>, and <strong>=</strong> can delimit URL structure. RFC 3986 warns that decoding a reserved character before the URI has been split into its components can turn data into syntax. That is why <code>decodeURI</code> and <code>decodeURIComponent</code> intentionally behave differently.
           </p>
-          <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+          <div className="mt-4 self-start text-sm leading-relaxed text-gray-700">
             Decoding a complete URL with component-style rules can expose reserved delimiters such as an encoded slash or ampersand. Analyze the component you actually intend to decode rather than repeatedly decoding the whole URL.
           </div>
         </div>
@@ -391,13 +391,13 @@ export default function PercentAnalyzerPanel({ incoming, onTransfer }: PanelProp
         </div>
 
         <div className="grid items-start gap-4 md:grid-cols-2">
-          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="self-start">
             <h3 className="font-semibold text-gray-900">Malformed escape</h3>
             <p className="mt-2 text-sm leading-relaxed text-gray-600">
               A bare percent sign, <code>%G1</code>, or an incomplete triplet is not valid percent encoding. Strict JavaScript URI decoders throw a URIError for malformed syntax.
             </p>
           </div>
-          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="self-start">
             <h3 className="font-semibold text-gray-900">Valid escapes, invalid UTF-8</h3>
             <p className="mt-2 text-sm leading-relaxed text-gray-600">
               <code>%FF</code> is syntactically a valid percent-encoded byte, but it is not valid standalone UTF-8. URI component decoders can therefore reject input whose %XX syntax looks correct.
@@ -436,7 +436,7 @@ function CheckboxRow({ checked, label, onChange }: { checked: boolean; label: st
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
     </div>

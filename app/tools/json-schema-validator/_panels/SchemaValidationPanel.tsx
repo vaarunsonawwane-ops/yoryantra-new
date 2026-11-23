@@ -285,7 +285,7 @@ export default function SchemaValidationPanel({
       </div>
 
       {summary && summary.notes.length > 0 && (
-        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 self-start">
+        <div className="mt-6 text-sm text-gray-700">
           <div className="font-semibold text-gray-900">Dialect notes</div>
           <ul className="mt-2 list-disc space-y-1 pl-5 leading-relaxed">
             {summary.notes.map((note) => (
@@ -295,23 +295,14 @@ export default function SchemaValidationPanel({
         </div>
       )}
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2 items-start">
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 self-start">
-          <h2 className="text-sm font-semibold text-gray-900">Browser-side boundary</h2>
-          <p className="mt-2 text-sm leading-relaxed text-gray-700">
-            Instance and schema text are parsed and validated by this page. The component does not send either input to a validation API. Copy only writes the result to your browser clipboard when you press Copy.
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 self-start">
-          <h2 className="text-sm font-semibold text-amber-950">Not a full JSON Schema implementation</h2>
-          <p className="mt-2 text-sm leading-relaxed text-amber-900">
+      <div className="mt-8 max-w-4xl">
+          <h2 className="text-lg font-semibold text-gray-900">Not a full JSON Schema implementation</h2>
+          <p className="mt-2 leading-relaxed text-gray-600">
             Validation follows Draft 2020-12 semantics only for the keywords listed below. Dynamic references, unevaluated* keywords, custom vocabularies, external references, and format assertions are outside this browser implementation. Use a standards-compliant library for release gates or schemas that depend on those features.
           </p>
         </div>
-      </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <section className="mt-12 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Valid JSON can still be the wrong data</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -324,7 +315,7 @@ export default function SchemaValidationPanel({
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">What is evaluated here</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-2 items-start">
+          <ul className="mt-5 grid gap-x-10 gap-y-5 md:grid-cols-2">
             <InfoCard
               title="Values and scalars"
               text="type, enum, const, minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, minLength, maxLength, and Unicode-aware pattern checks."
@@ -341,7 +332,7 @@ export default function SchemaValidationPanel({
               title="Schema composition"
               text="allOf, anyOf, oneOf, not, if/then/else, boolean schemas, $defs, and local JSON Pointer $ref values such as #/$defs/address."
             />
-          </div>
+          </ul>
         </div>
 
         <div>
@@ -375,15 +366,15 @@ export default function SchemaValidationPanel({
           </p>
         </div>
 
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 self-start">
-          <h2 className="text-lg font-semibold text-amber-950">Regular expressions deserve caution</h2>
-          <p className="mt-3 text-sm leading-relaxed text-amber-900">
+        <div className="self-start text-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900">Regular expressions deserve caution</h2>
+          <p className="mt-3 text-sm leading-relaxed text-gray-900">
             Draft 2020-12 patterns use ECMA-262-style regular expressions and are not implicitly anchored. JavaScript cannot reliably time-box a pathological regular expression on the main thread, so schemas from untrusted sources can still create expensive pattern work. Pattern length is capped here, but that is not a complete ReDoS defense.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Where the specification draws the line</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Where the specification draws the linine</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
             JSON Schema’s current published version is Draft 2020-12. The official validation specification defines assertions such as type, numeric bounds, string lengths, array limits, required members, and dependentRequired; the core specification defines applicators and reference behavior. For a production validator, those documents and the official meta-schema are the source of truth.
           </p>
@@ -412,7 +403,7 @@ export default function SchemaValidationPanel({
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-schema-validator" />
+            <YoryantraRelatedTools currentHref="/tools/json-schema-validator" presentation="links" />
           </div>
         </div>
       </section>
@@ -422,7 +413,7 @@ export default function SchemaValidationPanel({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 self-start">
+    <div className="self-start">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words text-sm font-semibold text-gray-900">{value}</div>
     </div>
@@ -431,10 +422,9 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function InfoCard({ title, text }: { title: string; text: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 self-start">
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-gray-600">{text}</p>
-    </div>
+    <li className="ml-5 list-disc pl-1 text-gray-700">
+      <strong className="text-gray-900">{title}:</strong> <span className="text-sm leading-relaxed">{text}</span>
+    </li>
   );
 }
 

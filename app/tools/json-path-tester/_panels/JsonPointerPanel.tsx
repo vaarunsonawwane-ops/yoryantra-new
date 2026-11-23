@@ -202,7 +202,7 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
         <p className="mt-2 text-sm leading-relaxed text-gray-600">Resolve RFC 6901 pointers, URI-fragment forms, escaped tokens, arrays, and root values precisely.</p>
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="min-w-0">
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-900">JSON Document</label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
@@ -236,11 +236,11 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div>
           <h3 className="text-lg font-semibold text-gray-900">Pointer Settings</h3>
 
-          <div className="mt-4 space-y-4">
-            <YoryantraSelect
+          <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-4">
+            <YoryantraSelect width="wide"
               label="Action"
               value={actionMode}
               onChange={(value) => {
@@ -255,7 +255,7 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="wide"
               label="Output"
               value={outputMode}
               onChange={(value) => {
@@ -271,7 +271,7 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="wide"
               label="Pointer Input"
               value={pointerInputMode}
               onChange={(value) => {
@@ -284,7 +284,7 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="wide"
               label="Missing Paths"
               value={missingMode}
               onChange={(value) => {
@@ -301,7 +301,7 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="mt-7 ">
         <h3 className="text-lg font-semibold text-gray-900">Options</h3>
         <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
           <Toggle checked={prettyPrintValues} onChange={setPrettyPrintValues} label="Pretty print matched JSON values" />
@@ -337,7 +337,7 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
         <button
           type="button"
           onClick={resetAll}
-          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="yoryantra-btn-outline whitespace-nowrap"
         >
           Reset
         </button>
@@ -357,13 +357,13 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="yoryantra-btn-outline whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
             </div>
 
-            <pre className="mt-4 max-h-[520px] overflow-auto rounded-xl bg-gray-950 p-4 text-sm leading-6 text-gray-100 whitespace-pre-wrap break-words">
+            <pre className="yoryantra-output mt-4 max-h-[520px] overflow-auto whitespace-pre-wrap break-words text-sm leading-6">
               {output}
             </pre>
           </div>
@@ -378,7 +378,7 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
       ) : null}
 
       {notes.length ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((note) => (
@@ -425,7 +425,7 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
         </div>
       ) : null}
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12  space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">A pointer identifies one exact location, not a search pattern</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -437,16 +437,16 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-gray-900">Escaping happens inside each reference token</h2>
             <p className="mt-3 text-sm leading-6 text-gray-600">
-              A slash inside a member name becomes <code className="rounded bg-white px-1 py-0.5">~1</code>, and a tilde becomes <code className="rounded bg-white px-1 py-0.5">~0</code>. The key <code className="rounded bg-white px-1 py-0.5">a/b</code> is therefore addressed as <code className="rounded bg-white px-1 py-0.5">/a~1b</code>. Invalid <code className="rounded bg-white px-1 py-0.5">~</code> escapes are rejected rather than guessed.
+              A slash inside a member name becomes <code className="rounded bg-gray-100 px-1 py-0.5 text-gray-800">~1</code>, and a tilde becomes <code className="rounded bg-gray-100 px-1 py-0.5 text-gray-800">~0</code>. The key <code className="rounded bg-gray-100 px-1 py-0.5 text-gray-800">a/b</code> is therefore addressed as <code className="rounded bg-gray-100 px-1 py-0.5 text-gray-800">/a~1b</code>. Invalid <code className="rounded bg-gray-100 px-1 py-0.5 text-gray-800">~</code> escapes are rejected rather than guessed.
             </p>
           </div>
-          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
-            <h2 className="text-lg font-semibold text-amber-900">The URI-fragment form is related, but not universally implied</h2>
-            <p className="mt-3 text-sm leading-6 text-amber-800">
-              RFC 6901 also defines forms such as <code className="rounded bg-amber-100 px-1 py-0.5">#/a~1b</code>. Percent-decoding is applied before pointer-token decoding. A media type still has to define JSON Pointer as its fragment syntax; ordinary <code className="rounded bg-amber-100 px-1 py-0.5">application/json</code> does not automatically make every URL fragment a JSON Pointer.
+          <div className="self-start text-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900">The URI-fragment form is related, but not universally implied</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              RFC 6901 also defines forms such as <code className="rounded bg-gray-100 px-1 py-0.5 text-gray-800">#/a~1b</code>. Percent-decoding is applied before pointer-token decoding. A media type still has to define JSON Pointer as its fragment syntax; ordinary <code className="rounded bg-gray-100 px-1 py-0.5 text-gray-800">application/json</code> does not automatically make every URL fragment a JSON Pointer.
             </p>
           </div>
         </div>
@@ -494,15 +494,8 @@ export default function JsonPointerPanel({ jsonInput, setJsonInput }: { jsonInpu
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Evaluation stays in the browser, but pasted data still deserves care</h2>
-          <p className="mt-4 text-gray-600 leading-relaxed">
-            Parsing, pointer generation, and evaluation run in the current browser tab; the page code does not upload the pasted JSON to a Yoryantra server. Sensitive production payloads should still be minimized before pasting into any browser-based utility, especially on shared machines, screen recordings, or systems with browser extensions you do not control.
-          </p>
-        </div>
-
-        <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
-          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/json-path-tester" /></div>
+          <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/json-path-tester" presentation="links" /></div>
         </div>
       </section>
     </section>
@@ -1210,9 +1203,9 @@ function csvCell(value: string) {
 }
 
 function issueCardClass(severity: Issue["severity"]) {
-  if (severity === "high") return "self-start rounded-xl border border-red-200 bg-red-50 p-4";
-  if (severity === "warning") return "self-start rounded-xl border border-amber-200 bg-amber-50 p-4";
-  return "self-start rounded-xl border border-gray-200 bg-gray-50 p-4";
+  if (severity === "high") return "py-1";
+  if (severity === "warning") return "py-1";
+  return "py-1";
 }
 
 function issueTitleClass(severity: Issue["severity"]) {
@@ -1243,7 +1236,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="min-w-0">
       <p className="text-sm text-gray-500">{label}</p>
       <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
     </div>

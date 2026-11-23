@@ -184,10 +184,10 @@ export default function JsonMergePanel({
         />
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-7 ">
         <h3 className="text-lg font-semibold text-gray-900">Choose what a collision means</h3>
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
-          <YoryantraSelect
+        <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-4">
+          <YoryantraSelect width="medium"
             label="Object merge"
             value={mergeMode}
             onChange={(value) => {
@@ -201,7 +201,7 @@ export default function JsonMergePanel({
               { label: "Return right value only", value: "rightOnly" },
             ]}
           />
-          <YoryantraSelect
+          <YoryantraSelect width="wide"
             label="Non-array conflicts"
             value={conflictMode}
             onChange={(value) => {
@@ -215,7 +215,7 @@ export default function JsonMergePanel({
               { label: "Report and keep left", value: "reportOnly" },
             ]}
           />
-          <YoryantraSelect
+          <YoryantraSelect width="medium"
             label="When both values are arrays"
             value={arrayMode}
             onChange={(value) => {
@@ -229,7 +229,7 @@ export default function JsonMergePanel({
               { label: "Merge corresponding indexes", value: "mergeByIndex" },
             ]}
           />
-          <YoryantraSelect
+          <YoryantraSelect width="medium"
             label="Output"
             value={outputMode}
             onChange={(value) => {
@@ -255,7 +255,7 @@ export default function JsonMergePanel({
       </div>
 
       {ignoreNullValues ? (
-        <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+        <div className="mt-4 self-start text-sm leading-relaxed text-gray-700">
           Ignoring right-side nulls is a custom merge rule. It is not JSON Merge Patch behavior, where null has removal semantics for object members.
         </div>
       ) : null}
@@ -283,7 +283,7 @@ export default function JsonMergePanel({
       ) : null}
 
       {result?.conflicts.length && includeConflictReport ? (
-        <div className="mt-7 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-7">
           <h3 className="text-lg font-semibold text-gray-900">Paths that competed</h3>
           <p className="mt-1 text-sm text-gray-500">Paths use JSON Pointer escaping; “(root)” means the top-level value itself.</p>
           <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
@@ -324,11 +324,11 @@ export default function JsonMergePanel({
       ) : null}
 
       {notes.length ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-900">Before using the result</h3>
           <div className="mt-4 grid items-start gap-3 md:grid-cols-2">
             {notes.map((note) => (
-              <div key={note.title} className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div key={note.title} className="min-w-0 py-1">
                 <p className="text-sm font-semibold text-gray-900">{note.title}</p>
                 <p className="mt-1 text-sm leading-6 text-gray-600">{note.message}</p>
               </div>
@@ -337,7 +337,7 @@ export default function JsonMergePanel({
         </div>
       ) : null}
 
-      <div className="mt-7 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="mt-7">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Output</h3>
@@ -347,16 +347,13 @@ export default function JsonMergePanel({
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
-        <pre className="mt-4 min-h-[300px] max-h-[560px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-gray-950 p-4 font-mono text-sm leading-6 text-gray-100">
+        <pre className="yoryantra-output mt-4 min-h-[220px] max-h-[560px] overflow-auto whitespace-pre-wrap break-words font-mono text-sm leading-6">
           {output || "Choose the merge rules and run the merge to see the result."}
         </pre>
       </div>
 
-      <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Both inputs stay in the browser while this page is open. No server-side merge request is needed; still treat sensitive configuration, credentials, and production exports with the same care you would use in any browser tab.
-      </div>
 
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      <section className="mt-12 space-y-10 ">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">There is no single universal “deep merge” rule</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
@@ -418,7 +415,7 @@ export default function JsonMergePanel({
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-diff-checker" />
+            <YoryantraRelatedTools currentHref="/tools/json-diff-checker" presentation="links" />
           </div>
         </div>
       </section>
@@ -827,7 +824,7 @@ function compareUtf16(a: string, b: string) {
 
 function JsonInputCard({ label, value, onChange, placeholder, hint }: { label: string; value: string; onChange: (value: string) => void; placeholder: string; hint: string }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="min-w-0">
       <label className="block text-sm font-semibold text-gray-900">{label}</label>
       <textarea
         value={value}
@@ -852,7 +849,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start">
       <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
       <p className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
     </div>

@@ -144,7 +144,7 @@ export default function UrlEncoderPanel({ incoming, onTransfer }: PanelProps) {
 
     <div className="min-w-0">
       <div>
-        <YoryantraSelect
+        <YoryantraSelect width="medium"
           label="Encoding context"
           value={mode}
           onChange={(value) => {
@@ -261,18 +261,6 @@ export default function UrlEncoderPanel({ incoming, onTransfer }: PanelProps) {
         ) : null}
       </div>
 
-      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
-        <h3 className="text-sm font-semibold text-gray-900">
-          Percent-encoding does not hide a value
-        </h3>
-        <p className="mt-2 text-sm leading-relaxed text-gray-700">
-          The transformation happens in the browser with JavaScript&apos;s URI APIs and
-          <code> URLSearchParams</code>. Nothing here encrypts a token, password, path,
-          or query value. Treat encoded secrets exactly like the original secret, and
-          validate decoded data for the place where it will actually be used.
-        </p>
-      </div>
-
       <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
@@ -346,7 +334,7 @@ export default function UrlEncoderPanel({ incoming, onTransfer }: PanelProps) {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div className="min-w-0">
           <h2 className="text-xl font-semibold text-gray-900">
             Decode only after the URL has been separated into components
           </h2>

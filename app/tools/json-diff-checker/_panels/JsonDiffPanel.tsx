@@ -741,14 +741,14 @@ export default function JsonDiffPanel({
         )}
       </div>
 
-      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
-        <h2 className="text-sm font-semibold text-gray-900">The comparison stays local, but meaning still comes from the application</h2>
+      <div className="mt-8">
+        <h2 className="text-sm font-semibold text-gray-900">What structural equality means</h2>
         <p className="mt-2 text-sm leading-relaxed text-gray-700">
-          Both JSON documents are parsed and compared in the browser without being sent to a comparison API. Structural equality does not prove that two responses have the same permissions, timestamps, side effects, schema validity, or business meaning.
+          Structural equality does not prove that two responses have the same permissions, timestamps, side effects, schema validity, or business meaning.
         </p>
       </div>
 
-      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
+      <section className="mt-14 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Compare the JSON values, not their indentation</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
@@ -760,16 +760,16 @@ export default function JsonDiffPanel({
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-gray-900">Object order is ignored</h2>
-            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-sm text-gray-800">{`{"name":"Sneha","age":30}`}</pre>
-            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-sm text-gray-800">{`{"age":30,"name":"Sneha"}`}</pre>
+            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">{`{"name":"Sneha","age":30}`}</pre>
+            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">{`{"age":30,"name":"Sneha"}`}</pre>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">The same member names point to the same values, so source order does not create a difference.</p>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-gray-900">Array order is preserved</h2>
-            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-sm text-gray-800">{`{"roles":["editor","viewer"]}`}</pre>
-            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-sm text-gray-800">{`{"roles":["viewer","editor"]}`}</pre>
+            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">{`{"roles":["editor","viewer"]}`}</pre>
+            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">{`{"roles":["viewer","editor"]}`}</pre>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">Both <code>/roles/0</code> and <code>/roles/1</code> change because the indexes are significant.</p>
           </div>
         </div>
@@ -777,8 +777,8 @@ export default function JsonDiffPanel({
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Read each difference as a statement about one path</h2>
           <div className="mt-5 overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full min-w-[700px] text-left text-sm">
-              <thead className="bg-gray-50 text-gray-900"><tr><th className="px-4 py-3">Result</th><th className="px-4 py-3">Meaning</th></tr></thead>
+            <table className="w-full min-w-[700px] border-collapse text-left text-sm">
+              <thead className="bg-gray-50 text-gray-900"><tr><th className="px-4 py-3 font-semibold">Result</th><th className="px-4 py-3 font-semibold">Meaning</th></tr></thead>
               <tbody className="divide-y divide-gray-200 text-gray-600">
                 <tr><td className="px-4 py-3 font-medium text-gray-900">Added</td><td className="px-4 py-3">The path exists only in the right document.</td></tr>
                 <tr><td className="px-4 py-3 font-medium text-gray-900">Removed</td><td className="px-4 py-3">The path exists only in the left document.</td></tr>
@@ -799,32 +799,32 @@ export default function JsonDiffPanel({
           </p>
         </div>
 
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div>
           <h2 className="text-xl font-semibold text-gray-900">Repeated object names make the result ambiguous</h2>
-          <p className="mt-4 leading-relaxed text-gray-700">
+          <p className="mt-4 leading-relaxed text-gray-600">
             JSON syntax can contain the same member name more than once, but RFC 8259 says names <em>should</em> be unique because receiving software does not agree on what duplicates mean. Some implementations keep the last value, some report an error, and others expose every occurrence.
           </p>
-          <p className="mt-4 leading-relaxed text-gray-700">
+          <p className="mt-4 leading-relaxed text-gray-600">
             Repeated names are reported before comparison and the last occurrence is used for the structural tree. Treat that as a diagnostic convention, not as proof that another parser will make the same choice. A JSON Pointer aimed at a duplicated name is also not well-defined by RFC 6901.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Small differences that often explain API failures</h2>
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
-            <div className="rounded-xl border border-gray-200 p-5">
+          <div className="mt-6 grid gap-x-10 gap-y-7 md:grid-cols-2">
+            <div className="min-w-0">
               <h3 className="font-semibold text-gray-900">Missing is different from null</h3>
               <p className="mt-2 text-sm leading-relaxed text-gray-600"><code>{`{"middleName":null}`}</code> explicitly contains a member. <code>{`{}`}</code> does not. Many APIs assign different meaning to those cases.</p>
             </div>
-            <div className="rounded-xl border border-gray-200 p-5">
+            <div className="min-w-0">
               <h3 className="font-semibold text-gray-900">JSON types are not coerced</h3>
               <p className="mt-2 text-sm leading-relaxed text-gray-600"><code>0</code>, <code>false</code>, <code>null</code>, and <code>&quot;0&quot;</code> remain different. JavaScript truthiness is not applied.</p>
             </div>
-            <div className="rounded-xl border border-gray-200 p-5">
+            <div className="min-w-0">
               <h3 className="font-semibold text-gray-900">Unicode normalization is not automatic</h3>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">Two strings that look identical can contain different Unicode code-point sequences. String values are compared exactly after JSON escape decoding, without NFC/NFD normalization.</p>
             </div>
-            <div className="rounded-xl border border-gray-200 p-5">
+            <div className="min-w-0">
               <h3 className="font-semibold text-gray-900">Unpaired surrogates deserve a warning</h3>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">JSON&apos;s grammar can represent escapes such as <code>\uDEAD</code>, but RFC 8259 warns that lone UTF-16 surrogates can produce unpredictable behavior across software. Locations are reported without silently rewriting the string.</p>
             </div>
@@ -847,7 +847,7 @@ export default function JsonDiffPanel({
             Syntax validation answers whether JSON can be parsed; JSON Schema answers whether a parsed value follows a contract. A diff answers neither of those questions—it only describes how two parsed values differ.
           </p>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-diff-checker" />
+            <YoryantraRelatedTools currentHref="/tools/json-diff-checker" presentation="links" />
           </div>
         </div>
       </section>

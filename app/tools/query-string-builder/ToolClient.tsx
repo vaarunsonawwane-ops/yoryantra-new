@@ -37,15 +37,17 @@ export default function ToolClient() {
 
   return (
     <ToolShell
+      layout="plain"
       title="Query String Builder"
       description="Build, encode, decode and inspect URL query parameters. Convert JSON into query strings, work with repeated keys, and edit the result without opening another tool."
     >
-      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mb-9">
         <p className="text-sm leading-relaxed text-gray-600">
           Build query strings, convert between JSON and query strings, parse URLs or queries, or encode and decode queries.
         </p>
         <div className="mt-3 w-full max-w-[20rem]">
-          <YoryantraSelect
+          <YoryantraSelect width="wide"
+            variant="task"
             label="What do you want to do?"
             value={operation}
             onChange={(value: string) => select(value as Operation)}
@@ -56,7 +58,7 @@ export default function ToolClient() {
           Build a query, convert JSON, inspect a URL, or check encoding. Use the buttons under each result to move it into another operation here. Your work stays available when you switch operations.
         </p>
       </div>
-      <div className="mt-7 min-w-0">
+      <div className="mt-8 min-w-0">
         <Suspense fallback={<p className="text-sm text-gray-600">Loading this operation...</p>}>
           {visited.includes("build") ? (
             <div className={operation === "build" ? "block" : "hidden"}>
@@ -80,9 +82,9 @@ export default function ToolClient() {
           ) : null}
         </Suspense>
       </div>
-      <div className="mt-10 border-t border-gray-200 pt-8">
+      <div className="mt-10 ">
         <h2 className="text-lg font-semibold text-gray-900">Related Tools</h2>
-        <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/query-string-builder" /></div>
+        <div className="mt-4"><YoryantraRelatedTools currentHref="/tools/query-string-builder" presentation="links" /></div>
       </div>
     </ToolShell>
   );

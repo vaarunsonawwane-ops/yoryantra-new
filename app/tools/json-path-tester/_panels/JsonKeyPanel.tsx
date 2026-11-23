@@ -149,10 +149,10 @@ export default function JsonKeyPanel({ input, setInput }: { input: string; setIn
         </p>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-7 ">
         <h3 className="text-lg font-semibold text-gray-900">What to include</h3>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex cursor-pointer gap-3 self-start rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex cursor-pointer gap-3 self-start py-1">
             <input
               type="checkbox"
               checked={includeArrayIndexes}
@@ -171,7 +171,7 @@ export default function JsonKeyPanel({ input, setInput }: { input: string; setIn
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 self-start rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex cursor-pointer gap-3 self-start py-1">
             <input
               type="checkbox"
               checked={includeLeafOnly}
@@ -256,18 +256,15 @@ export default function JsonKeyPanel({ input, setInput }: { input: string; setIn
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Structure extraction runs in your browser. The page does not send the JSON you paste to a processing API.
-      </div>
 
-      <div className="mt-4 self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+      <div className="mt-4 self-start text-sm leading-relaxed text-gray-700">
         <strong>Path-format caution:</strong> <code>users[].name</code> and escaped dot paths are readable conventions, not JSON Pointer or JSONPath. For a standardized pointer syntax, see{" "}
-        <a href="https://www.rfc-editor.org/rfc/rfc6901" target="_blank" rel="noreferrer" className="font-medium underline underline-offset-2">
+        <a href="https://www.rfc-editor.org/rfc/rfc6901" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">
           RFC 6901
         </a>.
       </div>
 
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      <section className="mt-12 space-y-10 ">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             A field list should describe shape without pretending arrays are objects
@@ -287,10 +284,10 @@ export default function JsonKeyPanel({ input, setInput }: { input: string; setIn
           <p className="mt-4 leading-relaxed text-gray-600">
             A real JSON member may be named <code>profile.name</code>. Without escaping, that looks identical to a nested <code>profile</code> object containing <code>name</code>. Property-name dots, brackets, and backslashes are therefore escaped in the displayed path.
           </p>
-          <div className="mt-4 self-start rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
-            <code>{`{"profile.name":"editor"}`}</code>
-            <span className="mx-2 text-gray-400">→</span>
-            <code>$.profile\.name</code>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+            <code className="rounded bg-gray-100 px-2 py-1 font-mono text-gray-900">{`{"profile.name":"editor"}`}</code>
+            <span aria-hidden="true" className="text-gray-500">→</span>
+            <code className="rounded bg-gray-100 px-2 py-1 font-mono text-gray-900">$.profile\.name</code>
           </div>
         </div>
 
@@ -311,7 +308,7 @@ export default function JsonKeyPanel({ input, setInput }: { input: string; setIn
             JSON defines the data model; pointer syntaxes are separate layers
           </h2>
           <p className="mt-4 leading-relaxed text-gray-600">
-            <a href="https://www.rfc-editor.org/rfc/rfc8259" target="_blank" rel="noreferrer" className="font-medium text-gray-800 underline underline-offset-2">RFC 8259</a> defines JSON objects, arrays, member names, values, and interoperability rules. It does not define dot notation. <a href="https://www.rfc-editor.org/rfc/rfc6901" target="_blank" rel="noreferrer" className="font-medium text-gray-800 underline underline-offset-2">RFC 6901</a> defines JSON Pointer when a standards-based address for a specific JSON value is required.
+            <a href="https://www.rfc-editor.org/rfc/rfc8259" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 8259</a> defines JSON objects, arrays, member names, values, and interoperability rules. It does not define dot notation. <a href="https://www.rfc-editor.org/rfc/rfc6901" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">RFC 6901</a> defines JSON Pointer when a standards-based address for a specific JSON value is required.
           </p>
         </div>
 
@@ -330,7 +327,7 @@ export default function JsonKeyPanel({ input, setInput }: { input: string; setIn
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-path-tester" />
+            <YoryantraRelatedTools currentHref="/tools/json-path-tester" presentation="links" />
           </div>
         </div>
       </section>

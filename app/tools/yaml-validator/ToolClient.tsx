@@ -32,16 +32,18 @@ export default function ToolClient() {
 
   return (
     <ToolShell
+      layout="plain"
       title="YAML Validator"
       description="Validate YAML with a strict YAML 1.2 parser, get document-level syntax diagnostics, and separate real parser failures from schema or application-specific configuration rules."
     >
-      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="mb-9">
         <h2 className="text-lg font-semibold text-gray-900">Choose a YAML task</h2>
         <p className="mt-2 text-sm leading-relaxed text-gray-600">
           Validate YAML, format YAML, convert JSON to YAML, or convert YAML to JSON.
         </p>
         <div className="mt-3 w-full max-w-[20rem]">
-          <YoryantraSelect
+          <YoryantraSelect width="wide"
+            variant="task"
             label="What do you want to do?"
             value={activeTask}
             onChange={(value: string) => setActiveTask(value as WorkflowOperation)}

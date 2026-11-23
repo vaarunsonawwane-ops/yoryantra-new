@@ -216,7 +216,7 @@ export default function SchemaGeneratorPanel({
 
   return (
     <div className="min-w-0">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0">
         <label className="mb-2 block text-sm font-medium text-gray-700">
           Sample JSON
         </label>
@@ -239,12 +239,12 @@ export default function SchemaGeneratorPanel({
         </p>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-7 ">
         <h3 className="text-lg font-semibold text-gray-900">
           How the sample should be interpreted
         </h3>
 
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
+        <div className="mt-4 grid w-full max-w-5xl grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
           <YoryantraSelect
             label="Schema draft"
             value={schemaDraft}
@@ -300,7 +300,7 @@ export default function SchemaGeneratorPanel({
             ]}
           />
 
-          <div className="md:col-span-2">
+          <div className="w-full min-w-0">
             <label className="block text-sm font-medium text-gray-700">
               Schema title
             </label>
@@ -311,13 +311,13 @@ export default function SchemaGeneratorPanel({
                 clearResult();
               }}
               placeholder="Generated Schema"
-              className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              className="mt-2 h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-500 focus:text-gray-900 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
             />
           </div>
         </div>
 
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
-          <label className="self-start flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+        <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-4">
+          <label className="self-start flex cursor-pointer gap-3 py-1">
             <input
               type="checkbox"
               checked={includeExamples}
@@ -331,13 +331,13 @@ export default function SchemaGeneratorPanel({
               <span className="block text-sm font-medium text-gray-900">
                 Add observed examples
               </span>
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+              <span className="mt-0.5 block text-xs leading-relaxed text-gray-500">
                 Attach leaf examples and one root example without duplicating whole subtrees.
               </span>
             </span>
           </label>
 
-          <label className="self-start flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="self-start flex cursor-pointer gap-3 py-1">
             <input
               type="checkbox"
               checked={detectFormats}
@@ -351,13 +351,13 @@ export default function SchemaGeneratorPanel({
               <span className="block text-sm font-medium text-gray-900">
                 Suggest familiar string formats
               </span>
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+              <span className="mt-0.5 block text-xs leading-relaxed text-gray-500">
                 Recognize conservative email, URI, date, date-time, and UUID shapes.
               </span>
             </span>
           </label>
 
-          <label className="self-start flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="self-start flex cursor-pointer gap-3 py-1">
             <input
               type="checkbox"
               checked={nullableTypes}
@@ -371,13 +371,13 @@ export default function SchemaGeneratorPanel({
               <span className="block text-sm font-medium text-gray-900">
                 Preserve null in mixed samples
               </span>
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+              <span className="mt-0.5 block text-xs leading-relaxed text-gray-500">
                 Keep null alongside another observed type when array samples contain both.
               </span>
             </span>
           </label>
 
-          <label className="self-start flex cursor-pointer gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <label className="self-start flex cursor-pointer gap-3 py-1">
             <input
               type="checkbox"
               checked={allowAdditionalProperties}
@@ -391,7 +391,7 @@ export default function SchemaGeneratorPanel({
               <span className="block text-sm font-medium text-gray-900">
                 Allow unobserved object properties
               </span>
-              <span className="mt-1 block text-sm leading-relaxed text-gray-500">
+              <span className="mt-0.5 block text-xs leading-relaxed text-gray-500">
                 Leave objects open instead of rejecting names absent from the sample.
               </span>
             </span>
@@ -458,8 +458,8 @@ export default function SchemaGeneratorPanel({
       )}
 
       {notes.length > 0 && (
-        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
+        <div className="mt-6">
+          <h3 className="text-base font-semibold text-amber-900">
             Assumptions worth checking
           </h3>
           <div className="mt-3 space-y-3">
@@ -490,19 +490,13 @@ export default function SchemaGeneratorPanel({
         </pre>
       </div>
 
-      <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
-        <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-          Inference runs in this browser component. Pasted JSON stays in the page
-          and browser memory unless you copy or otherwise share it yourself.
-        </div>
-        <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-          One sample can reveal observed shape, not business intent. Required
-          fields, allowed ranges, patterns, uniqueness, and closed vocabularies
-          still need human decisions.
-        </div>
-      </div>
+      <p className="mt-5 text-sm leading-relaxed text-gray-600">
+        One sample can reveal observed shape, not business intent. Required
+        fields, allowed ranges, patterns, uniqueness, and closed vocabularies
+        still need human decisions.
+      </p>
 
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      <section className="mt-12 space-y-10 ">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             A sample can show structure, but it cannot prove the contract
@@ -648,7 +642,7 @@ export default function SchemaGeneratorPanel({
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-schema-generator" />
+            <YoryantraRelatedTools currentHref="/tools/json-schema-generator" presentation="links" />
           </div>
         </div>
       </section>
@@ -658,7 +652,7 @@ export default function SchemaGeneratorPanel({
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="self-start">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
     </div>

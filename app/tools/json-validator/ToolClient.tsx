@@ -242,35 +242,19 @@ export default function ToolClient() {
 
   return (
     <ToolShell
+      layout="plain"
       title="JSON Validator"
       description="Validate, format, minify and sort JSON in one place. Inspect syntax errors, duplicate keys and large-number warnings before copying your result."
     >
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="block text-sm font-semibold text-gray-900">JSON Input</label>
-        <p className="mt-1 text-sm leading-relaxed text-gray-500">
-          Paste a complete JSON text. Objects, arrays, strings, numbers, booleans, and null can all be valid top-level JSON values.
-        </p>
-
-        <textarea
-          value={input}
-          onChange={(event: { target: { value: string } }) => {
-            setInput(event.target.value);
-            clearValidation();
-          }}
-          placeholder="Paste JSON here..."
-          spellCheck={false}
-          className="mt-4 w-full min-h-[320px] rounded-xl border border-gray-300 p-4 text-sm font-mono leading-6 outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
-        />
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mb-7">
         <h3 className="text-lg font-semibold text-gray-900">Output Settings</h3>
         <p className="mt-2 text-sm leading-relaxed text-gray-600">
           Validate JSON, format JSON, minify JSON, or sort JSON keys.
         </p>
-        <div className="mt-3 grid gap-4 md:grid-cols-2">
-          <div className="w-full max-w-[20rem]">
-            <YoryantraSelect
+        <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-4">
+          <div className="w-full sm:w-[20rem]">
+            <YoryantraSelect width="wide"
+              variant="task"
               label="What do you want to do?"
             value={operation}
             onChange={(value) => {
@@ -286,7 +270,8 @@ export default function ToolClient() {
             />
           </div>
           {operation === "validate" || operation === "format" ? (
-            <YoryantraSelect
+            <div className="w-full sm:w-[11rem]">
+            <YoryantraSelect width="short"
               label="Indentation"
               value={indentSize}
               onChange={(value) => {
@@ -299,10 +284,12 @@ export default function ToolClient() {
                 { label: "Tab", value: "tab" },
               ]}
             />
+            </div>
           ) : null}
           {operation === "sort" ? (
             <>
-              <YoryantraSelect
+              <div className="w-full sm:w-[15rem]">
+              <YoryantraSelect width="medium"
                 label="Key order"
                 value={sortDirection}
                 onChange={(value) => {
@@ -314,7 +301,9 @@ export default function ToolClient() {
                   { label: "Descending (UTF-16)", value: "desc" },
                 ]}
               />
-              <YoryantraSelect
+              </div>
+              <div className="w-full sm:w-[12rem]">
+              <YoryantraSelect width="medium"
                 label="Sorted output spacing"
                 value={sortSpacing}
                 onChange={(value) => {
@@ -327,6 +316,7 @@ export default function ToolClient() {
                   { label: "Compact", value: "compact" },
                 ]}
               />
+              </div>
             </>
           ) : null}
         </div>
@@ -337,6 +327,24 @@ export default function ToolClient() {
             ? "Only extra JSON whitespace is removed. Text inside strings, duplicate names and number spellings are preserved."
             : "Formatting keeps the JSON's original number spellings and duplicate object keys visible."}
         </p>
+      </div>
+
+      <div className="min-w-0">
+        <label className="block text-sm font-semibold text-gray-900">JSON Input</label>
+        <p className="mt-1 text-sm leading-relaxed text-gray-500">
+          Paste a complete JSON text. Objects, arrays, strings, numbers, booleans, and null can all be valid top-level JSON values.
+        </p>
+
+        <textarea
+          value={input}
+          onChange={(event: { target: { value: string } }) => {
+            setInput(event.target.value);
+            clearValidation();
+          }}
+          placeholder="Paste JSON here..."
+          spellCheck={false}
+          className="mt-4 w-full min-h-[320px] rounded-xl border border-gray-300 p-4 text-sm font-mono leading-6 outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-transparent transition"
+        />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
@@ -405,7 +413,7 @@ export default function ToolClient() {
         </div>
       ) : null}
 
-      <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="mt-9">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">{operationName} output</h3>
@@ -428,27 +436,19 @@ export default function ToolClient() {
           ) : null}
         </div>
 
-        <pre className="mt-4 yoryantra-output overflow-auto text-sm min-h-[260px] whitespace-pre-wrap break-words">
+        <pre className={`mt-4 yoryantra-output overflow-auto text-sm whitespace-pre-wrap break-words ${output ? "min-h-[220px]" : "min-h-[120px]"}`}>
           {output || "Your JSON output will appear here."}
         </pre>
       </div>
 
       {operation === "sort" ? (
-        <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        <div className="mt-5 text-sm leading-relaxed text-gray-700">
           Sorting follows UTF-16 key order and keeps array items in place. It is not RFC 8785 canonical JSON for signing or hashing.
         </div>
       ) : null}
 
-      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
-        <h3 className="text-sm font-semibold text-gray-900">
-          The JSON stays in the browser tab during validation
-        </h3>
-        <p className="mt-2 text-sm leading-relaxed text-gray-700">
-          Parsing, formatting, and the extra warning checks run in client-side JavaScript; the pasted JSON is not sent to an application server by these actions. Secrets still deserve care because browser extensions, managed-device software, screenshots, and clipboard history are separate exposure paths.
-        </p>
-      </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-12">
+      <section className="mt-12 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Syntax is only the first question</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -517,7 +517,7 @@ export default function ToolClient() {
           <p className="mt-4 text-gray-600 leading-relaxed">
             Parse error wording is produced by the browser engine and can differ between browsers. When the engine reports a character position or line and column, a nearby line is shown with a caret. Treat that location as a debugging hint: the actual mistake can sit just before the reported character, such as a missing comma on the previous property.
           </p>
-          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <div className="mt-4">
             <ul className="space-y-3">
               <li><strong>Unexpected property name:</strong> check the comma before that property.</li>
               <li><strong>Unexpected closing brace/bracket:</strong> check for a trailing comma or missing value.</li>
@@ -585,7 +585,7 @@ export default function ToolClient() {
             After syntax, check the data contract
           </h2>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-validator" />
+            <YoryantraRelatedTools currentHref="/tools/json-validator" presentation="links" />
           </div>
         </div>
       </section>
@@ -595,7 +595,7 @@ export default function ToolClient() {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="min-w-0">
       <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
       <p className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
     </div>

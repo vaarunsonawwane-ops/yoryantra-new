@@ -166,7 +166,7 @@ export default function JsonPatchPanel({
   return (
     <div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="min-w-0">
           <label className="block mb-2 text-sm font-medium text-gray-700">
             Original JSON
           </label>
@@ -189,7 +189,7 @@ export default function JsonPatchPanel({
           </p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="min-w-0">
           <label className="block mb-2 text-sm font-medium text-gray-700">
             Modified JSON
           </label>
@@ -213,13 +213,13 @@ export default function JsonPatchPanel({
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-7 ">
         <h3 className="text-lg font-semibold text-gray-900">
           Patch choices
         </h3>
 
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
-          <YoryantraSelect
+        <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-4">
+          <YoryantraSelect width="medium"
             label="Output"
             value={outputMode}
             onChange={(value) => {
@@ -239,7 +239,7 @@ export default function JsonPatchPanel({
           />
 
 
-          <YoryantraSelect
+          <YoryantraSelect width="medium"
             label="Array Handling"
             value={arrayMode}
             onChange={(value) => {
@@ -391,8 +391,8 @@ export default function JsonPatchPanel({
       )}
 
       {result && result.issues.some((issue) => issue.severity === "warning") && (
-        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">
+        <div className="mt-6">
+          <h3 className="text-base font-semibold text-amber-900">
             Patch cautions
           </h3>
 
@@ -412,7 +412,7 @@ export default function JsonPatchPanel({
       )}
 
       {result && result.issues.some((issue) => issue.severity === "info") && (
-        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="mt-6">
           <div className="space-y-3">
             {result.issues
               .filter((issue) => issue.severity === "info")
@@ -429,7 +429,7 @@ export default function JsonPatchPanel({
       )}
 
       {notes.some((note) => note.severity === "warning") && (
-        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-6">
           <div className="space-y-3">
             {notes
               .filter((note) => note.severity === "warning")
@@ -446,7 +446,7 @@ export default function JsonPatchPanel({
       )}
 
       {notes.some((note) => note.severity === "info") && (
-        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="mt-6">
           <div className="space-y-3">
             {notes
               .filter((note) => note.severity === "info")
@@ -480,12 +480,8 @@ export default function JsonPatchPanel({
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
-        Comparison and patch generation run in your browser. The JSON pasted into
-        these fields is not sent to a Yoryantra server by this page.
-      </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12  space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             A JSON Patch is an ordered program, not a sorted diff
@@ -629,7 +625,7 @@ export default function JsonPatchPanel({
           </h2>
 
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-diff-checker" />
+            <YoryantraRelatedTools currentHref="/tools/json-diff-checker" presentation="links" />
           </div>
         </div>
       </section>
@@ -639,7 +635,7 @@ export default function JsonPatchPanel({
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="min-w-0">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
         {label}
       </div>

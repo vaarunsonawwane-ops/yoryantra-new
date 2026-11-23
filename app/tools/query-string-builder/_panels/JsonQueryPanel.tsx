@@ -201,7 +201,7 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
   return (
     <div className="min-w-0">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="min-w-0">
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-900">JSON Object or Query String</label>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
@@ -236,11 +236,11 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
           ) : null}
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div>
           <h3 className="text-lg font-semibold text-gray-900">Query Settings</h3>
 
           <div className="mt-4 space-y-4">
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Action"
               value={actionMode}
               onChange={(value) => {
@@ -258,7 +258,7 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Output"
               value={outputMode}
               onChange={(value) => {
@@ -280,7 +280,7 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Nested Key Style"
               value={keyStyle}
               onChange={(value) => {
@@ -293,7 +293,7 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Array Handling"
               value={arrayMode}
               onChange={(value) => {
@@ -309,7 +309,7 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Booleans"
               value={booleanMode}
               onChange={(value) => {
@@ -323,7 +323,7 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
               ]}
             />
 
-            <YoryantraSelect
+            <YoryantraSelect width="medium"
               label="Null Values"
               value={nullMode}
               onChange={(value) => {
@@ -340,7 +340,7 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="mt-7">
         <h3 className="text-lg font-semibold text-gray-900">Options</h3>
         <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
           <Toggle checked={trimStringValues} onChange={setTrimStringValues} label="Trim string values" />
@@ -392,7 +392,7 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
         <button
           type="button"
           onClick={resetAll}
-          className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          className="yoryantra-btn-outline whitespace-nowrap"
         >
           Reset
         </button>
@@ -412,13 +412,13 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
                 type="button"
                 onClick={copyOutput}
                 disabled={!output}
-                className="min-h-[44px] whitespace-nowrap rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="yoryantra-btn-outline whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? "Copied" : "Copy Output"}
               </button>
             </div>
 
-            <pre className="mt-4 max-h-[520px] overflow-auto rounded-xl bg-gray-950 p-4 text-sm leading-6 text-gray-100 whitespace-pre-wrap break-words">
+            <pre className="yoryantra-output mt-4 max-h-[520px] overflow-auto whitespace-pre-wrap break-words text-sm leading-6">
               {output}
             </pre>
           </div>
@@ -433,7 +433,7 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
       ) : null}
 
       {notes.length ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-900">Review Notes</h3>
           <div className="mt-4 space-y-3">
             {notes.map((note) => (
@@ -478,7 +478,7 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
         </div>
       ) : null}
 
-      <section className="mt-12 border-t border-gray-200 pt-10 space-y-10">
+      <section className="mt-12  space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">A query string is a list of name-value pairs, not a typed JSON object</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
@@ -490,22 +490,22 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-gray-900">Nested-key syntax is an application convention</h2>
             <p className="mt-3 text-sm leading-6 text-gray-600">
               Dot form such as <code className="rounded bg-white px-1 py-0.5">filter.status</code> and bracket form such as <code className="rounded bg-white px-1 py-0.5">filter[status]</code> are common conventions, but the URL standard does not assign nested-object semantics to either one. Match the backend or framework that will parse the request.
             </p>
           </div>
-          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
-            <h2 className="text-lg font-semibold text-amber-900">Array syntax can change the meaning of the request</h2>
-            <p className="mt-3 text-sm leading-6 text-amber-800">
+          <div className="self-start text-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900">Array syntax can change the meaning of the request</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-900">
               Repeated names, comma-joined values, empty brackets, indexed brackets, and JSON text are not interchangeable. A comma inside an array item makes comma mode ambiguous unless the receiver has its own escaping rule. Repeated keys are usually the least lossy representation when the API explicitly supports them.
             </p>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Percent encoding and form encoding are related but not identical</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Percent encoding and form encncoding are related but not identical</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
             Generic component encoding uses percent escapes such as <code className="rounded bg-gray-100 px-1 py-0.5">%20</code> for a space. The WHATWG <code className="rounded bg-gray-100 px-1 py-0.5">application/x-www-form-urlencoded</code> serializer used by <code className="rounded bg-gray-100 px-1 py-0.5">URLSearchParams</code> encodes spaces as <code className="rounded bg-gray-100 px-1 py-0.5">+</code> and uses a slightly different percent-encode set. The form-style option follows that behavior instead of only swapping one character after the fact.
           </p>
@@ -557,9 +557,9 @@ export default function JsonQueryPanel({ incoming, onTransfer }: { incoming?: In
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Local processing does not remove every privacy consideration</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Check query values before sharing</h2>
           <p className="mt-4 text-gray-600 leading-relaxed">
-            Conversion and decoding run in the current browser tab; the page code does not send the pasted query or JSON to a Yoryantra server. Query strings often contain identifiers, search terms, tokens, or internal filters, so remove secrets before sharing generated URLs in tickets, screenshots, analytics tools, chat logs, or documentation.
+            Query strings often contain identifiers, search terms, tokens, or internal filters, so remove secrets before sharing generated URLs in tickets, screenshots, analytics tools, chat logs, or documentation.
           </p>
         </div>
       </section>
@@ -1354,9 +1354,9 @@ function csvCell(value: string) {
 }
 
 function issueCardClass(severity: Issue["severity"]) {
-  if (severity === "high") return "self-start rounded-xl border border-red-200 bg-red-50 p-4";
-  if (severity === "warning") return "self-start rounded-xl border border-amber-200 bg-amber-50 p-4";
-  return "self-start rounded-xl border border-gray-200 bg-gray-50 p-4";
+  if (severity === "high") return "py-1";
+  if (severity === "warning") return "py-1";
+  return "py-1";
 }
 
 function issueTitleClass(severity: Issue["severity"]) {
@@ -1387,7 +1387,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="min-w-0">
       <p className="text-sm text-gray-500">{label}</p>
       <p className="mt-2 break-words font-mono text-lg font-semibold text-gray-900">{value}</p>
     </div>

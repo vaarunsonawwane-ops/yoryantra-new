@@ -1243,7 +1243,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
         <h2 className="text-xl font-semibold text-gray-900">JSON Array Filter Tool</h2>
         <p className="mt-2 text-sm leading-relaxed text-gray-600">Filter arrays of JSON values by a literal or dot-path field using type-aware text, number, boolean, null, JSON, regex, existence and range conditions without mutating original records.</p>
       </header>
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0">
         <label className="block text-sm font-semibold text-gray-900">
           JSON array
         </label>
@@ -1273,7 +1273,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
             }}
             placeholder="user.role"
             spellCheck={false}
-            className="mt-2 w-full rounded-xl border border-gray-300 p-3 font-mono text-sm placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            className="mt-2 h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm font-mono placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
           />
           <p className="mt-2 text-xs leading-relaxed text-gray-500">
             A literal key matching the full text wins before dot traversal. Array
@@ -1337,7 +1337,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
               }}
               placeholder="admin"
               spellCheck={false}
-              className="mt-2 w-full rounded-xl border border-gray-300 p-3 font-mono text-sm placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              className="mt-2 h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm font-mono placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
             />
           </div>
         ) : null}
@@ -1355,7 +1355,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
               }}
               placeholder="100"
               spellCheck={false}
-              className="mt-2 w-full rounded-xl border border-gray-300 p-3 font-mono text-sm placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              className="mt-2 h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm font-mono placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
             />
           </div>
         ) : null}
@@ -1373,7 +1373,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
               }}
               placeholder="i"
               spellCheck={false}
-              className="mt-2 w-full rounded-xl border border-gray-300 p-3 font-mono text-sm placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+              className="mt-2 h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm font-mono placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
             />
           </div>
         ) : null}
@@ -1409,7 +1409,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
           ]}
         />
 
-        <YoryantraSelect
+        <YoryantraSelect width="medium"
           label="Sort selected output"
           value={sortMode}
           onChange={(value: string) => {
@@ -1483,19 +1483,18 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
           </div>
 
           {result.issues.length ? (
-            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <div className="mt-6" role="status">
               <h3 className="font-semibold text-gray-900">Filter review</h3>
-              <div className="mt-4 space-y-3">
+              <ul className="mt-3 space-y-3">
                 {result.issues.map((issue, index) => (
-                  <div
-                    key={`${issue.title}-${index}`}
-                    className="rounded-xl border border-amber-200 bg-white/60 p-4 text-sm leading-relaxed text-gray-900"
-                  >
-                    <strong>{issue.title}</strong>
+                  <li key={`${issue.title}-${index}`} className="text-sm leading-relaxed text-gray-700">
+                    <strong className={issue.severity === "warning" ? "text-amber-800" : "text-gray-900"}>
+                      {issue.title}
+                    </strong>
                     <p className="mt-1">{issue.message}</p>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           ) : null}
 
@@ -1531,14 +1530,8 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
         </pre>
       )}
 
-      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        JSON parsing and filtering happen on the pasted array in your browser.
-        The dataset is not uploaded as part of filtering, and the original input
-        text is left unchanged. Site-wide analytics or advertising scripts, if
-        enabled, are separate from the filtering step.
-      </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10">
+      <section className="mt-12 ">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             Filtering Is Easier to Trust When Missing Is Not Quietly Turned Into null
@@ -1557,7 +1550,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div className="mt-12 text-gray-700">
           <h2 className="text-xl font-semibold text-gray-900">
             user.role Is a Convenience Path, Not JSONPath
           </h2>
@@ -1592,7 +1585,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             String Operations Stay String Operations
           </h2>
@@ -1609,7 +1602,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div className="mt-12 text-gray-700">
           <h2 className="text-xl font-semibold text-gray-900">
             Diagnostic Metadata Must Not Overwrite User Fields
           </h2>
@@ -1642,7 +1635,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div className="mt-12 text-gray-700">
           <h2 className="text-xl font-semibold text-gray-900">
             A Regular Expression Can Be Valid and Still Be Expensive
           </h2>
@@ -1677,7 +1670,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
           </p>
         </div>
 
-        <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
+        <div className="mt-10 text-sm leading-relaxed text-gray-600">
           JSON syntax and data-model details come from{" "}
           <a
             href="https://www.rfc-editor.org/rfc/rfc8259"
@@ -1706,7 +1699,7 @@ export default function JsonFilterPanel({ input, setInput }: { input: string; se
           </h2>
 
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-path-tester" />
+            <YoryantraRelatedTools currentHref="/tools/json-path-tester" presentation="links" />
           </div>
         </div>
       </section>
@@ -1726,7 +1719,7 @@ function Toggle({
   text: string;
 }) {
   return (
-    <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+    <label className="flex items-start gap-3 py-1 text-sm leading-relaxed text-gray-700">
       <input
         type="checkbox"
         checked={checked}
@@ -1751,7 +1744,7 @@ function Stat({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="min-w-0">
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </div>

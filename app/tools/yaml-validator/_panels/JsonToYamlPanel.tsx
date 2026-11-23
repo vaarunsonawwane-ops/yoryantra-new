@@ -649,7 +649,7 @@ export default function JsonToYamlPanel({ incoming, onSend }: WorkflowPanelProps
 
   return (
     <>
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <label htmlFor="json-yaml-input" className="block text-sm font-semibold text-gray-900">
@@ -680,8 +680,8 @@ export default function JsonToYamlPanel({ incoming, onSend }: WorkflowPanelProps
         />
       </div>
 
-      <div className="mt-6 grid gap-4 sm:max-w-[540px] sm:grid-cols-2">
-        <YoryantraSelect
+      <div className="mt-6 flex flex-wrap items-start gap-x-5 gap-y-4">
+        <YoryantraSelect width="short"
           label="Indentation"
           value={String(options.indent)}
           onChange={(value: string) => {
@@ -696,7 +696,7 @@ export default function JsonToYamlPanel({ incoming, onSend }: WorkflowPanelProps
           ]}
         />
 
-        <YoryantraSelect
+        <YoryantraSelect width="medium"
           label="Line width"
           value={String(options.lineWidth)}
           onChange={(value: string) => {
@@ -827,19 +827,13 @@ export default function JsonToYamlPanel({ incoming, onSend }: WorkflowPanelProps
 
 
       {result && result.output ? (
-        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           <span className="text-sm text-gray-600">Use this result in:</span>
           <button type="button" className="yoryantra-btn-outline text-sm" onClick={() => onSend("validate", result.output)}>Validate YAML</button>
           <button type="button" className="yoryantra-btn-outline text-sm" onClick={() => onSend("format", result.output)}>Format YAML</button>
           <button type="button" className="yoryantra-btn-outline text-sm" onClick={() => onSend("yaml-to-json", result.output)}>Convert to JSON</button>
         </div>
       ) : null}
-
-      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Conversion runs on the pasted text in your browser. No conversion API
-        receives the JSON. Site-wide analytics or advertising scripts, if enabled,
-        are separate from the conversion operation.
-      </div>
 
 
     </>

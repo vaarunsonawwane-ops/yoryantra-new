@@ -200,7 +200,7 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
 
   return (
     <div className="min-w-0">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="min-w-0">
         <label className="mb-2 block text-sm font-medium text-gray-700">Base URL</label>
         <input
           value={baseUrl}
@@ -210,14 +210,14 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
             setCopyError("");
           }}
           placeholder="https://api.example.com/search"
-          className="w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          className="h-11 w-full max-w-xl rounded-lg border border-gray-300 bg-white px-3 font-mono text-sm text-gray-600 placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
         />
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
           Needed only for Full URL output. Existing query text is preserved and new parameters are appended before any #fragment.
         </p>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-9">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Query Parameters</h3>
@@ -232,7 +232,7 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
           {params.map((param, index) => (
             <div
               key={param.id}
-              className="grid gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[auto_1fr_1fr_auto] md:items-center"
+              className="grid items-center gap-3 py-2 md:grid-cols-[auto_minmax(0,16rem)_minmax(0,24rem)_auto] md:justify-start"
             >
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input
@@ -249,7 +249,7 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
                 onChange={(event) => updateParam(param.id, "key", event.target.value)}
                 placeholder="key"
                 aria-label={`Parameter ${index + 1} key`}
-                className="w-full rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                className="h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
               />
 
               <input
@@ -257,7 +257,7 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
                 onChange={(event) => updateParam(param.id, "value", event.target.value)}
                 placeholder="value"
                 aria-label={`Parameter ${index + 1} value`}
-                className="w-full rounded-xl border border-gray-300 p-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+                className="h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)] sm:h-10"
               />
 
               <button
@@ -271,11 +271,12 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="mt-9">
         <h3 className="text-lg font-semibold text-gray-900">Output Options</h3>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <YoryantraSelect
+        <div className="mt-5 flex flex-wrap items-start gap-x-6 gap-y-5">
+          <div className="w-full sm:w-[12rem]">
+          <YoryantraSelect width="medium"
             label="Output"
             value={outputMode}
             onChange={(value) => {
@@ -289,8 +290,9 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
               { label: "JSON object", value: "json" },
             ]}
           />
-
-          <YoryantraSelect
+          </div>
+          <div className="w-full sm:w-[16rem]">
+          <YoryantraSelect width="medium"
             label="Key & Value Encoding"
             value={encodingMode}
             onChange={(value) => {
@@ -303,8 +305,9 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
               { label: "Unencoded", value: "raw" },
             ]}
           />
-
-          <YoryantraSelect
+          </div>
+          <div className="w-full sm:w-[16rem]">
+          <YoryantraSelect width="medium"
             label="Array Convention"
             value={arrayFormat}
             onChange={(value) => {
@@ -318,10 +321,11 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
               { label: "Comma separated", value: "comma" },
             ]}
           />
+          </div>
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <label className="flex cursor-pointer gap-3 self-start rounded-xl border border-gray-200 bg-white p-4">
+        <div className="mt-5 grid gap-x-6 gap-y-4 md:grid-cols-2">
+          <label className="flex cursor-pointer items-start gap-3 self-start py-1">
             <input
               type="checkbox"
               checked={splitCommaValues}
@@ -340,7 +344,7 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 self-start rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex cursor-pointer items-start gap-3 self-start py-1">
             <input
               type="checkbox"
               checked={skipEmptyValues}
@@ -359,7 +363,7 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
             </span>
           </label>
 
-          <label className="flex cursor-pointer gap-3 self-start rounded-xl border border-gray-200 bg-white p-4">
+          <label className="flex cursor-pointer items-start gap-3 self-start py-1">
             <input
               type="checkbox"
               checked={sortParams}
@@ -400,12 +404,12 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
         </div>
       )}
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Active Rows" value={activeParams.length.toLocaleString()} />
-        <SummaryCard label="Output" value={outputMode} />
-        <SummaryCard label="Encoding" value={encodingMode === "encoded" ? "percent" : "raw"} />
-        <SummaryCard label="Characters" value={output.length.toLocaleString()} />
-      </div>
+      <p className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm leading-relaxed text-gray-600" aria-label="Query summary">
+        <span><strong className="text-gray-900">Active rows:</strong> {activeParams.length.toLocaleString()}</span>
+        <span><strong className="text-gray-900">Output:</strong> {outputMode}</span>
+        <span><strong className="text-gray-900">Encoding:</strong> {encodingMode === "encoded" ? "percent" : "raw"}</span>
+        <span><strong className="text-gray-900">Characters:</strong> {output.length.toLocaleString()}</span>
+      </p>
 
       {notes.length > 0 && (
         <div className="mt-6 space-y-3">
@@ -443,11 +447,7 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
         </pre>
       </div>
 
-      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
-        Query construction stays in your browser. The base URL and parameter values are not sent anywhere by this page.
-      </div>
-
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      <section className="mt-12 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">A query string is data plus a serialization choice</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
@@ -498,14 +498,6 @@ export default function BuilderPanel({ incoming, onTransfer }: { incoming?: Inco
   );
 }
 
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
-    </div>
-  );
-}
 
 function buildOutput({
   baseUrl,

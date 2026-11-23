@@ -2120,11 +2120,11 @@ export default function JsonPathPanel({ jsonInput, setJsonInput }: { jsonInput: 
 
   return (
     <section className="min-w-0">
-      <header className="mb-6">
+      <header className="mb-8">
         <h2 className="text-xl font-semibold text-gray-900">JSONPath Tester</h2>
         <p className="mt-2 text-sm leading-relaxed text-gray-600">Test an RFC 9535 JSONPath subset against JSON and inspect the ordered matched nodes and normalized paths.</p>
       </header>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-8 lg:grid-cols-2">
         <div>
           <label htmlFor="jsonpath-json-input" className="block text-sm font-semibold text-gray-900">
             JSON query argument
@@ -2164,10 +2164,10 @@ export default function JsonPathPanel({ jsonInput, setJsonInput }: { jsonInput: 
             }}
             placeholder="$.store.book[*].title"
             spellCheck={false}
-            className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+            className="mt-2 h-11 w-full rounded-xl border border-gray-300 px-3 py-2 font-mono text-sm placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           />
 
-          <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="mt-6 text-sm leading-relaxed text-gray-600">
             <p className="text-sm font-semibold text-gray-900">
               Supported here
             </p>
@@ -2183,7 +2183,7 @@ export default function JsonPathPanel({ jsonInput, setJsonInput }: { jsonInput: 
             <p className="text-sm font-medium text-gray-700">
               Try a query
             </p>
-            <div className="mt-3 flex flex-wrap gap-3">
+            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
               {PRESETS.map(
                 (preset) => (
                   <button
@@ -2195,7 +2195,7 @@ export default function JsonPathPanel({ jsonInput, setJsonInput }: { jsonInput: 
                       );
                       clearResult();
                     }}
-                    className="yoryantra-btn-outline"
+                    className="text-sm font-medium text-[var(--green)] underline underline-offset-4 transition-opacity hover:opacity-75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--green)]"
                   >
                     {preset.label}
                   </button>
@@ -2204,12 +2204,12 @@ export default function JsonPathPanel({ jsonInput, setJsonInput }: { jsonInput: 
             </div>
           </div>
 
-          <div className="mt-5 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+          <p className="mt-5 text-sm leading-relaxed text-amber-900">
             Complete RFC filter logic such as <code>&amp;&amp;</code>,{" "}
             <code>||</code>, negation, nested logical expressions, and function
             extensions such as <code>length()</code> are deliberately rejected
             rather than approximated.
-          </div>
+          </p>
         </div>
       </div>
 
@@ -2369,16 +2369,11 @@ export default function JsonPathPanel({ jsonInput, setJsonInput }: { jsonInput: 
         </pre>
       )}
 
-      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        JSON parsing and JSONPath evaluation run on the supplied text in your
-        browser. The data is not sent to a query API. JSON input above
-        2,000,000 characters and path input above 20,000 characters are stopped
-        before evaluation to avoid an unnecessarily heavy browser operation.
-        Site-wide analytics or advertising scripts, if enabled, are separate
-        from this operation.
-      </div>
+      <p className="mt-6 text-sm leading-relaxed text-gray-600">
+        Input limits: up to 2,000,000 JSON characters and 20,000 query characters per evaluation.
+      </p>
 
-      <section className="mt-12 border-t border-gray-200 pt-10">
+      <section className="mt-14">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             JSONPath Selects Nodes and Locations, Not Just “Whatever Value Comes Back”
@@ -2396,11 +2391,11 @@ export default function JsonPathPanel({ jsonInput, setJsonInput }: { jsonInput: 
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             Dot Notation Is Convenient Input; Bracket Notation Is the Stable Result Form
           </h2>
-          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`Input query
+          <pre className="mt-4 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4 font-mono text-sm leading-7 text-gray-800">{`Input query
 $.store.book[0].title
 
 Normalized result path
@@ -2433,16 +2428,16 @@ $['store']['book'][0]['title']`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
             Selector Unions Can Select the Same Node More Than Once
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-600">
             JSONPath nodelists are ordered and can contain duplicate nodes.
             Querying the same member or index through two selectors does not
             require an implementation to silently turn the result into a set.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-600">
             Yoryantra preserves duplicate result entries and warns when their
             normalized paths repeat. Deduplicate only when your consuming
             workflow specifically wants set-like behavior.
@@ -2483,7 +2478,7 @@ $['store']['book'][0]['title']`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             Filters Are Where “Supports JSONPath” Stops Being a Precise Claim
           </h2>
@@ -2521,7 +2516,7 @@ $['store']['book'][0]['title']`}</pre>
           </p>
         </div>
 
-        <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-700">
+        <div className="mt-12 text-sm leading-relaxed text-gray-600">
           <a
             href="https://www.rfc-editor.org/rfc/rfc9535.html"
             target="_blank"
@@ -2540,7 +2535,7 @@ $['store']['book'][0]['title']`}</pre>
             Related Tools
           </h2>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/json-path-tester" />
+            <YoryantraRelatedTools currentHref="/tools/json-path-tester" presentation="links" />
           </div>
         </div>
       </section>
@@ -2556,7 +2551,7 @@ function Stat({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="min-w-0">
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </div>

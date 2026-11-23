@@ -4,13 +4,16 @@ export default function ToolShell({
   title,
   description,
   children,
+  layout = "card",
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
+  /** Opt-in plain workspace for consolidated tools. The default preserves existing pages. */
+  layout?: "card" | "plain";
 }) {
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
+    <div className={layout === "plain" ? "mx-auto max-w-5xl px-4 py-8 sm:px-6 md:py-10" : "max-w-5xl mx-auto px-6 py-12"}>
 
       {/* BACK LINK */}
       <Link
@@ -27,13 +30,13 @@ export default function ToolShell({
 
       {/* DESCRIPTION */}
       {description && (
-        <p className="mt-4 mb-10 text-gray-600 leading-relaxed">
+        <p className={layout === "plain" ? "mt-3 mb-7 text-gray-600 leading-relaxed" : "mt-4 mb-10 text-gray-600 leading-relaxed"}>
           {description}
         </p>
       )}
 
       {/* TOOL CONTENT */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+      <div className={layout === "plain" ? "min-w-0" : "bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm"}>
         {children}
       </div>
 
