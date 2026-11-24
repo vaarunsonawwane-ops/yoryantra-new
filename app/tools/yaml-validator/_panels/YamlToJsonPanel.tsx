@@ -640,7 +640,7 @@ environment:
         </div>
       ) : null}
 
-      <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="mt-9">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">

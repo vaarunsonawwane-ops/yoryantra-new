@@ -248,7 +248,14 @@ function findParserError(
         .toLowerCase()
         .indexOf(
           "mozilla.org/newlayout/xml"
-        ) !== -1
+        ) !== -1 ||
+      (namespace === "http://www.w3.org/1999/xhtml" &&
+        /this page contains the following errors/i.test(
+          candidate.querySelector("h3")?.textContent || ""
+        ) &&
+        /error on line\s+\d+\s+at\s+column\s+\d+/i.test(
+          candidate.textContent || ""
+        ))
     ) {
       return candidate;
     }
@@ -261,7 +268,7 @@ function findParserError(
     root &&
     root.localName ===
       "parsererror" &&
-    !/^\s*<parsererror(?:\s|>)/i.test(
+    !/<(?:[\w.-]+:)?parsererror(?:\s|>)/i.test(
       source
     )
   ) {
@@ -989,7 +996,7 @@ function formatXmlReport(
 
 export default function XmlValidatorPanel({ incoming, onSend }: WorkflowPanelProps) {
   const [input, setInput] =
-    useState(SAMPLE_XML);
+    useState("");
   const [report, setReport] =
     useState<XmlReport | null>(
       null
@@ -1107,10 +1114,10 @@ export default function XmlValidatorPanel({ incoming, onSend }: WorkflowPanelPro
             );
             clearResult();
           }}
-          rows={19}
+          rows={12}
           placeholder={SAMPLE_XML}
           spellCheck={false}
-          className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          className="mt-2 w-full rounded-xl border border-gray-300 p-4 font-mono text-sm leading-6 text-gray-900 placeholder:text-gray-400 focus:placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
         />
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
           This checks an XML document with one document element. A fragment with
@@ -1270,8 +1277,8 @@ export default function XmlValidatorPanel({ incoming, onSend }: WorkflowPanelPro
                 />
               </div>
 
-              <div className="mt-6 grid gap-5 lg:grid-cols-2">
-                <div className="rounded-2xl border border-gray-200 bg-white p-5">
+              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                <div>
                   <h3 className="text-lg font-semibold text-gray-900">
                     Namespace view
                   </h3>
@@ -1322,7 +1329,7 @@ export default function XmlValidatorPanel({ incoming, onSend }: WorkflowPanelPro
                   </dl>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 bg-white p-5">
+                <div>
                   <h3 className="text-lg font-semibold text-gray-900">
                     Document metadata
                   </h3>
@@ -1387,7 +1394,7 @@ export default function XmlValidatorPanel({ incoming, onSend }: WorkflowPanelPro
           ) : null}
 
           {report.issues.length ? (
-            <div className="mt-6 self-start rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+            <div className="mt-6 text-sm leading-relaxed text-amber-800">
               <strong>
                 XML review notes:
               </strong>
@@ -1409,14 +1416,14 @@ export default function XmlValidatorPanel({ incoming, onSend }: WorkflowPanelPro
           ) : null}
         </div>
       ) : (
-        <pre className="yoryantra-output mt-8 min-h-[300px] overflow-auto whitespace-pre-wrap break-words text-sm">
+        <pre className="yoryantra-output mt-8 min-h-[160px] overflow-auto whitespace-pre-wrap break-words text-sm">
           XML parser status, root/namespace information, declaration, DOCTYPE,
           schema hints, and document statistics will appear here.
         </pre>
       )}
 
       {report?.wellFormed ? (
-        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+        <div className="mt-6">
           <p className="text-sm font-medium text-gray-900">Continue with this XML</p>
           <div className="mt-3 flex flex-wrap gap-3">
             <button type="button" className="yoryantra-btn-outline" onClick={() => onSend("format", input)}>
@@ -1429,16 +1436,9 @@ export default function XmlValidatorPanel({ incoming, onSend }: WorkflowPanelPro
         </div>
       ) : null}
 
-      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-        Parsing happens on the supplied XML string in your browser. The XML is not
-        uploaded; external DTD/XSD resources are not fetched, and the page does not reproduce
-        a server-side XML parser&apos;s entity configuration. Inputs above 2,000,000
-        characters are stopped before parsing to bound browser work. Site-wide
-        analytics or advertising scripts, if enabled, are separate from this
-        operation.
-      </div>
 
-      <section className="mt-12 border-t border-gray-200 pt-10">
+
+      <section className="mt-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             Well-Formed XML and Valid XML Are Different Claims
@@ -1458,11 +1458,11 @@ export default function XmlValidatorPanel({ incoming, onSend }: WorkflowPanelPro
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             XML Has One Document Element—A Fragment Is Not Automatically a Document
           </h2>
-          <pre className="mt-4 overflow-auto rounded-xl bg-white p-4 text-sm leading-7 text-gray-800">{`Not an XML document:
+          <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">{`Not an XML document:
 <item>A</item>
 <item>B</item>
 
@@ -1496,17 +1496,17 @@ Wrapped as one document:
           </p>
         </div>
 
-        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
             A Default Namespace Does Not Automatically Apply to Unprefixed Attributes
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-600">
             In Namespaces in XML, a default namespace applies to unprefixed
             element names, but the namespace name for an unprefixed attribute
             is not taken from that default namespace. This surprises developers
             moving between element and attribute APIs.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-600">
             If an XSD or application expects a qualified attribute, inspect its
             namespace URI rather than assuming it inherited the element&apos;s
             default namespace.
@@ -1548,17 +1548,17 @@ Wrapped as one document:
           </p>
         </div>
 
-        <div className="mt-12 self-start rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-gray-900">
             DOCTYPE and Entity Handling Are a Security Boundary in Server-Side Parsers
           </h2>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-600">
             DTDs can declare entities and external identifiers. Historically,
             unsafe server-side XML parser configurations have allowed external
             entity expansion to read local resources, perform network requests,
             or consume excessive resources.
           </p>
-          <p className="mt-4 leading-relaxed text-yellow-900/90">
+          <p className="mt-4 leading-relaxed text-gray-600">
             This browser&apos;s DOMParser behavior is not evidence that a Java,
             PHP, Python, .NET, C/C++, or backend library is configured safely.
             When your application does not require DTDs/external entities,
@@ -1585,7 +1585,7 @@ Wrapped as one document:
           </p>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900">
             CDATA Avoids Markup Recognition Inside the Section; It Is Not “Raw Anything”
           </h2>
@@ -1657,7 +1657,7 @@ Wrapped as one document:
             Related Tools
           </h2>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/xml-validator" />
+            <YoryantraRelatedTools currentHref="/tools/xml-validator" presentation="links" />
           </div>
         </div>
       </section>
@@ -1673,11 +1673,11 @@ function Stat({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="min-w-0 py-2">
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </div>
-      <div className="mt-2 break-words text-lg font-semibold text-gray-900">
+      <div className="mt-1 break-words text-lg font-semibold text-gray-900">
         {value}
       </div>
     </div>
@@ -1694,7 +1694,7 @@ function ReferenceCard({
   text: string;
 }) {
   return (
-    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+    <div className="self-start">
       <a
         href={href}
         target="_blank"
@@ -1703,7 +1703,7 @@ function ReferenceCard({
       >
         {title}
       </a>
-      <p className="mt-3 text-sm leading-relaxed text-gray-600">
+      <p className="mt-2 text-sm leading-relaxed text-gray-600">
         {text}
       </p>
     </div>

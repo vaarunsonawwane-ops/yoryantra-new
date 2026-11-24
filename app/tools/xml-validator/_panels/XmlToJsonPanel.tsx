@@ -4,6 +4,7 @@ import type { WorkflowPanelProps } from "../workflow-types";
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
+import YoryantraSelect from "@/app/components/YoryantraSelect";
 
 type MappingMode = "compact" | "ordered";
 type CompactValue = string | { [key: string]: CompactValue | CompactValue[] };
@@ -88,10 +89,14 @@ function parserErrorMessage(documentNode: Document): string | null {
   const xhtmlNamespace = "http://www.w3.org/1999/xhtml";
   const mozillaError = documentNode.getElementsByTagNameNS(mozillaNamespace, "parsererror").item(0);
   const xhtmlErrors = Array.from(documentNode.getElementsByTagNameNS(xhtmlNamespace, "parsererror"));
-  const xhtmlError = xhtmlErrors.find((node) => {
-    const text = (node.textContent || "").toLowerCase();
-    return node.hasAttribute("style") || text.includes("error on line") || text.includes("following errors");
-  });
+  const xhtmlError = xhtmlErrors.find((node) =>
+    /this page contains the following errors/i.test(
+      node.querySelector("h3")?.textContent || ""
+    ) &&
+    /error on line\s+\d+\s+at\s+column\s+\d+/i.test(
+      node.textContent || ""
+    )
+  );
   const errorNode = mozillaError || xhtmlError || null;
   if (!errorNode) return null;
 
@@ -413,49 +418,35 @@ export default function XmlToJsonPanel({ incoming, onSend }: WorkflowPanelProps)
             clearResult();
           }}
           placeholder={'<catalog><book id="1"><title>Example</title></book></catalog>'}
-          className="w-full min-h-[280px] rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          className="w-full min-h-[280px] rounded-xl border border-gray-300 p-4 font-mono text-sm text-gray-900 placeholder:text-gray-400 focus:placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           spellCheck={false}
         />
         <p className="mt-2 text-xs text-gray-500">{input.length.toLocaleString()} characters</p>
       </div>
 
-      <fieldset className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
-        <legend className="px-1 text-sm font-semibold text-gray-900">JSON mapping</legend>
-        <div className="mt-1 grid gap-3 md:grid-cols-2">
-          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 bg-white p-3">
-            <input
-              type="radio"
-              name="xml-json-mode"
-              checked={mode === "compact"}
-              onChange={() => {
-                setMode("compact");
-                clearResult();
-              }}
-              className="mt-1 shrink-0"
-            />
-            <span>
-              <span className="block text-sm font-medium text-gray-900">Compact object mapping</span>
-              <span className="mt-1 block text-xs leading-relaxed text-gray-600">Good for ordinary API-style XML. Attributes use <code>@attributes</code>, direct text uses <code>#text</code>, and repeated child names become arrays.</span>
-            </span>
-          </label>
-
-          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 bg-white p-3">
-            <input
-              type="radio"
-              name="xml-json-mode"
-              checked={mode === "ordered"}
-              onChange={() => {
-                setMode("ordered");
-                clearResult();
-              }}
-              className="mt-1 shrink-0"
-            />
-            <span>
-              <span className="block text-sm font-medium text-gray-900">Order-preserving node mapping</span>
-              <span className="mt-1 block text-xs leading-relaxed text-gray-600">Verbose, but retains parsed child order, text nodes, CDATA, comments, processing instructions, and namespace metadata.</span>
-            </span>
-          </label>
-        </div>
+      <div className="mt-6">
+        <YoryantraSelect
+          width="wide"
+          label="JSON mapping"
+          value={mode}
+          onChange={(value) => {
+            if (value !== "compact" && value !== "ordered") return;
+            if (value === mode) return;
+            setMode(value);
+            clearResult();
+          }}
+          options={[
+            { label: "Compact object mapping", value: "compact" },
+            { label: "Order-preserving node mapping", value: "ordered" },
+          ]}
+        />
+        <p className="mt-2 text-xs leading-relaxed text-gray-600">
+          {mode === "compact" ? (
+            <>Good for ordinary API-style XML. Attributes use <code>@attributes</code>, direct text uses <code>#text</code>, and repeated child names become arrays.</>
+          ) : (
+            <>Verbose, but retains parsed child order, text nodes, CDATA, comments, processing instructions, and namespace metadata.</>
+          )}
+        </p>
 
         {mode === "compact" && (
           <label className="mt-4 flex items-start gap-3 text-sm text-gray-700">
@@ -466,7 +457,7 @@ export default function XmlToJsonPanel({ incoming, onSend }: WorkflowPanelProps)
                 setPreserveWhitespace(event.target.checked);
                 clearResult();
               }}
-              className="mt-1 shrink-0"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--light-gold)]"
             />
             <span>
               <span className="font-medium text-gray-900">Preserve direct text whitespace</span>
@@ -476,7 +467,7 @@ export default function XmlToJsonPanel({ incoming, onSend }: WorkflowPanelProps)
             </span>
           </label>
         )}
-      </fieldset>
+      </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
         <button type="button" onClick={xmlToJson} className="yoryantra-btn">Convert to JSON</button>
@@ -488,7 +479,7 @@ export default function XmlToJsonPanel({ incoming, onSend }: WorkflowPanelProps)
       )}
 
       {warnings.length > 0 && (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-gray-700">
+        <div className="mt-6 text-sm text-amber-800">
           <h2 className="font-semibold text-gray-900">Details that may change the meaning of the mapping</h2>
           <ul className="mt-2 list-disc space-y-2 pl-5 leading-relaxed">
             {warnings.map((warning) => <li key={warning}>{warning}</li>)}
@@ -503,11 +494,11 @@ export default function XmlToJsonPanel({ incoming, onSend }: WorkflowPanelProps)
             <button type="button" onClick={copyOutput} className="yoryantra-btn-outline text-sm">{copied ? "Copied" : "Copy"}</button>
           )}
         </div>
-        <pre className="yoryantra-output min-h-[260px] overflow-auto whitespace-pre-wrap break-words text-sm">{output || "Converted JSON will appear here..."}</pre>
+        <pre className="yoryantra-output min-h-[160px] overflow-auto whitespace-pre-wrap break-words text-sm">{output || "Converted JSON will appear here..."}</pre>
       </div>
 
       {output ? (
-        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+        <div className="mt-6">
           <p className="text-sm font-medium text-gray-900">Continue working with the source XML</p>
           <div className="mt-3 flex flex-wrap gap-3">
             <button type="button" className="yoryantra-btn-outline" onClick={() => onSend("validate", input)}>
@@ -520,14 +511,15 @@ export default function XmlToJsonPanel({ incoming, onSend }: WorkflowPanelProps)
         </div>
       ) : null}
 
-      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <div className="mt-8">
         <h2 className="text-sm font-semibold text-gray-900">The XML is parsed locally, not validated as an application contract</h2>
-        <p className="mt-2 text-sm leading-relaxed text-gray-700">
-          Parsing and mapping happen in the browser with <code>DOMParser</code>; parsed values are serialized as JSON text rather than inserted into the active page. DOCTYPE input is rejected before parsing. A successful conversion still does not mean the document satisfies an XSD, DTD, SOAP profile, feed format, or business rule.
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+          DOCTYPE input is rejected before parsing. A successful conversion does not
+          establish compliance with an XSD, DTD, SOAP profile, feed format, or business rule.
         </p>
       </div>
 
-      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
+      <section className="mt-12 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">XML and JSON do not share one universal data model</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
@@ -556,14 +548,14 @@ export default function XmlToJsonPanel({ incoming, onSend }: WorkflowPanelProps)
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <div>
             <h2 className="text-lg font-semibold text-gray-900">Element-centric data stays compact</h2>
-            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-sm text-gray-800">{`<book id="7">
+            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-gray-50 p-3 font-mono text-sm text-gray-800">{`<book id="7">
   <title>XML in Practice</title>
   <tag>api</tag>
   <tag>data</tag>
 </book>`}</pre>
-            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-sm text-gray-800">{`{
+            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-gray-50 p-3 font-mono text-sm text-gray-800">{`{
   "book": {
     "@attributes": { "id": "7" },
     "title": "XML in Practice",
@@ -571,9 +563,9 @@ export default function XmlToJsonPanel({ incoming, onSend }: WorkflowPanelProps)
   }
 }`}</pre>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <div>
             <h2 className="text-lg font-semibold text-gray-900">Mixed content needs sequence</h2>
-            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-sm text-gray-800">{`<p>Hello <strong>world</strong>!</p>`}</pre>
+            <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-gray-50 p-3 font-mono text-sm text-gray-800">{`<p>Hello <strong>world</strong>!</p>`}</pre>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
               The words before and after <code>strong</code> are separate text nodes. Grouping child elements by name cannot say that <code>Hello </code> came first and <code>!</code> came last. Ordered mapping keeps those nodes in sequence.
             </p>
@@ -590,7 +582,7 @@ export default function XmlToJsonPanel({ incoming, onSend }: WorkflowPanelProps)
           </p>
         </div>
 
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div>
           <h2 className="text-xl font-semibold text-gray-900">Whitespace can be data</h2>
           <p className="mt-4 leading-relaxed text-gray-700">
             Pretty-printed API XML often contains indentation that is not useful in the resulting data model, while prose, source code, signatures, and other document-oriented XML can depend on whitespace. Compact mapping trims direct text by default; the checkbox keeps it, and an inherited <code>xml:space=&quot;preserve&quot;</code> request also keeps it.
@@ -637,7 +629,7 @@ export default function XmlToJsonPanel({ incoming, onSend }: WorkflowPanelProps)
             If readability is the only goal, keep the data as XML and format it. If a JSON contract is the goal, decide explicitly how attributes, namespaces, arrays, mixed content, and types should map before making that representation part of an API.
           </p>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/xml-validator" />
+            <YoryantraRelatedTools currentHref="/tools/xml-validator" presentation="links" />
           </div>
         </div>
       </section>

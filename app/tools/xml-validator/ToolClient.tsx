@@ -30,16 +30,19 @@ export default function ToolClient() {
 
   return (
     <ToolShell
+      layout="plain"
       title="XML Validator"
       description="Check XML well-formedness and inspect roots, namespaces, declarations, DOCTYPE, attributes, CDATA, and schema hints."
     >
-      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="mb-10">
         <h2 className="text-lg font-semibold text-gray-900">Choose an XML task</h2>
         <p className="mt-2 text-sm leading-relaxed text-gray-600">
           Validate XML, format XML, or convert XML to JSON.
         </p>
         <div className="mt-3 w-full max-w-[20rem]">
           <YoryantraSelect
+            variant="task"
+            width="wide"
             label="What do you want to do?"
             value={activeTask}
             onChange={(value: string) => setActiveTask(value as WorkflowOperation)}

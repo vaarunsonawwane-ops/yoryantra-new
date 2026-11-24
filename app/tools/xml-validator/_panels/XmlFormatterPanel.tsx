@@ -2,7 +2,7 @@
 
 import type { WorkflowPanelProps } from "../workflow-types";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
 
@@ -126,32 +126,33 @@ function getParserError(
   document: XMLDocument,
   parserErrorNamespace: string | null
 ) {
-  let errorNode: Element | null = null;
-
-  if (parserErrorNamespace) {
-    errorNode =
-      document.getElementsByTagNameNS(parserErrorNamespace, "parsererror")[0] ||
-      null;
-  }
-
-  if (!errorNode) {
-    const candidates = Array.from(document.getElementsByTagName("parsererror"));
-    errorNode =
-      candidates.find((candidate) => {
-        const namespace = candidate.namespaceURI || "";
-        return (
-          namespace.indexOf("parsererror") !== -1 ||
-          namespace === "http://www.w3.org/1999/xhtml"
-        );
-      }) || null;
-  }
+  const candidates = Array.from(
+    document.getElementsByTagNameNS("*", "parsererror")
+  );
+  const errorNode = candidates.find((candidate) => {
+    const namespace = (candidate.namespaceURI || "").toLowerCase();
+    if (
+      namespace.includes("parsererror") ||
+      namespace.includes("mozilla.org/newlayout/xml")
+    ) return true;
+    if (
+      namespace !== "http://www.w3.org/1999/xhtml" ||
+      parserErrorNamespace !== "http://www.w3.org/1999/xhtml"
+    ) return false;
+    return (
+      /this page contains the following errors/i.test(
+        candidate.querySelector("h3")?.textContent || ""
+      ) &&
+      /error on line\s+\d+\s+at\s+column\s+\d+/i.test(
+        candidate.textContent || ""
+      )
+    );
+  });
 
   if (!errorNode) return "";
-
   const text = (errorNode.textContent || "Invalid XML")
     .replace(/\s+/g, " ")
     .trim();
-
   return text.length > 360 ? `${text.slice(0, 357)}...` : text;
 }
 
@@ -255,6 +256,7 @@ export default function XmlFormatterPanel({ incoming, onSend }: WorkflowPanelPro
   return (
     <>
       <YoryantraSelect
+        width="short"
         label="Indentation"
         value={String(indentSize)}
         onChange={(value: string) => {
@@ -282,11 +284,11 @@ export default function XmlFormatterPanel({ incoming, onSend }: WorkflowPanelPro
 
         <textarea
           id="xml-input"
-          className="min-h-[260px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
+          className="min-h-[260px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm text-gray-900 placeholder:text-gray-400 focus:placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
           placeholder={'<users><user id="1"><name>Sneha</name></user></users>'}
           value={input}
           spellCheck={false}
-          onChange={(event) => {
+          onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
             setInput(event.target.value);
             setOutput("");
             setError("");
@@ -316,7 +318,7 @@ export default function XmlFormatterPanel({ incoming, onSend }: WorkflowPanelPro
       ) : null}
 
       {note ? (
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700">
+        <div className="mt-6 text-sm leading-relaxed text-amber-800">
           {note}
         </div>
       ) : null}
@@ -335,7 +337,7 @@ export default function XmlFormatterPanel({ incoming, onSend }: WorkflowPanelPro
           ) : null}
         </div>
 
-        <pre className="yoryantra-output min-h-[240px] overflow-auto whitespace-pre-wrap break-words text-sm">
+        <pre className="yoryantra-output min-h-[160px] overflow-auto whitespace-pre-wrap break-words text-sm">
           {output || "Formatted XML will appear here..."}
         </pre>
 
@@ -347,7 +349,7 @@ export default function XmlFormatterPanel({ incoming, onSend }: WorkflowPanelPro
       </div>
 
       {output ? (
-        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+        <div className="mt-6">
           <p className="text-sm font-medium text-gray-900">Use the formatted XML</p>
           <div className="mt-3 flex flex-wrap gap-3">
             <button type="button" className="yoryantra-btn-outline" onClick={() => onSend("validate", output)}>
@@ -360,20 +362,17 @@ export default function XmlFormatterPanel({ incoming, onSend }: WorkflowPanelPro
         </div>
       ) : null}
 
-      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <div className="mt-8">
         <h3 className="text-sm font-semibold text-gray-900">
           Formatting can change whitespace and lexical spelling
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-gray-700">
-          Parsing happens in the browser with <code>DOMParser</code>, and DOM nodes are
-          serialized with <code>XMLSerializer</code>. No request to an XML endpoint is
-          made by the page code. Successful parsing proves well-formedness only; it
-          does not prove schema validity, signature validity, trust, or safety in the
-          server-side XML parser that will eventually consume the document.
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+          Formatting can normalize whitespace and lexical details. Successful parsing establishes
+          well-formedness, but does not establish schema validity or signature validity.
         </p>
       </div>
 
-      <section className="mt-12 space-y-12 border-t border-gray-200 pt-10">
+      <section className="mt-12 space-y-12">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">
             Pretty indentation is safe only when the inserted whitespace is not data
@@ -415,7 +414,7 @@ export default function XmlFormatterPanel({ incoming, onSend }: WorkflowPanelPro
           <h2 className="text-xl font-semibold text-gray-900">
             What survives the DOM round trip, and what may look different
           </h2>
-          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
+          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-black marker:text-black">
             <li><strong>Element and attribute names:</strong> the parsed DOM keeps namespace information, but serialization may alter an equivalent namespace prefix arrangement.</li>
             <li><strong>Comments and processing instructions:</strong> they remain nodes and are retained in structural output.</li>
             <li><strong>CDATA:</strong> a CDATA-containing element stays compact so indentation is not injected into its text.</li>
@@ -430,10 +429,10 @@ export default function XmlFormatterPanel({ incoming, onSend }: WorkflowPanelPro
           <h2 className="text-xl font-semibold text-gray-900">
             Element-only data and mixed content need different treatment
           </h2>
-          <div className="mt-4 space-y-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <div className="mt-4 space-y-6 text-sm text-gray-700">
             <div>
               <p className="font-medium text-gray-900">Element-oriented input</p>
-              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words">{`Input:
+              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-gray-50 p-3 font-mono">{`Input:
 <users><user id="1"><name>Sneha</name></user></users>
 
 Formatted:
@@ -445,7 +444,7 @@ Formatted:
             </div>
             <div>
               <p className="font-medium text-gray-900">Mixed content</p>
-              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words">{`<p>Hello <strong>world</strong>!</p>`}</pre>
+              <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-gray-50 p-3 font-mono">{`<p>Hello <strong>world</strong>!</p>`}</pre>
               <p className="mt-2 leading-relaxed">
                 The sentence remains compact because new indentation between the text
                 and <code>&lt;strong&gt;</code> could become part of the content.
@@ -458,7 +457,7 @@ Formatted:
           <h2 className="text-xl font-semibold text-gray-900">
             Most parser failures come from a small set of XML rules
           </h2>
-          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-gray-600">
+          <ul className="mt-4 list-disc space-y-3 pl-6 leading-relaxed text-black marker:text-black">
             <li><strong>Case matters:</strong> <code>&lt;Item&gt;&lt;/item&gt;</code> has mismatched element names.</li>
             <li><strong>Ampersands introduce references:</strong> a literal ampersand normally needs <code>&amp;amp;</code>.</li>
             <li><strong>Attributes need quoted values:</strong> write <code>id=&quot;1&quot;</code>, not <code>id=1</code>.</li>
@@ -468,7 +467,7 @@ Formatted:
           </ul>
         </div>
 
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div>
           <h2 className="text-xl font-semibold text-gray-900">
             A browser parse says nothing about how a backend handles external XML features
           </h2>
@@ -542,7 +541,7 @@ Formatted:
             When XML needs more than formatting
           </h2>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/xml-validator" />
+            <YoryantraRelatedTools currentHref="/tools/xml-validator" presentation="links" />
           </div>
         </div>
       </section>
