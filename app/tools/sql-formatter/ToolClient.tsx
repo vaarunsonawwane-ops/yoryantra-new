@@ -1,284 +1,166 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useId, useMemo, useState } from "react";
 import ToolShell from "@/app/components/ToolShell";
-import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
 import YoryantraSelect from "@/app/components/YoryantraSelect";
+import YoryantraRelatedTools from "@/app/components/YoryantraRelatedTools";
+import { beautifySQL, minifySQL, getSQLStats, getSQLWarnings, MAX_SQL_CHARS, type FormatOptions, type KeywordCase, type IndentSize, type CommaStyle } from "./sql-workflow";
 
-type KeywordCase = "upper" | "lower" | "preserve";
-type IndentSize = "two" | "four";
-type CommaStyle = "trailing" | "leading";
+type Action = "beautify" | "minify";
+type OutputFormat = "sql" | "json";
+const sampleSql = `select u.id,u.name,count(o.id) as order_count from users u left join orders o on o.user_id=u.id where u.name='Sneha' and o.note <> 'from here; keep SELECT lowercase' group by u.id,u.name order by order_count desc;`;
+const defaults: FormatOptions = { keywordCase: "upper", indentSize: "two", commaStyle: "trailing", breakBeforeJoin: true, breakBooleanConditions: true, functionCase: "preserve", removeComments: false };
+const tasks = [{ label: "Format SQL", value: "beautify" }, { label: "Minify SQL", value: "minify" }];
 
-type SQLStats = {
-  characters: number;
-  lines: number;
-  statements: number;
-  selectCount: number;
-  joinCount: number;
-  whereCount: number;
-  groupByCount: number;
-  orderByCount: number;
-};
-
-type QueryWarning = { title: string; message: string };
-type FormatOptions = {
-  keywordCase: KeywordCase;
-  indentSize: IndentSize;
-  commaStyle: CommaStyle;
-  breakBeforeJoin: boolean;
-  breakBooleanConditions: boolean;
-  uppercaseFunctions: boolean;
-};
-
-type ProtectedSQL = { text: string; segments: string[] };
-
-const MAX_SQL_CHARS = 500_000;
-const SEGMENT_OPEN = "\uE100";
-const SEGMENT_CLOSE = "\uE101";
-const FORCED_NEWLINE = "\uE102";
-
-const sampleSql = `select u.id,u.name,u.email,count(o.id) as order_count,sum(o.total) as total_spent from users u left join orders o on o.user_id = u.id where u.active = true and o.note <> 'from here; keep SELECT lowercase' group by u.id,u.name,u.email order by total_spent desc limit 20;`;
-
-const sqlKeywords = [
-  "select", "from", "where", "and", "or", "join", "inner", "left", "right", "full", "outer", "cross", "on",
-  "group", "by", "having", "order", "limit", "offset", "insert", "into", "values", "update", "set", "delete", "create",
-  "alter", "drop", "table", "view", "index", "primary", "key", "foreign", "references", "as", "distinct", "union", "all",
-  "case", "when", "then", "else", "end", "is", "null", "not", "in", "exists", "between", "like", "desc", "asc", "with", "returning",
-];
-
-const sqlFunctions = ["count", "sum", "avg", "min", "max", "coalesce", "nullif", "cast", "lower", "upper", "trim", "round"];
+type Option = { label: string; value: string };
+function Setting({label, value, onChange, options}: {label: string; value: string; onChange: (v: string) => void; options: Option[]}) {
+  return <YoryantraSelect label={label} value={value} onChange={onChange} options={options} />;
+}
+function Toggle({ checked, onChange, children }: { checked: boolean; onChange: (value: boolean) => void; children: string }) {
+  return <label className="flex cursor-pointer items-start gap-2 text-sm leading-relaxed text-gray-900"><input type="checkbox" checked={checked} onChange={(event: {target: {checked: boolean}}) => onChange(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]" /><span>{children}</span></label>;
+}
+function Metric({ label, value }: { label: string; value: number }) {
+  return <div><p className="text-xs font-medium uppercase tracking-wide text-gray-600">{label}</p><p className="mt-1 font-mono text-base font-semibold text-gray-900">{value.toLocaleString()}</p></div>;
+}
 
 export default function ToolClient() {
+  const inputId = useId();
   const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
+  const [action, setAction] = useState<Action>("beautify");
+  const [options, setOptions] = useState<FormatOptions>(defaults);
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>("sql");
+  const [result, setResult] = useState<{sql: string; action: Action} | null>(null);
   const [error, setError] = useState("");
-  const [keywordCase, setKeywordCase] = useState<KeywordCase>("upper");
-  const [indentSize, setIndentSize] = useState<IndentSize>("two");
-  const [commaStyle, setCommaStyle] = useState<CommaStyle>("trailing");
-  const [breakBeforeJoin, setBreakBeforeJoin] = useState(true);
-  const [breakBooleanConditions, setBreakBooleanConditions] = useState(true);
-  const [uppercaseFunctions, setUppercaseFunctions] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  const stats = useMemo(() => getSQLStats(input), [input]);
-  const warnings = useMemo(() => getSQLWarnings(input), [input]);
-
-  const clearResult = () => {
-    setOutput("");
-    setError("");
-    setCopied(false);
+  const overLimit = input.length > MAX_SQL_CHARS;
+  const stats = useMemo(() => getSQLStats(overLimit ? "" : input), [input, overLimit]);
+  const queryStructure = [
+    ["SELECT", stats.selectCount],
+    ["WHERE", stats.whereCount],
+    ["GROUP BY", stats.groupByCount],
+    ["ORDER BY", stats.orderByCount],
+    ["INSERT", stats.insertCount],
+    ["UPDATE", stats.updateCount],
+    ["DELETE", stats.deleteCount],
+    ["JOIN", stats.joinCount],
+  ] as const;
+  const warnings = useMemo(() => overLimit ? [] : getSQLWarnings(input, options.removeComments), [input, overLimit, options.removeComments]);
+  const output = useMemo(() => result ? outputFormat === "json" ? JSON.stringify({ action: result.action, sql: result.sql, stats: getSQLStats(result.sql) }, null, 2) : result.sql : "", [result, outputFormat]);
+  const clearResult = () => { setResult(null); setError(""); setCopied(false); };
+  const changeOption = <K extends keyof FormatOptions>(key: K, value: FormatOptions[K]) => { setOptions(current => ({ ...current, [key]: value })); clearResult(); };
+  const changeAction = (value: Action) => { setAction(value); clearResult(); };
+  const processSQL = () => {
+    clearResult();
+    if (!input.trim()) { setError("Enter SQL before formatting or minifying."); return; }
+    if (overLimit) { setError(`SQL exceeds the ${MAX_SQL_CHARS.toLocaleString()}-character browser limit. Format the script in smaller sections.`); return; }
+    try { setResult({ action, sql: action === "minify" ? minifySQL(input, options.removeComments) : beautifySQL(input, options) }); }
+    catch (err) { setError(err instanceof Error ? err.message : "Unable to process this SQL safely."); }
   };
-
-  const formatSQL = () => {
-    if (!input.trim()) {
-      setError("Enter SQL before formatting.");
-      setOutput("");
-      setCopied(false);
-      return;
-    }
-    if (input.length > MAX_SQL_CHARS) {
-      setError(`SQL exceeds the ${MAX_SQL_CHARS.toLocaleString()}-character browser limit. Format the script in smaller sections.`);
-      setOutput("");
-      return;
-    }
-
-    try {
-      const formatted = beautifySQL(input, {
-        keywordCase,
-        indentSize,
-        commaStyle,
-        breakBeforeJoin,
-        breakBooleanConditions,
-        uppercaseFunctions,
-      });
-      setOutput(formatted);
-      setError("");
-      setCopied(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to format this SQL safely.");
-      setOutput("");
-      setCopied(false);
-    }
-  };
-
   const copyOutput = async () => {
     if (!output) return;
-    try {
-      await navigator.clipboard.writeText(output);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1400);
-    } catch {
-      setError("Copy failed. Select the formatted SQL and copy it manually.");
-    }
+    try { await navigator.clipboard.writeText(output); setCopied(true); window.setTimeout(() => setCopied(false), 1400); }
+    catch { setError("Copy failed. Select the SQL output and copy it manually."); }
   };
-
-  const loadExample = () => {
-    setInput(sampleSql);
-    setOutput("");
-    setError("");
-    setKeywordCase("upper");
-    setIndentSize("two");
-    setCommaStyle("trailing");
-    setBreakBeforeJoin(true);
-    setBreakBooleanConditions(true);
-    setUppercaseFunctions(false);
-    setCopied(false);
-  };
-
-  const resetAll = () => {
-    setInput("");
-    setOutput("");
-    setError("");
-    setKeywordCase("upper");
-    setIndentSize("two");
-    setCommaStyle("trailing");
-    setBreakBeforeJoin(true);
-    setBreakBooleanConditions(true);
-    setUppercaseFunctions(false);
-    setCopied(false);
+  const resetSettings = () => { setOptions(defaults); setOutputFormat("sql"); clearResult(); };
+  const loadExample = () => { setInput(sampleSql); resetSettings(); };
+  const resetAll = () => { setInput(""); resetSettings(); };
+  const sendResult = () => {
+    if (!result || !result.sql) return;
+    setInput(result.sql);
+    setAction(action === "minify" ? "beautify" : "minify");
+    clearResult();
   };
 
   return (
-    <ToolShell
-      title="SQL Formatter"
-      description="Reflow SQL clauses and lists without rewriting quoted text or comments."
-    >
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="mb-2 block text-sm font-medium text-gray-700">SQL input</label>
-        <textarea
-          value={input}
-          onChange={(event: { target: { value: string } }) => {
-            setInput(event.target.value);
-            clearResult();
-          }}
-          placeholder={sampleSql}
-          className="min-h-[340px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]"
-        />
-        <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          Quoted strings, quoted identifiers, line comments, block comments, and PostgreSQL-style dollar-quoted bodies are protected before spacing and keyword changes are applied.
-        </p>
+    <ToolShell layout="plain" title="SQL Formatter" description="Format SQL clauses and lists or minify SQL while protecting quoted text and comments.">
+      <div className="mb-10">
+        <p className="leading-relaxed text-gray-600">Format SQL or minify SQL, with optional comment removal and SQL or JSON output.</p>
+        <div className="mt-3 w-full max-w-[20rem]"><YoryantraSelect variant="task" label="What do you want to do?" value={action} onChange={value => changeAction(value as Action)} options={tasks} /></div>
       </div>
-
-      <div className="mt-6 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Characters" value={stats.characters.toLocaleString()} />
-        <SummaryCard label="Lines" value={stats.lines.toLocaleString()} />
-        <SummaryCard label="Statements" value={stats.statements.toLocaleString()} />
-        <SummaryCard label="Joins" value={stats.joinCount.toLocaleString()} />
+      <div>
+        <label htmlFor={inputId} className="mb-2 block text-sm font-medium text-gray-700">SQL input</label>
+        <textarea id={inputId} value={input} onChange={(event: { target: { value: string } }) => { setInput(event.target.value); clearResult(); }} placeholder={sampleSql} className="min-h-[300px] w-full rounded-xl border border-gray-300 p-4 font-mono text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[var(--green)]" />
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">Quoted strings, quoted identifiers, line comments, block comments, and PostgreSQL-style dollar-quoted bodies are protected before spacing and keyword changes are applied.</p>
       </div>
-
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Layout choices</h3>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <YoryantraSelect
-            label="Keyword Case"
-            value={keywordCase}
-            onChange={(value: string) => { setKeywordCase(value as KeywordCase); clearResult(); }}
-            options={[
-              { label: "UPPERCASE", value: "upper" },
-              { label: "lowercase", value: "lower" },
-              { label: "Preserve", value: "preserve" },
-            ]}
-          />
-          <YoryantraSelect
-            label="Indent Size"
-            value={indentSize}
-            onChange={(value: string) => { setIndentSize(value as IndentSize); clearResult(); }}
-            options={[{ label: "2 spaces", value: "two" }, { label: "4 spaces", value: "four" }]}
-          />
-          <YoryantraSelect
-            label="Comma Style"
-            value={commaStyle}
-            onChange={(value: string) => { setCommaStyle(value as CommaStyle); clearResult(); }}
-            options={[{ label: "Trailing commas", value: "trailing" }, { label: "Leading commas", value: "leading" }]}
-          />
+      {!overLimit && <div className="mt-6 grid gap-x-6 gap-y-3 grid-cols-2 sm:grid-cols-3">
+        <Metric label="Characters" value={stats.characters} /><Metric label="Lines" value={stats.lines} /><Metric label="Statements" value={stats.statements} />
+      </div>}
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold text-gray-900">{action === "beautify" ? "Layout choices" : "Minification options"}</h2>
+        {action === "beautify" && <div className="mt-4 grid max-w-[44rem] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Setting label="Keyword Case" value={options.keywordCase} onChange={value => changeOption("keywordCase", value as KeywordCase)} options={[{label:"UPPERCASE", value:"upper"},{label:"lowercase",value:"lower"},{label:"Preserve",value:"preserve"}]} />
+          <Setting label="Indent Size" value={options.indentSize} onChange={value => changeOption("indentSize", value as IndentSize)} options={[{label:"2 spaces",value:"two"},{label:"4 spaces",value:"four"}]} />
+          <Setting label="Comma Style" value={options.commaStyle} onChange={value => changeOption("commaStyle", value as CommaStyle)} options={[{label:"Trailing commas",value:"trailing"},{label:"Leading commas",value:"leading"}]} />
+          <Setting label="Common function case" value={options.functionCase} onChange={value => changeOption("functionCase", value as FormatOptions["functionCase"])} options={[{label:"Preserve",value:"preserve"},{label:"Match keyword case",value:"keyword"},{label:"UPPERCASE",value:"upper"}]} />
+          <Setting label="Output Format" value={outputFormat} onChange={value => { setOutputFormat(value as OutputFormat); setCopied(false); }} options={[{label:"SQL",value:"sql"},{label:"JSON",value:"json"}]} />
+        </div>}
+        {action === "minify" && <div className="mt-4 w-full max-w-44"><Setting label="Output Format" value={outputFormat} onChange={value => { setOutputFormat(value as OutputFormat); setCopied(false); }} options={[{label:"SQL",value:"sql"},{label:"JSON",value:"json"}]} /></div>}
+        <div className="mt-5 flex flex-wrap items-start gap-x-8 gap-y-3">
+          {action === "beautify" && <><Toggle checked={options.breakBeforeJoin} onChange={value => changeOption("breakBeforeJoin", value)}>Break before JOIN</Toggle><Toggle checked={options.breakBooleanConditions} onChange={value => changeOption("breakBooleanConditions", value)}>Break AND / OR conditions</Toggle></>}
+          <Toggle checked={options.removeComments} onChange={value => changeOption("removeComments", value)}>Remove SQL comments</Toggle>
         </div>
-
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-3">
-          <Toggle
-            checked={breakBeforeJoin}
-            onChange={(value) => { setBreakBeforeJoin(value); clearResult(); }}
-            title="Break before JOIN"
-            detail="Place JOIN clauses on their own lines."
-          />
-          <Toggle
-            checked={breakBooleanConditions}
-            onChange={(value) => { setBreakBooleanConditions(value); clearResult(); }}
-            title="Break AND / OR conditions"
-            detail="Indent top-level boolean continuations for faster scanning."
-          />
-          <Toggle
-            checked={uppercaseFunctions}
-            onChange={(value) => { setUppercaseFunctions(value); clearResult(); }}
-            title="Case common functions"
-            detail="Apply the selected keyword case to names such as COUNT and COALESCE."
-          />
-        </div>
+        {options.removeComments && <p className="mt-2 text-sm leading-relaxed text-gray-600">Ordinary comments are removed. MySQL version comments and optimizer hints are preserved because they can affect execution.</p>}
+      </section>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <button type="button" onClick={processSQL} className="yoryantra-btn whitespace-nowrap">{action === "minify" ? "Minify SQL" : "Format SQL"}</button>
+        <button type="button" onClick={loadExample} className="yoryantra-btn-outline whitespace-nowrap">Load Example</button>
+        <button type="button" onClick={resetAll} className="yoryantra-btn-outline whitespace-nowrap">Reset</button>
       </div>
-
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button onClick={formatSQL} className="yoryantra-btn min-h-[44px] whitespace-nowrap">Format SQL</button>
-        <button onClick={loadExample} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">Load Example</button>
-        <button onClick={resetAll} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">Reset</button>
-        <Link href="/tools/sql-beautifier-minifier" className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap">Advanced SQL Beautifier</Link>
-      </div>
-
-      {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-700">{error}</div>
-      )}
-
-      {warnings.length > 0 && (
-        <div className="mt-6 self-start rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Query cautions found in executable text</h3>
-          <div className="mt-3 space-y-3">
-            {warnings.map((warning) => (
-              <div key={`${warning.title}-${warning.message}`}>
-                <p className="text-sm font-semibold text-amber-900">{warning.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">{warning.message}</p>
-              </div>
-            ))}
-          </div>
+      {(error || overLimit) && <p role="alert" className="mt-4 text-sm leading-relaxed text-red-700">{error || `SQL exceeds the ${MAX_SQL_CHARS.toLocaleString()}-character browser limit.`}</p>}
+      {warnings.length > 0 && <section className="mt-8 text-amber-800"><h2 className="text-base font-semibold">SQL review notes</h2><div className="mt-3 space-y-3">{warnings.map(warning => <div key={`${warning.title}-${warning.message}`}><p className="font-medium">{warning.title}</p><p className="mt-1 text-sm leading-relaxed">{warning.message}</p></div>)}</div></section>}
+      <section className="mt-8">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold text-gray-900">SQL Output</h2>{output && <button type="button" onClick={copyOutput} className="yoryantra-btn-outline whitespace-nowrap">{copied ? "Copied" : "Copy"}</button>}</div>
+        <pre aria-live="polite" className="yoryantra-output min-h-[240px] overflow-auto whitespace-pre-wrap break-words text-sm">{output || (result ? "No SQL remains after processing." : "Formatted or minified SQL output will appear here.")}</pre>
+        {result?.sql && <div className="mt-4"><button type="button" onClick={sendResult} className="yoryantra-btn-outline">{action === "minify" ? "Send to Format SQL" : "Send to Minify SQL"}</button><p className="mt-2 text-sm text-gray-600">Uses the SQL result as input for the other operation.</p></div>}
+      </section>
+      {!overLimit && <section className="mt-8">
+        <h2 className="text-lg font-semibold text-gray-900">Query Structure Preview</h2>
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">Counts ignore protected strings and comments, so words such as SELECT inside a message do not inflate the result.</p>
+        <div className="mt-4 w-full overflow-hidden rounded-xl border border-gray-200">
+          <table aria-label="Query structure counts" className="hidden w-full table-fixed border-collapse text-left text-sm md:table">
+            <colgroup><col className="w-[38%]" /><col className="w-[12%]" /><col className="w-[38%]" /><col className="w-[12%]" /></colgroup>
+            <thead className="bg-gray-50 text-gray-900">
+              <tr>
+                <th scope="col" className="px-4 py-3 font-semibold">SQL keyword / clause</th>
+                <th id={`${inputId}-structure-count-left`} scope="col" className="px-4 py-3 text-center font-semibold">Count</th>
+                <th scope="col" className="px-4 py-3 font-semibold">SQL keyword / clause</th>
+                <th id={`${inputId}-structure-count-right`} scope="col" className="px-4 py-3 text-center font-semibold">Count</th>
+              </tr>
+            </thead>
+            <tbody className="text-gray-900">
+              {queryStructure.slice(0, 4).map(([label, count], index) => {
+                const [otherLabel, otherCount] = queryStructure[index + 4];
+                return (
+                  <tr key={label} className="border-t border-gray-200">
+                    <th id={`${inputId}-structure-${index}`} className="px-4 py-2 font-mono font-medium">{label}</th>
+                    <td headers={`${inputId}-structure-${index} ${inputId}-structure-count-left`} className="px-4 py-2 text-center font-mono tabular-nums">{count.toLocaleString()}</td>
+                    <th id={`${inputId}-structure-${index + 4}`} className="px-4 py-2 font-mono font-medium">{otherLabel}</th>
+                    <td headers={`${inputId}-structure-${index + 4} ${inputId}-structure-count-right`} className="px-4 py-2 text-center font-mono tabular-nums">{otherCount.toLocaleString()}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <table aria-label="Query structure counts" className="w-full table-fixed border-collapse text-left text-sm md:hidden">
+            <thead className="bg-gray-50 text-gray-900">
+              <tr>
+                <th scope="col" className="px-4 py-3 font-semibold">SQL keyword / clause</th>
+                <th scope="col" className="w-24 px-4 py-3 text-center font-semibold">Count</th>
+              </tr>
+            </thead>
+            <tbody className="text-gray-900">
+              {queryStructure.map(([label, count]) => (
+                <tr key={label} className="border-t border-gray-200">
+                  <th scope="row" className="px-4 py-2 font-mono font-medium">{label}</th>
+                  <td className="px-4 py-2 text-center font-mono tabular-nums">{count.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
-
-      <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-        <h3 className="text-lg font-semibold text-gray-900">Clause snapshot</h3>
-        <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          Counts ignore protected strings and comments, so words such as SELECT inside a message do not inflate the result.
-        </p>
-        <div className="mt-4 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <DetailCard label="SELECT" value={stats.selectCount.toLocaleString()} />
-          <DetailCard label="WHERE" value={stats.whereCount.toLocaleString()} />
-          <DetailCard label="GROUP BY" value={stats.groupByCount.toLocaleString()} />
-          <DetailCard label="ORDER BY" value={stats.orderByCount.toLocaleString()} />
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-gray-900">Formatted SQL output</h3>
-          {output && (
-            <button onClick={copyOutput} className="yoryantra-btn-outline min-h-[44px] whitespace-nowrap text-sm">
-              {copied ? "Copied" : "Copy"}
-            </button>
-          )}
-        </div>
-        <pre className="yoryantra-output min-h-[320px] overflow-auto whitespace-pre-wrap break-words text-sm">
-          {output || "Formatted SQL will appear here."}
-        </pre>
-      </div>
-
-      <div className="mt-6 grid items-start gap-4 md:grid-cols-2">
-        <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-          <strong className="text-amber-900">Formatting is not SQL validation.</strong>{" "}
-          SQL dialects disagree about keywords, operators, quoting, procedural blocks, and extensions. Review important output in the database engine that will actually parse it.
-        </div>
-        <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-          Formatting runs in this browser session. The page does not connect to a database, execute the query, or send the SQL to Yoryantra.
-        </div>
-      </div>
-
-      <section className="mt-12 space-y-10 border-t border-gray-200 pt-10">
+      </section>}
+      <p className="mt-6 leading-relaxed text-gray-600">Formatting does not execute the query, connect to a database, or prove that the output is valid for a particular SQL dialect.</p>
+      <section className="mt-12 space-y-10">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Why SQL quotes and comments need protection</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
@@ -303,15 +185,15 @@ export default function ToolClient() {
         </div>
 
         <div className="grid items-start gap-5 md:grid-cols-2">
-          <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <div className="self-start">
             <h2 className="text-lg font-semibold text-gray-900">Keep the line break after a -- comment</h2>
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              When you write <code className="rounded bg-white px-1">-- comment</code>, the comment ends at the next line break. If a formatter removes that break, it can turn the next SQL clause into part of the comment. Yoryantra keeps the line break in place.
+            <p className="mt-3 leading-relaxed text-gray-600">
+              When you write <code className="rounded bg-gray-100 px-1">-- comment</code>, the comment ends at the next line break. If a formatter removes that break, it can turn the next SQL clause into part of the comment. Yoryantra keeps the line break in place.
             </p>
           </div>
-          <div className="self-start rounded-xl border border-amber-200 bg-amber-50 p-5">
-            <h2 className="text-lg font-semibold text-amber-900">Data-changing statements deserve a second check</h2>
-            <p className="mt-3 text-sm leading-relaxed text-amber-800">
+          <div className="self-start">
+            <h2 className="text-lg font-semibold text-gray-900">Data-changing statements deserve a second check</h2>
+            <p className="mt-3 leading-relaxed text-gray-600">
               The tool flags some UPDATE or DELETE statements with no outer WHERE clause, even when a nested query contains WHERE. It also flags SELECT *. These warnings are reminders, not a safety check: database-specific syntax and dynamic SQL can still need closer review.
             </p>
           </div>
@@ -328,447 +210,42 @@ export default function ToolClient() {
           <h2 className="text-xl font-semibold text-gray-900">Why PostgreSQL&apos;s lexical documentation is a useful reference</h2>
           <p className="mt-4 leading-relaxed text-gray-600">
             PostgreSQL&apos;s current{" "}
-            <a href="https://www.postgresql.org/docs/current/sql-syntax-lexical.html" target="_blank" rel="noreferrer" className="font-semibold text-[var(--green)] hover:underline">lexical structure documentation</a>{" "}
+            <a href="https://www.postgresql.org/docs/current/sql-syntax-lexical.html" target="_blank" rel="noreferrer" className="font-medium text-[var(--green)] underline underline-offset-2">lexical structure documentation</a>{" "}
             gives concrete examples of tokens, quoted identifiers, string constants, dollar quoting, statement semicolons, and both line and block comments. It is referenced here for lexical behavior the formatter protects, not as a claim that PostgreSQL syntax represents every SQL implementation.
           </p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">When the advanced formatter is the better fit</h2>
-          <p className="mt-4 leading-relaxed text-gray-600">
-            This page keeps the control set intentionally narrow. Minification, comment-removal choices, alternate output forms, and deeper diagnostics belong in the{" "}
-            <Link href="/tools/sql-beautifier-minifier" className="font-semibold text-[var(--green)] hover:underline">SQL Beautifier / Minifier</Link>.
+          <h2 className="text-xl font-semibold text-gray-900">Minifying Is Not SQL Compression</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Minification removes formatting whitespace outside protected lexical regions. It does not rewrite expressions, optimize the query plan, shorten identifiers, or change parameter values. Ordinary comments can be removed, but comments with execution meaning such as MySQL <code className="rounded bg-gray-100 px-1 font-mono text-sm">/*! ... */</code> version comments and <code className="rounded bg-gray-100 px-1 font-mono text-sm">/*+ ... */</code> optimizer hints are preserved.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Dialect Boundaries Matter</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            SQL is not one interchangeable grammar. PostgreSQL has dollar-quoted strings and nested block comments; MySQL uses backtick-quoted identifiers and execution-sensitive comments; SQL Server commonly uses bracketed identifiers; cloud warehouses add their own clauses and functions. The formatter protects several widely seen lexical forms, but it is not a full parser for every vendor grammar. A quote immediately preceded by an odd number of backslashes is rejected because different dialects disagree about whether the backslash escapes that quote.
+          </p>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            Review stored procedures, procedural SQL, vendor-specific operators, templated SQL, and migration scripts before replacing source code with formatted output. The structure counters are lexical signals, not syntax validation or query-plan analysis.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Safety Notes for Destructive Statements</h2>
+          <p className="mt-4 text-gray-600 leading-relaxed">
+            DELETE and UPDATE statements are checked one statement at a time for a missing WHERE clause, and DROP/TRUNCATE are called out for review. Those notices cannot understand business intent, triggers, permissions, transactions, or database-specific semantics. Treat them as a visual prompt, not as an approval to run a statement.
           </p>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Related Tools</h2>
           <div className="mt-4">
-            <YoryantraRelatedTools currentHref="/tools/sql-formatter" />
+            <YoryantraRelatedTools presentation="links" currentHref="/tools/sql-formatter" />
           </div>
         </div>
       </section>
     </ToolShell>
   );
-}
-
-function Toggle({ checked, onChange, title, detail }: { checked: boolean; onChange: (value: boolean) => void; title: string; detail: string }) {
-  return (
-    <label className="self-start flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-white p-4">
-      <input type="checkbox" checked={checked} onChange={(event: { target: { checked: boolean } }) => onChange(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[var(--light-gold)]" />
-      <span>
-        <span className="block text-sm font-medium text-gray-900">{title}</span>
-        <span className="mt-1 block text-sm leading-relaxed text-gray-500">{detail}</span>
-      </span>
-    </label>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1 break-words font-mono text-lg font-semibold text-gray-900">{value}</div>
-    </div>
-  );
-}
-
-function DetailCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="self-start rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1 break-words font-mono text-sm text-gray-900">{value}</div>
-    </div>
-  );
-}
-
-function beautifySQL(sql: string, options: FormatOptions) {
-  const indent = options.indentSize === "four" ? "    " : "  ";
-  const protectedSql = protectSQLSegments(sql, true);
-  let formatted = normalizeSQLSpacing(protectedSql.text);
-
-  formatted = applyKeywordCase(formatted, options.keywordCase);
-  if (options.uppercaseFunctions) formatted = applyFunctionCase(formatted, options.keywordCase);
-
-  formatted = formatted.replace(/\s*,\s*/g, ", ").replace(/\s*;\s*/g, ";\n").trim();
-
-  ["INSERT INTO", "DELETE FROM", "GROUP BY", "ORDER BY", "UNION ALL", "SELECT", "FROM", "WHERE", "HAVING", "LIMIT", "OFFSET", "RETURNING", "VALUES", "SET", "UNION"].forEach((clause) => {
-    const regex = new RegExp(`\\s+(${escapeRegExp(clause)})\\s+`, "gi");
-    formatted = formatted.replace(regex, `\n$1 `);
-  });
-
-  if (options.breakBeforeJoin) {
-    formatted = formatted.replace(/\s+((?:(?:INNER|LEFT|RIGHT|FULL|CROSS)\s+)?JOIN)\s+/gi, "\n$1 ");
-  }
-
-  if (options.breakBooleanConditions) {
-    formatted = breakBooleanConditionsSafely(formatted, indent);
-  }
-
-  formatted = formatSelectList(formatted, indent, options.commaStyle);
-  formatted = indentContinuationLines(formatted, indent);
-  formatted = formatted
-    .split("\n")
-    .map((line) => line.replace(/[ \t]+$/g, ""))
-    .filter((line, index, lines) => !(line.trim() === "" && lines[index - 1]?.trim() === ""))
-    .join("\n")
-    .trim();
-
-  return restoreSQLSegments(formatted, protectedSql.segments).trim();
-}
-
-function normalizeSQLSpacing(sql: string) {
-  return sql
-    .replace(/\r\n/g, "\n")
-    .replace(/\t/g, " ")
-    .replace(/[ ]+/g, " ")
-    .replace(/(^|[^<>=!:+\-*\/~#@?|&^%])\s*(<>|!=|>=|<=|=|>|<)\s*(?=[^<>=!:+\-*\/~#@?|&^%]|$)/g, "$1 $2 ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function applyKeywordCase(sql: string, keywordCase: KeywordCase) {
-  if (keywordCase === "preserve") return sql;
-  let result = sql;
-  sqlKeywords.slice().sort((a, b) => b.length - a.length).forEach((keyword) => {
-    const replacement = keywordCase === "upper" ? keyword.toUpperCase() : keyword.toLowerCase();
-    result = result.replace(new RegExp(`\\b${escapeRegExp(keyword)}\\b`, "gi"), replacement);
-  });
-  return result;
-}
-
-function applyFunctionCase(sql: string, keywordCase: KeywordCase) {
-  if (keywordCase === "preserve") return sql;
-  let result = sql;
-  sqlFunctions.forEach((fn) => {
-    const replacement = keywordCase === "lower" ? fn.toLowerCase() : fn.toUpperCase();
-    result = result.replace(new RegExp(`\\b${escapeRegExp(fn)}\\s*\\(`, "gi"), `${replacement}(`);
-  });
-  return result;
-}
-
-/** Keep the AND that separates BETWEEN bounds attached to its expression.
- * This is a lexical formatting aid, not a dialect-aware SQL parser.
- */
-function breakBooleanConditionsSafely(sql: string, indent: string) {
-  let result = "";
-  let last = 0;
-  let depth = 0;
-  const betweenAtDepth = new Map<number, number>();
-  const token = /[A-Za-z_][A-Za-z0-9_$]*/g;
-  let match: RegExpExecArray | null;
-  let position = 0;
-
-  while ((match = token.exec(sql)) !== null) {
-    for (; position < match.index; position += 1) {
-      if (sql[position] === "(") depth += 1;
-      else if (sql[position] === ")") {
-        betweenAtDepth.delete(depth);
-        depth = Math.max(0, depth - 1);
-      } else if (sql[position] === ";") {
-        betweenAtDepth.clear();
-      }
-    }
-
-    const word = match[0].toUpperCase();
-    const end = match.index + match[0].length;
-    // Do not mistake part of a longer identifier (e.g. myAND) for a keyword.
-    if ((match.index > 0 && /[A-Za-z0-9_$]/.test(sql[match.index - 1])) ||
-        (end < sql.length && /[A-Za-z0-9_$]/.test(sql[end]))) continue;
-
-    if (word === "BETWEEN") {
-      betweenAtDepth.set(depth, (betweenAtDepth.get(depth) ?? 0) + 1);
-    } else if (word === "AND") {
-      const pending = betweenAtDepth.get(depth) ?? 0;
-      if (pending) {
-        if (pending === 1) betweenAtDepth.delete(depth);
-        else betweenAtDepth.set(depth, pending - 1);
-      } else {
-        const whitespace = sql.slice(last, match.index).match(/\s+$/)?.[0];
-        if (whitespace) {
-          result += sql.slice(last, match.index - whitespace.length) + `\n${indent}${match[0]}`;
-          last = end;
-        }
-      }
-    } else if (word === "OR") {
-      const whitespace = sql.slice(last, match.index).match(/\s+$/)?.[0];
-      if (whitespace) {
-        result += sql.slice(last, match.index - whitespace.length) + `\n${indent}${match[0]}`;
-        last = end;
-      }
-    }
-  }
-  return result + sql.slice(last);
-}
-
-function formatSelectList(sql: string, indent: string, commaStyle: CommaStyle) {
-  const lines = sql.split("\n");
-  const nextLines: string[] = [];
-
-  lines.forEach((line) => {
-    const trimmed = line.trim();
-    if (/^SELECT\s+/i.test(trimmed) && trimmed.includes(",")) {
-      const selectBody = trimmed.replace(/^SELECT\s+/i, "");
-      const parts = splitByTopLevelComma(selectBody);
-      if (parts.length <= 1) {
-        nextLines.push(line);
-        return;
-      }
-      nextLines.push(trimmed.slice(0, 6).toUpperCase() === "SELECT" ? trimmed.slice(0, 6) : "SELECT");
-      parts.forEach((part, index) => {
-        const cleanPart = part.trim();
-        if (commaStyle === "leading" && index > 0) nextLines.push(`${indent}, ${cleanPart}`);
-        else if (commaStyle === "trailing" && index < parts.length - 1) nextLines.push(`${indent}${cleanPart},`);
-        else nextLines.push(`${indent}${cleanPart}`);
-      });
-      return;
-    }
-    nextLines.push(line);
-  });
-
-  return nextLines.join("\n");
-}
-
-function indentContinuationLines(sql: string, indent: string) {
-  return sql.split("\n").map((line) => {
-    const trimmed = line.trim();
-    if (!trimmed) return "";
-    if (/^(SELECT|FROM|WHERE|GROUP BY|HAVING|ORDER BY|LIMIT|OFFSET|RETURNING|INSERT|UPDATE|DELETE|VALUES|SET|UNION)\b/i.test(trimmed)) return trimmed;
-    if (/^((INNER|LEFT|RIGHT|FULL|CROSS)\s+)?JOIN\b/i.test(trimmed)) return trimmed;
-    if (/^(AND|OR)\b/i.test(trimmed)) return `${indent}${trimmed}`;
-    if (trimmed.startsWith(", ")) return `${indent}${trimmed}`;
-    return line.startsWith(indent) ? line : trimmed;
-  }).join("\n");
-}
-
-function splitByTopLevelComma(value: string) {
-  const parts: string[] = [];
-  let current = "";
-  let depth = 0;
-
-  for (let index = 0; index < value.length; index += 1) {
-    const char = value[index];
-    if (char === "(") depth += 1;
-    else if (char === ")") depth = Math.max(depth - 1, 0);
-
-    if (char === "," && depth === 0) {
-      parts.push(current);
-      current = "";
-      continue;
-    }
-    current += char;
-  }
-  if (current.trim()) parts.push(current);
-  return parts;
-}
-
-function protectSQLSegments(sql: string, strict: boolean): ProtectedSQL {
-  const segments: string[] = [];
-  let result = "";
-  let index = 0;
-
-  const addSegment = (value: string) => {
-    const id = segments.length;
-    segments.push(value);
-    result += `${SEGMENT_OPEN}${id}${SEGMENT_CLOSE}`;
-  };
-
-  while (index < sql.length) {
-    const char = sql[index];
-    const next = sql[index + 1];
-
-    if (char === "\r" || char === "\n") {
-      if (char === "\r" && next === "\n") index += 2;
-      else index += 1;
-      result += `${FORCED_NEWLINE} `;
-      continue;
-    }
-
-    if (char === "-" && next === "-") {
-      let end = index + 2;
-      while (end < sql.length && sql[end] !== "\n" && sql[end] !== "\r") end += 1;
-      addSegment(sql.slice(index, end));
-      if (end < sql.length) {
-        if (sql[end] === "\r" && sql[end + 1] === "\n") end += 2;
-        else end += 1;
-        result += FORCED_NEWLINE;
-      }
-      index = end;
-      continue;
-    }
-
-    if (char === "/" && next === "*") {
-      let end = index + 2;
-      let depth = 1;
-      while (end < sql.length && depth > 0) {
-        if (sql[end] === "/" && sql[end + 1] === "*") { depth += 1; end += 2; continue; }
-        if (sql[end] === "*" && sql[end + 1] === "/") { depth -= 1; end += 2; continue; }
-        end += 1;
-      }
-      if (depth > 0 && strict) throw new Error("A /* block comment is not closed. Close it before formatting so following SQL is not mistaken for comment text.");
-      addSegment(sql.slice(index, end));
-      index = end;
-      continue;
-    }
-
-    if (char === "$") {
-      const opener = sql.slice(index).match(/^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/)?.[0];
-      if (opener) {
-        const endAt = sql.indexOf(opener, index + opener.length);
-        if (endAt === -1) {
-          if (strict) throw new Error(`Dollar-quoted block ${opener} is not closed.`);
-          addSegment(sql.slice(index));
-          break;
-        }
-        const end = endAt + opener.length;
-        addSegment(sql.slice(index, end));
-        index = end;
-        continue;
-      }
-    }
-
-    if (char === "'" || char === '"' || char === "`") {
-      const quote = char;
-      let end = index + 1;
-      let closed = false;
-      while (end < sql.length) {
-        if (sql[end] === "\\" && end + 1 < sql.length) { end += 2; continue; }
-        if (sql[end] === quote) {
-          if (sql[end + 1] === quote) { end += 2; continue; }
-          end += 1;
-          closed = true;
-          break;
-        }
-        end += 1;
-      }
-      if (!closed && strict) throw new Error(`Quoted SQL segment beginning with ${quote} is not closed.`);
-      addSegment(sql.slice(index, end));
-      index = end;
-      continue;
-    }
-
-    if (char === "[") {
-      let end = index + 1;
-      let closed = false;
-      while (end < sql.length) {
-        if (sql[end] === "]" && sql[end + 1] === "]") { end += 2; continue; }
-        if (sql[end] === "]") { end += 1; closed = true; break; }
-        end += 1;
-      }
-      if (!closed && strict) throw new Error("Bracketed identifier is not closed with ].");
-      addSegment(sql.slice(index, end));
-      index = end;
-      continue;
-    }
-
-    result += char;
-    index += 1;
-  }
-
-  return { text: result, segments };
-}
-
-function restoreSQLSegments(sql: string, segments: string[]) {
-  return sql
-    .replace(new RegExp(`${SEGMENT_OPEN}(\\d+)${SEGMENT_CLOSE}`, "g"), (_match, rawIndex: string) => segments[Number(rawIndex)] ?? "")
-    .replace(new RegExp(FORCED_NEWLINE, "g"), "\n");
-}
-
-function analysisCode(sql: string) {
-  try {
-    return protectSQLSegments(sql, false).text.replace(new RegExp(FORCED_NEWLINE, "g"), " ");
-  } catch {
-    return sql;
-  }
-}
-
-function getSQLStats(sql: string): SQLStats {
-  const code = analysisCode(sql);
-  const normalized = code.toLowerCase();
-  const statementParts = code.split(";");
-  const statements = statementParts.filter((part) => hasExecutableText(part)).length;
-
-  return {
-    characters: sql.length,
-    lines: sql ? sql.split(/\r\n|\r|\n/).length : 0,
-    statements,
-    selectCount: countKeyword(normalized, "select"),
-    joinCount: countKeyword(normalized, "join"),
-    whereCount: countKeyword(normalized, "where"),
-    groupByCount: countPhrase(normalized, "group by"),
-    orderByCount: countPhrase(normalized, "order by"),
-  };
-}
-
-/** Return only words outside parentheses and protected strings/comments.
- * A WHERE inside a subquery must not count as the outer UPDATE/DELETE's WHERE.
- */
-function topLevelSQLWords(sql: string) {
-  const words: string[] = [];
-  let depth = 0;
-  const token = /[A-Za-z_][A-Za-z0-9_$]*|[()]/g;
-  let match: RegExpExecArray | null;
-  while ((match = token.exec(sql)) !== null) {
-    if (match[0] === "(") depth += 1;
-    else if (match[0] === ")") depth = Math.max(0, depth - 1);
-    else if (depth === 0) {
-      const end = match.index + match[0].length;
-      if ((match.index === 0 || !/[A-Za-z0-9_$]/.test(sql[match.index - 1])) &&
-          (end === sql.length || !/[A-Za-z0-9_$]/.test(sql[end]))) {
-        words.push(match[0].toUpperCase());
-      }
-    }
-  }
-  return words;
-}
-
-function getSQLWarnings(sql: string): QueryWarning[] {
-  const code = analysisCode(sql);
-  const warnings: QueryWarning[] = [];
-  const statements = code.split(";").filter((part) => hasExecutableText(part));
-
-  statements.forEach((statement, index) => {
-    const number = statements.length > 1 ? ` in statement ${index + 1}` : "";
-    if (/\bselect\s+\*/i.test(statement)) {
-      warnings.push({ title: `SELECT *${number}`, message: "Selecting every column can be intentional, but it can also pull more data than expected or make callers depend on schema changes." });
-    }
-
-    const words = topLevelSQLWords(statement);
-    // A leading WITH may define one or more CTEs before the outer statement.
-    // Check the first top-level command rather than UPDATE within an INSERT upsert.
-    const firstCommand = words[0] === "WITH"
-      ? words.findIndex((word) => ["SELECT", "INSERT", "UPDATE", "DELETE", "MERGE"].includes(word))
-      : 0;
-    const command = words[firstCommand];
-    if ((command === "UPDATE" || command === "DELETE") && !words.slice(firstCommand + 1).includes("WHERE")) {
-      warnings.push({
-        title: `${command} without WHERE${number}`,
-        message: `The outer ${command} appears to have no WHERE clause. A WHERE inside a nested query does not limit the outer statement. Confirm which rows will be affected in your database before running it.`,
-      });
-    }
-  });
-
-  return warnings;
-}
-
-function hasExecutableText(value: string) {
-  const withoutSegments = value
-    .replace(new RegExp(`${SEGMENT_OPEN}\\d+${SEGMENT_CLOSE}`, "g"), "")
-    .replace(new RegExp(FORCED_NEWLINE, "g"), "")
-    .trim();
-  return withoutSegments.length > 0;
-}
-
-function countKeyword(value: string, keyword: string) {
-  const matches = value.match(new RegExp(`\\b${escapeRegExp(keyword)}\\b`, "g"));
-  return matches ? matches.length : 0;
-}
-
-function countPhrase(value: string, phrase: string) {
-  const matches = value.match(new RegExp(`\\b${escapeRegExp(phrase)}\\b`, "g"));
-  return matches ? matches.length : 0;
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
