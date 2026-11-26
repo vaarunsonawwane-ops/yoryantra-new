@@ -17,7 +17,6 @@ export default function ToolClient() {
     <div className="mb-10">
       <p className="leading-relaxed text-gray-600">Use Unicode encode / decode for UTF-16 escapes, JavaScript escapes and U+ notation. Use Unicode escape sequences to convert mixed Unicode, hexadecimal and numeric HTML escapes.</p>
       <div className="mt-3 max-w-80"><YoryantraSelect variant="task" width="wide" label="What do you want to do?" value={active} onChange={value => open(value as Operation)} options={tasks.map(task => ({...task}))} /></div>
-      <p className="mt-3 text-sm text-gray-600">Conversion runs in your browser. Switching operations preserves your work.</p>
     </div>
     {visited.includes("unicode") && <div hidden={active !== "unicode"} role="region" aria-label="Unicode encode / decode"><UnicodePanel incoming={incoming.unicode} onSend={send}/></div>}
     {visited.includes("escape") && <div hidden={active !== "escape"} role="region" aria-label="Unicode escape sequences"><EscapePanel incoming={incoming.escape} onSend={send}/></div>}
